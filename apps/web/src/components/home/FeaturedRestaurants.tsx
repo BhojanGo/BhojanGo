@@ -23,7 +23,7 @@ export function FeaturedRestaurants() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Featured restaurants</h2>
             <p className="mt-1 text-gray-500 dark:text-gray-400">Top-rated picks in your area</p>
           </div>
-          <Link href="/restaurants" className="text-sm font-medium text-brand-500 hover:text-brand-600">
+          <Link href="/restaurants" className="text-sm font-medium text-emerald-600 hover:text-emerald-700">
             View all →
           </Link>
         </div>
