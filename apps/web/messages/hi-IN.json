@@ -1,0 +1,154 @@
+{
+  "nav": {
+    "home": "होम",
+    "restaurants": "रेस्तरां",
+    "orders": "ऑर्डर",
+    "profile": "प्रोफ़ाइल",
+    "wallet": "वॉलेट",
+    "login": "लॉगिन",
+    "signup": "साइन अप",
+    "logout": "लॉग आउट"
+  },
+  "home": {
+    "hero": {
+      "title": "भूख लगी है? हम हाज़िर हैं!",
+      "subtitle": "अपने पसंदीदा रेस्तरां से जल्दी डिलीवरी पाएं।",
+      "searchPlaceholder": "अपना शहर या इलाका दर्ज करें",
+      "searchButton": "खाना ढूंढें"
+    },
+    "featured": {
+      "title": "टॉप रेस्तरां",
+      "viewAll": "सभी देखें"
+    }
+  },
+  "restaurant": {
+    "menu": "मेनू",
+    "reviews": "समीक्षाएं",
+    "info": "जानकारी",
+    "openNow": "अभी खुला",
+    "closed": "बंद",
+    "minOrder": "न्यूनतम ऑर्डर",
+    "deliveryFee": "डिलीवरी शुल्क",
+    "deliveryTime": "{min}–{max} मिनट",
+    "rating": "{rating} ({count} रेटिंग)",
+    "addToCart": "जोड़ें",
+    "veg": "शाकाहारी",
+    "nonVeg": "मांसाहारी",
+    "customize": "कस्टमाइज़ करें",
+    "noMenu": "मेनू उपलब्ध नहीं"
+  },
+  "cart": {
+    "title": "आपकी कार्ट",
+    "empty": "कार्ट खाली है",
+    "emptySubtext": "शुरू करने के लिए कोई रेस्तरां चुनें",
+    "browseRestaurants": "रेस्तरां देखें",
+    "subtotal": "आइटम कुल",
+    "deliveryFee": "डिलीवरी शुल्क",
+    "tax": "GST और कर",
+    "total": "कुल बिल",
+    "checkout": "भुगतान करें",
+    "remove": "हटाएं",
+    "from": "{restaurant} से"
+  },
+  "checkout": {
+    "title": "चेकआउट",
+    "deliveryAddress": "डिलीवरी पता",
+    "paymentMethod": "भुगतान का तरीका",
+    "orderSummary": "ऑर्डर सारांश",
+    "placeOrder": "ऑर्डर दें",
+    "processing": "प्रोसेस हो रहा है...",
+    "addAddress": "डिलीवरी पता जोड़ें",
+    "card": "क्रेडिट / डेबिट कार्ड",
+    "wallet": "BhojanGo वॉलेट",
+    "walletBalance": "बैलेंस: {amount}",
+    "cod": "कैश ऑन डिलीवरी",
+    "upi": "UPI"
+  },
+  "orders": {
+    "title": "आपके ऑर्डर",
+    "noOrders": "अभी तक कोई ऑर्डर नहीं",
+    "noOrdersSubtext": "आपका ऑर्डर इतिहास यहां दिखेगा",
+    "orderNumber": "ऑर्डर #{id}",
+    "status": {
+      "pending": "लंबित",
+      "confirmed": "कन्फर्म हो गया",
+      "preparing": "तैयार हो रहा है",
+      "ready_for_pickup": "पिकअप के लिए तैयार",
+      "picked_up": "डिलीवरी के रास्ते में",
+      "delivered": "डिलीवर हो गया",
+      "cancelled": "रद्द"
+    },
+    "track": "ट्रैक करें",
+    "reorder": "फिर से ऑर्डर करें",
+    "deliveryAddress": "डिलीवरी पता",
+    "items": "{count} आइटम",
+    "total": "बिल: {amount}"
+  },
+  "tracking": {
+    "title": "अपना ऑर्डर ट्रैक करें",
+    "driverAssigned": "डिलीवरी पार्टनर मिल गया",
+    "driverName": "डिलीवरी पार्टनर: {name}",
+    "eta": "{time} मिनट में पहुंचेगा",
+    "liveTracking": "लाइव ट्रैकिंग"
+  },
+  "profile": {
+    "title": "मेरा खाता",
+    "personalInfo": "व्यक्तिगत जानकारी",
+    "name": "पूरा नाम",
+    "email": "ईमेल",
+    "phone": "मोबाइल नंबर",
+    "save": "सेव करें",
+    "saved": "सेव हो गया!",
+    "preferences": "प्राथमिकताएं",
+    "language": "भाषा",
+    "currency": "मुद्रा"
+  },
+  "wallet": {
+    "title": "BhojanGo वॉलेट",
+    "balance": "उपलब्ध बैलेंस",
+    "topUp": "पैसे जोड़ें",
+    "transactions": "लेनदेन इतिहास",
+    "noTransactions": "अभी कोई लेनदेन नहीं",
+    "credit": "जोड़ा गया",
+    "debit": "खर्च हुआ",
+    "topUpAmount": "राशि",
+    "addMoney": "पैसे जोड़ें"
+  },
+  "auth": {
+    "loginTitle": "वापस स्वागत है",
+    "loginSubtitle": "अपने BhojanGo खाते में साइन इन करें",
+    "signupTitle": "खाता बनाएं",
+    "signupSubtitle": "BhojanGo से जुड़ें और अपना पसंदीदा खाना ऑर्डर करें",
+    "email": "ईमेल पता",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "name": "पूरा नाम",
+    "phone": "मोबाइल नंबर (वैकल्पिक)",
+    "signIn": "साइन इन",
+    "signUp": "साइन अप",
+    "orContinueWith": "या इससे जारी रखें",
+    "google": "Google से जारी रखें",
+    "noAccount": "BhojanGo पर नए हैं?",
+    "hasAccount": "पहले से खाता है?",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "passwordsNoMatch": "पासवर्ड मेल नहीं खाते",
+    "weakPassword": "पासवर्ड कम से कम 8 अक्षर का होना चाहिए"
+  },
+  "errors": {
+    "generic": "कुछ गलत हो गया। फिर से कोशिश करें।",
+    "notFound": "पेज नहीं मिला",
+    "unauthorized": "जारी रखने के लिए साइन इन करें",
+    "networkError": "नेटवर्क त्रुटि। अपना कनेक्शन जांचें।"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "retry": "फिर कोशिश करें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "close": "बंद करें",
+    "back": "वापस",
+    "next": "अगला",
+    "done": "हो गया",
+    "search": "खोजें"
+  }
+}

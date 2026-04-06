@@ -1,0 +1,154 @@
+{
+  "nav": {
+    "home": "Home",
+    "restaurants": "Restaurants",
+    "orders": "Orders",
+    "profile": "Profile",
+    "wallet": "Wallet",
+    "login": "Sign In",
+    "signup": "Sign Up",
+    "logout": "Sign Out"
+  },
+  "home": {
+    "hero": {
+      "title": "Hungry? Order from top restaurants near you!",
+      "subtitle": "Fast delivery from the best local restaurants.",
+      "searchPlaceholder": "Enter your city or area",
+      "searchButton": "Find Food"
+    },
+    "featured": {
+      "title": "Top Restaurants",
+      "viewAll": "View All"
+    }
+  },
+  "restaurant": {
+    "menu": "Menu",
+    "reviews": "Reviews",
+    "info": "Info",
+    "openNow": "Open Now",
+    "closed": "Closed",
+    "minOrder": "Min. order",
+    "deliveryFee": "Delivery fee",
+    "deliveryTime": "{min}–{max} mins",
+    "rating": "{rating} ({count} ratings)",
+    "addToCart": "Add",
+    "veg": "Veg",
+    "nonVeg": "Non-Veg",
+    "customize": "Customise",
+    "noMenu": "Menu not available"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Your cart is empty",
+    "emptySubtext": "Add items from a restaurant to get started",
+    "browseRestaurants": "Browse Restaurants",
+    "subtotal": "Item Total",
+    "deliveryFee": "Delivery Fee",
+    "tax": "GST & Taxes",
+    "total": "Total Bill",
+    "checkout": "Proceed to Pay",
+    "remove": "Remove",
+    "from": "From {restaurant}"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "deliveryAddress": "Delivery Address",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order",
+    "processing": "Processing...",
+    "addAddress": "Add delivery address",
+    "card": "Credit / Debit Card",
+    "wallet": "BhojanGo Wallet",
+    "walletBalance": "Balance: {amount}",
+    "cod": "Cash on Delivery",
+    "upi": "UPI"
+  },
+  "orders": {
+    "title": "Your Orders",
+    "noOrders": "No orders yet",
+    "noOrdersSubtext": "Your order history will appear here",
+    "orderNumber": "Order #{id}",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Order Confirmed",
+      "preparing": "Being Prepared",
+      "ready_for_pickup": "Ready for Pickup",
+      "picked_up": "Out for Delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "track": "Track Order",
+    "reorder": "Reorder",
+    "deliveryAddress": "Delivery Address",
+    "items": "{count} item(s)",
+    "total": "Bill: {amount}"
+  },
+  "tracking": {
+    "title": "Track Your Order",
+    "driverAssigned": "Delivery partner assigned",
+    "driverName": "Delivery Partner: {name}",
+    "eta": "Arriving in {time} mins",
+    "liveTracking": "Live Tracking"
+  },
+  "profile": {
+    "title": "My Account",
+    "personalInfo": "Personal Details",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Mobile Number",
+    "save": "Save",
+    "saved": "Saved!",
+    "preferences": "Preferences",
+    "language": "Language",
+    "currency": "Currency"
+  },
+  "wallet": {
+    "title": "BhojanGo Wallet",
+    "balance": "Available Balance",
+    "topUp": "Add Money",
+    "transactions": "Transaction History",
+    "noTransactions": "No transactions yet",
+    "credit": "Money Added",
+    "debit": "Money Spent",
+    "topUpAmount": "Amount",
+    "addMoney": "Add Money"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your BhojanGo account",
+    "signupTitle": "Create account",
+    "signupSubtitle": "Join BhojanGo and order your favourite food",
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Full name",
+    "phone": "Mobile number (optional)",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "orContinueWith": "Or sign in with",
+    "google": "Continue with Google",
+    "noAccount": "New to BhojanGo?",
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "passwordsNoMatch": "Passwords do not match",
+    "weakPassword": "Password must be at least 8 characters"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "Page not found",
+    "unauthorized": "Please sign in to continue",
+    "networkError": "Network error. Check your connection."
+  },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Try Again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search"
+  }
+}

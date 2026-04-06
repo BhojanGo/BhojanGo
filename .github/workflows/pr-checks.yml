@@ -1,0 +1,208 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────
+  # Detect changed paths for targeted checks
+  # ──────────────────────────────────────────
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      services: ${{ steps.filter.outputs.services }}
+      terraform: ${{ steps.filter.outputs.terraform }}
+      services_list: ${{ steps.services.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'apps/**'
+              - 'packages/**'
+            services:
+              - 'services/**'
+            terraform:
+              - 'infra/terraform/**'
+
+      - name: Determine changed services
+        id: services
+        if: steps.filter.outputs.services == 'true'
+        run: |
+          SERVICES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- services/ | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "list=$SERVICES" >> $GITHUB_OUTPUT
+
+  # ──────────────────────────────────────────
+  # Frontend checks
+  # ──────────────────────────────────────────
+  frontend-lint:
+    name: Frontend Lint & Typecheck
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo lint --filter='./apps/*' --filter='./packages/*'
+      - run: pnpm turbo typecheck --filter='./apps/*' --filter='./packages/*'
+      - run: pnpm turbo build --filter='./packages/*'
+
+  # ──────────────────────────────────────────
+  # Backend tests
+  # ──────────────────────────────────────────
+  backend-test:
+    name: Test ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.services == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - user-svc
+          - restaurant-svc
+          - order-svc
+          - delivery-svc
+          - payment-svc
+          - notification-svc
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bhojango
+          POSTGRES_PASSWORD: bhojango_test
+          POSTGRES_DB: bhojango_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bhojango"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run tests
+        working-directory: services/${{ matrix.service }}
+        env:
+          DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
+          REDIS_URL: redis://localhost:6379/15
+          JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+          ENVIRONMENT: test
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+        run: pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=80
+
+  # ──────────────────────────────────────────
+  # Terraform validation
+  # ──────────────────────────────────────────
+  terraform-validate:
+    name: Terraform Validate
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8"
+
+      - name: Terraform fmt check
+        working-directory: infra/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        working-directory: infra/terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: infra/terraform
+        run: terraform validate
+
+  # ──────────────────────────────────────────
+  # Docker build check (no push)
+  # ──────────────────────────────────────────
+  docker-build:
+    name: Docker Build ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.services == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - user-svc
+          - restaurant-svc
+          - order-svc
+          - delivery-svc
+          - payment-svc
+          - notification-svc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t bhojango-${{ matrix.service }}:test services/${{ matrix.service }}
+
+  # ──────────────────────────────────────────
+  # Status check gate (required for merge)
+  # ──────────────────────────────────────────
+  pr-status:
+    name: PR Status
+    if: always()
+    needs: [frontend-lint, backend-test, terraform-validate, docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more checks failed"
+            exit 1
+          fi
+          echo "All checks passed"

@@ -1,0 +1,153 @@
+{
+  "nav": {
+    "home": "Home",
+    "restaurants": "Restaurants",
+    "orders": "Orders",
+    "profile": "Profile",
+    "wallet": "Wallet",
+    "login": "Sign In",
+    "signup": "Sign Up",
+    "logout": "Sign Out"
+  },
+  "home": {
+    "hero": {
+      "title": "Hungry? We've got you covered.",
+      "subtitle": "Order from the best local restaurants with fast delivery.",
+      "searchPlaceholder": "Enter your city or address",
+      "searchButton": "Find Food"
+    },
+    "featured": {
+      "title": "Featured Restaurants",
+      "viewAll": "View All"
+    }
+  },
+  "restaurant": {
+    "menu": "Menu",
+    "reviews": "Reviews",
+    "info": "Info",
+    "openNow": "Open Now",
+    "closed": "Closed",
+    "minOrder": "Min. order",
+    "deliveryFee": "Delivery fee",
+    "deliveryTime": "{min}–{max} min",
+    "rating": "{rating} ({count} reviews)",
+    "addToCart": "Add",
+    "veg": "Veg",
+    "nonVeg": "Non-Veg",
+    "customize": "Customize",
+    "noMenu": "Menu not available"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Your cart is empty",
+    "emptySubtext": "Add items from a restaurant to get started",
+    "browseRestaurants": "Browse Restaurants",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "tax": "Tax",
+    "total": "Total",
+    "checkout": "Proceed to Checkout",
+    "remove": "Remove",
+    "from": "From {restaurant}"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "deliveryAddress": "Delivery Address",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order",
+    "processing": "Processing...",
+    "addAddress": "Add delivery address",
+    "card": "Credit / Debit Card",
+    "wallet": "BhojanGo Wallet",
+    "walletBalance": "Balance: {amount}",
+    "cod": "Cash on Delivery"
+  },
+  "orders": {
+    "title": "Your Orders",
+    "noOrders": "No orders yet",
+    "noOrdersSubtext": "Your order history will appear here",
+    "orderNumber": "Order #{id}",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "ready_for_pickup": "Ready for Pickup",
+      "picked_up": "Out for Delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "track": "Track Order",
+    "reorder": "Reorder",
+    "deliveryAddress": "Delivery Address",
+    "items": "{count} item(s)",
+    "total": "Total: {amount}"
+  },
+  "tracking": {
+    "title": "Track Your Order",
+    "driverAssigned": "Driver assigned",
+    "driverName": "Driver: {name}",
+    "eta": "ETA: {time} min",
+    "liveTracking": "Live Tracking"
+  },
+  "profile": {
+    "title": "My Profile",
+    "personalInfo": "Personal Information",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "save": "Save Changes",
+    "saved": "Changes saved",
+    "preferences": "Preferences",
+    "language": "Language",
+    "currency": "Currency"
+  },
+  "wallet": {
+    "title": "BhojanGo Wallet",
+    "balance": "Current Balance",
+    "topUp": "Add Money",
+    "transactions": "Transaction History",
+    "noTransactions": "No transactions yet",
+    "credit": "Credit",
+    "debit": "Debit",
+    "topUpAmount": "Amount to Add",
+    "addMoney": "Add Money"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your BhojanGo account",
+    "signupTitle": "Create account",
+    "signupSubtitle": "Join BhojanGo to order your favorite food",
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Full name",
+    "phone": "Phone number (optional)",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "orContinueWith": "Or continue with",
+    "google": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "passwordsNoMatch": "Passwords do not match",
+    "weakPassword": "Password must be at least 8 characters"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "Page not found",
+    "unauthorized": "Please sign in to continue",
+    "networkError": "Network error. Check your connection."
+  },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Try Again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search"
+  }
+}

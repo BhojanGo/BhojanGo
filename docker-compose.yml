@@ -1,0 +1,282 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  # Infrastructure
+  # ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bhojango
+      POSTGRES_PASSWORD: bhojango_dev
+      POSTGRES_DB: bhojango
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bhojango"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:2.14.0
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=BhojanGo@Dev123
+      - plugins.security.disabled=true
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
+
+  localstack:
+    image: localstack/localstack:3.4
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs,sns,s3
+      DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./infra/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  # ──────────────────────────────────────────────
+  # API Gateway
+  # ──────────────────────────────────────────────
+  kong:
+    image: kong:3.7
+    restart: unless-stopped
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: "0.0.0.0:8080"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8444"
+      KONG_LOG_LEVEL: info
+    ports:
+      - "8888:8080"
+      - "8444:8444"
+    volumes:
+      - ./infra/kong/kong.yml:/etc/kong/kong.yml:ro
+    depends_on:
+      - user-svc
+      - restaurant-svc
+      - order-svc
+      - delivery-svc
+      - payment-svc
+      - notification-svc
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Microservices
+  # ──────────────────────────────────────────────
+  user-svc:
+    build:
+      context: ./services/user-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  restaurant-svc:
+    build:
+      context: ./services/restaurant-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/1
+      OPENSEARCH_URL: http://opensearch:9200
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+
+  order-svc:
+    build:
+      context: ./services/order-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/2
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SNS_TOPIC_ARN_ORDER: arn:aws:sns:us-east-1:000000000000:bhojango-order-events
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+
+  delivery-svc:
+    build:
+      context: ./services/delivery-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      REDIS_URL: redis://redis:6379/3
+      DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      ENVIRONMENT: development
+    depends_on:
+      redis:
+        condition: service_healthy
+      dynamodb-local:
+        condition: service_started
+
+  payment-svc:
+    build:
+      context: ./services/payment-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/4
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      RAZORPAY_KEY_ID: rzp_test_placeholder
+      RAZORPAY_KEY_SECRET: placeholder
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SNS_TOPIC_ARN_PAYMENT: arn:aws:sns:us-east-1:000000000000:bhojango-payment-events
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-svc:
+    build:
+      context: ./services/notification-svc
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      JWT_SECRET: dev_jwt_secret_change_in_production_min32chars
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      SQS_QUEUE_URL_NOTIFICATION: http://localstack:4566/000000000000/bhojango-notifications
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+
+  batch-engine:
+    build:
+      context: ./services/batch-engine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8007:8007"
+    environment:
+      NODE_ENV: development
+      PORT: "8007"
+      DATABASE_URL: postgresql://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/6
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      BATCH_CYCLE_SECONDS: "30"
+      MAX_ORDERS_PER_BATCH: "3"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  opensearch_data:
+  localstack_data:
