@@ -65,7 +65,7 @@ export default function PaymentsPage() {
                 key={s}
                 onClick={() => { setStatusFilter(s); setPage(1); }}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition ${
-                  statusFilter === s ? "bg-orange-500 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  statusFilter === s ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                 }`}
               >
                 {s}

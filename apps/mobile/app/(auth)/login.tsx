@@ -49,7 +49,7 @@ export default function LoginScreen() {
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
           <View className="flex-1 justify-center">
-            <Text className="text-3xl font-bold text-brand-500 mb-1">BhojanGo</Text>
+            <Text className="text-3xl font-bold text-emerald-500 mb-1">BhojanGo</Text>
             <Text className="text-2xl font-semibold text-gray-900 mb-1">Welcome back</Text>
             <Text className="text-gray-500 mb-8">Sign in to your account</Text>
 
@@ -89,7 +89,7 @@ export default function LoginScreen() {
             <Pressable
               onPress={handleLogin}
               disabled={loading}
-              className="w-full py-3.5 bg-brand-500 rounded-xl items-center mb-4 active:opacity-80"
+              className="w-full py-3.5 bg-emerald-500 rounded-xl items-center mb-4 active:opacity-80"
             >
               <Text className="text-white font-semibold text-base">
                 {loading ? "Signing in..." : "Sign In"}
@@ -99,7 +99,7 @@ export default function LoginScreen() {
             <View className="flex-row justify-center gap-1">
               <Text className="text-gray-500 text-sm">Don't have an account?</Text>
               <Pressable onPress={() => router.push("/(auth)/signup")}>
-                <Text className="text-brand-500 font-semibold text-sm">Sign Up</Text>
+                <Text className="text-emerald-500 font-semibold text-sm">Sign Up</Text>
               </Pressable>
             </View>
           </View>

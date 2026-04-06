@@ -57,8 +57,8 @@ export default function WalletScreen() {
         ListHeaderComponent={
           <View className="px-4 pt-4">
             {/* Balance card */}
-            <View className="bg-brand-500 rounded-2xl p-6 mb-4">
-              <Text className="text-brand-100 text-sm">Available Balance</Text>
+            <View className="bg-emerald-500 rounded-2xl p-6 mb-4">
+              <Text className="text-emerald-100 text-sm">Available Balance</Text>
               <Text className="text-white text-4xl font-bold mt-1">
                 {currencySymbol}{balance?.balance?.toFixed(2) ?? "0.00"}
               </Text>
@@ -73,10 +73,10 @@ export default function WalletScreen() {
                     key={amt}
                     onPress={() => setAmount(String(amt))}
                     className={`px-4 py-1.5 rounded-lg border ${
-                      amount === String(amt) ? "border-brand-500 bg-brand-50" : "border-gray-300 bg-white"
+                      amount === String(amt) ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-white"
                     }`}
                   >
-                    <Text className={`text-sm font-medium ${amount === String(amt) ? "text-brand-600" : "text-gray-700"}`}>
+                    <Text className={`text-sm font-medium ${amount === String(amt) ? "text-emerald-700" : "text-gray-700"}`}>
                       {currencySymbol}{amt}
                     </Text>
                   </Pressable>
@@ -100,7 +100,7 @@ export default function WalletScreen() {
                     if (amt > 0) topUpMutation.mutate(amt);
                   }}
                   disabled={topUpMutation.isPending || !amount || parseFloat(amount) <= 0}
-                  className="px-5 bg-brand-500 rounded-xl items-center justify-center active:opacity-80 disabled:opacity-50"
+                  className="px-5 bg-emerald-500 rounded-xl items-center justify-center active:opacity-80 disabled:opacity-50"
                 >
                   <Text className="text-white font-semibold">
                     {topUpMutation.isPending ? "..." : "Add"}

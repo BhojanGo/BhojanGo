@@ -12,7 +12,7 @@ const STATUSES = ["all", "pending", "confirmed", "preparing", "ready_for_pickup"
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-900/50 text-yellow-400",
   confirmed: "bg-blue-900/50 text-blue-400",
-  preparing: "bg-orange-900/50 text-orange-400",
+  preparing: "bg-amber-900/50 text-emerald-500",
   ready_for_pickup: "bg-purple-900/50 text-purple-400",
   picked_up: "bg-indigo-900/50 text-indigo-400",
   delivered: "bg-green-900/50 text-green-400",
@@ -52,7 +52,7 @@ export default function OrdersPage() {
               onClick={() => { setStatusFilter(s); setPage(1); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition ${
                 statusFilter === s
-                  ? "bg-orange-500 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
@@ -101,7 +101,7 @@ export default function OrdersPage() {
                       {new Date(order.created_at).toLocaleString()}
                     </td>
                     <td className="py-3 px-4">
-                      <Link href={`/orders/${order.id}`} className="text-xs text-orange-400 hover:underline">
+                      <Link href={`/orders/${order.id}`} className="text-xs text-emerald-500 hover:underline">
                         View
                       </Link>
                     </td>

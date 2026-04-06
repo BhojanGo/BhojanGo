@@ -69,7 +69,7 @@ export default function SearchScreen() {
               onPress={() => setCuisine(item)}
               className={`px-4 py-1.5 rounded-full border ${
                 cuisine === item
-                  ? "bg-brand-500 border-brand-500"
+                  ? "bg-emerald-500 border-emerald-500"
                   : "bg-white border-gray-300"
               }`}
             >
@@ -101,7 +101,7 @@ export default function SearchScreen() {
               onPress={() => router.push(`/restaurant/${item.id}`)}
               className="bg-white rounded-xl overflow-hidden border border-gray-100 flex-row"
             >
-              <View className="w-24 h-24 bg-orange-50 items-center justify-center">
+              <View className="w-24 h-24 bg-emerald-50 items-center justify-center">
                 {item.logo_url ? (
                   <Image source={{ uri: item.logo_url }} className="w-24 h-24" resizeMode="cover" />
                 ) : (

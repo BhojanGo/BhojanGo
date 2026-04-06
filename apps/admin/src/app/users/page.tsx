@@ -42,14 +42,14 @@ export default function UsersPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search users..."
-            className="w-64 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:border-orange-500 outline-none"
+            className="w-64 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:border-emerald-600 outline-none"
           />
           {ROLES.map((r) => (
             <button
               key={r}
               onClick={() => { setRoleFilter(r); setPage(1); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition ${
-                roleFilter === r ? "bg-orange-500 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                roleFilter === r ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
               {r.replace("_", " ")}

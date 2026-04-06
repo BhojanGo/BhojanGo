@@ -17,7 +17,7 @@ interface TopRestaurant {
   revenue: number;
 }
 
-function Bar({ value, max, label, color = "bg-orange-500" }: { value: number; max: number; label: string; color?: string }) {
+function Bar({ value, max, label, color = "bg-emerald-600" }: { value: number; max: number; label: string; color?: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="bg-gray-800 rounded-full h-6 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-orange-500 to-orange-400 h-6 flex items-center pl-3 transition-all"
+                        className="bg-gradient-to-r from-emerald-600 to-emerald-500 h-6 flex items-center pl-3 transition-all"
                         style={{ width: `${(d.revenue / maxRevenue) * 100}%` }}
                       >
                         <span className="text-xs text-white font-medium">

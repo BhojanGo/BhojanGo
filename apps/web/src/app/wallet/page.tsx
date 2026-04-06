@@ -80,8 +80,8 @@ export default function WalletPage() {
         <h1 className="text-xl font-bold text-gray-900 mb-6">{t("title")}</h1>
 
         {/* Balance card */}
-        <div className="bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl p-6 mb-6 text-white">
-          <p className="text-sm text-brand-100 mb-1">{t("balance")}</p>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 mb-6 text-white">
+          <p className="text-sm text-emerald-100 mb-1">{t("balance")}</p>
           {balanceLoading ? (
             <div className="h-10 w-32 bg-white/20 rounded animate-pulse" />
           ) : (
@@ -92,7 +92,7 @@ export default function WalletPage() {
           )}
           <button
             onClick={() => setShowTopUp(!showTopUp)}
-            className="mt-4 px-5 py-2 bg-white text-brand-600 rounded-lg font-semibold text-sm hover:bg-brand-50 transition"
+            className="mt-4 px-5 py-2 bg-white text-emerald-700 rounded-lg font-semibold text-sm hover:bg-emerald-50 transition"
           >
             + {t("topUp")}
           </button>
@@ -109,7 +109,7 @@ export default function WalletPage() {
                   onClick={() => setTopUpAmount(String(amt))}
                   className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition ${
                     topUpAmount === String(amt)
-                      ? "border-brand-500 bg-brand-50 text-brand-600"
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                       : "border-gray-300 text-gray-700 hover:border-gray-400"
                   }`}
                 >
@@ -129,7 +129,7 @@ export default function WalletPage() {
                   value={topUpAmount}
                   onChange={(e) => setTopUpAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                  className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 />
               </div>
               <button
@@ -138,7 +138,7 @@ export default function WalletPage() {
                   if (amt > 0) topUpMutation.mutate(amt);
                 }}
                 disabled={topUpMutation.isPending || !topUpAmount || parseFloat(topUpAmount) <= 0}
-                className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
+                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
               >
                 {topUpMutation.isPending ? "..." : t("addMoney")}
               </button>

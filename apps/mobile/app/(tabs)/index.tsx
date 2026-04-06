@@ -26,7 +26,7 @@ function RestaurantItem({ item }: { item: Restaurant }) {
       {item.banner_url ? (
         <Image source={{ uri: item.banner_url }} className="w-full h-36" resizeMode="cover" />
       ) : (
-        <View className="w-full h-36 bg-orange-50 items-center justify-center">
+        <View className="w-full h-36 bg-emerald-50 items-center justify-center">
           <Text className="text-4xl">🍽️</Text>
         </View>
       )}
@@ -87,7 +87,7 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View className="px-4 pt-2 pb-4 bg-white">
-          <Text className="text-2xl font-bold text-brand-500">BhojanGo</Text>
+          <Text className="text-2xl font-bold text-emerald-500">BhojanGo</Text>
           <Text className="text-gray-500 text-sm mt-0.5">
             {user ? `Hey, ${user.full_name?.split(" ")[0]}! 👋` : "Order delicious food"}
           </Text>
@@ -109,7 +109,7 @@ export default function HomeScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-bold text-gray-900">Top Restaurants</Text>
             <Pressable onPress={() => router.push("/search")}>
-              <Text className="text-sm text-brand-500 font-medium">View All</Text>
+              <Text className="text-sm text-emerald-500 font-medium">View All</Text>
             </Pressable>
           </View>
 

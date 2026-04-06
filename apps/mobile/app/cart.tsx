@@ -16,7 +16,7 @@ export default function CartScreen() {
         <Text className="text-gray-500 mb-6">Add items from a restaurant to get started</Text>
         <Pressable
           onPress={() => router.push("/")}
-          className="px-6 py-3 bg-brand-500 rounded-xl active:opacity-80"
+          className="px-6 py-3 bg-emerald-500 rounded-xl active:opacity-80"
         >
           <Text className="text-white font-semibold">Browse Restaurants</Text>
         </Pressable>
@@ -102,7 +102,7 @@ export default function CartScreen() {
       <View className="px-4 pb-6 bg-white border-t border-gray-100">
         <Pressable
           onPress={() => router.push("/checkout")}
-          className="py-4 bg-brand-500 rounded-xl items-center active:opacity-80"
+          className="py-4 bg-emerald-500 rounded-xl items-center active:opacity-80"
         >
           <Text className="text-white font-semibold text-base">
             Proceed to Checkout · ${total.toFixed(2)}

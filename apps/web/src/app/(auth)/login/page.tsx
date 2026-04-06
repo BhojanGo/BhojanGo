@@ -44,7 +44,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-3xl font-bold text-brand-500">
+          <Link href="/" className="text-3xl font-bold text-emerald-500">
             BhojanGo
           </Link>
           <h1 className="mt-4 text-2xl font-semibold text-gray-900">{t("loginTitle")}</h1>
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="you@example.com"
               />
             </div>
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   {t("password")}
                 </label>
-                <Link href="/forgot-password" className="text-xs text-brand-500 hover:underline">
+                <Link href="/forgot-password" className="text-xs text-emerald-500 hover:underline">
                   {t("forgotPassword")}
                 </Link>
               </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
+              className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
             >
               {loading ? "..." : t("signIn")}
             </button>
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           {t("noAccount")}{" "}
-          <Link href="/signup" className="text-brand-500 font-semibold hover:underline">
+          <Link href="/signup" className="text-emerald-500 font-semibold hover:underline">
             {t("signUp")}
           </Link>
         </p>

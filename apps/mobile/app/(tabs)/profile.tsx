@@ -48,8 +48,8 @@ export default function ProfileScreen() {
         {/* Header */}
         <View className="bg-white px-4 py-5 mb-4">
           <View className="flex-row items-center gap-4">
-            <View className="w-16 h-16 rounded-full bg-brand-100 items-center justify-center">
-              <Text className="text-brand-600 text-2xl font-bold">
+            <View className="w-16 h-16 rounded-full bg-emerald-100 items-center justify-center">
+              <Text className="text-emerald-700 text-2xl font-bold">
                 {user?.full_name?.[0]?.toUpperCase() ?? "?"}
               </Text>
             </View>
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
 
         {/* Loyalty points */}
         {user?.loyalty_points !== undefined && user.loyalty_points > 0 && (
-          <View className="mx-4 mb-4 bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl p-4 flex-row items-center justify-between">
+          <View className="mx-4 mb-4 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-xl p-4 flex-row items-center justify-between">
             <View>
               <Text className="text-white text-xs">Loyalty Points</Text>
               <Text className="text-white text-2xl font-bold">{user.loyalty_points}</Text>

@@ -72,7 +72,7 @@ export default function SignupScreen() {
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
           <View className="flex-1 justify-center">
-            <Text className="text-3xl font-bold text-brand-500 mb-1">BhojanGo</Text>
+            <Text className="text-3xl font-bold text-emerald-500 mb-1">BhojanGo</Text>
             <Text className="text-2xl font-semibold text-gray-900 mb-1">Create account</Text>
             <Text className="text-gray-500 mb-8">Join BhojanGo today</Text>
 
@@ -106,7 +106,7 @@ export default function SignupScreen() {
             <Pressable
               onPress={handleSignup}
               disabled={loading}
-              className="w-full py-3.5 bg-brand-500 rounded-xl items-center mb-4 active:opacity-80"
+              className="w-full py-3.5 bg-emerald-500 rounded-xl items-center mb-4 active:opacity-80"
             >
               <Text className="text-white font-semibold text-base">
                 {loading ? "Creating account..." : "Sign Up"}
@@ -116,7 +116,7 @@ export default function SignupScreen() {
             <View className="flex-row justify-center gap-1">
               <Text className="text-gray-500 text-sm">Already have an account?</Text>
               <Pressable onPress={() => router.push("/(auth)/login")}>
-                <Text className="text-brand-500 font-semibold text-sm">Sign In</Text>
+                <Text className="text-emerald-500 font-semibold text-sm">Sign In</Text>
               </Pressable>
             </View>
           </View>

@@ -35,7 +35,7 @@ function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaur
             <View className={`w-2 h-2 rounded-full ${item.is_veg ? "bg-green-500" : "bg-red-500"}`} />
           </View>
           {item.is_popular && (
-            <Text className="text-xs text-brand-500 font-medium">Bestseller</Text>
+            <Text className="text-xs text-emerald-500 font-medium">Bestseller</Text>
           )}
         </View>
         <Text className="text-sm font-medium text-gray-900">{item.name}</Text>
@@ -53,10 +53,10 @@ function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaur
           <Image source={{ uri: item.image_url }} className="w-24 h-20 rounded-xl" resizeMode="cover" />
         )}
         {cartItem ? (
-          <View className="flex-row items-center border border-brand-500 rounded-lg overflow-hidden">
+          <View className="flex-row items-center border border-emerald-500 rounded-lg overflow-hidden">
             <Pressable
               onPress={() => useCartStore.getState().updateQuantity(item.id, cartItem.quantity - 1)}
-              className="w-8 h-8 items-center justify-center bg-brand-500"
+              className="w-8 h-8 items-center justify-center bg-emerald-500"
             >
               <Text className="text-white font-bold">−</Text>
             </Pressable>
@@ -65,7 +65,7 @@ function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaur
             </Text>
             <Pressable
               onPress={() => addItem({ id: restaurant.id, name: restaurant.name }, item)}
-              className="w-8 h-8 items-center justify-center bg-brand-500"
+              className="w-8 h-8 items-center justify-center bg-emerald-500"
             >
               <Text className="text-white font-bold">+</Text>
             </Pressable>
@@ -73,9 +73,9 @@ function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaur
         ) : (
           <Pressable
             onPress={() => addItem({ id: restaurant.id, name: restaurant.name }, item)}
-            className="px-4 py-1.5 border border-brand-500 rounded-lg active:bg-brand-50"
+            className="px-4 py-1.5 border border-emerald-500 rounded-lg active:bg-emerald-50"
           >
-            <Text className="text-brand-500 font-semibold text-sm">Add</Text>
+            <Text className="text-emerald-500 font-semibold text-sm">Add</Text>
           </Pressable>
         )}
       </View>
@@ -153,7 +153,7 @@ export default function RestaurantScreen() {
           >
             <Pressable
               onPress={() => setActiveCategory(null)}
-              className={`px-4 py-1.5 rounded-full border ${!activeCategory ? "bg-brand-500 border-brand-500" : "bg-white border-gray-300"}`}
+              className={`px-4 py-1.5 rounded-full border ${!activeCategory ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-300"}`}
             >
               <Text className={`text-sm font-medium ${!activeCategory ? "text-white" : "text-gray-700"}`}>
                 All
@@ -163,7 +163,7 @@ export default function RestaurantScreen() {
               <Pressable
                 key={cat.id}
                 onPress={() => setActiveCategory(cat.id)}
-                className={`px-4 py-1.5 rounded-full border ${activeCategory === cat.id ? "bg-brand-500 border-brand-500" : "bg-white border-gray-300"}`}
+                className={`px-4 py-1.5 rounded-full border ${activeCategory === cat.id ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-300"}`}
               >
                 <Text className={`text-sm font-medium ${activeCategory === cat.id ? "text-white" : "text-gray-700"}`}>
                   {cat.name}
@@ -191,7 +191,7 @@ export default function RestaurantScreen() {
         <View className="absolute bottom-6 left-4 right-4">
           <Pressable
             onPress={() => router.push("/cart")}
-            className="bg-brand-500 rounded-2xl py-4 px-5 flex-row items-center justify-between shadow-lg active:opacity-80"
+            className="bg-emerald-500 rounded-2xl py-4 px-5 flex-row items-center justify-between shadow-lg active:opacity-80"
           >
             <View className="bg-white/20 rounded-full w-7 h-7 items-center justify-center">
               <Text className="text-white font-bold text-sm">{cart.getItemCount()}</Text>

@@ -68,7 +68,7 @@ export default function ProfilePage() {
 
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-6 bg-white rounded-xl p-4">
-          <div className="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 text-2xl font-bold">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-2xl font-bold">
             {user?.full_name?.[0]?.toUpperCase() ?? "?"}
           </div>
           <div>
@@ -89,7 +89,7 @@ export default function ProfilePage() {
                 type="text"
                 value={form.full_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
               />
             </div>
             <div>
@@ -99,7 +99,7 @@ export default function ProfilePage() {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
               />
             </div>
             <div>
@@ -109,7 +109,7 @@ export default function ProfilePage() {
                 type="tel"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
               />
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function ProfilePage() {
                 name="preferred_locale"
                 value={form.preferred_locale}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 outline-none transition text-sm bg-white"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 outline-none transition text-sm bg-white"
               >
                 {LOCALES.map((l) => (
                   <option key={l.value} value={l.value}>
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                 name="preferred_currency"
                 value={form.preferred_currency}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 outline-none transition text-sm bg-white"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 outline-none transition text-sm bg-white"
               >
                 {CURRENCIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -155,7 +155,7 @@ export default function ProfilePage() {
         <button
           onClick={() => mutation.mutate(form)}
           disabled={mutation.isPending}
-          className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition mb-3"
+          className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-xl transition mb-3"
         >
           {mutation.isPending ? "..." : saved ? `✓ ${t("saved")}` : t("save")}
         </button>

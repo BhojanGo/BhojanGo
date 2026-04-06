@@ -22,7 +22,7 @@ export default function CartPage() {
           <p className="text-gray-500 mb-6">{t("emptySubtext")}</p>
           <Link
             href="/restaurants"
-            className="inline-block px-6 py-2.5 bg-brand-500 text-white rounded-lg font-semibold hover:bg-brand-600 transition"
+            className="inline-block px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-700 transition"
           >
             {t("browseRestaurants")}
           </Link>
@@ -55,7 +55,7 @@ export default function CartPage() {
           <div className="bg-white rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
             <span className="text-sm text-gray-500">{t("from", { restaurant: restaurantName })}</span>
             {restaurantSlug && (
-              <Link href={`/restaurants/${restaurantSlug}`} className="text-sm text-brand-500 hover:underline">
+              <Link href={`/restaurants/${restaurantSlug}`} className="text-sm text-emerald-500 hover:underline">
                 Add more
               </Link>
             )}
@@ -89,14 +89,14 @@ export default function CartPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-brand-500 hover:text-brand-500 transition text-lg leading-none"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-emerald-500 hover:text-emerald-500 transition text-lg leading-none"
                 >
                   −
                 </button>
                 <span className="w-5 text-center text-sm font-semibold">{item.quantity}</span>
                 <button
                   onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-brand-500 hover:text-brand-500 transition text-lg leading-none"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-emerald-500 hover:text-emerald-500 transition text-lg leading-none"
                 >
                   +
                 </button>
@@ -140,7 +140,7 @@ export default function CartPage() {
 
         <button
           onClick={() => router.push("/checkout")}
-          className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition"
+          className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 text-white font-semibold rounded-xl transition"
         >
           {t("checkout")} · ${total.toFixed(2)}
         </button>

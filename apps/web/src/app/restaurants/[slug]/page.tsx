@@ -47,7 +47,7 @@ function MenuItemCard({
             />
           </span>
           {item.is_popular && (
-            <span className="text-xs text-brand-500 font-medium">Bestseller</span>
+            <span className="text-xs text-emerald-500 font-medium">Bestseller</span>
           )}
         </div>
         <h3 className="font-medium text-gray-900 text-sm">{item.name}</h3>
@@ -70,7 +70,7 @@ function MenuItemCard({
           className={`px-4 py-1 rounded-lg text-sm font-semibold border transition ${
             added
               ? "bg-green-500 border-green-500 text-white"
-              : "bg-white border-brand-500 text-brand-500 hover:bg-brand-50"
+              : "bg-white border-emerald-500 text-emerald-500 hover:bg-emerald-50"
           }`}
         >
           {added ? "✓" : t("addToCart")}
@@ -115,7 +115,7 @@ export default function RestaurantPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 mb-4">Restaurant not found.</p>
-          <button onClick={() => router.back()} className="text-brand-500 hover:underline text-sm">
+          <button onClick={() => router.back()} className="text-emerald-500 hover:underline text-sm">
             Go back
           </button>
         </div>
@@ -194,7 +194,7 @@ export default function RestaurantPage() {
               onClick={() => setActiveTab(tab)}
               className={`py-3 text-sm font-medium border-b-2 transition ${
                 activeTab === tab
-                  ? "border-brand-500 text-brand-500"
+                  ? "border-emerald-500 text-emerald-500"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -211,7 +211,7 @@ export default function RestaurantPage() {
                 <button
                   onClick={() => setActiveCategory(null)}
                   className={`text-left px-3 py-2 rounded-lg text-sm transition ${
-                    !activeCategory ? "bg-brand-50 text-brand-600 font-medium" : "text-gray-600 hover:bg-gray-100"
+                    !activeCategory ? "bg-emerald-50 text-emerald-700 font-medium" : "text-gray-600 hover:bg-gray-100"
                   }`}
                 >
                   All
@@ -222,7 +222,7 @@ export default function RestaurantPage() {
                     onClick={() => setActiveCategory(cat.id)}
                     className={`text-left px-3 py-2 rounded-lg text-sm transition ${
                       activeCategory === cat.id
-                        ? "bg-brand-50 text-brand-600 font-medium"
+                        ? "bg-emerald-50 text-emerald-700 font-medium"
                         : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
@@ -263,7 +263,7 @@ export default function RestaurantPage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={() => router.push("/cart")}
-            className="flex items-center gap-4 bg-brand-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-brand-600 transition"
+            className="flex items-center gap-4 bg-emerald-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-emerald-700 transition"
           >
             <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">
               {cart.getItemCount()}

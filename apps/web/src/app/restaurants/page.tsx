@@ -65,13 +65,13 @@ export default function RestaurantsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={tCommon("search")}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
               />
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-brand-500 outline-none bg-white"
+              className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 outline-none bg-white"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -90,8 +90,8 @@ export default function RestaurantsPage() {
               onClick={() => setCuisine(c)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 cuisine === c
-                  ? "bg-brand-500 text-white"
-                  : "bg-white border border-gray-300 text-gray-700 hover:border-brand-400"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white border border-gray-300 text-gray-700 hover:border-emerald-400"
               }`}
             >
               {c}

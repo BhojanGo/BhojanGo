@@ -9,7 +9,7 @@ import type { Order } from "@bhojango/types";
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: "bg-yellow-50", text: "text-yellow-700" },
   confirmed: { bg: "bg-blue-50", text: "text-blue-700" },
-  preparing: { bg: "bg-orange-50", text: "text-orange-700" },
+  preparing: { bg: "bg-emerald-50", text: "text-emerald-700" },
   ready_for_pickup: { bg: "bg-purple-50", text: "text-purple-700" },
   picked_up: { bg: "bg-indigo-50", text: "text-indigo-700" },
   delivered: { bg: "bg-green-50", text: "text-green-700" },
@@ -52,8 +52,8 @@ function OrderCard({ order }: { order: Order }) {
       </Text>
       {isActive && (
         <View className="flex-row items-center gap-1 mt-2">
-          <View className="w-2 h-2 rounded-full bg-brand-500" />
-          <Text className="text-xs text-brand-500 font-medium">Track Order</Text>
+          <View className="w-2 h-2 rounded-full bg-emerald-500" />
+          <Text className="text-xs text-emerald-500 font-medium">Track Order</Text>
         </View>
       )}
     </Pressable>
@@ -89,7 +89,7 @@ export default function OrdersScreen() {
               <Text className="text-gray-500 text-sm mb-4">Your order history will appear here</Text>
               <Pressable
                 onPress={() => router.push("/")}
-                className="px-6 py-2.5 bg-brand-500 rounded-xl"
+                className="px-6 py-2.5 bg-emerald-500 rounded-xl"
               >
                 <Text className="text-white font-semibold">Order Now</Text>
               </Pressable>

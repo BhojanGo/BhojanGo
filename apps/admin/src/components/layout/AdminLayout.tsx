@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       <aside className="w-56 bg-gray-900 flex flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-gray-800">
-          <p className="text-lg font-bold text-orange-500">BhojanGo</p>
+          <p className="text-lg font-bold text-emerald-600">BhojanGo</p>
           <p className="text-xs text-gray-500 mt-0.5">Admin Panel</p>
         </div>
 
@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                   isActive
-                    ? "bg-orange-500/10 text-orange-400"
+                    ? "bg-emerald-600/10 text-emerald-500"
                     : "text-gray-400 hover:bg-gray-800 hover:text-white"
                 }`}
               >

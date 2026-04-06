@@ -12,7 +12,7 @@ import type { Order } from "@bhojango/types";
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-50 text-yellow-700",
   confirmed: "bg-blue-50 text-blue-700",
-  preparing: "bg-orange-50 text-orange-700",
+  preparing: "bg-amber-50 text-amber-700",
   ready_for_pickup: "bg-purple-50 text-purple-700",
   picked_up: "bg-indigo-50 text-indigo-700",
   delivered: "bg-green-50 text-green-700",
@@ -57,7 +57,7 @@ function OrderCard({ order }: { order: Order }) {
       </p>
 
       {isActive && (
-        <div className="mt-3 flex items-center gap-1 text-brand-500 text-xs font-medium">
+        <div className="mt-3 flex items-center gap-1 text-emerald-500 text-xs font-medium">
           <svg className="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
           </svg>
@@ -112,7 +112,7 @@ export default function OrdersPage() {
             <p className="text-gray-500 text-sm mb-6">{t("noOrdersSubtext")}</p>
             <Link
               href="/restaurants"
-              className="inline-block px-6 py-2.5 bg-brand-500 text-white rounded-lg font-semibold hover:bg-brand-600 transition text-sm"
+              className="inline-block px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
             >
               Order Now
             </Link>

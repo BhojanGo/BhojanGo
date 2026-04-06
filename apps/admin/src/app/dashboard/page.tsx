@@ -48,7 +48,7 @@ function RecentOrderRow({ order }: { order: Record<string, unknown> }) {
   const statusColors: Record<string, string> = {
     pending: "text-yellow-400",
     confirmed: "text-blue-400",
-    preparing: "text-orange-400",
+    preparing: "text-emerald-500",
     picked_up: "text-indigo-400",
     delivered: "text-green-400",
     cancelled: "text-red-400",
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <div className="bg-gray-900 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex justify-between items-center">
             <h2 className="font-semibold text-white">Recent Orders</h2>
-            <a href="/orders" className="text-sm text-orange-400 hover:underline">
+            <a href="/orders" className="text-sm text-emerald-500 hover:underline">
               View all
             </a>
           </div>

@@ -156,7 +156,7 @@ export default function CheckoutPage() {
         <section className="bg-white rounded-xl p-4 mb-4">
           <h2 className="font-semibold text-gray-900 mb-3">{t("deliveryAddress")}</h2>
           {!addresses?.length ? (
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-brand-500 hover:border-brand-400 transition">
+            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition">
               + {t("addAddress")}
             </button>
           ) : (
@@ -166,7 +166,7 @@ export default function CheckoutPage() {
                   key={addr.id}
                   className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
                     selectedAddressId === addr.id
-                      ? "border-brand-500 bg-brand-50"
+                      ? "border-emerald-500 bg-emerald-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -176,7 +176,7 @@ export default function CheckoutPage() {
                     value={addr.id}
                     checked={selectedAddressId === addr.id}
                     onChange={() => setSelectedAddressId(addr.id)}
-                    className="mt-0.5 accent-brand-500"
+                    className="mt-0.5 accent-emerald-500"
                   />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{addr.label}</p>
@@ -247,7 +247,7 @@ export default function CheckoutPage() {
                 key={option.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
                   paymentMethod === option.value
-                    ? "border-brand-500 bg-brand-50"
+                    ? "border-emerald-500 bg-emerald-50"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
                   value={option.value}
                   checked={paymentMethod === (option.value as PaymentMethod)}
                   onChange={() => setPaymentMethod(option.value as PaymentMethod)}
-                  className="accent-brand-500"
+                  className="accent-emerald-500"
                 />
                 <span className="text-lg">{option.icon}</span>
                 <span className="text-sm font-medium text-gray-900">{option.label}</span>
@@ -273,7 +273,7 @@ export default function CheckoutPage() {
         <button
           onClick={handlePlaceOrder}
           disabled={loading || !selectedAddressId}
-          className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition"
+          className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-xl transition"
         >
           {loading ? t("processing") : `${t("placeOrder")} · ${currencySymbol}${total.toFixed(2)}`}
         </button>

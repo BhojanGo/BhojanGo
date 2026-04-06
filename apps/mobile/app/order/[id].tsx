@@ -114,7 +114,7 @@ export default function OrderDetailScreen() {
                 #{order.id.slice(0, 8).toUpperCase()}
               </Text>
               {etaMinutes && (
-                <Text className="text-brand-500 text-sm font-medium">
+                <Text className="text-emerald-500 text-sm font-medium">
                   ~{etaMinutes} min away
                 </Text>
               )}
@@ -127,17 +127,17 @@ export default function OrderDetailScreen() {
                   <View key={step} className="flex-1 items-center">
                     <View
                       className={`w-4 h-4 rounded-full ${
-                        i <= currentStepIndex ? "bg-brand-500" : "bg-gray-200"
+                        i <= currentStepIndex ? "bg-emerald-500" : "bg-gray-200"
                       }`}
                     />
                     {i < STATUS_STEPS.length - 1 && (
                       <View
                         className={`absolute top-2 left-1/2 right-0 h-0.5 ${
-                          i < currentStepIndex ? "bg-brand-500" : "bg-gray-200"
+                          i < currentStepIndex ? "bg-emerald-500" : "bg-gray-200"
                         }`}
                       />
                     )}
-                    <Text className={`text-xs mt-1 text-center ${i <= currentStepIndex ? "text-brand-600" : "text-gray-400"}`}>
+                    <Text className={`text-xs mt-1 text-center ${i <= currentStepIndex ? "text-emerald-700" : "text-gray-400"}`}>
                       {STATUS_LABELS[step]}
                     </Text>
                   </View>
@@ -155,8 +155,8 @@ export default function OrderDetailScreen() {
           {/* Driver info */}
           {driverName && (
             <View className="bg-white rounded-xl p-4 mb-3 flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-full bg-brand-100 items-center justify-center">
-                <Text className="text-brand-600 font-bold">{driverName[0]}</Text>
+              <View className="w-10 h-10 rounded-full bg-emerald-100 items-center justify-center">
+                <Text className="text-emerald-700 font-bold">{driverName[0]}</Text>
               </View>
               <View>
                 <Text className="text-xs text-gray-500">Delivery Partner</Text>
@@ -193,9 +193,9 @@ export default function OrderDetailScreen() {
               onPress={() => {
                 if (order.restaurant_id) router.push(`/restaurant/${order.restaurant_id}`);
               }}
-              className="border border-brand-500 rounded-xl py-3 items-center active:bg-brand-50"
+              className="border border-emerald-500 rounded-xl py-3 items-center active:bg-emerald-50"
             >
-              <Text className="text-brand-500 font-semibold">Reorder</Text>
+              <Text className="text-emerald-500 font-semibold">Reorder</Text>
             </Pressable>
           )}
         </View>

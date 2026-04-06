@@ -41,13 +41,13 @@ function StatusTimeline({ status }: { status: string }) {
               <div
                 className={`w-5 h-5 rounded-full border-2 z-10 transition-colors ${
                   isCurrent
-                    ? "bg-brand-500 border-brand-500"
+                    ? "bg-emerald-500 border-emerald-500"
                     : isPast
-                    ? "bg-brand-400 border-brand-400"
+                    ? "bg-emerald-400 border-emerald-400"
                     : "bg-white border-gray-300"
                 }`}
               />
-              <p className={`text-xs mt-1 text-center ${isPast ? "text-brand-600" : "text-gray-400"}`}>
+              <p className={`text-xs mt-1 text-center ${isPast ? "text-emerald-700" : "text-gray-400"}`}>
                 {t(`status.${step}` as never) as string}
               </p>
             </div>
@@ -57,7 +57,7 @@ function StatusTimeline({ status }: { status: string }) {
       {/* Connector line */}
       <div className="absolute top-2.5 left-0 right-0 h-0.5 bg-gray-200 -z-0">
         <div
-          className="h-full bg-brand-400 transition-all"
+          className="h-full bg-emerald-400 transition-all"
           style={{
             width: `${Math.max(0, (currentIndex / (STATUS_STEPS.length - 1)) * 100)}%`,
           }}
@@ -143,7 +143,7 @@ export default function OrderDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-gray-500 text-sm">Loading order...</p>
         </div>
       </div>
@@ -184,13 +184,13 @@ export default function OrderDetailPage() {
 
         {/* Live tracking banner */}
         {isActive && tracking.wsStatus === "connected" && (
-          <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-brand-700">{tTracking("liveTracking")}</span>
+              <span className="text-sm font-medium text-emerald-800">{tTracking("liveTracking")}</span>
             </div>
             {tracking.etaMinutes && (
-              <span className="text-sm text-brand-600">
+              <span className="text-sm text-emerald-700">
                 {tTracking("eta", { time: tracking.etaMinutes })}
               </span>
             )}
@@ -200,7 +200,7 @@ export default function OrderDetailPage() {
         {/* Driver info */}
         {tracking.driverName && (
           <div className="bg-white rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold">
               {tracking.driverName[0]}
             </div>
             <div>
@@ -281,7 +281,7 @@ export default function OrderDetailPage() {
               // Navigate back to restaurant — cart handling happens there
               if (order.restaurant_slug) router.push(`/restaurants/${order.restaurant_slug}`);
             }}
-            className="w-full py-3 border border-brand-500 text-brand-500 font-semibold rounded-xl hover:bg-brand-50 transition"
+            className="w-full py-3 border border-emerald-500 text-emerald-500 font-semibold rounded-xl hover:bg-emerald-50 transition"
           >
             {t("reorder")}
           </button>

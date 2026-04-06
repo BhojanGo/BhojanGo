@@ -68,7 +68,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-3xl font-bold text-brand-500">
+          <Link href="/" className="text-3xl font-bold text-emerald-500">
             BhojanGo
           </Link>
           <h1 className="mt-4 text-2xl font-semibold text-gray-900">{t("signupTitle")}</h1>
@@ -89,7 +89,7 @@ export default function SignupPage() {
                 required
                 value={form.full_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="Jane Doe"
               />
             </div>
@@ -106,7 +106,7 @@ export default function SignupPage() {
                 required
                 value={form.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="you@example.com"
               />
             </div>
@@ -122,7 +122,7 @@ export default function SignupPage() {
                 autoComplete="tel"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="+1 555 000 0000"
               />
             </div>
@@ -139,7 +139,7 @@ export default function SignupPage() {
                 required
                 value={form.password}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="Min. 8 characters"
               />
             </div>
@@ -156,7 +156,7 @@ export default function SignupPage() {
                 required
                 value={form.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -168,7 +168,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
+              className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
             >
               {loading ? "..." : t("signUp")}
             </button>
@@ -202,7 +202,7 @@ export default function SignupPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           {t("hasAccount")}{" "}
-          <Link href="/login" className="text-brand-500 font-semibold hover:underline">
+          <Link href="/login" className="text-emerald-500 font-semibold hover:underline">
             {t("signIn")}
           </Link>
         </p>
