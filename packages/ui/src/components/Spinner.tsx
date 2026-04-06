@@ -26,7 +26,7 @@ const spinnerVariants = cva("animate-spin rounded-full border-2 border-current b
 });
 
 export interface SpinnerProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "color">,
     VariantProps<typeof spinnerVariants> {
   label?: string;
 }
