@@ -13,7 +13,7 @@ const spinnerVariants = cva("animate-spin rounded-full border-2 border-current b
       xl: "h-12 w-12",
     },
     color: {
-      primary: "text-orange-500",
+      primary: "text-emerald-500",
       white: "text-white",
       gray: "text-gray-500",
       current: "text-current",

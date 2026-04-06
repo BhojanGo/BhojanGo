@@ -14,15 +14,20 @@ export default function Navbar() {
   const itemCount = useCartStore((s) => s.getItemCount());
 
   return (
-    <nav className="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <nav className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/95">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="text-xl font-bold text-brand-500">
-          BhojanGo
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-lg font-bold text-white">
+            B
+          </span>
+          <span className="text-xl font-bold text-gray-900 dark:text-white">
+            Bhojan<span className="text-brand-500">Go</span>
+          </span>
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden items-center gap-1 md:flex">
           <NavLink href="/restaurants" label={t("restaurants")} active={pathname.startsWith("/restaurants")} />
           {isAuthenticated && (
             <>
@@ -33,14 +38,14 @@ export default function Navbar() {
         </div>
 
         {/* Right actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Cart */}
           <Link
             href="/cart"
-            className="relative p-2 rounded-full hover:bg-gray-100 transition"
+            className="relative rounded-full p-2.5 text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
             aria-label="Cart"
           >
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -49,7 +54,7 @@ export default function Navbar() {
               />
             </svg>
             {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 text-xs bg-brand-500 text-white rounded-full flex items-center justify-center font-bold leading-none px-1">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 text-[10px] font-bold text-white">
                 {itemCount}
               </span>
             )}
@@ -58,7 +63,7 @@ export default function Navbar() {
           {isAuthenticated ? (
             <Link
               href="/profile"
-              className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm hover:bg-brand-200 transition"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-700 transition hover:bg-brand-200"
             >
               P
             </Link>
@@ -66,13 +71,13 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="text-sm font-medium text-gray-700 hover:text-brand-500 transition"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 {t("login")}
               </Link>
               <Link
                 href="/signup"
-                className="text-sm font-semibold px-4 py-1.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition"
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 hover:shadow-md"
               >
                 {t("signup")}
               </Link>
@@ -88,8 +93,10 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
   return (
     <Link
       href={href}
-      className={`text-sm font-medium transition ${
-        active ? "text-brand-500" : "text-gray-600 hover:text-gray-900"
+      className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+        active
+          ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
       }`}
     >
       {label}

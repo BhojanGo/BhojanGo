@@ -6,8 +6,9 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div>
-            <Link href="/" className="text-xl font-bold text-brand-500">
-              BhojanGo
+            <Link href="/" className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">B</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">Bhojan<span className="text-brand-500">Go</span></span>
             </Link>
             <p className="mt-3 text-sm text-gray-500">
               Delicious food, delivered fast. Available in USA and India.
@@ -17,19 +18,19 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Explore</h4>
             <ul className="mt-3 space-y-2 text-sm text-gray-500">
-              <li><Link href="/restaurants" className="hover:text-brand-500 transition">Restaurants</Link></li>
-              <li><Link href="/cart" className="hover:text-brand-500 transition">Cart</Link></li>
-              <li><Link href="/orders" className="hover:text-brand-500 transition">My Orders</Link></li>
+              <li><Link href="/restaurants" className="transition hover:text-brand-500">Restaurants</Link></li>
+              <li><Link href="/cart" className="transition hover:text-brand-500">Cart</Link></li>
+              <li><Link href="/orders" className="transition hover:text-brand-500">My Orders</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Account</h4>
             <ul className="mt-3 space-y-2 text-sm text-gray-500">
-              <li><Link href="/login" className="hover:text-brand-500 transition">Login</Link></li>
-              <li><Link href="/signup" className="hover:text-brand-500 transition">Sign Up</Link></li>
-              <li><Link href="/profile" className="hover:text-brand-500 transition">Profile</Link></li>
-              <li><Link href="/wallet" className="hover:text-brand-500 transition">Wallet</Link></li>
+              <li><Link href="/login" className="transition hover:text-brand-500">Login</Link></li>
+              <li><Link href="/signup" className="transition hover:text-brand-500">Sign Up</Link></li>
+              <li><Link href="/profile" className="transition hover:text-brand-500">Profile</Link></li>
+              <li><Link href="/wallet" className="transition hover:text-brand-500">Wallet</Link></li>
             </ul>
           </div>
 

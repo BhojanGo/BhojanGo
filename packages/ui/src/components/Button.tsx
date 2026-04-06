@@ -14,9 +14,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: [
-          "bg-orange-500 text-white shadow-sm",
-          "hover:bg-orange-600 focus-visible:ring-orange-500",
-          "dark:bg-orange-500 dark:hover:bg-orange-600",
+          "bg-emerald-600 text-white shadow-sm",
+          "hover:bg-emerald-700 focus-visible:ring-emerald-500",
+          "dark:bg-emerald-600 dark:hover:bg-emerald-700",
         ],
         secondary: [
           "bg-gray-100 text-gray-900 shadow-sm",
@@ -37,7 +37,7 @@ const buttonVariants = cva(
           "bg-red-500 text-white shadow-sm",
           "hover:bg-red-600 focus-visible:ring-red-500",
         ],
-        link: ["text-orange-500 underline-offset-4 hover:underline p-0 h-auto font-medium"],
+        link: ["text-emerald-600 underline-offset-4 hover:underline p-0 h-auto font-medium"],
       },
       size: {
         xs: "h-7 px-2.5 text-xs",
