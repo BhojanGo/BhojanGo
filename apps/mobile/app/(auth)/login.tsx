@@ -30,7 +30,12 @@ export default function LoginScreen() {
       const { data } = await api.post("/user/auth/login", { email, password });
       await setTokens(data.access_token, data.refresh_token);
       setUser(data.user);
-      router.replace("/(tabs)");
+      // Route based on user role
+      if (data.user.role === "driver") {
+        router.replace("/(driver-tabs)/home");
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??

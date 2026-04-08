@@ -33,6 +33,9 @@ from app.services.otp import send_otp, verify_otp
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+# Dummy hash to prevent timing attacks — always run bcrypt even if user not found
+_DUMMY_HASH = hash_password("dummy-never-matches-any-password")
+
 
 def _build_tokens_response(user: User) -> AuthTokensResponse:
     access_token, expires_in = create_access_token(
@@ -98,12 +101,12 @@ class AuthService:
 
     async def login(self, data: LoginRequest) -> AuthTokensResponse:
         user = await self.repo.get_by_email(data.email)
-        if not user or not user.hashed_password:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"code": "INVALID_CREDENTIALS", "message": "Invalid email or password"},
-            )
-        if not verify_password(data.password, user.hashed_password):
+        # Always run bcrypt to prevent timing-based user enumeration
+        password_valid = verify_password(
+            data.password,
+            user.hashed_password if user and user.hashed_password else _DUMMY_HASH,
+        )
+        if not user or not password_valid:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": "INVALID_CREDENTIALS", "message": "Invalid email or password"},

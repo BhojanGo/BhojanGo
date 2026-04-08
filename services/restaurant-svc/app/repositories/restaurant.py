@@ -64,7 +64,7 @@ class RestaurantRepository:
         page: int = 1,
         limit: int = 20,
     ) -> tuple[list[Restaurant], int]:
-        conditions = [Restaurant.is_active == True]  # noqa: E712
+        conditions = [Restaurant.is_active == True, Restaurant.status == "active", Restaurant.deleted_at.is_(None)]  # noqa: E712
 
         if city:
             conditions.append(func.lower(Restaurant.city) == city.lower())
@@ -109,6 +109,24 @@ class RestaurantRepository:
             update(Restaurant).where(Restaurant.id == restaurant_id).values(**kwargs)
         )
         return await self.get_by_id(restaurant_id)
+
+    async def list_pending_restaurants(self, limit: int = 50, offset: int = 0):
+        """List restaurants pending admin approval."""
+        result = await self.session.execute(
+            select(Restaurant)
+            .where(Restaurant.status == "pending_approval")
+            .order_by(Restaurant.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return result.scalars().all()
+
+    async def count_pending_restaurants(self) -> int:
+        from sqlalchemy import func
+        result = await self.session.execute(
+            select(func.count(Restaurant.id)).where(Restaurant.status == "pending_approval")
+        )
+        return result.scalar() or 0
 
     async def update_rating(self, restaurant_id: uuid.UUID) -> None:
         result = await self.session.execute(

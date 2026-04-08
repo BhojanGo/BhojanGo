@@ -51,17 +51,50 @@ async def update_me(
     return UserResponse.model_validate(updated)
 
 
-@router.delete("/me", response_model=MessageResponse)
+@router.delete("/me", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 async def delete_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MessageResponse:
-    """Soft-delete the current user's account."""
+    """Delete (anonymize) the current user's account per GDPR/PDPA.
+
+    Anonymizes PII, revokes all tokens, and deactivates the account.
+    Data retention: anonymized record kept for order history integrity.
+    SLA: immediate anonymization (within GDPR 30-day requirement).
+    """
+    from datetime import UTC, datetime
+    from app.core.redis import get_redis, refresh_token_key
+
     repo = UserRepository(db)
-    # Soft delete: deactivate rather than hard delete
-    await repo.update(current_user.id, is_active=False)
-    logger.info("user_account_deleted", user_id=str(current_user.id))
-    return MessageResponse(message="Account deactivated successfully")
+    user_id = str(current_user.id)
+
+    # Anonymize PII
+    await repo.update(
+        current_user.id,
+        email=f"deleted_{user_id}@deleted.bhojango.com",
+        phone=None,
+        full_name="Deleted User",
+        avatar_url=None,
+        google_id=None,
+        apple_id=None,
+        fcm_token=None,
+        is_active=False,
+        is_verified=False,
+        is_phone_verified=False,
+    )
+
+    # Revoke all refresh tokens
+    try:
+        redis = await get_redis()
+        pattern = refresh_token_key(user_id, "*")
+        keys = await redis.keys(pattern)
+        if keys:
+            await redis.delete(*keys)
+    except Exception:
+        pass  # Best effort — account is already deactivated
+
+    logger.info("user_account_anonymized", user_id=user_id)
+    return MessageResponse(message="Account deleted and data anonymized successfully")
 
 
 @router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(require_admin)])
@@ -75,3 +108,50 @@ async def get_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return UserResponse.model_validate(user)
+
+
+@router.delete(
+    "/{user_id}/anonymize",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_admin)],
+    status_code=status.HTTP_200_OK,
+)
+async def admin_anonymize_user(
+    user_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    """Admin: Anonymize a user's data per GDPR right-to-erasure request."""
+    from datetime import UTC, datetime
+    from app.core.redis import get_redis, refresh_token_key
+
+    repo = UserRepository(db)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    uid = str(user_id)
+    await repo.update(
+        user_id,
+        email=f"deleted_{uid}@deleted.bhojango.com",
+        phone=None,
+        full_name="Deleted User",
+        avatar_url=None,
+        google_id=None,
+        apple_id=None,
+        fcm_token=None,
+        is_active=False,
+        is_verified=False,
+        is_phone_verified=False,
+    )
+
+    try:
+        redis = await get_redis()
+        pattern = refresh_token_key(uid, "*")
+        keys = await redis.keys(pattern)
+        if keys:
+            await redis.delete(*keys)
+    except Exception:
+        pass
+
+    logger.info("admin_user_anonymized", user_id=uid)
+    return MessageResponse(message="User data anonymized successfully")

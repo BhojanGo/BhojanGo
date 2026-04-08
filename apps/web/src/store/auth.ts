@@ -28,8 +28,24 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user }),
 
-      logout: () =>
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
+      logout: async () => {
+        const { accessToken } = get();
+        // Revoke tokens on the backend before clearing local state
+        if (accessToken) {
+          try {
+            await fetch("/api/user/auth/logout", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            });
+          } catch {
+            // Best effort — clear local state regardless
+          }
+        }
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+      },
 
       refreshTokens: async () => {
         const { refreshToken } = get();

@@ -1,0 +1,112 @@
+name: Security Scanning
+
+on:
+  pull_request:
+    branches: [dev, main]
+  schedule:
+    - cron: "0 6 * * 1"  # Weekly Monday 6AM UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scanning:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar xz
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run gitleaks
+        run: gitleaks detect --source . --verbose --no-git --config .gitleaks.toml
+
+  python-sast:
+    name: Python SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install bandit
+        run: pip install bandit[toml]
+
+      - name: Run bandit on all services
+        run: |
+          for svc in services/*/; do
+            echo "=== Scanning $svc ==="
+            bandit -r "$svc/app" -ll -ii --format json --output "bandit-$(basename $svc).json" || true
+          done
+
+      - name: Check for HIGH severity findings
+        run: |
+          FAILED=0
+          for report in bandit-*.json; do
+            HIGH=$(python3 -c "import json; data=json.load(open('$report')); print(sum(1 for r in data.get('results',[]) if r['issue_severity']=='HIGH'))" 2>/dev/null || echo 0)
+            if [ "$HIGH" -gt 0 ]; then
+              echo "BLOCKED: $report has $HIGH HIGH severity findings"
+              FAILED=1
+            fi
+          done
+          exit $FAILED
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Python dependency check
+        run: |
+          pip install safety
+          for svc in services/*/; do
+            if [ -f "$svc/pyproject.toml" ]; then
+              echo "=== Checking $svc ==="
+              cd "$svc"
+              pip install poetry && poetry export -f requirements.txt --without-hashes | safety check --stdin || true
+              cd ../..
+            fi
+          done
+
+      - name: JavaScript dependency check
+        run: |
+          pnpm install --frozen-lockfile || pnpm install
+          pnpm audit --audit-level=high || true
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/python
+            p/javascript
+            p/typescript
+            p/security-audit
+            p/owasp-top-ten
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}

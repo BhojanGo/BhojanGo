@@ -4,16 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth";
 
 export default function TabsLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (user?.role === "driver") return <Redirect href="/(driver-tabs)/home" />;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#f97316",
+        tabBarActiveTintColor: "#059669",
         tabBarInactiveTintColor: "#9ca3af",
         tabBarStyle: { borderTopWidth: 1, borderTopColor: "#f3f4f6" },
       }}

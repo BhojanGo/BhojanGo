@@ -44,7 +44,7 @@ def upgrade() -> None:
         sa.Column("country", sa.String(2), nullable=False),
         sa.Column("city", sa.String(100), nullable=False),
         sa.Column("tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
-        sa.Column("status", sa.String(30), nullable=False, server_default="active"),
+        sa.Column("status", sa.String(30), nullable=False, server_default="pending_approval"),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),

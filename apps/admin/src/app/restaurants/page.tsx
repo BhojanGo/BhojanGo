@@ -1,129 +1,189 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import AdminLayout from "@/components/layout/AdminLayout";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api";
-import type { Restaurant } from "@bhojango/types";
+
+type Restaurant = {
+  id: string;
+  name: string;
+  cuisine_type: string[];
+  status: string;
+  is_active: boolean;
+  city: string;
+  average_rating: number;
+  created_at: string;
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-emerald-100 text-emerald-800",
+  pending_approval: "bg-amber-100 text-amber-800",
+  suspended: "bg-red-100 text-red-800",
+  inactive: "bg-gray-100 text-gray-800",
+};
 
 export default function RestaurantsPage() {
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const perPage = 20;
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-restaurants", search, page],
+    queryKey: ["admin-restaurants", search, statusFilter, page],
     queryFn: async () => {
       const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String((page - 1) * limit),
+        limit: String(perPage),
+        offset: String((page - 1) * perPage),
       });
-      if (search) params.set("q", search);
-      const { data } = await adminApi.get(`/restaurant/restaurants?${params.toString()}`);
-      return data as { items: Restaurant[]; total: number };
+      if (search) params.set("search", search);
+
+      // Use admin/pending endpoint for pending filter
+      if (statusFilter === "pending_approval") {
+        const res = await adminApi.get(`/restaurant/restaurants/admin/pending?${params}`);
+        return { restaurants: res.data, total: res.data.length };
+      }
+
+      const res = await adminApi.get(`/restaurant/restaurants?${params}`);
+      return { restaurants: res.data.restaurants || res.data, total: res.data.total || res.data.length };
     },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => adminApi.post(`/restaurant/restaurants/${id}/approve`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-restaurants"] }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => adminApi.post(`/restaurant/restaurants/${id}/reject`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-restaurants"] }),
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      await adminApi.patch(`/restaurant/restaurants/${id}`, { is_active });
-    },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin-restaurants"] }),
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      adminApi.patch(`/restaurant/restaurants/${id}`, { is_active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-restaurants"] }),
   });
 
+  const restaurants: Restaurant[] = data?.restaurants || [];
+
   return (
-    <AdminLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white">Restaurants</h1>
-          <div className="text-sm text-gray-500">{data?.total ?? 0} total</div>
-        </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Restaurant Management</h1>
 
-        <div className="mb-5">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search restaurants..."
-            className="w-80 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:border-emerald-600 outline-none"
-          />
-        </div>
-
-        <div className="bg-gray-900 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-800">
-                  {["Name", "City", "Cuisine", "Rating", "Orders", "Status", "Actions"].map((h) => (
-                    <th key={h} className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading &&
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={7} className="py-3 px-4">
-                        <div className="h-5 bg-gray-800 rounded animate-pulse" />
-                      </td>
-                    </tr>
-                  ))}
-                {data?.items.map((r) => (
-                  <tr key={r.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td className="py-3 px-4 text-sm font-medium text-white">{r.name}</td>
-                    <td className="py-3 px-4 text-sm text-gray-400">{r.address?.city ?? "—"}</td>
-                    <td className="py-3 px-4 text-sm text-gray-400">
-                      {r.cuisine_types?.slice(0, 2).join(", ")}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-300">
-                      ⭐ {r.rating?.toFixed(1) ?? "—"}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-400">{r.total_orders ?? 0}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        r.is_active ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-500"
-                      }`}>
-                        {r.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => toggleActive.mutate({ id: r.id, is_active: !r.is_active })}
-                        className={`text-xs px-2.5 py-1 rounded-lg border transition ${
-                          r.is_active
-                            ? "border-red-800 text-red-400 hover:bg-red-900/20"
-                            : "border-green-800 text-green-400 hover:bg-green-900/20"
-                        }`}
-                      >
-                        {r.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {(data?.total ?? 0) > limit && (
-            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-800">
-              <p className="text-sm text-gray-500">
-                Page {page} of {Math.ceil((data?.total ?? 0) / limit)}
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setPage(page - 1)} disabled={page === 1} className="px-3 py-1.5 text-sm bg-gray-800 text-gray-400 rounded-lg disabled:opacity-40 hover:bg-gray-700 transition">
-                  Previous
-                </button>
-                <button onClick={() => setPage(page + 1)} disabled={page * limit >= (data?.total ?? 0)} className="px-3 py-1.5 text-sm bg-gray-800 text-gray-400 rounded-lg disabled:opacity-40 hover:bg-gray-700 transition">
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search restaurants..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="pending_approval">Pending Approval</option>
+          <option value="suspended">Suspended</option>
+        </select>
       </div>
-    </AdminLayout>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="text-center py-12 text-gray-500">Loading...</div>
+      ) : restaurants.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">No restaurants found</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuisine</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {restaurants.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium text-gray-900">{r.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.cuisine_type?.join(", ") || "\u2014"}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.city || "\u2014"}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.average_rating?.toFixed(1) || "\u2014"}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[r.status] || "bg-gray-100 text-gray-800"}`}>
+                      {r.status?.replace("_", " ") || "unknown"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => toggleActive.mutate({ id: r.id, is_active: !r.is_active })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.is_active ? "bg-emerald-600" : "bg-gray-300"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${r.is_active ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 space-x-2">
+                    {r.status === "pending_approval" && (
+                      <>
+                        <button
+                          onClick={() => approveMutation.mutate(r.id)}
+                          disabled={approveMutation.isPending}
+                          className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => rejectMutation.mutate(r.id)}
+                          disabled={rejectMutation.isPending}
+                          className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {r.status === "suspended" && (
+                      <button
+                        onClick={() => approveMutation.mutate(r.id)}
+                        className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                      >
+                        Reactivate
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between mt-4">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-600">Page {page}</span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={restaurants.length < perPage}
+          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    </div>
   );
 }

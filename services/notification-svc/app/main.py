@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.v1 import notifications
@@ -66,3 +67,36 @@ async def health_check() -> dict:
         "checks": checks,
         "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
     }
+
+
+@app.get("/health/live", tags=["Health"])
+async def liveness() -> dict:
+    """Liveness probe — is the process alive?"""
+    return {"status": "alive"}
+
+
+@app.get("/health/ready", tags=["Health"])
+async def readiness() -> JSONResponse:
+    """Readiness probe — are all dependencies reachable?"""
+    checks: dict[str, str] = {}
+
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+
+    sqs_ok = bool(settings.SQS_QUEUE_URL_NOTIFICATION)
+    checks["sqs_configured"] = "ok" if sqs_ok else "not_configured"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return JSONResponse(
+        status_code=200 if all_ok else 503,
+        content={
+            "status": "healthy" if all_ok else "unhealthy",
+            "service": settings.SERVICE_NAME,
+            "version": settings.VERSION,
+            "checks": checks,
+        },
+    )
