@@ -5,6 +5,10 @@ on:
     branches: [dev, main]
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: pr-${{ github.head_ref }}
   cancel-in-progress: true

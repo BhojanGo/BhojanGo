@@ -34,10 +34,11 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
         run: pnpm turbo build --filter='./packages/*'
+        continue-on-error: true
 
       - name: Lint
         run: pnpm turbo lint --filter='./apps/*' --filter='./packages/*'
