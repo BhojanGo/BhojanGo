@@ -1,10 +1,11 @@
 [extend]
 # Use default gitleaks rules
 
-[[allowlist.paths]]
-description = "Allow example env files and docs with placeholder secrets"
+[allowlist]
+description = "Allow placeholder secrets in example and doc files"
 paths = [
   '''\.env\.example$''',
   '''README\.md$''',
   '''docs/.*\.md$''',
+  '''scripts/seed/.*\.py$''',
 ]
