@@ -25,7 +25,7 @@ jobs:
           sudo mv gitleaks /usr/local/bin/
 
       - name: Run gitleaks
-        run: gitleaks detect --source . --verbose --no-git
+        run: gitleaks detect --source . --verbose --no-git --config .gitleaks.toml
 
   python-sast:
     name: Python SAST (Bandit)
@@ -70,8 +70,6 @@ jobs:
           python-version: "3.11"
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
