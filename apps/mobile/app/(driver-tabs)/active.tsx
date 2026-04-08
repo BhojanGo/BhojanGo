@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from "react-native";
-import { api } from "@/src/lib/api";
+import { api } from "@/lib/api";
 
 type ActiveDelivery = {
   id: string;

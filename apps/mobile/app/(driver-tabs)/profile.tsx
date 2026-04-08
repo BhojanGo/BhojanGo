@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useAuth } from "@/src/store/auth";
+import { useAuthStore } from "@/store/auth";
 import { router } from "expo-router";
 
 export default function DriverProfile() {
-  const { user, logout } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const handleLogout = async () => {
     await logout();

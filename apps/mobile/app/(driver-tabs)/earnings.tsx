@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { api } from "@/src/lib/api";
+import { api } from "@/lib/api";
 
 export default function Earnings() {
   const [earnings, setEarnings] = useState({ today: 0, week: 0, month: 0, deliveries_today: 0 });

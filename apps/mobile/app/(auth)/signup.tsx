@@ -20,8 +20,10 @@ export default function SignupScreen() {
   const [form, setForm] = useState({
     full_name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
+    country: "US" as "US" | "IN",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,7 +51,11 @@ export default function SignupScreen() {
       const { data } = await api.post("/user/auth/register", {
         full_name: form.full_name,
         email: form.email,
+        phone: form.phone || undefined,
         password: form.password,
+        country: form.country,
+        preferred_currency: form.country === "IN" ? "INR" : "USD",
+        preferred_locale: form.country === "IN" ? "en-IN" : "en-US",
       });
       await setTokens(data.access_token, data.refresh_token);
       setUser(data.user);
@@ -79,6 +85,7 @@ export default function SignupScreen() {
             {[
               { field: "full_name" as const, label: "Full Name", placeholder: "Jane Doe", type: "default" },
               { field: "email" as const, label: "Email", placeholder: "you@example.com", type: "email-address" },
+              { field: "phone" as const, label: "Phone (optional)", placeholder: "+14155551234", type: "phone-pad" },
               { field: "password" as const, label: "Password", placeholder: "Min. 8 characters", type: "default", secure: true },
               { field: "confirmPassword" as const, label: "Confirm Password", placeholder: "••••••••", type: "default", secure: true },
             ].map(({ field, label, placeholder, type, secure }) => (
@@ -89,13 +96,35 @@ export default function SignupScreen() {
                   onChangeText={handleChange(field)}
                   placeholder={placeholder}
                   placeholderTextColor="#9ca3af"
-                  keyboardType={type as "default" | "email-address"}
-                  autoCapitalize={field === "email" ? "none" : "words"}
+                  keyboardType={type as "default" | "email-address" | "phone-pad"}
+                  autoCapitalize={field === "email" || field === "phone" ? "none" : "words"}
                   secureTextEntry={secure}
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 text-sm"
                 />
               </View>
             ))}
+
+            {/* Country selector */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 mb-1">Country</Text>
+              <View className="flex-row gap-3">
+                {([["US", "United States"], ["IN", "India"]] as const).map(([code, name]) => (
+                  <Pressable
+                    key={code}
+                    onPress={() => setForm({ ...form, country: code })}
+                    className={`flex-1 py-3 rounded-xl items-center border ${
+                      form.country === code
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <Text className={`text-sm font-medium ${form.country === code ? "text-emerald-700" : "text-gray-600"}`}>
+                      {name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
 
             {error ? (
               <View className="bg-red-50 rounded-xl px-4 py-3 mb-4">

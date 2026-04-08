@@ -33,6 +33,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(driver-tabs)" />
         <Stack.Screen name="restaurant/[id]" options={{ headerShown: true, title: "" }} />
         <Stack.Screen name="cart" options={{ headerShown: true, title: "Cart" }} />
         <Stack.Screen name="checkout" options={{ headerShown: true, title: "Checkout" }} />

@@ -1,7 +1,15 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useAuthStore } from "@/store/auth";
+
 export default function DriverTabsLayout() {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (user?.role !== "driver") return <Redirect href="/(tabs)" />;
+
   return (
     <Tabs
       screenOptions={{
