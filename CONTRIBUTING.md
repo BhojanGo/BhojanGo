@@ -1,180 +1,124 @@
 # Contributing to BhojanGo
 
-## Branch Strategy
+Thank you for contributing to BhojanGo! This guide helps you get set up and follow our development practices.
 
-We use **trunk-based development** with short-lived feature branches.
+## Prerequisites
 
-```
-main                 ← production (auto-deploys to ECS)
-  └── feature/xxx    ← your work (1-3 days max)
-  └── fix/xxx        ← bug fixes
-  └── hotfix/xxx     ← urgent prod fixes (cherry-picked)
-```
+- **Node.js** 20+ and **pnpm** 9+
+- **Python** 3.11+ and **Poetry**
+- **Docker** and **Docker Compose**
+- **Git** with conventional commit support
 
-### Branch Naming
+## Local Setup
 
-```
-feature/BG-123-add-promo-codes
-fix/BG-456-cart-total-rounding
-hotfix/BG-789-payment-webhook-crash
-chore/update-dependencies
-```
+```bash
+# 1. Clone the repository
+git clone https://github.com/deeptricsllc/BhojanGo.git
+cd BhojanGo
 
-## Development Workflow
+# 2. Start infrastructure
+docker compose up -d
 
-1. **Create a branch** from `main`:
-   ```bash
-   git checkout main && git pull
-   git checkout -b feature/BG-123-description
-   ```
+# 3. Install frontend dependencies
+pnpm install
 
-2. **Make changes** — keep commits small and focused.
+# 4. Install backend dependencies (per service)
+cd services/user-svc && poetry install
+cd services/restaurant-svc && poetry install
+cd services/order-svc && poetry install
 
-3. **Run checks locally** before pushing:
-   ```bash
-   # Frontend
-   pnpm turbo lint typecheck
+# 5. Run database migrations
+cd services/user-svc && alembic upgrade head
+cd services/restaurant-svc && alembic upgrade head
+cd services/order-svc && alembic upgrade head
 
-   # Backend (per service)
-   cd services/user-svc
-   pytest tests/ -v --cov=app --cov-fail-under=80
-   ```
+# 6. Seed test data
+bash scripts/seed/run_all.sh --env local
 
-4. **Push and open a PR** against `main`.
-
-5. **PR checks must pass** — the `pr-checks.yml` workflow runs:
-   - Frontend: lint + typecheck
-   - Backend: pytest per changed service
-   - Terraform: `fmt -check` + `validate` (if infra changed)
-   - Docker: build check (no push)
-
-6. **Get at least 1 review** then merge via squash-merge.
-
-## Pull Request Guidelines
-
-### Title Format
-
-```
-[BG-123] Add promo code support to checkout
+# 7. Start development servers
+pnpm dev           # Frontend apps (web:3000, admin:3001)
+# In separate terminals:
+cd services/user-svc && uvicorn app.main:app --reload --port 8001
+cd services/restaurant-svc && uvicorn app.main:app --reload --port 8002
+cd services/order-svc && uvicorn app.main:app --reload --port 8003
 ```
 
-### Description Template
+## Branch Naming
 
-```markdown
-## Summary
-- What changed and why
-
-## Test Plan
-- [ ] Unit tests added/updated
-- [ ] Manual testing steps
-- [ ] Edge cases considered
-
-## Screenshots (if UI changes)
-```
-
-### PR Rules
-
-- Keep PRs under 400 lines of diff when possible
-- One logical change per PR
-- Update tests for any behavior change
-- No `TODO` comments in critical paths — open a ticket instead
-- All environment variables documented in `.env.example`
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature | `feature/<description>` | `feature/driver-earnings-page` |
+| Bug fix | `fix/<description>` | `fix/order-pricing-bug` |
+| Hotfix | `hotfix/<description>` | `hotfix/payment-webhook-crash` |
+| Chore | `chore/<description>` | `chore/update-dependencies` |
+| Docs | `docs/<description>` | `docs/api-reference` |
 
 ## Commit Messages
 
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 ```
-feat: add promo code validation to order-svc
-fix: handle null delivery address in checkout
-refactor: extract payment gateway interface
-test: add wallet transaction edge cases
-docs: update API endpoint table in README
-chore: bump FastAPI to 0.115
-```
-
-## Code Standards
-
-### Python (Backend Services)
-
-- **Formatter**: black (line length 120)
-- **Linter**: ruff
-- **Type hints**: required on all public functions
-- **Models**: Pydantic v2 for request/response schemas
-- **ORM**: async SQLAlchemy 2.0 style
-- **Logging**: structlog (JSON in production)
-- **Tests**: pytest + pytest-asyncio, minimum 80% coverage
-
-### TypeScript (Frontend Apps)
-
-- **Formatter**: Prettier (via `packages/config`)
-- **Linter**: ESLint (via `packages/config`)
-- **Components**: functional components with TypeScript props
-- **Styling**: Tailwind CSS (web), NativeWind (mobile)
-- **State**: Zustand for client state, React Query for server state
-
-### General
-
-- No hardcoded secrets — use environment variables
-- No `any` types in TypeScript
-- No `# type: ignore` without a comment explaining why
-- All API endpoints must have Pydantic input validation
-- All database operations must be async
-
-## Database Migrations
-
-Each service with PostgreSQL models uses Alembic:
-
-```bash
-cd services/user-svc
-
-# Create a new migration
-alembic revision --autogenerate -m "add loyalty_tier column"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback one step
-alembic downgrade -1
+feat(order-svc): add idempotency key support for order creation
+fix(user-svc): prevent timing attack in login endpoint
+chore: update Python dependencies across all services
+docs: add operations runbook
 ```
 
-**Rules:**
-- Never edit a migration that has been merged to `main`
-- Always test `upgrade` + `downgrade` locally
-- Add data migrations in separate files from schema migrations
+**Types:** `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `perf`, `ci`
 
-## Adding a New Service
+## Pull Request Process
 
-1. Copy an existing service as a template (e.g., `user-svc`)
-2. Update `docker-compose.yml` with the new service
-3. Update `infra/kong/kong.yml` with routing rules
-4. Add the service name to `infra/terraform/variables.tf` → `services` list
-5. Create Dockerfile, alembic.ini, requirements.txt, tests/
-6. Add to `.github/workflows/ci.yml` matrix
+1. Create a feature branch from `dev`
+2. Make your changes with clear, atomic commits
+3. Ensure all tests pass: `pytest` (backend), `pnpm test` (frontend)
+4. Open PR to `dev` branch
+5. Fill out the PR template completely
+6. Request review — response expected within 24 hours
+7. One approver required for merge
+8. Squash merge into `dev`
 
-## Local Development Tips
+## Code Review Expectations
 
-```bash
-# Start only infrastructure (no services)
-docker compose up postgres redis opensearch localstack -d
+- Reviewers respond within 24 hours
+- Focus on correctness, security, and maintainability
+- Approve if the code meets standards — don't block on style preferences
+- Use "Request Changes" only for issues that must be fixed
 
-# Run a single service locally (for debugging)
-cd services/user-svc
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8001
+## Adding a New Microservice
 
-# Access all APIs via Kong gateway
-curl http://localhost:8888/api/v1/auth/login
+- [ ] Create `services/<name>/` with standard structure
+- [ ] Add FastAPI app with health check, CORS, rate limiting
+- [ ] Add SQLAlchemy models and Alembic migration
+- [ ] Add Dockerfile and .dockerignore
+- [ ] Add pyproject.toml with dependencies
+- [ ] Add route in `infra/kong/kong.yml`
+- [ ] Add to `docker-compose.yml`
+- [ ] Add CI job in `.github/workflows/ci.yml`
+- [ ] Add Terraform ECS task definition
 
-# Direct access to a service (bypasses Kong)
-curl http://localhost:8001/api/v1/auth/login
+## Adding a New API Endpoint
 
-# View service logs
-docker compose logs -f user-svc
+- [ ] Define Pydantic request/response schemas
+- [ ] Implement repository method
+- [ ] Implement service method
+- [ ] Add FastAPI route with proper auth dependency
+- [ ] Write unit tests (>80% coverage)
+- [ ] Update `.env.example` if new config needed
+- [ ] Update API documentation
 
-# Reset database
-docker compose down -v  # removes volumes
-docker compose up -d
-```
+## Test Requirements
 
-## Questions?
+- **Unit tests required** for all new code
+- **Integration test required** for database schema changes
+- **API test required** for new endpoints
+- Minimum 80% coverage per service
 
-Open a GitHub issue or reach out to the team lead.
+## Definition of Done
+
+- [ ] Code compiles and passes all tests
+- [ ] No new linting errors
+- [ ] API documentation updated (if applicable)
+- [ ] Database migration included (if schema changed)
+- [ ] `.env.example` updated (if new env vars)
+- [ ] No hardcoded secrets or credentials
+- [ ] PR reviewed and approved

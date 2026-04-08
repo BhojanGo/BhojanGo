@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -50,6 +51,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Correlation ID ───────────────────────────────────────────────────────────
+from app.middleware.correlation import CorrelationMiddleware  # noqa: E402
+
+app.add_middleware(CorrelationMiddleware)
+
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
 
 app.include_router(restaurants.router, prefix="/api/v1")
@@ -64,6 +70,42 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"success": False, "error": {"code": "VALIDATION_ERROR", "message": "Validation failed", "details": errors}},
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    logger.warning("integrity_error", error=str(exc), path=request.url.path)
+    return JSONResponse(
+        status_code=409,
+        content={
+            "success": False,
+            "error": {
+                "code": "CONFLICT",
+                "message": "Resource already exists or constraint violation",
+            },
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error(
+        "unhandled_exception",
+        error=str(exc),
+        path=request.url.path,
+        method=request.method,
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred. Please try again.",
+            },
+        },
     )
 
 
@@ -91,3 +133,40 @@ async def health_check() -> dict:
         "checks": checks,
         "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
     }
+
+
+@app.get("/health/live", tags=["Health"])
+async def liveness() -> dict:
+    """Liveness probe — is the process alive?"""
+    return {"status": "alive"}
+
+
+@app.get("/health/ready", tags=["Health"])
+async def readiness() -> JSONResponse:
+    """Readiness probe — are all dependencies reachable?"""
+    checks: dict[str, str] = {}
+
+    try:
+        redis = await get_redis()
+        await redis.ping()
+        checks["redis"] = "ok"
+    except Exception as e:
+        checks["redis"] = f"error: {e}"
+
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return JSONResponse(
+        status_code=200 if all_ok else 503,
+        content={
+            "status": "healthy" if all_ok else "unhealthy",
+            "service": settings.SERVICE_NAME,
+            "version": settings.VERSION,
+            "checks": checks,
+        },
+    )

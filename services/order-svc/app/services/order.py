@@ -2,7 +2,6 @@ import math
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import httpx
 import structlog
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.events import publish_order_event
 from app.core.state_machine import TRANSITION_PERMISSIONS, can_transition, is_transition_allowed
+from app.core.http_client import create_service_client, resilient_get
 from app.repositories.order import OrderRepository
 from app.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
 
@@ -28,37 +28,64 @@ class OrderService:
         # Fetch restaurant info from restaurant-svc
         restaurant_name = "Unknown Restaurant"
         delivery_fee = 0.0
+        restaurant_svc_url = settings.RESTAURANT_SVC_URL
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{settings.RESTAURANT_SVC_URL}/api/v1/restaurants/{data.restaurant_id}")
+            async with create_service_client() as client:
+                resp = await resilient_get(client, f"{restaurant_svc_url}/api/v1/restaurants/{data.restaurant_id}")
                 if resp.status_code == 200:
                     r_data = resp.json()
                     restaurant_name = r_data.get("name", restaurant_name)
                     delivery_fee = r_data.get("delivery_fee", 0.0)
+
+                # Fetch menu items from restaurant-svc to get real prices
+                menu_resp = await resilient_get(
+                    client, f"{restaurant_svc_url}/api/v1/restaurants/{data.restaurant_id}/menu"
+                )
+                if menu_resp.status_code != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Could not fetch restaurant menu",
+                    )
+                menu_data = menu_resp.json()
+
+                # Build price lookup from menu items
+                price_lookup: dict[str, float] = {}
+                item_name_lookup: dict[str, str] = {}
+                for category in menu_data.get("categories", []):
+                    for item in category.get("items", []):
+                        price_lookup[item["id"]] = item["price"]
+                        item_name_lookup[item["id"]] = item["name"]
+        except HTTPException:
+            raise
         except Exception as e:
             logger.warning("restaurant_fetch_failed", error=str(e))
-
-        # Calculate totals
-        subtotal = 0.0
-        items_serialized = []
-        for item in data.items:
-            item_price = 0.0  # Would be fetched from restaurant-svc in production
-            customization_total = sum(
-                0.0  # Would fetch option prices
-                for _ in item.customizations
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Could not fetch restaurant information",
             )
-            item_total = (item_price + customization_total) * item.quantity
-            subtotal += item_total
-            items_serialized.append({
-                "menu_item_id": str(item.menu_item_id),
-                "quantity": item.quantity,
-                "price": item_price,
-                "customizations": [c.model_dump() for c in item.customizations],
-                "subtotal": item_total,
-            })
 
-        # In real flow, item prices come from a validated cart snapshot
-        # For now we use the provided items structure
+        # Calculate totals using real prices from restaurant menu
+        items_payload = []
+        subtotal = 0.0
+        for item in data.items:
+            item_id = str(item.menu_item_id)
+            if item_id not in price_lookup:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Menu item {item_id} not found in restaurant menu",
+                )
+            unit_price = price_lookup[item_id]
+            line_total = unit_price * item.quantity
+            subtotal += line_total
+            items_payload.append({
+                "menu_item_id": item_id,
+                "name": item_name_lookup.get(item_id, ""),
+                "quantity": item.quantity,
+                "unit_price": unit_price,
+                "total": line_total,
+                "customizations": [c.model_dump() for c in item.customizations] if item.customizations else [],
+            })
+        items_serialized = items_payload
         tax_rate = TAX_RATES.get(currency, 0.08)
         taxes = round(subtotal * tax_rate, 2)
         loyalty_discount = 0.0  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)

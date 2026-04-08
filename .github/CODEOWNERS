@@ -1,0 +1,21 @@
+# Infrastructure
+infra/terraform/ @deeptricsllc/devops-team
+infra/docker/ @deeptricsllc/devops-team
+infra/kong/ @deeptricsllc/devops-team
+.github/ @deeptricsllc/devops-team
+
+# Backend Services
+services/ @deeptricsllc/backend-team
+services/user-svc/ @deeptricsllc/backend-team
+services/restaurant-svc/ @deeptricsllc/backend-team
+services/order-svc/ @deeptricsllc/backend-team
+services/delivery-svc/ @deeptricsllc/backend-team
+services/payment-svc/ @deeptricsllc/backend-team
+services/notification-svc/ @deeptricsllc/backend-team
+
+# Frontend
+apps/ @deeptricsllc/frontend-team
+apps/web/ @deeptricsllc/frontend-team
+apps/admin/ @deeptricsllc/frontend-team
+apps/mobile/ @deeptricsllc/frontend-team
+packages/ @deeptricsllc/frontend-team

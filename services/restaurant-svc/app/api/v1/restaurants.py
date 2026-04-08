@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CurrentUser, get_current_user, require_owner_or_admin
+from app.core.auth import CurrentUser, get_current_user, require_admin, require_owner_or_admin
 from app.core.cache import cache_delete_pattern, cache_get, cache_set
 from app.db.base import get_db
 from app.repositories.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
@@ -325,3 +325,67 @@ async def create_review(
     await rest_repo.update_rating(restaurant_id)
     await cache_delete_pattern(f"restaurants:{restaurant_id}")
     return ReviewResponse.model_validate(review)
+
+
+@router.post(
+    "/{restaurant_id}/approve",
+    response_model=RestaurantResponse,
+    dependencies=[Depends(require_admin)],
+)
+async def approve_restaurant(
+    restaurant_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RestaurantResponse:
+    """Admin: Approve a pending restaurant, making it visible to customers."""
+    repo = RestaurantRepository(db)
+    restaurant = await repo.get_by_id(restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if restaurant.status != "pending_approval":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Restaurant is already '{restaurant.status}', not pending approval",
+        )
+    updated = await repo.update(restaurant_id, status="active")
+    logger.info("restaurant_approved", restaurant_id=str(restaurant_id))
+    return RestaurantResponse.model_validate(updated)
+
+
+@router.post(
+    "/{restaurant_id}/reject",
+    response_model=RestaurantResponse,
+    dependencies=[Depends(require_admin)],
+)
+async def reject_restaurant(
+    restaurant_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RestaurantResponse:
+    """Admin: Reject a pending restaurant."""
+    repo = RestaurantRepository(db)
+    restaurant = await repo.get_by_id(restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if restaurant.status not in ("pending_approval", "active"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Restaurant cannot be rejected from '{restaurant.status}' status",
+        )
+    updated = await repo.update(restaurant_id, status="suspended")
+    logger.info("restaurant_rejected", restaurant_id=str(restaurant_id))
+    return RestaurantResponse.model_validate(updated)
+
+
+@router.get(
+    "/admin/pending",
+    response_model=list[RestaurantResponse],
+    dependencies=[Depends(require_admin)],
+)
+async def list_pending_restaurants(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> list[RestaurantResponse]:
+    """Admin: List all restaurants pending approval."""
+    repo = RestaurantRepository(db)
+    restaurants = await repo.list_pending_restaurants(limit=limit, offset=offset)
+    return [RestaurantResponse.model_validate(r) for r in restaurants]

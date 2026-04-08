@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.idempotency import check_idempotency, store_idempotency, validate_idempotency_key
+from app.core.redis import get_redis
 from app.db.base import get_db
 from app.repositories.order import OrderRepository
 from app.schemas.order import (
@@ -27,11 +29,22 @@ async def create_order(
     data: OrderCreateRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    idempotency_key: Annotated[str, Depends(validate_idempotency_key)],
 ) -> OrderResponse:
     """Create a new order."""
+    # Check idempotency
+    redis = await get_redis()
+    cached = await check_idempotency(redis, "order", idempotency_key)
+    if cached:
+        return cached
+
     currency = "INR" if current_user.country == "IN" else "USD"
     order = await OrderService(db).create_order(data, current_user.id, currency)
-    return OrderResponse.model_validate(order)
+
+    # Store for idempotency
+    response = OrderResponse.model_validate(order)
+    await store_idempotency(redis, "order", idempotency_key, response.model_dump())
+    return response
 
 
 @router.get("", response_model=OrderListResponse)

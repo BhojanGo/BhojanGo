@@ -1,5 +1,6 @@
 -- Create separate schemas/extensions used by services
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Create databases for each service if running in multi-DB mode

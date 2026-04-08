@@ -1,6 +1,14 @@
 _format_version: "3.0"
 _transform: true
 
+# ── JWT Consumer & Credentials ───────────────
+consumers:
+  - username: bhojango-services
+    jwt_secrets:
+      - key: bhojango
+        algorithm: HS256
+        secret: "${JWT_SECRET:-changeme-in-production}"
+
 services:
   # ── User Service ───────────────────────────
   - name: user-svc
@@ -14,6 +22,12 @@ services:
         paths:
           - /api/v1/users
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
     plugins:
       - name: rate-limiting
         config:
@@ -46,6 +60,12 @@ services:
         paths:
           - /api/v1/orders
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
     plugins:
       - name: rate-limiting
         config:
@@ -60,6 +80,12 @@ services:
         paths:
           - /api/v1/delivery
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
       - name: delivery-ws
         paths:
           - /ws
@@ -78,10 +104,22 @@ services:
         paths:
           - /api/v1/payments
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
       - name: wallet-routes
         paths:
           - /api/v1/wallet
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
     plugins:
       - name: rate-limiting
         config:
@@ -96,6 +134,12 @@ services:
         paths:
           - /api/v1/notifications
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
 
   # ── Batch Engine ───────────────────────────
   - name: batch-engine
@@ -105,6 +149,12 @@ services:
         paths:
           - /api/v1/batch
         strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              uri_param_names: []
+              claims_to_verify:
+                - exp
     plugins:
       - name: rate-limiting
         config:
@@ -130,6 +180,7 @@ plugins:
         - Authorization
         - Content-Type
         - X-Request-ID
+        - X-Idempotency-Key
       credentials: true
       max_age: 3600
 
