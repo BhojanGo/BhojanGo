@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -25,6 +25,12 @@ export default function SignupPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isIndia = tz.startsWith("Asia/") && (tz.includes("Kolkata") || tz.includes("Calcutta") || tz.includes("Chennai") || tz.includes("Mumbai"));
+    setForm(f => ({ ...f, country: isIndia ? "IN" : "US" }));
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -89,6 +95,7 @@ export default function SignupPage() {
                 {[
                   { value: "customer", label: "Customer" },
                   { value: "restaurant_owner", label: "Restaurant Owner" },
+                  { value: "driver", label: "Delivery Partner" },
                 ].map((opt) => (
                   <label
                     key={opt.value}
@@ -164,19 +171,12 @@ export default function SignupPage() {
 
             {/* Country */}
             <div>
-              <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Country
               </label>
-              <select
-                id="country"
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
-              >
-                <option value="US">United States</option>
-                <option value="IN">India</option>
-              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Detected: {form.country === "IN" ? "India" : "United States"} · <button type="button" onClick={() => setForm(f => ({...f, country: f.country === "IN" ? "US" : "IN"}))} className="text-emerald-500 hover:underline">Change</button>
+              </p>
             </div>
 
             <div>

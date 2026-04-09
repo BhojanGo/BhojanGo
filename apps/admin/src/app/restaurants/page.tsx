@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { adminApi } from "@/lib/api";
 
 type Restaurant = {
@@ -68,6 +69,7 @@ export default function RestaurantsPage() {
   const restaurants: Restaurant[] = data?.restaurants || [];
 
   return (
+    <AdminLayout>
     <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Restaurant Management</h1>
 
@@ -185,5 +187,6 @@ export default function RestaurantsPage() {
         </button>
       </div>
     </div>
+    </AdminLayout>
   );
 }
