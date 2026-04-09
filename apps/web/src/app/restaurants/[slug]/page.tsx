@@ -46,13 +46,13 @@ function MenuItemCard({
               }`}
             />
           </span>
-          {item.is_popular && (
+          {item.is_bestseller && (
             <span className="text-xs text-emerald-500 font-medium">Bestseller</span>
           )}
         </div>
         <h3 className="font-medium text-gray-900 text-sm">{item.name}</h3>
         <p className="text-sm font-semibold text-gray-900 mt-1">
-          {item.currency === "INR" ? "₹" : "$"}
+          {restaurant.currency === "INR" ? "₹" : "$"}
           {item.price}
         </p>
         {item.description && (
@@ -131,8 +131,8 @@ export default function RestaurantPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
       <div className="relative h-48 md:h-64 bg-gray-300">
-        {restaurant.banner_url && (
-          <Image src={restaurant.banner_url} alt={restaurant.name} fill className="object-cover" />
+        {restaurant.cover_url && (
+          <Image src={restaurant.cover_url} alt={restaurant.name} fill className="object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <button

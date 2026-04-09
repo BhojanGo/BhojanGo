@@ -242,13 +242,13 @@ export default function OrderDetailPage() {
           <p className="font-semibold text-gray-900 mb-3">{order.restaurant_name}</p>
           <div className="space-y-2">
             {order.items?.map((item) => (
-              <div key={item.id} className="flex justify-between text-sm text-gray-700">
+              <div key={item.menu_item_id} className="flex justify-between text-sm text-gray-700">
                 <span>
                   {item.name} × {item.quantity}
                 </span>
                 <span>
                   {currencySymbol}
-                  {(item.unit_price * item.quantity).toFixed(2)}
+                  {(item.price * item.quantity).toFixed(2)}
                 </span>
               </div>
             ))}
@@ -269,7 +269,7 @@ export default function OrderDetailPage() {
             <p className="text-sm font-semibold text-gray-900 mb-1">{t("deliveryAddress")}</p>
             <p className="text-sm text-gray-500">
               {order.delivery_address.street}, {order.delivery_address.city},{" "}
-              {order.delivery_address.state} {order.delivery_address.postal_code}
+              {order.delivery_address.state} {order.delivery_address.zip}
             </p>
           </div>
         )}
@@ -279,7 +279,7 @@ export default function OrderDetailPage() {
           <button
             onClick={() => {
               // Navigate back to restaurant — cart handling happens there
-              if (order.restaurant_slug) router.push(`/restaurants/${order.restaurant_slug}`);
+              if (order.restaurant_id) router.push(`/restaurants/${order.restaurant_id}`);
             }}
             className="w-full py-3 border border-emerald-500 text-emerald-500 font-semibold rounded-xl hover:bg-emerald-50 transition"
           >
