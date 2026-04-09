@@ -45,7 +45,7 @@ export default function RestaurantsPage() {
       }
 
       const res = await adminApi.get(`/restaurant/restaurants?${params}`);
-      return { restaurants: res.data.restaurants || res.data, total: res.data.total || res.data.length };
+      return { restaurants: res.data.items || res.data.restaurants || res.data, total: res.data.total || res.data.length };
     },
   });
 

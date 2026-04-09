@@ -416,36 +416,51 @@ RESTAURANTS = [
 ]
 
 
+def _make_uuid(base: str, suffix: str) -> str:
+    """Create a valid UUID by hashing base+suffix."""
+    import hashlib
+    h = hashlib.md5(f"{base}:{suffix}".encode()).hexdigest()
+    return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
+
+
 def generate_sql() -> str:
     lines = ["-- Seed restaurants and menu items (idempotent)"]
 
     for r in RESTAURANTS:
+        # Build cuisine_types as PostgreSQL array literal
+        cuisines = ",".join(f'"{c}"' for c in r["cuisine_type"])
+        cuisine_array = "'{" + ",".join(r["cuisine_type"]) + "}'"
+        # Build address JSONB
+        address = json.dumps({"street": "", "city": r["city"], "state": r.get("state", ""), "zip": "", "country": r["country"]}).replace("'", "''")
+        currency = "INR" if r["country"] == "IN" else "USD"
+        delivery_max = r.get("estimated_delivery_time", 45) + 15
+
         lines.append(f"""
-INSERT INTO restaurants (id, name, slug, description, cuisine_type, phone, email, owner_id, status, is_active, city, state, country, latitude, longitude, average_rating, total_ratings, delivery_fee, min_order_amount, estimated_delivery_time, is_vegetarian, created_at, updated_at)
+INSERT INTO restaurants (id, name, slug, owner_id, description, cuisine_types, address, lat, lng, rating, review_count, is_open, delivery_time_min, delivery_time_max, minimum_order_amount, delivery_fee, currency, country, city, status, is_active, created_at, updated_at)
 VALUES (
-    '{r["id"]}', '{r["name"].replace("'", "''")}', '{r["slug"]}', '{r["description"].replace("'", "''")}',
-    '{json.dumps(r["cuisine_type"])}', '{r["phone"]}', '{r["email"]}', '{r["owner_id"]}',
-    '{r["status"]}', {str(r["is_active"]).lower()}, '{r["city"]}', '{r["state"]}', '{r["country"]}',
-    {r["latitude"]}, {r["longitude"]}, {r["average_rating"]}, {r["total_ratings"]},
-    {r["delivery_fee"]}, {r["min_order_amount"]}, {r["estimated_delivery_time"]},
-    {str(r["is_vegetarian"]).lower()}, NOW(), NOW()
+    '{r["id"]}', '{r["name"].replace("'", "''")}', '{r["slug"]}', '{r["owner_id"]}',
+    '{r["description"].replace("'", "''")}', {cuisine_array}, '{address}',
+    {r["latitude"]}, {r["longitude"]}, {r.get("average_rating", 0)}, {r.get("total_ratings", 0)},
+    true, {r.get("estimated_delivery_time", 30)}, {delivery_max},
+    {r.get("min_order_amount", 0)}, {r["delivery_fee"]}, '{currency}', '{r["country"]}', '{r["city"]}',
+    '{r["status"]}', {str(r["is_active"]).lower()}, NOW(), NOW()
 )
 ON CONFLICT (id) DO NOTHING;""")
 
         for cat_idx, cat in enumerate(r["categories"]):
-            cat_id = f"{r['id'][:8]}-cat{cat_idx+1}-0000-0000-{r['id'][-12:]}"
+            cat_id = _make_uuid(r["id"], f"cat-{cat_idx}")
             lines.append(f"""
 INSERT INTO menu_categories (id, restaurant_id, name, sort_order, created_at)
 VALUES ('{cat_id}', '{r["id"]}', '{cat["name"]}', {cat_idx}, NOW())
 ON CONFLICT (id) DO NOTHING;""")
 
             for item_idx, item in enumerate(cat["items"]):
-                item_id = f"{r['id'][:8]}-i{cat_idx+1}{item_idx+1:02d}-0000-0000-{r['id'][-12:]}"
+                item_id = _make_uuid(r["id"], f"item-{cat_idx}-{item_idx}")
                 is_bs = str(item.get("is_bestseller", False)).lower()
                 desc = item.get("description", "").replace("'", "''")
                 lines.append(f"""
-INSERT INTO menu_items (id, category_id, restaurant_id, name, description, price, is_vegetarian, is_available, is_bestseller, sort_order, created_at, updated_at)
-VALUES ('{item_id}', '{cat_id}', '{r["id"]}', '{item["name"].replace("'", "''")}', '{desc}', {item["price"]}, {str(item["is_veg"]).lower()}, true, {is_bs}, {item_idx}, NOW(), NOW())
+INSERT INTO menu_items (id, category_id, restaurant_id, name, description, price, category, is_veg, is_available, sort_order, created_at, updated_at)
+VALUES ('{item_id}', '{cat_id}', '{r["id"]}', '{item["name"].replace("'", "''")}', '{desc}', {item["price"]}, '{cat["name"]}', {str(item["is_veg"]).lower()}, true, {item_idx}, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;""")
 
     return "\n".join(lines)

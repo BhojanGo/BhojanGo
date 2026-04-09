@@ -11,7 +11,7 @@ interface AuthState {
 
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
 }
 

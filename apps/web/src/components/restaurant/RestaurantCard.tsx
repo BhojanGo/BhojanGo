@@ -12,7 +12,7 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
   const currencySymbol = restaurant.currency === "INR" ? "₹" : "$";
 
   return (
-    <Link href={`/restaurants/${restaurant.slug}`}>
+    <Link href={`/restaurants/${restaurant.id}`}>
       <Card hover padding="none" className="overflow-hidden">
         {/* Cover image */}
         <div className="relative h-40 w-full bg-gray-200 dark:bg-gray-700">

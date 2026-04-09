@@ -20,11 +20,13 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     phone: "",
+    country: "US",
+    role: "customer",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
@@ -47,6 +49,9 @@ export default function SignupPage() {
         full_name: form.full_name,
         email: form.email,
         password: form.password,
+        country: form.country,
+        preferred_currency: form.country === "IN" ? "INR" : "USD",
+        preferred_locale: form.country === "IN" ? "en-IN" : "en-US",
       };
       if (form.phone) payload.phone = form.phone;
 
@@ -77,6 +82,36 @@ export default function SignupPage() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Role selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sign up as</label>
+              <div className="flex gap-3">
+                {[
+                  { value: "customer", label: "Customer" },
+                  { value: "restaurant_owner", label: "Restaurant Owner" },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border cursor-pointer transition text-sm font-medium ${
+                      form.role === opt.value
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value={opt.value}
+                      checked={form.role === opt.value}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("name")}
@@ -125,6 +160,23 @@ export default function SignupPage() {
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
                 placeholder="+1 555 000 0000"
               />
+            </div>
+
+            {/* Country */}
+            <div>
+              <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+                Country
+              </label>
+              <select
+                id="country"
+                name="country"
+                value={form.country}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+              >
+                <option value="US">United States</option>
+                <option value="IN">India</option>
+              </select>
             </div>
 
             <div>
