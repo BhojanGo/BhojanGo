@@ -73,18 +73,19 @@ export default function OrdersPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/orders");
-    return null;
-  }
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
       const { data } = await api.get("/order/orders?limit=50");
       return data as { items: Order[]; total: number };
     },
+    enabled: !!isAuthenticated,
   });
+
+  if (!isAuthenticated) {
+    router.replace("/login?redirect=/orders");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

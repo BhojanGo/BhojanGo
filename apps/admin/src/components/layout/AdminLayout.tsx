@@ -27,7 +27,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isAuthenticated, router]);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400 text-sm">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const visibleNavItems = NAV_ITEMS.filter((item) =>
     item.roles.includes(user?.role ?? "")

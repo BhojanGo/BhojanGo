@@ -132,7 +132,7 @@ export default function OrderDetailPage() {
     return () => {
       ws.close();
     };
-  }, [order?.status, accessToken, params.id, refetch]);
+  }, [order, accessToken, params.id, refetch]);
 
   if (!isAuthenticated) {
     router.replace(`/login?redirect=/orders/${params.id}`);

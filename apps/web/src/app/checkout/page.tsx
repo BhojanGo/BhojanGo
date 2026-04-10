@@ -34,6 +34,24 @@ export default function CheckoutPage() {
 
   const isIndia = user?.country === "IN";
 
+  const { data: addresses } = useQuery<Address[]>({
+    queryKey: ["addresses"],
+    queryFn: async () => {
+      const { data } = await api.get("/user/me/addresses");
+      return data;
+    },
+    enabled: !!isAuthenticated,
+  });
+
+  const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
+    queryKey: ["wallet-balance"],
+    queryFn: async () => {
+      const { data } = await api.get("/payment/wallet/balance");
+      return data;
+    },
+    enabled: !!isAuthenticated,
+  });
+
   // Redirect if not authenticated
   if (!isAuthenticated) {
     router.replace("/login?redirect=/checkout");
@@ -45,22 +63,6 @@ export default function CheckoutPage() {
     router.replace("/");
     return null;
   }
-
-  const { data: addresses } = useQuery<Address[]>({
-    queryKey: ["addresses"],
-    queryFn: async () => {
-      const { data } = await api.get("/user/me/addresses");
-      return data;
-    },
-  });
-
-  const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
-    queryKey: ["wallet-balance"],
-    queryFn: async () => {
-      const { data } = await api.get("/payment/wallet/balance");
-      return data;
-    },
-  });
 
   async function handlePlaceOrder() {
     if (!selectedAddressId) {

@@ -10,8 +10,8 @@ import { api } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import type { Restaurant, MenuCategory, MenuItem } from "@bhojango/types";
 
-interface RestaurantWithMenu extends Restaurant {
-  categories: (MenuCategory & { items: MenuItem[] })[];
+interface CategoryWithItems extends MenuCategory {
+  items: MenuItem[];
 }
 
 function MenuItemCard({
@@ -82,20 +82,39 @@ function MenuItemCard({
 
 export default function RestaurantPage() {
   const t = useTranslations("restaurant");
-  const params = useParams<{ slug: string }>();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
   const cart = useCartStore();
 
   const [activeTab, setActiveTab] = useState<"menu" | "reviews">("menu");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const { data: restaurant, isLoading, isError } = useQuery({
-    queryKey: ["restaurant", params.slug],
+  // Fetch restaurant details by ID (UUID)
+  const { data: restaurant, isLoading: isLoadingRestaurant, isError } = useQuery({
+    queryKey: ["restaurant", params.id],
     queryFn: async () => {
-      const { data } = await api.get(`/restaurant/restaurants/${params.slug}`);
-      return data as RestaurantWithMenu;
+      const { data } = await api.get(`/restaurant/restaurants/${params.id}`);
+      return data as Restaurant;
     },
   });
+
+  // Fetch menu categories separately
+  const { data: categories } = useQuery({
+    queryKey: ["restaurant-menu", params.id],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get(`/restaurant/restaurants/${params.id}/menu`);
+        // Handle various response formats
+        const cats = data.categories || data.items || data;
+        return (Array.isArray(cats) ? cats : []) as CategoryWithItems[];
+      } catch {
+        return [] as CategoryWithItems[];
+      }
+    },
+    enabled: !!params.id,
+  });
+
+  const isLoading = isLoadingRestaurant;
 
   if (isLoading) {
     return (
@@ -123,9 +142,10 @@ export default function RestaurantPage() {
     );
   }
 
+  const menuCategories = categories || [];
   const displayedCategories = activeCategory
-    ? restaurant.categories?.filter((c) => c.id === activeCategory)
-    : restaurant.categories;
+    ? menuCategories.filter((c) => c.id === activeCategory)
+    : menuCategories;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -206,7 +226,7 @@ export default function RestaurantPage() {
         {activeTab === "menu" && (
           <div className="flex gap-4 py-4">
             {/* Category sidebar */}
-            {restaurant.categories && restaurant.categories.length > 1 && (
+            {menuCategories.length > 1 && (
               <div className="hidden md:flex flex-col gap-1 w-40 flex-shrink-0">
                 <button
                   onClick={() => setActiveCategory(null)}
@@ -216,7 +236,7 @@ export default function RestaurantPage() {
                 >
                   All
                 </button>
-                {restaurant.categories.map((cat) => (
+                {menuCategories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
@@ -234,7 +254,7 @@ export default function RestaurantPage() {
 
             {/* Menu items */}
             <div className="flex-1 min-w-0 space-y-6">
-              {!restaurant.categories?.length && (
+              {!menuCategories.length && (
                 <p className="text-gray-500 py-8 text-center">{t("noMenu")}</p>
               )}
               {displayedCategories?.map((category) => (

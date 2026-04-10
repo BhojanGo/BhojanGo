@@ -34,11 +34,6 @@ export default function ProfilePage() {
   });
   const [saved, setSaved] = useState(false);
 
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/profile");
-    return null;
-  }
-
   const mutation = useMutation({
     mutationFn: async (payload: typeof form) => {
       const { data } = await api.patch("/user/me", payload);
@@ -51,6 +46,11 @@ export default function ProfilePage() {
       setTimeout(() => setSaved(false), 2000);
     },
   });
+
+  if (!isAuthenticated) {
+    router.replace("/login?redirect=/profile");
+    return null;
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
