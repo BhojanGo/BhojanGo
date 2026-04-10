@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -31,7 +31,18 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    label: "",
+    street: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: user?.country ?? "US",
+  });
+  const [savingAddress, setSavingAddress] = useState(false);
 
+  const queryClient = useQueryClient();
   const isIndia = user?.country === "IN";
 
   const { data: addresses } = useQuery<Address[]>({
@@ -62,6 +73,27 @@ export default function CheckoutPage() {
   if (cart.items.length === 0) {
     router.replace("/");
     return null;
+  }
+
+  async function handleSaveAddress(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addressForm.street.trim() || !addressForm.city.trim()) {
+      setError("Street and city are required.");
+      return;
+    }
+    setSavingAddress(true);
+    setError("");
+    try {
+      const { data: saved } = await api.post("/user/me/addresses", addressForm);
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      setSelectedAddressId(saved.id);
+      setShowAddressForm(false);
+      setAddressForm({ label: "", street: "", city: "", state: "", postal_code: "", country: user?.country ?? "US" });
+    } catch {
+      setError("Failed to save address. Please try again.");
+    } finally {
+      setSavingAddress(false);
+    }
   }
 
   async function handlePlaceOrder() {
@@ -157,12 +189,8 @@ export default function CheckoutPage() {
         {/* Delivery Address */}
         <section className="bg-white rounded-xl p-4 mb-4">
           <h2 className="font-semibold text-gray-900 mb-3">{t("deliveryAddress")}</h2>
-          {!addresses?.length ? (
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition">
-              + {t("addAddress")}
-            </button>
-          ) : (
-            <div className="space-y-2">
+          {addresses && addresses.length > 0 && (
+            <div className="space-y-2 mb-3">
               {addresses.map((addr) => (
                 <label
                   key={addr.id}
@@ -189,6 +217,74 @@ export default function CheckoutPage() {
                 </label>
               ))}
             </div>
+          )}
+
+          {showAddressForm ? (
+            <form onSubmit={handleSaveAddress} className="space-y-3 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-900">New delivery address</p>
+              <input
+                type="text"
+                placeholder="Label (e.g. Home, Work)"
+                value={addressForm.label}
+                onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Street address *"
+                required
+                value={addressForm.street}
+                onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="City *"
+                  required
+                  value={addressForm.city}
+                  onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="State"
+                  value={addressForm.state}
+                  onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Postal code"
+                value={addressForm.postal_code}
+                onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={savingAddress}
+                  className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
+                >
+                  {savingAddress ? "Saving..." : "Save Address"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressForm(false)}
+                  className="px-4 py-2 border border-gray-300 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowAddressForm(true)}
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition"
+            >
+              + {t("addAddress")}
+            </button>
           )}
         </section>
 

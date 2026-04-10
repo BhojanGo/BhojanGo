@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { useCartStore } from "@/store/cart";
+import { useAuthStore } from "@/store/auth";
 
 export default function CartPage() {
   const t = useTranslations("cart");
   const router = useRouter();
-  const { items, restaurantName, restaurantSlug, updateQuantity, removeItem, getSubtotal, getTax, getTotal, deliveryFee } =
+  const { items, restaurantId, restaurantName, updateQuantity, removeItem, getSubtotal, getTax, getTotal, deliveryFee } =
     useCartStore();
+  const user = useAuthStore((s) => s.user);
+  const currencySymbol = user?.country === "IN" ? "\u20B9" : "$";
 
   if (items.length === 0) {
     return (
@@ -54,8 +57,8 @@ export default function CartPage() {
         {restaurantName && (
           <div className="bg-white rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
             <span className="text-sm text-gray-500">{t("from", { restaurant: restaurantName })}</span>
-            {restaurantSlug && (
-              <Link href={`/restaurants/${restaurantSlug}`} className="text-sm text-emerald-500 hover:underline">
+            {restaurantId && (
+              <Link href={`/restaurants/${restaurantId}`} className="text-sm text-emerald-500 hover:underline">
                 Add more
               </Link>
             )}
@@ -83,7 +86,7 @@ export default function CartPage() {
                 </div>
                 <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
                 <p className="text-sm text-gray-600 mt-0.5">
-                  ×{item.quantity} = ${(item.price * item.quantity).toFixed(2)}
+                  x{item.quantity} = {currencySymbol}{(item.price * item.quantity).toFixed(2)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -120,20 +123,20 @@ export default function CartPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>{t("subtotal")}</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{currencySymbol}{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>{t("deliveryFee")}</span>
-              <span>{deliveryFee === 0 ? "FREE" : `$${deliveryFee.toFixed(2)}`}</span>
+              <span>{deliveryFee === 0 ? "FREE" : `${currencySymbol}${deliveryFee.toFixed(2)}`}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>{t("tax")}</span>
-              <span>${tax.toFixed(2)}</span>
+              <span>{currencySymbol}{tax.toFixed(2)}</span>
             </div>
             <div className="h-px bg-gray-100" />
             <div className="flex justify-between font-semibold text-gray-900">
               <span>{t("total")}</span>
-              <span>${total.toFixed(2)}</span>
+              <span>{currencySymbol}{total.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -142,7 +145,7 @@ export default function CartPage() {
           onClick={() => router.push("/checkout")}
           className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 text-white font-semibold rounded-xl transition"
         >
-          {t("checkout")} · ${total.toFixed(2)}
+          {t("checkout")} · {currencySymbol}{total.toFixed(2)}
         </button>
       </div>
     </div>
