@@ -22,3 +22,9 @@ variable "environment" {
 variable "tags" {
   type = map(string)
 }
+
+variable "allowed_role_arns" {
+  type        = list(string)
+  default     = []
+  description = "IAM role ARNs permitted to access the domain. When empty, access is scoped to this AWS account's root (the domain is also network-isolated by its VPC security group)."
+}

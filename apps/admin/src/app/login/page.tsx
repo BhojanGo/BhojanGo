@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
         setError("You do not have access to the admin dashboard.");
         return;
       }
-      login(data.access_token, data.user);
+      login(data.access_token, data.refresh_token ?? null, data.user);
       router.push("/dashboard");
     } catch {
       setError("Invalid email or password.");

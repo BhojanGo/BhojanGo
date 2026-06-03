@@ -51,10 +51,18 @@ resource "aws_opensearch_domain" "main" {
   access_policies = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow"
-      Principal = { AWS = "*" }
-      Action    = "es:*"
-      Resource  = "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.name}/*"
+      Effect = "Allow"
+      Principal = {
+        AWS = length(var.allowed_role_arns) > 0 ? var.allowed_role_arns : ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+      }
+      Action = [
+        "es:ESHttpGet",
+        "es:ESHttpPut",
+        "es:ESHttpPost",
+        "es:ESHttpDelete",
+        "es:ESHttpHead",
+      ]
+      Resource = "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.name}/*"
     }]
   })
 

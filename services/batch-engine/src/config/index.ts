@@ -29,6 +29,16 @@ export const APP_CONFIG = {
   logLevel: env("LOG_LEVEL", "info"),
 } as const;
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+const DEFAULT_JWT_SECRET = "changeme-in-production";
+
+export const JWT_CONFIG = {
+  secret: env("JWT_SECRET", DEFAULT_JWT_SECRET),
+  algorithm: env("JWT_ALGORITHM", "HS256"),
+  usingDefaultSecret: !process.env.JWT_SECRET,
+} as const;
+
 // ── Database ────────────────────────────────────────────────────────────────
 
 export const DB_CONFIG = {
