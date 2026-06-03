@@ -13,6 +13,7 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.payments import wallet_router
 from app.config import get_settings
 from app.db.base import engine
+from app.middleware.correlation import CorrelationMiddleware
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -34,6 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(CorrelationMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
 

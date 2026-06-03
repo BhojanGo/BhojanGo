@@ -62,6 +62,25 @@ class OtpVerifyRequest(BaseModel):
     otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
+class ResetPasswordRequest(BaseModel):
+    """Reset a forgotten password by proving phone ownership via OTP."""
+
+    phone: str = Field(pattern=r"^\+?[1-9]\d{7,14}$")
+    otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+
+
 class SocialLoginRequest(BaseModel):
     provider: Literal["google", "apple"]
     token: str = Field(min_length=10)
