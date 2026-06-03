@@ -108,51 +108,64 @@ export default function CheckoutPage() {
       const address = addresses?.find((a) => a.id === selectedAddressId);
       if (!address) throw new Error("Address not found");
 
-      // Create order
+      // Map the UI payment choice to the order-svc payment_method enum.
+      const orderPaymentMethod =
+        paymentMethod === "wallet" ? "wallet" : paymentMethod === "cod" ? "cash_on_delivery" : "card";
+      const currency = isIndia ? "INR" : "USD";
+
+      // Create order. The server is the source of truth for money — it recomputes
+      // subtotal/tax/total from the live menu, so we only send line items + address.
       const orderPayload = {
         restaurant_id: cart.restaurantId,
         items: cart.items.map((item) => ({
           menu_item_id: item.menuItemId,
           quantity: item.quantity,
-          unit_price: item.price,
           customizations: item.customizations,
         })),
         delivery_address: {
           street: address.street,
           city: address.city,
           state: address.state,
-          postal_code: address.postal_code,
+          zip: address.postal_code,
           country: address.country,
         },
-        payment_method: paymentMethod,
-        subtotal: cart.getSubtotal(),
-        delivery_fee: cart.deliveryFee,
-        tax: cart.getTax(),
-        total: cart.getTotal(),
+        payment_method: orderPaymentMethod,
       };
 
       const { data: order } = await api.post("/order/orders", orderPayload);
 
-      // Initiate payment
+      // Amount must be in the smallest currency unit (cents/paise) for the payment service.
+      const amountMinor = Math.round((order.total ?? cart.getTotal()) * 100);
+
+      // Initiate payment (skip for cash on delivery)
       if (paymentMethod !== "cod") {
         const { data: paymentIntent } = await api.post("/payment/payments/initiate", {
           order_id: order.id,
-          amount: cart.getTotal(),
-          currency: isIndia ? "INR" : "USD",
-          payment_method: paymentMethod,
+          amount: amountMinor,
+          currency,
+          payment_method_type: paymentMethod === "wallet" ? "wallet" : "card",
           country: isIndia ? "IN" : "US",
         });
 
+        const params = new URLSearchParams({
+          order_id: order.id,
+          provider: paymentIntent.provider,
+          amount: String(paymentIntent.amount ?? amountMinor),
+          currency,
+        });
         if (paymentMethod === "stripe" && paymentIntent.client_secret) {
-          // Redirect to Stripe checkout or handle inline
-          router.push(`/checkout/payment?order_id=${order.id}&client_secret=${paymentIntent.client_secret}`);
+          params.set("client_secret", paymentIntent.client_secret);
+          cart.clearCart();
+          router.push(`/checkout/payment?${params.toString()}`);
           return;
         }
-
         if (paymentMethod === "razorpay" && paymentIntent.razorpay_order_id) {
-          router.push(`/checkout/payment?order_id=${order.id}&razorpay_order_id=${paymentIntent.razorpay_order_id}`);
+          params.set("razorpay_order_id", paymentIntent.razorpay_order_id);
+          cart.clearCart();
+          router.push(`/checkout/payment?${params.toString()}`);
           return;
         }
+        // Wallet — payment is settled synchronously by the initiate call.
       }
 
       // Wallet / COD — order is placed
