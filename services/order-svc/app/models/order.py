@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,13 +24,13 @@ class Order(Base):
     # State machine
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
 
-    # Financials
-    subtotal: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    delivery_fee: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    taxes: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    tip: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    discount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Financials (stored as NUMERIC for exact money arithmetic; denominated in major units, e.g. dollars/rupees)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    delivery_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    taxes: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    tip: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
 
     # Delivery

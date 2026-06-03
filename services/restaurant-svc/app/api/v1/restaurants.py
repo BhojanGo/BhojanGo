@@ -205,7 +205,7 @@ async def create_restaurant(
             "country": restaurant.country,
             "rating": restaurant.rating,
             "is_open": restaurant.is_open,
-            "delivery_fee": restaurant.delivery_fee,
+            "delivery_fee": float(restaurant.delivery_fee),
             "location": {"lat": restaurant.lat, "lon": restaurant.lng} if restaurant.lat else None,
             "tags": restaurant.tags,
         },

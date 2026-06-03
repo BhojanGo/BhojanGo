@@ -1,6 +1,6 @@
-import math
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 import structlog
 from fastapi import HTTPException, status
@@ -16,7 +16,18 @@ from app.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatu
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
-TAX_RATES = {"USD": 0.08, "INR": 0.18}  # 8% US, 18% India GST
+# Tax rates as exact Decimals (8% US, 18% India GST)
+TAX_RATES = {"USD": Decimal("0.08"), "INR": Decimal("0.18")}
+
+_CENTS = Decimal("0.01")
+
+
+def _money(value: object) -> Decimal:
+    """Coerce any numeric input to an exact 2-decimal money Decimal.
+
+    Going through str() avoids inheriting binary-float artifacts (e.g. 19.99 -> 19.9900000001).
+    """
+    return Decimal(str(value)).quantize(_CENTS, rounding=ROUND_HALF_UP)
 
 
 class OrderService:
@@ -27,7 +38,7 @@ class OrderService:
     async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str) -> dict:
         # Fetch restaurant info from restaurant-svc
         restaurant_name = "Unknown Restaurant"
-        delivery_fee = 0.0
+        delivery_fee = Decimal("0")
         restaurant_svc_url = settings.RESTAURANT_SVC_URL
         try:
             async with create_service_client() as client:
@@ -35,7 +46,7 @@ class OrderService:
                 if resp.status_code == 200:
                     r_data = resp.json()
                     restaurant_name = r_data.get("name", restaurant_name)
-                    delivery_fee = r_data.get("delivery_fee", 0.0)
+                    delivery_fee = _money(r_data.get("delivery_fee", 0))
 
                 # Fetch menu items from restaurant-svc to get real prices
                 menu_resp = await resilient_get(
@@ -49,11 +60,11 @@ class OrderService:
                 menu_data = menu_resp.json()
 
                 # Build price lookup from menu items
-                price_lookup: dict[str, float] = {}
+                price_lookup: dict[str, Decimal] = {}
                 item_name_lookup: dict[str, str] = {}
                 for category in menu_data.get("categories", []):
                     for item in category.get("items", []):
-                        price_lookup[item["id"]] = item["price"]
+                        price_lookup[item["id"]] = _money(item["price"])
                         item_name_lookup[item["id"]] = item["name"]
         except HTTPException:
             raise
@@ -66,7 +77,7 @@ class OrderService:
 
         # Calculate totals using real prices from restaurant menu
         items_payload = []
-        subtotal = 0.0
+        subtotal = Decimal("0")
         for item in data.items:
             item_id = str(item.menu_item_id)
             if item_id not in price_lookup:
@@ -75,21 +86,24 @@ class OrderService:
                     detail=f"Menu item {item_id} not found in restaurant menu",
                 )
             unit_price = price_lookup[item_id]
-            line_total = unit_price * item.quantity
+            line_total = _money(unit_price * item.quantity)
             subtotal += line_total
             items_payload.append({
                 "menu_item_id": item_id,
                 "name": item_name_lookup.get(item_id, ""),
                 "quantity": item.quantity,
-                "unit_price": unit_price,
-                "total": line_total,
+                # JSONB item snapshot is display data -> store as float for JSON serialization
+                "unit_price": float(unit_price),
+                "total": float(line_total),
                 "customizations": [c.model_dump() for c in item.customizations] if item.customizations else [],
             })
         items_serialized = items_payload
-        tax_rate = TAX_RATES.get(currency, 0.08)
-        taxes = round(subtotal * tax_rate, 2)
-        loyalty_discount = 0.0  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
-        total = round(subtotal + delivery_fee + taxes + data.tip - loyalty_discount, 2)
+        subtotal = _money(subtotal)
+        tax_rate = TAX_RATES.get(currency, Decimal("0.08"))
+        taxes = _money(subtotal * tax_rate)
+        tip = _money(data.tip)
+        loyalty_discount = Decimal("0")  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
+        total = _money(subtotal + delivery_fee + taxes + tip - loyalty_discount)
 
         # Estimated delivery time
         estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.BASE_DELIVERY_MINUTES)
@@ -103,7 +117,7 @@ class OrderService:
             subtotal=subtotal,
             delivery_fee=delivery_fee,
             taxes=taxes,
-            tip=data.tip,
+            tip=tip,
             discount=loyalty_discount,
             total=total,
             currency=currency,
@@ -119,7 +133,7 @@ class OrderService:
             "order_id": str(order.id),
             "customer_id": str(customer_id),
             "restaurant_id": str(data.restaurant_id),
-            "total": total,
+            "total": float(total),
             "currency": currency,
             "payment_method": data.payment_method,
         })
@@ -192,7 +206,7 @@ class OrderService:
             "customer_id": str(order.customer_id),
             "restaurant_id": str(order.restaurant_id),
             "reason": data.reason,
-            "refund_amount": order.total,
+            "refund_amount": float(order.total),
             "currency": order.currency,
         })
 

@@ -1,6 +1,7 @@
 import re
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -44,8 +45,8 @@ class RestaurantCreateRequest(BaseModel):
     location: GeoPointSchema
     delivery_time_min: int = Field(ge=5, le=120)
     delivery_time_max: int = Field(ge=10, le=180)
-    minimum_order_amount: float = Field(ge=0)
-    delivery_fee: float = Field(ge=0)
+    minimum_order_amount: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    delivery_fee: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
     currency: Currency
     country: Country
     city: str = Field(min_length=1)
@@ -65,8 +66,8 @@ class RestaurantUpdateRequest(BaseModel):
     closes_at: str | None = None
     delivery_time_min: int | None = Field(default=None, ge=5)
     delivery_time_max: int | None = Field(default=None, ge=10)
-    minimum_order_amount: float | None = Field(default=None, ge=0)
-    delivery_fee: float | None = Field(default=None, ge=0)
+    minimum_order_amount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    delivery_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     tags: list[str] | None = None
     status: RestaurantStatus | None = None
 
@@ -108,7 +109,7 @@ class MenuItemCreateRequest(BaseModel):
     category_id: uuid.UUID | None = None
     name: str = Field(min_length=2, max_length=255)
     description: str = Field(default="", max_length=1000)
-    price: float = Field(gt=0)
+    price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     category: str = Field(min_length=1, max_length=100)
     is_veg: bool = False
     is_vegan: bool = False
@@ -122,7 +123,7 @@ class MenuItemCreateRequest(BaseModel):
 class MenuItemUpdateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
-    price: float | None = Field(default=None, gt=0)
+    price: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     category: str | None = None
     is_veg: bool | None = None
     is_available: bool | None = None
