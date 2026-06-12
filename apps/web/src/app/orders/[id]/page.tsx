@@ -12,10 +12,44 @@ import type { Order } from "@bhojango/types";
 const STATUS_STEPS = [
   "confirmed",
   "preparing",
+  "almost_ready",
   "ready_for_pickup",
   "picked_up",
   "delivered",
 ] as const;
+
+// Human labels for the full pain-point timeline (robust to missing i18n keys).
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Order placed",
+  confirmed: "Restaurant accepted",
+  preparing: "Preparing",
+  almost_ready: "Almost ready",
+  ready_for_pickup: "Ready for pickup",
+  picked_up: "Picked up",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
+interface FeeBreakdown {
+  food_subtotal: number;
+  delivery_fee: number;
+  platform_fee: number;
+  restaurant_payout: number;
+  tip: number;
+  taxes: number;
+  discount: number;
+  total: number;
+  currency: string;
+}
+
+interface OrderTimeline {
+  order_id: string;
+  status: string;
+  estimated_prep_minutes: number;
+  restaurant_accepted_at: string | null;
+  actual_ready_at: string | null;
+  timeline: { status: string; at: string | null }[];
+}
 
 type TrackingMessage = {
   type: "location_update" | "status_update" | "ping";
@@ -27,7 +61,6 @@ type TrackingMessage = {
 };
 
 function StatusTimeline({ status }: { status: string }) {
-  const t = useTranslations("orders");
   const currentIndex = STATUS_STEPS.indexOf(status as (typeof STATUS_STEPS)[number]);
 
   return (
@@ -48,7 +81,7 @@ function StatusTimeline({ status }: { status: string }) {
                 }`}
               />
               <p className={`text-xs mt-1 text-center ${isPast ? "text-emerald-700" : "text-gray-400"}`}>
-                {t(`status.${step}` as never) as string}
+                {STATUS_LABELS[step] ?? step}
               </p>
             </div>
           );
@@ -89,6 +122,30 @@ export default function OrderDetailPage() {
       const { data } = await api.get(`/order/orders/${params.id}`);
       return data as Order;
     },
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (!status || ["delivered", "cancelled"].includes(status)) return false;
+      return 30_000;
+    },
+  });
+
+  // Customer transparency: fee breakdown + detailed status timeline
+  const { data: breakdown } = useQuery({
+    queryKey: ["order-breakdown", params.id],
+    queryFn: async () => {
+      const { data } = await api.get(`/order/orders/${params.id}/breakdown`);
+      return data as FeeBreakdown;
+    },
+    enabled: !!params.id,
+  });
+
+  const { data: timeline } = useQuery({
+    queryKey: ["order-timeline", params.id],
+    queryFn: async () => {
+      const { data } = await api.get(`/order/orders/${params.id}/timeline`);
+      return data as OrderTimeline;
+    },
+    enabled: !!params.id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       if (!status || ["delivered", "cancelled"].includes(status)) return false;
@@ -254,14 +311,73 @@ export default function OrderDetailPage() {
             ))}
           </div>
           <div className="h-px bg-gray-100 my-3" />
+          {/* Customer transparency: full fee breakdown */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Food subtotal</span>
+              <span>{currencySymbol}{(breakdown?.food_subtotal ?? order.subtotal ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Delivery fee</span>
+              <span>{currencySymbol}{(breakdown?.delivery_fee ?? order.delivery_fee ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Platform fee</span>
+              <span>{currencySymbol}{(breakdown?.platform_fee ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Taxes</span>
+              <span>{currencySymbol}{(breakdown?.taxes ?? order.taxes ?? 0).toFixed(2)}</span>
+            </div>
+            {(breakdown?.tip ?? order.tip ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Tip</span>
+                <span>{currencySymbol}{(breakdown?.tip ?? order.tip ?? 0).toFixed(2)}</span>
+              </div>
+            )}
+            {(breakdown?.discount ?? order.discount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-emerald-600">
+                <span>Discount</span>
+                <span>-{currencySymbol}{(breakdown?.discount ?? order.discount ?? 0).toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+          <div className="h-px bg-gray-100 my-3" />
           <div className="flex justify-between font-semibold text-gray-900">
             <span>Total</span>
             <span>
               {currencySymbol}
-              {order.total?.toFixed(2)}
+              {(breakdown?.total ?? order.total ?? 0).toFixed(2)}
             </span>
           </div>
         </div>
+
+        {/* Detailed status timeline (customer transparency) */}
+        {timeline && timeline.timeline.length > 0 && (
+          <div className="bg-white rounded-xl p-4 mb-4">
+            <p className="font-semibold text-gray-900 mb-3">Order timeline</p>
+            <ol className="space-y-3">
+              {timeline.timeline.map((entry, i) => (
+                <li key={`${entry.status}-${i}`} className="flex items-start gap-3">
+                  <span className="mt-1 w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <div className="flex-1 flex justify-between gap-2">
+                    <span className="text-sm text-gray-800">{STATUS_LABELS[entry.status] ?? entry.status}</span>
+                    {entry.at && (
+                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                        {new Date(entry.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            {timeline.estimated_prep_minutes > 0 && timeline.actual_ready_at === null && (
+              <p className="text-xs text-gray-400 mt-3">
+                Estimated prep time: ~{timeline.estimated_prep_minutes} min
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Delivery address */}
         {order.delivery_address && (

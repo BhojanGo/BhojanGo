@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { href: "/users", label: "Users", icon: "👥", roles: ["admin", "super_admin"] },
   { href: "/drivers", label: "Drivers", icon: "🚴", roles: ["admin", "super_admin", "city_manager"] },
   { href: "/payments", label: "Payments", icon: "💳", roles: ["admin", "super_admin"] },
+  { href: "/pricing", label: "Pricing", icon: "🏷️", roles: ["admin", "super_admin", "city_manager"] },
+  { href: "/pain-points", label: "Pain Points", icon: "🎯", roles: ["admin", "super_admin", "city_manager"] },
   { href: "/analytics", label: "Analytics", icon: "📈", roles: ["super_admin"] },
 ];
 

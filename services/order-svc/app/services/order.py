@@ -12,6 +12,7 @@ from app.core.state_machine import TRANSITION_PERMISSIONS, can_transition, is_tr
 from app.core.http_client import create_service_client, resilient_get
 from app.repositories.order import OrderRepository
 from app.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
+from app.services import commission, geo
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -39,6 +40,14 @@ class OrderService:
         # Fetch restaurant info from restaurant-svc
         restaurant_name = "Unknown Restaurant"
         delivery_fee = Decimal("0")
+        # Pain-point layer: pricing model, readiness, and radius config (with safe defaults)
+        pricing_model = "percentage_commission"
+        commission_rate = Decimal("0.20")
+        flat_fee_per_order = Decimal("0")
+        avg_prep_minutes = 20
+        restaurant_lat: float | None = None
+        restaurant_lng: float | None = None
+        delivery_radius_km = 5.0
         restaurant_svc_url = settings.RESTAURANT_SVC_URL
         try:
             async with create_service_client() as client:
@@ -47,6 +56,13 @@ class OrderService:
                     r_data = resp.json()
                     restaurant_name = r_data.get("name", restaurant_name)
                     delivery_fee = _money(r_data.get("delivery_fee", 0))
+                    pricing_model = r_data.get("pricing_model", pricing_model)
+                    commission_rate = Decimal(str(r_data.get("commission_rate", commission_rate)))
+                    flat_fee_per_order = Decimal(str(r_data.get("flat_fee_per_order", 0)))
+                    avg_prep_minutes = int(r_data.get("avg_prep_minutes", avg_prep_minutes))
+                    restaurant_lat = r_data.get("lat")
+                    restaurant_lng = r_data.get("lng")
+                    delivery_radius_km = float(r_data.get("delivery_radius_km", delivery_radius_km))
 
                 # Fetch menu items from restaurant-svc to get real prices
                 menu_resp = await resilient_get(
@@ -105,8 +121,39 @@ class OrderService:
         loyalty_discount = Decimal("0")  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
         total = _money(subtotal + delivery_fee + taxes + tip - loyalty_discount)
 
+        # Commission / platform revenue for this order (does not change the customer total)
+        platform_fee = commission.platform_revenue(
+            pricing_model,
+            subtotal,
+            commission_rate=commission_rate,
+            flat_fee_per_order=flat_fee_per_order,
+        )
+        restaurant_payout = commission.restaurant_payout(subtotal, platform_fee)
+
+        # Hyper-local delivery radius validation (only enforced when we have coordinates)
+        delivery_distance_km: Decimal | None = None
+        is_long_distance = False
+        dest_lat = data.delivery_address.lat
+        dest_lng = data.delivery_address.lng
+        if restaurant_lat is not None and restaurant_lng is not None and dest_lat is not None and dest_lng is not None:
+            distance = geo.haversine_km(restaurant_lat, restaurant_lng, dest_lat, dest_lng)
+            delivery_distance_km = _money(distance)
+            if distance > delivery_radius_km:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        "code": "OUTSIDE_DELIVERY_RADIUS",
+                        "message": (
+                            f"Delivery address is {distance:.1f} km away, outside the "
+                            f"restaurant's {delivery_radius_km:.1f} km delivery radius"
+                        ),
+                    },
+                )
+            is_long_distance = geo.is_long_distance(distance, delivery_radius_km)
+
         # Estimated delivery time
         estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.BASE_DELIVERY_MINUTES)
+        status_history = [{"status": "pending", "at": datetime.now(UTC).isoformat()}]
 
         order = await self.repo.create(
             customer_id=customer_id,
@@ -121,6 +168,12 @@ class OrderService:
             discount=loyalty_discount,
             total=total,
             currency=currency,
+            platform_fee=platform_fee,
+            restaurant_payout=restaurant_payout,
+            estimated_prep_minutes=avg_prep_minutes,
+            delivery_distance_km=delivery_distance_km,
+            is_long_distance=is_long_distance,
+            status_history=status_history,
             delivery_address=data.delivery_address.model_dump(),
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
@@ -165,7 +218,16 @@ class OrderService:
             )
 
         previous_status = order.status
-        updated = await self.repo.update_status(order_id, data.status)
+        now = datetime.now(UTC)
+        history = list(order.status_history or [])
+        history.append({"status": data.status, "at": now.isoformat()})
+        extra: dict = {"status_history": history}
+        # Predictive-dispatch readiness timestamps
+        if data.status == "confirmed" and order.restaurant_accepted_at is None:
+            extra["restaurant_accepted_at"] = now
+        if data.status == "ready_for_pickup" and order.actual_ready_at is None:
+            extra["actual_ready_at"] = now
+        updated = await self.repo.update_status(order_id, data.status, **extra)
 
         await publish_order_event("order.status_changed", {
             "order_id": str(order_id),
@@ -194,11 +256,14 @@ class OrderService:
         if not is_transition_allowed(order.status, "cancelled", role):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot cancel this order")
 
+        history = list(order.status_history or [])
+        history.append({"status": "cancelled", "at": datetime.now(UTC).isoformat()})
         updated = await self.repo.update_status(
             order_id,
             "cancelled",
             cancellation_reason=data.reason,
             cancellation_note=data.note,
+            status_history=history,
         )
 
         await publish_order_event("order.cancelled", {
