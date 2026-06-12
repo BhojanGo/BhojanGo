@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 Country = Literal["US", "IN"]
 Currency = Literal["USD", "INR"]
 RestaurantStatus = Literal["active", "inactive", "pending_approval", "suspended"]
+PricingModel = Literal["percentage_commission", "flat_fee_per_order", "monthly_subscription"]
 
 CUISINE_TYPES = [
     "indian", "chinese", "italian", "mexican", "american", "thai", "japanese",
@@ -68,8 +69,38 @@ class RestaurantUpdateRequest(BaseModel):
     delivery_time_max: int | None = Field(default=None, ge=10)
     minimum_order_amount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     delivery_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    delivery_radius_km: Decimal | None = Field(default=None, gt=0, le=100, max_digits=6, decimal_places=2)
+    avg_prep_minutes: int | None = Field(default=None, ge=1, le=240)
     tags: list[str] | None = None
     status: RestaurantStatus | None = None
+
+
+class PricingConfigRequest(BaseModel):
+    """Configure a restaurant's commission / fee model."""
+
+    pricing_model: PricingModel
+    commission_rate: Decimal | None = Field(default=None, ge=0, le=1, max_digits=5, decimal_places=4)
+    flat_fee_per_order: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    monthly_subscription_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+
+    def require_fields_for_model(self) -> str | None:
+        """Return an error message if the required field for the chosen model is missing."""
+        if self.pricing_model == "percentage_commission" and self.commission_rate is None:
+            return "commission_rate is required for percentage_commission"
+        if self.pricing_model == "flat_fee_per_order" and self.flat_fee_per_order is None:
+            return "flat_fee_per_order is required for flat_fee_per_order"
+        if self.pricing_model == "monthly_subscription" and self.monthly_subscription_fee is None:
+            return "monthly_subscription_fee is required for monthly_subscription"
+        return None
+
+
+class DeliveryCheckResponse(BaseModel):
+    deliverable: bool
+    distance_km: float
+    radius_km: float
+    is_long_distance: bool
+    delivery_fee: float
+    currency: str
 
 
 class RestaurantResponse(BaseModel):
@@ -95,6 +126,13 @@ class RestaurantResponse(BaseModel):
     delivery_time_max: int
     minimum_order_amount: float
     delivery_fee: float
+    # Pain-point layer
+    pricing_model: str = "percentage_commission"
+    commission_rate: float = 0.0
+    flat_fee_per_order: float = 0.0
+    monthly_subscription_fee: float = 0.0
+    delivery_radius_km: float = 5.0
+    avg_prep_minutes: int = 20
     currency: str
     country: str
     city: str

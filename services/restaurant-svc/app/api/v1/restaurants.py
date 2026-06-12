@@ -11,9 +11,11 @@ from app.core.cache import cache_delete_pattern, cache_get, cache_set
 from app.db.base import get_db
 from app.repositories.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
 from app.schemas.restaurant import (
+    DeliveryCheckResponse,
     MenuItemCreateRequest,
     MenuItemResponse,
     MenuItemUpdateRequest,
+    PricingConfigRequest,
     RestaurantCreateRequest,
     RestaurantListResponse,
     RestaurantMenuResponse,
@@ -23,7 +25,7 @@ from app.schemas.restaurant import (
     ReviewResponse,
     SearchRequest,
 )
-from app.services import search as search_svc
+from app.services import geo, search as search_svc
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 logger = structlog.get_logger(__name__)
@@ -234,6 +236,70 @@ async def update_restaurant(
     await cache_delete_pattern(f"restaurants:{restaurant_id}")
     await cache_delete_pattern("restaurants:list:*")
     return RestaurantResponse.model_validate(updated)
+
+
+@router.put("/{restaurant_id}/pricing", response_model=RestaurantResponse)
+async def configure_pricing(
+    restaurant_id: uuid.UUID,
+    data: PricingConfigRequest,
+    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    db: AsyncSession = Depends(get_db),
+) -> RestaurantResponse:
+    """Configure a restaurant's commission / fee model (restaurant-friendly pricing)."""
+    missing = data.require_fields_for_model()
+    if missing:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=missing)
+
+    repo = RestaurantRepository(db)
+    restaurant = await repo.get_by_id(restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
+
+    values: dict = {"pricing_model": data.pricing_model}
+    if data.commission_rate is not None:
+        values["commission_rate"] = data.commission_rate
+    if data.flat_fee_per_order is not None:
+        values["flat_fee_per_order"] = data.flat_fee_per_order
+    if data.monthly_subscription_fee is not None:
+        values["monthly_subscription_fee"] = data.monthly_subscription_fee
+
+    updated = await repo.update(restaurant_id, **values)
+    await cache_delete_pattern(f"restaurants:{restaurant_id}")
+    await cache_delete_pattern("restaurants:list:*")
+    return RestaurantResponse.model_validate(updated)
+
+
+@router.get("/{restaurant_id}/delivery-check", response_model=DeliveryCheckResponse)
+async def delivery_check(
+    restaurant_id: uuid.UUID,
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    db: AsyncSession = Depends(get_db),
+) -> DeliveryCheckResponse:
+    """Hyper-local radius check: can this restaurant deliver to the given point?"""
+    repo = RestaurantRepository(db)
+    restaurant = await repo.get_by_id(restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if restaurant.lat is None or restaurant.lng is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Restaurant location is not configured",
+        )
+
+    radius_km = float(restaurant.delivery_radius_km)
+    distance_km = round(geo.haversine_km(restaurant.lat, restaurant.lng, lat, lng), 3)
+    deliverable = distance_km <= radius_km
+    return DeliveryCheckResponse(
+        deliverable=deliverable,
+        distance_km=distance_km,
+        radius_km=radius_km,
+        is_long_distance=deliverable and geo.is_long_distance(distance_km, radius_km),
+        delivery_fee=float(restaurant.delivery_fee),
+        currency=restaurant.currency,
+    )
 
 
 @router.post("/{restaurant_id}/menu-items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
