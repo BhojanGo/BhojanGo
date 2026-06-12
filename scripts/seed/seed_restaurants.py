@@ -417,9 +417,9 @@ RESTAURANTS = [
 
 
 def _make_uuid(base: str, suffix: str) -> str:
-    """Create a valid UUID by hashing base+suffix."""
+    """Create a deterministic, valid UUID by hashing base+suffix (seed data only)."""
     import hashlib
-    h = hashlib.md5(f"{base}:{suffix}".encode()).hexdigest()
+    h = hashlib.sha256(f"{base}:{suffix}".encode()).hexdigest()
     return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
 
 
