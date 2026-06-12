@@ -33,6 +33,25 @@ class Order(Base):
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
 
+    # ── Pain-Point Layer: commission / fee transparency ───────────────────────
+    # platform_fee = platform revenue from the restaurant for this order (commission model);
+    # restaurant_payout = subtotal - platform_fee. Neither changes the customer's total.
+    platform_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    restaurant_payout: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+
+    # ── Pain-Point Layer: restaurant readiness / predictive dispatch ──────────
+    estimated_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    restaurant_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # ── Pain-Point Layer: hyper-local delivery distance ───────────────────────
+    delivery_distance_km: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+    is_long_distance: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    # ── Pain-Point Layer: customer transparency timeline ──────────────────────
+    # List of {"status": str, "at": iso8601} appended on every state transition.
+    status_history: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+
     # Delivery
     delivery_address: Mapped[dict] = mapped_column(JSONB, nullable=False)
     estimated_delivery_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

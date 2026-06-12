@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 OrderStatus = Literal[
-    "pending", "confirmed", "preparing", "ready_for_pickup",
+    "pending", "confirmed", "preparing", "almost_ready", "ready_for_pickup",
     "picked_up", "delivered", "cancelled"
 ]
 PaymentMethod = Literal["card", "wallet", "upi", "net_banking", "cash_on_delivery"]
@@ -85,6 +85,15 @@ class OrderResponse(BaseModel):
     discount: float
     total: float
     currency: str
+    # Pain-point layer: fee transparency + readiness + distance + timeline
+    platform_fee: float = 0.0
+    restaurant_payout: float = 0.0
+    estimated_prep_minutes: int = 20
+    restaurant_accepted_at: datetime | None = None
+    actual_ready_at: datetime | None = None
+    delivery_distance_km: float | None = None
+    is_long_distance: bool = False
+    status_history: list[dict[str, Any]] = []
     delivery_address: dict[str, Any]
     payment_method: str
     payment_intent_id: str | None
@@ -106,3 +115,31 @@ class OrderListResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class FeeBreakdown(BaseModel):
+    """Customer-facing fee transparency breakdown for a single order."""
+
+    food_subtotal: float
+    delivery_fee: float
+    platform_fee: float          # platform commission / service revenue for this order
+    restaurant_payout: float     # what the restaurant receives (subtotal - platform_fee)
+    tip: float
+    taxes: float
+    discount: float
+    total: float                 # amount charged to the customer
+    currency: str
+
+
+class StatusTimelineEntry(BaseModel):
+    status: str
+    at: str | None = None
+
+
+class OrderTimelineResponse(BaseModel):
+    order_id: uuid.UUID
+    status: str
+    estimated_prep_minutes: int
+    restaurant_accepted_at: datetime | None
+    actual_ready_at: datetime | None
+    timeline: list[StatusTimelineEntry]
