@@ -463,6 +463,24 @@ INSERT INTO menu_items (id, category_id, restaurant_id, name, description, price
 VALUES ('{item_id}', '{cat_id}', '{r["id"]}', '{item["name"].replace("'", "''")}', '{desc}', {item["price"]}, '{cat["name"]}', {str(item["is_veg"]).lower()}, true, {item_idx}, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;""")
 
+    # ── Pain-Point Layer demo data: varied pricing models, radii, prep times ──
+    # (Columns have DB defaults from migration 0003, so these UPDATEs are optional
+    #  flavour for demos. Idempotent — safe to re-run.)
+    lines.append("\n-- Pain-point layer: demo pricing models / delivery radius / prep time")
+    pricing_demo = [
+        # (restaurant_id, pricing_model, commission_rate, flat_fee, sub_fee, radius_km, prep_min)
+        ("aaaa0001-0001-0001-0001-000000000001", "percentage_commission", 0.18, 0, 0, 6.0, 35),
+        ("aaaa0001-0001-0001-0001-000000000003", "flat_fee_per_order", 0, 25.0, 0, 4.0, 25),
+        ("aaaa0001-0001-0001-0001-000000000006", "flat_fee_per_order", 0, 4.0, 0, 8.0, 30),
+        ("aaaa0001-0001-0001-0001-000000000007", "monthly_subscription", 0, 0, 999.0, 5.0, 35),
+    ]
+    for rid, model, rate, flat, sub, radius, prep in pricing_demo:
+        lines.append(
+            f"UPDATE restaurants SET pricing_model='{model}', commission_rate={rate}, "
+            f"flat_fee_per_order={flat}, monthly_subscription_fee={sub}, "
+            f"delivery_radius_km={radius}, avg_prep_minutes={prep} WHERE id='{rid}';"
+        )
+
     return "\n".join(lines)
 
 
