@@ -131,6 +131,18 @@ class FeeBreakdown(BaseModel):
     currency: str
 
 
+class PainPointMetrics(BaseModel):
+    """Aggregate pain-point analytics for the admin dashboard."""
+
+    total_orders: int
+    total_platform_revenue: float
+    long_distance_orders: int
+    long_distance_rate: float
+    avg_estimated_prep_minutes: float
+    avg_delivery_distance_km: float
+    orders_by_status: dict[str, int]
+
+
 class StatusTimelineEntry(BaseModel):
     status: str
     at: str | None = None

@@ -19,6 +19,7 @@ from app.schemas.order import (
     OrderResponse,
     OrderStatusUpdateRequest,
     OrderTimelineResponse,
+    PainPointMetrics,
     StatusTimelineEntry,
 )
 from app.services.order import OrderService
@@ -89,6 +90,18 @@ async def list_restaurant_orders(
         limit=limit,
         total_pages=math.ceil(total / limit) if total else 0,
     )
+
+
+@router.get("/admin/pain-points", response_model=PainPointMetrics)
+async def admin_pain_point_metrics(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PainPointMetrics:
+    """Aggregate pain-point analytics (admin / city-manager only)."""
+    if current_user.role not in ("admin", "super_admin", "city_manager"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    metrics = await OrderRepository(db).pain_point_metrics()
+    return PainPointMetrics(**metrics)
 
 
 @router.get("/driver/active", response_model=OrderResponse)
