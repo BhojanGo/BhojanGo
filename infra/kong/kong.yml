@@ -7,7 +7,8 @@ consumers:
     jwt_secrets:
       - key: bhojango
         algorithm: HS256
-        secret: "${JWT_SECRET:-changeme-in-production}"
+        # No insecure fallback: Kong fails to load if JWT_SECRET is unset (must match user-svc's signing secret).
+        secret: "${JWT_SECRET}"
 
 services:
   # ── User Service ───────────────────────────

@@ -20,11 +20,33 @@ _start_time = time.time()
 
 _sqs_task: asyncio.Task | None = None
 
+# Provider credentials that MUST be present in production — otherwise channels silently no-op
+# and customers never receive order confirmations, OTPs, or push updates.
+_REQUIRED_PROD_SETTINGS = [
+    "SENDGRID_API_KEY",
+    "TWILIO_ACCOUNT_SID",
+    "FIREBASE_PROJECT_ID",
+    "SQS_QUEUE_URL_NOTIFICATION",
+]
+
+
+def _validate_production_config() -> None:
+    if settings.APP_ENV != "production":
+        return
+    missing = [name for name in _REQUIRED_PROD_SETTINGS if not getattr(settings, name, "")]
+    if missing:
+        raise RuntimeError(
+            "notification-svc is misconfigured for production; missing required settings: "
+            + ", ".join(missing)
+        )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _sqs_task
     logger.info("notification_svc_starting")
+    # Fail fast rather than silently mocking notification delivery in production.
+    _validate_production_config()
     # Start SQS consumer in background
     _sqs_task = asyncio.create_task(poll_sqs())
     logger.info("notification_svc_ready")

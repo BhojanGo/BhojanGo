@@ -30,11 +30,6 @@ export default function WalletPage() {
   const [topUpAmount, setTopUpAmount] = useState("");
   const [showTopUp, setShowTopUp] = useState(false);
 
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/wallet");
-    return null;
-  }
-
   const currencySymbol = user?.preferred_currency === "INR" ? "₹" : "$";
 
   const { data: balance, isLoading: balanceLoading } = useQuery<WalletBalance>({
@@ -43,6 +38,7 @@ export default function WalletPage() {
       const { data } = await api.get("/payment/wallet/balance");
       return data;
     },
+    enabled: !!isAuthenticated,
   });
 
   const { data: transactions, isLoading: txLoading } = useQuery<WalletTx[]>({
@@ -51,6 +47,7 @@ export default function WalletPage() {
       const { data } = await api.get("/payment/wallet/transactions?limit=20");
       return data;
     },
+    enabled: !!isAuthenticated,
   });
 
   const topUpMutation = useMutation({
@@ -69,6 +66,11 @@ export default function WalletPage() {
       setShowTopUp(false);
     },
   });
+
+  if (!isAuthenticated) {
+    router.replace("/login?redirect=/wallet");
+    return null;
+  }
 
   const QUICK_AMOUNTS = balance?.currency === "INR"
     ? [100, 200, 500, 1000]

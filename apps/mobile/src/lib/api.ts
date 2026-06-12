@@ -1,7 +1,13 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8888/api";
+// Fail loud in release builds if the API URL wasn't baked in, instead of silently
+// pointing every request at localhost (which never resolves on a real device).
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? (__DEV__ ? "http://localhost:8888/api" : "");
+if (!BASE_URL) {
+  throw new Error("EXPO_PUBLIC_API_URL must be set for production builds");
+}
 
 export const api = axios.create({
   baseURL: BASE_URL,

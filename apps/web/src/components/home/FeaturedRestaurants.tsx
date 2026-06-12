@@ -8,11 +8,17 @@ import type { Restaurant } from "@bhojango/types";
 
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
 
 export function FeaturedRestaurants() {
+  const user = useAuthStore((s) => s.user);
   const { data, isLoading } = useQuery({
-    queryKey: ["restaurants", "featured"],
-    queryFn: () => api.get<{ items: Restaurant[] }>("/restaurant/restaurants?limit=6").then((r) => r.data),
+    queryKey: ["restaurants", "featured", user?.country],
+    queryFn: () => {
+      const params = new URLSearchParams({ limit: "6" });
+      if (user?.country) params.set("country", user.country);
+      return api.get<{ items: Restaurant[] }>(`/restaurant/restaurants?${params.toString()}`).then((r) => r.data);
+    },
   });
 
   return (

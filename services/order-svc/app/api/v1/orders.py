@@ -12,11 +12,15 @@ from app.core.redis import get_redis
 from app.db.base import get_db
 from app.repositories.order import OrderRepository
 from app.schemas.order import (
+    FeeBreakdown,
     OrderCancelRequest,
     OrderCreateRequest,
     OrderListResponse,
     OrderResponse,
     OrderStatusUpdateRequest,
+    OrderTimelineResponse,
+    PainPointMetrics,
+    StatusTimelineEntry,
 )
 from app.services.order import OrderService
 
@@ -88,6 +92,18 @@ async def list_restaurant_orders(
     )
 
 
+@router.get("/admin/pain-points", response_model=PainPointMetrics)
+async def admin_pain_point_metrics(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PainPointMetrics:
+    """Aggregate pain-point analytics (admin / city-manager only)."""
+    if current_user.role not in ("admin", "super_admin", "city_manager"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    metrics = await OrderRepository(db).pain_point_metrics()
+    return PainPointMetrics(**metrics)
+
+
 @router.get("/driver/active", response_model=OrderResponse)
 async def get_driver_active_order(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
@@ -119,6 +135,56 @@ async def get_order(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     return OrderResponse.model_validate(order)
+
+
+@router.get("/{order_id}/breakdown", response_model=FeeBreakdown)
+async def get_order_breakdown(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FeeBreakdown:
+    """Customer-facing fee transparency breakdown for an order."""
+    repo = OrderRepository(db)
+    order = await repo.get_by_id(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if current_user.role == "customer" and order.customer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return FeeBreakdown(
+        food_subtotal=float(order.subtotal),
+        delivery_fee=float(order.delivery_fee),
+        platform_fee=float(order.platform_fee),
+        restaurant_payout=float(order.restaurant_payout),
+        tip=float(order.tip),
+        taxes=float(order.taxes),
+        discount=float(order.discount),
+        total=float(order.total),
+        currency=order.currency,
+    )
+
+
+@router.get("/{order_id}/timeline", response_model=OrderTimelineResponse)
+async def get_order_timeline(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderTimelineResponse:
+    """Detailed order status timeline for customer transparency."""
+    repo = OrderRepository(db)
+    order = await repo.get_by_id(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if current_user.role == "customer" and order.customer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    timeline = [StatusTimelineEntry(status=e.get("status", ""), at=e.get("at")) for e in (order.status_history or [])]
+    return OrderTimelineResponse(
+        order_id=order.id,
+        status=order.status,
+        estimated_prep_minutes=order.estimated_prep_minutes,
+        restaurant_accepted_at=order.restaurant_accepted_at,
+        actual_ready_at=order.actual_ready_at,
+        timeline=timeline,
+    )
 
 
 @router.put("/{order_id}/status", response_model=OrderResponse)

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { adminApi } from "@/lib/api";
 
 type Restaurant = {
@@ -16,10 +17,10 @@ type Restaurant = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800",
-  pending_approval: "bg-amber-100 text-amber-800",
-  suspended: "bg-red-100 text-red-800",
-  inactive: "bg-gray-100 text-gray-800",
+  active: "bg-emerald-900/40 text-emerald-400",
+  pending_approval: "bg-amber-900/40 text-amber-400",
+  suspended: "bg-red-900/40 text-red-400",
+  inactive: "bg-gray-800 text-gray-400",
 };
 
 export default function RestaurantsPage() {
@@ -45,7 +46,7 @@ export default function RestaurantsPage() {
       }
 
       const res = await adminApi.get(`/restaurant/restaurants?${params}`);
-      return { restaurants: res.data.restaurants || res.data, total: res.data.total || res.data.length };
+      return { restaurants: res.data.items || res.data.restaurants || res.data, total: res.data.total || res.data.length };
     },
   });
 
@@ -68,8 +69,9 @@ export default function RestaurantsPage() {
   const restaurants: Restaurant[] = data?.restaurants || [];
 
   return (
+    <AdminLayout>
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Restaurant Management</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">Restaurant Management</h1>
 
       {/* Filters */}
       <div className="flex gap-4 mb-6">
@@ -78,12 +80,12 @@ export default function RestaurantsPage() {
           placeholder="Search restaurants..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="flex-1 rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-600"
         />
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-600"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -94,39 +96,39 @@ export default function RestaurantsPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Loading...</div>
+        <div className="text-center py-12 text-gray-400">Loading...</div>
       ) : restaurants.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No restaurants found</div>
+        <div className="text-center py-12 text-gray-400">No restaurants found</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto rounded-lg border border-gray-700">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuisine</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Cuisine</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">City</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Rating</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Active</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-900 divide-y divide-gray-700">
               {restaurants.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{r.name}</td>
-                  <td className="px-6 py-4 text-gray-600">{r.cuisine_type?.join(", ") || "\u2014"}</td>
-                  <td className="px-6 py-4 text-gray-600">{r.city || "\u2014"}</td>
-                  <td className="px-6 py-4 text-gray-600">{r.average_rating?.toFixed(1) || "\u2014"}</td>
+                <tr key={r.id} className="hover:bg-gray-800">
+                  <td className="px-6 py-4 font-medium text-white">{r.name}</td>
+                  <td className="px-6 py-4 text-gray-400">{r.cuisine_type?.join(", ") || "\u2014"}</td>
+                  <td className="px-6 py-4 text-gray-400">{r.city || "\u2014"}</td>
+                  <td className="px-6 py-4 text-gray-400">{r.average_rating?.toFixed(1) || "\u2014"}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[r.status] || "bg-gray-100 text-gray-800"}`}>
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[r.status] || "bg-gray-800 text-gray-400"}`}>
                       {r.status?.replace("_", " ") || "unknown"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => toggleActive.mutate({ id: r.id, is_active: !r.is_active })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.is_active ? "bg-emerald-600" : "bg-gray-300"}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.is_active ? "bg-emerald-600" : "bg-gray-600"}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${r.is_active ? "translate-x-6" : "translate-x-1"}`} />
                     </button>
@@ -171,19 +173,20 @@ export default function RestaurantsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+          className="rounded border border-gray-600 px-4 py-2 text-sm text-gray-300 disabled:opacity-50"
         >
           Previous
         </button>
-        <span className="text-sm text-gray-600">Page {page}</span>
+        <span className="text-sm text-gray-400">Page {page}</span>
         <button
           onClick={() => setPage((p) => p + 1)}
           disabled={restaurants.length < perPage}
-          className="rounded border px-4 py-2 text-sm disabled:opacity-50"
+          className="rounded border border-gray-600 px-4 py-2 text-sm text-gray-300 disabled:opacity-50"
         >
           Next
         </button>
       </div>
     </div>
+    </AdminLayout>
   );
 }

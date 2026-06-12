@@ -23,6 +23,16 @@ async def get_me(
     return UserResponse.model_validate(current_user)
 
 
+@router.patch("/me", response_model=UserResponse)
+async def patch_me(
+    data: UserUpdateRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserResponse:
+    """Update the current user's profile (PATCH)."""
+    return await update_me(data, current_user, db)
+
+
 @router.put("/me", response_model=UserResponse)
 async def update_me(
     data: UserUpdateRequest,

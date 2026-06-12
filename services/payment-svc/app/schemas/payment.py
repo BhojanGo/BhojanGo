@@ -74,9 +74,14 @@ class WalletTopupRequest(BaseModel):
 
 
 class RefundRequest(BaseModel):
-    amount: int | None = Field(default=None, gt=0, description="Partial refund amount in cents/paise; omit for full refund")
+    amount: int | None = Field(default=None, gt=0, description="Partial refund amount in cents/paise; omit to refund the full remaining amount")
     reason: str = Field(min_length=1)
     refund_to: Literal["original_payment", "wallet"] = "original_payment"
+    idempotency_key: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Client-supplied key; retries with the same key return the original refund without re-charging",
+    )
 
 
 class RefundResponse(BaseModel):

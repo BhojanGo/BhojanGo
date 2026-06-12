@@ -1,6 +1,6 @@
-import math
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Annotated
 
 import structlog
@@ -57,7 +57,7 @@ async def initiate_payment(
         wallet_repo = WalletRepository(db)
         _, _ = await wallet_repo.debit(
             current_user.id,
-            amount=data.amount / 100,
+            amount=Decimal(data.amount) / 100,  # cents/paise -> major units
             description=f"Order payment {data.order_id}",
             reference_id=str(data.order_id),
             reference_type="order",
@@ -225,16 +225,46 @@ async def refund_payment(
 
     repo = PaymentRepository(db)
     intent = await repo.get_by_order_id(order_id)
-    if not intent or intent.status != "succeeded":
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No succeeded payment found for this order")
+    if not intent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No payment found for this order")
 
-    refund_amount = data.amount or intent.amount
+    # Idempotency: a retry with the same key returns the original refund without re-charging.
+    # Checked before the refundable-status gate so a retried *full* refund still replays.
+    refunds_log: list[dict] = list(intent.metadata_.get("refunds", []))
+    if data.idempotency_key:
+        for record in refunds_log:
+            if record.get("idempotency_key") == data.idempotency_key:
+                return RefundResponse(
+                    refund_id=record["refund_id"],
+                    order_id=str(order_id),
+                    amount=record["amount"],
+                    currency=intent.currency,
+                    status=record["status"],  # type: ignore[arg-type]
+                    refund_to=record["refund_to"],
+                    created_at=record["created_at"],
+                )
+
+    if intent.status not in ("succeeded", "partially_refunded"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment is not in a refundable state")
+
+    # Cap: cannot refund more than what remains on the original payment.
+    already_refunded = intent.refunded_amount or 0
+    remaining = intent.amount - already_refunded
+    if remaining <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment has already been fully refunded")
+
+    refund_amount = data.amount or remaining
+    if refund_amount > remaining:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Refund amount {refund_amount} exceeds remaining refundable amount {remaining}",
+        )
 
     if data.refund_to == "wallet":
         wallet_repo = WalletRepository(db)
         await wallet_repo.credit(
             current_user.id,
-            amount=refund_amount / 100,
+            amount=Decimal(refund_amount) / 100,  # cents/paise -> major units
             description=f"Refund for order {order_id}",
             reference_id=str(order_id),
             reference_type="refund",
@@ -242,13 +272,31 @@ async def refund_payment(
         refund_id = f"wallet_refund_{uuid.uuid4()}"
         refund_status = "succeeded"
     elif intent.provider == "stripe":
-        result = await stripe_svc.create_refund(intent.provider_payment_id, data.amount)
+        result = await stripe_svc.create_refund(
+            intent.provider_payment_id, refund_amount, idempotency_key=data.idempotency_key
+        )
         refund_id, refund_status = result["refund_id"], result["status"]
     else:
-        result = await razorpay_svc.create_refund(intent.provider_payment_id, data.amount)
+        result = await razorpay_svc.create_refund(intent.provider_payment_id, refund_amount)
         refund_id, refund_status = result["refund_id"], result["status"]
 
-    await repo.update_status(intent.id, "refunded" if not data.amount else "partially_refunded")
+    created_at = datetime.now(UTC).isoformat()
+
+    # Persist refund state on the loaded intent (committed by the get_db dependency).
+    new_refunded_total = already_refunded + refund_amount
+    intent.refunded_amount = new_refunded_total
+    intent.status = "refunded" if new_refunded_total >= intent.amount else "partially_refunded"
+    refunds_log.append({
+        "idempotency_key": data.idempotency_key,
+        "refund_id": refund_id,
+        "amount": refund_amount,
+        "status": refund_status,
+        "refund_to": data.refund_to,
+        "reason": data.reason,
+        "created_at": created_at,
+    })
+    # Reassign metadata_ so SQLAlchemy detects the JSONB mutation.
+    intent.metadata_ = {**intent.metadata_, "refunds": refunds_log}
 
     return RefundResponse(
         refund_id=refund_id,
@@ -257,7 +305,7 @@ async def refund_payment(
         currency=intent.currency,
         status=refund_status,  # type: ignore[arg-type]
         refund_to=data.refund_to,
-        created_at=datetime.now(UTC).isoformat(),
+        created_at=created_at,
     )
 
 

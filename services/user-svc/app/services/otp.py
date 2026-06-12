@@ -37,7 +37,11 @@ async def send_otp(phone: str, country: str) -> bool:
 
     # Send via Twilio
     if not settings.TWILIO_ACCOUNT_SID or settings.APP_ENV == "test":
-        logger.info("otp_mock_send", phone=phone, otp=otp)
+        # Only expose the OTP value for local dev/test convenience — NEVER log secrets otherwise.
+        if settings.APP_ENV in ("development", "test"):
+            logger.info("otp_mock_send", phone=phone[-4:], otp=otp)
+        else:
+            logger.warning("otp_mock_send_no_provider", phone=phone[-4:])
         return True
 
     try:

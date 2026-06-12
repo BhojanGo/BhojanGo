@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.v1 import delivery, websocket
+from app.api.v1 import delivery, earnings, websocket
 from app.config import get_settings
 from app.core.redis import close_redis, get_redis
 
@@ -44,6 +44,7 @@ app.add_middleware(
 
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
 app.include_router(delivery.router, prefix="/api/v1")
+app.include_router(earnings.router, prefix="/api/v1")
 app.include_router(websocket.router)  # WebSocket has no /api/v1 prefix
 
 

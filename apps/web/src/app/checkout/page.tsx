@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -31,8 +31,37 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    label: "",
+    street: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: user?.country ?? "US",
+  });
+  const [savingAddress, setSavingAddress] = useState(false);
 
+  const queryClient = useQueryClient();
   const isIndia = user?.country === "IN";
+
+  const { data: addresses } = useQuery<Address[]>({
+    queryKey: ["addresses"],
+    queryFn: async () => {
+      const { data } = await api.get("/user/me/addresses");
+      return data;
+    },
+    enabled: !!isAuthenticated,
+  });
+
+  const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
+    queryKey: ["wallet-balance"],
+    queryFn: async () => {
+      const { data } = await api.get("/payment/wallet/balance");
+      return data;
+    },
+    enabled: !!isAuthenticated,
+  });
 
   // Redirect if not authenticated
   if (!isAuthenticated) {
@@ -46,21 +75,26 @@ export default function CheckoutPage() {
     return null;
   }
 
-  const { data: addresses } = useQuery<Address[]>({
-    queryKey: ["addresses"],
-    queryFn: async () => {
-      const { data } = await api.get("/user/me/addresses");
-      return data;
-    },
-  });
-
-  const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
-    queryKey: ["wallet-balance"],
-    queryFn: async () => {
-      const { data } = await api.get("/payment/wallet/balance");
-      return data;
-    },
-  });
+  async function handleSaveAddress(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addressForm.street.trim() || !addressForm.city.trim()) {
+      setError("Street and city are required.");
+      return;
+    }
+    setSavingAddress(true);
+    setError("");
+    try {
+      const { data: saved } = await api.post("/user/me/addresses", addressForm);
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      setSelectedAddressId(saved.id);
+      setShowAddressForm(false);
+      setAddressForm({ label: "", street: "", city: "", state: "", postal_code: "", country: user?.country ?? "US" });
+    } catch {
+      setError("Failed to save address. Please try again.");
+    } finally {
+      setSavingAddress(false);
+    }
+  }
 
   async function handlePlaceOrder() {
     if (!selectedAddressId) {
@@ -74,51 +108,64 @@ export default function CheckoutPage() {
       const address = addresses?.find((a) => a.id === selectedAddressId);
       if (!address) throw new Error("Address not found");
 
-      // Create order
+      // Map the UI payment choice to the order-svc payment_method enum.
+      const orderPaymentMethod =
+        paymentMethod === "wallet" ? "wallet" : paymentMethod === "cod" ? "cash_on_delivery" : "card";
+      const currency = isIndia ? "INR" : "USD";
+
+      // Create order. The server is the source of truth for money — it recomputes
+      // subtotal/tax/total from the live menu, so we only send line items + address.
       const orderPayload = {
         restaurant_id: cart.restaurantId,
         items: cart.items.map((item) => ({
           menu_item_id: item.menuItemId,
           quantity: item.quantity,
-          unit_price: item.price,
           customizations: item.customizations,
         })),
         delivery_address: {
           street: address.street,
           city: address.city,
           state: address.state,
-          postal_code: address.postal_code,
+          zip: address.postal_code,
           country: address.country,
         },
-        payment_method: paymentMethod,
-        subtotal: cart.getSubtotal(),
-        delivery_fee: cart.deliveryFee,
-        tax: cart.getTax(),
-        total: cart.getTotal(),
+        payment_method: orderPaymentMethod,
       };
 
       const { data: order } = await api.post("/order/orders", orderPayload);
 
-      // Initiate payment
+      // Amount must be in the smallest currency unit (cents/paise) for the payment service.
+      const amountMinor = Math.round((order.total ?? cart.getTotal()) * 100);
+
+      // Initiate payment (skip for cash on delivery)
       if (paymentMethod !== "cod") {
         const { data: paymentIntent } = await api.post("/payment/payments/initiate", {
           order_id: order.id,
-          amount: cart.getTotal(),
-          currency: isIndia ? "INR" : "USD",
-          payment_method: paymentMethod,
+          amount: amountMinor,
+          currency,
+          payment_method_type: paymentMethod === "wallet" ? "wallet" : "card",
           country: isIndia ? "IN" : "US",
         });
 
+        const params = new URLSearchParams({
+          order_id: order.id,
+          provider: paymentIntent.provider,
+          amount: String(paymentIntent.amount ?? amountMinor),
+          currency,
+        });
         if (paymentMethod === "stripe" && paymentIntent.client_secret) {
-          // Redirect to Stripe checkout or handle inline
-          router.push(`/checkout/payment?order_id=${order.id}&client_secret=${paymentIntent.client_secret}`);
+          params.set("client_secret", paymentIntent.client_secret);
+          cart.clearCart();
+          router.push(`/checkout/payment?${params.toString()}`);
           return;
         }
-
         if (paymentMethod === "razorpay" && paymentIntent.razorpay_order_id) {
-          router.push(`/checkout/payment?order_id=${order.id}&razorpay_order_id=${paymentIntent.razorpay_order_id}`);
+          params.set("razorpay_order_id", paymentIntent.razorpay_order_id);
+          cart.clearCart();
+          router.push(`/checkout/payment?${params.toString()}`);
           return;
         }
+        // Wallet — payment is settled synchronously by the initiate call.
       }
 
       // Wallet / COD — order is placed
@@ -155,12 +202,8 @@ export default function CheckoutPage() {
         {/* Delivery Address */}
         <section className="bg-white rounded-xl p-4 mb-4">
           <h2 className="font-semibold text-gray-900 mb-3">{t("deliveryAddress")}</h2>
-          {!addresses?.length ? (
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition">
-              + {t("addAddress")}
-            </button>
-          ) : (
-            <div className="space-y-2">
+          {addresses && addresses.length > 0 && (
+            <div className="space-y-2 mb-3">
               {addresses.map((addr) => (
                 <label
                   key={addr.id}
@@ -187,6 +230,74 @@ export default function CheckoutPage() {
                 </label>
               ))}
             </div>
+          )}
+
+          {showAddressForm ? (
+            <form onSubmit={handleSaveAddress} className="space-y-3 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-900">New delivery address</p>
+              <input
+                type="text"
+                placeholder="Label (e.g. Home, Work)"
+                value={addressForm.label}
+                onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Street address *"
+                required
+                value={addressForm.street}
+                onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="City *"
+                  required
+                  value={addressForm.city}
+                  onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="State"
+                  value={addressForm.state}
+                  onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Postal code"
+                value={addressForm.postal_code}
+                onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={savingAddress}
+                  className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
+                >
+                  {savingAddress ? "Saving..." : "Save Address"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressForm(false)}
+                  className="px-4 py-2 border border-gray-300 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowAddressForm(true)}
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition"
+            >
+              + {t("addAddress")}
+            </button>
           )}
         </section>
 

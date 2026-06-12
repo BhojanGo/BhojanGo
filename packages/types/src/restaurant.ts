@@ -136,6 +136,7 @@ export interface MenuItem {
   is_veg: boolean;
   is_vegan: boolean;
   is_available: boolean;
+  is_bestseller: boolean;
   allergens: Allergen[];
   customizations: MenuItemCustomization[];
   sort_order: number;

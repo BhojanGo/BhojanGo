@@ -61,7 +61,7 @@ export default function CheckoutScreen() {
           street: addressStreet.trim(),
           city: addressCity.trim(),
           state: addressState.trim(),
-          postal_code: addressPostal.trim(),
+          zip: addressPostal.trim(),
           country: user?.country || "US",
         },
         payment_method: paymentMethod,

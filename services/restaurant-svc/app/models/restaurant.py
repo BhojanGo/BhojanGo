@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,8 +37,19 @@ class Restaurant(Base):
     closes_at: Mapped[str | None] = mapped_column(String(5), nullable=True)
     delivery_time_min: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     delivery_time_max: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
-    minimum_order_amount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    delivery_fee: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    minimum_order_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+    delivery_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+
+    # ── Pain-Point Layer: restaurant-friendly commission model ────────────────
+    # pricing_model: percentage_commission | flat_fee_per_order | monthly_subscription
+    pricing_model: Mapped[str] = mapped_column(String(30), nullable=False, default="percentage_commission")
+    commission_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False, default=Decimal("0.2000"))  # fraction
+    flat_fee_per_order: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    monthly_subscription_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+
+    # ── Pain-Point Layer: hyper-local delivery radius & readiness ─────────────
+    delivery_radius_km: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, default=Decimal("5.00"))
+    avg_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
 
     # Market
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")

@@ -9,7 +9,7 @@
 
 import express from "express";
 import cors from "cors";
-import { APP_CONFIG, ENGINE_CONFIG } from "./config";
+import { APP_CONFIG, ENGINE_CONFIG, JWT_CONFIG } from "./config";
 import { runMigrations, healthCheck as dbHealthCheck } from "./db/connection";
 import batchRoutes from "./api/routes";
 import { startEngine, stopEngine } from "./api/batch.controller";
@@ -72,6 +72,11 @@ app.get("/health", async (_req, res) => {
 
 async function start(): Promise<void> {
   try {
+    // Fail fast: never run in production with the placeholder JWT secret (auth would be trivially forgeable).
+    if (APP_CONFIG.env === "production" && JWT_CONFIG.usingDefaultSecret) {
+      throw new Error("JWT_SECRET must be set in production (refusing to start with the default secret)");
+    }
+
     // Run database migrations
     await runMigrations();
     logger.info("Database ready");

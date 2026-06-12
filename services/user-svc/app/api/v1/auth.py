@@ -18,6 +18,7 @@ from app.schemas.user import (
     OtpVerifyRequest,
     RefreshTokenRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     SocialLoginRequest,
 )
 from app.services.auth import AuthService
@@ -102,6 +103,21 @@ async def verify_otp(
             detail={"code": "OTP_INVALID", "message": "Invalid or expired OTP"},
         )
     return MessageResponse(message="Phone verified successfully")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request,
+    data: ResetPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    """Reset a forgotten password using an OTP sent to the account's phone number.
+
+    Flow: client calls /auth/send-otp, then submits the OTP + new password here.
+    """
+    await AuthService(db).reset_password(data)
+    return MessageResponse(message="Password reset successfully")
 
 
 @router.post("/social-login", response_model=AuthTokensResponse)

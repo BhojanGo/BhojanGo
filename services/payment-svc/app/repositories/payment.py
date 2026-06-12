@@ -1,10 +1,17 @@
-import math
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.payment import PaymentIntent, Wallet, WalletTransaction
+
+_CENTS = Decimal("0.01")
+
+
+def _money(value: object) -> Decimal:
+    """Coerce a numeric input to an exact 2-decimal money Decimal (major units)."""
+    return Decimal(str(value)).quantize(_CENTS, rounding=ROUND_HALF_UP)
 
 
 class PaymentRepository:
@@ -47,19 +54,25 @@ class WalletRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_or_create(self, user_id: uuid.UUID, currency: str = "USD") -> Wallet:
-        result = await self.session.execute(select(Wallet).where(Wallet.user_id == user_id))
+    async def get_or_create(self, user_id: uuid.UUID, currency: str = "USD", *, for_update: bool = False) -> Wallet:
+        stmt = select(Wallet).where(Wallet.user_id == user_id)
+        if for_update:
+            # Lock the wallet row so concurrent credit/debit serialize and cannot race
+            # on the read-modify-write of the balance (no-op on backends without FOR UPDATE).
+            stmt = stmt.with_for_update()
+        result = await self.session.execute(stmt)
         wallet = result.scalar_one_or_none()
         if not wallet:
-            wallet = Wallet(user_id=user_id, currency=currency, balance=0.0)
+            wallet = Wallet(user_id=user_id, currency=currency, balance=Decimal("0"))
             self.session.add(wallet)
             await self.session.flush()
             await self.session.refresh(wallet)
         return wallet
 
-    async def credit(self, user_id: uuid.UUID, amount: float, description: str, reference_id: str | None = None, reference_type: str | None = None) -> tuple[Wallet, WalletTransaction]:
-        wallet = await self.get_or_create(user_id)
-        wallet.balance = round(wallet.balance + amount, 2)
+    async def credit(self, user_id: uuid.UUID, amount: float | Decimal, description: str, reference_id: str | None = None, reference_type: str | None = None) -> tuple[Wallet, WalletTransaction]:
+        amount = _money(amount)
+        wallet = await self.get_or_create(user_id, for_update=True)
+        wallet.balance = _money(wallet.balance + amount)
         tx = WalletTransaction(
             user_id=user_id,
             type="credit",
@@ -75,12 +88,15 @@ class WalletRepository:
         await self.session.refresh(tx)
         return wallet, tx
 
-    async def debit(self, user_id: uuid.UUID, amount: float, description: str, reference_id: str | None = None, reference_type: str | None = None) -> tuple[Wallet, WalletTransaction]:
-        wallet = await self.get_or_create(user_id)
+    async def debit(self, user_id: uuid.UUID, amount: float | Decimal, description: str, reference_id: str | None = None, reference_type: str | None = None) -> tuple[Wallet, WalletTransaction]:
+        amount = _money(amount)
+        # Lock the row first: the balance check and decrement must be atomic, otherwise two
+        # concurrent debits can both pass the check and overdraw the wallet.
+        wallet = await self.get_or_create(user_id, for_update=True)
         if wallet.balance < amount:
             from fastapi import HTTPException, status as http_status
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail={"code": "INSUFFICIENT_WALLET_BALANCE", "message": "Insufficient wallet balance"})
-        wallet.balance = round(wallet.balance - amount, 2)
+        wallet.balance = _money(wallet.balance - amount)
         tx = WalletTransaction(
             user_id=user_id,
             type="debit",

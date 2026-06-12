@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import type { Restaurant } from "@bhojango/types";
 
@@ -29,14 +30,16 @@ export default function RestaurantsPage() {
   const [sortBy, setSortBy] = useState("rating");
   const [vegOnly, setVegOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const user = useAuthStore((s) => s.user);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["restaurants", { cuisine, sortBy, vegOnly, searchQuery }],
+    queryKey: ["restaurants", { cuisine, sortBy, vegOnly, searchQuery, country: user?.country }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (cuisine !== "All") params.set("cuisine_type", cuisine.toLowerCase());
       if (vegOnly) params.set("is_veg", "true");
       if (searchQuery) params.set("q", searchQuery);
+      if (user?.country) params.set("country", user.country);
       params.set("sort_by", sortBy);
       params.set("limit", "24");
       const { data } = await api.get(`/restaurant/restaurants?${params.toString()}`);

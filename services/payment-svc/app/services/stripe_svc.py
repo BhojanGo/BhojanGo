@@ -54,10 +54,15 @@ async def process_webhook(payload: bytes, sig_header: str) -> dict:
     return {"event_type": event_type, "provider_payment_id": data.get("id", ""), "status": "unknown"}
 
 
-async def create_refund(provider_payment_id: str, amount: int | None = None) -> dict:
+async def create_refund(
+    provider_payment_id: str, amount: int | None = None, idempotency_key: str | None = None
+) -> dict:
     s = get_stripe()
     kwargs: dict = {"payment_intent": provider_payment_id}
     if amount:
         kwargs["amount"] = amount
+    if idempotency_key:
+        # Stripe dedupes retries with the same idempotency key at the provider too.
+        kwargs["idempotency_key"] = idempotency_key
     refund = s.Refund.create(**kwargs)
     return {"refund_id": refund.id, "status": refund.status, "amount": refund.amount}

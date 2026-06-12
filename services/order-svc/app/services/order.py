@@ -1,6 +1,6 @@
-import math
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 import structlog
 from fastapi import HTTPException, status
@@ -12,11 +12,23 @@ from app.core.state_machine import TRANSITION_PERMISSIONS, can_transition, is_tr
 from app.core.http_client import create_service_client, resilient_get
 from app.repositories.order import OrderRepository
 from app.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
+from app.services import commission, geo
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
-TAX_RATES = {"USD": 0.08, "INR": 0.18}  # 8% US, 18% India GST
+# Tax rates as exact Decimals (8% US, 18% India GST)
+TAX_RATES = {"USD": Decimal("0.08"), "INR": Decimal("0.18")}
+
+_CENTS = Decimal("0.01")
+
+
+def _money(value: object) -> Decimal:
+    """Coerce any numeric input to an exact 2-decimal money Decimal.
+
+    Going through str() avoids inheriting binary-float artifacts (e.g. 19.99 -> 19.9900000001).
+    """
+    return Decimal(str(value)).quantize(_CENTS, rounding=ROUND_HALF_UP)
 
 
 class OrderService:
@@ -27,7 +39,15 @@ class OrderService:
     async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str) -> dict:
         # Fetch restaurant info from restaurant-svc
         restaurant_name = "Unknown Restaurant"
-        delivery_fee = 0.0
+        delivery_fee = Decimal("0")
+        # Pain-point layer: pricing model, readiness, and radius config (with safe defaults)
+        pricing_model = "percentage_commission"
+        commission_rate = Decimal("0.20")
+        flat_fee_per_order = Decimal("0")
+        avg_prep_minutes = 20
+        restaurant_lat: float | None = None
+        restaurant_lng: float | None = None
+        delivery_radius_km = 5.0
         restaurant_svc_url = settings.RESTAURANT_SVC_URL
         try:
             async with create_service_client() as client:
@@ -35,7 +55,14 @@ class OrderService:
                 if resp.status_code == 200:
                     r_data = resp.json()
                     restaurant_name = r_data.get("name", restaurant_name)
-                    delivery_fee = r_data.get("delivery_fee", 0.0)
+                    delivery_fee = _money(r_data.get("delivery_fee", 0))
+                    pricing_model = r_data.get("pricing_model", pricing_model)
+                    commission_rate = Decimal(str(r_data.get("commission_rate", commission_rate)))
+                    flat_fee_per_order = Decimal(str(r_data.get("flat_fee_per_order", 0)))
+                    avg_prep_minutes = int(r_data.get("avg_prep_minutes", avg_prep_minutes))
+                    restaurant_lat = r_data.get("lat")
+                    restaurant_lng = r_data.get("lng")
+                    delivery_radius_km = float(r_data.get("delivery_radius_km", delivery_radius_km))
 
                 # Fetch menu items from restaurant-svc to get real prices
                 menu_resp = await resilient_get(
@@ -49,11 +76,11 @@ class OrderService:
                 menu_data = menu_resp.json()
 
                 # Build price lookup from menu items
-                price_lookup: dict[str, float] = {}
+                price_lookup: dict[str, Decimal] = {}
                 item_name_lookup: dict[str, str] = {}
                 for category in menu_data.get("categories", []):
                     for item in category.get("items", []):
-                        price_lookup[item["id"]] = item["price"]
+                        price_lookup[item["id"]] = _money(item["price"])
                         item_name_lookup[item["id"]] = item["name"]
         except HTTPException:
             raise
@@ -66,7 +93,7 @@ class OrderService:
 
         # Calculate totals using real prices from restaurant menu
         items_payload = []
-        subtotal = 0.0
+        subtotal = Decimal("0")
         for item in data.items:
             item_id = str(item.menu_item_id)
             if item_id not in price_lookup:
@@ -75,24 +102,58 @@ class OrderService:
                     detail=f"Menu item {item_id} not found in restaurant menu",
                 )
             unit_price = price_lookup[item_id]
-            line_total = unit_price * item.quantity
+            line_total = _money(unit_price * item.quantity)
             subtotal += line_total
             items_payload.append({
                 "menu_item_id": item_id,
                 "name": item_name_lookup.get(item_id, ""),
                 "quantity": item.quantity,
-                "unit_price": unit_price,
-                "total": line_total,
+                # JSONB item snapshot is display data -> store as float for JSON serialization
+                "unit_price": float(unit_price),
+                "total": float(line_total),
                 "customizations": [c.model_dump() for c in item.customizations] if item.customizations else [],
             })
         items_serialized = items_payload
-        tax_rate = TAX_RATES.get(currency, 0.08)
-        taxes = round(subtotal * tax_rate, 2)
-        loyalty_discount = 0.0  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
-        total = round(subtotal + delivery_fee + taxes + data.tip - loyalty_discount, 2)
+        subtotal = _money(subtotal)
+        tax_rate = TAX_RATES.get(currency, Decimal("0.08"))
+        taxes = _money(subtotal * tax_rate)
+        tip = _money(data.tip)
+        loyalty_discount = Decimal("0")  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
+        total = _money(subtotal + delivery_fee + taxes + tip - loyalty_discount)
+
+        # Commission / platform revenue for this order (does not change the customer total)
+        platform_fee = commission.platform_revenue(
+            pricing_model,
+            subtotal,
+            commission_rate=commission_rate,
+            flat_fee_per_order=flat_fee_per_order,
+        )
+        restaurant_payout = commission.restaurant_payout(subtotal, platform_fee)
+
+        # Hyper-local delivery radius validation (only enforced when we have coordinates)
+        delivery_distance_km: Decimal | None = None
+        is_long_distance = False
+        dest_lat = data.delivery_address.lat
+        dest_lng = data.delivery_address.lng
+        if restaurant_lat is not None and restaurant_lng is not None and dest_lat is not None and dest_lng is not None:
+            distance = geo.haversine_km(restaurant_lat, restaurant_lng, dest_lat, dest_lng)
+            delivery_distance_km = _money(distance)
+            if distance > delivery_radius_km:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        "code": "OUTSIDE_DELIVERY_RADIUS",
+                        "message": (
+                            f"Delivery address is {distance:.1f} km away, outside the "
+                            f"restaurant's {delivery_radius_km:.1f} km delivery radius"
+                        ),
+                    },
+                )
+            is_long_distance = geo.is_long_distance(distance, delivery_radius_km)
 
         # Estimated delivery time
         estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.BASE_DELIVERY_MINUTES)
+        status_history = [{"status": "pending", "at": datetime.now(UTC).isoformat()}]
 
         order = await self.repo.create(
             customer_id=customer_id,
@@ -103,10 +164,16 @@ class OrderService:
             subtotal=subtotal,
             delivery_fee=delivery_fee,
             taxes=taxes,
-            tip=data.tip,
+            tip=tip,
             discount=loyalty_discount,
             total=total,
             currency=currency,
+            platform_fee=platform_fee,
+            restaurant_payout=restaurant_payout,
+            estimated_prep_minutes=avg_prep_minutes,
+            delivery_distance_km=delivery_distance_km,
+            is_long_distance=is_long_distance,
+            status_history=status_history,
             delivery_address=data.delivery_address.model_dump(),
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
@@ -119,7 +186,7 @@ class OrderService:
             "order_id": str(order.id),
             "customer_id": str(customer_id),
             "restaurant_id": str(data.restaurant_id),
-            "total": total,
+            "total": float(total),
             "currency": currency,
             "payment_method": data.payment_method,
         })
@@ -151,7 +218,16 @@ class OrderService:
             )
 
         previous_status = order.status
-        updated = await self.repo.update_status(order_id, data.status)
+        now = datetime.now(UTC)
+        history = list(order.status_history or [])
+        history.append({"status": data.status, "at": now.isoformat()})
+        extra: dict = {"status_history": history}
+        # Predictive-dispatch readiness timestamps
+        if data.status == "confirmed" and order.restaurant_accepted_at is None:
+            extra["restaurant_accepted_at"] = now
+        if data.status == "ready_for_pickup" and order.actual_ready_at is None:
+            extra["actual_ready_at"] = now
+        updated = await self.repo.update_status(order_id, data.status, **extra)
 
         await publish_order_event("order.status_changed", {
             "order_id": str(order_id),
@@ -180,11 +256,14 @@ class OrderService:
         if not is_transition_allowed(order.status, "cancelled", role):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot cancel this order")
 
+        history = list(order.status_history or [])
+        history.append({"status": "cancelled", "at": datetime.now(UTC).isoformat()})
         updated = await self.repo.update_status(
             order_id,
             "cancelled",
             cancellation_reason=data.reason,
             cancellation_note=data.note,
+            status_history=history,
         )
 
         await publish_order_event("order.cancelled", {
@@ -192,7 +271,7 @@ class OrderService:
             "customer_id": str(order.customer_id),
             "restaurant_id": str(order.restaurant_id),
             "reason": data.reason,
-            "refund_amount": order.total,
+            "refund_amount": float(order.total),
             "currency": order.currency,
         })
 

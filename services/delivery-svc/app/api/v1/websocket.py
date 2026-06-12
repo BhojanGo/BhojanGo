@@ -54,16 +54,36 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+def _extract_ws_token(websocket: WebSocket, query_token: str | None) -> str | None:
+    """Resolve the JWT, preferring transport that does not leak it into URLs/logs.
+
+    Order of preference:
+      1. ``Authorization: Bearer <jwt>`` header (native/mobile clients)
+      2. ``Sec-WebSocket-Protocol`` subprotocol (browser-settable, unlike headers)
+      3. ``?token=`` query param (legacy fallback — discouraged, logged by proxies)
+    """
+    header = websocket.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):
+        return header[7:].strip()
+    subprotocol = websocket.headers.get("sec-websocket-protocol")
+    if subprotocol:
+        # May be a comma-separated list; the token is the last/identifying value.
+        return subprotocol.split(",")[-1].strip()
+    return query_token
+
+
 @router.websocket("/ws/track/{order_id}")
 async def track_order(
     websocket: WebSocket,
     order_id: str,
-    token: str = Query(..., description="JWT access token"),
+    token: str | None = Query(default=None, description="JWT access token (legacy; prefer Authorization header)"),
 ) -> None:
     """
     WebSocket endpoint for real-time order tracking.
 
-    Client connects to: ws://host/ws/track/{order_id}?token=<jwt>
+    Client connects to: ws://host/ws/track/{order_id}
+    Token is supplied via the Authorization header or Sec-WebSocket-Protocol;
+    ?token=<jwt> remains supported as a fallback.
 
     Messages received by client:
     - {"type": "location_update", "payload": {...}, "timestamp": "..."}
@@ -71,9 +91,13 @@ async def track_order(
     - {"type": "eta_update", "payload": {...}, "timestamp": "..."}
     - {"type": "error", "payload": {"message": "..."}, "timestamp": "..."}
     """
-    # Authenticate
+    # Authenticate (never log the token itself)
+    auth_token = _extract_ws_token(websocket, token)
+    if not auth_token:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
     try:
-        current_user = _decode_token(token)
+        current_user = _decode_token(auth_token)
     except Exception:
         await websocket.close(code=4001, reason="Unauthorized")
         return

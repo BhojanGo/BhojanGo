@@ -55,6 +55,30 @@ class OrderRepository:
         )
         return result.scalars().all(), total  # type: ignore[return-value]
 
+    async def pain_point_metrics(self) -> dict:
+        """Aggregate pain-point metrics across all orders (admin analytics)."""
+        total = (await self.session.execute(select(func.count(Order.id)))).scalar_one()
+        platform_rev = (
+            await self.session.execute(select(func.coalesce(func.sum(Order.platform_fee), 0)))
+        ).scalar_one()
+        long_dist = (
+            await self.session.execute(select(func.count(Order.id)).where(Order.is_long_distance.is_(True)))
+        ).scalar_one()
+        avg_prep = (await self.session.execute(select(func.avg(Order.estimated_prep_minutes)))).scalar_one()
+        avg_dist = (await self.session.execute(select(func.avg(Order.delivery_distance_km)))).scalar_one()
+        status_rows = (
+            await self.session.execute(select(Order.status, func.count(Order.id)).group_by(Order.status))
+        ).all()
+        return {
+            "total_orders": total,
+            "total_platform_revenue": float(platform_rev or 0),
+            "long_distance_orders": long_dist,
+            "long_distance_rate": (long_dist / total) if total else 0.0,
+            "avg_estimated_prep_minutes": float(avg_prep or 0),
+            "avg_delivery_distance_km": float(avg_dist or 0),
+            "orders_by_status": {status: count for status, count in status_rows},
+        }
+
     async def get_driver_active_order(self, driver_id: uuid.UUID) -> Order | None:
         result = await self.session.execute(
             select(Order).where(

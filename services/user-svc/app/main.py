@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from app.api.v1 import auth, users
+from app.api.v1 import addresses, auth, users
 from app.config import get_settings
 from app.core.logging import configure_logging
 from app.core.redis import close_redis, get_redis
@@ -141,6 +141,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(addresses.router, prefix="/api/v1")
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

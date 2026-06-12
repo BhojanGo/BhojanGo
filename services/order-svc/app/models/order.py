@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,14 +24,33 @@ class Order(Base):
     # State machine
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
 
-    # Financials
-    subtotal: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    delivery_fee: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    taxes: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    tip: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    discount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Financials (stored as NUMERIC for exact money arithmetic; denominated in major units, e.g. dollars/rupees)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    delivery_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    taxes: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    tip: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+
+    # ── Pain-Point Layer: commission / fee transparency ───────────────────────
+    # platform_fee = platform revenue from the restaurant for this order (commission model);
+    # restaurant_payout = subtotal - platform_fee. Neither changes the customer's total.
+    platform_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    restaurant_payout: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+
+    # ── Pain-Point Layer: restaurant readiness / predictive dispatch ──────────
+    estimated_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    restaurant_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # ── Pain-Point Layer: hyper-local delivery distance ───────────────────────
+    delivery_distance_km: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+    is_long_distance: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    # ── Pain-Point Layer: customer transparency timeline ──────────────────────
+    # List of {"status": str, "at": iso8601} appended on every state transition.
+    status_history: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     # Delivery
     delivery_address: Mapped[dict] = mapped_column(JSONB, nullable=False)

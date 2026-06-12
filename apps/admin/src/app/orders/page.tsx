@@ -87,7 +87,7 @@ export default function OrdersPage() {
                     <td className="py-3 px-4 text-sm text-gray-300">
                       #{order.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-300">{order.user_id?.slice(0, 8)}</td>
+                    <td className="py-3 px-4 text-sm text-gray-300">{order.customer_id?.slice(0, 8)}</td>
                     <td className="py-3 px-4 text-sm text-gray-300">{order.restaurant_name ?? "—"}</td>
                     <td className="py-3 px-4 text-sm text-gray-300">
                       {order.currency === "INR" ? "₹" : "$"}{order.total?.toFixed(2)}

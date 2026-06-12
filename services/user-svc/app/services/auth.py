@@ -25,6 +25,7 @@ from app.schemas.user import (
     OtpSendRequest,
     OtpVerifyRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     SocialLoginRequest,
     UserResponse,
 )
@@ -177,6 +178,28 @@ class AuthService:
 
     async def send_otp(self, data: OtpSendRequest) -> bool:
         return await send_otp(data.phone, data.country)
+
+    async def reset_password(self, data: ResetPasswordRequest) -> None:
+        """Verify the OTP, set a new password, and revoke existing sessions."""
+        verified = await verify_otp(data.phone, data.otp)
+        if not verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "OTP_INVALID", "message": "Invalid or expired OTP"},
+            )
+        user = await self.repo.get_by_phone(data.phone)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "USER_NOT_FOUND", "message": "No account found for this phone number"},
+            )
+        await self.repo.update(user.id, hashed_password=hash_password(data.new_password))
+        # Revoke all refresh tokens after a credential change so old sessions can't continue.
+        redis = await get_redis()
+        keys = await redis.keys(refresh_token_key(str(user.id), "*"))
+        if keys:
+            await redis.delete(*keys)
+        logger.info("password_reset", user_id=str(user.id))
 
     async def verify_otp_and_update(self, data: OtpVerifyRequest) -> bool:
         verified = await verify_otp(data.phone, data.otp)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,11 +20,32 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     phone: "",
+    country: "US",
+    role: "customer",
+    // Restaurant owner fields
+    restaurant_name: "",
+    cuisine_type: "",
+    restaurant_street: "",
+    restaurant_city: "",
+    restaurant_state: "",
+    restaurant_zip: "",
+    // Driver fields
+    vehicle_type: "bike",
+    vehicle_model: "",
+    vehicle_registration: "",
+    license_number: "",
+    driver_city: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isIndia = tz.startsWith("Asia/") && (tz.includes("Kolkata") || tz.includes("Calcutta") || tz.includes("Chennai") || tz.includes("Mumbai"));
+    setForm(f => ({ ...f, country: isIndia ? "IN" : "US" }));
+  }, []);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
@@ -41,12 +62,41 @@ export default function SignupPage() {
       return;
     }
 
+    // Validate role-specific required fields
+    if (form.role === "restaurant_owner") {
+      if (!form.restaurant_name.trim()) {
+        setError("Restaurant name is required");
+        return;
+      }
+      if (!form.restaurant_street.trim()) {
+        setError("Street address is required for restaurants");
+        return;
+      }
+      if (!form.restaurant_city.trim()) {
+        setError("City is required for restaurant owners");
+        return;
+      }
+    }
+    if (form.role === "driver") {
+      if (!form.license_number.trim()) {
+        setError("License number is required for delivery partners");
+        return;
+      }
+      if (!form.driver_city.trim()) {
+        setError("City is required for delivery partners");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const payload: Record<string, string> = {
         full_name: form.full_name,
         email: form.email,
         password: form.password,
+        country: form.country,
+        preferred_currency: form.country === "IN" ? "INR" : "USD",
+        preferred_locale: form.country === "IN" ? "en-IN" : "en-US",
       };
       if (form.phone) payload.phone = form.phone;
 
@@ -77,6 +127,37 @@ export default function SignupPage() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Role selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sign up as</label>
+              <div className="flex gap-3">
+                {[
+                  { value: "customer", label: "Customer" },
+                  { value: "restaurant_owner", label: "Restaurant Owner" },
+                  { value: "driver", label: "Delivery Partner" },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border cursor-pointer transition text-sm font-medium ${
+                      form.role === opt.value
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value={opt.value}
+                      checked={form.role === opt.value}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("name")}
@@ -126,6 +207,185 @@ export default function SignupPage() {
                 placeholder="+1 555 000 0000"
               />
             </div>
+
+            {/* Restaurant Owner fields */}
+            {form.role === "restaurant_owner" && (
+              <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
+                <p className="text-sm font-medium text-emerald-700">Restaurant Details</p>
+                <div>
+                  <label htmlFor="restaurant_name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Restaurant Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="restaurant_name"
+                    name="restaurant_name"
+                    type="text"
+                    required
+                    value={form.restaurant_name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. Spice Garden"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cuisine_type" className="block text-sm font-medium text-gray-700 mb-1">
+                    Cuisine Type
+                  </label>
+                  <input
+                    id="cuisine_type"
+                    name="cuisine_type"
+                    type="text"
+                    value={form.cuisine_type}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. Indian, Chinese"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="restaurant_street" className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="restaurant_street"
+                    name="restaurant_street"
+                    type="text"
+                    required
+                    value={form.restaurant_street}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. 123 Main St"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label htmlFor="restaurant_city" className="block text-sm font-medium text-gray-700 mb-1">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="restaurant_city"
+                      name="restaurant_city"
+                      type="text"
+                      required
+                      value={form.restaurant_city}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                      placeholder="Austin"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="restaurant_state" className="block text-sm font-medium text-gray-700 mb-1">
+                      State
+                    </label>
+                    <input
+                      id="restaurant_state"
+                      name="restaurant_state"
+                      type="text"
+                      value={form.restaurant_state}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                      placeholder="TX"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="restaurant_zip" className="block text-sm font-medium text-gray-700 mb-1">
+                      ZIP Code
+                    </label>
+                    <input
+                      id="restaurant_zip"
+                      name="restaurant_zip"
+                      type="text"
+                      value={form.restaurant_zip}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                      placeholder="78701"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">You&apos;ll complete your profile setup after signing up.</p>
+              </div>
+            )}
+
+            {/* Driver fields */}
+            {form.role === "driver" && (
+              <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
+                <p className="text-sm font-medium text-emerald-700">Delivery Partner Details</p>
+                <div>
+                  <label htmlFor="vehicle_type" className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Type
+                  </label>
+                  <select
+                    id="vehicle_type"
+                    name="vehicle_type"
+                    value={form.vehicle_type}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                  >
+                    <option value="bike">Bike</option>
+                    <option value="scooter">Scooter</option>
+                    <option value="car">Car</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="vehicle_model" className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Model
+                  </label>
+                  <input
+                    id="vehicle_model"
+                    name="vehicle_model"
+                    type="text"
+                    value={form.vehicle_model}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. Honda Activa, Bajaj Pulsar"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="vehicle_registration" className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Registration Number
+                  </label>
+                  <input
+                    id="vehicle_registration"
+                    name="vehicle_registration"
+                    type="text"
+                    value={form.vehicle_registration}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. KA-01-AB-1234"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="license_number" className="block text-sm font-medium text-gray-700 mb-1">
+                    Driving License Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="license_number"
+                    name="license_number"
+                    type="text"
+                    required
+                    value={form.license_number}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. DL-1234567890"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="driver_city" className="block text-sm font-medium text-gray-700 mb-1">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="driver_city"
+                    name="driver_city"
+                    type="text"
+                    required
+                    value={form.driver_city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
+                    placeholder="e.g. Austin"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">You&apos;ll complete your profile setup after signing up.</p>
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">

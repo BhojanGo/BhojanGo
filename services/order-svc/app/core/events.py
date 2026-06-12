@@ -7,6 +7,7 @@ import boto3
 import structlog
 
 from app.config import get_settings
+from app.middleware.correlation import request_id_var
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -33,7 +34,8 @@ def _build_event(event_type: str, payload: dict) -> dict:
         "event_version": "1.0",
         "event_type": event_type,
         "source_service": "order-svc",
-        "correlation_id": str(uuid.uuid4()),
+        # Propagate the inbound request id so a trace survives across service boundaries.
+        "correlation_id": request_id_var.get() or str(uuid.uuid4()),
         "timestamp": datetime.now(UTC).isoformat(),
         "payload": payload,
     }
