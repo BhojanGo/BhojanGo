@@ -80,3 +80,8 @@ apps/mobile/ios/
 *.pem
 .vercel
 .cache/
+.kimchi/
+
+poetry.lock
+package-lock.json
+generated/

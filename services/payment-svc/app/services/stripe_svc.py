@@ -1,4 +1,6 @@
 """Stripe payment integration (USA)."""
+from typing import Any
+
 import structlog
 import stripe
 
@@ -8,7 +10,7 @@ logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
-def get_stripe() -> stripe.Stripe:
+def get_stripe() -> Any:
     stripe.api_key = settings.STRIPE_SECRET_KEY
     return stripe  # type: ignore[return-value]
 
