@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "bhojango-auth",
+          "value": "{\"state\":{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMDEiLCJlbWFpbCI6ImN1c3RvbWVyMUB0ZXN0LmNvbSIsInJvbGUiOiJjdXN0b21lciIsImNvdW50cnkiOiJJTiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3ODEzODc3MzksImV4cCI6MTc4MTM4ODYzOSwianRpIjoiMjQ4ZDY2NGMtNWNhMi00MjA2LThkNzEtZjE4N2M2NWY0YmNjIn0.ulHUhJd7tGEB43LuV9U8L-n-eYoNqvo9jczwMgzRrzs\",\"refreshToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMDEiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc4MTM4NzczOSwiZXhwIjoxNzgxOTkyNTM5LCJqdGkiOiI5YmVlY2MzNS01OWViLTQzMDItOTgxOS1hMjliMTliZmEwNDgifQ.fOi_j6mdGFCwKiJ0rV7auzfF_P-tLkgrs2zEulcm1ho\",\"user\":{\"id\":\"11111111-1111-1111-1111-111111111101\",\"email\":\"customer1@test.com\",\"phone\":\"+14155551001\",\"full_name\":\"Priya Sharma\",\"avatar_url\":null,\"role\":\"customer\",\"is_active\":true,\"is_verified\":false,\"is_phone_verified\":false,\"loyalty_points\":250,\"preferred_currency\":\"INR\",\"preferred_locale\":\"en-IN\",\"country\":\"IN\",\"fcm_token\":null,\"created_at\":\"2026-06-13T19:51:54.901321Z\",\"updated_at\":\"2026-06-13T19:51:54.901321Z\"},\"isAuthenticated\":true},\"version\":0}"
+        }
+      ]
+    }
+  ]
+}
