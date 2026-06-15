@@ -46,7 +46,7 @@ async def list_restaurants(
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> RestaurantListResponse:
-    cache_key = f"restaurants:list:{city}:{cuisine}:{country}:{page}:{limit}"
+    cache_key = f"restaurants:list:{city}:{cuisine}:{country}:{min_rating}:{max_delivery_fee}:{is_open}:{page}:{limit}"
     cached = await cache_get(cache_key)
     if cached:
         return RestaurantListResponse(**cached)
@@ -87,26 +87,58 @@ async def search_restaurants(
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> RestaurantListResponse:
-    result = await search_svc.search_restaurants(
-        q=q, city=city, cuisine=cuisine, min_rating=min_rating,
-        is_open=is_open, lat=lat, lng=lng, page=page, limit=limit,
-    )
-    if not result["ids"]:
-        return RestaurantListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
+    try:
+        result = await search_svc.search_restaurants(
+            q=q, city=city, cuisine=cuisine, min_rating=min_rating,
+            is_open=is_open, lat=lat, lng=lng, page=page, limit=limit,
+        )
+    except Exception:
+        result = {"total": 0, "ids": []}
 
+    if result["ids"]:
+        repo = RestaurantRepository(db)
+        restaurants: list[Restaurant] = []
+        for rid in result["ids"]:
+            r = await repo.get_by_id(uuid.UUID(rid))
+            if r:
+                restaurants.append(r)
+        return RestaurantListResponse(
+            items=[RestaurantResponse.model_validate(r) for r in restaurants],
+            total=result["total"],
+            page=page,
+            limit=limit,
+            total_pages=math.ceil(result["total"] / limit),
+        )
+
+    # Fallback: direct DB query when OpenSearch is unavailable or returns empty
+    logger.warning("opensearch_fallback", q=q, city=city, cuisine=cuisine)
     repo = RestaurantRepository(db)
-    restaurants = []
-    for rid in result["ids"]:
-        r = await repo.get_by_id(uuid.UUID(rid))
-        if r:
-            restaurants.append(r)
-
-    return RestaurantListResponse(
-        items=[RestaurantResponse.model_validate(r) for r in restaurants],
-        total=result["total"],
+    fallback_restaurants, total = await repo.list_restaurants(
+        city=city,
+        cuisine=cuisine,
+        min_rating=min_rating,
         page=page,
         limit=limit,
-        total_pages=math.ceil(result["total"] / limit),
+    )
+
+    # If search text provided, filter by name/description (client-side-ish)
+    if q:
+        q_lower = q.lower()
+        filtered = [
+            r for r in fallback_restaurants
+            if q_lower in r.name.lower()
+            or q_lower in r.description.lower()
+            or any(q_lower in ct.lower() for ct in r.cuisine_types)
+        ]
+        total = len(filtered)
+        fallback_restaurants = filtered
+
+    return RestaurantListResponse(
+        items=[RestaurantResponse.model_validate(r) for r in fallback_restaurants],
+        total=total,
+        page=page,
+        limit=limit,
+        total_pages=math.ceil(total / limit) if total else 0,
     )
 
 

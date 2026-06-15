@@ -1,0 +1,1519 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://bhojango.local/schemas/stage_contract.schema.json",
+    "title": "BhojanGo Stage Contract Schema",
+    "description": "Contract schema for bounded, source-grounded, validator-driven BhojanGo stage implementation, packaging, and evidence validation.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schema_version",
+        "contract_id",
+        "stage",
+        "cost_control",
+        "local_first_policy",
+        "repository",
+        "review_export",
+        "ownership",
+        "task_sequence",
+        "status_rules",
+        "kimchi_updates"
+    ],
+    "properties": {
+        "schema_version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "contract_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_.-]+$"
+        },
+        "stage": {
+            "$ref": "#/$defs/stage"
+        },
+        "cost_control": {
+            "$ref": "#/$defs/cost_control"
+        },
+        "local_first_policy": {
+            "$ref": "#/$defs/local_first_policy"
+        },
+        "repository": {
+            "$ref": "#/$defs/repository"
+        },
+        "review_export": {
+            "$ref": "#/$defs/review_export"
+        },
+        "ownership": {
+            "$ref": "#/$defs/ownership"
+        },
+        "preflight": {
+            "$ref": "#/$defs/preflight"
+        },
+        "global_allowed_files": {
+            "$ref": "#/$defs/file_set"
+        },
+        "global_forbidden_files": {
+            "$ref": "#/$defs/forbidden_file_set"
+        },
+        "task_sequence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/$defs/micro_task"
+            }
+        },
+        "required_stage_artifacts": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/artifact_requirement"
+            },
+            "default": []
+        },
+        "status_rules": {
+            "$ref": "#/$defs/status_rules"
+        },
+        "defer_rules": {
+            "$ref": "#/$defs/defer_rules"
+        },
+        "run_metrics": {
+            "$ref": "#/$defs/run_metrics"
+        },
+        "kimchi_updates": {
+            "$ref": "#/$defs/kimchi_updates"
+        },
+        "validator_results": {
+            "$ref": "#/$defs/validator_results"
+        }
+    },
+    "$defs": {
+        "status": {
+            "type": "string",
+            "enum": [
+                "PASS",
+                "PARTIAL",
+                "NO-GO",
+                "NOT-RUN",
+                "NOT-APPLICABLE",
+                "DEFERRED"
+            ]
+        },
+        "severity": {
+            "type": "string",
+            "enum": [
+                "INFO",
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "BLOCKER"
+            ]
+        },
+        "relative_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo-relative path only. No absolute paths, no parent traversal, no leading './'.",
+            "not": {
+                "anyOf": [
+                    {
+                        "pattern": "^/"
+                    },
+                    {
+                        "pattern": "^[A-Za-z]:"
+                    },
+                    {
+                        "pattern": "(^|/)\\.\\.(/|$)"
+                    },
+                    {
+                        "pattern": "^\\./"
+                    }
+                ]
+            }
+        },
+        "glob_pattern": {
+            "type": "string",
+            "minLength": 1
+        },
+        "stage": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "stage_id",
+                "stage_title",
+                "scope_ids",
+                "stage_type",
+                "current_status",
+                "target_status",
+                "fresh_session_required"
+            ],
+            "properties": {
+                "stage_id": {
+                    "type": "string",
+                    "pattern": "^[A-Z]+-[0-9]{2}([._-][A-Z0-9]+)?$"
+                },
+                "stage_title": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "scope_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^IP\\.[A-Z]+\\.[0-9]{2}\\.[0-9]{3}$"
+                    }
+                },
+                "stage_type": {
+                    "type": "string",
+                    "enum": [
+                        "implementation",
+                        "correction",
+                        "audit",
+                        "packaging",
+                        "validation",
+                        "planning"
+                    ]
+                },
+                "current_status": {
+                    "$ref": "#/$defs/status"
+                },
+                "target_status": {
+                    "$ref": "#/$defs/status"
+                },
+                "fresh_session_required": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "non_go_reason": {
+                    "type": "string"
+                },
+                "previous_review_zip": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "next_stage_if_pass": {
+                    "type": "string"
+                }
+            }
+        },
+        "cost_control": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "target_max_input_tokens_full_stage",
+                "target_max_input_tokens_correction",
+                "max_files_to_read_per_task",
+                "max_files_to_edit_per_task",
+                "max_retries_per_task",
+                "forbid_subagents_by_default",
+                "forbid_broad_repo_scan",
+                "forbid_old_chat_context",
+                "stop_if_context_estimate_exceeds_tokens",
+                "output_verbosity"
+            ],
+            "properties": {
+                "target_max_input_tokens_full_stage": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "target_max_input_tokens_correction": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "max_files_to_read_per_task": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "max_files_to_edit_per_task": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_retries_per_task": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "forbid_subagents_by_default": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "forbid_broad_repo_scan": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "forbid_old_chat_context": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "stop_if_context_estimate_exceeds_tokens": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "output_verbosity": {
+                    "type": "string",
+                    "enum": [
+                        "minimal",
+                        "concise",
+                        "normal"
+                    ]
+                },
+                "require_token_metrics_log": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "metrics_log_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "local_first_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "active_until_stage",
+                "no_paid_services",
+                "no_cloud_services",
+                "no_external_production_integrations",
+                "prefer_local_free_open_source",
+                "docker_optional",
+                "opensearch_optional",
+                "fallback_required_for_external_dependencies",
+                "forbidden_before_stage"
+            ],
+            "properties": {
+                "active_until_stage": {
+                    "type": "string"
+                },
+                "no_paid_services": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "no_cloud_services": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "no_external_production_integrations": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "prefer_local_free_open_source": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "docker_optional": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "opensearch_optional": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "fallback_required_for_external_dependencies": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "allowed_local_services": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "PostgreSQL",
+                        "Redis",
+                        "filesystem",
+                        "local images",
+                        "local WebSocket",
+                        "mock adapters"
+                    ]
+                },
+                "forbidden_before_stage": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
+                "external_service_policy": {
+                    "type": "string",
+                    "enum": [
+                        "fake-before-pr04",
+                        "local-mock-before-pr08",
+                        "ask-before-any-external"
+                    ]
+                }
+            }
+        },
+        "repository": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "repo_root_expectation",
+                "folder_structure_path",
+                "path_style",
+                "source_of_truth_files"
+            ],
+            "properties": {
+                "repo_root_expectation": {
+                    "type": "string"
+                },
+                "folder_structure_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "path_style": {
+                    "type": "string",
+                    "enum": [
+                        "repo-relative-only"
+                    ]
+                },
+                "source_of_truth_files": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "repo_markers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    },
+                    "default": [
+                        "package.json",
+                        "pnpm-workspace.yaml"
+                    ]
+                }
+            }
+        },
+        "review_export": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "output_dir",
+                "zip_path",
+                "copy_missing_expected_files",
+                "fail_if_repo_file_missing",
+                "preserve_repo_relative_paths",
+                "include_contract",
+                "include_guardrail_scripts",
+                "include_folder_structure",
+                "include_validator_outputs",
+                "required_in_zip",
+                "exclude_patterns",
+                "forbidden_zip_entry_patterns"
+            ],
+            "properties": {
+                "output_dir": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "zip_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "zip_listing_log_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "copy_missing_expected_files": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "fail_if_repo_file_missing": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "preserve_repo_relative_paths": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "include_contract": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "include_guardrail_scripts": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "include_folder_structure": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "include_validator_outputs": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "required_in_zip": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "exclude_patterns": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/glob_pattern"
+                    }
+                },
+                "forbidden_zip_entry_patterns": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "required_file_categories": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "backend",
+                            "frontend",
+                            "tests",
+                            "evidence",
+                            "config",
+                            "scripts",
+                            "docs",
+                            "contract",
+                            "validators"
+                        ]
+                    }
+                },
+                "max_zip_size_mb": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "allow_large_file_exclusions": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "large_file_exclusion_requires_reason": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "ownership": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "kimchi_editable_paths",
+                "validator_owned_paths",
+                "manual_review_required"
+            ],
+            "properties": {
+                "kimchi_editable_paths": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "validator_owned_paths": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "manual_review_required": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "kimchi_must_not_edit_validator_results": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "kimchi_allowed_update_sections": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "kimchi_updates"
+                    ]
+                }
+            }
+        },
+        "preflight": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "enabled",
+                "stop_on_failure",
+                "checks"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "stop_on_failure": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "checks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/validator"
+                    }
+                },
+                "repair_policy": {
+                    "type": "string",
+                    "enum": [
+                        "fix-packaging-only",
+                        "fix-directly-related-only",
+                        "stop-and-report"
+                    ]
+                }
+            }
+        },
+        "file_set": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "read": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "edit": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "include_in_zip": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "evidence": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "screenshots": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                }
+            }
+        },
+        "forbidden_file_set": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "read": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "edit": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "include_in_zip": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "patterns": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "default": [],
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "micro_task": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "task_id",
+                "scope_id",
+                "title",
+                "objective",
+                "sequence",
+                "task_type",
+                "allowed_files",
+                "validators",
+                "acceptance",
+                "repair_instruction"
+            ],
+            "properties": {
+                "task_id": {
+                    "type": "string",
+                    "pattern": "^[A-Z]+-[0-9]{2}\\.T[0-9]{3}$"
+                },
+                "scope_id": {
+                    "type": "string",
+                    "pattern": "^IP\\.[A-Z]+\\.[0-9]{2}\\.[0-9]{3}$"
+                },
+                "title": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "objective": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "sequence": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "task_type": {
+                    "type": "string",
+                    "enum": [
+                        "code-change",
+                        "test-change",
+                        "evidence",
+                        "screenshot",
+                        "packaging",
+                        "validation",
+                        "documentation",
+                        "defer-decision"
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "P0",
+                        "P1",
+                        "P2",
+                        "P3"
+                    ],
+                    "default": "P1"
+                },
+                "allowed_files": {
+                    "$ref": "#/$defs/file_set"
+                },
+                "forbidden_files": {
+                    "$ref": "#/$defs/forbidden_file_set"
+                },
+                "expected_outputs": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/artifact_requirement"
+                    }
+                },
+                "validators": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/$defs/validator"
+                    }
+                },
+                "acceptance": {
+                    "$ref": "#/$defs/task_acceptance"
+                },
+                "defer": {
+                    "$ref": "#/$defs/task_defer"
+                },
+                "repair_instruction": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "stop_conditions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "artifact_requirement": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "path",
+                "artifact_type",
+                "required"
+            ],
+            "properties": {
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "artifact_type": {
+                    "type": "string",
+                    "enum": [
+                        "source",
+                        "config",
+                        "test",
+                        "script",
+                        "log",
+                        "screenshot",
+                        "manifest",
+                        "handoff",
+                        "contract",
+                        "validator_output",
+                        "zip",
+                        "documentation"
+                    ]
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "min_size_bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_size_bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "scope_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
+                }
+            }
+        },
+        "task_acceptance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "pass_requires_all_validators",
+                "manual_pass_forbidden",
+                "raw_evidence_required"
+            ],
+            "properties": {
+                "pass_requires_all_validators": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "manual_pass_forbidden": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "raw_evidence_required": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "screenshots_required": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "tests_required": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "source_in_zip_required": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "allow_partial": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "partial_requires_reason": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "task_defer": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "defer_allowed": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "defer_status_if_unfixed": {
+                    "$ref": "#/$defs/status"
+                },
+                "defer_reason_required": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "defer_target_stage": {
+                    "type": "string"
+                },
+                "requires_user_approval": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "validator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "validator_id",
+                "type",
+                "severity"
+            ],
+            "properties": {
+                "validator_id": {
+                    "type": "string",
+                    "pattern": "^[A-Z]+-[0-9]{2}\\.V[0-9]{3}([._-][A-Za-z0-9_]+)?$"
+                },
+                "type": {
+                    "$ref": "#/$defs/validator_type"
+                },
+                "severity": {
+                    "$ref": "#/$defs/severity"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "paths": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "zip_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "pattern": {
+                    "type": "string"
+                },
+                "patterns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "must_contain": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "must_not_contain": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS",
+                        "HEAD"
+                    ]
+                },
+                "route": {
+                    "type": "string"
+                },
+                "class_name": {
+                    "type": "string"
+                },
+                "function_name": {
+                    "type": "string"
+                },
+                "component_name": {
+                    "type": "string"
+                },
+                "import_name": {
+                    "type": "string"
+                },
+                "from_module": {
+                    "type": "string"
+                },
+                "table": {
+                    "type": "string"
+                },
+                "column": {
+                    "type": "string"
+                },
+                "expected_status_code": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 599
+                },
+                "expected_exit_code": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "min_size_bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_size_bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "min_count": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "json_path": {
+                    "type": "string"
+                },
+                "expected_value": true,
+                "manual_review_required": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "repair_instruction": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
+        "validator_type": {
+            "type": "string",
+            "enum": [
+                "file_exists",
+                "file_not_exists",
+                "file_nonempty",
+                "zip_contains",
+                "zip_not_contains",
+                "zip_no_forbidden_entries",
+                "zip_contains_required_files",
+                "ledger_matches_zip",
+                "python_function_exists",
+                "python_class_exists",
+                "python_route_exists",
+                "python_ast_import_exists",
+                "typescript_component_exists",
+                "typescript_import_exists",
+                "code_regex_exists",
+                "code_regex_not_exists",
+                "migration_adds_column",
+                "package_script_exists",
+                "log_contains_regex",
+                "log_not_contains_regex",
+                "pytest_collected_tests",
+                "curl_status_check",
+                "command_exit_code",
+                "screenshot_exists",
+                "screenshot_non_blank",
+                "json_path_equals",
+                "file_size_between",
+                "forbidden_code_check",
+                "allowed_files_changed_only",
+                "source_files_included",
+                "evidence_files_included",
+                "validator_output_exists"
+            ]
+        },
+        "status_rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "allowed_statuses",
+                "no_manual_pass",
+                "pass_requires_source",
+                "pass_requires_evidence",
+                "pass_requires_zip_inclusion",
+                "frontend_pass_requires_screenshot",
+                "test_pass_requires_collected_tests",
+                "no_go_if_ledger_mismatch",
+                "no_go_if_zip_not_repo_relative"
+            ],
+            "properties": {
+                "allowed_statuses": {
+                    "type": "array",
+                    "minItems": 3,
+                    "items": {
+                        "$ref": "#/$defs/status"
+                    }
+                },
+                "no_manual_pass": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "pass_requires_source": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "pass_requires_evidence": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "pass_requires_zip_inclusion": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "frontend_pass_requires_screenshot": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "test_pass_requires_collected_tests": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "no_go_if_ledger_mismatch": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "no_go_if_zip_not_repo_relative": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "no_go_if_forbidden_zip_entries": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "no_go_if_required_file_missing_from_repo": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "partial_allowed_with_explicit_defer": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "defer_rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "allow_defer": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "defer_requires_reason": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "defer_requires_target_stage": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "defer_requires_user_approval": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "deferred_items_block_next_stage_by_default": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "run_metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "required_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "stage_id",
+                        "run_type",
+                        "input_tokens",
+                        "output_tokens",
+                        "duration_minutes",
+                        "tasks_attempted",
+                        "tasks_passed",
+                        "validator_failures",
+                        "accepted",
+                        "primary_failure_type"
+                    ]
+                }
+            }
+        },
+        "kimchi_updates": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "changed_files",
+                "files_read_end_to_end",
+                "commands_run",
+                "evidence_created",
+                "screenshots_created",
+                "known_blockers",
+                "requested_extra_files"
+            ],
+            "properties": {
+                "changed_files": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/file_change"
+                    }
+                },
+                "files_read_end_to_end": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/file_read_claim"
+                    }
+                },
+                "commands_run": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/command_run"
+                    }
+                },
+                "evidence_created": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "screenshots_created": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "known_blockers": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/blocker"
+                    }
+                },
+                "requested_extra_files": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/extra_file_request"
+                    }
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "file_change": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "path",
+                "change_type",
+                "reason",
+                "task_ids"
+            ],
+            "properties": {
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "change_type": {
+                    "type": "string",
+                    "enum": [
+                        "created",
+                        "modified",
+                        "deleted",
+                        "renamed"
+                    ]
+                },
+                "old_path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "task_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "file_read_claim": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "path",
+                "read_end_to_end",
+                "task_ids"
+            ],
+            "properties": {
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "read_end_to_end": {
+                    "type": "boolean"
+                },
+                "task_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "line_count": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "command_run": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "command",
+                "evidence_log",
+                "exit_code"
+            ],
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "working_directory": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "evidence_log": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "exit_code": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "task_ids": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "blocker": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "blocker_id",
+                "severity",
+                "description",
+                "status"
+            ],
+            "properties": {
+                "blocker_id": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9_.-]+$"
+                },
+                "severity": {
+                    "$ref": "#/$defs/severity"
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "OPEN",
+                        "RESOLVED",
+                        "DEFERRED"
+                    ]
+                },
+                "scope_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
+                },
+                "defer_target_stage": {
+                    "type": "string"
+                },
+                "evidence": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                }
+            }
+        },
+        "extra_file_request": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "path",
+                "reason",
+                "requested_for_task_id"
+            ],
+            "properties": {
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "reason": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "requested_for_task_id": {
+                    "type": "string"
+                },
+                "requires_user_approval": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "validator_results": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "generated_by_validator_only": {
+                    "type": "boolean",
+                    "const": true
+                },
+                "overall_status": {
+                    "$ref": "#/$defs/status"
+                },
+                "review_export_status": {
+                    "$ref": "#/$defs/status"
+                },
+                "stage_completion_status": {
+                    "$ref": "#/$defs/status"
+                },
+                "generated_at": {
+                    "type": "string"
+                },
+                "validator_output_paths": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/relative_path"
+                    }
+                },
+                "failed_validators": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "$ref": "#/$defs/validator_failure"
+                    }
+                },
+                "next_action": {
+                    "$ref": "#/$defs/next_action"
+                }
+            }
+        },
+        "validator_failure": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "validator_id",
+                "task_id",
+                "severity",
+                "message"
+            ],
+            "properties": {
+                "validator_id": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                },
+                "severity": {
+                    "$ref": "#/$defs/severity"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "path": {
+                    "$ref": "#/$defs/relative_path"
+                },
+                "repair_instruction": {
+                    "type": "string"
+                }
+            }
+        },
+        "next_action": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "action_type",
+                "title",
+                "instructions"
+            ],
+            "properties": {
+                "action_type": {
+                    "type": "string",
+                    "enum": [
+                        "fix_failed_task",
+                        "fix_packaging",
+                        "collect_evidence",
+                        "capture_screenshot",
+                        "request_user_approval",
+                        "manual_review",
+                        "proceed_next_stage",
+                        "stop"
+                    ]
+                },
+                "task_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "allowed_files": {
+                    "$ref": "#/$defs/file_set"
+                },
+                "instructions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
