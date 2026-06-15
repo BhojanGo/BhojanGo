@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export default function RestaurantError({
+export default function Error({
   error,
   reset,
 }: {

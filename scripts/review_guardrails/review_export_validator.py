@@ -251,6 +251,9 @@ def truthy_text(value: str) -> bool:
 
 
 def detect_category(path: str) -> str:
+    name = Path(path).name
+    if name in {"package.json", "pnpm-workspace.yaml", "tsconfig.json", "next.config.mjs", "next.config.js", "tailwind.config.js", "tailwind.config.ts", "postcss.config.js", "docker-compose.yml"}:
+        return "config"
     if path.startswith("services/"):
         return "backend"
     if path.startswith("apps/"):
@@ -1107,7 +1110,7 @@ class ReviewExportValidator:
                 )
             if Path(path.lower()).suffix == ".png":
                 try:
-                    raw = zip_snapshot.read_bytes(path, max_bytes=32)
+                    raw = zip_snapshot.read_bytes(path)
                     if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
                         self.findings.append(
                             ValidationFinding(
