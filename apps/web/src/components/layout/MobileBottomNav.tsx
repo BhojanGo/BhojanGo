@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useCartStore } from "@/store/cart";
 
 const TABS = [
@@ -55,6 +56,14 @@ function ProfileIcon({ className }: { className?: string }) {
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const itemCount = useCartStore((s) => s.getItemCount());
+  // SPR-03A-FIX2B hydration guard: localStorage-backed cart count must not alter initial hydration HTML.
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const safeItemCount = hasMounted ? itemCount : 0;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-sm sm:hidden dark:border-gray-800 dark:bg-gray-950/95 pb-safe">
@@ -76,9 +85,9 @@ export default function MobileBottomNav() {
             >
               <div className="relative">
                 <tab.icon className="h-5 w-5" />
-                {tab.href === "/cart" && itemCount > 0 && (
+                {tab.href === "/cart" && safeItemCount > 0 && (
                   <span className="absolute -right-2 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
-                    {itemCount > 99 ? "99+" : itemCount}
+                    {safeItemCount > 99 ? "99+" : safeItemCount}
                   </span>
                 )}
               </div>

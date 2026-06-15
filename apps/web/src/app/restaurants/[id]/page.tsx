@@ -22,63 +22,130 @@ function MenuItemCard({
   restaurant: Restaurant;
 }) {
   const t = useTranslations("restaurant");
-  const { addItem } = useCartStore();
+  const {
+    addItem,
+    replaceCartWithItem,
+    hasRestaurantConflict,
+    restaurantName: currentCartRestaurantName,
+  } = useCartStore();
   const [added, setAdded] = useState(false);
+  const [showReplaceCart, setShowReplaceCart] = useState(false);
+
+  const restaurantForCart = {
+    id: restaurant.id,
+    name: restaurant.name,
+    slug: restaurant.slug,
+    currency: restaurant.currency,
+    delivery_fee: restaurant.delivery_fee,
+  };
+
+  function flashAdded() {
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1000);
+  }
 
   function handleAdd() {
-    addItem({ id: restaurant.id, name: restaurant.name, slug: restaurant.slug }, item, 1);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1000);
+    if (hasRestaurantConflict(restaurant.id)) {
+      setShowReplaceCart(true);
+      return;
+    }
+    addItem(restaurantForCart, item, 1);
+    flashAdded();
+  }
+
+  function handleStartNewCart() {
+    replaceCartWithItem(restaurantForCart, item, 1);
+    setShowReplaceCart(false);
+    flashAdded();
   }
 
   return (
-    <div className="flex gap-4 py-4 border-b border-gray-100 last:border-0">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span
-            className={`inline-flex w-4 h-4 items-center justify-center rounded-sm border-2 ${
-              item.is_veg ? "border-green-500" : "border-red-500"
-            }`}
-          >
+    <>
+      <div className="flex gap-4 py-4 border-b border-gray-100 last:border-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
             <span
-              className={`w-2 h-2 rounded-full ${
-                item.is_veg ? "bg-green-500" : "bg-red-500"
+              className={`inline-flex w-4 h-4 items-center justify-center rounded-sm border-2 ${
+                item.is_veg ? "border-green-500" : "border-red-500"
               }`}
-            />
-          </span>
-          {item.is_bestseller && (
-            <span className="text-xs text-emerald-500 font-medium">Bestseller</span>
+              aria-label={item.is_veg ? "Vegetarian item" : "Non-vegetarian item"}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  item.is_veg ? "bg-green-500" : "bg-red-500"
+                }`}
+              />
+            </span>
+            {item.is_bestseller && (
+              <span className="text-xs text-emerald-500 font-medium">Bestseller</span>
+            )}
+          </div>
+          <h3 className="font-medium text-gray-900 text-sm">{item.name}</h3>
+          <p className="text-sm font-semibold text-gray-900 mt-1">
+            {restaurant.currency === "INR" ? "₹" : "$"}
+            {item.price}
+          </p>
+          {item.description && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
           )}
         </div>
-        <h3 className="font-medium text-gray-900 text-sm">{item.name}</h3>
-        <p className="text-sm font-semibold text-gray-900 mt-1">
-          {restaurant.currency === "INR" ? "₹" : "$"}
-          {item.price}
-        </p>
-        {item.description && (
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-        )}
+        <div className="flex-shrink-0 flex flex-col items-center gap-2">
+          {item.image_url && (
+            <div className="relative w-24 h-20 rounded-lg overflow-hidden">
+              <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+            </div>
+          )}
+          <button
+            onClick={handleAdd}
+            className={`px-4 py-1 rounded-lg text-sm font-semibold border transition ${
+              added
+                ? "bg-green-500 border-green-500 text-white"
+                : "bg-white border-emerald-500 text-emerald-500 hover:bg-emerald-50"
+            }`}
+          >
+            {added ? "✓" : t("addToCart")}
+          </button>
+        </div>
       </div>
-      <div className="flex-shrink-0 flex flex-col items-center gap-2">
-        {item.image_url && (
-          <div className="relative w-24 h-20 rounded-lg overflow-hidden">
-            <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+
+      {showReplaceCart && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 py-6 sm:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`replace-cart-title-${item.id}`}
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
+          >
+            <h3 id={`replace-cart-title-${item.id}`} className="text-lg font-bold text-gray-900 dark:text-white">
+              Replace cart?
+            </h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Your cart has items from {currentCartRestaurantName ?? "another restaurant"}. Start a new cart for{" "}
+              {restaurant.name}?
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowReplaceCart(false)}
+                className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStartNewCart}
+                className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Start New Cart
+              </button>
+            </div>
           </div>
-        )}
-        <button
-          onClick={handleAdd}
-          className={`px-4 py-1 rounded-lg text-sm font-semibold border transition ${
-            added
-              ? "bg-green-500 border-green-500 text-white"
-              : "bg-white border-emerald-500 text-emerald-500 hover:bg-emerald-50"
-          }`}
-        >
-          {added ? "✓" : t("addToCart")}
-        </button>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
+
 
 export default function RestaurantPage() {
   const t = useTranslations("restaurant");
@@ -290,8 +357,8 @@ export default function RestaurantPage() {
             </span>
             <span className="font-semibold">View Cart</span>
             <span className="font-semibold">
-              {restaurant.currency === "INR" ? "₹" : "$"}
-              {cart.getTotal().toFixed(2)}
+              {cart.currency === "INR" ? "₹" : "$"}
+              {cart.getGrandTotal().toFixed(2)}
             </span>
           </button>
         </div>

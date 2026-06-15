@@ -181,8 +181,13 @@ export default function CheckoutPage() {
     }
   }
 
-  const total = cart.getTotal();
-  const currencySymbol = isIndia ? "₹" : "$";
+  const subtotal = cart.getSubtotal();
+  const deliveryFee = cart.getDeliveryFee();
+  const platformFee = cart.getPlatformFee();
+  const tax = cart.getTax();
+  const discount = cart.getDiscount();
+  const total = cart.getGrandTotal();
+  const currencySymbol = cart.currency === "INR" ? "₹" : "$";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -318,20 +323,28 @@ export default function CheckoutPage() {
             ))}
             <div className="h-px bg-gray-100 my-2" />
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>{currencySymbol}{cart.getSubtotal().toFixed(2)}</span>
+              <span>Items Total</span>
+              <span>{currencySymbol}{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Delivery</span>
-              <span>{cart.deliveryFee === 0 ? "FREE" : `${currencySymbol}${cart.deliveryFee.toFixed(2)}`}</span>
+              <span>Delivery Fee</span>
+              <span>{deliveryFee === 0 ? "FREE" : `${currencySymbol}${deliveryFee.toFixed(2)}`}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Tax</span>
-              <span>{currencySymbol}{cart.getTax().toFixed(2)}</span>
+              <span>Platform Fee</span>
+              <span>{currencySymbol}{platformFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Tax / GST (5%)</span>
+              <span>{currencySymbol}{tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Discount</span>
+              <span>{discount === 0 ? `${currencySymbol}0.00` : `-${currencySymbol}${discount.toFixed(2)}`}</span>
             </div>
             <div className="h-px bg-gray-100 my-2" />
             <div className="flex justify-between font-semibold text-gray-900">
-              <span>Total</span>
+              <span>Grand Total</span>
               <span>{currencySymbol}{total.toFixed(2)}</span>
             </div>
           </div>

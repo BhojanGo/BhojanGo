@@ -1,0 +1,1885 @@
+{
+  "generated_by": "stage_packager.py",
+  "generated_at": "2026-06-15T11:59:22+00:00",
+  "status": "PASS",
+  "contract_id": "SPR-02-V3",
+  "stage_id": "SPR-02",
+  "stage_title": "Browsable Prototype — v3 Source-Grounded Correction",
+  "repo_root": "/Users/raghuram/PycharmProjects/BhojanGo/BhojanGo",
+  "contract_path": "review_contracts/SPR-02-v3.contract.json",
+  "review_export": {
+    "output_dir": "review_exports/SPR-02_scope_review_v3",
+    "zip_path": "review_exports/SPR-02_scope_review_v3.zip",
+    "zip_listing_log_path": "tests/results/evidence/logs/spr02-v3-zip-listing.log",
+    "packager_report_path": "tests/results/evidence/validator_outputs/SPR-02-V3_packager_report.json",
+    "preserve_repo_relative_paths": true,
+    "copy_missing_expected_files": true,
+    "fail_if_repo_file_missing": true
+  },
+  "counts": {
+    "copy_records": 78,
+    "copied_files": 77,
+    "skipped_files": 1,
+    "missing_required": 0,
+    "missing_optional": 0,
+    "forbidden_paths": 0,
+    "copy_errors": 0,
+    "zip_entries": 74,
+    "zip_category_counts": {
+      "backend": 19,
+      "contract": 1,
+      "docs": 2,
+      "frontend": 18,
+      "other": 7,
+      "scripts": 5,
+      "tests_or_evidence": 22
+    }
+  },
+  "zip_entries": [
+    "apps/web/next.config.mjs",
+    "apps/web/package.json",
+    "apps/web/src/app/(auth)/login/page.tsx",
+    "apps/web/src/app/(auth)/signup/page.tsx",
+    "apps/web/src/app/layout.tsx",
+    "apps/web/src/app/page.tsx",
+    "apps/web/src/app/restaurants/[id]/error.tsx",
+    "apps/web/src/app/restaurants/[id]/page.tsx",
+    "apps/web/src/app/restaurants/page.tsx",
+    "apps/web/src/components/AuthBootstrap.tsx",
+    "apps/web/src/components/home/FeaturedRestaurants.tsx",
+    "apps/web/src/components/layout/MobileBottomNav.tsx",
+    "apps/web/src/components/layout/Navbar.tsx",
+    "apps/web/src/components/providers.tsx",
+    "apps/web/src/components/restaurant/RestaurantCard.tsx",
+    "apps/web/src/lib/api.ts",
+    "apps/web/src/store/auth.ts",
+    "apps/web/src/store/cart.ts",
+    "docs/folder_structure.md",
+    "docs/review_export_policy.md",
+    "implementation_plan/IP.PR.02 - Browsable Prototype.md",
+    "implementation_plan/SP20-Master-Implementation-Sprint-Plan.md",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "review_contracts/SPR-02-v3.contract.json",
+    "review_exports/SPR-02_v3_final_cleanup_run.log",
+    "review_exports/SPR-02_v3_final_cleanup_run_v2.log",
+    "review_exports/SPR-02_v3_manual_review_status.json",
+    "scripts/review_guardrails/review_export_validator.py",
+    "scripts/review_guardrails/stage_completion_validator.py",
+    "scripts/review_guardrails/stage_contract.schema.json",
+    "scripts/review_guardrails/stage_packager.py",
+    "scripts/start-all.sh",
+    "services/restaurant-svc/app/api/v1/restaurants.py",
+    "services/restaurant-svc/app/db/migrations/versions/0001_create_restaurant_tables.py",
+    "services/restaurant-svc/app/db/migrations/versions/0002_money_to_numeric.py",
+    "services/restaurant-svc/app/db/migrations/versions/0003_pain_point_pricing_radius.py",
+    "services/restaurant-svc/app/db/migrations/versions/0004_add_deleted_at.py",
+    "services/restaurant-svc/app/main.py",
+    "services/restaurant-svc/app/models/menu.py",
+    "services/restaurant-svc/app/models/restaurant.py",
+    "services/restaurant-svc/app/repositories/restaurant.py",
+    "services/restaurant-svc/app/schemas/restaurant.py",
+    "services/restaurant-svc/app/services/search.py",
+    "services/user-svc/app/api/v1/auth.py",
+    "services/user-svc/app/api/v1/users.py",
+    "services/user-svc/app/core/dependencies.py",
+    "services/user-svc/app/core/security.py",
+    "services/user-svc/app/main.py",
+    "services/user-svc/app/models/user.py",
+    "services/user-svc/app/repositories/user.py",
+    "services/user-svc/app/schemas/user.py",
+    "tests/backend/test_spr02_contracts.py",
+    "tests/results/evidence/cost_control/kimchi_run_metrics.jsonl",
+    "tests/results/evidence/logs/spr02-frontend-routes.log",
+    "tests/results/evidence/logs/spr02-me-endpoint.log",
+    "tests/results/evidence/logs/spr02-menu-endpoint.log",
+    "tests/results/evidence/logs/spr02-opensearch-fallback.log",
+    "tests/results/evidence/logs/spr02-unit-or-focused-tests.log",
+    "tests/results/evidence/logs/spr02-v3-zip-listing.log",
+    "tests/results/evidence/manifests/SPR-02-closure-summary.md",
+    "tests/results/evidence/manifests/SPR-02-evidence.md",
+    "tests/results/evidence/manifests/SPR-02-file-read-ledger.md",
+    "tests/results/evidence/summaries/current_handoff.md",
+    "tests/results/evidence/validator_outputs/SPR-02-V3_packager_report.json",
+    "tests/results/evidence/validator_outputs/SPR-02-V3_review_export_validation.json",
+    "tests/results/evidence/validator_outputs/SPR-02-V3_stage_completion_validation.json",
+    "tests/results/frontend/customer/screenshots/authenticated-homepage.png",
+    "tests/results/frontend/customer/screenshots/homepage.png",
+    "tests/results/frontend/customer/screenshots/login.png",
+    "tests/results/frontend/customer/screenshots/mobile-bottom-nav.png",
+    "tests/results/frontend/customer/screenshots/restaurant-detail.png",
+    "tests/results/frontend/customer/screenshots/restaurants-list-mobile.png",
+    "tests/results/frontend/customer/screenshots/restaurants-list.png"
+  ],
+  "required_missing_from_zip": [],
+  "missing_required": [],
+  "missing_optional": [],
+  "forbidden_paths": [],
+  "copy_errors": [],
+  "warnings": [],
+  "copy_records": [
+    {
+      "path": "apps/web/next.config.mjs",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1388
+    },
+    {
+      "path": "apps/web/package.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1086
+    },
+    {
+      "path": "apps/web/src/app/(auth)/login/page.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 5946
+    },
+    {
+      "path": "apps/web/src/app/(auth)/signup/page.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 20208
+    },
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T014:allowed_files.edit",
+        "task:SPR-02.T014:allowed_files.include_in_zip",
+        "task:SPR-02.T014:allowed_files.read",
+        "task:SPR-02.T014:validator:SPR-02.V053_T014:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1710
+    },
+    {
+      "path": "apps/web/src/app/page.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T005:allowed_files.edit",
+        "task:SPR-02.T005:allowed_files.include_in_zip",
+        "task:SPR-02.T005:allowed_files.read",
+        "task:SPR-02.T005:validator:SPR-02.V028_T005:path",
+        "task:SPR-02.T005:validator:SPR-02.V029_T005:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1448
+    },
+    {
+      "path": "apps/web/src/app/restaurants/[id]/error.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.changed_files",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T007:allowed_files.edit",
+        "task:SPR-02.T007:allowed_files.include_in_zip",
+        "task:SPR-02.T007:allowed_files.read",
+        "task:SPR-02.T007:validator:SPR-02.V035_T007:path",
+        "task:SPR-02.T007:validator:SPR-02.V036_T007:path",
+        "task:SPR-02.T007:validator:SPR-02.V037_T007:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1333
+    },
+    {
+      "path": "apps/web/src/app/restaurants/[id]/page.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T002:allowed_files.edit",
+        "task:SPR-02.T002:allowed_files.include_in_zip",
+        "task:SPR-02.T002:allowed_files.read",
+        "task:SPR-02.T002:validator:SPR-02.V009_T002:path",
+        "task:SPR-02.T002:validator:SPR-02.V010_T002:path",
+        "task:SPR-02.T002:validator:SPR-02.V011_T002:path",
+        "task:SPR-02.T002:validator:SPR-02.V015_T002:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 11213
+    },
+    {
+      "path": "apps/web/src/app/restaurants/page.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T006:allowed_files.edit",
+        "task:SPR-02.T006:allowed_files.include_in_zip",
+        "task:SPR-02.T006:allowed_files.read",
+        "task:SPR-02.T006:validator:SPR-02.V033_T006:path",
+        "task:SPR-02.T006:validator:SPR-02.V034_T006:paths",
+        "task:SPR-02.T008:allowed_files.edit",
+        "task:SPR-02.T008:allowed_files.include_in_zip",
+        "task:SPR-02.T008:allowed_files.read",
+        "task:SPR-02.T008:validator:SPR-02.V038_T008:path",
+        "task:SPR-02.T009:allowed_files.edit",
+        "task:SPR-02.T009:allowed_files.include_in_zip",
+        "task:SPR-02.T009:allowed_files.read",
+        "task:SPR-02.T009:validator:SPR-02.V040_T009:path",
+        "task:SPR-02.T010:allowed_files.edit",
+        "task:SPR-02.T010:allowed_files.include_in_zip",
+        "task:SPR-02.T010:allowed_files.read",
+        "task:SPR-02.T010:validator:SPR-02.V042_T010:path",
+        "task:SPR-02.T011:allowed_files.include_in_zip",
+        "task:SPR-02.T011:allowed_files.read",
+        "task:SPR-02.T012:allowed_files.include_in_zip",
+        "task:SPR-02.T012:allowed_files.read",
+        "task:SPR-02.T015:allowed_files.edit",
+        "task:SPR-02.T015:allowed_files.include_in_zip",
+        "task:SPR-02.T015:allowed_files.read",
+        "task:SPR-02.T015:validator:SPR-02.V060_T015:path",
+        "task:SPR-02.T015:validator:SPR-02.V061_T015:paths",
+        "task:SPR-02.T016:allowed_files.include_in_zip",
+        "task:SPR-02.T016:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 6564
+    },
+    {
+      "path": "apps/web/src/components/AuthBootstrap.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.edit",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V021_T004:path",
+        "task:SPR-02.T004:validator:SPR-02.V023_T004:path",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 582
+    },
+    {
+      "path": "apps/web/src/components/home/FeaturedRestaurants.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T005:allowed_files.edit",
+        "task:SPR-02.T005:allowed_files.include_in_zip",
+        "task:SPR-02.T005:allowed_files.read",
+        "task:SPR-02.T011:allowed_files.edit",
+        "task:SPR-02.T011:allowed_files.include_in_zip",
+        "task:SPR-02.T011:allowed_files.read",
+        "task:SPR-02.T011:validator:SPR-02.V045_T011:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1792
+    },
+    {
+      "path": "apps/web/src/components/layout/MobileBottomNav.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T014:allowed_files.edit",
+        "task:SPR-02.T014:allowed_files.include_in_zip",
+        "task:SPR-02.T014:allowed_files.read",
+        "task:SPR-02.T014:validator:SPR-02.V052_T014:path",
+        "task:SPR-02.T014:validator:SPR-02.V054_T014:path",
+        "task:SPR-02.T014:validator:SPR-02.V055_T014:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 3787
+    },
+    {
+      "path": "apps/web/src/components/layout/Navbar.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T013:allowed_files.edit",
+        "task:SPR-02.T013:allowed_files.include_in_zip",
+        "task:SPR-02.T013:allowed_files.read",
+        "task:SPR-02.T013:validator:SPR-02.V050_T013:path",
+        "task:SPR-02.T013:validator:SPR-02.V051_T013:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 7489
+    },
+    {
+      "path": "apps/web/src/components/providers.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.edit",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V022_T004:path",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 812
+    },
+    {
+      "path": "apps/web/src/components/restaurant/RestaurantCard.tsx",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.changed_files",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T011:allowed_files.edit",
+        "task:SPR-02.T011:allowed_files.include_in_zip",
+        "task:SPR-02.T011:allowed_files.read",
+        "task:SPR-02.T011:validator:SPR-02.V044_T011:path",
+        "task:SPR-02.T011:validator:SPR-02.V046_T011:path",
+        "task:SPR-02.T012:allowed_files.edit",
+        "task:SPR-02.T012:allowed_files.include_in_zip",
+        "task:SPR-02.T012:allowed_files.read",
+        "task:SPR-02.T012:validator:SPR-02.V047_T012:path",
+        "task:SPR-02.T012:validator:SPR-02.V048_T012:path",
+        "task:SPR-02.T016:allowed_files.include_in_zip",
+        "task:SPR-02.T016:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 5085
+    },
+    {
+      "path": "apps/web/src/lib/api.ts",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T002:allowed_files.edit",
+        "task:SPR-02.T002:allowed_files.include_in_zip",
+        "task:SPR-02.T002:allowed_files.read",
+        "task:SPR-02.T002:validator:SPR-02.V015_T002:paths",
+        "task:SPR-02.T004:allowed_files.edit",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1225
+    },
+    {
+      "path": "apps/web/src/store/auth.ts",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.edit",
+        "task:SPR-02.T004:allowed_files.include_in_zip",
+        "task:SPR-02.T004:allowed_files.read",
+        "task:SPR-02.T004:validator:SPR-02.V024_T004:path",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 2280
+    },
+    {
+      "path": "apps/web/src/store/cart.ts",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T014:allowed_files.include_in_zip",
+        "task:SPR-02.T014:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 4070
+    },
+    {
+      "path": "docs/folder_structure.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "preflight:validator:SPR-02.V004_PRE:path",
+        "repository.folder_structure_path",
+        "repository.source_of_truth_files",
+        "required_stage_artifacts",
+        "review_export.include_folder_structure",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "documentation",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 37222
+    },
+    {
+      "path": "docs/review_export_policy.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "repository.source_of_truth_files",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "documentation",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 21448
+    },
+    {
+      "path": "implementation_plan/IP.PR.02 - Browsable Prototype.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "repository.source_of_truth_files",
+        "review_export.required_in_zip"
+      ],
+      "artifact_types": [
+        "documentation",
+        "source"
+      ],
+      "bytes_copied": 40756
+    },
+    {
+      "path": "implementation_plan/SP20-Master-Implementation-Sprint-Plan.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "repository.source_of_truth_files",
+        "review_export.required_in_zip"
+      ],
+      "artifact_types": [
+        "documentation",
+        "source"
+      ],
+      "bytes_copied": 23171
+    },
+    {
+      "path": "package.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "repository.repo_markers"
+      ],
+      "artifact_types": [
+        "config"
+      ],
+      "bytes_copied": 955
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "repository.repo_markers"
+      ],
+      "artifact_types": [
+        "config"
+      ],
+      "bytes_copied": 40
+    },
+    {
+      "path": "review_contracts/SPR-02-v3.contract.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.changed_files",
+        "preflight:validator:SPR-02.V005_PRE:path",
+        "required_stage_artifacts",
+        "review_export.include_contract",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.edit",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "contract",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 117363
+    },
+    {
+      "path": "review_exports/SPR-02_scope_review_v3.zip",
+      "status": "skipped",
+      "reason": "skipped-self-reference",
+      "required": true,
+      "sources": [
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:zip_path",
+        "task:SPR-02.T002:validator:SPR-02.V015_T002:zip_path",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:zip_path",
+        "task:SPR-02.T004:validator:SPR-02.V027_T004:zip_path",
+        "task:SPR-02.T006:validator:SPR-02.V034_T006:zip_path",
+        "task:SPR-02.T015:validator:SPR-02.V061_T015:zip_path",
+        "task:SPR-02.T018:validator:SPR-02.V071_T018:zip_path",
+        "task:SPR-02.T021:validator:SPR-02.V086_T021:zip_path",
+        "task:SPR-02.T021:validator:SPR-02.V087_T021:zip_path",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V088_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V092_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V093_T022:zip_path",
+        "task:SPR-02.T022:validator:SPR-02.V094_T022:zip_path"
+      ],
+      "artifact_types": [
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 0
+    },
+    {
+      "path": "review_exports/SPR-02_v3_final_cleanup_run.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "kimchi_updates.evidence_created"
+      ],
+      "artifact_types": [
+        "log"
+      ],
+      "bytes_copied": 5074
+    },
+    {
+      "path": "review_exports/SPR-02_v3_final_cleanup_run_v2.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "kimchi_updates.evidence_created"
+      ],
+      "artifact_types": [
+        "log"
+      ],
+      "bytes_copied": 7227
+    },
+    {
+      "path": "review_exports/SPR-02_v3_manual_review_status.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "kimchi_updates.evidence_created"
+      ],
+      "artifact_types": [
+        "log"
+      ],
+      "bytes_copied": 543
+    },
+    {
+      "path": "scripts/review_guardrails/review_export_validator.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.changed_files",
+        "kimchi_updates.files_read_end_to_end",
+        "preflight:validator:SPR-02.V002_PRE:path",
+        "required_stage_artifacts",
+        "review_export.include_guardrail_scripts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "manifest",
+        "script",
+        "source"
+      ],
+      "bytes_copied": 60947
+    },
+    {
+      "path": "scripts/review_guardrails/stage_completion_validator.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "preflight:validator:SPR-02.V003_PRE:path",
+        "required_stage_artifacts",
+        "review_export.include_guardrail_scripts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "manifest",
+        "script",
+        "source"
+      ],
+      "bytes_copied": 60237
+    },
+    {
+      "path": "scripts/review_guardrails/stage_contract.schema.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.include_guardrail_scripts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "manifest",
+        "script",
+        "source"
+      ],
+      "bytes_copied": 48607
+    },
+    {
+      "path": "scripts/review_guardrails/stage_packager.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "preflight:validator:SPR-02.V001_PRE:path",
+        "required_stage_artifacts",
+        "review_export.include_guardrail_scripts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "manifest",
+        "script",
+        "source"
+      ],
+      "bytes_copied": 44525
+    },
+    {
+      "path": "scripts/start-all.sh",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths"
+      ],
+      "artifact_types": [
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 13030
+    },
+    {
+      "path": "services/restaurant-svc/app/api/v1/restaurants.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.edit",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V004_T001:path",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T002:allowed_files.read",
+        "task:SPR-02.T015:allowed_files.edit",
+        "task:SPR-02.T015:allowed_files.include_in_zip",
+        "task:SPR-02.T015:allowed_files.read",
+        "task:SPR-02.T015:validator:SPR-02.V058_T015:path",
+        "task:SPR-02.T015:validator:SPR-02.V061_T015:paths",
+        "task:SPR-02.T017:allowed_files.edit",
+        "task:SPR-02.T017:allowed_files.include_in_zip",
+        "task:SPR-02.T017:allowed_files.read",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 18981
+    },
+    {
+      "path": "services/restaurant-svc/app/db/migrations/versions/0001_create_restaurant_tables.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 7058
+    },
+    {
+      "path": "services/restaurant-svc/app/db/migrations/versions/0002_money_to_numeric.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1203
+    },
+    {
+      "path": "services/restaurant-svc/app/db/migrations/versions/0003_pain_point_pricing_radius.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 1584
+    },
+    {
+      "path": "services/restaurant-svc/app/db/migrations/versions/0004_add_deleted_at.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.edit",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V001_T001:path",
+        "task:SPR-02.T001:validator:SPR-02.V002_T001:path",
+        "task:SPR-02.T001:validator:SPR-02.V003_T001:path",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 781
+    },
+    {
+      "path": "services/restaurant-svc/app/main.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 5471
+    },
+    {
+      "path": "services/restaurant-svc/app/models/menu.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 3464
+    },
+    {
+      "path": "services/restaurant-svc/app/models/restaurant.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T015:allowed_files.include_in_zip",
+        "task:SPR-02.T015:allowed_files.read",
+        "task:SPR-02.T015:validator:SPR-02.V061_T015:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 4669
+    },
+    {
+      "path": "services/restaurant-svc/app/repositories/restaurant.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 7833
+    },
+    {
+      "path": "services/restaurant-svc/app/schemas/restaurant.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 8436
+    },
+    {
+      "path": "services/restaurant-svc/app/services/search.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.include_in_zip",
+        "task:SPR-02.T001:allowed_files.read",
+        "task:SPR-02.T001:validator:SPR-02.V008_T001:paths",
+        "task:SPR-02.T017:allowed_files.edit",
+        "task:SPR-02.T017:allowed_files.include_in_zip",
+        "task:SPR-02.T017:allowed_files.read",
+        "task:SPR-02.T017:validator:SPR-02.V067_T017:path",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 3703
+    },
+    {
+      "path": "services/user-svc/app/api/v1/auth.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 4473
+    },
+    {
+      "path": "services/user-svc/app/api/v1/users.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 5539
+    },
+    {
+      "path": "services/user-svc/app/core/dependencies.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.edit",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:allowed_files.read",
+        "task:SPR-02.T003:validator:SPR-02.V017_T003:path",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 2565
+    },
+    {
+      "path": "services/user-svc/app/core/security.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.edit",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:allowed_files.read",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 2161
+    },
+    {
+      "path": "services/user-svc/app/main.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.edit",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:allowed_files.read",
+        "task:SPR-02.T003:validator:SPR-02.V016_T003:path",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 8426
+    },
+    {
+      "path": "services/user-svc/app/models/user.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 2294
+    },
+    {
+      "path": "services/user-svc/app/repositories/user.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 2456
+    },
+    {
+      "path": "services/user-svc/app/schemas/user.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.include_in_zip",
+        "task:SPR-02.T003:allowed_files.read",
+        "task:SPR-02.T003:validator:SPR-02.V020_T003:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source"
+      ],
+      "bytes_copied": 4252
+    },
+    {
+      "path": "tests/backend/test_spr02_contracts.py",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T018:allowed_files.edit",
+        "task:SPR-02.T018:allowed_files.include_in_zip",
+        "task:SPR-02.T018:allowed_files.read",
+        "task:SPR-02.T018:validator:SPR-02.V068_T018:path",
+        "task:SPR-02.T018:validator:SPR-02.V071_T018:paths",
+        "task:SPR-02.T022:validator:SPR-02.V090_T022:paths"
+      ],
+      "artifact_types": [
+        "source",
+        "test"
+      ],
+      "bytes_copied": 4199
+    },
+    {
+      "path": "tests/results/evidence/cost_control/kimchi_run_metrics.jsonl",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "cost_control.metrics_log_path",
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.changed_files",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "run_metrics.path",
+        "task:SPR-02.T023:allowed_files.edit",
+        "task:SPR-02.T023:allowed_files.evidence",
+        "task:SPR-02.T023:allowed_files.include_in_zip",
+        "task:SPR-02.T023:allowed_files.read",
+        "task:SPR-02.T023:validator:SPR-02.V095_T023:path",
+        "task:SPR-02.T023:validator:SPR-02.V096_T023:path"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 1213
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-frontend-routes.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T002:allowed_files.evidence",
+        "task:SPR-02.T002:validator:SPR-02.V012_T002:path",
+        "task:SPR-02.T004:allowed_files.evidence",
+        "task:SPR-02.T005:allowed_files.evidence",
+        "task:SPR-02.T005:validator:SPR-02.V030_T005:path",
+        "task:SPR-02.T008:allowed_files.evidence",
+        "task:SPR-02.T016:allowed_files.evidence",
+        "task:SPR-02.T016:validator:SPR-02.V064_T016:path",
+        "task:SPR-02.T019:allowed_files.evidence",
+        "task:SPR-02.T019:allowed_files.read",
+        "task:SPR-02.T019:validator:SPR-02.V072_T019:path",
+        "task:SPR-02.T019:validator:SPR-02.V073_T019:path",
+        "task:SPR-02.T019:validator:SPR-02.V074_T019:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 298
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-me-endpoint.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T003:allowed_files.evidence",
+        "task:SPR-02.T003:validator:SPR-02.V018_T003:path",
+        "task:SPR-02.T003:validator:SPR-02.V019_T003:path",
+        "task:SPR-02.T004:allowed_files.evidence",
+        "task:SPR-02.T004:validator:SPR-02.V025_T004:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 667
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-menu-endpoint.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.evidence",
+        "task:SPR-02.T001:validator:SPR-02.V005_T001:path",
+        "task:SPR-02.T001:validator:SPR-02.V006_T001:path",
+        "task:SPR-02.T002:allowed_files.evidence",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 13203
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-opensearch-fallback.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T001:allowed_files.evidence",
+        "task:SPR-02.T001:validator:SPR-02.V007_T001:path",
+        "task:SPR-02.T015:allowed_files.evidence",
+        "task:SPR-02.T015:validator:SPR-02.V059_T015:path",
+        "task:SPR-02.T017:allowed_files.evidence",
+        "task:SPR-02.T017:validator:SPR-02.V065_T017:path",
+        "task:SPR-02.T017:validator:SPR-02.V066_T017:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 2391
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-unit-or-focused-tests.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T018:allowed_files.evidence",
+        "task:SPR-02.T018:validator:SPR-02.V069_T018:path",
+        "task:SPR-02.T018:validator:SPR-02.V070_T018:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "source"
+      ],
+      "bytes_copied": 836
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-v3-zip-listing.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "review_export.zip_listing_log_path",
+        "task:SPR-02.T022:allowed_files.edit",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 4661
+    },
+    {
+      "path": "tests/results/evidence/manifests/SPR-02-closure-summary.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "kimchi_updates.known_blockers.evidence",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T021:allowed_files.edit",
+        "task:SPR-02.T021:allowed_files.evidence",
+        "task:SPR-02.T021:allowed_files.include_in_zip",
+        "task:SPR-02.T021:allowed_files.read",
+        "task:SPR-02.T021:validator:SPR-02.V084_T021:path",
+        "task:SPR-02.T021:validator:SPR-02.V087_T021:paths",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 6856
+    },
+    {
+      "path": "tests/results/evidence/manifests/SPR-02-evidence.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T021:allowed_files.edit",
+        "task:SPR-02.T021:allowed_files.evidence",
+        "task:SPR-02.T021:allowed_files.include_in_zip",
+        "task:SPR-02.T021:allowed_files.read",
+        "task:SPR-02.T021:validator:SPR-02.V083_T021:path",
+        "task:SPR-02.T021:validator:SPR-02.V087_T021:paths",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 6526
+    },
+    {
+      "path": "tests/results/evidence/manifests/SPR-02-file-read-ledger.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.changed_files",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T021:allowed_files.edit",
+        "task:SPR-02.T021:allowed_files.evidence",
+        "task:SPR-02.T021:allowed_files.include_in_zip",
+        "task:SPR-02.T021:allowed_files.read",
+        "task:SPR-02.T021:validator:SPR-02.V082_T021:path",
+        "task:SPR-02.T021:validator:SPR-02.V086_T021:path",
+        "task:SPR-02.T021:validator:SPR-02.V087_T021:paths",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 10255
+    },
+    {
+      "path": "tests/results/evidence/summaries/current_handoff.md",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.read",
+        "kimchi_updates.files_read_end_to_end",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T021:allowed_files.edit",
+        "task:SPR-02.T021:allowed_files.evidence",
+        "task:SPR-02.T021:allowed_files.include_in_zip",
+        "task:SPR-02.T021:allowed_files.read",
+        "task:SPR-02.T021:validator:SPR-02.V085_T021:path",
+        "task:SPR-02.T021:validator:SPR-02.V087_T021:paths",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source"
+      ],
+      "bytes_copied": 5223
+    },
+    {
+      "path": "tests/results/evidence/validator_outputs/SPR-02-V3_packager_report.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "stage_packager.generated_report",
+        "task:SPR-02.T022:allowed_files.edit",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths",
+        "task:SPR-02.T022:validator:SPR-02.V092_T022:path"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source",
+        "validator_output"
+      ],
+      "bytes_copied": 64807
+    },
+    {
+      "path": "tests/results/evidence/validator_outputs/SPR-02-V3_review_export_validation.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.edit",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths",
+        "task:SPR-02.T022:validator:SPR-02.V093_T022:path"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source",
+        "validator_output"
+      ],
+      "bytes_copied": 57123
+    },
+    {
+      "path": "tests/results/evidence/validator_outputs/SPR-02-V3_stage_completion_validation.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.evidence",
+        "global_allowed_files.include_in_zip",
+        "kimchi_updates.commands_run.evidence_log",
+        "kimchi_updates.evidence_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T022:allowed_files.edit",
+        "task:SPR-02.T022:allowed_files.include_in_zip",
+        "task:SPR-02.T022:validator:SPR-02.V089_T022:paths",
+        "task:SPR-02.T022:validator:SPR-02.V094_T022:path"
+      ],
+      "artifact_types": [
+        "log",
+        "manifest",
+        "source",
+        "validator_output"
+      ],
+      "bytes_copied": 85791
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/authenticated-homepage.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.screenshots",
+        "task:SPR-02.T004:validator:SPR-02.V026_T004:path",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V079_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 1170828
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/homepage.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T005:allowed_files.screenshots",
+        "task:SPR-02.T005:validator:SPR-02.V031_T005:path",
+        "task:SPR-02.T005:validator:SPR-02.V032_T005:path",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V075_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 323023
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/login.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T004:allowed_files.screenshots",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V078_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 44317
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/mobile-bottom-nav.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T014:allowed_files.screenshots",
+        "task:SPR-02.T014:validator:SPR-02.V056_T014:path",
+        "task:SPR-02.T014:validator:SPR-02.V057_T014:path",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V081_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 870799
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/restaurant-detail.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "kimchi_updates.screenshots_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T002:allowed_files.screenshots",
+        "task:SPR-02.T002:validator:SPR-02.V013_T002:path",
+        "task:SPR-02.T002:validator:SPR-02.V014_T002:path",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V077_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 288130
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/restaurants-list-mobile.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T014:allowed_files.screenshots",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V080_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 1156387
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/restaurants-list.png",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "global_allowed_files.include_in_zip",
+        "global_allowed_files.screenshots",
+        "kimchi_updates.screenshots_created",
+        "required_stage_artifacts",
+        "review_export.required_in_zip",
+        "task:SPR-02.T008:allowed_files.screenshots",
+        "task:SPR-02.T008:validator:SPR-02.V039_T008:path",
+        "task:SPR-02.T009:allowed_files.screenshots",
+        "task:SPR-02.T009:validator:SPR-02.V041_T009:path",
+        "task:SPR-02.T010:allowed_files.screenshots",
+        "task:SPR-02.T010:validator:SPR-02.V043_T010:path",
+        "task:SPR-02.T012:allowed_files.screenshots",
+        "task:SPR-02.T012:validator:SPR-02.V049_T012:path",
+        "task:SPR-02.T016:allowed_files.screenshots",
+        "task:SPR-02.T016:validator:SPR-02.V062_T016:path",
+        "task:SPR-02.T016:validator:SPR-02.V063_T016:path",
+        "task:SPR-02.T020:allowed_files.screenshots",
+        "task:SPR-02.T020:validator:SPR-02.V076_T020:path",
+        "task:SPR-02.T022:validator:SPR-02.V091_T022:paths"
+      ],
+      "artifact_types": [
+        "screenshot",
+        "source"
+      ],
+      "bytes_copied": 622931
+    },
+    {
+      "path": "tests/results/evidence/logs/spr02-v3-zip-listing.log",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "stage_packager.generated"
+      ],
+      "artifact_types": [
+        "log"
+      ],
+      "bytes_copied": 4661
+    },
+    {
+      "path": "tests/results/evidence/validator_outputs/SPR-02-V3_packager_report.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "stage_packager.generated"
+      ],
+      "artifact_types": [
+        "validator_output"
+      ],
+      "bytes_copied": 64153
+    },
+    {
+      "path": "tests/results/evidence/validator_outputs/SPR-02-V3_packager_report.json",
+      "status": "copied",
+      "reason": "ok",
+      "required": true,
+      "sources": [
+        "stage_packager.generated"
+      ],
+      "artifact_types": [
+        "validator_output"
+      ],
+      "bytes_copied": 64480
+    }
+  ],
+  "next_action": {
+    "action_type": "manual_review",
+    "title": "Proceed to manual source-grounded review",
+    "instructions": [
+      "Review changed source/config/test files end-to-end.",
+      "Review relevant unchanged source/config files included in the zip.",
+      "Review evidence logs and screenshots.",
+      "Do not accept from packager status alone."
+    ]
+  }
+}

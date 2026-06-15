@@ -1,0 +1,144 @@
+{
+  "stage_id": "SPR-03A-FIX1-v4",
+  "stage_title": "Final Evidence Closure Bundle",
+  "generated_at_utc": "2026-06-15T19:22:41+00:00",
+  "boundary_items": [
+    "IP.PR.03.001 — Guest/localStorage cart persistence",
+    "IP.PR.03.002 — Cart UI with quantity stepper + veg indicators",
+    "IP.PR.03.003 — Cross-restaurant cart guard",
+    "IP.PR.03.014 — Delivery fee calculation/display groundwork",
+    "IP.PR.03.015 — Fee/tax breakdown visible in cart/checkout"
+  ],
+  "source_files_with_reconstructed_diff": [
+    "apps/web/playwright.config.ts",
+    "apps/web/e2e/utils.ts"
+  ],
+  "diff_reports": [
+    {
+      "path": "apps/web/playwright.config.ts",
+      "status": "RECONSTRUCTED_FROM_BACKUP",
+      "backup_path": "review_exports/SPR-03A_FIX1_v3_backups/20260616_004612/apps/web/playwright.config.ts",
+      "current_sha256": "5d7c64309a2e5de636bd3baf6d871967c8578ffb362245b3f3befc11e39e183a",
+      "backup_sha256": "c3540541d8b28ec0804bd49f5305ad287bb2eb0684fe0641a0bb2f5548fbb73e",
+      "diff_line_count": 27,
+      "attempts": [
+        {
+          "candidate": "review_exports/SPR-03A_FIX1_v3_backups/20260616_004612/apps/web/playwright.config.ts",
+          "usable": true,
+          "differs_from_current": true,
+          "sha256": "c3540541d8b28ec0804bd49f5305ad287bb2eb0684fe0641a0bb2f5548fbb73e"
+        }
+      ]
+    },
+    {
+      "path": "apps/web/e2e/utils.ts",
+      "status": "RECONSTRUCTED_FROM_BACKUP",
+      "backup_path": "review_exports/SPR-03A_FIX1_v3_backups/20260616_004612/apps/web/e2e/utils.ts",
+      "current_sha256": "37f78263a88394be1034f625ae7154135cd4ebc38136cb20f491db1b9c078d1e",
+      "backup_sha256": "91a2630de29a767640ea22affe585dccf2ac820fdec53afdaa381cabe5ae261d",
+      "diff_line_count": 24,
+      "attempts": [
+        {
+          "candidate": "review_exports/SPR-03A_FIX1_v3_backups/20260616_004612/apps/web/e2e/utils.ts",
+          "usable": true,
+          "differs_from_current": true,
+          "sha256": "91a2630de29a767640ea22affe585dccf2ac820fdec53afdaa381cabe5ae261d"
+        }
+      ]
+    }
+  ],
+  "validation_summary": {
+    "generated_at_utc": "2026-06-15T19:22:41+00:00",
+    "checks": {
+      "typecheck": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-typecheck.log",
+        "exists": true,
+        "size_bytes": 108,
+        "sha256": "fa32d980f0194bf1cd88c9dde4f0c8f3d2ec892e4a309ab221dabc9660ad964e",
+        "status": "PASS",
+        "notes": []
+      },
+      "lint": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-lint.log",
+        "exists": true,
+        "size_bytes": 133,
+        "sha256": "bfc5198de51171b4ea56a88b3805fd44db85e2845dbf31ea7db909b3a75045b4",
+        "status": "PASS",
+        "notes": []
+      },
+      "playwright_cart": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-playwright-cart.log",
+        "exists": true,
+        "size_bytes": 655,
+        "sha256": "e0f3501659a2d7f58ab28fcfcdc57ad78f9e47573ae91639c13feaec822d92e7",
+        "status": "PASS",
+        "notes": []
+      },
+      "cart_route": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-cart-route.log",
+        "exists": true,
+        "size_bytes": 25429,
+        "sha256": "3f218af8c9b8988cd27c9e4959e1ca8034ba5142fe96f4099d20418a407aa796",
+        "status": "PASS",
+        "notes": []
+      },
+      "checkout_route": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-checkout-route.log",
+        "exists": true,
+        "size_bytes": 24941,
+        "sha256": "d61272b748ca3450b11e616ae98c2c34a0b5d9976319a758592ceddb3ef57164",
+        "status": "PASS",
+        "notes": []
+      },
+      "start_all": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-start-all.log",
+        "exists": true,
+        "size_bytes": 2513,
+        "sha256": "91e2ff898642b012a8ae3ad1ee8b834643423f455f51b26561948b20f054aba3",
+        "status": "PASS",
+        "notes": []
+      },
+      "stop_all": {
+        "path": "tests/results/evidence/logs/spr03a-fix1-stop-all.log",
+        "exists": true,
+        "size_bytes": 84,
+        "sha256": "5a8abb79a19d18d48082ed40f5986002be924c84f4e751ad85f0a105c16ec063",
+        "status": "PASS",
+        "notes": []
+      }
+    },
+    "all_required_logs_pass": true
+  },
+  "screenshot_inventory": {
+    "generated_at_utc": "2026-06-15T19:22:41+00:00",
+    "required_screenshots": [
+      {
+        "path": "tests/results/frontend/customer/screenshots/spr03a-cart-empty.png",
+        "exists": true,
+        "size_bytes": 64410,
+        "sha256": "01891ed5dab42b039cf37a48477887bfe3bd540e9acccccf3fbd44c77e214525"
+      },
+      {
+        "path": "tests/results/frontend/customer/screenshots/spr03a-cart-populated.png",
+        "exists": true,
+        "size_bytes": 95351,
+        "sha256": "5792f9c5be4c7794c0471a399c9e7634b274f19bf85475a920ef79d3cd07c37e"
+      },
+      {
+        "path": "tests/results/frontend/customer/screenshots/spr03a-cart-quantity-update.png",
+        "exists": true,
+        "size_bytes": 95895,
+        "sha256": "4dbf518806525ac2ea7fbbee00979855eee213e5429c094177a5b66494a9862a"
+      },
+      {
+        "path": "tests/results/frontend/customer/screenshots/spr03a-cross-restaurant-guard.png",
+        "exists": true,
+        "size_bytes": 755375,
+        "sha256": "21808318bfd0901b3c05b1ef62c4964e937bec2ac6dbd5cf304b6d8249b58151"
+      }
+    ],
+    "all_required_present": true
+  },
+  "review_status": "READY_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+  "manual_review_requirement": "Read every line-numbered source/plan/test/runtime/backend reference file and visually inspect every screenshot before acceptance."
+}

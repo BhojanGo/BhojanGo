@@ -4,28 +4,64 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 import { useCartStore } from "@/store/cart";
-import { useAuthStore } from "@/store/auth";
+
+function BillRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-gray-600 dark:text-gray-300">
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}
 
 export default function CartPage() {
   const t = useTranslations("cart");
   const router = useRouter();
-  const { items, restaurantId, restaurantName, updateQuantity, removeItem, getSubtotal, getTax, getTotal, deliveryFee } =
-    useCartStore();
-  const user = useAuthStore((s) => s.user);
-  const currencySymbol = user?.country === "IN" ? "\u20B9" : "$";
+  // SPR-03A-FIX2B hydration guard: Zustand-persisted cart is browser-only.
+  // Server HTML and the first client render must match before persisted cart rows are shown.
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  const {
+    items,
+    restaurantId,
+    restaurantName,
+    updateQuantity,
+    removeItem,
+    getSubtotal,
+    getDeliveryFee,
+    getPlatformFee,
+    getTax,
+    getDiscount,
+    getGrandTotal,
+    currency,
+  } = useCartStore();
+
+  const currencySymbol = currency === "INR" ? "₹" : "$";
+
+  if (!hasMounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400">Loading cart...</div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
         <div className="text-center">
-          <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("empty")}</h2>
-          <p className="text-gray-500 mb-6">{t("emptySubtext")}</p>
+          <div className="mb-4 text-6xl">🛒</div>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">{t("empty")}</h2>
+          <p className="mb-6 text-gray-500 dark:text-gray-400">{t("emptySubtext")}</p>
           <Link
             href="/restaurants"
-            className="inline-block px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-700 transition"
+            className="inline-block rounded-lg bg-emerald-600 px-6 py-2.5 font-semibold text-white transition hover:bg-emerald-700"
           >
             {t("browseRestaurants")}
           </Link>
@@ -35,80 +71,90 @@ export default function CartPage() {
   }
 
   const subtotal = getSubtotal();
+  const deliveryFee = getDeliveryFee();
+  const platformFee = getPlatformFee();
   const tax = getTax();
-  const total = getTotal();
+  const discount = getDiscount();
+  const grandTotal = getGrandTotal();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        <div className="mb-6 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-label="Go back"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{t("title")}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t("title")}</h1>
         </div>
 
-        {/* Restaurant name */}
         {restaurantName && (
-          <div className="bg-white rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
-            <span className="text-sm text-gray-500">{t("from", { restaurant: restaurantName })}</span>
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-gray-900">
+            <span className="text-sm text-gray-500 dark:text-gray-400">{t("from", { restaurant: restaurantName })}</span>
             {restaurantId && (
-              <Link href={`/restaurants/${restaurantId}`} className="text-sm text-emerald-500 hover:underline">
+              <Link href={`/restaurants/${restaurantId}`} className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
                 Add more
               </Link>
             )}
           </div>
         )}
 
-        {/* Items */}
-        <div className="bg-white rounded-xl divide-y divide-gray-100 mb-4">
+        <div className="mb-4 divide-y divide-gray-100 rounded-xl bg-white shadow-sm dark:divide-gray-800 dark:bg-gray-900">
           {items.map((item) => (
             <div key={item.menuItemId} className="flex items-center gap-4 px-4 py-4">
               {item.imageUrl && (
-                <div className="relative w-16 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="relative h-14 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 mb-0.5">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-center gap-1.5">
                   <span
-                    className={`w-3 h-3 rounded-sm border ${
+                    className={`flex h-4 w-4 items-center justify-center rounded-sm border-2 ${
                       item.isVeg ? "border-green-500" : "border-red-500"
-                    } flex items-center justify-center`}
+                    }`}
+                    aria-label={item.isVeg ? "Vegetarian item" : "Non-vegetarian item"}
+                    title={item.isVeg ? "Vegetarian" : "Non-vegetarian"}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? "bg-green-500" : "bg-red-500"}`} />
+                    <span className={`h-2 w-2 rounded-full ${item.isVeg ? "bg-green-500" : "bg-red-500"}`} />
+                  </span>
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    {item.isVeg ? "Veg" : "Non-veg"}
                   </span>
                 </div>
-                <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                <p className="text-sm text-gray-600 mt-0.5">
-                  x{item.quantity} = {currencySymbol}{(item.price * item.quantity).toFixed(2)}
+                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{item.name}</p>
+                <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">
+                  {currencySymbol}{item.price.toFixed(2)} × {item.quantity} = {currencySymbol}
+                  {(item.price * item.quantity).toFixed(2)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-emerald-500 hover:text-emerald-500 transition text-lg leading-none"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-lg leading-none text-gray-700 transition hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-200"
+                  aria-label={`Decrease quantity for ${item.name}`}
                 >
                   −
                 </button>
-                <span className="w-5 text-center text-sm font-semibold">{item.quantity}</span>
+                <span className="w-6 text-center text-sm font-semibold text-gray-900 dark:text-white">{item.quantity}</span>
                 <button
                   onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-emerald-500 hover:text-emerald-500 transition text-lg leading-none"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-lg leading-none text-gray-700 transition hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-200"
+                  aria-label={`Increase quantity for ${item.name}`}
                 >
                   +
                 </button>
                 <button
                   onClick={() => removeItem(item.menuItemId)}
-                  className="ml-1 text-gray-400 hover:text-red-500 transition"
-                  aria-label="Remove item"
+                  className="ml-1 text-gray-400 transition hover:text-red-500"
+                  aria-label={`Remove ${item.name}`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -117,35 +163,27 @@ export default function CartPage() {
           ))}
         </div>
 
-        {/* Bill summary */}
-        <div className="bg-white rounded-xl px-4 py-4 mb-6 space-y-3">
-          <h3 className="font-semibold text-gray-900 text-sm">Bill Summary</h3>
+        <div className="mb-6 rounded-xl bg-white px-4 py-4 shadow-sm dark:bg-gray-900">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Bill Summary</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>{t("subtotal")}</span>
-              <span>{currencySymbol}{subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>{t("deliveryFee")}</span>
-              <span>{deliveryFee === 0 ? "FREE" : `${currencySymbol}${deliveryFee.toFixed(2)}`}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>{t("tax")}</span>
-              <span>{currencySymbol}{tax.toFixed(2)}</span>
-            </div>
-            <div className="h-px bg-gray-100" />
-            <div className="flex justify-between font-semibold text-gray-900">
-              <span>{t("total")}</span>
-              <span>{currencySymbol}{total.toFixed(2)}</span>
+            <BillRow label="Items Total" value={`${currencySymbol}${subtotal.toFixed(2)}`} />
+            <BillRow label="Delivery Fee" value={deliveryFee === 0 ? "FREE" : `${currencySymbol}${deliveryFee.toFixed(2)}`} />
+            <BillRow label="Platform Fee" value={`${currencySymbol}${platformFee.toFixed(2)}`} />
+            <BillRow label="Tax / GST (5%)" value={`${currencySymbol}${tax.toFixed(2)}`} />
+            <BillRow label="Discount" value={discount === 0 ? `${currencySymbol}0.00` : `-${currencySymbol}${discount.toFixed(2)}`} />
+            <div className="h-px bg-gray-100 dark:bg-gray-800" />
+            <div className="flex justify-between text-base font-bold text-gray-900 dark:text-white">
+              <span>Grand Total</span>
+              <span>{currencySymbol}{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={() => router.push("/checkout")}
-          className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 text-white font-semibold rounded-xl transition"
+          className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-700"
         >
-          {t("checkout")} · {currencySymbol}{total.toFixed(2)}
+          {t("checkout")} · {currencySymbol}{grandTotal.toFixed(2)}
         </button>
       </div>
     </div>

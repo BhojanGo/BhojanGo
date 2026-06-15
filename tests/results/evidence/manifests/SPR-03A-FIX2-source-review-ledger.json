@@ -1,0 +1,107 @@
+{
+  "stage_id": "SPR-03A-FIX2",
+  "stage_title": "Checkout Entry Evidence + Fee-Semantics Reconcile",
+  "generated_at_utc": "2026-06-15T19:38:02+00:00",
+  "manual_review_requirement": "Read every line-numbered file in the review bundle end-to-end; do not accept from summaries alone.",
+  "patched_files": [
+    {
+      "path": "apps/web/src/store/cart.ts",
+      "changed": false,
+      "before_sha256": "e6ecce85bec9a028f260fc05326a6a32f4960a522839f8afbd291d8fcbf64497",
+      "after_sha256": "e6ecce85bec9a028f260fc05326a6a32f4960a522839f8afbd291d8fcbf64497",
+      "backup_path": "review_exports/SPR-03A_FIX2_backups/20260616_010802/apps/web/src/store/cart.ts",
+      "notes": [
+        "INR delivery-fee constants already present",
+        "defaultDeliveryFee already normalized",
+        "calculateDeliveryFeeForCart already present",
+        "getDeliveryFee already uses INR slab helper"
+      ]
+    },
+    {
+      "path": "apps/web/e2e/cart.spec.ts",
+      "changed": false,
+      "before_sha256": "dc3f451490903c8d0b4f72287863325ea7681db6dd694823f3a377de78ad1c56",
+      "after_sha256": "dc3f451490903c8d0b4f72287863325ea7681db6dd694823f3a377de78ad1c56",
+      "backup_path": "review_exports/SPR-03A_FIX2_backups/20260616_010802/apps/web/e2e/cart.spec.ts",
+      "notes": [
+        "seedGuestCart helper already present",
+        "checkout-entry Playwright proof already present"
+      ]
+    }
+  ],
+  "explicitly_not_patched": [
+    "order creation",
+    "payment",
+    "order cancellation",
+    "backend service source",
+    "SPR-02 artifacts"
+  ],
+  "validation": {
+    "generated_at_utc": "2026-06-15T19:38:02+00:00",
+    "checks": {
+      "typecheck": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-typecheck.log",
+        "exists": true,
+        "size_bytes": 108,
+        "sha256": "fa32d980f0194bf1cd88c9dde4f0c8f3d2ec892e4a309ab221dabc9660ad964e",
+        "status": "PASS"
+      },
+      "lint": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-lint.log",
+        "exists": true,
+        "size_bytes": 133,
+        "sha256": "bfc5198de51171b4ea56a88b3805fd44db85e2845dbf31ea7db909b3a75045b4",
+        "status": "PASS"
+      },
+      "start_all": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-start-all.log",
+        "exists": true,
+        "size_bytes": 2513,
+        "sha256": "91e2ff898642b012a8ae3ad1ee8b834643423f455f51b26561948b20f054aba3",
+        "status": "PASS"
+      },
+      "cart_route": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-cart-route.log",
+        "exists": true,
+        "size_bytes": 25429,
+        "sha256": "7d320542b361f92f31cb1e9a59a48fcc4cb10a60924fdeef36198de1ca00f256",
+        "status": "PASS"
+      },
+      "checkout_route": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-checkout-route.log",
+        "exists": true,
+        "size_bytes": 24941,
+        "sha256": "8d1280f3bfb12bbd62e06ec0e47ac372b953bcd4a467f347fa69cc3869eef2de",
+        "status": "PASS"
+      },
+      "playwright_cart": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-playwright-cart.log",
+        "exists": true,
+        "size_bytes": 809,
+        "sha256": "ae3b5f2f0ebd9cc7e0a5578b81f396fd8f386b322c23facb56923371923ef5a7",
+        "status": "PASS"
+      },
+      "stop_all": {
+        "path": "tests/results/evidence/logs/spr03a-fix2-stop-all.log",
+        "exists": true,
+        "size_bytes": 84,
+        "sha256": "5a8abb79a19d18d48082ed40f5986002be924c84f4e751ad85f0a105c16ec063",
+        "status": "PASS"
+      }
+    },
+    "checkout_entry_screenshot": {
+      "path": "tests/results/frontend/customer/screenshots/spr03a-checkout-entry-summary.png",
+      "exists": true,
+      "size_bytes": 89758,
+      "sha256": "c301874953b4f33d595f226720c612f294ab3bba1379abc50087c25a59157b80",
+      "status": "PASS"
+    },
+    "all_required_logs_pass": true,
+    "all_required_evidence_pass": true
+  },
+  "next_stage_frame": {
+    "SPR-03A": "Cart Foundation + Checkout Entry Evidence",
+    "SPR-03B": "Order Creation API + Simulated Payment Contract",
+    "SPR-03C": "Order Confirmation/List/Detail/Cancel Flow"
+  }
+}

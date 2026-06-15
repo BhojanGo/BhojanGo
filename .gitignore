@@ -84,6 +84,5 @@ apps/mobile/ios/
 
 poetry.lock
 package-lock.json
-generated/
 
 review_exports/

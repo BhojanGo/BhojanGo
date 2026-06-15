@@ -8,9 +8,11 @@ export default defineConfig({
     ['html', { outputFolder: '../../tests/results/playwright', open: 'never' }],
     ['list'],
   ],
-  baseURL: 'http://localhost:3000',
-  trace: 'on-first-retry',
-  screenshot: 'on',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'on',
+  },
   projects: [
     {
       name: 'chromium',

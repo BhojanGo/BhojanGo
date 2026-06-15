@@ -1,0 +1,359 @@
+{
+  "stage_id": "SPR-03A-FIX2A",
+  "generated_at_utc": "2026-06-15T19:50:35+00:00",
+  "review_method": "Open line_numbered/ copies in the review zip and manually read every included file end-to-end. Do not rely on manifest or snippets as acceptance evidence.",
+  "files": [
+    {
+      "path": "apps/web/e2e/cart.spec.ts",
+      "sha256": "dc3f451490903c8d0b4f72287863325ea7681db6dd694823f3a377de78ad1c56",
+      "line_count": 225,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_e2e_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/e2e/utils.ts",
+      "sha256": "dbb6260fd49b5421359f29d52e94d35a56bcefb7fbf53f5f98dcc2a3f109e8d8",
+      "line_count": 76,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_e2e_evidence",
+      "patched_in_fix2a": true
+    },
+    {
+      "path": "apps/web/package.json",
+      "sha256": "ec998415c37ad5bdf8cf27507aba3a99a3c95b2ff5246c528b744efb803daf07",
+      "line_count": 41,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "workspace_runtime_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/playwright.config.ts",
+      "sha256": "5d7c64309a2e5de636bd3baf6d871967c8578ffb362245b3f3befc11e39e183a",
+      "line_count": 27,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_e2e_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/app/cart/page.tsx",
+      "sha256": "d61ec012c44a89b254725632f5c7e4b56f5f6cf50e7ce6198bfb3fa1229baad8",
+      "line_count": 175,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/app/checkout/page.tsx",
+      "sha256": "510bde7c28556780b6fb6cfa97167396991588a3103702d3d4f3444fa9096ad0",
+      "line_count": 407,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/app/restaurants/[id]/page.tsx",
+      "sha256": "afb673a711c051e497084501c2d794efd763353401349cfaa9d22a1a4b764343",
+      "line_count": 368,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/components/layout/MobileBottomNav.tsx",
+      "sha256": "8a734785eaa13495220702092a8ed713eb767c886b960a968210c0d53bb7d472",
+      "line_count": 92,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/components/layout/Navbar.tsx",
+      "sha256": "f9f79847dac024c3bf6ef9f04ca9c5037a98f2effe0ef34e8457e0fb3c9cc2de",
+      "line_count": 176,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/components/providers.tsx",
+      "sha256": "a0ce66f407fc065877c48ad20bd0a5da83d5c0d08771513897b1dab839b64009",
+      "line_count": 29,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/components/restaurant/RestaurantCard.tsx",
+      "sha256": "426dcb666ec944bcbd37e85d9c1c84e502de349d22e2cda9e8729221e1adf98e",
+      "line_count": 109,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/lib/api.ts",
+      "sha256": "658c85921159477cf813beb2858eb69277cdc4cf514d6e90e2946aaaa20e2f66",
+      "line_count": 43,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "apps/web/src/store/cart.ts",
+      "sha256": "e6ecce85bec9a028f260fc05326a6a32f4960a522839f8afbd291d8fcbf64497",
+      "line_count": 303,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "frontend_source",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "implementation_plan/IP.PR.03 - Partial Core Flow.md",
+      "sha256": "161d41cfbe9e570fbdb07574056e1a933e7a0eb4de9d8b57b132e2c4e8a04980",
+      "line_count": 607,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "plan_scope_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "implementation_plan/SP20-Master-Implementation-Sprint-Plan.md",
+      "sha256": "cf453f2c0390b41ed00322f81dfe7b9396f9c1bd15fdddf95f5fc2a0ebca206c",
+      "line_count": 528,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "plan_scope_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "package.json",
+      "sha256": "c576d1c6e8867fc605a2bcab6afa86eb4c14a67e292f9b4d4ec8ad4ffb6169e7",
+      "line_count": 33,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "workspace_runtime_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "08d75840c97ab0e72d1d9b5b84a17e47a2e06cb159a5fbec5ee0a6a56682dad7",
+      "line_count": 3,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "workspace_runtime_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_checkout_screenshot_error_triage.diff",
+      "sha256": "9b6dd9743dbf705dc46e36e18cc09095d0f3615f70e60f2b4223d6700dbf381e",
+      "line_count": 67,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_checkout_screenshot_error_triage.log",
+      "sha256": "797fe43627ef4e3ee86313c234ea4e61b17552622bd98921826a69a451c84fbb",
+      "line_count": 150,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_checkout_screenshot_error_triage_manifest.json",
+      "sha256": "3ad243b26994e51a7e6257ca667bee42251295d4bf9b6eb0285689eeca92f89b",
+      "line_count": 504,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_screenshot_triage.json",
+      "sha256": "1383ba4f78d0863b5bda38bf5f839394a5742a4401605d0ac0a558265944e365",
+      "line_count": 46,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_validation_commands.md",
+      "sha256": "5199cca74db952c3e248680ded46730bb599814cb9215375567924294bb1c147",
+      "line_count": 43,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2A_validation_summary.json",
+      "sha256": "ab45d4067e7e4e0cc4339afe9a3697a31d564ef85d344d38e3858f5f5ac8a315",
+      "line_count": 65,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2_checkout_entry_fee_semantics.diff",
+      "sha256": "64d454d701708ebe7a395039bc1a067341a7c5f1b4a6ec1aac89f3c4864e7610",
+      "line_count": 146,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2_checkout_entry_fee_semantics_manifest.json",
+      "sha256": "7b990d341893a097b9a193b4674b6b2abd6529932ba454100a9d0ca8fd8e7d32",
+      "line_count": 481,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "review_exports/SPR-03A_FIX2_validation_summary.json",
+      "sha256": "845b380ccade1bbe20712b8a077c44e4f4e5fadce3f8fd880bd3cd415fe4ec3d",
+      "line_count": 63,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_or_dependency_artifact",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "scripts/start-all.sh",
+      "sha256": "43adce88e90aa3f0e4ffbe97b0e37f6d2acb644995299e3429d239f74cc7fbc7",
+      "line_count": 349,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "workspace_runtime_reference",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "services/order-svc/app/api/v1/orders.py",
+      "sha256": "cf71728853f483becfebc7ea6e50e79958f941375992ce1bcc28b1f156884e4f",
+      "line_count": 210,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "services/order-svc/app/schemas/order.py",
+      "sha256": "e383968f0b3f9ff2e59abe0c4409d526ee4b118d12e9af97b140503fa798eb99",
+      "line_count": 157,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "services/order-svc/app/services/order.py",
+      "sha256": "8a6be17c9e71e28cde614901a859d191be56329368a6c36989dd20b6f7bafa2a",
+      "line_count": 278,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "services/restaurant-svc/app/api/v1/restaurants.py",
+      "sha256": "340435ea36c94ef4561f9736db04db0187f4ef3d5985ca01c9a471522312c922",
+      "line_count": 489,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/backend/test_order_svc.py",
+      "sha256": "86e68533136cffd15d82227514b66a6b08c192fc2a8f3ac6007cd8011d1af0ca",
+      "line_count": 197,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/backend/test_restaurant_svc.py",
+      "sha256": "cb8271b90704fc5d98b2e4d3ee033253f7def8dea95fa1aac43ad85c6c2bdf1d",
+      "line_count": 151,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "backend_reference_only_not_patched",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-cart-route.log",
+      "sha256": "201b3d8fa42ea64ebb8886903b0cb598c5b8ed5d9ea67bdbc4db7b33a079aa0c",
+      "line_count": 17,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-checkout-route.log",
+      "sha256": "000404f0ae89e3d576b88f74fc301960a288915c950fd63278f7bb3d786b854e",
+      "line_count": 17,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-lint.log",
+      "sha256": "bfc5198de51171b4ea56a88b3805fd44db85e2845dbf31ea7db909b3a75045b4",
+      "line_count": 5,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-playwright-cart.log",
+      "sha256": "85cd38f102f351d8bb65d399a0080d15ca85c29ad97fcedd1f2f115eedbba637",
+      "line_count": 15,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-start-all.log",
+      "sha256": "91e2ff898642b012a8ae3ad1ee8b834643423f455f51b26561948b20f054aba3",
+      "line_count": 37,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-stop-all.log",
+      "sha256": "5a8abb79a19d18d48082ed40f5986002be924c84f4e751ad85f0a105c16ec063",
+      "line_count": 2,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/logs/spr03a-fix2a-typecheck.log",
+      "sha256": "fa32d980f0194bf1cd88c9dde4f0c8f3d2ec892e4a309ab221dabc9660ad964e",
+      "line_count": 4,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/manifests/SPR-03A-FIX2A-source-review-ledger.json",
+      "sha256": "3c600b94677fed89c10ac5a778c80aa9c9d098625170522a28519b066f1e4441",
+      "line_count": 279,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/evidence/summaries/SPR-03A-FIX2A-closure-summary.md",
+      "sha256": "8addd243a5418e31caf029873a82fa17ef45b657d4ea8375408db56ef096ffd6",
+      "line_count": 39,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/spr03a-cart-populated.png",
+      "sha256": "b9b4a69a85c6519745a8117f91f58111134f09605934d32f921b655eb46c561e",
+      "line_count": null,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    },
+    {
+      "path": "tests/results/frontend/customer/screenshots/spr03a-checkout-entry-summary.png",
+      "sha256": "8b4cfc2a63d051b60b3f93e823adb8894a35e79dde1147bfe786189f80e0c129",
+      "line_count": null,
+      "review_status": "PACKAGED_FOR_MANUAL_LINE_BY_LINE_REVIEW",
+      "stage_relevance": "stage_evidence",
+      "patched_in_fix2a": false
+    }
+  ]
+}

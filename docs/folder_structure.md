@@ -258,6 +258,7 @@ BhojanGo/
 │       │   │   │   └── page.tsx
 │       │   │   ├── restaurants/
 │       │   │   │   ├── [id]/
+│       │   │   │   │   ├── error.tsx
 │       │   │   │   │   └── page.tsx
 │       │   │   │   └── page.tsx
 │       │   │   ├── support/
@@ -278,9 +279,11 @@ BhojanGo/
 │       │   │   │   └── HowItWorks.tsx
 │       │   │   ├── layout/
 │       │   │   │   ├── Footer.tsx
+│       │   │   │   ├── MobileBottomNav.tsx
 │       │   │   │   └── Navbar.tsx
 │       │   │   ├── restaurant/
 │       │   │   │   └── RestaurantCard.tsx
+│       │   │   ├── AuthBootstrap.tsx
 │       │   │   └── providers.tsx
 │       │   ├── i18n/
 │       │   │   └── request.ts
@@ -317,7 +320,9 @@ BhojanGo/
 │   ├── 10_Operations_Runbook.md
 │   ├── 11_Integration_Setup_Guide.md
 │   ├── BATCH_ENGINE_TECHNICAL_DESIGN.md
-│   └── BHOJANGO_PLATFORM_TECHNICAL_DESIGN.md
+│   ├── BHOJANGO_PLATFORM_TECHNICAL_DESIGN.md
+│   ├── folder_structure.md
+│   └── review_export_policy.md
 ├── generated/
 │   ├── BhojanGo_Novel_Delivery_Engine_Ideas.md
 │   ├── BhojanGo_Project_Report.md
@@ -457,10 +462,177 @@ BhojanGo/
 │       │   └── index.ts
 │       ├── package.json
 │       └── tsconfig.json
+├── review_contracts/
+│   └── SPR-02-v3.contract.json
 ├── review_exports/
+│   ├── SPR-02_scope_review_v3/
+│   │   ├── apps/
+│   │   │   └── web/
+│   │   │       ├── src/
+│   │   │       │   ├── app/
+│   │   │       │   │   ├── (auth)/
+│   │   │       │   │   │   ├── login/
+│   │   │       │   │   │   │   └── page.tsx
+│   │   │       │   │   │   └── signup/
+│   │   │       │   │   │       └── page.tsx
+│   │   │       │   │   ├── restaurants/
+│   │   │       │   │   │   ├── [id]/
+│   │   │       │   │   │   │   ├── error.tsx
+│   │   │       │   │   │   │   └── page.tsx
+│   │   │       │   │   │   └── page.tsx
+│   │   │       │   │   ├── layout.tsx
+│   │   │       │   │   └── page.tsx
+│   │   │       │   ├── components/
+│   │   │       │   │   ├── home/
+│   │   │       │   │   │   └── FeaturedRestaurants.tsx
+│   │   │       │   │   ├── layout/
+│   │   │       │   │   │   ├── MobileBottomNav.tsx
+│   │   │       │   │   │   └── Navbar.tsx
+│   │   │       │   │   ├── restaurant/
+│   │   │       │   │   │   └── RestaurantCard.tsx
+│   │   │       │   │   ├── AuthBootstrap.tsx
+│   │   │       │   │   └── providers.tsx
+│   │   │       │   ├── lib/
+│   │   │       │   │   └── api.ts
+│   │   │       │   └── store/
+│   │   │       │       ├── auth.ts
+│   │   │       │       └── cart.ts
+│   │   │       ├── next.config.mjs
+│   │   │       └── package.json
+│   │   ├── docs/
+│   │   │   ├── folder_structure.md
+│   │   │   └── review_export_policy.md
+│   │   ├── implementation_plan/
+│   │   │   ├── IP.PR.02 - Browsable Prototype.md
+│   │   │   └── SP20-Master-Implementation-Sprint-Plan.md
+│   │   ├── review_contracts/
+│   │   │   └── SPR-02-v3.contract.json
+│   │   ├── review_exports/
+│   │   │   ├── SPR-02_v3_final_cleanup_run.log
+│   │   │   ├── SPR-02_v3_final_cleanup_run_v2.log
+│   │   │   └── SPR-02_v3_manual_review_status.json
+│   │   ├── scripts/
+│   │   │   ├── review_guardrails/
+│   │   │   │   ├── review_export_validator.py
+│   │   │   │   ├── stage_completion_validator.py
+│   │   │   │   ├── stage_contract.schema.json
+│   │   │   │   └── stage_packager.py
+│   │   │   └── start-all.sh
+│   │   ├── services/
+│   │   │   ├── restaurant-svc/
+│   │   │   │   └── app/
+│   │   │   │       ├── api/
+│   │   │   │       │   └── v1/
+│   │   │   │       │       └── restaurants.py
+│   │   │   │       ├── db/
+│   │   │   │       │   └── migrations/
+│   │   │   │       │       └── versions/
+│   │   │   │       │           ├── 0001_create_restaurant_tables.py
+│   │   │   │       │           ├── 0002_money_to_numeric.py
+│   │   │   │       │           ├── 0003_pain_point_pricing_radius.py
+│   │   │   │       │           └── 0004_add_deleted_at.py
+│   │   │   │       ├── models/
+│   │   │   │       │   ├── menu.py
+│   │   │   │       │   └── restaurant.py
+│   │   │   │       ├── repositories/
+│   │   │   │       │   └── restaurant.py
+│   │   │   │       ├── schemas/
+│   │   │   │       │   └── restaurant.py
+│   │   │   │       ├── services/
+│   │   │   │       │   └── search.py
+│   │   │   │       └── main.py
+│   │   │   └── user-svc/
+│   │   │       └── app/
+│   │   │           ├── api/
+│   │   │           │   └── v1/
+│   │   │           │       ├── auth.py
+│   │   │           │       └── users.py
+│   │   │           ├── core/
+│   │   │           │   ├── dependencies.py
+│   │   │           │   └── security.py
+│   │   │           ├── models/
+│   │   │           │   └── user.py
+│   │   │           ├── repositories/
+│   │   │           │   └── user.py
+│   │   │           ├── schemas/
+│   │   │           │   └── user.py
+│   │   │           └── main.py
+│   │   ├── tests/
+│   │   │   ├── backend/
+│   │   │   │   └── test_spr02_contracts.py
+│   │   │   └── results/
+│   │   │       ├── evidence/
+│   │   │       │   ├── cost_control/
+│   │   │       │   │   └── kimchi_run_metrics.jsonl
+│   │   │       │   ├── logs/
+│   │   │       │   │   ├── spr02-frontend-routes.log
+│   │   │       │   │   ├── spr02-me-endpoint.log
+│   │   │       │   │   ├── spr02-menu-endpoint.log
+│   │   │       │   │   ├── spr02-opensearch-fallback.log
+│   │   │       │   │   ├── spr02-unit-or-focused-tests.log
+│   │   │       │   │   └── spr02-v3-zip-listing.log
+│   │   │       │   ├── manifests/
+│   │   │       │   │   ├── SPR-02-closure-summary.md
+│   │   │       │   │   ├── SPR-02-evidence.md
+│   │   │       │   │   └── SPR-02-file-read-ledger.md
+│   │   │       │   ├── summaries/
+│   │   │       │   │   └── current_handoff.md
+│   │   │       │   └── validator_outputs/
+│   │   │       │       ├── SPR-02-V3_packager_report.json
+│   │   │       │       ├── SPR-02-V3_review_export_validation.json
+│   │   │       │       └── SPR-02-V3_stage_completion_validation.json
+│   │   │       └── frontend/
+│   │   │           └── customer/
+│   │   │               └── screenshots/
+│   │   │                   ├── authenticated-homepage.png
+│   │   │                   ├── homepage.png
+│   │   │                   ├── login.png
+│   │   │                   ├── mobile-bottom-nav.png
+│   │   │                   ├── restaurant-detail.png
+│   │   │                   ├── restaurants-list-mobile.png
+│   │   │                   └── restaurants-list.png
+│   │   ├── package.json
+│   │   └── pnpm-workspace.yaml
+│   ├── SPR-02_v3_cleanup_backups/
+│   │   ├── 20260615_164439/
+│   │   │   ├── review_contracts/
+│   │   │   │   └── SPR-02-v3.contract.json
+│   │   │   └── tests/
+│   │   │       └── results/
+│   │   │           └── evidence/
+│   │   │               ├── cost_control/
+│   │   │               │   └── kimchi_run_metrics.jsonl
+│   │   │               └── manifests/
+│   │   │                   ├── SPR-02-closure-summary.md
+│   │   │                   ├── SPR-02-evidence.md
+│   │   │                   └── SPR-02-file-read-ledger.md
+│   │   └── 20260615_172920_v2/
+│   │       ├── review_contracts/
+│   │       │   └── SPR-02-v3.contract.json
+│   │       └── tests/
+│   │           └── results/
+│   │               └── evidence/
+│   │                   └── manifests/
+│   │                       └── SPR-02-file-read-ledger.md
 │   ├── .DS_Store
-│   └── SPR-01_scope_review_v2.zip
+│   ├── SPR-01_scope_review_v2.zip
+│   ├── SPR-01_scope_review_v3.zip
+│   ├── SPR-01_scope_review_v4.zip
+│   ├── SPR-02_scope_review.zip
+│   ├── SPR-02_scope_review_v2.zip
+│   ├── SPR-02_scope_review_v3.zip
+│   ├── SPR-02_v3_final_cleanup_run.log
+│   ├── SPR-02_v3_final_cleanup_run_v2.log
+│   ├── SPR-02_v3_final_review_bundle.zip
+│   ├── SPR-02_v3_kimchi_if_failed_prompt.txt
+│   └── SPR-02_v3_manual_review_status.json
 ├── scripts/
+│   ├── review_guardrails/
+│   │   ├── next_task_extractor.py
+│   │   ├── review_export_validator.py
+│   │   ├── stage_completion_validator.py
+│   │   ├── stage_contract.schema.json
+│   │   └── stage_packager.py
 │   ├── seed/
 │   │   ├── comprehensive_seed.py
 │   │   ├── comprehensive_seed.sql
@@ -468,6 +640,7 @@ BhojanGo/
 │   │   ├── seed_orders.py
 │   │   ├── seed_restaurants.py
 │   │   └── seed_users.py
+│   ├── .DS_Store
 │   ├── create_folder_structure.py
 │   └── start-all.sh
 ├── services/
@@ -710,7 +883,8 @@ BhojanGo/
 │   │   │   │   │   ├── versions/
 │   │   │   │   │   │   ├── 0001_create_restaurant_tables.py
 │   │   │   │   │   │   ├── 0002_money_to_numeric.py
-│   │   │   │   │   │   └── 0003_pain_point_pricing_radius.py
+│   │   │   │   │   │   ├── 0003_pain_point_pricing_radius.py
+│   │   │   │   │   │   └── 0004_add_deleted_at.py
 │   │   │   │   │   └── env.py
 │   │   │   │   ├── __init__.py
 │   │   │   │   └── base.py
@@ -813,6 +987,7 @@ BhojanGo/
 │   │   ├── test_order_svc.py
 │   │   ├── test_payment_svc.py
 │   │   ├── test_restaurant_svc.py
+│   │   ├── test_spr02_contracts.py
 │   │   └── test_user_svc.py
 │   ├── results/
 │   │   ├── audit/
@@ -832,19 +1007,49 @@ BhojanGo/
 │   │   │   ├── summary.md
 │   │   │   └── test_output.txt
 │   │   ├── evidence/
+│   │   │   ├── cost_control/
+│   │   │   │   └── kimchi_run_metrics.jsonl
 │   │   │   ├── logs/
+│   │   │   │   ├── batch-migration-review.log
+│   │   │   │   ├── dependency-manifest-review.log
 │   │   │   │   ├── docker-availability.log
+│   │   │   │   ├── frontend-route-audit.log
 │   │   │   │   ├── health-check-curl.log
 │   │   │   │   ├── menu-endpoint-curl.log
+│   │   │   │   ├── restaurant-svc-menu-error.log
 │   │   │   │   ├── seed-count.log
+│   │   │   │   ├── spr02-frontend-routes.log
+│   │   │   │   ├── spr02-me-endpoint.log
+│   │   │   │   ├── spr02-menu-endpoint.log
+│   │   │   │   ├── spr02-opensearch-fallback.log
+│   │   │   │   ├── spr02-startup-or-health.log
+│   │   │   │   ├── spr02-unit-or-focused-tests.log
+│   │   │   │   ├── spr02-v3-zip-listing.log
+│   │   │   │   ├── spr02-zip-listing.log
 │   │   │   │   └── start-script-run.log
 │   │   │   ├── manifests/
-│   │   │   │   └── SPR-01-evidence.md
-│   │   │   └── summaries/
-│   │   │       └── current_handoff.md
+│   │   │   │   ├── closure-summary.md
+│   │   │   │   ├── SPR-01-evidence.md
+│   │   │   │   ├── SPR-01-file-read-ledger.md
+│   │   │   │   ├── SPR-02-closure-summary.md
+│   │   │   │   ├── SPR-02-evidence.md
+│   │   │   │   └── SPR-02-file-read-ledger.md
+│   │   │   ├── summaries/
+│   │   │   │   └── current_handoff.md
+│   │   │   └── validator_outputs/
+│   │   │       ├── SPR-02-V3_packager_report.json
+│   │   │       ├── SPR-02-V3_review_export_validation.json
+│   │   │       └── SPR-02-V3_stage_completion_validation.json
 │   │   ├── frontend/
 │   │   │   └── customer/
 │   │   │       ├── screenshots/
+│   │   │       │   ├── authenticated-homepage.png
+│   │   │       │   ├── homepage.png
+│   │   │       │   ├── login.png
+│   │   │       │   ├── mobile-bottom-nav.png
+│   │   │       │   ├── restaurant-detail.png
+│   │   │       │   ├── restaurants-list-mobile.png
+│   │   │       │   └── restaurants-list.png
 │   │   │       └── page-audit.md
 │   │   ├── playwright/
 │   │   │   ├── index.html
@@ -866,5 +1071,6 @@ BhojanGo/
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
 ├── README.md
+├── SPR-02-closure-summary.md
 └── turbo.json
 ```

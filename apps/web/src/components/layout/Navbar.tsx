@@ -35,9 +35,20 @@ export default function Navbar() {
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuthStore();
   const itemCount = useCartStore((s) => s.getItemCount());
+  const clearCart = useCartStore((s) => s.clearCart);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { isDark, toggle: toggleDark } = useDarkMode();
+  // SPR-03A-FIX2B hydration guard: persisted auth/cart state is browser-only.
+  // Keep the first client render aligned with server HTML, then reveal persisted badges/menus after mount.
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const safeItemCount = hasMounted ? itemCount : 0;
+  const showAuthenticatedNav = hasMounted && isAuthenticated;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -53,6 +64,7 @@ export default function Navbar() {
   function handleLogout() {
     setMenuOpen(false);
     logout();
+    clearCart();
     router.push("/");
   }
 
@@ -72,7 +84,7 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="hidden items-center gap-1 md:flex">
           <NavLink href="/restaurants" label={t("restaurants")} active={pathname.startsWith("/restaurants")} />
-          {isAuthenticated && (
+          {showAuthenticatedNav && (
             <>
               <NavLink href="/orders" label={t("orders")} active={pathname.startsWith("/orders")} />
               <NavLink href="/wallet" label={t("wallet")} active={pathname === "/wallet"} />
@@ -105,14 +117,14 @@ export default function Navbar() {
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            {itemCount > 0 && (
+            {safeItemCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
-                {itemCount}
+                {safeItemCount}
               </span>
             )}
           </Link>
 
-          {isAuthenticated ? (
+          {showAuthenticatedNav ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
