@@ -99,7 +99,7 @@ export default function RestaurantPage() {
   });
 
   // Fetch menu categories separately
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: isLoadingMenu } = useQuery({
     queryKey: ["restaurant-menu", params.id],
     queryFn: async () => {
       try {
@@ -114,7 +114,7 @@ export default function RestaurantPage() {
     enabled: !!params.id,
   });
 
-  const isLoading = isLoadingRestaurant;
+  const isLoading = isLoadingRestaurant || isLoadingMenu;
 
   if (isLoading) {
     return (
