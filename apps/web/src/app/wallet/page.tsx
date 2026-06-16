@@ -1,212 +1,230 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
-interface WalletBalance {
+type WalletBalance = {
+  user_id: string;
   balance: number;
+  currency: "USD" | "INR" | string;
+  updated_at: string;
+};
+
+type WalletTransaction = {
+  id: string;
+  user_id: string;
+  type: "credit" | "debit" | string;
+  amount: number;
   currency: string;
+  balance_after: number;
+  description: string;
+  reference_id: string | null;
+  reference_type: string | null;
+  created_at: string;
+};
+
+type WalletTransactionList = {
+  items: WalletTransaction[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+function formatMoney(value: number, currency: string) {
+  const symbol = currency === "INR" ? "₹" : "$";
+  return `${symbol}${Number(value || 0).toFixed(2)}`;
 }
 
-interface WalletTx {
-  id: string;
-  amount: number;
-  type: "credit" | "debit";
-  description: string;
-  created_at: string;
+function useAuthHydrated() {
+  const [ready, setReady] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return useAuthStore.persist.hasHydrated();
+  });
+
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) {
+      setReady(true);
+      return;
+    }
+    return useAuthStore.persist.onFinishHydration(() => setReady(true));
+  }, []);
+
+  return ready;
+}
+
+function getWalletErrorMessage(err: unknown, fallback: string) {
+  const detail = (err as { response?: { data?: { detail?: unknown; message?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object") {
+    const record = detail as Record<string, unknown>;
+    const message = typeof record.message === "string" ? record.message : "";
+    const code = typeof record.code === "string" ? record.code : "";
+    if (message && code) return `${message} (${code})`;
+    if (message) return message;
+    if (code) return code;
+  }
+  const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+  return typeof message === "string" ? message : fallback;
 }
 
 export default function WalletPage() {
-  const t = useTranslations("wallet");
   const router = useRouter();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { isAuthenticated, user } = useAuthStore();
+  const authReady = useAuthHydrated();
+  const [topupAmount, setTopupAmount] = useState("100");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const [topUpAmount, setTopUpAmount] = useState("");
-  const [showTopUp, setShowTopUp] = useState(false);
+  useEffect(() => {
+    if (authReady && !isAuthenticated) {
+      router.replace("/login?redirect=/wallet");
+    }
+  }, [authReady, isAuthenticated, router]);
 
-  const currencySymbol = user?.preferred_currency === "INR" ? "₹" : "$";
-
-  const { data: balance, isLoading: balanceLoading } = useQuery<WalletBalance>({
+  const walletBalance = useQuery<WalletBalance>({
     queryKey: ["wallet-balance"],
     queryFn: async () => {
       const { data } = await api.get("/payment/wallet/balance");
       return data;
     },
-    enabled: !!isAuthenticated,
+    enabled: authReady && isAuthenticated,
   });
 
-  const { data: transactions, isLoading: txLoading } = useQuery<WalletTx[]>({
+  const walletTransactions = useQuery<WalletTransactionList>({
     queryKey: ["wallet-transactions"],
     queryFn: async () => {
       const { data } = await api.get("/payment/wallet/transactions?limit=20");
       return data;
     },
-    enabled: !!isAuthenticated,
+    enabled: authReady && isAuthenticated,
   });
 
-  const topUpMutation = useMutation({
-    mutationFn: async (amount: number) => {
-      const { data } = await api.post("/payment/wallet/topup", {
+  const preferredCurrency = (user as { preferred_currency?: string } | null)?.preferred_currency;
+  const currency = walletBalance.data?.currency ?? preferredCurrency ?? (user?.country === "IN" ? "INR" : "USD");
+  const balance = Number(walletBalance.data?.balance ?? 0);
+  const balanceLabel = useMemo(() => formatMoney(balance, currency), [balance, currency]);
+
+  async function handleTopup(e: React.FormEvent) {
+    e.preventDefault();
+    const amount = Number(topupAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a valid top-up amount.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    setMessage("");
+    try {
+      const { data } = await api.post<WalletBalance>("/payment/wallet/topup", {
         amount,
-        currency: balance?.currency ?? "USD",
-        payment_method: "stripe",
+        currency,
+        payment_method_id: "demo_wallet_topup",
       });
-      return data;
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["wallet-balance"] });
-      void qc.invalidateQueries({ queryKey: ["wallet-transactions"] });
-      setTopUpAmount("");
-      setShowTopUp(false);
-    },
-  });
-
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/wallet");
-    return null;
+      queryClient.setQueryData(["wallet-balance"], data);
+      await queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
+      setMessage(`Wallet topped up by ${formatMoney(amount, currency)}.`);
+    } catch (err: unknown) {
+      setError(getWalletErrorMessage(err, "Failed to top up wallet. Please try again."));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  const QUICK_AMOUNTS = balance?.currency === "INR"
-    ? [100, 200, 500, 1000]
-    : [5, 10, 20, 50];
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <p className="text-sm text-gray-500">Loading wallet...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-xl mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">{t("title")}</h1>
-
-        {/* Balance card */}
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 mb-6 text-white">
-          <p className="text-sm text-emerald-100 mb-1">{t("balance")}</p>
-          {balanceLoading ? (
-            <div className="h-10 w-32 bg-white/20 rounded animate-pulse" />
-          ) : (
-            <p className="text-4xl font-bold">
-              {currencySymbol}
-              {balance?.balance?.toFixed(2) ?? "0.00"}
-            </p>
-          )}
-          <button
-            onClick={() => setShowTopUp(!showTopUp)}
-            className="mt-4 px-5 py-2 bg-white text-emerald-700 rounded-lg font-semibold text-sm hover:bg-emerald-50 transition"
-          >
-            + {t("topUp")}
-          </button>
+    <div data-testid="wallet-ready" className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="mb-6">
+          <p className="text-sm font-medium text-emerald-600">BhojanGo Wallet</p>
+          <h1 className="text-2xl font-bold text-gray-900">Wallet</h1>
+          <p className="mt-1 text-sm text-gray-500">Demo balance, top-up, and transaction ledger for SPR-03B validation.</p>
         </div>
 
-        {/* Top-up form */}
-        {showTopUp && (
-          <div className="bg-white rounded-xl p-5 mb-4">
-            <h3 className="font-semibold text-gray-900 mb-4">{t("addMoney")}</h3>
-            <div className="flex gap-2 mb-4 flex-wrap">
-              {QUICK_AMOUNTS.map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setTopUpAmount(String(amt))}
-                  className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition ${
-                    topUpAmount === String(amt)
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-gray-300 text-gray-700 hover:border-gray-400"
-                  }`}
-                >
-                  {currencySymbol}
-                  {amt}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  {currencySymbol}
-                </span>
-                <input
-                  type="number"
-                  min="1"
-                  value={topUpAmount}
-                  onChange={(e) => setTopUpAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition text-sm"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  const amt = parseFloat(topUpAmount);
-                  if (amt > 0) topUpMutation.mutate(amt);
-                }}
-                disabled={topUpMutation.isPending || !topUpAmount || parseFloat(topUpAmount) <= 0}
-                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg transition text-sm"
-              >
-                {topUpMutation.isPending ? "..." : t("addMoney")}
-              </button>
-            </div>
-            {topUpMutation.isError && (
-              <p className="text-xs text-red-600 mt-2">Failed to add money. Please try again.</p>
-            )}
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <p className="text-sm text-gray-500">Current Balance</p>
+          <p data-testid="wallet-balance" data-balance={balance.toFixed(2)} className="mt-2 text-4xl font-bold text-gray-900">
+            {walletBalance.isLoading ? "Loading..." : balanceLabel}
+          </p>
+          <p className="mt-2 text-xs text-gray-500">Default non-production demo seed is applied once and recorded in the ledger.</p>
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Add Money</h2>
+          <p className="mt-1 text-sm text-gray-500">Dummy top-up until real payment gateway capture is implemented.</p>
+          <form onSubmit={handleTopup} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <label className="sr-only" htmlFor="wallet-topup-amount">Top-up amount</label>
+            <input
+              id="wallet-topup-amount"
+              aria-label="Top-up amount"
+              type="number"
+              min="1"
+              step="0.01"
+              value={topupAmount}
+              onChange={(e) => setTopupAmount(e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Adding..." : "Add Money"}
+            </button>
+          </form>
+          {message && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p>}
+          {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-gray-900">Transaction History</h2>
+            <button
+              type="button"
+              onClick={() => void walletTransactions.refetch()}
+              className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Refresh
+            </button>
           </div>
-        )}
-
-        {/* Transactions */}
-        <div className="bg-white rounded-xl p-5">
-          <h3 className="font-semibold text-gray-900 mb-4">{t("transactions")}</h3>
-
-          {txLoading && (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-14 bg-gray-100 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          )}
-
-          {!txLoading && !transactions?.length && (
-            <p className="text-sm text-gray-500 text-center py-6">{t("noTransactions")}</p>
-          )}
-
-          {transactions && transactions.length > 0 && (
-            <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${
-                        tx.type === "credit"
-                          ? "bg-green-50 text-green-600"
-                          : "bg-red-50 text-red-500"
-                      }`}
-                    >
-                      {tx.type === "credit" ? "↓" : "↑"}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{tx.description}</p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(tx.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <p
-                    className={`text-sm font-semibold ${
-                      tx.type === "credit" ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {tx.type === "credit" ? "+" : "-"}
-                    {currencySymbol}
-                    {tx.amount.toFixed(2)}
+          <div data-testid="wallet-transactions" className="mt-4 divide-y divide-gray-100">
+            {walletTransactions.isLoading && <p className="py-4 text-sm text-gray-500">Loading transactions...</p>}
+            {!walletTransactions.isLoading && (walletTransactions.data?.items.length ?? 0) === 0 && (
+              <p className="py-4 text-sm text-gray-500">No transactions yet.</p>
+            )}
+            {walletTransactions.data?.items.map((txn) => (
+              <div key={txn.id} className="flex items-start justify-between gap-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{txn.description}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {txn.reference_type ?? "wallet"} · {new Date(txn.created_at).toLocaleString()}
                   </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="text-right">
+                  <p className={`text-sm font-semibold ${txn.type === "credit" ? "text-emerald-600" : "text-red-600"}`}>
+                    {txn.type === "credit" ? "+" : "-"}{formatMoney(Number(txn.amount), txn.currency)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">Balance {formatMoney(Number(txn.balance_after), txn.currency)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

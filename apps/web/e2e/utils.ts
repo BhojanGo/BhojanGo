@@ -17,7 +17,7 @@ const DEV_ONLY_EVIDENCE_OVERLAY_STYLE_ID = 'spr03a-hide-dev-only-evidence-overla
 
 /**
  * SPR-03A-FIX2A evidence hygiene:
- * Hide dev-only TanStack / React Query Devtools overlays only for Playwright screenshots.
+ * Hide dev-only TanStack / React Query / Next dev overlays only for Playwright screenshots.
  * This does not modify app runtime behavior, cart semantics, checkout flow, order creation,
  * payment, or cancellation. It only prevents devtool status badges such as "1 error" from
  * contaminating manual screenshot evidence.
@@ -33,7 +33,15 @@ export async function hideDevOnlyEvidenceOverlays(page: Page) {
         [data-testid*="tanstack"],
         [data-testid*="react-query"],
         [aria-label*="TanStack"],
-        [aria-label*="React Query"] {
+        [aria-label*="React Query"],
+        nextjs-portal,
+        [data-nextjs-dialog-overlay],
+        [data-nextjs-dialog],
+        [data-nextjs-toast],
+        [data-nextjs-errors],
+        [data-nextjs-error-overlay],
+        [data-nextjs-dev-overlay],
+        [data-nextjs-terminal] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
@@ -53,11 +61,19 @@ export async function hideDevOnlyEvidenceOverlays(page: Page) {
         '[data-testid*="react-query"]',
         '[aria-label*="TanStack"]',
         '[aria-label*="React Query"]',
+        'nextjs-portal',
+        '[data-nextjs-dialog-overlay]',
+        '[data-nextjs-dialog]',
+        '[data-nextjs-toast]',
+        '[data-nextjs-errors]',
+        '[data-nextjs-error-overlay]',
+        '[data-nextjs-dev-overlay]',
+        '[data-nextjs-terminal]',
       ];
 
       document.querySelectorAll(selectors.join(',')).forEach((node) => {
         const element = node as HTMLElement;
-        element.setAttribute('data-spr03a-evidence-hidden', 'dev-only-query-devtools-overlay');
+        element.setAttribute('data-spr03b-evidence-hidden', 'dev-only-next-or-query-dev-overlay');
         element.style.setProperty('display', 'none', 'important');
         element.style.setProperty('visibility', 'hidden', 'important');
         element.style.setProperty('opacity', '0', 'important');
