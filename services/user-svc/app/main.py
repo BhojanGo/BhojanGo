@@ -1,9 +1,9 @@
 import time
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 
 import structlog
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
@@ -142,6 +142,19 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(addresses.router, prefix="/api/v1")
+
+
+# ── Convenience alias: /api/v1/me ─────────────────────────────────────────────
+from app.core.dependencies import get_current_active_user  # noqa: E402
+from app.models.user import User  # noqa: E402
+from app.schemas.user import UserResponse  # noqa: E402
+
+@app.get("/api/v1/me", response_model=UserResponse, tags=["Users"])
+async def get_me_v1(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> UserResponse:
+    """Get the current authenticated user's profile at /api/v1/me."""
+    return UserResponse.model_validate(current_user)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

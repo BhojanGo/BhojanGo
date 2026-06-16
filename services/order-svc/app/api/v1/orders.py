@@ -199,6 +199,7 @@ async def update_order_status(
     return OrderResponse.model_validate(updated)
 
 
+@router.patch("/{order_id}/cancel", response_model=OrderResponse)
 @router.post("/{order_id}/cancel", response_model=OrderResponse)
 async def cancel_order(
     order_id: uuid.UUID,

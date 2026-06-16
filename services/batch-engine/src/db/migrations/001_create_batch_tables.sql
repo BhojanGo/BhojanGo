@@ -8,6 +8,35 @@
 CREATE SCHEMA IF NOT EXISTS batch_engine;
 SET search_path TO batch_engine;
 
+-- ── Batches ─────────────────────────────────────────────────────────────────
+-- A batch groups 1-N orders for a single driver trip.
+
+CREATE TABLE batches (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id       UUID,
+    status          VARCHAR(20) NOT NULL DEFAULT 'forming'
+                    CHECK (status IN (
+                        'forming', 'pending', 'assigned',
+                        'in_progress', 'completed', 'failed'
+                    )),
+
+    -- Scoring & metrics
+    score                      REAL NOT NULL DEFAULT 0,
+    estimated_total_distance_km REAL NOT NULL DEFAULT 0,
+    estimated_total_time_min   REAL NOT NULL DEFAULT 0,
+    max_detour_min             REAL NOT NULL DEFAULT 0,
+    savings_percent            REAL NOT NULL DEFAULT 0,
+
+    -- Timestamps
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_at     TIMESTAMPTZ,
+    completed_at    TIMESTAMPTZ,
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_batch_status ON batches(status);
+CREATE INDEX idx_batch_driver ON batches(driver_id) WHERE status IN ('assigned', 'in_progress');
+
 -- ── Order Pool ──────────────────────────────────────────────────────────────
 -- Orders land here when order-svc publishes "order.confirmed".
 -- The engine reads from this table every batch cycle.
@@ -49,35 +78,6 @@ CREATE TABLE order_pool (
 CREATE INDEX idx_pool_status ON order_pool(status) WHERE status = 'waiting';
 CREATE INDEX idx_pool_restaurant ON order_pool(restaurant_id) WHERE status = 'waiting';
 CREATE INDEX idx_pool_created ON order_pool(created_at) WHERE status = 'waiting';
-
--- ── Batches ─────────────────────────────────────────────────────────────────
--- A batch groups 1-N orders for a single driver trip.
-
-CREATE TABLE batches (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    driver_id       UUID,
-    status          VARCHAR(20) NOT NULL DEFAULT 'forming'
-                    CHECK (status IN (
-                        'forming', 'pending', 'assigned',
-                        'in_progress', 'completed', 'failed'
-                    )),
-
-    -- Scoring & metrics
-    score                      REAL NOT NULL DEFAULT 0,
-    estimated_total_distance_km REAL NOT NULL DEFAULT 0,
-    estimated_total_time_min   REAL NOT NULL DEFAULT 0,
-    max_detour_min             REAL NOT NULL DEFAULT 0,
-    savings_percent            REAL NOT NULL DEFAULT 0,
-
-    -- Timestamps
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    assigned_at     TIMESTAMPTZ,
-    completed_at    TIMESTAMPTZ,
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_batch_status ON batches(status);
-CREATE INDEX idx_batch_driver ON batches(driver_id) WHERE status IN ('assigned', 'in_progress');
 
 -- ── Batch Orders ────────────────────────────────────────────────────────────
 -- Join table: which orders belong to which batch, in what sequence.

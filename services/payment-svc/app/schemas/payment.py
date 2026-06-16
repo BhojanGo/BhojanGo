@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-PaymentProvider = Literal["stripe", "razorpay", "wallet"]
+PaymentProvider = Literal["stripe", "razorpay", "wallet", "mock"]
 PaymentStatus = Literal["pending", "processing", "succeeded", "failed", "cancelled", "refunded", "partially_refunded"]
 Currency = Literal["USD", "INR"]
 
@@ -70,7 +70,7 @@ class WalletTransactionResponse(BaseModel):
 class WalletTopupRequest(BaseModel):
     amount: float = Field(gt=0)
     currency: Currency
-    payment_method_id: str
+    payment_method_id: str = "demo_wallet_topup"
 
 
 class RefundRequest(BaseModel):

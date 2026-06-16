@@ -29,18 +29,20 @@ export default function RestaurantsPage() {
   const [cuisine, setCuisine] = useState("All");
   const [sortBy, setSortBy] = useState("rating");
   const [vegOnly, setVegOnly] = useState(false);
+  const [rating4Plus, setRating4Plus] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
   const user = useAuthStore((s) => s.user);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["restaurants", { cuisine, sortBy, vegOnly, searchQuery, country: user?.country }],
+    queryKey: ["restaurants", { cuisine, sortBy, vegOnly, rating4Plus, searchQuery, country: user?.country }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (cuisine !== "All") params.set("cuisine_type", cuisine.toLowerCase());
+      if (cuisine !== "All") params.set("cuisine", cuisine.toLowerCase());
       if (vegOnly) params.set("is_veg", "true");
+      if (rating4Plus) params.set("min_rating", "4.0");
       if (searchQuery) params.set("q", searchQuery);
       if (user?.country) params.set("country", user.country);
-      params.set("sort_by", sortBy);
+      params.set("sort", sortBy);
       params.set("limit", "24");
       const { data } = await api.get(`/restaurant/restaurants?${params.toString()}`);
       return data as { items: Restaurant[]; total: number };
@@ -110,6 +112,19 @@ export default function RestaurantsPage() {
           >
             <span className="w-2 h-2 rounded-full bg-current" />
             {t("veg")}
+          </button>
+          <button
+            onClick={() => setRating4Plus(!rating4Plus)}
+            className={`flex-shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              rating4Plus
+                ? "bg-amber-500 text-white"
+                : "bg-white border border-gray-300 text-gray-700 hover:border-amber-400"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            4+
           </button>
         </div>
 

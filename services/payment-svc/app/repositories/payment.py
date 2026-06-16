@@ -9,6 +9,11 @@ from app.models.payment import PaymentIntent, Wallet, WalletTransaction
 _CENTS = Decimal("0.01")
 
 
+DEMO_WALLET_SEED_AMOUNT = Decimal("1000.00")
+DEMO_WALLET_SEED_REFERENCE_ID = "SPR-03B-WALLET-01-DEMO-SEED"
+DEMO_WALLET_SEED_REFERENCE_TYPE = "demo_seed"
+
+
 def _money(value: object) -> Decimal:
     """Coerce a numeric input to an exact 2-decimal money Decimal (major units)."""
     return Decimal(str(value)).quantize(_CENTS, rounding=ROUND_HALF_UP)
@@ -69,10 +74,46 @@ class WalletRepository:
             await self.session.refresh(wallet)
         return wallet
 
+
+    async def ensure_demo_seeded(self, user_id: uuid.UUID, currency: str = "USD", amount: Decimal = DEMO_WALLET_SEED_AMOUNT) -> Wallet:
+        """Ensure a non-production demo wallet has one idempotent seed credit.
+
+        Existing wallets created before this stage are also seeded once. The seed is
+        tracked as a wallet transaction so the ledger explains why the balance exists.
+        """
+        amount = _money(amount)
+        wallet = await self.get_or_create(user_id, currency=currency, for_update=True)
+        seed_exists_result = await self.session.execute(
+            select(WalletTransaction.id)
+            .where(
+                WalletTransaction.user_id == user_id,
+                WalletTransaction.reference_id == DEMO_WALLET_SEED_REFERENCE_ID,
+                WalletTransaction.reference_type == DEMO_WALLET_SEED_REFERENCE_TYPE,
+            )
+            .limit(1)
+        )
+        if seed_exists_result.scalar_one_or_none() is None:
+            wallet.currency = currency
+            wallet.balance = _money(_money(wallet.balance) + amount)
+            tx = WalletTransaction(
+                user_id=user_id,
+                type="credit",
+                amount=amount,
+                currency=currency,
+                balance_after=wallet.balance,
+                description="SPR-03B demo wallet seed",
+                reference_id=DEMO_WALLET_SEED_REFERENCE_ID,
+                reference_type=DEMO_WALLET_SEED_REFERENCE_TYPE,
+            )
+            self.session.add(tx)
+            await self.session.flush()
+            await self.session.refresh(wallet)
+        return wallet
+
     async def credit(self, user_id: uuid.UUID, amount: float | Decimal, description: str, reference_id: str | None = None, reference_type: str | None = None) -> tuple[Wallet, WalletTransaction]:
         amount = _money(amount)
         wallet = await self.get_or_create(user_id, for_update=True)
-        wallet.balance = _money(wallet.balance + amount)
+        wallet.balance = _money(_money(wallet.balance) + amount)
         tx = WalletTransaction(
             user_id=user_id,
             type="credit",
@@ -85,6 +126,7 @@ class WalletRepository:
         )
         self.session.add(tx)
         await self.session.flush()
+        await self.session.refresh(wallet)
         await self.session.refresh(tx)
         return wallet, tx
 
@@ -96,7 +138,7 @@ class WalletRepository:
         if wallet.balance < amount:
             from fastapi import HTTPException, status as http_status
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail={"code": "INSUFFICIENT_WALLET_BALANCE", "message": "Insufficient wallet balance"})
-        wallet.balance = _money(wallet.balance - amount)
+        wallet.balance = _money(_money(wallet.balance) - amount)
         tx = WalletTransaction(
             user_id=user_id,
             type="debit",
@@ -109,6 +151,7 @@ class WalletRepository:
         )
         self.session.add(tx)
         await self.session.flush()
+        await self.session.refresh(wallet)
         await self.session.refresh(tx)
         return wallet, tx
 

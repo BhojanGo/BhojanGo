@@ -176,6 +176,27 @@ function PaymentInner() {
     );
   }
 
+  if (provider === "mock") {
+    return (
+      <Shell title="Payment simulated">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Simulated payment completed for this SPR-03B order/payment contract.
+          </p>
+          <p className="text-xs text-gray-500">
+            Amount: {currency} {amount}
+          </p>
+          <button
+            onClick={() => router.replace(`/orders/${orderId}?success=true`)}
+            className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-700 text-white font-semibold rounded-lg transition text-sm"
+          >
+            Continue
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
   if (provider === "stripe") {
     if (!STRIPE_PUBLISHABLE_KEY || !stripeOptions) {
       return (

@@ -5,6 +5,7 @@ import { getLocale, getMessages } from "next-intl/server";
 
 import { Providers } from "@/components/providers";
 import Navbar from "@/components/layout/Navbar";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
 
@@ -35,7 +36,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <Navbar />
-            <div className="min-h-screen">{children}</div>
+            <div className="min-h-screen pb-16 sm:pb-0">{children}</div>
+            <MobileBottomNav />
             <Footer />
           </Providers>
         </NextIntlClientProvider>

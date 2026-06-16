@@ -7,6 +7,7 @@ export type OrderStatus =
   | "pending"
   | "confirmed"
   | "preparing"
+  | "almost_ready"
   | "ready_for_pickup"
   | "picked_up"
   | "delivered"

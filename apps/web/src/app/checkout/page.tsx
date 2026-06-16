@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,17 +19,112 @@ interface Address {
   country: string;
 }
 
-type PaymentMethod = "stripe" | "wallet" | "cod" | "razorpay";
+type PaymentMethod = "card" | "upi" | "wallet" | "cod";
+
+function normaliseCheckoutErrorDetail(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const message = typeof record.message === "string" ? record.message : "";
+    const code = typeof record.code === "string" ? record.code : "";
+
+    if (message && code) {
+      return `${message} (${code})`;
+    }
+    if (message) {
+      return message;
+    }
+    if (code) {
+      return code;
+    }
+
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== "{}") {
+        return serialized;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function getCheckoutErrorMessage(err: unknown, fallback: string): string {
+  const responseData = (err as { response?: { data?: unknown } })?.response?.data;
+  const responseRecord =
+    responseData && typeof responseData === "object"
+      ? (responseData as Record<string, unknown>)
+      : null;
+
+  return (
+    normaliseCheckoutErrorDetail(responseRecord?.detail) ??
+    normaliseCheckoutErrorDetail(responseRecord?.message) ??
+    (err instanceof Error && err.message ? err.message : null) ??
+    fallback
+  );
+}
+
+
+function makeIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+function usePersistedCheckoutStoresReady(): boolean {
+  const [storesReady, setStoresReady] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return useAuthStore.persist.hasHydrated() && useCartStore.persist.hasHydrated();
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const markReadyIfHydrated = () => {
+      if (
+        !cancelled &&
+        useAuthStore.persist.hasHydrated() &&
+        useCartStore.persist.hasHydrated()
+      ) {
+        setStoresReady(true);
+      }
+    };
+
+    markReadyIfHydrated();
+    const unsubscribeAuth = useAuthStore.persist.onFinishHydration(markReadyIfHydrated);
+    const unsubscribeCart = useCartStore.persist.onFinishHydration(markReadyIfHydrated);
+
+    return () => {
+      cancelled = true;
+      unsubscribeAuth();
+      unsubscribeCart();
+    };
+  }, []);
+
+  return storesReady;
+}
 
 export default function CheckoutPage() {
   const t = useTranslations("checkout");
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const cart = useCartStore();
+  const storesReady = usePersistedCheckoutStoresReady();
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [loading, setLoading] = useState(false);
+  const [finalizingCheckout, setFinalizingCheckout] = useState(false);
   const [error, setError] = useState("");
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState({
@@ -51,7 +146,7 @@ export default function CheckoutPage() {
       const { data } = await api.get("/user/me/addresses");
       return data;
     },
-    enabled: !!isAuthenticated,
+    enabled: storesReady && !!isAuthenticated,
   });
 
   const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
@@ -60,18 +155,31 @@ export default function CheckoutPage() {
       const { data } = await api.get("/payment/wallet/balance");
       return data;
     },
-    enabled: !!isAuthenticated,
+    enabled: storesReady && !!isAuthenticated,
   });
 
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/checkout");
-    return null;
+  useEffect(() => {
+    if (!storesReady) return;
+
+    if (!isAuthenticated) {
+      router.replace("/login?redirect=/checkout");
+      return;
+    }
+
+    if (!finalizingCheckout && cart.items.length === 0) {
+      router.replace("/");
+    }
+  }, [storesReady, isAuthenticated, cart.items.length, finalizingCheckout, router]);
+
+  if (!storesReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <p className="text-sm text-gray-500">Loading checkout...</p>
+      </div>
+    );
   }
 
-  // Redirect if cart empty
-  if (cart.items.length === 0) {
-    router.replace("/");
+  if (!isAuthenticated || (!finalizingCheckout && cart.items.length === 0)) {
     return null;
   }
 
@@ -84,13 +192,17 @@ export default function CheckoutPage() {
     setSavingAddress(true);
     setError("");
     try {
-      const { data: saved } = await api.post("/user/me/addresses", addressForm);
-      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      const { data: saved } = await api.post<Address>("/user/me/addresses", addressForm);
+      queryClient.setQueryData<Address[]>(["addresses"], (current = []) => {
+        const withoutDuplicate = current.filter((addr) => addr.id !== saved.id);
+        return [...withoutDuplicate, saved];
+      });
       setSelectedAddressId(saved.id);
       setShowAddressForm(false);
       setAddressForm({ label: "", street: "", city: "", state: "", postal_code: "", country: user?.country ?? "US" });
-    } catch {
-      setError("Failed to save address. Please try again.");
+      void queryClient.invalidateQueries({ queryKey: ["addresses"] });
+    } catch (err: unknown) {
+      setError(getCheckoutErrorMessage(err, "Failed to save address. Please try again."));
     } finally {
       setSavingAddress(false);
     }
@@ -103,15 +215,16 @@ export default function CheckoutPage() {
     }
     setError("");
     setLoading(true);
+    setFinalizingCheckout(true);
 
     try {
       const address = addresses?.find((a) => a.id === selectedAddressId);
       if (!address) throw new Error("Address not found");
 
       // Map the UI payment choice to the order-svc payment_method enum.
-      const orderPaymentMethod =
-        paymentMethod === "wallet" ? "wallet" : paymentMethod === "cod" ? "cash_on_delivery" : "card";
-      const currency = isIndia ? "INR" : "USD";
+      const orderPaymentMethod = paymentMethod === "cod" ? "cash_on_delivery" : paymentMethod;
+      const currency = cart.currency ?? (isIndia ? "INR" : "USD");
+      const country = currency === "INR" ? "IN" : "US";
 
       // Create order. The server is the source of truth for money — it recomputes
       // subtotal/tax/total from the live menu, so we only send line items + address.
@@ -132,7 +245,9 @@ export default function CheckoutPage() {
         payment_method: orderPaymentMethod,
       };
 
-      const { data: order } = await api.post("/order/orders", orderPayload);
+      const { data: order } = await api.post("/order/orders", orderPayload, {
+        headers: { "X-Idempotency-Key": makeIdempotencyKey() },
+      });
 
       // Amount must be in the smallest currency unit (cents/paise) for the payment service.
       const amountMinor = Math.round((order.total ?? cart.getTotal()) * 100);
@@ -143,8 +258,8 @@ export default function CheckoutPage() {
           order_id: order.id,
           amount: amountMinor,
           currency,
-          payment_method_type: paymentMethod === "wallet" ? "wallet" : "card",
-          country: isIndia ? "IN" : "US",
+          payment_method_type: paymentMethod === "wallet" ? "wallet" : paymentMethod === "upi" ? "upi" : "card",
+          country,
         });
 
         const params = new URLSearchParams({
@@ -153,39 +268,51 @@ export default function CheckoutPage() {
           amount: String(paymentIntent.amount ?? amountMinor),
           currency,
         });
-        if (paymentMethod === "stripe" && paymentIntent.client_secret) {
-          params.set("client_secret", paymentIntent.client_secret);
-          cart.clearCart();
+        if (paymentIntent.payment_intent_id) {
+          params.set("payment_intent_id", paymentIntent.payment_intent_id);
+        }
+        if (paymentIntent.provider === "mock") {
           router.push(`/checkout/payment?${params.toString()}`);
+          cart.clearCart();
           return;
         }
-        if (paymentMethod === "razorpay" && paymentIntent.razorpay_order_id) {
-          params.set("razorpay_order_id", paymentIntent.razorpay_order_id);
-          cart.clearCart();
+        if (paymentIntent.provider === "stripe" && paymentIntent.client_secret) {
+          params.set("client_secret", paymentIntent.client_secret);
           router.push(`/checkout/payment?${params.toString()}`);
+          cart.clearCart();
+          return;
+        }
+        if (paymentIntent.provider === "razorpay" && paymentIntent.razorpay_order_id) {
+          params.set("razorpay_order_id", paymentIntent.razorpay_order_id);
+          router.push(`/checkout/payment?${params.toString()}`);
+          cart.clearCart();
           return;
         }
         // Wallet — payment is settled synchronously by the initiate call.
       }
 
       // Wallet / COD — order is placed
-      cart.clearCart();
       router.push(`/orders/${order.id}?success=true`);
+      cart.clearCart();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to place order. Please try again.";
+      const msg = getCheckoutErrorMessage(err, "Failed to place order. Please try again.");
+      setFinalizingCheckout(false);
       setError(msg);
     } finally {
       setLoading(false);
     }
   }
 
-  const total = cart.getTotal();
-  const currencySymbol = isIndia ? "₹" : "$";
+  const subtotal = cart.getSubtotal();
+  const deliveryFee = cart.getDeliveryFee();
+  const platformFee = cart.getPlatformFee();
+  const tax = cart.getTax();
+  const discount = cart.getDiscount();
+  const total = cart.getGrandTotal();
+  const currencySymbol = cart.currency === "INR" ? "₹" : "$";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div data-testid="checkout-ready" className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <button
@@ -318,20 +445,28 @@ export default function CheckoutPage() {
             ))}
             <div className="h-px bg-gray-100 my-2" />
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>{currencySymbol}{cart.getSubtotal().toFixed(2)}</span>
+              <span>Items Total</span>
+              <span>{currencySymbol}{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Delivery</span>
-              <span>{cart.deliveryFee === 0 ? "FREE" : `${currencySymbol}${cart.deliveryFee.toFixed(2)}`}</span>
+              <span>Delivery Fee</span>
+              <span>{deliveryFee === 0 ? "FREE" : `${currencySymbol}${deliveryFee.toFixed(2)}`}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Tax</span>
-              <span>{currencySymbol}{cart.getTax().toFixed(2)}</span>
+              <span>Platform Fee</span>
+              <span>{currencySymbol}{platformFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Tax / GST (5%)</span>
+              <span>{currencySymbol}{tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Discount</span>
+              <span>{discount === 0 ? `${currencySymbol}0.00` : `-${currencySymbol}${discount.toFixed(2)}`}</span>
             </div>
             <div className="h-px bg-gray-100 my-2" />
             <div className="flex justify-between font-semibold text-gray-900">
-              <span>Total</span>
+              <span>Grand Total</span>
               <span>{currencySymbol}{total.toFixed(2)}</span>
             </div>
           </div>
@@ -342,11 +477,8 @@ export default function CheckoutPage() {
           <h2 className="font-semibold text-gray-900 mb-3">{t("paymentMethod")}</h2>
           <div className="space-y-2">
             {[
-              {
-                value: isIndia ? "razorpay" : "stripe",
-                label: t("card"),
-                icon: "💳",
-              },
+              { value: "card", label: t("card"), icon: "💳" },
+              ...(isIndia ? [{ value: "upi", label: "UPI", icon: "📱" }] : []),
               {
                 value: "wallet",
                 label: `${t("wallet")} ${walletBalance ? `(${currencySymbol}${walletBalance.balance.toFixed(2)})` : ""}`,

@@ -7,6 +7,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.core.auth import CurrentUser, get_current_user
 from app.core.events import publish_payment_event
 from app.db.base import get_db
@@ -26,6 +27,7 @@ from app.services import razorpay_svc, stripe_svc
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = structlog.get_logger(__name__)
+settings = get_settings()
 
 
 @router.post("/initiate", response_model=PaymentInitiateResponse, status_code=status.HTTP_201_CREATED)
@@ -50,6 +52,39 @@ async def initiate_payment(
             razorpay_order_id=existing.metadata_.get("razorpay_order_id"),
             amount=existing.amount,
             currency=existing.currency,  # type: ignore[arg-type]
+        )
+
+    if settings.APP_ENV != "production" and data.payment_method_type in ("card", "upi", "net_banking"):
+        provider_payment_id = f"mock_{uuid.uuid4()}"
+        intent = await repo.create_intent(
+            order_id=data.order_id,
+            user_id=current_user.id,
+            provider="mock",
+            provider_payment_id=provider_payment_id,
+            amount=data.amount,
+            currency=data.currency,
+            status="succeeded",
+            idempotency_key=idempotency_key,
+            metadata_={
+                "simulated": True,
+                "payment_method": data.payment_method_type,
+                "country": data.country,
+            },
+        )
+        await publish_payment_event("payment.succeeded", {
+            "payment_intent_id": str(intent.id),
+            "order_id": str(data.order_id),
+            "user_id": current_user.user_id,
+            "amount": data.amount,
+            "currency": data.currency,
+            "provider": "mock",
+            "simulated": True,
+        })
+        return PaymentInitiateResponse(
+            payment_intent_id=str(intent.id),
+            provider="mock",
+            amount=data.amount,
+            currency=data.currency,
         )
 
     if data.payment_method_type == "wallet":
@@ -320,11 +355,12 @@ async def topup_wallet(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> WalletBalanceResponse:
     wallet_repo = WalletRepository(db)
+    topup_source = data.payment_method_id or "demo_wallet_topup"
     wallet, _ = await wallet_repo.credit(
         current_user.id,
         amount=data.amount,
-        description=f"Wallet top-up via {data.payment_method_id}",
-        reference_id=data.payment_method_id,
+        description=f"Demo wallet top-up via {topup_source}",
+        reference_id=topup_source,
         reference_type="topup",
     )
     return WalletBalanceResponse.model_validate(wallet)
@@ -336,7 +372,11 @@ async def get_wallet_balance(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> WalletBalanceResponse:
     wallet_repo = WalletRepository(db)
-    wallet = await wallet_repo.get_or_create(current_user.id, currency="INR" if current_user.country == "IN" else "USD")
+    currency = "INR" if current_user.country == "IN" else "USD"
+    if settings.APP_ENV != "production":
+        wallet = await wallet_repo.ensure_demo_seeded(current_user.id, currency=currency)
+    else:
+        wallet = await wallet_repo.get_or_create(current_user.id, currency=currency)
     return WalletBalanceResponse.model_validate(wallet)
 
 

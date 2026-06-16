@@ -20,7 +20,7 @@ target_metadata = Base.metadata
 
 
 def do_run_migrations(connection) -> None:  # type: ignore[no-untyped-def]
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(connection=connection, target_metadata=target_metadata, version_table="alembic_version_payment")
     with context.begin_transaction():
         context.run_migrations()
 
