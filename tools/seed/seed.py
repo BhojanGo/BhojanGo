@@ -21,7 +21,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from data import ADMINS, ADMIN_PASSWORD, MARKETS, PASSWORD  # noqa: E402
+from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, MARKETS, PASSWORD  # noqa: E402
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -52,6 +52,83 @@ ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id, street = EXCLUDED.street, city = EXCLUDED.city,
     state = EXCLUDED.state, postal_code = EXCLUDED.postal_code, country = EXCLUDED.country
 """)
+
+UPSERT_COUNTRY = text("""
+INSERT INTO countries (id, code, name, currency, locales, timezone, distance_unit, phone_code,
+                       payment_providers, tax_regime, settings, status)
+VALUES (:id, :code, :name, :currency, :locales, :timezone, :distance_unit, :phone_code,
+        :payment_providers, :tax_regime, CAST(:settings AS jsonb), :status)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name, currency = EXCLUDED.currency, locales = EXCLUDED.locales,
+    timezone = EXCLUDED.timezone, distance_unit = EXCLUDED.distance_unit,
+    phone_code = EXCLUDED.phone_code, payment_providers = EXCLUDED.payment_providers,
+    tax_regime = EXCLUDED.tax_regime, settings = EXCLUDED.settings, status = EXCLUDED.status,
+    updated_at = now()
+RETURNING id
+""")
+
+UPSERT_REGION = text("""
+INSERT INTO regions (id, country_id, code, name, timezone, settings, status)
+VALUES (:id, :country_id, :code, :name, :timezone, CAST(:settings AS jsonb), :status)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name, timezone = EXCLUDED.timezone, settings = EXCLUDED.settings,
+    status = EXCLUDED.status, updated_at = now()
+RETURNING id
+""")
+
+UPSERT_CITY = text("""
+INSERT INTO cities (id, country_id, region_id, code, name, center_lat, center_lng,
+                    service_hours, settings, status)
+VALUES (:id, :country_id, :region_id, :code, :name, :lat, :lng,
+        CAST(:service_hours AS jsonb), CAST(:settings AS jsonb), :status)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name, center_lat = EXCLUDED.center_lat, center_lng = EXCLUDED.center_lng,
+    service_hours = EXCLUDED.service_hours, settings = EXCLUDED.settings,
+    status = EXCLUDED.status, updated_at = now()
+RETURNING id
+""")
+
+UPSERT_ZONE = text("""
+INSERT INTO zones (id, city_id, name, polygon, min_order, color, status, settings)
+VALUES (:id, :city_id, :name, ST_SetSRID(ST_GeomFromGeoJSON(:geojson), 4326), :min_order,
+        :color, :status, '{}'::jsonb)
+ON CONFLICT (city_id, name) DO UPDATE SET
+    polygon = EXCLUDED.polygon, min_order = EXCLUDED.min_order, color = EXCLUDED.color,
+    status = EXCLUDED.status, pause_reason = NULL, paused_until = NULL, updated_at = now()
+""")
+
+
+def box(south: float, west: float, north: float, east: float) -> str:
+    ring = [[west, south], [east, south], [east, north], [west, north], [west, south]]
+    return json.dumps({"type": "Polygon", "coordinates": [ring]})
+
+
+async def seed_markets(conn) -> None:
+    for c in COUNTRIES:
+        cid = (await conn.execute(UPSERT_COUNTRY, {
+            "id": sid("country", c["code"]), **{k: c[k] for k in (
+                "code", "name", "currency", "locales", "timezone", "distance_unit", "phone_code",
+                "payment_providers", "tax_regime", "status")},
+            "settings": json.dumps(c["settings"]),
+        })).scalar_one()
+        for r in c["regions"]:
+            rid = (await conn.execute(UPSERT_REGION, {
+                "id": sid("region", r["code"]), "country_id": cid, "code": r["code"], "name": r["name"],
+                "timezone": r.get("timezone"), "settings": json.dumps(r["settings"]), "status": r["status"],
+            })).scalar_one()
+            for city in r["cities"]:
+                city_id = (await conn.execute(UPSERT_CITY, {
+                    "id": sid("city", city["code"]), "country_id": cid, "region_id": rid, "code": city["code"],
+                    "name": city["name"], "lat": city["center"][0], "lng": city["center"][1],
+                    "service_hours": json.dumps(city["service_hours"]), "settings": json.dumps(city["settings"]),
+                    "status": city["status"],
+                })).scalar_one()
+                for name, bounds, min_order, status, color in city["zones"]:
+                    await conn.execute(UPSERT_ZONE, {
+                        "id": sid("zone", city["code"], name), "city_id": city_id, "name": name,
+                        "geojson": box(*bounds), "min_order": Decimal(min_order), "color": color, "status": status,
+                    })
+
 
 UPSERT_ADMIN_ROLE = text("""
 INSERT INTO admin_role_assignments (id, user_id, role, scope, created_at)
@@ -121,6 +198,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
     engine = create_async_engine(database_url)
     logins: list[tuple[str, str, str, str]] = []
     async with engine.begin() as conn:
+        await seed_markets(conn)
         for m in MARKETS:
             k = m["key"]
             where = f"{m['country_name']} ▸ {m['state']} ▸ {m['city']}"
@@ -184,10 +262,12 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
         counts = (await conn.execute(text(
             "SELECT (SELECT count(*) FROM restaurants WHERE slug = ANY(:slugs)),"
             "       (SELECT count(*) FROM menu_items mi JOIN restaurants r ON r.id = mi.restaurant_id WHERE r.slug = ANY(:slugs)),"
-            "       (SELECT count(*) FROM users WHERE email LIKE '%@example.com')"
+            "       (SELECT count(*) FROM users WHERE email LIKE '%@example.com'),"
+            "       (SELECT count(*) FROM cities), (SELECT count(*) FROM zones)"
         ), {"slugs": [r["slug"] for m in MARKETS for r in m["restaurants"]]})).one()
     await engine.dispose()
-    print(f"Seeded {counts[0]} restaurants, {counts[1]} menu items, {counts[2]} users.")
+    print(f"Seeded {counts[3]} cities with {counts[4]} zones, {counts[0]} restaurants, "
+          f"{counts[1]} menu items, {counts[2]} users.")
     return logins
 
 

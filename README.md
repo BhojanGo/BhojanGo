@@ -92,6 +92,13 @@ Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ B
 `support.hyd@`, `support.boi@` support agents · `finance.in@`, `finance.us@` finance ·
 `viewer@` read-only (India and USA), all `@example.com`.
 
+**Markets (P6):** countries, states, cities and zones (PostGIS polygons), each draft / beta /
+live / paused, with settings that inherit country → state → city. Admin console:
+http://localhost:3001/markets (overview, country page with state chips and a city picker, city
+page with zone drawing on an OpenStreetMap map). Apps ask `GET /api/v1/markets/locate?lat=&lng=`
+whether an address is served. Seeded: Hyderabad (live, 8 zones), Boise (beta, 5 zones), and
+Warangal, Visakhapatnam and Vijayawada in setup.
+
 **Sign-in (P5):** email + password, phone OTP, Sign in with Apple and Google (ID tokens
 verified against the providers' keys; set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`).
 Tokens are RS256: 15-minute access tokens and rotating refresh tokens (a reused refresh

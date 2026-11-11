@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -47,3 +48,14 @@ registerAuthHandlers({
     useAdminAuth.setState({ accessToken, refreshToken }),
   onLogout: () => useAdminAuth.getState().logout(),
 });
+
+/**
+ * True once the persisted session has been read on the client. The first
+ * render after a full page load uses the server snapshot (signed out), so an
+ * auth guard must wait for this before redirecting to /login.
+ */
+export function useAuthHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  return hydrated;
+}

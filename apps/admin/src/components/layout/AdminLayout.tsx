@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { useAdminAuth } from "@/store/auth";
+import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "📊", roles: ["admin", "super_admin", "city_manager", "support"] },
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/drivers", label: "Drivers", icon: "🚴", roles: ["admin", "super_admin", "city_manager"] },
   { href: "/payments", label: "Payments", icon: "💳", roles: ["admin", "super_admin"] },
   { href: "/pricing", label: "Pricing", icon: "🏷️", roles: ["admin", "super_admin", "city_manager"] },
+  { href: "/markets", label: "Markets", icon: "🗺️", roles: ["admin", "super_admin", "city_manager"] },
   { href: "/pain-points", label: "Pain Points", icon: "🎯", roles: ["admin", "super_admin", "city_manager"] },
   { href: "/analytics", label: "Analytics", icon: "📈", roles: ["super_admin"] },
 ];
@@ -23,11 +24,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
 
+  const hydrated = useAuthHydrated();
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hydrated && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
   if (!isAuthenticated) {
     return (
