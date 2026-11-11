@@ -18,7 +18,7 @@ export default function WalletScreen() {
   const { data: balance } = useQuery<WalletBalance>({
     queryKey: ["wallet-balance"],
     queryFn: async () => {
-      const { data } = await api.get("/payment/wallet/balance");
+      const { data } = await api.get("/wallet/balance");
       return data;
     },
   });
@@ -26,14 +26,14 @@ export default function WalletScreen() {
   const { data: transactions } = useQuery<WalletTx[]>({
     queryKey: ["wallet-transactions"],
     queryFn: async () => {
-      const { data } = await api.get("/payment/wallet/transactions?limit=20");
+      const { data } = await api.get("/wallet/transactions?limit=20");
       return data;
     },
   });
 
   const topUpMutation = useMutation({
     mutationFn: async (amt: number) => {
-      const { data } = await api.post("/payment/wallet/topup", {
+      const { data } = await api.post("/wallet/topup", {
         amount: amt,
         currency: balance?.currency ?? "USD",
         payment_method: "stripe",

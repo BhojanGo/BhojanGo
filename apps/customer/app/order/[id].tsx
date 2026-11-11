@@ -28,7 +28,7 @@ export default function OrderDetailScreen() {
   const { data: order, refetch } = useQuery({
     queryKey: ["order", id],
     queryFn: async () => {
-      const { data } = await api.get(`/order/orders/${id}`);
+      const { data } = await api.get(`/orders/${id}`);
       return data as Order;
     },
     refetchInterval: (query) => {

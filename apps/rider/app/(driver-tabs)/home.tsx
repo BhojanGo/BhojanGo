@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, Switch, StyleSheet } from "react-native";
 import * as Location from "expo-location";
-import { api } from "@bhojango/mobile-core";
+import { api, realtimeApi } from "@bhojango/mobile-core";
 
 type Order = {
   id: string;
@@ -28,7 +28,7 @@ export default function DriverHome() {
       interval = setInterval(async () => {
         const loc = await Location.getCurrentPositionAsync({});
         try {
-          await api.post("/delivery/driver/location", {
+          await realtimeApi.post("/delivery/driver/location", {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           });
@@ -47,7 +47,7 @@ export default function DriverHome() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/order/orders/driver/available");
+      const res = await api.get("/orders/driver/available");
       setOrders(res.data.orders || []);
     } catch {
       // Best effort: keep the previous state if the request fails.
@@ -57,7 +57,7 @@ export default function DriverHome() {
 
   const acceptOrder = async (orderId: string) => {
     try {
-      await api.post(`/delivery/orders/${orderId}/accept`);
+      await realtimeApi.post(`/delivery/orders/${orderId}/accept`);
       fetchOrders();
     } catch {
       // Best effort: keep the previous state if the request fails.

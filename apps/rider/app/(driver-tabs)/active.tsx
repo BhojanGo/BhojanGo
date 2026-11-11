@@ -21,7 +21,7 @@ export default function ActiveDelivery() {
 
   const fetchActive = async () => {
     try {
-      const res = await api.get("/order/orders/driver/active");
+      const res = await api.get("/orders/driver/active");
       setDelivery(res.data || null);
     } catch {
       setDelivery(null);
@@ -34,7 +34,7 @@ export default function ActiveDelivery() {
   const updateStatus = async (newStatus: string) => {
     if (!delivery) return;
     try {
-      await api.put(`/order/orders/${delivery.order_id}/status`, { status: newStatus });
+      await api.put(`/orders/${delivery.order_id}/status`, { status: newStatus });
       fetchActive();
     } catch (e: any) {
       Alert.alert("Error", "Failed to update status");

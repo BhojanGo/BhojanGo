@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { api } from "@bhojango/mobile-core";
+import { realtimeApi } from "@bhojango/mobile-core";
 
 interface Breakdown {
   gross_earnings: number;
@@ -45,8 +45,8 @@ export default function Earnings() {
       let shiftData: Shift | null = null;
       try {
         const [eRes, sRes] = await Promise.allSettled([
-          api.get("/delivery/driver/earnings"),
-          api.get("/delivery/drivers/me/shift"),
+          realtimeApi.get("/delivery/driver/earnings"),
+          realtimeApi.get("/drivers/me/shift"),
         ]);
         if (eRes.status === "fulfilled") {
           deliveriesToday = eRes.value.data.deliveries_today ?? 0;
@@ -56,7 +56,7 @@ export default function Earnings() {
         if (active) setShift(shiftData);
 
         // Live earnings breakdown from the shift's tracked minutes + today's deliveries.
-        const est = await api.post("/delivery/drivers/me/earnings/estimate", {
+        const est = await realtimeApi.post("/drivers/me/earnings/estimate", {
           available_minutes: shiftData?.available_minutes ?? 0,
           active_minutes: shiftData?.active_minutes ?? 0,
           waiting_minutes: shiftData?.waiting_minutes ?? 0,
