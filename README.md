@@ -17,59 +17,86 @@ Production-ready food delivery platform for **USA** and **India** — built like
 | Payments | Stripe (USA) + Razorpay (India) + wallet |
 | Real-time | WebSockets + AWS Location Service |
 | Search | PostgreSQL full-text + pg_trgm + PostGIS (ADR-009); OpenSearch until P4 |
-| API Gateway | Kong locally until P3 (then direct calls); AWS ALB + WAF from P4 |
+| API Gateway | None locally (direct calls to :8001/:8004/:8006); AWS ALB + WAF from P4 |
 | IaC | Terraform (15 modules) |
 | CI/CD | GitHub Actions |
 | Observability | CloudWatch + X-Ray + Sentry |
 
 Pinned versions and the reasons behind them: [ADR-011](docs/adr/ADR-011-tech-stack.md).
 
-## Prerequisites
+## Run it locally
 
-- Node.js 24 LTS (pinned in ADR-011; >= 20 still works until P3/P4 moves CI)
-- pnpm >= 9
-- Python >= 3.12
-- Docker Desktop
-- AWS CLI v2 (configured)
+Everything runs in Docker: Postgres 16 + PostGIS, Redis, LocalStack, the three
+backend services (core_api, realtime, worker) and the web and admin apps, with
+migrations applied and Hyderabad + Boise seed data loaded.
 
-## Quick Start
+**You need:** Git, Docker, and GNU make.
+
+| OS | Docker | make |
+| --- | --- | --- |
+| macOS | Docker Desktop | built in (`xcode-select --install` if missing) |
+| Linux | Docker Engine with the Compose v2 plugin | `sudo apt install make` (or your distro's package) |
+| Windows | Docker Desktop (WSL 2 backend) | **WSL 2** (recommended): run everything in an Ubuntu shell with `sudo apt install make`. **Git Bash** also works: `winget install ezwinports.make`, then open a new Git Bash window |
+
+**Steps** (tested from a clean clone on Windows 11 + Git Bash, Nov 2026):
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/your-org/bhojango.git
-cd bhojango
-pnpm install
-
-# 2. Set up environment
-cp .env.example .env
-# Edit .env with your API keys (Stripe, Twilio, etc.)
-
-# 3. Start infrastructure (Postgres, Redis, LocalStack, Kong)
-docker compose up -d
-#    ...or infrastructure + the 3 backend images (core-api runs migrations on start)
-docker compose --profile backend up -d --build
-
-# 4. Or run the backend on the host instead (needs uv: https://docs.astral.sh/uv/)
-cd backend
-uv sync
-uv run alembic upgrade head                        # one migration history
-uv run uvicorn core_api.main:app --reload --port 8001
-uv run uvicorn app.main:app --app-dir realtime --reload --port 8004
-uv run uvicorn app.main:app --app-dir worker --reload --port 8006
-cd ..
-
-# 5. Start frontend development servers
-pnpm dev
+git clone https://github.com/BhojanGo/BhojanGo.git
+cd BhojanGo
+make dev
 ```
+
+The first run builds the images (several minutes); later runs take seconds. When it
+finishes it prints the test logins and:
+
+```
+core_api   http://localhost:8001/docs
+realtime   http://localhost:8004/docs
+worker     http://localhost:8006/docs
+web        http://localhost:3000
+admin      http://localhost:3001
+```
+
+**Check it works:** sign in as a seeded customer and load restaurants through core_api:
+
+```bash
+curl -s -X POST http://localhost:8001/api/v1/auth/login   -H 'Content-Type: application/json'   -d '{"email":"customer1.hyd@example.com","password":"BhojanGo123"}'
+curl -s 'http://localhost:8001/api/v1/restaurants?limit=20'   # 10 restaurants, Hyderabad + Boise
+```
+
+| Command | What it does |
+| --- | --- |
+| `make dev` | Build and start everything, run migrations, load seed data |
+| `make seed` | Reload the seed data (safe to run again; no duplicates) |
+| `make test` | Backend pytest + JS lint/typecheck/test, inside Docker |
+| `make down` | Stop everything (data is kept) |
+| `make reset` | Wipe the data volumes and run `make dev` again |
+| `make logs` / `make ps` | Follow logs / list containers |
+
+**Ports already in use?** Override any host port, e.g.
+`POSTGRES_PORT=15432 REDIS_PORT=16379 make dev` (also `CORE_API_PORT`, `REALTIME_PORT`,
+`WORKER_PORT`, `WEB_PORT`, `ADMIN_PORT`, `LOCALSTACK_PORT`).
+
+**Used the old `docker compose` setup before Nov 2026?** Its Postgres volume holds the
+pre-P1 schema. Run `make reset` once to start clean.
+
+**Seed logins** (all `BhojanGo123`; admin `BhojanGoAdmin1`): `customer1..5.hyd@example.com`,
+`rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise,
+and `admin@example.com`. Markets: India ▸ Telangana ▸ Hyderabad and USA ▸ Idaho ▸ Boise.
+
+**Mobile apps** run on your machine with Expo (Node 24 + pnpm): copy
+`apps/customer/.env.example` (or `apps/rider/`) to `.env`, set your computer's LAN IP, then
+`pnpm install && pnpm --filter @bhojango/customer start`.
+
+For hot reload on the backend or web apps, see CONTRIBUTING (run the databases in
+Docker and the code on your machine). There is no API gateway locally: apps and tests
+call core_api (:8001), realtime (:8004) and worker (:8006) directly.
 
 ## Architecture
 
 ```
-                         ┌───────────────┐
-                         │   Kong API    │   (local only; removed in P3)
-                         │   Gateway     │
-                         └───────┬───────┘
-              ┌──────────────────┼──────────────────┐
+        apps (customer, rider, web, admin) call each service directly;
+        in AWS an ALB + WAF routes by path (P4)
               │                  │                  │
       ┌───────▼────────┐  ┌──────▼───────┐  ┌───────▼───────┐
       │   core_api     │  │   realtime   │  │    worker     │
@@ -97,7 +124,6 @@ pnpm dev
 | admin | 3001 | Admin dashboard (Next.js) |
 | customer | 8081 | Expo dev server — BhojanGo app (`com.bhojango.app`) |
 | rider | 8081 | Expo dev server — BhojanGo Rider app (`com.bhojango.rider`) |
-| **Kong** | **8080** | **API Gateway (all routes; `docker compose`)** |
 
 All `/api/v1/...` URLs are the same as before the restructure; only the process
 serving them changed.
@@ -106,12 +132,9 @@ serving them changed.
 
 | Tool | URL | Purpose |
 |------|-----|---------|
-| Kong Gateway | http://localhost:8888 | Unified API entry point |
-| Kong Admin | http://localhost:8444 | Gateway management |
-| Adminer | http://localhost:8080 | Database UI |
+| PostgreSQL 16 + PostGIS | localhost:5432 (`bhojango` / `bhojango_dev`) | Database |
+| Redis 7.4 | localhost:6379 | Cache, tokens, rider locations |
 | LocalStack | http://localhost:4566 | SQS + SNS + S3 (local AWS) |
-| OpenSearch | http://localhost:9200 | Search engine |
-| DynamoDB Local | http://localhost:8000 | NoSQL for delivery history |
 
 ## API Documentation
 
@@ -121,12 +144,7 @@ Each deployable exposes Swagger UI at `/docs`:
 - realtime: http://localhost:8004/docs
 - worker: http://localhost:8006/docs
 
-Via Kong gateway: `http://localhost:8080/api/v1/...`
-
-> **Kong is on its way out.** Its JWT plugin rejects the tokens core_api issues, so
-> authenticated calls through Kong return 401. It will not be fixed: P3 removes Kong
-> from the local Docker setup and the apps and tests call core_api (:8001), realtime
-> (:8004) and worker (:8006) directly. Production uses AWS ALB + WAF (P4).
+There is no gateway locally; call the services directly.
 
 ## Project Structure
 
@@ -154,10 +172,11 @@ bhojango/
 │   └── config/           Shared ESLint/TS/Prettier config
 ├── infra/
 │   ├── terraform/        AWS IaC
-│   └── docker/           compose.yaml, db/init.sql, kong/, localstack/
-├── tools/seed/           Seed data (SQL generators)
+│   └── docker/           compose.yaml (profiles infra/backend/all), Dockerfiles, db/, localstack/
+├── tools/seed/           Hyderabad + Boise seed data (idempotent; make seed)
 ├── docs/                 adr/, specs/ (source of truth for P1–P24)
 ├── .github/workflows/    CI/CD pipelines (ci.yml, pr-checks.yml, security.yml)
+├── Makefile              make dev / seed / test / down / reset
 ├── docker-compose.yml    Includes infra/docker/compose.yaml
 └── .env.example          All environment variables documented
 ```
