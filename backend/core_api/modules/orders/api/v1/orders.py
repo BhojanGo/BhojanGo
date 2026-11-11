@@ -6,12 +6,12 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CurrentUser, get_current_user
-from app.core.idempotency import check_idempotency, store_idempotency, validate_idempotency_key
-from app.core.redis import get_redis
-from app.db.base import get_db
-from app.repositories.order import OrderRepository
-from app.schemas.order import (
+from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
+from core_api.modules.orders.api.idempotency import check_idempotency, store_idempotency, validate_idempotency_key
+from shared.redis import get_redis
+from shared.db import get_db
+from core_api.modules.orders.repository.order import OrderRepository
+from core_api.modules.orders.schemas.order import (
     FeeBreakdown,
     OrderCancelRequest,
     OrderCreateRequest,
@@ -22,7 +22,7 @@ from app.schemas.order import (
     PainPointMetrics,
     StatusTimelineEntry,
 )
-from app.services.order import OrderService
+from core_api.modules.orders.service.order import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 logger = structlog.get_logger(__name__)

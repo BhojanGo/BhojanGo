@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.state_machine import (
+from core_api.modules.orders.service.state_machine import (
     can_transition,
     is_terminal,
     is_transition_allowed,

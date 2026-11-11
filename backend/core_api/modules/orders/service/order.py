@@ -6,13 +6,13 @@ import structlog
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
-from app.core.events import publish_order_event
-from app.core.state_machine import TRANSITION_PERMISSIONS, can_transition, is_transition_allowed
-from app.core.http_client import create_service_client, resilient_get
-from app.repositories.order import OrderRepository
-from app.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
-from app.services import commission, geo
+from shared.config import get_settings
+from core_api.modules.orders.service.events import publish_order_event
+from core_api.modules.orders.service.state_machine import TRANSITION_PERMISSIONS, can_transition, is_transition_allowed
+from core_api.modules.orders.service.http_client import create_service_client, resilient_get
+from core_api.modules.orders.repository.order import OrderRepository
+from core_api.modules.orders.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
+from core_api.modules.orders.service import commission, geo
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -48,7 +48,7 @@ class OrderService:
         restaurant_lat: float | None = None
         restaurant_lng: float | None = None
         delivery_radius_km = 5.0
-        restaurant_svc_url = settings.RESTAURANT_SVC_URL
+        restaurant_svc_url = settings.orders.RESTAURANT_SVC_URL
         try:
             async with create_service_client() as client:
                 resp = await resilient_get(client, f"{restaurant_svc_url}/api/v1/restaurants/{data.restaurant_id}")
@@ -152,7 +152,7 @@ class OrderService:
             is_long_distance = geo.is_long_distance(distance, delivery_radius_km)
 
         # Estimated delivery time
-        estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.BASE_DELIVERY_MINUTES)
+        estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.orders.BASE_DELIVERY_MINUTES)
         status_history = [{"status": "pending", "at": datetime.now(UTC).isoformat()}]
 
         order = await self.repo.create(

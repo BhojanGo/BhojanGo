@@ -18,6 +18,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from core_api import errors, health
 from core_api.modules.catalog.main import register as register_catalog
 from core_api.modules.identity.main import register as register_identity
+from core_api.modules.orders.main import register as register_orders
 from shared.config import get_settings
 from shared.db import engine
 from shared.logging import configure_logging
@@ -32,6 +33,7 @@ settings = get_settings()
 MODULES = [
     register_identity,
     register_catalog,
+    register_orders,
 ]
 
 

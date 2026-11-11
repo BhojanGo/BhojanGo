@@ -1,7 +1,7 @@
 """Unit tests for the restaurant-friendly commission model."""
 from decimal import Decimal
 
-from app.services.commission import platform_revenue, restaurant_payout
+from core_api.modules.orders.service.commission import platform_revenue, restaurant_payout
 
 
 def test_percentage_commission():

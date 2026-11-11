@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.order import Order
+from core_api.modules.orders.models.order import Order
 
 
 class OrderRepository:
