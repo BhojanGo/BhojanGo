@@ -52,7 +52,7 @@ locals {
   # "<secret arn>:<json key>::" is how ECS reads one key of a JSON secret.
   secret = {
     database_url          = "${var.db_secret_arn}:url::"
-    jwt_secret            = "${var.jwt_secret_arn}:secret::"
+    jwt_private_key       = "${var.jwt_secret_arn}:private_key::"
     redis_password        = "${var.redis_secret_arn}:password::"
     stripe_secret_key     = "${var.app_secret_arns["stripe"]}:secret_key::"
     stripe_webhook_secret = "${var.app_secret_arns["stripe"]}:webhook_secret::"
@@ -93,7 +93,7 @@ locals {
       }
       secrets = {
         DATABASE_URL            = local.secret.database_url
-        JWT_SECRET              = local.secret.jwt_secret
+        JWT_PRIVATE_KEY         = local.secret.jwt_private_key
         REDIS_PASSWORD          = local.secret.redis_password
         STRIPE_SECRET_KEY       = local.secret.stripe_secret_key
         STRIPE_WEBHOOK_SECRET   = local.secret.stripe_webhook_secret
@@ -115,9 +115,9 @@ locals {
         SERVICE_NAME           = "realtime"
         REDIS_URL              = "rediss://${var.redis_endpoint}:6379/3"
         SNS_TOPIC_ARN_DELIVERY = var.sns_topic_arns["driver_events"]
+        JWKS_URL               = var.jwks_url
       }
       secrets = {
-        JWT_SECRET     = local.secret.jwt_secret
         REDIS_PASSWORD = local.secret.redis_password
       }
     }
@@ -130,10 +130,10 @@ locals {
         SERVICE_NAME               = "worker"
         DB_POOL_SIZE               = "5"
         SQS_QUEUE_URL_NOTIFICATION = var.sqs_queue_urls["notifications"]
+        JWKS_URL                   = var.jwks_url
       }
       secrets = {
         DATABASE_URL            = local.secret.database_url
-        JWT_SECRET              = local.secret.jwt_secret
         TWILIO_ACCOUNT_SID      = local.secret.twilio_sid
         TWILIO_AUTH_TOKEN       = local.secret.twilio_token
         TWILIO_PHONE_NUMBER     = local.secret.twilio_from_us

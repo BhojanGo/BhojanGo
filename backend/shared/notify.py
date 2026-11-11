@@ -41,15 +41,23 @@ async def deliver(payload: dict) -> bool:
     from shared.providers.sms import get_sms_provider
 
     if payload["channel"] == "sms":
-        return await get_sms_provider().send(payload["to"], payload["body"], payload.get("country", "US"))
+        country = payload.get("country", "US")
+        return await get_sms_provider(country).send(
+            payload["to"], payload["body"], country, payload.get("template", ""), payload.get("params") or {}
+        )
     if payload["channel"] == "email":
         return await get_email_provider().send(payload["to"], payload["subject"], payload["body"])
     logger.warning("notify_unknown_channel", channel=payload.get("channel"))
     return False
 
 
-async def send(channel: Channel, to: str, body: str, *, subject: str = "", country: str = "US") -> bool:
-    payload = {"channel": channel, "to": to, "body": body, "subject": subject, "country": country}
+async def send(
+    channel: Channel, to: str, body: str, *, subject: str = "", country: str = "US",
+    template: str = "", params: dict | None = None,
+) -> bool:
+    """``template``/``params``: the DLT template key and variables (India SMS)."""
+    payload = {"channel": channel, "to": to, "body": body, "subject": subject, "country": country,
+               "template": template, "params": params or {}}
     queue_url = get_settings().worker.SQS_QUEUE_URL_NOTIFICATION
     if not queue_url:
         return await deliver(payload)

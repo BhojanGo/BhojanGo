@@ -1,51 +1,65 @@
-"""JWT access-token verification shared by every module and deployable.
+"""JWT signing and verification shared by every module and deployable.
 
-Before P1 each service had its own copy of this check (restaurant, order,
-payment, delivery and notification core/auth.py). The checks were identical:
-decode with JWT_SECRET/JWT_ALGORITHM, require a ``sub`` claim and
-``type == "access"``. What differed was the HTTP error each service returned,
-which is part of the API contract, so modules keep their own FastAPI
-dependency (``api/dependencies.py``) and turn :class:`InvalidTokenError` into
-the same 401 they returned before.
+Tokens are RS256 (ADR-011): core_api signs with its private key and publishes
+the public keys as a JWKS; realtime and worker verify with that JWKS
+(shared/jwt_keys.py). Each module keeps its own FastAPI dependency
+(``api/dependencies.py``) that turns :class:`InvalidTokenError` into the same
+401 it always returned.
 """
 import uuid
 
+import jwt
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.security.utils import get_authorization_scheme_param
-from jose import JWTError, jwt
 from starlette.requests import HTTPConnection
 
+from shared import jwt_keys
 from shared.config import get_settings
 
 settings = get_settings()
 
+ISSUER = "bhojango"
+AUDIENCE = "bhojango"
+
 
 class InvalidTokenError(Exception):
-    """The bearer token is missing, malformed, expired or not an access token."""
+    """The token is missing, malformed, badly signed, expired or the wrong type."""
+
+
+def encode_jwt(claims: dict) -> str:
+    """Sign claims (core_api only). Adds iss and aud."""
+    key, kid = jwt_keys.signing_key()
+    return jwt.encode({**claims, "iss": ISSUER, "aud": AUDIENCE}, key, algorithm=jwt_keys.ALGORITHM, headers={"kid": kid})
 
 
 def decode_jwt(token: str) -> dict:
-    """Decode and verify a token's signature and expiry. Raises JWTError."""
-    return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    """Verify signature, expiry, issuer and audience. Raises InvalidTokenError."""
+    try:
+        kid = jwt.get_unverified_header(token).get("kid", "")
+        key = jwt_keys.verification_key(kid)
+        if key is None:
+            raise InvalidTokenError(f"unknown key id {kid!r}")
+        return jwt.decode(token, key, algorithms=[jwt_keys.ALGORITHM], audience=AUDIENCE, issuer=ISSUER)
+    except jwt.PyJWTError as exc:
+        raise InvalidTokenError(str(exc)) from exc
 
 
 def decode_access_token(token: str) -> dict:
     """Return the claims of a valid access token, or raise InvalidTokenError."""
-    try:
-        payload = decode_jwt(token)
-    except JWTError as exc:
-        raise InvalidTokenError from exc
+    payload = decode_jwt(token)
     if not payload.get("sub", "") or payload.get("type") != "access":
-        raise InvalidTokenError
+        raise InvalidTokenError("not an access token")
     return payload
 
 
 class CurrentUser:
     """The caller, as described by their access-token claims."""
 
-    def __init__(self, user_id: str, role: str, country: str, email: str = "") -> None:
+    def __init__(self, user_id: str, role: str, country: str, email: str = "", admin: list[str] | None = None) -> None:
         self.user_id = user_id
+        # Admin role assignments as "role@scope" (e.g. "city_ops@IN-TG-HYD"); see shared/authz.py.
+        self.admin = admin or []
         self.email = email
         self.role = role
         self.country = country
@@ -58,6 +72,7 @@ class CurrentUser:
             email=payload.get("email", ""),
             role=payload.get("role", "customer"),
             country=payload.get("country", "US"),
+            admin=payload.get("adm", []),
         )
 
 

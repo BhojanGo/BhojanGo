@@ -16,7 +16,6 @@ name: bhojango
 x-backend-env: &backend-env
   APP_ENV: development
   DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
-  JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me}  # placeholder, local only
   AWS_REGION: us-east-1
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
@@ -121,10 +120,14 @@ services:
       <<: *backend-env
       SERVICE_NAME: core-api
       REDIS_URL: redis://redis:6379/0
+      # RS256 dev signing key, created on first start and kept on a volume so
+      # tokens survive restarts (production uses JWT_PRIVATE_KEY).
+      JWT_DEV_KEY_PATH: /srv/keys/jwt-dev.pem
     ports:
       - "${CORE_API_PORT:-8001}:8001"
     volumes:
       - ../../tools/seed:/srv/tools/seed:ro  # `make seed` runs it in this container
+      - jwt_keys:/srv/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,6 +147,7 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: delivery-svc
+      JWKS_URL: http://core-api:8001/.well-known/jwks.json
       REDIS_URL: redis://redis:6379/3
       ORDER_SVC_URL: http://core-api:8001
     ports:
@@ -163,6 +167,7 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: notification-svc
+      JWKS_URL: http://core-api:8001/.well-known/jwks.json
       DB_POOL_SIZE: "5"
     ports:
       - "${WORKER_PORT:-8006}:8006"
@@ -209,6 +214,7 @@ services:
         condition: service_healthy
 
 volumes:
+  jwt_keys:
   postgres_data:
   redis_data:
   localstack_data:

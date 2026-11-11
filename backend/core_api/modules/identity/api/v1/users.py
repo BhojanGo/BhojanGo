@@ -5,7 +5,15 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core_api.modules.identity.api.dependencies import get_current_active_user, require_admin
+from fastapi.security import HTTPAuthorizationCredentials
+
+from core_api.modules.identity.api.dependencies import (
+    AdminContext,
+    get_current_active_user,
+    require_permission,
+    security,
+)
+from core_api.modules.identity.service.auth import AuthService
 from shared.db import get_db
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.repository.user import UserRepository
@@ -55,6 +63,9 @@ async def update_me(
                 detail={"code": "PHONE_ALREADY_EXISTS", "message": "Phone number is already in use"},
             )
 
+    if "phone" in update_data and update_data["phone"] != current_user.phone:
+        update_data["is_phone_verified"] = False  # a new number must be verified by OTP
+
     updated = await repo.update(current_user.id, **update_data)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -64,106 +75,44 @@ async def update_me(
 @router.delete("/me", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 async def delete_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MessageResponse:
-    """Delete (anonymize) the current user's account per GDPR/PDPA.
+    """Delete my account (GDPR / India DPDP / app store rules).
 
-    Anonymizes PII, revokes all tokens, and deactivates the account.
-    Data retention: anonymized record kept for order history integrity.
-    SLA: immediate anonymization (within GDPR 30-day requirement).
+    Removes personal data (name, email, phone, social ids, addresses, admin
+    roles), ends every session at once and deactivates the account. Orders
+    keep the anonymous user id so restaurant and tax records stay intact.
     """
-    from datetime import UTC, datetime
-    from core_api.modules.identity.service.redis_keys import refresh_token_key
-    from shared.redis import get_redis
-
-    repo = UserRepository(db)
-    user_id = str(current_user.id)
-
-    # Anonymize PII
-    await repo.update(
-        current_user.id,
-        email=f"deleted_{user_id}@deleted.bhojango.com",
-        phone=None,
-        full_name="Deleted User",
-        avatar_url=None,
-        google_id=None,
-        apple_id=None,
-        fcm_token=None,
-        is_active=False,
-        is_verified=False,
-        is_phone_verified=False,
-    )
-
-    # Revoke all refresh tokens
-    try:
-        redis = await get_redis()
-        pattern = refresh_token_key(user_id, "*")
-        keys = await redis.keys(pattern)
-        if keys:
-            await redis.delete(*keys)
-    except Exception:
-        pass  # Best effort — account is already deactivated
-
-    logger.info("user_account_anonymized", user_id=user_id)
+    await AuthService(db).delete_account(current_user, credentials.credentials)
     return MessageResponse(message="Account deleted and data anonymized successfully")
 
 
-@router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(require_admin)])
+@router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: uuid.UUID,
+    admin: Annotated[AdminContext, Depends(require_permission("customers.view"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserResponse:
-    """Admin: Get any user by ID."""
-    repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
+    """Admin: get any user in a country you cover."""
+    user = await UserRepository(db).get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    admin.require("customers.view", user.country, within=True)
     return UserResponse.model_validate(user)
 
 
-@router.delete(
-    "/{user_id}/anonymize",
-    response_model=MessageResponse,
-    dependencies=[Depends(require_admin)],
-    status_code=status.HTTP_200_OK,
-)
+@router.delete("/{user_id}/anonymize", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 async def admin_anonymize_user(
     user_id: uuid.UUID,
+    admin: Annotated[AdminContext, Depends(require_permission("customers.edit"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> MessageResponse:
-    """Admin: Anonymize a user's data per GDPR right-to-erasure request."""
-    from datetime import UTC, datetime
-    from core_api.modules.identity.service.redis_keys import refresh_token_key
-    from shared.redis import get_redis
-
-    repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
+    """Admin: erase a user's personal data on request (right to erasure)."""
+    user = await UserRepository(db).get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    uid = str(user_id)
-    await repo.update(
-        user_id,
-        email=f"deleted_{uid}@deleted.bhojango.com",
-        phone=None,
-        full_name="Deleted User",
-        avatar_url=None,
-        google_id=None,
-        apple_id=None,
-        fcm_token=None,
-        is_active=False,
-        is_verified=False,
-        is_phone_verified=False,
-    )
-
-    try:
-        redis = await get_redis()
-        pattern = refresh_token_key(uid, "*")
-        keys = await redis.keys(pattern)
-        if keys:
-            await redis.delete(*keys)
-    except Exception:
-        pass
-
-    logger.info("admin_user_anonymized", user_id=uid)
+    admin.require("customers.edit", user.country, within=True)
+    await AuthService(db).delete_account(user)
+    logger.info("admin_user_anonymized", user_id=str(user_id), by=str(admin.user.id))
     return MessageResponse(message="User data anonymized successfully")

@@ -18,6 +18,7 @@ from core_api.modules.identity.schemas.user import (
     MessageResponse,
     OtpSendRequest,
     OtpVerifyRequest,
+    PhoneSignInRequest,
     RefreshTokenRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -105,6 +106,26 @@ async def verify_otp(
             detail={"code": "OTP_INVALID", "message": "Invalid or expired OTP"},
         )
     return MessageResponse(message="Phone verified successfully")
+
+
+@router.post("/phone", response_model=AuthTokensResponse)
+@limiter.limit("5/minute")
+async def phone_sign_in(
+    request: Request,
+    data: PhoneSignInRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AuthTokensResponse:
+    """Sign in with the SMS code from /auth/send-otp. A new number gets a
+    customer account (``is_new_user`` is true; ask for their name next)."""
+    return await AuthService(db).phone_sign_in(data)
+
+
+@router.get("/jwks", tags=["Authentication"])
+async def jwks_alias() -> dict:
+    """Same as /.well-known/jwks.json."""
+    from shared import jwt_keys
+
+    return jwt_keys.jwks()
 
 
 @router.post("/reset-password", response_model=MessageResponse)

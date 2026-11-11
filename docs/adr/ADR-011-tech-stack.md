@@ -41,7 +41,7 @@ version.
 | Database | PostgreSQL + PostGIS | **16 + PostGIS 3.7** (`postgis/postgis:16-3.7`) | 16 + 3.4 | P3 (local), P4 (RDS) |
 | Cache / geo | Redis | **7.4** (`redis:7.4-alpine`; ElastiCache Redis OSS 7) | 7 | P3 (local), P4 (AWS) |
 | Search | PostgreSQL full-text + `pg_trgm` | Postgres 16 (no extra service) | OpenSearch removed from Terraform (P4). `GET /restaurants/search` returns no results without it; `GET /restaurants` (list + filters) is unaffected | not owned yet: proposed with the catalog work in P10 |
-| Auth | Custom, RS256 JWTs + JWKS | — | HS256 shared secret | P5 |
+| Auth | Custom, RS256 JWTs + JWKS | — | Done in P5 (`/.well-known/jwks.json`, rotating refresh tokens, scoped admin roles) | P5 |
 | Node.js | Node **24 LTS** | **24.22.3** | 24 in CI and images | — (done in P3/P4) |
 | JS package manager | pnpm | **12.18.0** | 9 | P3/P4 |
 | Monorepo tasks | Turborepo | **2.11.11** | 2.x | P3/P4 |

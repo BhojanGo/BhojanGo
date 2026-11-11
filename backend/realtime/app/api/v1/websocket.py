@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 
 import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-from jose import JWTError
 
 from app.core.auth import _decode_token
 from app.core.redis import get_redis, order_tracking_channel

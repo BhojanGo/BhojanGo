@@ -42,6 +42,11 @@ variable "jwt_secret_arn" {
   type = string
 }
 
+variable "jwks_url" {
+  description = "core_api's JWKS (public token keys) for realtime and worker"
+  type        = string
+}
+
 variable "app_secret_arns" {
   description = "Secret ARNs by name: stripe, razorpay, twilio, sendgrid, firebase."
   type        = map(string)

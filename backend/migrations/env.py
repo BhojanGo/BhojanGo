@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import core_api.modules.catalog.models  # noqa: F401
 import core_api.modules.identity.models.address  # noqa: F401
+import core_api.modules.identity.models.admin_role  # noqa: F401
 import core_api.modules.identity.models.user  # noqa: F401
 import core_api.modules.orders.models  # noqa: F401
 import core_api.modules.payments.models  # noqa: F401
