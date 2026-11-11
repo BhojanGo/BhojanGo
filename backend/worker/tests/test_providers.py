@@ -50,3 +50,33 @@ def test_fixed_otp_only_for_seed_phones_outside_production(monkeypatch) -> None:
     assert _fixed_code_for("+919876543210") is None
     monkeypatch.setattr(get_settings(), "APP_ENV", "production")
     assert _fixed_code_for("+9190000101") is None
+
+
+def test_live_sms_routes_by_country(monkeypatch) -> None:
+    from shared.providers.sms import Msg91Sms, TwilioSms
+
+    monkeypatch.setattr(get_settings().providers, "SMS_PROVIDER", "live")
+    assert isinstance(get_sms_provider("IN"), Msg91Sms)
+    assert isinstance(get_sms_provider("US"), TwilioSms)
+
+
+async def test_msg91_sends_dlt_template(monkeypatch) -> None:
+    import httpx
+
+    from shared.providers.sms import Msg91Sms
+
+    sent = {}
+
+    async def fake_post(self, url, headers, json):
+        sent.update(url=url, headers=headers, json=json)
+        return httpx.Response(200, json={"type": "success"})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    monkeypatch.setattr(get_settings().providers, "MSG91_AUTH_KEY", "test-key")
+    monkeypatch.setattr(get_settings().providers, "MSG91_TEMPLATE_IDS", {"otp": "tmpl-otp"})
+    assert await Msg91Sms().send("+919876543210", "code 123456", "IN", "otp", {"otp": "123456"})
+    assert sent["json"]["template_id"] == "tmpl-otp"
+    assert sent["json"]["recipients"] == [{"mobiles": "919876543210", "otp": "123456"}]
+    assert sent["headers"]["authkey"] == "test-key"
+    # No template registered for this message: refuse rather than send off-template.
+    assert not await Msg91Sms().send("+919876543210", "hi", "IN", "promo", {})

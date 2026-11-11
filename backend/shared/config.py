@@ -5,7 +5,9 @@ a section (``settings.payments.STRIPE_SECRET_KEY``). Every field keeps the
 environment variable name it had when each service had its own config.py, so
 existing .env files and deploy configs keep working unchanged.
 """
+import tempfile
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,15 +31,24 @@ class IdentitySettings(BaseSettings):
     TWILIO_PHONE_NUMBER: str = ""
     TWILIO_PHONE_NUMBER_IN: str = ""
 
+    # Sign in with Google / Apple: the OAuth client ids whose ID tokens we
+    # accept (web, iOS and Android each have one). Verifying needs no account.
     GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_IDS: list[str] = []
     GOOGLE_CLIENT_SECRET: str = ""
 
+    # Apple: the app bundle ids (native) and the Services ID (web).
+    APPLE_CLIENT_IDS: list[str] = ["com.bhojango.app", "com.bhojango.rider", "com.bhojango.partner"]
     APPLE_CLIENT_ID: str = ""
     APPLE_TEAM_ID: str = ""
     APPLE_KEY_ID: str = ""
     APPLE_PRIVATE_KEY: str = ""
 
     SNS_TOPIC_ARN_USER: str = ""
+
+    @property
+    def google_audiences(self) -> list[str]:
+        return [c for c in [*self.GOOGLE_CLIENT_IDS, self.GOOGLE_CLIENT_ID] if c]
 
     RATE_LIMIT_REGISTER: str = "5/minute"
     RATE_LIMIT_LOGIN: str = "10/minute"
@@ -163,7 +174,10 @@ class ProviderSettings(BaseSettings):
     FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: float = 0
     FAKE_PAYMENT_WEBHOOK_URL: str = "http://localhost:8001/api/v1/payments/fake/webhook"
 
-    SMS_PROVIDER: str = "log"  # log | twilio
+    SMS_PROVIDER: str = "log"  # log | live (Twilio for US, MSG91 for India)
+    MSG91_AUTH_KEY: str = ""
+    # DLT-registered template id per message key, e.g. {"otp": "6650..."}
+    MSG91_TEMPLATE_IDS: dict[str, str] = {}
     EMAIL_PROVIDER: str = "log"  # log | smtp | sendgrid
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
@@ -199,9 +213,12 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: str = ""
 
-    # JWT (verification is shared; only identity issues tokens)
-    JWT_SECRET: str
-    JWT_ALGORITHM: str = "HS256"
+    # JWT: RS256 (shared/jwt_keys.py). Only core_api signs; everyone verifies.
+    JWT_PRIVATE_KEY: str = ""  # PEM; required in production (core_api)
+    JWT_PUBLIC_KEYS: list[str] = []  # extra PEMs to accept, e.g. the previous key while rotating
+    JWKS_URL: str = ""  # realtime/worker: core_api's /.well-known/jwks.json
+    JWT_DEV_KEY_PATH: str = Field(default_factory=lambda: str(Path(tempfile.gettempdir()) / "bhojango-jwt-dev.pem"))
+    JWT_SECRET: str = ""  # unused since P5 (HS256 -> RS256); kept so old env files still load
 
     # AWS
     AWS_REGION: str = "us-east-1"

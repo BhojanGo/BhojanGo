@@ -81,9 +81,23 @@ curl -s 'http://localhost:8001/api/v1/restaurants?limit=20'   # 10 restaurants, 
 **Used the old `docker compose` setup before Nov 2026?** Its Postgres volume holds the
 pre-P1 schema. Run `make reset` once to start clean.
 
-**Seed logins** (all `BhojanGo123`; admin `BhojanGoAdmin1`): `customer1..5.hyd@example.com`,
-`rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise,
-and `admin@example.com`. Markets: India ▸ Telangana ▸ Hyderabad and USA ▸ Idaho ▸ Boise.
+**Seed logins** (all `BhojanGo123`): `customer1..5.hyd@example.com`,
+`rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise.
+Customers can also sign in by phone (`POST /api/v1/auth/send-otp`, then `/auth/phone`):
+seed phones `+9190000101..105` and `+120855500101..105` always get code **123456**.
+Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ Boise (`US-ID-BOI`).
+
+**Admin logins** (all `BhojanGoAdmin1`), one per role and scope (`shared/authz.py`):
+`admin@` super admin · `cm.in@`, `cm.us@` country managers · `ops.hyd@`, `ops.boi@` city ops ·
+`support.hyd@`, `support.boi@` support agents · `finance.in@`, `finance.us@` finance ·
+`viewer@` read-only (India and USA), all `@example.com`.
+
+**Sign-in (P5):** email + password, phone OTP, Sign in with Apple and Google (ID tokens
+verified against the providers' keys; set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`).
+Tokens are RS256: 15-minute access tokens and rotating refresh tokens (a reused refresh
+token ends that session). Public keys: `GET /.well-known/jwks.json`. Locally a signing
+key is created on first start and kept on the `jwt_keys` volume; production reads
+`JWT_PRIVATE_KEY` from Secrets Manager. Delete account: `DELETE /api/v1/users/me`.
 
 **No accounts needed.** Every external provider has a local stand-in, so nothing
 needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateways.py`):
@@ -97,7 +111,7 @@ needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateway
 | Maps / ETA | Straight-line distance × 1.3 road factor, 25 km/h | `GET /api/v1/delivery/{order_id}/eta` on realtime |
 | Storage, queues | LocalStack (S3, SQS, SNS) | http://localhost:4566 |
 
-Real keys plug in later through env vars (`PAYMENT_PROVIDER=live`, `SMS_PROVIDER=twilio`,
+Real keys plug in later through env vars (`PAYMENT_PROVIDER=live`, `SMS_PROVIDER=live` (Twilio US, MSG91 India),
 `EMAIL_PROVIDER=sendgrid`, `PUSH_PROVIDER=fcm`); `APP_ENV=production` refuses the local stand-ins.
 
 **Mobile apps** run on your machine with Expo (Node 24 + pnpm): copy

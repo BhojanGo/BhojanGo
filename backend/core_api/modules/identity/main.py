@@ -11,7 +11,8 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from core_api import errors
-from core_api.modules.identity.api.v1 import addresses, auth, users
+from core_api.modules.identity.api.v1 import addresses, admin, auth, users
+from shared import jwt_keys
 
 
 def register(app: FastAPI) -> None:
@@ -27,3 +28,12 @@ def register(app: FastAPI) -> None:
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(users.router, prefix="/api/v1")
     app.include_router(addresses.router, prefix="/api/v1")
+    app.include_router(admin.router, prefix="/api/v1")
+
+    # Public keys for verifying our RS256 tokens (realtime and worker use it).
+    @app.get("/.well-known/jwks.json", tags=["Authentication"], include_in_schema=True)
+    async def jwks() -> dict:
+        return jwt_keys.jwks()
+
+    # Fail at start-up, not on the first sign-in, if the signing key is missing.
+    jwt_keys.signing_key()

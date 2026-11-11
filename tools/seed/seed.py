@@ -21,7 +21,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from data import ADMIN, ADMIN_PASSWORD, MARKETS, PASSWORD  # noqa: E402
+from data import ADMINS, ADMIN_PASSWORD, MARKETS, PASSWORD  # noqa: E402
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -51,6 +51,12 @@ VALUES (:id, :user_id, 'Home', :street, :city, :state, :postal_code, :country, n
 ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id, street = EXCLUDED.street, city = EXCLUDED.city,
     state = EXCLUDED.state, postal_code = EXCLUDED.postal_code, country = EXCLUDED.country
+""")
+
+UPSERT_ADMIN_ROLE = text("""
+INSERT INTO admin_role_assignments (id, user_id, role, scope, created_at)
+VALUES (:id, :user_id, :role, :scope, now())
+ON CONFLICT (user_id, role, scope) DO NOTHING
 """)
 
 UPSERT_RESTAURANT = text("""
@@ -163,8 +169,17 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                             "is_veg": veg, "customizations": json.dumps(custom), "sort_order": i_order,
                         })
 
-        await upsert_user(conn, ADMIN["email"], ADMIN["name"], "super_admin", None, None, ADMIN_PASSWORD)
-        logins.append(("All markets", "admin (super_admin)", ADMIN["email"], ADMIN_PASSWORD))
+        for email, name, country, roles in ADMINS:
+            market = next(m for m in MARKETS if m["country"] == country)
+            # users.role is the persona the current admin app checks; the scoped
+            # permissions come from admin_role_assignments (shared/authz.py).
+            persona = "super_admin" if any(r == "super_admin" for r, _ in roles) else "admin"
+            user_id = await upsert_user(conn, email, name, persona, market, None, ADMIN_PASSWORD)
+            for role, scope in roles:
+                await conn.execute(UPSERT_ADMIN_ROLE, {
+                    "id": sid("admin_role", email, role, scope), "user_id": user_id, "role": role, "scope": scope,
+                })
+            logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, ADMIN_PASSWORD))
 
         counts = (await conn.execute(text(
             "SELECT (SELECT count(*) FROM restaurants WHERE slug = ANY(:slugs)),"

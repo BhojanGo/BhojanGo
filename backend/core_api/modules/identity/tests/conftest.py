@@ -1,6 +1,6 @@
 import asyncio
 from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from core_api.modules.identity.api.v1.auth import limiter as auth_limiter
 from core_api.modules.identity.models.address import Address
+from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.user import User
 from shared.db import Base, get_db
 from core_api.main import app
@@ -28,7 +29,7 @@ TestSessionLocal = async_sessionmaker(
 
 # Base.metadata is shared by every core_api module (some use Postgres-only
 # types), so only create identity's tables in SQLite.
-IDENTITY_TABLES = [User.__table__, Address.__table__]
+IDENTITY_TABLES = [User.__table__, Address.__table__, AdminRoleAssignment.__table__]
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -56,33 +57,21 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     # Rate-limit counters are in-memory and shared across tests; start each test clean.
     auth_limiter.reset()
 
-    # Mock Redis
-    with patch("shared.redis._redis_client") as mock_redis:
-        mock = AsyncMock()
-        mock.ping.return_value = True
-        mock.get.return_value = None
-        mock.setex.return_value = True
-        mock.delete.return_value = 1
-        mock.exists.return_value = 0
-        mock.keys.return_value = []
-        mock.incr.return_value = 1
-        mock.expire.return_value = True
-        # redis.asyncio's pipeline() is synchronous; only execute() is awaited.
-        pipe = MagicMock()
-        pipe.execute = AsyncMock(return_value=[1, True])
-        mock.pipeline = MagicMock(return_value=pipe)
+    # Real Redis semantics in memory (refresh families, OTP, blacklist).
+    import fakeredis
 
-        async def mock_get_redis():
-            return mock
+    fake = fakeredis.FakeAsyncRedis(decode_responses=True)
 
-        with patch("shared.redis.get_redis", mock_get_redis), \
-             patch("core_api.modules.identity.service.otp.get_redis", mock_get_redis), \
-             patch("core_api.modules.identity.service.auth.get_redis", mock_get_redis), \
-             patch("core_api.modules.identity.api.dependencies.get_redis", mock_get_redis):
+    async def fake_get_redis():
+        return fake
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as ac:
-                yield ac
+    with (
+        patch("shared.redis.get_redis", fake_get_redis),
+        patch("core_api.modules.identity.service.otp.get_redis", fake_get_redis),
+        patch("core_api.modules.identity.service.auth.get_redis", fake_get_redis),
+        patch("core_api.modules.identity.api.dependencies.get_redis", fake_get_redis),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            yield ac
 
     app.dependency_overrides.clear()

@@ -155,6 +155,7 @@ module "ecs" {
   redis_secret_arn   = module.redis.auth_secret_arn
   redis_endpoint     = module.redis.endpoint
   jwt_secret_arn     = module.secrets.jwt_secret_arn
+  jwks_url           = "http://${module.alb.alb_dns_name}/.well-known/jwks.json"
   app_secret_arns    = module.secrets.secret_arns
   sqs_queue_urls     = module.sqs_sns.queue_urls
   sns_topic_arns     = module.sqs_sns.topic_arns

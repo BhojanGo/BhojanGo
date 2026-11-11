@@ -19,6 +19,7 @@ MARKETS = [
         "currency": "INR",
         "locale": "en-IN",
         "phone_prefix": "+9190000",
+        "scope": "IN-TG-HYD",  # market code: country-state-city (shared/authz.py)
         "partner": "Hyderabad Partner",
         "customers": [
             ("Srini Rao", "Flat 302, Ayyappa Society", "Madhapur", "500081", 17.4483, 78.3915),
@@ -174,6 +175,7 @@ MARKETS = [
         "currency": "USD",
         "locale": "en-US",
         "phone_prefix": "+120855500",
+        "scope": "US-ID-BOI",
         "partner": "Boise Partner",
         "customers": [
             ("Emily Carter", "1510 N 13th St", "North End", "83702", 43.6290, -116.2070),
@@ -310,4 +312,17 @@ MARKETS = [
     },
 ]
 
-ADMIN = {"name": "BhojanGo Admin", "email": "admin@example.com"}
+# Admin console users (password ADMIN_PASSWORD), one per role and scope.
+# (email, name, country, [(role, scope)])
+ADMINS = [
+    ("admin@example.com", "BhojanGo Admin", "US", [("super_admin", "*")]),
+    ("cm.in@example.com", "India Country Manager", "IN", [("country_manager", "IN")]),
+    ("cm.us@example.com", "USA Country Manager", "US", [("country_manager", "US")]),
+    ("ops.hyd@example.com", "Hyderabad City Ops", "IN", [("city_ops", "IN-TG-HYD")]),
+    ("ops.boi@example.com", "Boise City Ops", "US", [("city_ops", "US-ID-BOI")]),
+    ("support.hyd@example.com", "Hyderabad Support", "IN", [("support_agent", "IN-TG-HYD")]),
+    ("support.boi@example.com", "Boise Support", "US", [("support_agent", "US-ID-BOI")]),
+    ("finance.in@example.com", "India Finance", "IN", [("finance", "IN")]),
+    ("finance.us@example.com", "USA Finance", "US", [("finance", "US")]),
+    ("viewer@example.com", "Read-only Viewer", "US", [("viewer", "IN"), ("viewer", "US")]),
+]

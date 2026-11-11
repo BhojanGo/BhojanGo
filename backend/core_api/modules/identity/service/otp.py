@@ -36,7 +36,8 @@ async def send_otp(phone: str, country: str) -> bool:
 
     # The worker sends it (locally: printed in the worker log).
     body = f"Your BhojanGo verification code is: {otp}. Valid for {settings.identity.OTP_EXPIRE_MINUTES} minutes."
-    return await notify.send("sms", phone, body, country=country)
+    return await notify.send("sms", phone, body, country=country, template="otp",
+                             params={"otp": otp, "minutes": settings.identity.OTP_EXPIRE_MINUTES})
 
 
 def _fixed_code_for(phone: str) -> str | None:

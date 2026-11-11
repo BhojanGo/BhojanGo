@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 UserRole = Literal["customer", "driver", "restaurant_owner", "admin", "super_admin"]
 Country = Literal["US", "IN"]
 Currency = Literal["USD", "INR"]
-Locale = Literal["en-US", "en-IN", "hi-IN"]
+Locale = Literal["en-US", "en-IN", "hi-IN", "te-IN"]
 
 
 class UserBase(BaseModel):
@@ -81,6 +81,15 @@ class ResetPasswordRequest(BaseModel):
         return v
 
 
+class PhoneSignInRequest(BaseModel):
+    """Sign in (or sign up) with the code from /auth/send-otp."""
+
+    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$")
+    otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    country: Country
+    full_name: str | None = Field(default=None, min_length=2, max_length=255)
+
+
 class SocialLoginRequest(BaseModel):
     provider: Literal["google", "apple"]
     token: str = Field(min_length=10)
@@ -106,7 +115,7 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
-    email: str
+    email: str | None
     phone: str | None
     full_name: str
     avatar_url: str | None
@@ -129,6 +138,9 @@ class AuthTokensResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserResponse
+    is_new_user: bool = False
+    # Admin role assignments, "role@scope" (empty for customers, riders, partners)
+    admin_roles: list[str] = []
 
 
 class MessageResponse(BaseModel):

@@ -5,7 +5,7 @@
 # placeholder, and then ignores the value. Real values (Stripe, Razorpay,
 # Twilio, SendGrid, Firebase) are set in Secrets Manager by a person (see
 # docs/runbooks/aws-setup.md), so they never pass through Terraform or its
-# state. The JWT secret is generated here.
+# state. The JWT signing key (RS256) is generated here.
 # ──────────────────────────────────────────────
 
 locals {
@@ -33,14 +33,18 @@ locals {
   }
 }
 
-resource "random_password" "jwt_secret" {
-  length  = 64
-  special = false
+# RS256 key for access and refresh tokens. core_api signs with it and
+# publishes the public half at /.well-known/jwks.json. To rotate: put the old
+# public key in JWT_PUBLIC_KEYS for one refresh-token lifetime, then replace
+# this resource (terraform apply -replace=module.platform.module.secrets.tls_private_key.jwt).
+resource "tls_private_key" "jwt" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
 }
 
 resource "aws_secretsmanager_secret" "jwt" {
   name                    = "${var.name}/jwt"
-  description             = "JWT signing secret (HS256 until P5 moves to RS256 + JWKS)"
+  description             = "RS256 private key that signs access and refresh tokens"
   kms_key_id              = var.kms_key_arn
   recovery_window_in_days = var.environment == "prod" ? 30 : 0
   tags                    = merge(var.tags, { Name = "${var.name}/jwt" })
@@ -48,7 +52,7 @@ resource "aws_secretsmanager_secret" "jwt" {
 
 resource "aws_secretsmanager_secret_version" "jwt" {
   secret_id     = aws_secretsmanager_secret.jwt.id
-  secret_string = jsonencode({ secret = random_password.jwt_secret.result, algorithm = "HS256" })
+  secret_string = jsonencode({ private_key = tls_private_key.jwt.private_key_pem, algorithm = "RS256" })
 }
 
 resource "aws_secretsmanager_secret" "app" {
