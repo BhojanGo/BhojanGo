@@ -1,0 +1,198 @@
+"""One Settings class for every backend deployable (core_api, realtime, worker).
+
+Common settings live at the top level; settings that only one area uses live in
+a section (``settings.payments.STRIPE_SECRET_KEY``). Every field keeps the
+environment variable name it had when each service had its own config.py, so
+existing .env files and deploy configs keep working unchanged.
+"""
+from functools import lru_cache
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ENV = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+
+class IdentitySettings(BaseSettings):
+    """Was services/user-svc."""
+
+    model_config = _ENV
+
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    OTP_EXPIRE_MINUTES: int = 10
+    OTP_LENGTH: int = 6
+
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+    TWILIO_PHONE_NUMBER_IN: str = ""
+
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
+    APPLE_CLIENT_ID: str = ""
+    APPLE_TEAM_ID: str = ""
+    APPLE_KEY_ID: str = ""
+    APPLE_PRIVATE_KEY: str = ""
+
+    SNS_TOPIC_ARN_USER: str = ""
+
+    RATE_LIMIT_REGISTER: str = "5/minute"
+    RATE_LIMIT_LOGIN: str = "10/minute"
+    RATE_LIMIT_OTP: str = "3/minute"
+
+
+class CatalogSettings(BaseSettings):
+    """Was services/restaurant-svc."""
+
+    model_config = _ENV
+
+    CACHE_TTL_RESTAURANTS: int = 300  # 5 minutes
+
+    AWS_S3_BUCKET: str = "bhojango-assets-dev"
+    AWS_CLOUDFRONT_URL: str = ""
+
+    OPENSEARCH_URL: str = "http://localhost:9200"
+    OPENSEARCH_INDEX_RESTAURANTS: str = "bhojango-restaurants"
+    OPENSEARCH_INDEX_MENU_ITEMS: str = "bhojango-menu-items"
+
+
+class OrdersSettings(BaseSettings):
+    """Was services/order-svc."""
+
+    model_config = _ENV
+
+    SNS_TOPIC_ARN_ORDER: str = ""
+
+    # Catalog and payments now run in the same process (core_api); these URLs
+    # are kept because orders still calls them over HTTP until a later prompt
+    # replaces the calls with in-process service calls.
+    RESTAURANT_SVC_URL: str = "http://localhost:8001"
+    PAYMENT_SVC_URL: str = "http://localhost:8001"
+
+    # Delivery time estimation (minutes)
+    BASE_DELIVERY_MINUTES: int = 30
+    PREP_TIME_BUFFER_MINUTES: int = 5
+
+
+class PaymentsSettings(BaseSettings):
+    """Was services/payment-svc."""
+
+    model_config = _ENV
+
+    # Stripe (USA)
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+
+    # Razorpay (India)
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+
+    SNS_TOPIC_ARN_PAYMENT: str = ""
+
+    ORDER_SVC_URL: str = "http://localhost:8001"
+
+
+class RealtimeSettings(BaseSettings):
+    """Was services/delivery-svc."""
+
+    model_config = _ENV
+
+    DRIVER_LOCATION_TTL: int = 30  # seconds
+
+    SNS_TOPIC_ARN_DELIVERY: str = ""
+    SQS_QUEUE_URL_DELIVERY: str = ""
+    DYNAMODB_TABLE_DELIVERY_HISTORY: str = "bhojango-delivery-history"
+    DYNAMODB_ENDPOINT_URL: str = ""
+
+    AWS_LOCATION_ROUTE_CALCULATOR: str = "bhojango-route-calculator"
+
+    ORDER_SVC_URL: str = "http://localhost:8001"
+
+
+class WorkerSettings(BaseSettings):
+    """Was services/notification-svc."""
+
+    model_config = _ENV
+
+    SQS_QUEUE_URL_NOTIFICATION: str = ""
+
+    # Firebase FCM
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_PRIVATE_KEY_ID: str = ""
+    FIREBASE_PRIVATE_KEY: str = ""
+    FIREBASE_CLIENT_EMAIL: str = ""
+
+    # Twilio SMS (same env vars as identity's OTP sender)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+    TWILIO_PHONE_NUMBER_IN: str = ""
+
+    # SendGrid email
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_FROM_EMAIL: str = "noreply@bhojango.com"
+    SENDGRID_FROM_NAME: str = "BhojanGo"
+
+    # SQS polling
+    SQS_MAX_MESSAGES: int = 10
+    SQS_WAIT_TIME_SECONDS: int = 20
+    SQS_VISIBILITY_TIMEOUT: int = 60
+
+
+class Settings(BaseSettings):
+    model_config = _ENV
+
+    # App — SERVICE_NAME and PORT are set per deployable (Dockerfile / compose).
+    APP_ENV: str = "development"
+    SERVICE_NAME: str = "core-api"
+    VERSION: str = "0.1.0"
+    PORT: int = 8001
+    LOG_LEVEL: str = "INFO"
+
+    # Database (realtime does not use it, so it is not required at import time;
+    # shared.db refuses to start without it)
+    DATABASE_URL: str = ""
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
+    DB_ECHO: bool = False
+
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_PASSWORD: str = ""
+
+    # JWT (verification is shared; only identity issues tokens)
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
+
+    # AWS
+    AWS_REGION: str = "us-east-1"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_ENDPOINT_URL: str = ""  # LocalStack URL in dev
+
+    # CORS
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]
+
+    identity: IdentitySettings = Field(default_factory=IdentitySettings)
+    catalog: CatalogSettings = Field(default_factory=CatalogSettings)
+    orders: OrdersSettings = Field(default_factory=OrdersSettings)
+    payments: PaymentsSettings = Field(default_factory=PaymentsSettings)
+    realtime: RealtimeSettings = Field(default_factory=RealtimeSettings)
+    worker: WorkerSettings = Field(default_factory=WorkerSettings)
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        if v and not v.startswith("postgresql"):
+            raise ValueError("DATABASE_URL must be a PostgreSQL connection string")
+        return v
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]

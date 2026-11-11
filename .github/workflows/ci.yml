@@ -36,36 +36,61 @@ jobs:
 
       - name: Build packages
         run: pnpm turbo build --filter='./packages/*'
-        continue-on-error: true
 
       - name: Lint
         run: pnpm turbo lint --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
 
       - name: Type check
         run: pnpm turbo typecheck --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
+
+      - name: Test
+        run: pnpm turbo test --filter='./apps/*' --filter='./packages/*'
 
   # ──────────────────────────────────────────
-  # Backend: test all microservices in parallel
+  # Backend: one uv project, three deployables
   # ──────────────────────────────────────────
   backend-test:
-    name: Test ${{ matrix.service }}
+    name: Backend Tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - user-svc
-          - restaurant-svc
-          - order-svc
-          - delivery-svc
-          - payment-svc
-          - notification-svc
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
+      REDIS_URL: redis://localhost:6379/15
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+      APP_ENV: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    steps:
+      - uses: actions/checkout@v4
 
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # realtime and worker each have an `app` package, so they run separately.
+      - name: Test core_api
+        run: uv run pytest core_api -v --tb=short
+      - name: Test realtime
+        run: uv run pytest realtime -v --tb=short
+      - name: Test worker
+        run: uv run pytest worker -v --tb=short
+
+  # ──────────────────────────────────────────
+  # Migrations: single history applies cleanly
+  # ──────────────────────────────────────────
+  migrations:
+    name: Migrations
+    runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: bhojango
           POSTGRES_PASSWORD: bhojango_test
@@ -77,84 +102,80 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
+    env:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
+          version: "0.13.7"
+          enable-cache: true
 
-      - name: Install dependencies
-        working-directory: services/${{ matrix.service }}
-        run: |
-          pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
-          pip install pytest pytest-asyncio pytest-cov httpx
+      - name: Create schemas and extensions
+        run: psql "postgresql://bhojango:bhojango_test@localhost:5432/bhojango_test" -f infra/docker/db/init.sql
 
-      - name: Run tests
-        working-directory: services/${{ matrix.service }}
-        env:
-          DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
-          REDIS_URL: redis://localhost:6379/15
-          JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
-          ENVIRONMENT: test
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: test
-          AWS_SECRET_ACCESS_KEY: test
+      - name: Upgrade, downgrade, upgrade
+        working-directory: backend
         run: |
-          pytest tests/ -v --tb=short || true
+          uv sync --frozen
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
 
   # ──────────────────────────────────────────
   # Docker build check (no push without AWS)
   # ──────────────────────────────────────────
   docker-build:
-    name: Docker Build ${{ matrix.service }}
-    needs: [frontend, backend-test]
+    name: Docker Build ${{ matrix.image }}
+    needs: [frontend, backend-test, migrations]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - user-svc
-          - restaurant-svc
-          - order-svc
-          - delivery-svc
-          - payment-svc
-          - notification-svc
+        image:
+          - core_api
+          - realtime
+          - worker
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t bhojango-${{ matrix.service }}:test services/${{ matrix.service }}
+        run: docker build -f backend/${{ matrix.image }}/Dockerfile -t bhojango-${{ matrix.image }}:test backend
 
   # ──────────────────────────────────────────
   # Deploy to ECS (only when AWS secrets exist)
   # ──────────────────────────────────────────
+  # Job-level `if` can't read secrets, so a tiny job reports whether AWS is set up.
+  aws-configured:
+    name: Check AWS credentials
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: echo "enabled=$([ -n "$AWS_ACCOUNT_ID" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy ${{ matrix.service }}
-    needs: [docker-build]
-    if: ${{ secrets.AWS_ACCOUNT_ID != '' }}
+    needs: [docker-build, aws-configured]
+    if: needs.aws-configured.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 2
       matrix:
-        service:
-          - user-svc
-          - restaurant-svc
-          - order-svc
-          - delivery-svc
-          - payment-svc
-          - notification-svc
+        # ECS services/ECR repos for these three are created when P4 trims
+        # infra/terraform; until then this job has nothing to deploy to.
+        include:
+          - image: core_api
+            service: core-api
+          - image: realtime
+            service: realtime
+          - image: worker
+            service: worker
 
     steps:
       - uses: actions/checkout@v4
@@ -171,7 +192,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: services/${{ matrix.service }}
+          context: backend
+          file: backend/${{ matrix.image }}/Dockerfile
           push: true
           tags: |
             ${{ env.ECR_REGISTRY }}/bhojango-prod/${{ matrix.service }}:${{ github.sha }}

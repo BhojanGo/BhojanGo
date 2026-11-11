@@ -22,25 +22,22 @@ docker compose up -d
 # 3. Install frontend dependencies
 pnpm install
 
-# 4. Install backend dependencies (per service)
-cd services/user-svc && poetry install
-cd services/restaurant-svc && poetry install
-cd services/order-svc && poetry install
+# 4. Install backend dependencies (one uv project for all of backend/)
+cd backend && uv sync && cd ..
 
-# 5. Run database migrations
-cd services/user-svc && alembic upgrade head
-cd services/restaurant-svc && alembic upgrade head
-cd services/order-svc && alembic upgrade head
+# 5. Run database migrations (one history)
+cd backend && uv run alembic upgrade head && cd ..
 
 # 6. Seed test data
-bash scripts/seed/run_all.sh --env local
+bash tools/seed/run_all.sh --env local
 
 # 7. Start development servers
 pnpm dev           # Frontend apps (web:3000, admin:3001)
 # In separate terminals:
-cd services/user-svc && uvicorn app.main:app --reload --port 8001
-cd services/restaurant-svc && uvicorn app.main:app --reload --port 8002
-cd services/order-svc && uvicorn app.main:app --reload --port 8003
+cd backend && uv run uvicorn core_api.main:app --reload --port 8001
+cd backend && uv run uvicorn app.main:app --app-dir realtime --reload --port 8004
+cd backend && uv run uvicorn app.main:app --app-dir worker --reload --port 8006
+pnpm --filter @bhojango/customer start   # or @bhojango/rider
 ```
 
 ## Branch Naming
@@ -58,8 +55,8 @@ cd services/order-svc && uvicorn app.main:app --reload --port 8003
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat(order-svc): add idempotency key support for order creation
-fix(user-svc): prevent timing attack in login endpoint
+feat(orders): add idempotency key support for order creation
+fix(identity): prevent timing attack in login endpoint
 chore: update Python dependencies across all services
 docs: add operations runbook
 ```
@@ -70,7 +67,7 @@ docs: add operations runbook
 
 1. Create a feature branch from `dev`
 2. Make your changes with clear, atomic commits
-3. Ensure all tests pass: `pytest` (backend), `pnpm test` (frontend)
+3. Ensure all tests pass: `uv run pytest core_api|realtime|worker` in `backend/`, `pnpm turbo test lint typecheck`
 4. Open PR to `dev` branch
 5. Fill out the PR template completely
 6. Request review — response expected within 24 hours
@@ -84,17 +81,17 @@ docs: add operations runbook
 - Approve if the code meets standards — don't block on style preferences
 - Use "Request Changes" only for issues that must be fixed
 
-## Adding a New Microservice
+## Adding a New Backend Module
 
-- [ ] Create `services/<name>/` with standard structure
-- [ ] Add FastAPI app with health check, CORS, rate limiting
-- [ ] Add SQLAlchemy models and Alembic migration
-- [ ] Add Dockerfile and .dockerignore
-- [ ] Add pyproject.toml with dependencies
-- [ ] Add route in `infra/kong/kong.yml`
-- [ ] Add to `docker-compose.yml`
-- [ ] Add CI job in `.github/workflows/ci.yml`
-- [ ] Add Terraform ECS task definition
+New business areas are core_api modules, not new services (see
+[docs/specs/01-structure.md](docs/specs/01-structure.md)).
+
+- [ ] Create `backend/core_api/modules/<name>/` with `api/`, `service/`, `repository/`, `models/`, `schemas/` and `tests/`
+- [ ] Add a `main.py` with `register(app)` and add it to `MODULES` in `backend/core_api/main.py`
+- [ ] Models use `shared.db.Base`; import them in `backend/migrations/env.py` and add an Alembic revision
+- [ ] Settings go in a section of `backend/shared/config.py`
+- [ ] Read other modules only through their `service/`, never their tables
+- [ ] Add a Kong route in `infra/docker/kong/kong.yml` (until P3 removes Kong from local Docker)
 
 ## Adding a New API Endpoint
 

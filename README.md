@@ -10,14 +10,14 @@ Production-ready food delivery platform for **USA** and **India** — built like
 | Web App | Next.js 14 (App Router, TypeScript, Tailwind) |
 | Mobile | Expo 51 (React Native, NativeWind) |
 | Admin | Next.js 14 dashboard |
-| Backend | Python FastAPI microservices |
+| Backend | Python 3.12 FastAPI — 3 deployables (core_api, realtime, worker), one uv project |
 | Database | PostgreSQL 16 + Redis 7 |
 | Cloud | AWS (ECS Fargate, RDS, ElastiCache, SQS/SNS) |
 | Auth | AWS Cognito + JWT + Google + Apple + OTP |
 | Payments | Stripe (USA) + Razorpay (India) + wallet |
 | Real-time | WebSockets + AWS Location Service |
 | Search | OpenSearch |
-| API Gateway | Kong (declarative config) |
+| API Gateway | Kong locally until P3 (then direct calls); AWS ALB + WAF from P4 |
 | IaC | Terraform (15 modules) |
 | CI/CD | GitHub Actions |
 | Observability | CloudWatch + X-Ray + Sentry |
@@ -42,15 +42,19 @@ pnpm install
 cp .env.example .env
 # Edit .env with your API keys (Stripe, Twilio, etc.)
 
-# 3. Start all services via Docker Compose
+# 3. Start infrastructure (Postgres, Redis, LocalStack, Kong)
 docker compose up -d
+#    ...or infrastructure + the 3 backend images (core-api runs migrations on start)
+docker compose --profile backend up -d --build
 
-# 4. Run database migrations (wait for Postgres to be healthy first)
-cd services/user-svc && alembic upgrade head && cd ../..
-cd services/restaurant-svc && alembic upgrade head && cd ../..
-cd services/order-svc && alembic upgrade head && cd ../..
-cd services/payment-svc && alembic upgrade head && cd ../..
-cd services/notification-svc && alembic upgrade head && cd ../..
+# 4. Or run the backend on the host instead (needs uv: https://docs.astral.sh/uv/)
+cd backend
+uv sync
+uv run alembic upgrade head                        # one migration history
+uv run uvicorn core_api.main:app --reload --port 8001
+uv run uvicorn app.main:app --app-dir realtime --reload --port 8004
+uv run uvicorn app.main:app --app-dir worker --reload --port 8006
+cd ..
 
 # 5. Start frontend development servers
 pnpm dev
@@ -59,54 +63,42 @@ pnpm dev
 ## Architecture
 
 ```
-                        ┌───────────────┐
-                        │   Kong API    │
-                        │   Gateway     │
-                        │   :8888       │
-                        └───────┬───────┘
-                                │
-          ┌─────────┬───────────┼───────────┬──────────┐
-          │         │           │           │          │
-     ┌────▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐
-     │user-svc│ │rest-svc│ │ord-svc │ │pay-svc │ │notif-  │
-     │ :8001  │ │ :8002  │ │ :8003  │ │ :8005  │ │svc     │
-     └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ │ :8006  │
-         │          │          │          │      └───┬────┘
-         │     ┌────▼────┐     │          │          │
-         │     │OpenSearch│    │          │     ┌────▼────┐
-         │     │ :9200   │    │          │     │  SQS    │
-         │     └─────────┘    │          │     └─────────┘
-     ┌───▼─────────────────────▼──────────▼───┐
-     │           PostgreSQL 16                │
-     │              :5432                     │
-     └────────────────────────────────────────┘
-                        │
-                   ┌────▼────┐     ┌──────────────┐
-                   │ Redis 7 │     │ delivery-svc │
-                   │  :6379  │     │    :8004     │
-                   └─────────┘     │  WebSocket   │
-                                   └──────┬───────┘
-                                          │
-                                   ┌──────▼───────┐
-                                   │DynamoDB Local │
-                                   │    :8000      │
-                                   └──────────────┘
+                         ┌───────────────┐
+                         │   Kong API    │   (local only; removed in P3)
+                         │   Gateway     │
+                         └───────┬───────┘
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+      ┌───────▼────────┐  ┌──────▼───────┐  ┌───────▼───────┐
+      │   core_api     │  │   realtime   │  │    worker     │
+      │    :8001       │  │    :8004     │  │    :8006      │
+      │ identity       │  │ rider GPS,   │  │ notifications │
+      │ catalog        │  │ tracking WS, │  │ (HTTP + SQS   │
+      │ orders         │  │ ETA,         │  │  consumer)    │
+      │ payments       │  │ earnings     │  │               │
+      └───────┬────────┘  └──────┬───────┘  └───────┬───────┘
+              │                  │                  │
+      ┌───────▼──────────────────▼──────────────────▼───────┐
+      │   PostgreSQL 16 (one Alembic history)   Redis 7     │
+      │   OpenSearch (catalog search)   SQS/SNS   DynamoDB  │
+      └─────────────────────────────────────────────────────┘
 ```
 
 ## Services
 
 | Service | Port | Description |
 |---------|------|-------------|
-| user-svc | 8001 | Auth, profiles, loyalty |
-| restaurant-svc | 8002 | Menus, vendors, ratings, search |
-| order-svc | 8003 | Order lifecycle + state machine |
-| delivery-svc | 8004 | GPS tracking, WebSockets, ETA |
-| payment-svc | 8005 | Stripe + Razorpay + wallet |
-| notification-svc | 8006 | Push (FCM) + SMS (Twilio) + email (SendGrid) |
+| core_api | 8001 | identity (auth, profiles, addresses), catalog (restaurants, menus, search), orders (state machine, fees), payments (Stripe, Razorpay, wallet) |
+| realtime | 8004 | Rider GPS, tracking WebSocket, ETA, earnings (was delivery-svc) |
+| worker | 8006 | Push (FCM) + SMS (Twilio) + email (SendGrid), SQS consumer (was notification-svc) |
 | web | 3000 | Customer web app (Next.js) |
 | admin | 3001 | Admin dashboard (Next.js) |
-| mobile | 8081 | Expo dev server |
-| **Kong** | **8888** | **API Gateway (all routes)** |
+| customer | 8081 | Expo dev server — BhojanGo app (`com.bhojango.app`) |
+| rider | 8081 | Expo dev server — BhojanGo Rider app (`com.bhojango.rider`) |
+| **Kong** | **8080** | **API Gateway (all routes; `docker compose`)** |
+
+All `/api/v1/...` URLs are the same as before the restructure; only the process
+serving them changed.
 
 ## Development Tools (Docker)
 
@@ -121,45 +113,60 @@ pnpm dev
 
 ## API Documentation
 
-Each service exposes Swagger UI at `/docs`:
+Each deployable exposes Swagger UI at `/docs`:
 
-- User Service: http://localhost:8001/docs
-- Restaurant Service: http://localhost:8002/docs
-- Order Service: http://localhost:8003/docs
-- Delivery Service: http://localhost:8004/docs
-- Payment Service: http://localhost:8005/docs
-- Notification Service: http://localhost:8006/docs
+- core_api (identity, catalog, orders, payments): http://localhost:8001/docs
+- realtime: http://localhost:8004/docs
+- worker: http://localhost:8006/docs
 
-Via Kong gateway: `http://localhost:8888/api/v1/{service}/...`
+Via Kong gateway: `http://localhost:8080/api/v1/...`
+
+> **Kong is on its way out.** Its JWT plugin rejects the tokens core_api issues, so
+> authenticated calls through Kong return 401. It will not be fixed: P3 removes Kong
+> from the local Docker setup and the apps and tests call core_api (:8001), realtime
+> (:8004) and worker (:8006) directly. Production uses AWS ALB + WAF (P4).
 
 ## Project Structure
+
+Target layout and the rules behind it: [docs/specs/01-structure.md](docs/specs/01-structure.md).
 
 ```
 bhojango/
 ├── apps/
-│   ├── web/              Next.js 14 customer app
-│   ├── mobile/           Expo React Native app
-│   └── admin/            Next.js 14 admin dashboard
-├── services/
-│   ├── user-svc/         Auth & profiles (FastAPI :8001)
-│   ├── restaurant-svc/   Menus & search (FastAPI :8002)
-│   ├── order-svc/        Order lifecycle (FastAPI :8003)
-│   ├── delivery-svc/     GPS & WebSockets (FastAPI :8004)
-│   ├── payment-svc/      Stripe + Razorpay (FastAPI :8005)
-│   └── notification-svc/ Push/SMS/email (FastAPI :8006)
+│   ├── customer/         Expo · BhojanGo customer app
+│   ├── rider/            Expo · BhojanGo Rider app
+│   ├── web/              Next.js 14 customer web
+│   └── admin/            Next.js 14 admin console
+├── backend/              Python 3.12 · one uv project (pyproject.toml, uv.lock)
+│   ├── core_api/         deployable 1 · FastAPI
+│   │   └── modules/      identity, catalog, orders, payments
+│   │                     (each: api/ service/ repository/ models/ schemas/)
+│   ├── realtime/         deployable 2 · GPS, tracking WebSocket, ETA
+│   ├── worker/           deployable 3 · notifications + SQS; batch-engine/ (TS, reference)
+│   ├── shared/           config, DB session, Redis, auth, events, logging, middleware
+│   └── migrations/       one Alembic history (alembic.ini in backend/)
 ├── packages/
-│   ├── types/            Shared TypeScript interfaces
+│   ├── mobile-core/      Auth store, API client, cart for the Expo apps
+│   ├── types/            Shared TypeScript interfaces (replaced by api-client in P17)
 │   ├── ui/               Shared React component library
 │   └── config/           Shared ESLint/TS/Prettier config
 ├── infra/
-│   ├── terraform/        AWS IaC (15 modules: VPC, ECS, RDS, etc.)
-│   ├── kong/             Kong API Gateway declarative config
-│   ├── db/               PostgreSQL init script
-│   └── localstack/       LocalStack init (SQS, SNS, S3)
-├── .github/
-│   └── workflows/        CI/CD pipelines (ci.yml, pr-checks.yml)
-├── docker-compose.yml    Full local dev stack
+│   ├── terraform/        AWS IaC
+│   └── docker/           compose.yaml, db/init.sql, kong/, localstack/
+├── tools/seed/           Seed data (SQL generators)
+├── docs/                 adr/, specs/ (source of truth for P1–P24)
+├── .github/workflows/    CI/CD pipelines (ci.yml, pr-checks.yml, security.yml)
+├── docker-compose.yml    Includes infra/docker/compose.yaml
 └── .env.example          All environment variables documented
+```
+
+### Backend tests
+
+```bash
+cd backend
+uv run pytest core_api
+uv run pytest realtime   # realtime and worker each have an `app` package,
+uv run pytest worker     # so run them as separate invocations
 ```
 
 ## Infrastructure (Terraform)
@@ -171,7 +178,7 @@ The `infra/terraform/` directory contains 15 modules for AWS deployment:
 | vpc | VPC, 3 AZs, public/private/database subnets, NAT gateways |
 | security_groups | ALB, ECS, RDS, Redis, OpenSearch security groups |
 | kms | KMS key with rotation for encryption at rest |
-| ecr | Container registries per service |
+| ecr | Container registries per service (still 7; trimmed to 3 in P4) |
 | rds | PostgreSQL 16 (Multi-AZ in prod) |
 | redis | ElastiCache Redis 7 (cluster mode in prod) |
 | opensearch | OpenSearch with VPC deployment |
@@ -201,15 +208,15 @@ GitHub Actions workflows in `.github/workflows/`:
 
 ## E2E Flow
 
-1. **Register** — `POST /api/v1/auth/register` (user-svc)
+1. **Register** — `POST /api/v1/auth/register` (core_api · identity)
 2. **Login** — `POST /api/v1/auth/login` (returns JWT)
-3. **Browse** — `GET /api/v1/restaurants?city=NYC` (restaurant-svc)
+3. **Browse** — `GET /api/v1/restaurants?city=NYC` (core_api · catalog)
 4. **View Menu** — `GET /api/v1/restaurants/:id/menu`
-5. **Create Order** — `POST /api/v1/orders` (order-svc, publishes `order.created`)
+5. **Create Order** — `POST /api/v1/orders` (core_api · orders, publishes `order.created`)
 6. **Pay** — `POST /api/v1/payments/initiate` (routes to Stripe/Razorpay)
 7. **Webhook** — Payment gateway confirms -> publishes `payment.succeeded`
-8. **Confirm** — order-svc receives event, updates to `confirmed`
-9. **Track** — `WS /ws/track/:orderId` (delivery-svc streams GPS)
+8. **Confirm** — orders receives event, updates to `confirmed`
+9. **Track** — `WS /ws/track/:orderId` (realtime streams GPS)
 10. **Deliver** — Driver updates status through `preparing` -> `picked_up` -> `delivered`
 
 ## Contributing

@@ -1,0 +1,88 @@
+import asyncio
+from typing import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+import pytest_asyncio
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from core_api.modules.identity.api.v1.auth import limiter as auth_limiter
+from core_api.modules.identity.models.address import Address
+from core_api.modules.identity.models.user import User
+from shared.db import Base, get_db
+from core_api.main import app
+
+# ── Test database (SQLite in-memory for speed) ────────────────────────────────
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+TestSessionLocal = async_sessionmaker(
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+
+# Base.metadata is shared by every core_api module (some use Postgres-only
+# types), so only create identity's tables in SQLite.
+IDENTITY_TABLES = [User.__table__, Address.__table__]
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def create_tables():
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all, tables=IDENTITY_TABLES)
+    yield
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all, tables=IDENTITY_TABLES)
+
+
+@pytest_asyncio.fixture
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    async with TestSessionLocal() as session:
+        yield session
+        await session.rollback()
+
+
+@pytest_asyncio.fixture
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    # Rate-limit counters are in-memory and shared across tests; start each test clean.
+    auth_limiter.reset()
+
+    # Mock Redis
+    with patch("shared.redis._redis_client") as mock_redis:
+        mock = AsyncMock()
+        mock.ping.return_value = True
+        mock.get.return_value = None
+        mock.setex.return_value = True
+        mock.delete.return_value = 1
+        mock.exists.return_value = 0
+        mock.keys.return_value = []
+        mock.incr.return_value = 1
+        mock.expire.return_value = True
+        # redis.asyncio's pipeline() is synchronous; only execute() is awaited.
+        pipe = MagicMock()
+        pipe.execute = AsyncMock(return_value=[1, True])
+        mock.pipeline = MagicMock(return_value=pipe)
+
+        async def mock_get_redis():
+            return mock
+
+        with patch("shared.redis.get_redis", mock_get_redis), \
+             patch("core_api.modules.identity.service.otp.get_redis", mock_get_redis), \
+             patch("core_api.modules.identity.service.auth.get_redis", mock_get_redis), \
+             patch("core_api.modules.identity.api.dependencies.get_redis", mock_get_redis):
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as ac:
+                yield ac
+
+    app.dependency_overrides.clear()

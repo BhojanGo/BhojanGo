@@ -1,5 +1,10 @@
 # BhojanGo — Platform Technical Design Document
 
+> **Note (Nov 2026):** P1 restructured the repo: the six Python services now run as three
+> deployables (`backend/core_api`, `backend/realtime`, `backend/worker`) and `apps/mobile` is
+> split into `apps/customer` and `apps/rider`. API paths are unchanged. Where this document and
+> [docs/specs](specs/README.md) disagree, the specs win.
+
 | Field | Value |
 |-------|-------|
 | **Document** | Platform Technical Design Document |
@@ -713,7 +718,7 @@ order-svc: order.delivered ──SNS──▶ notification-svc (push + email rec
 
 ### Kong Configuration
 
-Kong runs in declarative (DB-less) mode with config at `infra/kong/kong.yml`.
+Kong runs in declarative (DB-less) mode with config at `infra/docker/kong/kong.yml`.
 
 | Service | Kong Route | Upstream |
 |---------|-----------|----------|
@@ -880,10 +885,8 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Run database migrations
-for svc in user-svc restaurant-svc order-svc payment-svc notification-svc; do
-  cd services/$svc && alembic upgrade head && cd ../..
-done
-psql $DATABASE_URL -f services/batch-engine/src/db/migrations/001_create_batch_tables.sql
+(cd backend && uv run alembic upgrade head)   # one history since P1
+psql $DATABASE_URL -f backend/worker/batch-engine/src/db/migrations/001_create_batch_tables.sql
 
 # 5. Start frontend dev servers
 pnpm dev

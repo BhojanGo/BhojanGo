@@ -69,9 +69,9 @@ infra/terraform/*.tfvars
 infra/terraform/.terraform.lock.hcl
 
 # Expo
-apps/mobile/.expo/
-apps/mobile/android/
-apps/mobile/ios/
+apps/*/.expo/
+apps/*/android/
+apps/*/ios/
 
 # Claude Code
 .claude/

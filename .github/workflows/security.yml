@@ -40,11 +40,11 @@ jobs:
       - name: Install bandit
         run: pip install bandit[toml]
 
-      - name: Run bandit on all services
+      - name: Run bandit on the backend
         run: |
-          for svc in services/*/; do
-            echo "=== Scanning $svc ==="
-            bandit -r "$svc/app" -ll -ii --format json --output "bandit-$(basename $svc).json" || true
+          for area in shared core_api realtime/app worker/app; do
+            echo "=== Scanning backend/$area ==="
+            bandit -r "backend/$area" -ll -ii -x "*/tests/*" --format json --output "bandit-$(echo $area | tr / -).json" || true
           done
 
       - name: Check for HIGH severity findings
@@ -77,15 +77,9 @@ jobs:
 
       - name: Python dependency check
         run: |
-          pip install safety
-          for svc in services/*/; do
-            if [ -f "$svc/pyproject.toml" ]; then
-              echo "=== Checking $svc ==="
-              cd "$svc"
-              pip install poetry && poetry export -f requirements.txt --without-hashes | safety check --stdin || true
-              cd ../..
-            fi
-          done
+          pip install safety uv
+          cd backend
+          uv export --frozen --no-dev --no-hashes | safety check --stdin || true
 
       - name: JavaScript dependency check
         run: |
