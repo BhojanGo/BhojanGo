@@ -23,6 +23,7 @@ jobs:
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
+      infra: ${{ steps.filter.outputs.infra }}
       terraform: ${{ steps.filter.outputs.terraform }}
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +38,8 @@ jobs:
             backend:
               - 'backend/**'
               - 'infra/docker/db/**'
+            infra:
+              - 'infra/**'
             terraform:
               - 'infra/terraform/**'
 
@@ -98,6 +101,15 @@ jobs:
       - run: uv run pytest worker -v --tb=short
 
   # ──────────────────────────────────────────
+  # Migrations + Docker builds (same jobs as ci.yml on dev)
+  # ──────────────────────────────────────────
+  backend-checks:
+    name: Backend checks
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
+    uses: ./.github/workflows/backend-checks.yml
+
+  # ──────────────────────────────────────────
   # Terraform validation
   # ──────────────────────────────────────────
   terraform-validate:
@@ -126,9 +138,18 @@ jobs:
   pr-status:
     name: PR Status
     if: always()
-    needs: [frontend-lint, backend-test, terraform-validate]
+    needs: [frontend-lint, backend-test, backend-checks, terraform-validate]
     runs-on: ubuntu-latest
     steps:
+      # Skipped jobs (no matching changes) are fine; failed or cancelled ones are not.
       - name: Check results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          echo "All checks completed"
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "A required check did not pass"; exit 1
+            fi
+          done
+          echo "All checks passed or were skipped"
