@@ -129,6 +129,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
     id     = "archive-and-expire"
     status = "Enabled"
 
+    filter {} # whole bucket
+
     transition {
       days          = 30
       storage_class = "STANDARD_IA"
@@ -151,4 +153,22 @@ resource "aws_s3_bucket_public_access_block" "logs" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# ALB access logs: the regional Elastic Load Balancing account must be allowed
+# to write under alb/ (without this the ALB fails to create).
+data "aws_elb_service_account" "main" {}
+
+resource "aws_s3_bucket_policy" "logs_alb" {
+  bucket = aws_s3_bucket.logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowALBAccessLogs"
+      Effect    = "Allow"
+      Principal = { AWS = data.aws_elb_service_account.main.arn }
+      Action    = "s3:PutObject"
+      Resource  = "${aws_s3_bucket.logs.arn}/alb/AWSLogs/${var.account_id}/*"
+    }]
+  })
 }

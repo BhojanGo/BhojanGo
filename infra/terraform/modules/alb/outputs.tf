@@ -21,3 +21,7 @@ output "target_group_arns" {
 output "listener_arn" {
   value = var.certificate_arn != "" ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
 }
+
+output "waf_acl_arn" {
+  value = aws_wafv2_web_acl.main.arn
+}

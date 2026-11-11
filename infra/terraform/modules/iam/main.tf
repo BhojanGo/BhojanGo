@@ -95,28 +95,10 @@ resource "aws_iam_role_policy" "ecs_task_permissions" {
         Resource = ["${var.s3_bucket_arn}/*"]
       },
       {
-        Sid    = "S3ListBucket"
-        Effect = "Allow"
-        Action = ["s3:ListBucket"]
+        Sid      = "S3ListBucket"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
         Resource = [var.s3_bucket_arn]
-      },
-      {
-        Sid    = "DynamoDBAccess"
-        Effect = "Allow"
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:Query",
-          "dynamodb:UpdateItem",
-          "dynamodb:BatchWriteItem"
-        ]
-        Resource = ["arn:aws:dynamodb:${var.aws_region}:${var.account_id}:table/${var.name}-*"]
-      },
-      {
-        Sid    = "OpenSearchAccess"
-        Effect = "Allow"
-        Action = ["es:ESHttp*"]
-        Resource = ["${var.opensearch_domain_arn}/*"]
       },
       {
         Sid    = "LocationService"

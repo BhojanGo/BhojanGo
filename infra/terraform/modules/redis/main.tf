@@ -12,7 +12,7 @@ resource "aws_elasticache_replication_group" "main" {
   port                 = 6379
   parameter_group_name = aws_elasticache_parameter_group.main.name
 
-  num_cache_clusters   = var.environment == "prod" ? 3 : 1
+  num_cache_clusters         = var.environment == "prod" ? 3 : 1
   automatic_failover_enabled = var.environment == "prod"
   multi_az_enabled           = var.environment == "prod"
 
@@ -21,7 +21,8 @@ resource "aws_elasticache_replication_group" "main" {
 
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  auth_token                 = var.environment == "prod" ? random_password.redis_auth.result : null
+  # TLS + AUTH in every environment; clients use rediss:// and REDIS_PASSWORD.
+  auth_token = random_password.redis_auth.result
 
   snapshot_retention_limit = var.environment == "prod" ? 7 : 0
   snapshot_window          = "02:00-03:00"
@@ -35,6 +36,18 @@ resource "aws_elasticache_replication_group" "main" {
 resource "random_password" "redis_auth" {
   length  = 64
   special = false
+}
+
+# Read by the ECS tasks as REDIS_PASSWORD.
+resource "aws_secretsmanager_secret" "redis_auth" {
+  name                    = "${var.name}/redis/auth"
+  recovery_window_in_days = var.environment == "prod" ? 30 : 0
+  tags                    = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "redis_auth" {
+  secret_id     = aws_secretsmanager_secret.redis_auth.id
+  secret_string = jsonencode({ password = random_password.redis_auth.result })
 }
 
 resource "aws_elasticache_parameter_group" "main" {

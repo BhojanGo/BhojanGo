@@ -14,3 +14,7 @@ output "auth_token" {
   value     = random_password.redis_auth.result
   sensitive = true
 }
+
+output "auth_secret_arn" {
+  value = aws_secretsmanager_secret.redis_auth.arn
+}

@@ -25,3 +25,20 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm turbo build --filter='./packages/*' \
  && pnpm turbo test lint typecheck --filter='./apps/*' --filter='./packages/*'
+
+# ── Migrations: upgrade/downgrade/upgrade, alembic check, seed twice, and the
+#    API against the migrated database. Run by `make ci-migrations` through
+#    infra/docker/ci.compose.yaml (needs its Postgres and Redis).
+FROM python:3.12-slim AS migrations
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /bin/uv
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+ && rm -rf /var/lib/apt/lists/*
+ENV UV_LINK_MODE=copy PYTHONDONTWRITEBYTECODE=1
+WORKDIR /repo/backend
+COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
+RUN uv sync --frozen --no-install-project
+COPY backend/ ./
+COPY tools/ /repo/tools/
+COPY infra/docker/db/init.sql /repo/infra/docker/db/init.sql
+COPY infra/docker/ci-migrations.sh /repo/ci-migrations.sh
+CMD ["sh", "/repo/ci-migrations.sh"]

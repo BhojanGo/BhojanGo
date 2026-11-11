@@ -40,19 +40,19 @@ version.
 | Python tooling | uv | **0.13.7** (one `uv.lock`) | 0.13.7 | — (done) |
 | Database | PostgreSQL + PostGIS | **16 + PostGIS 3.7** (`postgis/postgis:16-3.7`) | 16 + 3.4 | P3 (local), P4 (RDS) |
 | Cache / geo | Redis | **7.4** (`redis:7.4-alpine`; ElastiCache Redis OSS 7) | 7 | P3 (local), P4 (AWS) |
-| Search | PostgreSQL full-text + `pg_trgm` | Postgres 16 (no extra service) | OpenSearch | P4 removes OpenSearch; catalog search moves to Postgres |
+| Search | PostgreSQL full-text + `pg_trgm` | Postgres 16 (no extra service) | OpenSearch removed from Terraform (P4). `GET /restaurants/search` returns no results without it; `GET /restaurants` (list + filters) is unaffected | not owned yet: proposed with the catalog work in P10 |
 | Auth | Custom, RS256 JWTs + JWKS | — | HS256 shared secret | P5 |
-| Node.js | Node **24 LTS** | **24.22.3** | 20 in CI | P3/P4 |
+| Node.js | Node **24 LTS** | **24.22.3** | 24 in CI and images | — (done in P3/P4) |
 | JS package manager | pnpm | **12.18.0** | 9 | P3/P4 |
 | Monorepo tasks | Turborepo | **2.11.11** | 2.x | P3/P4 |
 | Web + admin | Next.js (latest stable) + React 19 | **16.4.6** | 14.2 | P20 (web), P21 (admin) |
 | Mobile | Expo (latest SDK) + EAS | **SDK 58** (expo 58.0.24, React Native 0.88.1, React 19.3), **EAS CLI 27.7.2** | SDK 51 | P16–P19 |
-| Compute | AWS ECS Fargate | 3 services (core-api, realtime, worker) | 6 in Terraform | P4 |
-| Database (AWS) | RDS for PostgreSQL 16 + PostGIS | — | RDS 16.3 | P4 |
-| Cache (AWS) | ElastiCache (Redis OSS 7) | — | ElastiCache 7.1 | P4 |
+| Compute | AWS ECS Fargate | 3 services (core-api, realtime, worker) | 3 in Terraform | — (done in P4) |
+| Database (AWS) | RDS for PostgreSQL 16 + PostGIS | major 16, auto minor upgrades | 16 (+ extensions via migration 0003) | — (done in P4) |
+| Cache (AWS) | ElastiCache (Redis OSS 7) | 7.1, TLS + AUTH | 7.1 | — (done in P4) |
 | Messaging | SQS (+ SNS fan-out where needed) | — | SQS/SNS | — |
 | Storage | S3 (+ CloudFront for assets) | — | S3 | — |
-| Edge | ALB + AWS WAF | — | Kong | P3 (local), P4 (AWS) |
+| Edge | ALB + AWS WAF | AWS managed rules + per-IP rate limit | ALB + WAF | — (done in P3/P4) |
 | Payments (US) | Stripe, incl. Stripe Tax and Connect | **stripe-python 16.1.0** | 16.1.0 (library); features in P9, P12, P13 | P3 (library) |
 | Payments (India) | Razorpay, incl. Route | **razorpay 2.0.1** | 2.0.1 (library); features in P12, P13 | P3 (library) |
 | Errors | Sentry | **sentry-sdk 2.74.0** (+ Sentry SDKs for Next.js and Expo) | none | P23 |

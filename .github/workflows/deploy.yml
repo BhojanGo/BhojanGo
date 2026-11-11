@@ -1,0 +1,85 @@
+name: Deploy (reusable)
+
+# Called by ci.yml (dev -> staging) and release.yml (v* tag -> prod).
+# Runs in a GitHub environment, so environment protection rules (required
+# reviewers for production) apply before any AWS credentials are issued.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Terraform environment: staging or prod"
+        type: string
+        required: true
+      github_environment:
+        description: "GitHub environment holding the protection rules: staging or production"
+        type: string
+        required: true
+      aws_role_arn:
+        description: "Deploy role to assume via GitHub OIDC (from bootstrap)"
+        type: string
+        required: true
+      aws_region:
+        type: string
+        default: us-east-1
+
+permissions:
+  id-token: write   # GitHub OIDC -> AWS; no long-lived keys
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.github_environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      NAME: bhojango-${{ inputs.environment }}
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: gh-${{ github.run_id }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          for pair in core_api:core-api realtime:realtime worker:worker; do
+            dir="${pair%%:*}"; svc="${pair##*:}"
+            echo "::group::${svc}"
+            docker buildx build backend \
+              --file "backend/${dir}/Dockerfile" \
+              --platform linux/amd64 \
+              --tag "${REGISTRY}/${NAME}/${svc}:${TAG}" \
+              --tag "${REGISTRY}/${NAME}/${svc}:${{ inputs.environment }}-latest" \
+              --cache-from "type=gha,scope=${svc}" \
+              --cache-to "type=gha,scope=${svc},mode=max" \
+              --push
+            echo "::endgroup::"
+          done
+
+      - name: Migrate and roll out (ECS)
+        run: bash .github/scripts/deploy-ecs.sh "${{ inputs.environment }}" "$TAG"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### ${{ inputs.environment }} · \`${TAG::7}\`"
+            echo "Services: core-api, realtime, worker in cluster \`${NAME}-cluster\`."
+            echo "Logs: CloudWatch \`/${NAME}/<service>\`."
+          } >> "$GITHUB_STEP_SUMMARY"

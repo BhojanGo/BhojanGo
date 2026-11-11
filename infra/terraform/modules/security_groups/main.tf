@@ -44,11 +44,14 @@ resource "aws_security_group" "ecs" {
   lifecycle { create_before_destroy = true }
 }
 
+# core-api 8001, realtime 8004, worker 8006
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
+  for_each = toset(["8001", "8004", "8006"])
+
   security_group_id            = aws_security_group.ecs.id
   referenced_security_group_id = aws_security_group.alb.id
-  from_port                    = 8000
-  to_port                      = 8010
+  from_port                    = tonumber(each.key)
+  to_port                      = tonumber(each.key)
   ip_protocol                  = "tcp"
 }
 
@@ -91,23 +94,5 @@ resource "aws_vpc_security_group_ingress_rule" "redis_from_ecs" {
   referenced_security_group_id = aws_security_group.ecs.id
   from_port                    = 6379
   to_port                      = 6379
-  ip_protocol                  = "tcp"
-}
-
-# ── OpenSearch Security Group ────────────────
-resource "aws_security_group" "opensearch" {
-  name_prefix = "${var.name}-opensearch-"
-  vpc_id      = var.vpc_id
-  description = "OpenSearch — allow access from ECS tasks only"
-  tags        = merge(var.tags, { Name = "${var.name}-opensearch-sg" })
-
-  lifecycle { create_before_destroy = true }
-}
-
-resource "aws_vpc_security_group_ingress_rule" "opensearch_from_ecs" {
-  security_group_id            = aws_security_group.opensearch.id
-  referenced_security_group_id = aws_security_group.ecs.id
-  from_port                    = 443
-  to_port                      = 443
   ip_protocol                  = "tcp"
 }

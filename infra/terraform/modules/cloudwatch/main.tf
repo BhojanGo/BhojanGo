@@ -30,11 +30,11 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ServiceName", "${var.name}-${svc}", "ClusterName", "${var.name}-cluster",
-              { stat = "Average", period = 300 }],
+            { stat = "Average", period = 300 }],
             ["AWS/ECS", "MemoryUtilization", "ServiceName", "${var.name}-${svc}", "ClusterName", "${var.name}-cluster",
-              { stat = "Average", period = 300 }]
+            { stat = "Average", period = 300 }]
           ]
-          view   = "timeSeries"
+          view    = "timeSeries"
           stacked = false
         }
       }],
@@ -50,9 +50,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           metrics = [
             ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "${var.name}-postgres",
-              { stat = "Average", period = 300 }],
+            { stat = "Average", period = 300 }],
             ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "${var.name}-postgres",
-              { stat = "Sum", period = 300 }]
+            { stat = "Sum", period = 300 }]
           ]
           view = "timeSeries"
         }
@@ -69,9 +69,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           metrics = [
             ["AWS/ElastiCache", "CacheHits", "ReplicationGroupId", "${var.name}-redis",
-              { stat = "Sum", period = 300 }],
+            { stat = "Sum", period = 300 }],
             ["AWS/ElastiCache", "CacheMisses", "ReplicationGroupId", "${var.name}-redis",
-              { stat = "Sum", period = 300 }]
+            { stat = "Sum", period = 300 }]
           ]
           view = "timeSeries"
         }
@@ -88,9 +88,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           metrics = [
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", var.alb_arn_suffix,
-              { stat = "Sum", period = 60 }],
+            { stat = "Sum", period = 60 }],
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", var.alb_arn_suffix,
-              { stat = "p99", period = 60 }]
+            { stat = "p99", period = 60 }]
           ]
           view = "timeSeries"
         }
@@ -106,9 +106,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", var.alb_arn_suffix,
-              { stat = "Sum", period = 60, color = "#d62728" }],
+            { stat = "Sum", period = 60, color = "#d62728" }],
             ["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", "LoadBalancer", var.alb_arn_suffix,
-              { stat = "Sum", period = 60, color = "#ff7f0e" }]
+            { stat = "Sum", period = 60, color = "#ff7f0e" }]
           ]
           view = "timeSeries"
         }

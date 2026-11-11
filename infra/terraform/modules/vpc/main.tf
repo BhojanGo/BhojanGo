@@ -15,16 +15,22 @@ resource "aws_internet_gateway" "main" {
   tags   = merge(var.tags, { Name = "${var.name}-igw" })
 }
 
+# Prod: one NAT gateway per AZ (HA). Staging: one shared NAT gateway, which
+# saves ~2 x $32/month + data processing; an AZ outage there is acceptable.
+locals {
+  nat_count = var.environment == "prod" ? length(var.azs) : 1
+}
+
 # ── Elastic IPs for NAT ─────────────────────
 resource "aws_eip" "nat" {
-  count  = length(var.azs)
+  count  = local.nat_count
   domain = "vpc"
   tags   = merge(var.tags, { Name = "${var.name}-nat-eip-${count.index}" })
 }
 
-# ── NAT Gateways (one per AZ for HA) ────────
+# ── NAT Gateways ─────────────────────────────
 resource "aws_nat_gateway" "main" {
-  count         = length(var.azs)
+  count         = local.nat_count
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
   tags          = merge(var.tags, { Name = "${var.name}-nat-${count.index}" })
@@ -88,7 +94,7 @@ resource "aws_route" "private_nat" {
   count                  = length(var.azs)
   route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main[count.index].id
+  nat_gateway_id         = aws_nat_gateway.main[min(count.index, local.nat_count - 1)].id
 }
 
 resource "aws_route_table_association" "private" {

@@ -1,0 +1,40 @@
+# Used by `make ci-migrations`: a throwaway Postgres + Redis (no host ports, so
+# it never clashes with `make dev`) and a runner that does what CI's
+# "Migrations" job does. Torn down with its volumes afterwards.
+name: bhojango-ci
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.7
+    environment:
+      POSTGRES_USER: bhojango
+      POSTGRES_PASSWORD: bhojango_test
+      POSTGRES_DB: bhojango_test
+    tmpfs: [/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bhojango -d bhojango_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  migrations:
+    build:
+      context: ../..
+      dockerfile: infra/docker/test.Dockerfile
+      target: migrations
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@postgres:5432/bhojango_test
+      PSQL_URL: postgresql://bhojango:bhojango_test@postgres:5432/bhojango_test
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
