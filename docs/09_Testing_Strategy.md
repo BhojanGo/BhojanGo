@@ -12,7 +12,7 @@ This document outlines the testing approach across the BhojanGo platform to ensu
 
 ### Structure
 ```
-services/<svc>/tests/
+backend/core_api/modules/<module>/tests/   (realtime/tests, worker/tests for the other deployables)
 ├── conftest.py         # Shared fixtures, mock Redis, test DB
 ├── test_auth.py        # Auth endpoint tests
 ├── test_models.py      # Model validation tests

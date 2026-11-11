@@ -119,7 +119,7 @@ aws ecs wait services-stable --cluster bhojango-prod --services user-svc
 aws rds create-db-snapshot --db-instance-identifier bhojango-prod --db-snapshot-identifier pre-migration-$(date +%Y%m%d)
 
 # 2. Run migration from a bastion host or CI job
-cd services/user-svc && alembic upgrade head
+cd backend && uv run alembic upgrade head   # one history for the whole database
 
 # 3. Verify migration
 alembic current

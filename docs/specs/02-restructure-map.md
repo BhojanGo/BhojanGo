@@ -26,7 +26,7 @@ in the repo doesn't fit a rule below, stop and ask — don't guess.
 | `services/payment-svc/app` | `backend/core_api/modules/payments/` | Code moves in. `finance` is built in P13 |
 | `services/delivery-svc/app` | `backend/realtime/app/` | Moves as-is; **stays its own deployable** (WebSocket + GPS) |
 | `services/notification-svc/app` | `backend/worker/app/` | Moves as-is; **stays its own deployable** (keeps its HTTP API and SQS consumer for now) |
-| `services/batch-engine` (TypeScript) | `backend/worker/batch-engine/` | Moves untouched; stays in the pnpm workspace; reference only until the Phase 5 port to Python |
+| `services/batch-engine` (TypeScript) | `backend/worker/batch-engine/` | Moves untouched; stays outside the pnpm workspace, as it always was (corrected in P1: it was never listed in `pnpm-workspace.yaml`); reference only until the Phase 5 port to Python |
 | `services/*/tests` | next to their module, e.g. `backend/core_api/modules/identity/tests/` | Move; fix imports |
 | `services/*/pyproject.toml` | one `backend/pyproject.toml` (uv workspace) | Merge dependencies; on version conflicts take the higher version and note it in the PR |
 | `services/*/Dockerfile` | `backend/core_api/Dockerfile`, `backend/realtime/Dockerfile`, `backend/worker/Dockerfile` | Three images instead of seven |
@@ -35,7 +35,7 @@ in the repo doesn't fit a rule below, stop and ask — don't guess.
 
 - New `backend/core_api/main.py` creates one FastAPI app and includes every
   router from identity, catalog, orders and payments **with the same prefixes as
-  today** (`/api/v1/auth`, `/api/v1/users`, `/api/v1/addresses`,
+  today** (`/api/v1/auth`, `/api/v1/users`, `/api/v1/me/addresses`,
   `/api/v1/restaurants`, `/api/v1/orders`, `/api/v1/payments`, `/api/v1/wallet` …).
   Paths don't collide today; if any do (e.g. `/health`), keep one shared copy.
 - Each old `main.py`'s startup/shutdown and middleware moves into a

@@ -1003,7 +1003,7 @@ GET /health
 ### 16.1 File Structure
 
 ```
-services/batch-engine/
+backend/worker/batch-engine/
 ├── src/
 │   ├── main.ts                              # App entry, Express setup, startup
 │   ├── config/index.ts                      # Environment config + engine rules
@@ -1044,7 +1044,7 @@ services/batch-engine/
 ### 16.2 Development Setup
 
 ```bash
-cd services/batch-engine
+cd backend/worker/batch-engine
 
 # Install dependencies
 npm install
@@ -1070,7 +1070,7 @@ The service is already added to `docker-compose.yml`:
 ```yaml
 batch-engine:
   build:
-    context: ./services/batch-engine
+    context: ./backend/worker/batch-engine
     dockerfile: Dockerfile
   ports:
     - "8007:8007"
@@ -1254,7 +1254,7 @@ Customer 2 detour: 4.2 min (delivered second)
 ## Appendix B — Full File Tree
 
 ```
-services/batch-engine/                    24 files
+backend/worker/batch-engine/                    24 files
 ├── .env.example                          Environment variables reference
 ├── Dockerfile                            Multi-stage Node.js build
 ├── package.json                          Dependencies + scripts

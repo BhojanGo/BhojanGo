@@ -1,3 +1,5 @@
+// identity, catalog, orders and payments all run in core_api (:8001) since P1;
+// the per-area env vars are kept so deployments can still point them anywhere.
 /**
  * Resolve a backend service URL. In production a missing env var is a hard error
  * (fail loud) rather than a silent fallback to localhost that breaks every request.
@@ -21,15 +23,15 @@ const nextConfig = {
       },
       {
         source: "/api/restaurant/:path*",
-        destination: `${svc("RESTAURANT_SVC_URL", "http://localhost:8002")}/api/v1/:path*`,
+        destination: `${svc("RESTAURANT_SVC_URL", "http://localhost:8001")}/api/v1/:path*`,
       },
       {
         source: "/api/order/:path*",
-        destination: `${svc("ORDER_SVC_URL", "http://localhost:8003")}/api/v1/:path*`,
+        destination: `${svc("ORDER_SVC_URL", "http://localhost:8001")}/api/v1/:path*`,
       },
       {
         source: "/api/payment/:path*",
-        destination: `${svc("PAYMENT_SVC_URL", "http://localhost:8005")}/api/v1/:path*`,
+        destination: `${svc("PAYMENT_SVC_URL", "http://localhost:8001")}/api/v1/:path*`,
       },
     ];
   },
