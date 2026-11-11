@@ -31,12 +31,12 @@ version.
 | Area | Choice | Pinned | Today | Moves in |
 | --- | --- | --- | --- | --- |
 | Language | Python | **3.12** (3.12.16) | 3.12 | — (done) |
-| API framework | FastAPI | **0.162.4** | 0.111 | before P5 (see open questions) |
+| API framework | FastAPI | **0.162.4** | 0.111 | P3 |
 | ORM | SQLAlchemy 2 (async) | **2.1.8** | 2.1.8 | — (done) |
 | Validation | Pydantic 2 | **2.14.3** | 2.14.3 | — (done) |
 | Migrations | Alembic | **1.20.1** (one history, `alembic check` in CI) | 1.20.1 | — (done) |
-| ASGI server | uvicorn | **0.54.0** | 0.30.6 | with FastAPI |
-| DB driver | asyncpg | **0.32.0** | 0.29.0 | with FastAPI |
+| ASGI server | uvicorn | **0.54.0** | 0.30.6 | P3 |
+| DB driver | asyncpg | **0.32.0** | 0.29.0 | P3 |
 | Python tooling | uv | **0.13.7** (one `uv.lock`) | 0.13.7 | — (done) |
 | Database | PostgreSQL + PostGIS | **16 + PostGIS 3.7** (`postgis/postgis:16-3.7`) | 16 + 3.4 | P3 (local), P4 (RDS) |
 | Cache / geo | Redis | **7.4** (`redis:7.4-alpine`; ElastiCache Redis OSS 7) | 7 | P3 (local), P4 (AWS) |
@@ -85,16 +85,15 @@ version.
   index sync and a second source of truth for a pilot with two cities.
 - **Cognito / Auth0 / Clerk**: less code, but phone OTP with Indian DLT templates, admin
   scopes per market and RS256/JWKS for three apps fit poorly or cost more at scale.
-- **Node 26** (the newer active LTS since Oct 2026): see open questions.
+- **Node 26** (the newer active LTS since Oct 2026): revisit at Phase 5 (see decisions above).
 - **EKS instead of ECS Fargate**: rejected in ADR-010; still holds.
 
-## Open questions
-1. **Node 24 vs 26.** The specs pin Node 24 LTS. Since Oct 2026, Node 26 ("Lithium") is
-   the active LTS, and Node 24 ("Krypton") is in maintenance until Apr 2028. 24 is fine
-   for the pilot; moving to 26 would be a one-line change in P3/P4.
-2. **When the backend libraries move** (FastAPI 0.111 → 0.162, uvicorn 0.30 → 0.54,
-   asyncpg 0.29 → 0.32). No prompt owns this explicitly. Proposal: do it in P3, together with
-   `make dev`, so P5 builds the new auth on the pinned versions.
+## Decisions on the open questions (Nov 11, 2026)
+1. **Node 24 stays.** The specs pin Node 24 LTS; Node 26 became the active LTS in Oct 2026
+   and Node 24 is in maintenance until Apr 2028. Keep 24 for now and **revisit at Phase 5**.
+2. **Backend libraries move in P3.** FastAPI, uvicorn, asyncpg and the other backend
+   libraries are upgraded to the pins above in P3 (with `make dev`), so P5 builds the new
+   auth on the pinned versions.
 
 ## References
 - `docs/specs/01-structure.md` §1 (layout) and §7 (decisions, Nov 4, 2026)
