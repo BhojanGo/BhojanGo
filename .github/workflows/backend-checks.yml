@@ -70,8 +70,8 @@ jobs:
       - name: Seed test data
         working-directory: backend
         run: |
-          uv run python ../tools/seed/seed_users.py | psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q
-          uv run python ../tools/seed/seed_restaurants.py | psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q
+          uv run python ../tools/seed/seed.py
+          uv run python ../tools/seed/seed.py   # must be idempotent
 
       - name: API works on the migrated database
         working-directory: backend
