@@ -1,0 +1,14 @@
+# Keep build contexts small: never send dependencies, build output or local env.
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.expo
+**/.venv
+**/__pycache__
+**/.pytest_cache
+.git
+.env
+**/.env
+**/.env.local
+!**/.env.example

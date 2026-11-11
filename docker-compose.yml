@@ -1,4 +1,5 @@
-# Kept so existing `docker compose ...` commands still work from the repo root.
-# The stack is defined in infra/docker/compose.yaml (see the profiles there).
+# Kept so `docker compose ...` works from the repo root. The stack, its profiles
+# (infra, backend, all) and port overrides are in infra/docker/compose.yaml.
+# Most people want `make dev` instead (see README, "Run it locally").
 include:
   - infra/docker/compose.yaml

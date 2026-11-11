@@ -1,127 +1,107 @@
-# BhojanGo local stack.
+# BhojanGo local stack. Use the Makefile (make dev / make down / ...), or:
 #
-#   docker compose up                       infra only: Postgres, PgBouncer, Redis,
-#                                           LocalStack, Kong (same as before P1)
-#   docker compose --profile backend up     infra + the 3 backend images
-#   docker compose --profile all up         same as backend (everything)
+#   docker compose --profile infra   up -d   Postgres + PostGIS, Redis, LocalStack
+#   docker compose --profile backend up -d   infra + core-api, realtime, worker
+#   docker compose --profile all     up -d   backend + web and admin
 #
 # The repo-root docker-compose.yml includes this file, so these commands work
-# from the repo root or from infra/docker. Infra services have no profile so a
-# plain `up` keeps starting them; `--profile infra` is accepted for clarity.
+# from the repo root. There is no gateway: apps and tests call core-api (:8001),
+# realtime (:8004) and worker (:8006) directly (ADR-008).
 #
-# Kong reads kong/kong.yml (routes to the core-api / realtime / worker
-# containers). If you run the backend on the host instead, point Kong at
-# kong/kong.local.yml.
+# Host ports can be changed if something else already uses them, e.g.
+#   POSTGRES_PORT=55432 REDIS_PORT=56379 make dev
+
+name: bhojango
 
 x-backend-env: &backend-env
   APP_ENV: development
   DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
-  JWT_SECRET: ${JWT_SECRET:-changeme-in-production}  # placeholder; matches kong.local.yml
+  JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me}  # placeholder, local only
   AWS_REGION: us-east-1
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
   AWS_ENDPOINT_URL: http://localstack:4566
 
+x-health-live: &health-live
+  interval: 5s
+  timeout: 3s
+  retries: 30
+  start_period: 10s
+
 services:
-  # ── Databases ─────────────────────────────
+  # ── Infra ─────────────────────────────────
   postgres:
-    image: postgis/postgis:16-3.4
+    profiles: ["infra", "backend", "all"]
+    image: postgis/postgis:16-3.7
     environment:
       POSTGRES_USER: bhojango
       POSTGRES_PASSWORD: bhojango_dev
       POSTGRES_DB: bhojango
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bhojango"]
+      test: ["CMD-SHELL", "pg_isready -U bhojango -d bhojango"]
       interval: 5s
       timeout: 3s
-      retries: 5
-
-  pgbouncer:
-    image: edoburu/pgbouncer:1.23.1
-    environment:
-      POSTGRESQL_HOST: postgres
-      POSTGRESQL_PORT: "5432"
-      POSTGRESQL_USERNAME: bhojango
-      POSTGRESQL_PASSWORD: bhojango_dev
-      POSTGRESQL_DATABASE: bhojango
-      PGBOUNCER_DATABASE: "*"
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_MAX_CLIENT_CONN: "1000"
-      PGBOUNCER_DEFAULT_POOL_SIZE: "25"
-      PGBOUNCER_AUTH_TYPE: plain
-    ports:
-      - "6432:6432"
-    depends_on:
-      postgres:
-        condition: service_healthy
+      retries: 20
 
   redis:
-    image: redis:7-alpine
+    profiles: ["infra", "backend", "all"]
+    image: redis:7.4-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 20
 
-  # ── LocalStack (AWS) ─────────────────────
   localstack:
-    image: localstack/localstack:latest
+    profiles: ["infra", "backend", "all"]
+    image: localstack/localstack:4
     ports:
-      - "4566:4566"
+      - "${LOCALSTACK_PORT:-4566}:4566"
     environment:
       SERVICES: sqs,sns,s3
       DEFAULT_REGION: us-east-1
       AWS_DEFAULT_REGION: us-east-1
     volumes:
-      - ./localstack:/etc/localstack/init/ready.d
+      - ./localstack:/etc/localstack/init/ready.d:ro
       - localstack_data:/var/lib/localstack
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      test: ["CMD", "curl", "-fs", "http://localhost:4566/_localstack/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 20
 
-  # ── Kong API Gateway ─────────────────────
-  kong:
-    image: kong:3.7
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
-      KONG_PROXY_LISTEN: "0.0.0.0:8080"
-      KONG_ADMIN_LISTEN: "0.0.0.0:8081"
-      KONG_LOG_LEVEL: info
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-    volumes:
-      - ./kong/kong.yml:/etc/kong/kong.yml:ro
-
-  # ── Backend (3 images; were 7 services) ──
+  # ── Backend (3 deployables) ───────────────
   core-api:
     profiles: ["backend", "all"]
     build:
       context: ../../backend
       dockerfile: core_api/Dockerfile
+    # The image's default command runs `alembic upgrade head`, then uvicorn.
     environment:
       <<: *backend-env
       SERVICE_NAME: core-api
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8001:8001"
+      - "${CORE_API_PORT:-8001}:8001"
+    volumes:
+      - ../../tools/seed:/srv/tools/seed:ro  # `make seed` runs it in this container
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/live')"]
+      <<: *health-live
 
   realtime:
     profiles: ["backend", "all"]
@@ -134,10 +114,13 @@ services:
       REDIS_URL: redis://redis:6379/3
       ORDER_SVC_URL: http://core-api:8001
     ports:
-      - "8004:8004"
+      - "${REALTIME_PORT:-8004}:8004"
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health/live')"]
+      <<: *health-live
 
   worker:
     profiles: ["backend", "all"]
@@ -149,12 +132,46 @@ services:
       SERVICE_NAME: notification-svc
       DB_POOL_SIZE: "5"
     ports:
-      - "8006:8006"
+      - "${WORKER_PORT:-8006}:8006"
     depends_on:
-      postgres:
-        condition: service_healthy
       core-api:
-        condition: service_started  # core-api runs the migrations
+        condition: service_healthy  # core-api has run the migrations
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health/live')"]
+      <<: *health-live
+
+  # ── Web apps ──────────────────────────────
+  web:
+    profiles: ["all"]
+    build:
+      context: ../..
+      dockerfile: infra/docker/next-app.Dockerfile
+      args:
+        APP: "@bhojango/web"
+        APP_DIR: apps/web
+    environment:
+      PORT: "3000"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      core-api:
+        condition: service_healthy
+
+  admin:
+    profiles: ["all"]
+    build:
+      context: ../..
+      dockerfile: infra/docker/next-app.Dockerfile
+      args:
+        APP: "@bhojango/admin"
+        APP_DIR: apps/admin
+    environment:
+      PORT: "3000"
+    ports:
+      - "${ADMIN_PORT:-3001}:3000"
+    depends_on:
+      core-api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
