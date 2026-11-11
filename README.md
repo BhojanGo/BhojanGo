@@ -197,40 +197,41 @@ RUN_MIGRATED_DB_TESTS=1 uv run pytest core_api/integration
 
 ## Infrastructure (Terraform)
 
-The `infra/terraform/` directory contains 15 modules for AWS deployment:
+AWS per ADR-011, in `infra/terraform/`:
 
-| Module | Resources |
-|--------|-----------|
-| vpc | VPC, 3 AZs, public/private/database subnets, NAT gateways |
-| security_groups | ALB, ECS, RDS, Redis, OpenSearch security groups |
-| kms | KMS key with rotation for encryption at rest |
-| ecr | Container registries per service (still 7; trimmed to 3 in P4) |
-| rds | PostgreSQL 16 (Multi-AZ in prod) |
-| redis | ElastiCache Redis 7 (cluster mode in prod) |
-| opensearch | OpenSearch with VPC deployment |
-| sqs_sns | Event queues + topics + DLQs |
-| s3 | Uploads, assets (CloudFront CDN), logs (Glacier lifecycle) |
-| cognito | User pool + Google/Apple identity providers |
-| secrets | Secrets Manager for all API keys |
-| iam | ECS execution + task roles (least-privilege) |
-| alb | ALB + target groups + path-based routing |
-| ecs | Fargate cluster + task definitions + auto-scaling |
-| cloudwatch | Log groups, dashboard, CPU/5xx/RDS alarms |
-
-```bash
-# Deploy infrastructure
-cd infra/terraform
-terraform init
-terraform plan -var="environment=dev"
-terraform apply -var="environment=dev"
 ```
+envs/staging, envs/prod   one root per environment (S3 state + DynamoDB lock)
+modules/platform          everything an environment needs, built from:
+  vpc · security_groups · kms · ecr · rds · redis · sqs_sns · s3
+  secrets · iam · alb (+ WAF) · ecs · cloudwatch
+bootstrap/                one-time: state bucket, lock table, GitHub OIDC roles
+```
+
+| Piece | What |
+|--------|-----------|
+| Compute | ECS Fargate: core-api :8001, realtime :8004, worker :8006 |
+| Edge | ALB + AWS WAF; `/ws`, `/api/v1/delivery`, `/api/v1/drivers` → realtime, `/api/v1/notifications` → worker, everything else → core-api |
+| Data | RDS PostgreSQL 16 + PostGIS (Multi-AZ in prod), ElastiCache Redis 7 (TLS + AUTH) |
+| Messaging / storage | SQS + SNS, S3 (+ CloudFront for assets) |
+| Secrets | Secrets Manager; third-party keys are set by hand, never in Terraform state |
+| Observability | CloudWatch logs, dashboard, alarms |
+
+First-time setup (accounts, state bucket, OIDC roles, GitHub variables) is in
+[docs/runbooks/aws-setup.md](docs/runbooks/aws-setup.md). Infrastructure changes go through
+a PR (`terraform plan` runs on it) and the **Terraform apply** workflow.
 
 ## CI/CD
 
-GitHub Actions workflows in `.github/workflows/`:
+GitHub Actions in `.github/workflows/`, authenticating to AWS with GitHub OIDC (no stored keys):
 
-- **ci.yml** — Runs on push to `main`: lint, test, build Docker images, push to ECR, deploy to ECS
-- **pr-checks.yml** — Runs on PRs: change detection, targeted lint/test/terraform validate, Docker build check
+| When | What runs |
+| --- | --- |
+| Pull request | Only the areas that changed: frontend lint/typecheck/test, backend tests, migrations + Docker builds (`backend-checks.yml`), Terraform fmt/validate, and `terraform plan` per environment |
+| Merge to `dev` | All checks, then build and push images to ECR, run migrations as a one-off ECS task, deploy to **staging** (`ci.yml` → `deploy.yml`) |
+| Tag `v*` | Deploy that commit to **prod** after a manual approval in the `production` environment (`release.yml`) |
+| Manual | **Terraform apply** for staging or prod (`terraform-apply.yml`) |
+
+Until AWS is connected (runbook steps 1–4), the AWS jobs are skipped, not failed.
 
 ## E2E Flow
 

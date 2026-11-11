@@ -98,7 +98,7 @@ P8 (pricing) and P13 (finance). No empty folders.
 
 | Today | Goes to |
 | --- | --- |
-| `infra/terraform` | Stays (trimmed in P4) |
+| `infra/terraform` | Stays; P4 trimmed it to ADR-011 (modules/platform, envs/staging, envs/prod, bootstrap) |
 | `docker-compose.yml` | `infra/docker/compose.yaml`, running 3 backend images instead of 7 services. Keep a root `docker-compose.yml` that only `include:`s it, so old commands still work |
 | `infra/db/init.sql` | `infra/docker/db/init.sql` |
 | `infra/localstack/init-aws.sh` | `infra/docker/localstack/init-aws.sh` |
