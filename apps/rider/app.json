@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "BhojanGo Rider",
+    "slug": "bhojango-rider",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f97316"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bhojango.rider",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "BhojanGo Rider uses your location to show nearby deliveries and share your position with customers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Rider shares your location during an active delivery."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f97316"
+      },
+      "package": "com.bhojango.rider",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#f97316"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "bhojango-rider",
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}

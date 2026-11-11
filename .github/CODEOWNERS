@@ -12,5 +12,6 @@ backend/*/Dockerfile @deeptricsllc/backend-team @deeptricsllc/devops-team
 apps/ @deeptricsllc/frontend-team
 apps/web/ @deeptricsllc/frontend-team
 apps/admin/ @deeptricsllc/frontend-team
-apps/mobile/ @deeptricsllc/frontend-team
+apps/customer/ @deeptricsllc/frontend-team
+apps/rider/ @deeptricsllc/frontend-team
 packages/ @deeptricsllc/frontend-team
