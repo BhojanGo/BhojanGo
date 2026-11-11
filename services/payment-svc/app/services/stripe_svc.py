@@ -8,9 +8,9 @@ logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
-def get_stripe() -> stripe.Stripe:
+def get_stripe():  # returns the configured `stripe` module
     stripe.api_key = settings.STRIPE_SECRET_KEY
-    return stripe  # type: ignore[return-value]
+    return stripe
 
 
 async def create_payment_intent(
