@@ -1,17 +1,12 @@
 # Infrastructure
 infra/terraform/ @deeptricsllc/devops-team
 infra/docker/ @deeptricsllc/devops-team
-infra/kong/ @deeptricsllc/devops-team
 .github/ @deeptricsllc/devops-team
 
-# Backend Services
-services/ @deeptricsllc/backend-team
-services/user-svc/ @deeptricsllc/backend-team
-services/restaurant-svc/ @deeptricsllc/backend-team
-services/order-svc/ @deeptricsllc/backend-team
-services/delivery-svc/ @deeptricsllc/backend-team
-services/payment-svc/ @deeptricsllc/backend-team
-services/notification-svc/ @deeptricsllc/backend-team
+# Backend (core_api, realtime, worker, shared, migrations)
+backend/ @deeptricsllc/backend-team
+backend/migrations/ @deeptricsllc/backend-team @deeptricsllc/devops-team
+backend/*/Dockerfile @deeptricsllc/backend-team @deeptricsllc/devops-team
 
 # Frontend
 apps/ @deeptricsllc/frontend-team

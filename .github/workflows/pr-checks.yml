@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
-      services: ${{ steps.filter.outputs.services }}
+      backend: ${{ steps.filter.outputs.backend }}
       terraform: ${{ steps.filter.outputs.terraform }}
     steps:
       - uses: actions/checkout@v4
@@ -34,8 +34,9 @@ jobs:
             frontend:
               - 'apps/**'
               - 'packages/**'
-            services:
-              - 'services/**'
+            backend:
+              - 'backend/**'
+              - 'infra/docker/db/**'
             terraform:
               - 'infra/terraform/**'
 
@@ -68,70 +69,34 @@ jobs:
   # Backend tests
   # ──────────────────────────────────────────
   backend-test:
-    name: Test ${{ matrix.service }}
+    name: Backend Tests
     needs: changes
-    if: needs.changes.outputs.services == 'true'
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - user-svc
-          - restaurant-svc
-          - order-svc
-          - delivery-svc
-          - payment-svc
-          - notification-svc
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: bhojango
-          POSTGRES_PASSWORD: bhojango_test
-          POSTGRES_DB: bhojango_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bhojango"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
+      REDIS_URL: redis://localhost:6379/15
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+      APP_ENV: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
+          version: "0.13.7"
+          enable-cache: true
 
-      - name: Install dependencies
-        working-directory: services/${{ matrix.service }}
-        run: |
-          pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
-          pip install pytest pytest-asyncio pytest-cov httpx
-
-      - name: Run tests
-        working-directory: services/${{ matrix.service }}
-        env:
-          DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
-          REDIS_URL: redis://localhost:6379/15
-          JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
-          ENVIRONMENT: test
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: test
-          AWS_SECRET_ACCESS_KEY: test
-        run: pytest tests/ -v --tb=short || true
+      - run: uv sync --frozen
+      # realtime and worker each have an `app` package, so they run separately.
+      - run: uv run pytest core_api -v --tb=short
+      - run: uv run pytest realtime -v --tb=short
+      - run: uv run pytest worker -v --tb=short
 
   # ──────────────────────────────────────────
   # Terraform validation
