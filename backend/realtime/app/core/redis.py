@@ -2,33 +2,12 @@ import json
 from typing import Any
 
 import structlog
-from redis.asyncio import Redis, from_url
 
-from app.config import get_settings
+from shared.config import get_settings
+from shared.redis import close_redis, get_redis  # noqa: F401  (re-exported for app code)
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
-
-_redis_client: Redis | None = None
-
-
-async def get_redis() -> Redis:
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = await from_url(
-            settings.REDIS_URL,
-            password=settings.REDIS_PASSWORD or None,
-            decode_responses=True,
-        )
-    return _redis_client
-
-
-async def close_redis() -> None:
-    global _redis_client
-    if _redis_client:
-        await _redis_client.aclose()
-        _redis_client = None
-
 
 # ── Driver location keys ──────────────────────────────────────────────────────
 
@@ -44,7 +23,7 @@ async def store_driver_location(driver_id: str, location: dict[str, Any]) -> Non
     redis = await get_redis()
     await redis.setex(
         driver_location_key(driver_id),
-        settings.DRIVER_LOCATION_TTL,
+        settings.realtime.DRIVER_LOCATION_TTL,
         json.dumps(location),
     )
 

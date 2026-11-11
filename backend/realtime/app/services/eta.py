@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import boto3
 import structlog
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -53,7 +53,7 @@ async def calculate_eta(
         client = get_location_client()
         # Calculate driver → restaurant → delivery
         response = client.calculate_route(
-            CalculatorName=settings.AWS_LOCATION_ROUTE_CALCULATOR,
+            CalculatorName=settings.realtime.AWS_LOCATION_ROUTE_CALCULATOR,
             DeparturePosition=[driver_lng, driver_lat],
             DestinationPosition=[delivery_lng, delivery_lat],
             WaypointPositions=[[restaurant_lng, restaurant_lat]],

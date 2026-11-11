@@ -7,7 +7,7 @@ from typing import Any
 import boto3
 import structlog
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -19,7 +19,7 @@ def get_dynamodb():  # type: ignore[no-untyped-def]
     global _dynamodb
     if _dynamodb is None:
         kwargs: dict = {"region_name": settings.AWS_REGION}
-        endpoint = settings.DYNAMODB_ENDPOINT_URL or settings.AWS_ENDPOINT_URL
+        endpoint = settings.realtime.DYNAMODB_ENDPOINT_URL or settings.AWS_ENDPOINT_URL
         if endpoint:
             kwargs["endpoint_url"] = endpoint
         _dynamodb = boto3.resource("dynamodb", **kwargs)
@@ -35,7 +35,7 @@ async def record_location_event(
     metadata: dict[str, Any] | None = None,
 ) -> None:
     try:
-        table = get_dynamodb().Table(settings.DYNAMODB_TABLE_DELIVERY_HISTORY)
+        table = get_dynamodb().Table(settings.realtime.DYNAMODB_TABLE_DELIVERY_HISTORY)
         table.put_item(
             Item={
                 "pk": order_id,

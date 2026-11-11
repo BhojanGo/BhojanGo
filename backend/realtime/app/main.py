@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.v1 import delivery, earnings, websocket
-from app.config import get_settings
+from shared.config import get_settings
 from app.core.redis import close_redis, get_redis
 
 logger = structlog.get_logger(__name__)
