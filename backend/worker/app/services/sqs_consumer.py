@@ -55,7 +55,9 @@ async def poll_sqs() -> None:
 
     while _running:
         try:
-            response = sqs.receive_message(
+            # boto3 is blocking: long-poll in a thread so the API (health checks) stays responsive.
+            response = await asyncio.to_thread(
+                sqs.receive_message,
                 QueueUrl=settings.worker.SQS_QUEUE_URL_NOTIFICATION,
                 MaxNumberOfMessages=settings.worker.SQS_MAX_MESSAGES,
                 WaitTimeSeconds=settings.worker.SQS_WAIT_TIME_SECONDS,
@@ -77,7 +79,8 @@ async def poll_sqs() -> None:
                     try:
                         await process_message(message)
                         # Delete only on success
-                        sqs.delete_message(
+                        await asyncio.to_thread(
+                            sqs.delete_message,
                             QueueUrl=settings.worker.SQS_QUEUE_URL_NOTIFICATION,
                             ReceiptHandle=receipt_handle,
                         )

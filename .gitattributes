@@ -1,0 +1,6 @@
+# Files that run inside Linux containers or need LF to work on every OS.
+*.sh        text eol=lf
+Makefile    text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+*.sql       text eol=lf

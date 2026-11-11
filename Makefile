@@ -27,6 +27,9 @@ dev: up seed
 	@echo "  worker     http://localhost:$${WORKER_PORT:-8006}/docs"
 	@echo "  web        http://localhost:$${WEB_PORT:-3000}"
 	@echo "  admin      http://localhost:$${ADMIN_PORT:-3001}"
+	@echo "  mailpit    http://localhost:$${MAILPIT_PORT:-8025}  (every email the backend sends)"
+	@echo "OTP codes, SMS and push: printed in the worker log (make logs). Seed phones use OTP 123456."
+	@echo "Payments are faked: they succeed after 2 s; test card pm_card_chargeDeclined fails."
 	@echo "Stop with 'make down'; wipe data with 'make reset'."
 
 # --wait blocks until every service is healthy (core-api only turns healthy

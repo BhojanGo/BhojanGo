@@ -85,6 +85,21 @@ pre-P1 schema. Run `make reset` once to start clean.
 `rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise,
 and `admin@example.com`. Markets: India ▸ Telangana ▸ Hyderabad and USA ▸ Idaho ▸ Boise.
 
+**No accounts needed.** Every external provider has a local stand-in, so nothing
+needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateways.py`):
+
+| Provider | Locally | How to see it |
+| --- | --- | --- |
+| Payments (Stripe, Razorpay) | Fake gateway with signed webhooks | Payments succeed after 2 s; `payment_method_id` `pm_card_chargeDeclined` fails; or `POST /api/v1/payments/fake/{id}/complete` |
+| SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+9190000…`, `+120855500…`) always get **123456** |
+| Email | Mailpit | http://localhost:8025 |
+| Push | Printed in the worker log | `[PUSH to 1 device(s)] …` |
+| Maps / ETA | Straight-line distance × 1.3 road factor, 25 km/h | `GET /api/v1/delivery/{order_id}/eta` on realtime |
+| Storage, queues | LocalStack (S3, SQS, SNS) | http://localhost:4566 |
+
+Real keys plug in later through env vars (`PAYMENT_PROVIDER=live`, `SMS_PROVIDER=twilio`,
+`EMAIL_PROVIDER=sendgrid`, `PUSH_PROVIDER=fcm`); `APP_ENV=production` refuses the local stand-ins.
+
 **Mobile apps** run on your machine with Expo (Node 24 + pnpm): copy
 `apps/customer/.env.example` (or `apps/rider/`) to `.env`, set your computer's LAN IP, then
 `pnpm install && pnpm --filter @bhojango/customer start`.
@@ -136,6 +151,7 @@ serving them changed.
 | PostgreSQL 16 + PostGIS | localhost:5432 (`bhojango` / `bhojango_dev`) | Database |
 | Redis 7.4 | localhost:6379 | Cache, tokens, rider locations |
 | LocalStack | http://localhost:4566 | SQS + SNS + S3 (local AWS) |
+| Mailpit | http://localhost:8025 (SMTP :1025) | Inbox for every email the backend sends |
 
 ## API Documentation
 

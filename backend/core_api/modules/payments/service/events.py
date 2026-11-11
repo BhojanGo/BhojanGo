@@ -4,6 +4,7 @@ The SNS client and envelope are shared (shared.events). The message, subject
 and attributes are exactly what payment-svc published, including
 source_service="payment-svc" and only the event_type message attribute.
 """
+import asyncio
 import json
 
 import structlog
@@ -23,7 +24,8 @@ async def publish_payment_event(event_type: str, payload: dict) -> None:
         return
     event = build_event(event_type, payload, SOURCE_SERVICE)
     try:
-        get_sns_client().publish(
+        await asyncio.to_thread(
+            get_sns_client().publish,
             TopicArn=settings.payments.SNS_TOPIC_ARN_PAYMENT,
             Message=json.dumps(event),
             Subject=event_type,

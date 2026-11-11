@@ -144,6 +144,40 @@ class WorkerSettings(BaseSettings):
     SQS_VISIBILITY_TIMEOUT: int = 60
 
 
+class ProviderSettings(BaseSettings):
+    """Which implementation each external provider uses (shared/providers and
+    core_api payments).
+
+    Locally and in tests everything runs with no account: payments are faked,
+    SMS and push are logged, email goes to Mailpit (or the log), and routing is
+    straight-line distance x ROAD_FACTOR. Production refuses the fakes.
+    """
+
+    model_config = _ENV
+
+    # auto = the real provider when its keys are set, otherwise the fake
+    PAYMENT_PROVIDER: str = "auto"  # auto | fake | live
+    FAKE_PAYMENT_WEBHOOK_SECRET: str = "local-fake-webhook-secret"  # placeholder, local only
+    # Fake payments complete on their own (like a customer finishing checkout)
+    # after this many seconds; 0 = only via POST /payments/fake/{id}/complete.
+    FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: float = 0
+    FAKE_PAYMENT_WEBHOOK_URL: str = "http://localhost:8001/api/v1/payments/fake/webhook"
+
+    SMS_PROVIDER: str = "log"  # log | twilio
+    EMAIL_PROVIDER: str = "log"  # log | smtp | sendgrid
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 1025
+    PUSH_PROVIDER: str = "log"  # log | fcm
+    ROUTING_PROVIDER: str = "straight_line"
+    ROAD_FACTOR: float = 1.3
+    AVG_SPEED_KMH: float = 25.0
+
+    # Seed users (tools/seed) get this OTP outside production, so local sign-in
+    # needs no SMS. Their phones start with these prefixes.
+    OTP_FIXED_CODE: str = "123456"
+    OTP_FIXED_CODE_PHONE_PREFIXES: list[str] = ["+9190000", "+120855500"]
+
+
 class Settings(BaseSettings):
     model_config = _ENV
 
@@ -184,6 +218,11 @@ class Settings(BaseSettings):
     payments: PaymentsSettings = Field(default_factory=PaymentsSettings)
     realtime: RealtimeSettings = Field(default_factory=RealtimeSettings)
     worker: WorkerSettings = Field(default_factory=WorkerSettings)
+    providers: ProviderSettings = Field(default_factory=ProviderSettings)
+
+    @property
+    def is_production(self) -> bool:
+        return self.APP_ENV == "production"
 
     @field_validator("DATABASE_URL")
     @classmethod
