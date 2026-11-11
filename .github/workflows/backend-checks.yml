@@ -1,0 +1,99 @@
+name: Backend checks (migrations + Docker)
+
+# Reusable: called by ci.yml (push to dev) and pr-checks.yml (PRs that touch
+# backend/ or infra/), so both run exactly the same checks.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────
+  # Migrations: one history, no model drift,
+  # and the API works on a migrated database
+  # ──────────────────────────────────────────
+  migrations:
+    name: Migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: bhojango
+          POSTGRES_PASSWORD: bhojango_test
+          POSTGRES_DB: bhojango_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bhojango"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
+      PSQL_URL: postgresql://bhojango:bhojango_test@localhost:5432/bhojango_test
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+
+      - name: Create schemas and extensions
+        run: psql "$PSQL_URL" -f infra/docker/db/init.sql
+
+      - name: Upgrade, downgrade, upgrade
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+      - name: Models and migrations match (alembic check)
+        working-directory: backend
+        run: uv run alembic check
+
+      - name: Seed test data
+        working-directory: backend
+        run: |
+          uv run python ../tools/seed/seed_users.py | psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q
+          uv run python ../tools/seed/seed_restaurants.py | psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q
+
+      - name: API works on the migrated database
+        working-directory: backend
+        env:
+          RUN_MIGRATED_DB_TESTS: "1"
+        run: uv run pytest core_api/integration -v --tb=short
+
+  # ──────────────────────────────────────────
+  # Docker build check (no push)
+  # ──────────────────────────────────────────
+  docker-build:
+    name: Docker Build ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - core_api
+          - realtime
+          - worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f backend/${{ matrix.image }}/Dockerfile -t bhojango-${{ matrix.image }}:test backend

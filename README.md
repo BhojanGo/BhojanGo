@@ -167,6 +167,11 @@ cd backend
 uv run pytest core_api
 uv run pytest realtime   # realtime and worker each have an `app` package,
 uv run pytest worker     # so run them as separate invocations
+
+# Migrations: models and migrations must match (CI fails otherwise)
+uv run alembic check
+# API against a migrated + seeded Postgres and Redis (what CI runs)
+RUN_MIGRATED_DB_TESTS=1 uv run pytest core_api/integration
 ```
 
 ## Infrastructure (Terraform)

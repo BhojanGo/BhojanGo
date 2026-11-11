@@ -83,66 +83,13 @@ jobs:
         run: uv run pytest worker -v --tb=short
 
   # ──────────────────────────────────────────
-  # Migrations: single history applies cleanly
+  # Migrations (+ alembic check, API on a migrated DB) and Docker builds.
+  # Shared with pr-checks.yml via a reusable workflow.
   # ──────────────────────────────────────────
-  migrations:
-    name: Migrations
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_USER: bhojango
-          POSTGRES_PASSWORD: bhojango_test
-          POSTGRES_DB: bhojango_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bhojango"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_test@localhost:5432/bhojango_test
-      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v6
-        with:
-          version: "0.13.7"
-          enable-cache: true
-
-      - name: Create schemas and extensions
-        run: psql "postgresql://bhojango:bhojango_test@localhost:5432/bhojango_test" -f infra/docker/db/init.sql
-
-      - name: Upgrade, downgrade, upgrade
-        working-directory: backend
-        run: |
-          uv sync --frozen
-          uv run alembic upgrade head
-          uv run alembic downgrade base
-          uv run alembic upgrade head
-
-  # ──────────────────────────────────────────
-  # Docker build check (no push without AWS)
-  # ──────────────────────────────────────────
-  docker-build:
-    name: Docker Build ${{ matrix.image }}
-    needs: [frontend, backend-test, migrations]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - core_api
-          - realtime
-          - worker
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -f backend/${{ matrix.image }}/Dockerfile -t bhojango-${{ matrix.image }}:test backend
+  backend-checks:
+    name: Backend checks
+    needs: [frontend, backend-test]
+    uses: ./.github/workflows/backend-checks.yml
 
   # ──────────────────────────────────────────
   # Deploy to ECS (only when AWS secrets exist)
@@ -161,7 +108,7 @@ jobs:
 
   deploy:
     name: Deploy ${{ matrix.service }}
-    needs: [docker-build, aws-configured]
+    needs: [backend-checks, aws-configured]
     if: needs.aws-configured.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     strategy:
