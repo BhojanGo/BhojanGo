@@ -21,7 +21,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, MARKETS, PASSWORD  # noqa: E402
+# The backend code (rule templates) lives in backend/ on a checkout and in /srv
+# in the core-api container.
+for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
+    if (_backend / "core_api").is_dir():
+        sys.path.insert(1, str(_backend))
+        break
+from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, MARKETS, PASSWORD, RULES  # noqa: E402
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -128,6 +134,34 @@ async def seed_markets(conn) -> None:
                         "id": sid("zone", city["code"], name), "city_id": city_id, "name": name,
                         "geojson": box(*bounds), "min_order": Decimal(min_order), "color": color, "status": status,
                     })
+
+
+UPSERT_RULE = text("""
+INSERT INTO rules (id, rule_key, version, family, template, key, slot, name, params, scope_level,
+                   scope_id, market_scope, priority, locked, status, effective_from, created_by)
+VALUES (:id, :id, 1, :family, :template, :key, :slot, :name, CAST(:params AS jsonb), :scope_level,
+        :scope_id, :market_scope, 0, false, 'published', '2026-01-01T00:00:00Z', :created_by)
+ON CONFLICT (id) DO UPDATE SET params = EXCLUDED.params, name = EXCLUDED.name, updated_at = now()
+""")
+
+
+async def seed_rules(conn, created_by) -> int:
+    """Rules go through the same template validation as the admin API."""
+    from core_api.modules.rules.service.templates import slot_for, validate_params
+
+    slugs = {r["slug"]: m["scope"] for m in MARKETS for r in m["restaurants"]}
+    for family, template, key, name, level, scope_id, params in RULES:
+        market_scope = scope_id
+        if level == "restaurant":
+            market_scope = slugs[scope_id]
+            scope_id = str(sid("restaurant", scope_id))
+        await conn.execute(UPSERT_RULE, {
+            "id": sid("rule", family, template, key or "", level, scope_id), "family": family,
+            "template": template, "key": key, "slot": slot_for(family, template, key), "name": name,
+            "params": json.dumps(validate_params(family, template, params)), "scope_level": level, "scope_id": scope_id,
+            "market_scope": market_scope, "created_by": created_by,
+        })
+    return len(RULES)
 
 
 UPSERT_ADMIN_ROLE = text("""
@@ -259,14 +293,17 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                 })
             logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, ADMIN_PASSWORD))
 
+        await seed_rules(conn, sid("user", "admin@example.com"))
+
         counts = (await conn.execute(text(
             "SELECT (SELECT count(*) FROM restaurants WHERE slug = ANY(:slugs)),"
             "       (SELECT count(*) FROM menu_items mi JOIN restaurants r ON r.id = mi.restaurant_id WHERE r.slug = ANY(:slugs)),"
             "       (SELECT count(*) FROM users WHERE email LIKE '%@example.com'),"
-            "       (SELECT count(*) FROM cities), (SELECT count(*) FROM zones)"
+            "       (SELECT count(*) FROM cities), (SELECT count(*) FROM zones),"
+            "       (SELECT count(*) FROM rules WHERE status = 'published')"
         ), {"slugs": [r["slug"] for m in MARKETS for r in m["restaurants"]]})).one()
     await engine.dispose()
-    print(f"Seeded {counts[3]} cities with {counts[4]} zones, {counts[0]} restaurants, "
+    print(f"Seeded {counts[3]} cities with {counts[4]} zones, {counts[5]} published rules, {counts[0]} restaurants, "
           f"{counts[1]} menu items, {counts[2]} users.")
     return logins
 

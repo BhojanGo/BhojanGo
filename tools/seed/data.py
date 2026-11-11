@@ -396,3 +396,57 @@ COUNTRIES = [
         ],
     },
 ]
+
+
+# ── Rules (P7) ────────────────────────────────────────────────────────────────
+# Published from 2026-01-01. Hyderabad reproduces the worked example in
+# docs/specs/01-structure.md section 4 (₹638.22). Rates are illustrative
+# (the spec says: confirm tax with a CA); admins change them in the console.
+# (family, template, key, name, scope_level, scope_id, params)
+# A restaurant scope_id is the restaurant's slug here; seed.py maps it to the id.
+RULES = [
+    # India
+    ("tax", "rate_on_lines", "gst_food", "GST on food and packaging", "country", "IN",
+     {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"], "collected_by": "platform"}),
+    ("tax", "rate_on_lines", "gst_fees", "GST on platform fees", "country", "IN",
+     {"label": "GST on platform fees", "rate_percent": 18,
+      "target_lines": ["delivery_fee", "service_fee", "surge", "small_order_fee", "late_night_fee"], "collected_by": "platform"}),
+    ("commission", "percent_by_tier", None, "Commission by tier", "country", "IN",
+     {"tiers": {"A": 18, "B": 15, "C": 12}, "default_tier": "B"}),
+    ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
+    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "IN",
+     {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
+    ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "IN-TG-HYD", {"per_active_hour": 120}),
+    ("delivery_fee", "distance_slabs", None, "Hyderabad delivery fee", "city", "IN-TG-HYD",
+     {"slabs": [{"up_to": 3, "fee": 25}, {"up_to": 6, "fee": 35}, {"up_to": 10, "fee": 50}]}),
+    ("customer_fee", "service_fee", None, "Service fee", "city", "IN-TG-HYD", {"percent": 2, "min": 5, "max": 15}),
+    ("customer_fee", "small_order_fee", None, "Small order fee", "city", "IN-TG-HYD", {"below": 99, "fee": 15}),
+    ("customer_fee", "surge_levy", None, "Evening surge", "city", "IN-TG-HYD",
+     {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 15}),
+    ("customer_fee", "packaging_levy", None, "Packaging", "restaurant", "spice-route-kitchen-madhapur", {"amount": 10}),
+    ("promotion", "percent_off", "hyd_launch", "10% off, up to ₹50", "city", "IN-TG-HYD",
+     {"percent": 10, "max_discount": 50, "funded_by": "platform", "budget_cap": 100000}),
+    ("business", "max_radius", None, "Max delivery distance", "country", "IN", {"distance": 10}),
+    ("business", "tip_presets", None, "Tip presets", "country", "IN", {"amounts": [10, 20, 30], "default_index": 1}),
+    ("business", "cod_limit", None, "Cash on delivery limit", "country", "IN", {"max_amount": 1000}),
+    # USA
+    ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
+    ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}),
+    ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
+    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "US",
+     {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
+    ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "US-ID-BOI", {"per_active_hour": 15}),
+    ("delivery_fee", "distance_slabs", None, "Boise delivery fee", "city", "US-ID-BOI",
+     {"slabs": [{"up_to": 2, "fee": "1.99"}, {"up_to": 4, "fee": "3.49"}, {"up_to": 6, "fee": "4.99"}]}),
+    ("customer_fee", "service_fee", None, "Service fee", "city", "US-ID-BOI", {"percent": 5, "min": 1, "max": 5}),
+    ("customer_fee", "small_order_fee", None, "Small order fee", "city", "US-ID-BOI", {"below": 12, "fee": 2}),
+    ("business", "max_radius", None, "Max delivery distance", "country", "US", {"distance": 6}),
+    ("business", "tip_presets", None, "Tip presets", "country", "US", {"amounts": [2, 3, 5], "default_index": 1}),
+    ("business", "cod_limit", None, "Cash on delivery off", "country", "US", {"max_amount": 0}),
+    # Platform defaults (docs/specs/01-structure.md section 3, business rules)
+    ("business", "accept_timeout", None, "Restaurant accept timeout", "platform", "*", {"seconds": 180}),
+    ("business", "unpaid_auto_cancel", None, "Unpaid orders cancel", "platform", "*", {"minutes": 10}),
+    ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
+    ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
+    ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
+]

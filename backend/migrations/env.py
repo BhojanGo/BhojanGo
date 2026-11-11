@@ -19,6 +19,8 @@ import core_api.modules.identity.models.address  # noqa: F401
 import core_api.modules.identity.models.admin_role  # noqa: F401
 import core_api.modules.identity.models.user  # noqa: F401
 import core_api.modules.markets.models  # noqa: F401
+import core_api.modules.rules.models  # noqa: F401
+import core_api.modules.audit.models  # noqa: F401
 import core_api.modules.orders.models  # noqa: F401
 import core_api.modules.payments.models  # noqa: F401
 import worker.app.models  # noqa: F401
