@@ -1,7 +1,7 @@
 """Firebase Cloud Messaging for push notifications."""
 import structlog
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -14,7 +14,7 @@ def get_firebase_app():  # type: ignore[no-untyped-def]
     if _firebase_app is not None:
         return _firebase_app
 
-    if not settings.FIREBASE_PROJECT_ID or settings.APP_ENV in ("test", "development"):
+    if not settings.worker.FIREBASE_PROJECT_ID or settings.APP_ENV in ("test", "development"):
         logger.debug("firebase_mock_mode")
         return None
 
@@ -23,10 +23,10 @@ def get_firebase_app():  # type: ignore[no-untyped-def]
 
     cred = credentials.Certificate({
         "type": "service_account",
-        "project_id": settings.FIREBASE_PROJECT_ID,
-        "private_key_id": settings.FIREBASE_PRIVATE_KEY_ID,
-        "private_key": settings.FIREBASE_PRIVATE_KEY.replace("\\n", "\n"),
-        "client_email": settings.FIREBASE_CLIENT_EMAIL,
+        "project_id": settings.worker.FIREBASE_PROJECT_ID,
+        "private_key_id": settings.worker.FIREBASE_PRIVATE_KEY_ID,
+        "private_key": settings.worker.FIREBASE_PRIVATE_KEY.replace("\\n", "\n"),
+        "client_email": settings.worker.FIREBASE_CLIENT_EMAIL,
         "token_uri": "https://oauth2.googleapis.com/token",
     })
     _firebase_app = firebase_admin.initialize_app(cred)

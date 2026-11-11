@@ -10,8 +10,8 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.v1 import notifications
-from app.config import get_settings
-from app.db.base import engine
+from shared.config import get_settings
+from shared.db import engine
 from app.services.sqs_consumer import poll_sqs, stop_polling
 
 logger = structlog.get_logger(__name__)
@@ -33,7 +33,7 @@ _REQUIRED_PROD_SETTINGS = [
 def _validate_production_config() -> None:
     if settings.APP_ENV != "production":
         return
-    missing = [name for name in _REQUIRED_PROD_SETTINGS if not getattr(settings, name, "")]
+    missing = [name for name in _REQUIRED_PROD_SETTINGS if not getattr(settings.worker, name, "")]
     if missing:
         raise RuntimeError(
             "notification-svc is misconfigured for production; missing required settings: "
@@ -79,7 +79,7 @@ async def health_check() -> dict:
         checks["database"] = "ok"
     except Exception:
         checks["database"] = "error"
-    sqs_ok = bool(settings.SQS_QUEUE_URL_NOTIFICATION)
+    sqs_ok = bool(settings.worker.SQS_QUEUE_URL_NOTIFICATION)
     checks["sqs_configured"] = "ok" if sqs_ok else "not_configured"
     return {
         "status": "healthy" if checks["database"] == "ok" else "degraded",
@@ -109,7 +109,7 @@ async def readiness() -> JSONResponse:
     except Exception as e:
         checks["database"] = f"error: {e}"
 
-    sqs_ok = bool(settings.SQS_QUEUE_URL_NOTIFICATION)
+    sqs_ok = bool(settings.worker.SQS_QUEUE_URL_NOTIFICATION)
     checks["sqs_configured"] = "ok" if sqs_ok else "not_configured"
 
     all_ok = all(v == "ok" for v in checks.values())

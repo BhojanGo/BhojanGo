@@ -3,25 +3,25 @@ import structlog
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
 async def send_email(to_email: str, subject: str, html_content: str) -> bool:
-    if not settings.SENDGRID_API_KEY or settings.APP_ENV in ("test", "development"):
+    if not settings.worker.SENDGRID_API_KEY or settings.APP_ENV in ("test", "development"):
         logger.info("email_mock_send", to=to_email, subject=subject)
         return True
 
     message = Mail(
-        from_email=(settings.SENDGRID_FROM_EMAIL, settings.SENDGRID_FROM_NAME),
+        from_email=(settings.worker.SENDGRID_FROM_EMAIL, settings.worker.SENDGRID_FROM_NAME),
         to_emails=to_email,
         subject=subject,
         html_content=html_content,
     )
     try:
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        sg = SendGridAPIClient(settings.worker.SENDGRID_API_KEY)
         response = sg.send(message)
         logger.info("email_sent", to=to_email, status=response.status_code)
         return response.status_code in (200, 201, 202)

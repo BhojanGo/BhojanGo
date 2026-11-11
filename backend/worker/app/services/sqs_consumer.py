@@ -6,8 +6,8 @@ from typing import Any
 import boto3
 import structlog
 
-from app.config import get_settings
-from app.db.base import AsyncSessionLocal
+from shared.config import get_settings
+from shared.db import AsyncSessionLocal
 from app.services.dispatcher import dispatch_event
 
 logger = structlog.get_logger(__name__)
@@ -45,21 +45,21 @@ async def process_message(message: dict[str, Any]) -> None:
 async def poll_sqs() -> None:
     """Continuously poll SQS for messages."""
     global _running
-    if not settings.SQS_QUEUE_URL_NOTIFICATION:
+    if not settings.worker.SQS_QUEUE_URL_NOTIFICATION:
         logger.info("sqs_disabled_no_queue_url")
         return
 
     sqs = get_sqs()
     _running = True
-    logger.info("sqs_consumer_started", queue=settings.SQS_QUEUE_URL_NOTIFICATION)
+    logger.info("sqs_consumer_started", queue=settings.worker.SQS_QUEUE_URL_NOTIFICATION)
 
     while _running:
         try:
             response = sqs.receive_message(
-                QueueUrl=settings.SQS_QUEUE_URL_NOTIFICATION,
-                MaxNumberOfMessages=settings.SQS_MAX_MESSAGES,
-                WaitTimeSeconds=settings.SQS_WAIT_TIME_SECONDS,
-                VisibilityTimeout=settings.SQS_VISIBILITY_TIMEOUT,
+                QueueUrl=settings.worker.SQS_QUEUE_URL_NOTIFICATION,
+                MaxNumberOfMessages=settings.worker.SQS_MAX_MESSAGES,
+                WaitTimeSeconds=settings.worker.SQS_WAIT_TIME_SECONDS,
+                VisibilityTimeout=settings.worker.SQS_VISIBILITY_TIMEOUT,
                 AttributeNames=["All"],
                 MessageAttributeNames=["All"],
             )
@@ -78,7 +78,7 @@ async def poll_sqs() -> None:
                         await process_message(message)
                         # Delete only on success
                         sqs.delete_message(
-                            QueueUrl=settings.SQS_QUEUE_URL_NOTIFICATION,
+                            QueueUrl=settings.worker.SQS_QUEUE_URL_NOTIFICATION,
                             ReceiptHandle=receipt_handle,
                         )
                         break
