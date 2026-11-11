@@ -46,7 +46,7 @@ export default function SignupScreen() {
     setError("");
     setLoading(true);
     try {
-      const { data } = await api.post("/user/auth/register", {
+      const { data } = await api.post("/auth/register", {
         full_name: form.full_name,
         email: form.email,
         phone: form.phone || undefined,

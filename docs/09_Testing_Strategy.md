@@ -139,7 +139,7 @@ class OrderFactory(factory.Factory):
 ```
 
 ### Seed Data
-- `tools/seed/` contains SQL-generating scripts for local/staging
+- `tools/seed/` loads idempotent Hyderabad + Boise seed data for local/staging (`make seed`)
 - Idempotent (safe to run multiple times)
 
 ## 8. CI Strategy

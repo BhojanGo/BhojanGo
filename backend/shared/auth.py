@@ -10,7 +10,11 @@ the same 401 they returned before.
 """
 import uuid
 
+from fastapi import HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
+from starlette.requests import HTTPConnection
 
 from shared.config import get_settings
 
@@ -55,3 +59,27 @@ class CurrentUser:
             role=payload.get("role", "customer"),
             country=payload.get("country", "US"),
         )
+
+
+class BearerAuth(HTTPBearer):
+    """HTTPBearer that keeps the API's original responses for a missing token.
+
+    FastAPI 0.115+ answers a missing or non-Bearer Authorization header with 401
+    + WWW-Authenticate; FastAPI 0.111 (what the API shipped with) answered 403.
+    The upgrade in P3 must not change the API contract, so this keeps 403.
+    """
+
+    async def __call__(self, request: HTTPConnection) -> HTTPAuthorizationCredentials | None:  # type: ignore[override]
+        authorization = request.headers.get("Authorization")
+        scheme, credentials = get_authorization_scheme_param(authorization)
+        if not (authorization and scheme and credentials):
+            if self.auto_error:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
+            return None
+        if scheme.lower() != "bearer":
+            if self.auto_error:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Invalid authentication credentials"
+                )
+            return None
+        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)

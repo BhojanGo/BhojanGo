@@ -64,7 +64,7 @@ export default function OrdersScreen() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
-      const { data } = await api.get("/order/orders?limit=50");
+      const { data } = await api.get("/orders?limit=50");
       return data as { items: Order[]; total: number };
     },
   });

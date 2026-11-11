@@ -68,7 +68,7 @@ export default function CheckoutScreen() {
         loyalty_points_to_use: 0,
       };
 
-      const res = await api.post("/order/orders", orderPayload, {
+      const res = await api.post("/orders", orderPayload, {
         headers: { "X-Idempotency-Key": Crypto.randomUUID() },
       });
 

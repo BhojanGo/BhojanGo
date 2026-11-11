@@ -14,7 +14,7 @@ async def validate_idempotency_key(
         uuid.UUID(x_idempotency_key, version=4)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="X-Idempotency-Key must be a valid UUID v4",
         )
     return x_idempotency_key

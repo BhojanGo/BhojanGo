@@ -102,8 +102,8 @@ P8 (pricing) and P13 (finance). No empty folders.
 | `docker-compose.yml` | `infra/docker/compose.yaml`, running 3 backend images instead of 7 services. Keep a root `docker-compose.yml` that only `include:`s it, so old commands still work |
 | `infra/db/init.sql` | `infra/docker/db/init.sql` |
 | `infra/localstack/init-aws.sh` | `infra/docker/localstack/init-aws.sh` |
-| `infra/kong/` | `infra/docker/kong/`. Point every route at core_api, except delivery → realtime and notifications → worker. Kong is not fixed: P3 removes it from the local Docker setup and apps and tests call core_api, realtime and worker directly; AWS uses ALB + WAF (P4) |
-| `scripts/seed` | `tools/seed` (rewritten in P3) |
+| `infra/kong/` | `infra/docker/kong/` in P1 (routes pointed at core_api, realtime and worker). **Removed in P3:** there is no local gateway; apps and tests call core_api :8001, realtime :8004 and worker :8006 directly. AWS uses ALB + WAF (P4) |
+| `scripts/seed` | `tools/seed`; rewritten in P3 (Hyderabad + Boise, idempotent, `make seed`) |
 | `pnpm-workspace.yaml`, `turbo.json`, CI workflows, README, CONTRIBUTING | Updated for the new paths |
 
 ## Before branching (housekeeping)

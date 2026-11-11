@@ -64,7 +64,7 @@ export default function HomeScreen() {
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["restaurants-home"],
     queryFn: async () => {
-      const { data } = await api.get("/restaurant/restaurants?limit=20&sort_by=rating");
+      const { data } = await api.get("/restaurants?limit=20&sort_by=rating");
       return data as { items: Restaurant[]; total: number };
     },
   });

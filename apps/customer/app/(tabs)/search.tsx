@@ -27,7 +27,7 @@ export default function SearchScreen() {
       const params = new URLSearchParams({ limit: "20" });
       if (query) params.set("q", query);
       if (cuisine !== "All") params.set("cuisine_type", cuisine.toLowerCase());
-      const { data } = await api.get(`/restaurant/restaurants?${params.toString()}`);
+      const { data } = await api.get(`/restaurants?${params.toString()}`);
       return data as { items: Restaurant[]; total: number };
     },
     enabled: true,

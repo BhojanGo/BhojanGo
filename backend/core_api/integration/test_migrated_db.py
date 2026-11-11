@@ -6,7 +6,7 @@ RUN_MIGRATED_DB_TESTS=1 (CI's migrations job sets it after seeding):
 
     cd backend
     uv run alembic upgrade head
-    python ../tools/seed/seed_users.py | psql ...   # and seed_restaurants.py
+    uv run python ../tools/seed/seed.py
     RUN_MIGRATED_DB_TESTS=1 uv run pytest core_api/integration -v
 """
 import os
@@ -37,7 +37,7 @@ async def client():
 @pytest.fixture
 async def customer_token(client: AsyncClient) -> str:
     r = await client.post(
-        "/api/v1/auth/login", json={"email": "customer1@test.com", "password": "Test1234!"}
+        "/api/v1/auth/login", json={"email": "customer1.hyd@example.com", "password": "BhojanGo123"}
     )
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
@@ -48,6 +48,8 @@ async def test_restaurant_list_detail_and_menu(client: AsyncClient) -> None:
     assert r.status_code == 200, r.text
     items = r.json()["items"]
     assert items, "seeded restaurants should be listed"
+    names = {i["name"] for i in items}
+    assert {"Spice Route Kitchen", "Boise Bowl Co."} <= names, names
 
     restaurant_id = items[0]["id"]
     r = await client.get(f"/api/v1/restaurants/{restaurant_id}")

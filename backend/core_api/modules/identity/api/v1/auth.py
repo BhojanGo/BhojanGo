@@ -2,7 +2,9 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
+
+from shared.auth import BearerAuth
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +28,7 @@ from core_api.modules.identity.service.auth import AuthService
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = structlog.get_logger(__name__)
 limiter = Limiter(key_func=get_remote_address)
-security = HTTPBearer()
+security = BearerAuth()
 
 
 @router.post("/register", response_model=AuthTokensResponse, status_code=status.HTTP_201_CREATED)

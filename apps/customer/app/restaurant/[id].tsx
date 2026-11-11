@@ -88,8 +88,8 @@ export default function RestaurantScreen() {
     queryFn: async () => {
       // The detail endpoint has no menu; categories come from /menu.
       const [detail, menu] = await Promise.all([
-        api.get(`/restaurant/restaurants/${id}`),
-        api.get(`/restaurant/restaurants/${id}/menu`),
+        api.get(`/restaurants/${id}`),
+        api.get(`/restaurants/${id}/menu`),
       ]);
       const uncategorized: MenuItem[] = menu.data.uncategorized_items ?? [];
       const categories: RestaurantWithMenu["categories"] = [...(menu.data.categories ?? [])];

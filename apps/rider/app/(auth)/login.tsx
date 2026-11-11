@@ -28,7 +28,7 @@ export default function LoginScreen() {
     setError("");
     setLoading(true);
     try {
-      const { data } = await api.post("/user/auth/login", { email, password });
+      const { data } = await api.post("/auth/login", { email, password });
       await setTokens(data.access_token, data.refresh_token);
       setUser(data.user);
       if (data.user.role !== "driver") {

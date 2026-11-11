@@ -3,7 +3,9 @@ from typing import Annotated
 
 import structlog
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
+
+from shared.auth import BearerAuth
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +18,7 @@ from core_api.modules.identity.repository.user import UserRepository
 
 logger = structlog.get_logger(__name__)
 
-security = HTTPBearer()
+security = BearerAuth()
 
 
 async def get_current_user(

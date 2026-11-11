@@ -248,7 +248,7 @@ async def configure_pricing(
     """Configure a restaurant's commission / fee model (restaurant-friendly pricing)."""
     missing = data.require_fields_for_model()
     if missing:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=missing)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=missing)
 
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
