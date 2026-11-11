@@ -36,15 +36,15 @@ jobs:
 
       - name: Build packages
         run: pnpm turbo build --filter='./packages/*'
-        continue-on-error: true
 
       - name: Lint
         run: pnpm turbo lint --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
 
       - name: Type check
         run: pnpm turbo typecheck --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
+
+      - name: Test
+        run: pnpm turbo test --filter='./apps/*' --filter='./packages/*'
 
   # ──────────────────────────────────────────
   # Backend: one uv project, three deployables

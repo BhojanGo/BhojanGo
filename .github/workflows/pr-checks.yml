@@ -61,9 +61,8 @@ jobs:
       - run: pnpm install
       - run: pnpm turbo build --filter='./packages/*'
       - run: pnpm turbo lint --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
       - run: pnpm turbo typecheck --filter='./apps/*' --filter='./packages/*'
-        continue-on-error: true
+      - run: pnpm turbo test --filter='./apps/*' --filter='./packages/*'
 
   # ──────────────────────────────────────────
   # Backend tests
