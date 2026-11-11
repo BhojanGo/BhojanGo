@@ -45,7 +45,7 @@ export default function OrderDetailScreen() {
       const token = await SecureStore.getItemAsync("access_token");
       if (!token) return;
 
-      const wsUrl = `${process.env.EXPO_PUBLIC_WS_URL ?? "ws://localhost:8003"}/ws/track/${id}?token=${token}`;
+      const wsUrl = `${process.env.EXPO_PUBLIC_WS_URL ?? "ws://localhost:8004"}/ws/track/${id}?token=${token}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
