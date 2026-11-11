@@ -7,10 +7,13 @@ from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.db.base import Base, get_db
-from app.main import app
+from core_api.modules.payments.models.payment import PaymentIntent, Wallet, WalletTransaction
+from shared.db import Base, get_db
+from core_api.main import app
 
 TEST_DB = "sqlite+aiosqlite:///:memory:"
+# Base.metadata is shared by every core_api module; only create payment tables.
+PAYMENT_TABLES = [PaymentIntent.__table__, Wallet.__table__, WalletTransaction.__table__]
 test_engine = create_async_engine(TEST_DB)
 TestSession = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -18,10 +21,10 @@ TestSession = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_com
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_db():
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all, tables=PAYMENT_TABLES)
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all, tables=PAYMENT_TABLES)
 
 
 @pytest_asyncio.fixture
@@ -33,7 +36,7 @@ async def db_session():
 
 @pytest.mark.asyncio
 async def test_wallet_credit_and_debit(db_session: AsyncSession) -> None:
-    from app.repositories.payment import WalletRepository
+    from core_api.modules.payments.repository.payment import WalletRepository
 
     repo = WalletRepository(db_session)
     user_id = uuid.uuid4()
@@ -54,7 +57,7 @@ async def test_wallet_credit_and_debit(db_session: AsyncSession) -> None:
 async def test_wallet_insufficient_balance(db_session: AsyncSession) -> None:
     from fastapi import HTTPException
 
-    from app.repositories.payment import WalletRepository
+    from core_api.modules.payments.repository.payment import WalletRepository
 
     repo = WalletRepository(db_session)
     user_id = uuid.uuid4()
@@ -67,7 +70,7 @@ async def test_wallet_insufficient_balance(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_wallet_get_or_create_idempotent(db_session: AsyncSession) -> None:
-    from app.repositories.payment import WalletRepository
+    from core_api.modules.payments.repository.payment import WalletRepository
 
     repo = WalletRepository(db_session)
     user_id = uuid.uuid4()

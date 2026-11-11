@@ -19,6 +19,7 @@ from core_api import errors, health
 from core_api.modules.catalog.main import register as register_catalog
 from core_api.modules.identity.main import register as register_identity
 from core_api.modules.orders.main import register as register_orders
+from core_api.modules.payments.main import register as register_payments
 from shared.config import get_settings
 from shared.db import engine
 from shared.logging import configure_logging
@@ -34,6 +35,7 @@ MODULES = [
     register_identity,
     register_catalog,
     register_orders,
+    register_payments,
 ]
 
 

@@ -7,11 +7,11 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CurrentUser, get_current_user
-from app.core.events import publish_payment_event
-from app.db.base import get_db
-from app.repositories.payment import PaymentRepository, WalletRepository
-from app.schemas.payment import (
+from core_api.modules.payments.api.dependencies import CurrentUser, get_current_user
+from core_api.modules.payments.service.events import publish_payment_event
+from shared.db import get_db
+from core_api.modules.payments.repository.payment import PaymentRepository, WalletRepository
+from core_api.modules.payments.schemas.payment import (
     PaymentInitiateRequest,
     PaymentInitiateResponse,
     PaymentResponse,
@@ -22,7 +22,7 @@ from app.schemas.payment import (
     WalletTransactionListResponse,
     WalletTransactionResponse,
 )
-from app.services import razorpay_svc, stripe_svc
+from core_api.modules.payments.service import razorpay_svc, stripe_svc
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = structlog.get_logger(__name__)

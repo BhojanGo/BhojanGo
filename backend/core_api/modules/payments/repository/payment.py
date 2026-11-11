@@ -4,7 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.payment import PaymentIntent, Wallet, WalletTransaction
+from core_api.modules.payments.models.payment import PaymentIntent, Wallet, WalletTransaction
 
 _CENTS = Decimal("0.01")
 

@@ -2,14 +2,14 @@
 import structlog
 import stripe
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
 def get_stripe():  # returns the configured `stripe` module
-    stripe.api_key = settings.STRIPE_SECRET_KEY
+    stripe.api_key = settings.payments.STRIPE_SECRET_KEY
     return stripe
 
 
@@ -40,7 +40,7 @@ async def create_payment_intent(
 
 async def process_webhook(payload: bytes, sig_header: str) -> dict:
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.payments.STRIPE_WEBHOOK_SECRET)
     except stripe.error.SignatureVerificationError:
         raise ValueError("Invalid Stripe webhook signature")
 

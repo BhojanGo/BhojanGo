@@ -5,14 +5,14 @@ import hmac
 import razorpay
 import structlog
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
 def get_client() -> razorpay.Client:
-    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    return razorpay.Client(auth=(settings.payments.RAZORPAY_KEY_ID, settings.payments.RAZORPAY_KEY_SECRET))
 
 
 async def create_order(
@@ -34,7 +34,7 @@ async def create_order(
 
 def verify_webhook_signature(payload: bytes, sig_header: str) -> bool:
     expected = hmac.new(
-        settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+        settings.payments.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
         payload,
         hashlib.sha256,
     ).hexdigest()
