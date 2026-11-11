@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, useAuthStore } from "@bhojango/mobile-core";
+import { api, apiErrorMessage, useAuthStore } from "@bhojango/mobile-core";
 
 export default function SignupScreen() {
   const { setTokens, setUser } = useAuthStore();
@@ -59,9 +59,7 @@ export default function SignupScreen() {
       setUser(data.user);
       router.replace("/(tabs)");
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Registration failed. Please try again.";
+      const msg = apiErrorMessage(err, "Registration failed. Please try again.");
       setError(msg);
     } finally {
       setLoading(false);
