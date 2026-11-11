@@ -1,6 +1,6 @@
 import asyncio
 from typing import AsyncGenerator
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.api.v1.auth import limiter as auth_limiter
 from app.db.base import Base, get_db
 from app.main import app
 
@@ -45,6 +46,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    # Rate-limit counters are in-memory and shared across tests; start each test clean.
+    auth_limiter.reset()
 
     # Mock Redis
     with patch("app.core.redis._redis_client") as mock_redis:
@@ -57,9 +60,10 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         mock.keys.return_value = []
         mock.incr.return_value = 1
         mock.expire.return_value = True
-        mock.pipeline.return_value.__aenter__ = AsyncMock(return_value=mock)
-        mock.pipeline.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock.pipeline.return_value.execute = AsyncMock(return_value=[1, True])
+        # redis.asyncio's pipeline() is synchronous; only execute() is awaited.
+        pipe = MagicMock()
+        pipe.execute = AsyncMock(return_value=[1, True])
+        mock.pipeline = MagicMock(return_value=pipe)
 
         async def mock_get_redis():
             return mock
