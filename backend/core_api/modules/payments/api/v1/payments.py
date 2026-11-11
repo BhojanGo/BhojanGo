@@ -12,6 +12,7 @@ from core_api.modules.payments.service.events import publish_payment_event
 from shared.db import get_db
 from core_api.modules.payments.repository.payment import PaymentRepository, WalletRepository
 from core_api.modules.payments.schemas.payment import (
+    FakeCompleteRequest,
     PaymentInitiateRequest,
     PaymentInitiateResponse,
     PaymentResponse,
@@ -22,7 +23,13 @@ from core_api.modules.payments.schemas.payment import (
     WalletTransactionListResponse,
     WalletTransactionResponse,
 )
-from core_api.modules.payments.service import razorpay_svc, stripe_svc
+from core_api.modules.payments.service.gateways import (
+    fake_webhook_body,
+    gateway_by_name,
+    get_gateway,
+    sign_fake,
+)
+from shared.config import get_settings
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = structlog.get_logger(__name__)
@@ -88,26 +95,16 @@ async def initiate_payment(
             currency=data.currency,
         )
 
-    # Route by country
-    if data.country == "US":
-        result = await stripe_svc.create_payment_intent(
-            amount=data.amount,
-            currency=data.currency,
-            order_id=str(data.order_id),
-            idempotency_key=idempotency_key,
-            payment_method_id=data.payment_method_id,
-        )
-        provider = "stripe"
-        meta = {"client_secret": result["client_secret"]}
-    else:
-        result = await razorpay_svc.create_order(
-            amount=data.amount,
-            currency=data.currency,
-            order_id=str(data.order_id),
-            idempotency_key=idempotency_key,
-        )
-        provider = "razorpay"
-        meta = {"razorpay_order_id": result["razorpay_order_id"]}
+    gateway = get_gateway(data.country)
+    result = await gateway.create(
+        amount=data.amount,
+        currency=data.currency,
+        order_id=str(data.order_id),
+        idempotency_key=idempotency_key,
+        payment_method_id=data.payment_method_id,
+    )
+    provider = gateway.name
+    meta = {k: v for k, v in result.items() if k in ("client_secret", "razorpay_order_id", "fake_outcome")}
 
     intent = await repo.create_intent(
         order_id=data.order_id,
@@ -131,73 +128,95 @@ async def initiate_payment(
     )
 
 
-@router.post("/stripe/webhook")
-async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
-    """Stripe webhook handler. Verifies signature and processes payment events."""
+async def _handle_webhook(gateway_name: str, request: Request, db: AsyncSession) -> dict:
+    """Verify, then apply a payment webhook. Idempotent: a repeated or late
+    event for a payment that already has that outcome changes nothing and
+    publishes nothing."""
+    gateway = gateway_by_name(gateway_name)
     payload = await request.body()
-    sig_header = request.headers.get("stripe-signature", "")
     try:
-        event = await stripe_svc.process_webhook(payload, sig_header)
+        event = await gateway.parse_webhook(payload, request.headers.get(gateway.signature_header, ""))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return await apply_payment_event(db, gateway_name, event)
 
+
+async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) -> dict:
+    if event["status"] not in ("succeeded", "failed"):
+        return {"received": True}
     repo = PaymentRepository(db)
-    intent = await repo.get_by_provider_id(event["provider_payment_id"])
+    intent = await repo.get_by_provider_id(event["provider_payment_id"], for_update=True)
     if not intent:
-        logger.warning("stripe_webhook_intent_not_found", provider_id=event["provider_payment_id"])
+        logger.warning("webhook_intent_not_found", provider=gateway_name, provider_id=event["provider_payment_id"])
         return {"received": True}
 
-    new_status = "succeeded" if event["status"] == "succeeded" else "failed"
+    new_status = event["status"]
+    if intent.status == new_status or intent.status in ("refunded", "partially_refunded"):
+        logger.info("webhook_duplicate_ignored", provider=gateway_name, intent_id=str(intent.id), status=intent.status)
+        return {"received": True, "duplicate": True}
+    if intent.status == "succeeded" and new_status == "failed":
+        # A late failure never undoes a captured payment.
+        logger.warning("webhook_late_failure_ignored", provider=gateway_name, intent_id=str(intent.id))
+        return {"received": True, "duplicate": True}
+
     await repo.update_status(intent.id, new_status)
+    if event.get("razorpay_payment_id"):
+        intent.metadata_ = {**intent.metadata_, "razorpay_payment_id": event["razorpay_payment_id"]}
 
-    if new_status == "succeeded":
-        await publish_payment_event("payment.succeeded", {
-            "payment_intent_id": str(intent.id),
-            "order_id": str(intent.order_id),
-            "user_id": str(intent.user_id),
-            "amount": intent.amount,
-            "currency": intent.currency,
-            "provider": "stripe",
-        })
-    else:
-        await publish_payment_event("payment.failed", {
-            "payment_intent_id": str(intent.id),
-            "order_id": str(intent.order_id),
-            "user_id": str(intent.user_id),
-            "failure_reason": event["event_type"],
-            "provider": "stripe",
-        })
-
-    return {"received": True}
-
-
-@router.post("/razorpay/webhook")
-async def razorpay_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
-    payload = await request.body()
-    sig_header = request.headers.get("x-razorpay-signature", "")
-    try:
-        event = await razorpay_svc.process_webhook(payload, sig_header)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-    repo = PaymentRepository(db)
-    intent = await repo.get_by_provider_id(event["provider_payment_id"])
-    if not intent:
-        return {"received": True}
-
-    new_status = "succeeded" if event["status"] == "succeeded" else "failed"
-    await repo.update_status(intent.id, new_status)
-
-    sns_event = "payment.succeeded" if new_status == "succeeded" else "payment.failed"
-    await publish_payment_event(sns_event, {
+    base = {
         "payment_intent_id": str(intent.id),
         "order_id": str(intent.order_id),
         "user_id": str(intent.user_id),
         "amount": intent.amount,
         "currency": intent.currency,
-        "provider": "razorpay",
-    })
+        "provider": gateway_name,
+    }
+    if new_status == "succeeded":
+        await publish_payment_event("payment.succeeded", base)
+    else:
+        await publish_payment_event("payment.failed", {**base, "failure_reason": event["event_type"]})
     return {"received": True}
+
+
+@router.post("/stripe/webhook")
+async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+    """Stripe webhook. Verifies the signature, then applies the event."""
+    return await _handle_webhook("stripe", request, db)
+
+
+@router.post("/razorpay/webhook")
+async def razorpay_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+    return await _handle_webhook("razorpay", request, db)
+
+
+@router.post("/fake/webhook", include_in_schema=False)
+async def fake_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+    """Webhooks from the local fake gateway (refused in production)."""
+    if get_settings().is_production:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return await _handle_webhook("fake", request, db)
+
+
+@router.post("/fake/{payment_intent_id}/complete")
+async def complete_fake_payment(
+    payment_intent_id: uuid.UUID,
+    data: FakeCompleteRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    """Local only: finish a fake payment as if the customer paid (or the card
+    was declined). Sends the same signed webhook a real gateway would."""
+    if get_settings().is_production:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    intent = await PaymentRepository(db).get_by_id(payment_intent_id)
+    if not intent or intent.provider != "fake" or str(intent.user_id) != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fake payment not found")
+    outcome = data.outcome or intent.metadata_.get("fake_outcome", "succeeded")
+    body = fake_webhook_body(intent.provider_payment_id, outcome)
+    gateway = gateway_by_name("fake")
+    event = await gateway.parse_webhook(body, sign_fake(body))
+    result = await apply_payment_event(db, "fake", event)
+    return {**result, "outcome": outcome}
 
 
 @router.get("/{order_id}", response_model=PaymentResponse)
@@ -271,13 +290,10 @@ async def refund_payment(
         )
         refund_id = f"wallet_refund_{uuid.uuid4()}"
         refund_status = "succeeded"
-    elif intent.provider == "stripe":
-        result = await stripe_svc.create_refund(
-            intent.provider_payment_id, refund_amount, idempotency_key=data.idempotency_key
-        )
-        refund_id, refund_status = result["refund_id"], result["status"]
     else:
-        result = await razorpay_svc.create_refund(intent.provider_payment_id, refund_amount)
+        result = await gateway_by_name(intent.provider).refund(
+            intent.provider_payment_id, refund_amount, data.idempotency_key, intent.metadata_
+        )
         refund_id, refund_status = result["refund_id"], result["status"]
 
     created_at = datetime.now(UTC).isoformat()

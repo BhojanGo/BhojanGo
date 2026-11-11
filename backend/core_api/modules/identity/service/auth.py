@@ -1,3 +1,4 @@
+import html
 import json
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -8,6 +9,7 @@ from fastapi import HTTPException, status
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared import notify
 from shared.config import get_settings
 from core_api.modules.identity.service.redis_keys import blacklist_key, refresh_token_key
 from shared.redis import get_redis
@@ -68,6 +70,14 @@ async def _store_refresh_token(user_id: str, refresh_token: str) -> None:
     )
 
 
+def _welcome_html(name: str) -> str:
+    safe = html.escape(name or "there")
+    return (
+        f"<p>Hi {safe},</p><p>Welcome to BhojanGo. Your account is ready: "
+        "pick a restaurant near you and we'll bring the food over.</p><p>The BhojanGo team</p>"
+    )
+
+
 class AuthService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -99,6 +109,7 @@ class AuthService:
         tokens = _build_tokens_response(user)
         await _store_refresh_token(str(user.id), tokens.refresh_token)
         logger.info("user_registered", user_id=str(user.id), email=user.email)
+        await notify.send("email", user.email, _welcome_html(user.full_name), subject="Welcome to BhojanGo")
         return tokens
 
     async def login(self, data: LoginRequest) -> AuthTokensResponse:

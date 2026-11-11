@@ -11,9 +11,9 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import DeviceToken, Notification
-from app.services import email as email_svc
-from app.services import fcm, sms
 from app.services.templates import get_template
+from shared import notify
+from shared.providers.push import get_push_provider
 
 logger = structlog.get_logger(__name__)
 
@@ -43,6 +43,11 @@ async def dispatch_event(
     """Main entry point. Receive a parsed domain event, dispatch notifications."""
     event_type = event.get("event_type", "")
     payload = event.get("payload", {})
+
+    if event_type == notify.EVENT_TYPE:  # SMS/email requested by core_api (e.g. OTP)
+        ok = await notify.deliver(payload)
+        logger.info("notify_delivered", channel=payload.get("channel"), ok=ok)
+        return
 
     template_key = EVENT_TO_TEMPLATE.get(event_type)
     if event_type == "order.status_changed":
@@ -94,7 +99,7 @@ async def dispatch_event(
     if tokens:
         token_strings = [t.token for t in tokens]
         push_data = {"event_type": event_type, "order_id": payload.get("order_id", "")}
-        await fcm.send_multicast(token_strings, title, body, push_data)
+        await get_push_provider().send(token_strings, title, body, push_data)
         logger.info("push_sent", user_id=user_id_str, count=len(token_strings))
 
     logger.info("notification_dispatched", event_type=event_type, user_id=user_id_str, template=template_key)

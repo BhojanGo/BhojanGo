@@ -21,6 +21,23 @@ x-backend-env: &backend-env
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
   AWS_ENDPOINT_URL: http://localstack:4566
+  # Every external provider runs locally with no account (backend/shared/providers):
+  # fake payments, SMS and push printed to the worker log, email in Mailpit.
+  PAYMENT_PROVIDER: fake
+  FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: "2"   # fake checkout "pays" after 2 s
+  FAKE_PAYMENT_WEBHOOK_URL: http://core-api:8001/api/v1/payments/fake/webhook
+  SMS_PROVIDER: log
+  PUSH_PROVIDER: log
+  EMAIL_PROVIDER: smtp
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
+  ROUTING_PROVIDER: straight_line
+  # LocalStack queues and topics (infra/docker/localstack/init-aws.sh)
+  SQS_QUEUE_URL_NOTIFICATION: http://localstack:4566/000000000000/bhojango-notification-events
+  SNS_TOPIC_ARN_ORDER: arn:aws:sns:us-east-1:000000000000:bhojango-order-topic
+  SNS_TOPIC_ARN_PAYMENT: arn:aws:sns:us-east-1:000000000000:bhojango-payment-topic
+  SNS_TOPIC_ARN_USER: arn:aws:sns:us-east-1:000000000000:bhojango-user-topic
+  SNS_TOPIC_ARN_DELIVERY: arn:aws:sns:us-east-1:000000000000:bhojango-driver-topic
 
 x-health-live: &health-live
   interval: 5s
@@ -74,9 +91,23 @@ services:
       - ./localstack:/etc/localstack/init/ready.d:ro
       - localstack_data:/var/lib/localstack
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:4566/_localstack/health"]
-      interval: 10s
+      # healthy only once init-aws.sh has created the queues, topics and buckets
+      test: ["CMD-SHELL", "curl -fs http://localhost:4566/_localstack/init/ready | grep -Eq '\"completed\": ?true'"]
+      interval: 5s
       timeout: 5s
+      retries: 20
+
+  # Catches every email the backend sends. Inbox: http://localhost:8025
+  mailpit:
+    profiles: ["infra", "backend", "all"]
+    image: axllent/mailpit:v1.27
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
       retries: 20
 
   # ── Backend (3 deployables) ───────────────
@@ -98,6 +129,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      localstack:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/live')"]
@@ -136,6 +169,8 @@ services:
     depends_on:
       core-api:
         condition: service_healthy  # core-api has run the migrations
+      mailpit:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health/live')"]
       <<: *health-live

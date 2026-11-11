@@ -4,6 +4,7 @@ The SNS client and envelope are shared (shared.events). The message, subject
 and attributes are exactly what order-svc published, including
 source_service="order-svc", so consumers are unaffected.
 """
+import asyncio
 import json
 
 import structlog
@@ -24,8 +25,8 @@ async def publish_order_event(event_type: str, payload: dict) -> None:
 
     event = build_event(event_type, payload, SOURCE_SERVICE)
     try:
-        sns = get_sns_client()
-        sns.publish(
+        await asyncio.to_thread(
+            get_sns_client().publish,
             TopicArn=settings.orders.SNS_TOPIC_ARN_ORDER,
             Message=json.dumps(event),
             Subject=event_type,

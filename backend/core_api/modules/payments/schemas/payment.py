@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-PaymentProvider = Literal["stripe", "razorpay", "wallet"]
+PaymentProvider = Literal["stripe", "razorpay", "wallet", "fake"]
 PaymentStatus = Literal["pending", "processing", "succeeded", "failed", "cancelled", "refunded", "partially_refunded"]
 Currency = Literal["USD", "INR"]
 
@@ -16,6 +16,12 @@ class PaymentInitiateRequest(BaseModel):
     country: Literal["US", "IN"] = "US"
     amount: int = Field(gt=0, description="Amount in smallest unit (cents/paise)")
     currency: Currency
+
+
+class FakeCompleteRequest(BaseModel):
+    """Local only. Omit outcome to use the one implied by payment_method_id."""
+
+    outcome: Literal["succeeded", "failed"] | None = None
 
 
 class PaymentInitiateResponse(BaseModel):

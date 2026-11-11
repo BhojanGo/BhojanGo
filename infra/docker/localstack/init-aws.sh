@@ -1,77 +1,40 @@
 #!/bin/bash
-set -e
+# LocalStack init (runs once LocalStack is ready; safe to run again).
+# Creates the queues, topics and buckets the backend uses locally, matching
+# the names in compose.yaml. Event flow: core_api publishes to the SNS topics,
+# the notification queue receives order and payment events, and the worker
+# consumes it (core_api also puts notify.send messages straight on it).
+set -euo pipefail
 
-echo "Initializing LocalStack AWS resources..."
+aws() { awslocal "$@"; }
+ACCOUNT=000000000000
+REGION=us-east-1
 
-AWS_CMD="aws --endpoint-url=http://localhost:4566 --region us-east-1"
+queue_arn() { echo "arn:aws:sqs:${REGION}:${ACCOUNT}:$1"; }
 
-# ── DLQ Queues ──────────────────────────────
-$AWS_CMD sqs create-queue --queue-name bhojango-order-events-dlq
-$AWS_CMD sqs create-queue --queue-name bhojango-payment-events-dlq
-$AWS_CMD sqs create-queue --queue-name bhojango-notification-events-dlq
-$AWS_CMD sqs create-queue --queue-name bhojango-delivery-events-dlq
+for q in order payment notification delivery; do
+  aws sqs create-queue --queue-name "bhojango-${q}-events-dlq" >/dev/null
+  redrive="{\"deadLetterTargetArn\":\"$(queue_arn "bhojango-${q}-events-dlq")\",\"maxReceiveCount\":\"3\"}"
+  aws sqs create-queue --queue-name "bhojango-${q}-events" \
+    --attributes "{\"RedrivePolicy\":$(printf '%s' "$redrive" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" >/dev/null
+done
 
-# ── Main SQS Queues (with DLQ redrive) ─────
-ORDER_DLQ_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-order-events-dlq \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
+for t in order payment driver notification user; do
+  aws sns create-topic --name "bhojango-${t}-topic" >/dev/null
+done
 
-PAYMENT_DLQ_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-payment-events-dlq \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
+topic_arn() { echo "arn:aws:sns:${REGION}:${ACCOUNT}:bhojango-$1-topic"; }
+for t in order payment; do
+  aws sns subscribe --topic-arn "$(topic_arn "$t")" --protocol sqs \
+    --notification-endpoint "$(queue_arn bhojango-notification-events)" >/dev/null
+done
+aws sns subscribe --topic-arn "$(topic_arn order)" --protocol sqs \
+  --notification-endpoint "$(queue_arn bhojango-order-events)" >/dev/null
+aws sns subscribe --topic-arn "$(topic_arn driver)" --protocol sqs \
+  --notification-endpoint "$(queue_arn bhojango-delivery-events)" >/dev/null
 
-NOTIFICATION_DLQ_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-notification-events-dlq \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
+for b in bhojango-uploads bhojango-assets bhojango-assets-dev; do
+  aws s3 mb "s3://$b" >/dev/null 2>&1 || true
+done
 
-DELIVERY_DLQ_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-delivery-events-dlq \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
-
-$AWS_CMD sqs create-queue --queue-name bhojango-order-events \
-  --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$ORDER_DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"}"
-
-$AWS_CMD sqs create-queue --queue-name bhojango-payment-events \
-  --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$PAYMENT_DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"}"
-
-$AWS_CMD sqs create-queue --queue-name bhojango-notification-events \
-  --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$NOTIFICATION_DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"}"
-
-$AWS_CMD sqs create-queue --queue-name bhojango-delivery-events \
-  --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$DELIVERY_DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"}"
-
-# ── SNS Topics ──────────────────────────────
-$AWS_CMD sns create-topic --name bhojango-order-topic
-$AWS_CMD sns create-topic --name bhojango-payment-topic
-$AWS_CMD sns create-topic --name bhojango-driver-topic
-$AWS_CMD sns create-topic --name bhojango-notification-topic
-$AWS_CMD sns create-topic --name bhojango-user-topic
-
-# ── Subscribe SQS to SNS ───────────────────
-ORDER_QUEUE_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-order-events \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
-
-NOTIFICATION_QUEUE_ARN=$($AWS_CMD sqs get-queue-attributes \
-  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/bhojango-notification-events \
-  --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
-
-ORDER_TOPIC_ARN=$($AWS_CMD sns list-topics \
-  --query 'Topics[?contains(TopicArn, `bhojango-order-topic`)].TopicArn' --output text)
-
-PAYMENT_TOPIC_ARN=$($AWS_CMD sns list-topics \
-  --query 'Topics[?contains(TopicArn, `bhojango-payment-topic`)].TopicArn' --output text)
-
-# Notification queue subscribes to order and payment events
-$AWS_CMD sns subscribe --topic-arn "$ORDER_TOPIC_ARN" --protocol sqs --notification-endpoint "$NOTIFICATION_QUEUE_ARN"
-$AWS_CMD sns subscribe --topic-arn "$PAYMENT_TOPIC_ARN" --protocol sqs --notification-endpoint "$NOTIFICATION_QUEUE_ARN"
-
-# ── S3 Buckets ──────────────────────────────
-$AWS_CMD s3 mb s3://bhojango-uploads 2>/dev/null || true
-$AWS_CMD s3 mb s3://bhojango-assets 2>/dev/null || true
-
-echo "LocalStack initialization complete!"
-echo "Queues:"
-$AWS_CMD sqs list-queues
-echo "Topics:"
-$AWS_CMD sns list-topics
+echo "LocalStack ready: $(aws sqs list-queues --query 'length(QueueUrls)') queues, buckets: $(aws s3 ls | wc -l)"

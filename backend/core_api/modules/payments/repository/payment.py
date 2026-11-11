@@ -39,10 +39,11 @@ class PaymentRepository:
         result = await self.session.execute(select(PaymentIntent).where(PaymentIntent.idempotency_key == key))
         return result.scalar_one_or_none()
 
-    async def get_by_provider_id(self, provider_id: str) -> PaymentIntent | None:
-        result = await self.session.execute(
-            select(PaymentIntent).where(PaymentIntent.provider_payment_id == provider_id)
-        )
+    async def get_by_provider_id(self, provider_id: str, *, for_update: bool = False) -> PaymentIntent | None:
+        stmt = select(PaymentIntent).where(PaymentIntent.provider_payment_id == provider_id)
+        if for_update:  # webhooks: serialise concurrent deliveries of the same event
+            stmt = stmt.with_for_update()
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def update_status(self, intent_id: uuid.UUID, status: str) -> PaymentIntent | None:

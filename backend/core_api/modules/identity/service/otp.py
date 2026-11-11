@@ -1,7 +1,5 @@
 import structlog
-from twilio.base.exceptions import TwilioRestException
-from twilio.rest import Client
-
+from shared import notify
 from shared.config import get_settings
 from core_api.modules.identity.service.redis_keys import otp_attempts_key, otp_key
 from shared.redis import get_redis
@@ -14,7 +12,7 @@ MAX_OTP_ATTEMPTS = 5
 
 
 async def send_otp(phone: str, country: str) -> bool:
-    """Generate OTP, store in Redis, send via Twilio. Returns True on success."""
+    """Generate an OTP, store it in Redis and have the worker text it. True on success."""
     redis = await get_redis()
 
     # Check attempts
@@ -24,7 +22,7 @@ async def send_otp(phone: str, country: str) -> bool:
         logger.warning("otp_max_attempts_reached", phone=phone)
         return False
 
-    otp = generate_otp(settings.identity.OTP_LENGTH)
+    otp = _fixed_code_for(phone) or generate_otp(settings.identity.OTP_LENGTH)
     ttl_seconds = settings.identity.OTP_EXPIRE_MINUTES * 60
 
     # Store OTP
@@ -36,28 +34,17 @@ async def send_otp(phone: str, country: str) -> bool:
     pipe.expire(attempts_key, ttl_seconds)
     await pipe.execute()
 
-    # Send via Twilio
-    if not settings.identity.TWILIO_ACCOUNT_SID or settings.APP_ENV == "test":
-        # Only expose the OTP value for local dev/test convenience — NEVER log secrets otherwise.
-        if settings.APP_ENV in ("development", "test"):
-            logger.info("otp_mock_send", phone=phone[-4:], otp=otp)
-        else:
-            logger.warning("otp_mock_send_no_provider", phone=phone[-4:])
-        return True
+    # The worker sends it (locally: printed in the worker log).
+    body = f"Your BhojanGo verification code is: {otp}. Valid for {settings.identity.OTP_EXPIRE_MINUTES} minutes."
+    return await notify.send("sms", phone, body, country=country)
 
-    try:
-        from_number = settings.identity.TWILIO_PHONE_NUMBER_IN if country == "IN" else settings.identity.TWILIO_PHONE_NUMBER
-        client = Client(settings.identity.TWILIO_ACCOUNT_SID, settings.identity.TWILIO_AUTH_TOKEN)
-        client.messages.create(
-            body=f"Your BhojanGo verification code is: {otp}. Valid for {settings.identity.OTP_EXPIRE_MINUTES} minutes.",
-            from_=from_number,
-            to=phone,
-        )
-        logger.info("otp_sent", phone=phone[-4:])
-        return True
-    except TwilioRestException as e:
-        logger.error("otp_send_failed", phone=phone[-4:], error=str(e))
-        return False
+
+def _fixed_code_for(phone: str) -> str | None:
+    """Seed users get a fixed code outside production, so local sign-in needs no SMS."""
+    p = settings.providers
+    if settings.is_production or not p.OTP_FIXED_CODE:
+        return None
+    return p.OTP_FIXED_CODE if any(phone.startswith(x) for x in p.OTP_FIXED_CODE_PHONE_PREFIXES) else None
 
 
 async def verify_otp(phone: str, otp: str) -> bool:
