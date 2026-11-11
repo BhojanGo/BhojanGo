@@ -11,34 +11,33 @@ Thank you for contributing to BhojanGo! This guide helps you get set up and foll
 
 ## Local Setup
 
+Everything in Docker (only Docker + make needed): see README, **Run it locally**.
+
 ```bash
-# 1. Clone the repository
-git clone https://github.com/deeptricsllc/BhojanGo.git
+git clone https://github.com/BhojanGo/BhojanGo.git
 cd BhojanGo
-
-# 2. Start infrastructure
-docker compose up -d
-
-# 3. Install frontend dependencies
-pnpm install
-
-# 4. Install backend dependencies (one uv project for all of backend/)
-cd backend && uv sync && cd ..
-
-# 5. Run database migrations (one history)
-cd backend && uv run alembic upgrade head && cd ..
-
-# 6. Seed test data
-bash tools/seed/run_all.sh --env local
-
-# 7. Start development servers
-pnpm dev           # Frontend apps (web:3000, admin:3001)
-# In separate terminals:
-cd backend && uv run uvicorn core_api.main:app --reload --port 8001
-cd backend && uv run uvicorn app.main:app --app-dir realtime --reload --port 8004
-cd backend && uv run uvicorn app.main:app --app-dir worker --reload --port 8006
-pnpm --filter @bhojango/customer start   # or @bhojango/rider
+make dev      # all services, migrations, Hyderabad + Boise seed data
+make test     # backend pytest + JS lint/typecheck/test, inside Docker
+make down     # stop (make reset wipes the data and starts again)
 ```
+
+To work on code with hot reload, keep the databases in Docker and run the piece
+you're changing on the host (needs uv, Node 24 and pnpm):
+
+```bash
+docker compose --profile infra up -d --wait     # Postgres, Redis, LocalStack
+cd backend && uv sync
+uv run alembic upgrade head && uv run python ../tools/seed/seed.py
+uv run uvicorn core_api.main:app --reload --port 8001
+uv run uvicorn app.main:app --app-dir realtime --reload --port 8004
+uv run uvicorn app.main:app --app-dir worker --reload --port 8006
+cd .. && pnpm install && pnpm dev                 # web :3000, admin :3001
+pnpm --filter @bhojango/customer start             # or @bhojango/rider; see apps/*/.env.example
+```
+
+The host-run backend reads `backend/.env` (`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`); see
+`.env.example`. Apps and tests call core_api :8001, realtime :8004 and worker :8006
+directly: there is no gateway.
 
 ## Branch Naming
 
@@ -91,7 +90,7 @@ New business areas are core_api modules, not new services (see
 - [ ] Models use `shared.db.Base`; import them in `backend/migrations/env.py` and add an Alembic revision
 - [ ] Settings go in a section of `backend/shared/config.py`
 - [ ] Read other modules only through their `service/`, never their tables
-- [ ] Add a Kong route in `infra/docker/kong/kong.yml` (until P3 removes Kong from local Docker)
+- [ ] Add its route prefix to the ALB rules in Terraform (P4) if it isn't under `/api/v1` on core_api
 
 ## Adding a New API Endpoint
 
