@@ -18,6 +18,7 @@ git clone https://github.com/BhojanGo/BhojanGo.git
 cd BhojanGo
 make dev      # all services, migrations, Hyderabad + Boise seed data
 make test     # backend pytest + JS lint/typecheck/test, inside Docker
+make ci       # everything GitHub CI runs; must pass before merging
 make down     # stop (make reset wipes the data and starts again)
 ```
 
@@ -66,7 +67,7 @@ docs: add operations runbook
 
 1. Create a feature branch from `dev`
 2. Make your changes with clear, atomic commits
-3. Ensure all tests pass: `uv run pytest core_api|realtime|worker` in `backend/`, `pnpm turbo test lint typecheck`
+3. Run `make ci` (only Docker needed). **`make ci` passing locally is the merge gate**; GitHub Actions runs the same checks when minutes are available
 4. Open PR to `dev` branch
 5. Fill out the PR template completely
 6. Request review — response expected within 24 hours

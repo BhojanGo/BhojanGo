@@ -12,3 +12,5 @@
 **/.env
 **/.env.local
 !**/.env.example
+**/.terraform
+**/*.tfstate*

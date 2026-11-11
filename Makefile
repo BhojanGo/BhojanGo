@@ -5,6 +5,7 @@
 #   make dev     build and start everything (profile "all"), run migrations, seed
 #   make seed    (re)load the Hyderabad + Boise seed data; safe to run again
 #   make test    backend pytest + JS lint/typecheck/test, inside Docker
+#   make ci      everything GitHub CI runs (the merge gate), inside Docker
 #   make down    stop everything (keeps data)
 #   make reset   wipe all data volumes, then `make dev` again
 #
@@ -13,10 +14,10 @@
 COMPOSE := docker compose
 PROFILE ?= all
 
-.PHONY: help dev up seed test test-backend test-js down reset logs ps
+.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-terraform down reset logs ps
 
 help:
-	@sed -n '1,14p' Makefile
+	@sed -n '1,15p' Makefile
 
 dev: up seed
 	@echo ""
@@ -44,6 +45,28 @@ test-backend:
 
 test-js:
 	docker build -f infra/docker/test.Dockerfile --target js-test --no-cache-filter js-test --progress=plain .
+
+# Everything .github/workflows runs on a PR and on dev: JS lint/typecheck/test,
+# backend pytest, migrations up/down/up + alembic check + seed + integration
+# tests, the three service images, and terraform fmt/validate. Passing
+# `make ci` is the merge gate.
+ci: test-backend test-js ci-migrations ci-docker ci-terraform
+	@echo ""
+	@echo "make ci: all checks passed"
+
+CI_COMPOSE := $(COMPOSE) -f infra/docker/ci.compose.yaml
+ci-migrations:
+	$(CI_COMPOSE) build migrations
+	$(CI_COMPOSE) run --rm migrations; status=$$?; $(CI_COMPOSE) down -v --remove-orphans; exit $$status
+
+ci-docker:
+	for svc in core_api realtime worker; do docker build -q -f backend/$$svc/Dockerfile -t bhojango-$$svc:ci backend || exit 1; done
+
+# Providers go to a cache inside the container, not the bind mount (which
+# fails on OneDrive/Windows paths) and never into the repo.
+TF := docker run --rm -v "$(CURDIR)/infra/terraform:/tf" -w /tf -e TF_DATA_DIR=/tmp/tfdata --entrypoint sh hashicorp/terraform:1.17.2 -c
+ci-terraform:
+	MSYS_NO_PATHCONV=1 $(TF) 'terraform fmt -recursive -check -diff && for d in envs/staging envs/prod bootstrap; do echo "validate $$d"; (cd $$d && rm -rf /tmp/tfdata && terraform init -backend=false -input=false -lockfile=readonly >/dev/null && terraform validate) || exit 1; done'
 
 down:
 	$(COMPOSE) --profile all down
