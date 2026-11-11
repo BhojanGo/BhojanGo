@@ -6,11 +6,11 @@ the one delivery-svc returned, unchanged.
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
 
-from shared.auth import CurrentUser, InvalidTokenError, decode_access_token
+from shared.auth import BearerAuth, CurrentUser, InvalidTokenError, decode_access_token
 
-security = HTTPBearer()
+security = BearerAuth()
 
 __all__ = ["CurrentUser", "get_current_user", "get_ws_user"]
 

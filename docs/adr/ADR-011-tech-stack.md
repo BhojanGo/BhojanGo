@@ -31,12 +31,12 @@ version.
 | Area | Choice | Pinned | Today | Moves in |
 | --- | --- | --- | --- | --- |
 | Language | Python | **3.12** (3.12.16) | 3.12 | — (done) |
-| API framework | FastAPI | **0.162.4** | 0.111 | P3 |
+| API framework | FastAPI | **0.162.4** | 0.162.4 | — (done in P3) |
 | ORM | SQLAlchemy 2 (async) | **2.1.8** | 2.1.8 | — (done) |
 | Validation | Pydantic 2 | **2.14.3** | 2.14.3 | — (done) |
 | Migrations | Alembic | **1.20.1** (one history, `alembic check` in CI) | 1.20.1 | — (done) |
-| ASGI server | uvicorn | **0.54.0** | 0.30.6 | P3 |
-| DB driver | asyncpg | **0.32.0** | 0.29.0 | P3 |
+| ASGI server | uvicorn | **0.54.0** | 0.54.0 | — (done in P3) |
+| DB driver | asyncpg | **0.32.0** | 0.32.0 | — (done in P3) |
 | Python tooling | uv | **0.13.7** (one `uv.lock`) | 0.13.7 | — (done) |
 | Database | PostgreSQL + PostGIS | **16 + PostGIS 3.7** (`postgis/postgis:16-3.7`) | 16 + 3.4 | P3 (local), P4 (RDS) |
 | Cache / geo | Redis | **7.4** (`redis:7.4-alpine`; ElastiCache Redis OSS 7) | 7 | P3 (local), P4 (AWS) |
@@ -53,8 +53,8 @@ version.
 | Messaging | SQS (+ SNS fan-out where needed) | — | SQS/SNS | — |
 | Storage | S3 (+ CloudFront for assets) | — | S3 | — |
 | Edge | ALB + AWS WAF | — | Kong | P3 (local), P4 (AWS) |
-| Payments (US) | Stripe, incl. Stripe Tax and Connect | **stripe-python 16.1.0** | 9.12 | P9, P12, P13 |
-| Payments (India) | Razorpay, incl. Route | **razorpay 2.0.1** | 1.4.2 | P12, P13 |
+| Payments (US) | Stripe, incl. Stripe Tax and Connect | **stripe-python 16.1.0** | 16.1.0 (library); features in P9, P12, P13 | P3 (library) |
+| Payments (India) | Razorpay, incl. Route | **razorpay 2.0.1** | 2.0.1 (library); features in P12, P13 | P3 (library) |
 | Errors | Sentry | **sentry-sdk 2.74.0** (+ Sentry SDKs for Next.js and Expo) | none | P23 |
 | Tracing | OpenTelemetry | **opentelemetry-sdk 1.45.2** | none | P23 |
 

@@ -140,7 +140,7 @@ class OrderService:
             delivery_distance_km = _money(distance)
             if distance > delivery_radius_km:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail={
                         "code": "OUTSIDE_DELIVERY_RADIUS",
                         "message": (
@@ -207,7 +207,7 @@ class OrderService:
 
         if not can_transition(order.status, data.status):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"code": "ORDER_STATE_INVALID", "message": f"Cannot transition from {order.status} to {data.status}"},
             )
 
@@ -249,7 +249,7 @@ class OrderService:
 
         if not can_transition(order.status, "cancelled"):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"code": "ORDER_STATE_INVALID", "message": f"Cannot cancel order in {order.status} state"},
             )
 
