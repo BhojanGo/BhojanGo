@@ -139,7 +139,7 @@ class OrderFactory(factory.Factory):
 ```
 
 ### Seed Data
-- `scripts/seed/` contains SQL-generating scripts for local/staging
+- `tools/seed/` contains SQL-generating scripts for local/staging
 - Idempotent (safe to run multiple times)
 
 ## 8. CI Strategy

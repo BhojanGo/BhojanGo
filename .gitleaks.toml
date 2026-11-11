@@ -7,5 +7,5 @@ paths = [
   '''\.env\.example$''',
   '''README\.md$''',
   '''docs/.*\.md$''',
-  '''scripts/seed/.*\.py$''',
+  '''tools/seed/.*\.py$''',
 ]

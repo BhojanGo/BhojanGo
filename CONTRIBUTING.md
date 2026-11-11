@@ -33,7 +33,7 @@ cd services/restaurant-svc && alembic upgrade head
 cd services/order-svc && alembic upgrade head
 
 # 6. Seed test data
-bash scripts/seed/run_all.sh --env local
+bash tools/seed/run_all.sh --env local
 
 # 7. Start development servers
 pnpm dev           # Frontend apps (web:3000, admin:3001)
