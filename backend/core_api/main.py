@@ -19,6 +19,7 @@ from core_api import errors, health
 from core_api.modules.catalog.main import register as register_catalog
 from core_api.modules.identity.main import register as register_identity
 from core_api.modules.markets.main import register as register_markets
+from core_api.modules.rules.main import register as register_rules
 from core_api.modules.orders.main import register as register_orders
 from core_api.modules.payments.main import register as register_payments
 from shared.config import get_settings
@@ -35,6 +36,7 @@ settings = get_settings()
 MODULES = [
     register_identity,
     register_markets,
+    register_rules,
     register_catalog,
     register_orders,
     register_payments,

@@ -99,6 +99,12 @@ page with zone drawing on an OpenStreetMap map). Apps ask `GET /api/v1/markets/l
 whether an address is served. Seeded: Hyderabad (live, 8 zones), Boise (beta, 5 zones), and
 Warangal, Visakhapatnam and Vijayawada in setup.
 
+**Rules (P7):** every fee, tax, commission, rider-pay, business rule and promotion is data
+built from fixed templates (`GET /api/v1/rules/templates`), scoped to platform, country, state,
+city, zone or restaurant. Rules are versioned with start dates; money rules need a second admin
+to approve (`cm.in@` makes, `finance.in@` approves); every change is in the audit log.
+`GET /api/v1/rules/resolve?country=IN&region=IN-TG&city=IN-TG-HYD` shows what applies where.
+
 **Sign-in (P5):** email + password, phone OTP, Sign in with Apple and Google (ID tokens
 verified against the providers' keys; set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`).
 Tokens are RS256: 15-minute access tokens and rotating refresh tokens (a reused refresh
