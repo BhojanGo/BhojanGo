@@ -147,10 +147,22 @@ jobs:
   # ──────────────────────────────────────────
   # Deploy to ECS (only when AWS secrets exist)
   # ──────────────────────────────────────────
+  # Job-level `if` can't read secrets, so a tiny job reports whether AWS is set up.
+  aws-configured:
+    name: Check AWS credentials
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: echo "enabled=$([ -n "$AWS_ACCOUNT_ID" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy ${{ matrix.service }}
-    needs: [docker-build]
-    if: ${{ secrets.AWS_ACCOUNT_ID != '' }}
+    needs: [docker-build, aws-configured]
+    if: needs.aws-configured.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 2
