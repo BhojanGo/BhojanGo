@@ -1,4 +1,4 @@
-# Kong declarative config (local dev; Kong is removed in P4).
+# Kong declarative config (local dev; removed from local Docker in P3; not fixed meanwhile).
 # identity, catalog, orders and payments all run in core_api now; each keeps
 # its own Kong service so routes and per-service rate limits are unchanged.
 # Kong service names are the pre-P1 ones on purpose.

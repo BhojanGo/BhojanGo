@@ -91,7 +91,7 @@ New business areas are core_api modules, not new services (see
 - [ ] Models use `shared.db.Base`; import them in `backend/migrations/env.py` and add an Alembic revision
 - [ ] Settings go in a section of `backend/shared/config.py`
 - [ ] Read other modules only through their `service/`, never their tables
-- [ ] Add a Kong route in `infra/docker/kong/kong.yml` (until P4 removes Kong)
+- [ ] Add a Kong route in `infra/docker/kong/kong.yml` (until P3 removes Kong from local Docker)
 
 ## Adding a New API Endpoint
 

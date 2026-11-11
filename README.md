@@ -17,7 +17,7 @@ Production-ready food delivery platform for **USA** and **India** — built like
 | Payments | Stripe (USA) + Razorpay (India) + wallet |
 | Real-time | WebSockets + AWS Location Service |
 | Search | OpenSearch |
-| API Gateway | Kong (declarative config) |
+| API Gateway | Kong locally until P3 (then direct calls); AWS ALB + WAF from P4 |
 | IaC | Terraform (15 modules) |
 | CI/CD | GitHub Actions |
 | Observability | CloudWatch + X-Ray + Sentry |
@@ -64,7 +64,7 @@ pnpm dev
 
 ```
                          ┌───────────────┐
-                         │   Kong API    │   (removed in P4; ALB + WAF)
+                         │   Kong API    │   (local only; removed in P3)
                          │   Gateway     │
                          └───────┬───────┘
               ┌──────────────────┼──────────────────┐
@@ -120,6 +120,11 @@ Each deployable exposes Swagger UI at `/docs`:
 - worker: http://localhost:8006/docs
 
 Via Kong gateway: `http://localhost:8080/api/v1/...`
+
+> **Kong is on its way out.** Its JWT plugin rejects the tokens core_api issues, so
+> authenticated calls through Kong return 401. It will not be fixed: P3 removes Kong
+> from the local Docker setup and the apps and tests call core_api (:8001), realtime
+> (:8004) and worker (:8006) directly. Production uses AWS ALB + WAF (P4).
 
 ## Project Structure
 
