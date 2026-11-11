@@ -1,3 +1,7 @@
+# Kong declarative config (local dev; Kong is removed in P4).
+# identity, catalog, orders and payments all run in core_api now; each keeps
+# its own Kong service so routes and per-service rate limits are unchanged.
+# Kong service names are the pre-P1 ones on purpose.
 _format_version: "3.0"
 _transform: true
 
@@ -7,13 +11,13 @@ consumers:
     jwt_secrets:
       - key: bhojango
         algorithm: HS256
-        # No insecure fallback: Kong fails to load if JWT_SECRET is unset (must match user-svc's signing secret).
+        # No insecure fallback: Kong fails to load if JWT_SECRET is unset (must match core_api's signing secret).
         secret: "${JWT_SECRET}"
 
 services:
-  # ── User Service ───────────────────────────
+  # ── Identity — core_api (was user-svc) ────
   - name: user-svc
-    url: http://user-svc:8001
+    url: http://core-api:8001
     routes:
       - name: user-auth-routes
         paths:
@@ -35,9 +39,9 @@ services:
           minute: 60
           policy: local
 
-  # ── Restaurant Service ─────────────────────
+  # ── Catalog — core_api (was restaurant-svc)
   - name: restaurant-svc
-    url: http://restaurant-svc:8002
+    url: http://core-api:8001
     routes:
       - name: restaurant-routes
         paths:
@@ -53,9 +57,9 @@ services:
           minute: 120
           policy: local
 
-  # ── Order Service ──────────────────────────
+  # ── Orders — core_api (was order-svc) ─────
   - name: order-svc
-    url: http://order-svc:8003
+    url: http://core-api:8001
     routes:
       - name: order-routes
         paths:
@@ -73,9 +77,9 @@ services:
           minute: 60
           policy: local
 
-  # ── Delivery Service ───────────────────────
+  # ── Realtime (was delivery-svc) ───────────
   - name: delivery-svc
-    url: http://delivery-svc:8004
+    url: http://realtime:8004
     routes:
       - name: delivery-routes
         paths:
@@ -97,9 +101,9 @@ services:
           - ws
           - wss
 
-  # ── Payment Service ────────────────────────
+  # ── Payments — core_api (was payment-svc) ─
   - name: payment-svc
-    url: http://payment-svc:8005
+    url: http://core-api:8001
     routes:
       - name: payment-routes
         paths:
@@ -127,9 +131,9 @@ services:
           minute: 30
           policy: local
 
-  # ── Notification Service ───────────────────
+  # ── Worker (was notification-svc) ─────────
   - name: notification-svc
-    url: http://notification-svc:8006
+    url: http://worker:8006
     routes:
       - name: notification-routes
         paths:
