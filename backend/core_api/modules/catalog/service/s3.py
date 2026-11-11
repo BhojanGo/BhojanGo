@@ -5,7 +5,7 @@ import boto3
 import structlog
 from botocore.exceptions import ClientError
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -33,7 +33,7 @@ def generate_presigned_upload_url(
 
     try:
         response = s3.generate_presigned_post(
-            Bucket=settings.AWS_S3_BUCKET,
+            Bucket=settings.catalog.AWS_S3_BUCKET,
             Key=key,
             Fields={"Content-Type": file_type},
             Conditions=[
@@ -42,7 +42,7 @@ def generate_presigned_upload_url(
             ],
             ExpiresIn=expiry_seconds,
         )
-        cdn_base = settings.AWS_CLOUDFRONT_URL or f"https://{settings.AWS_S3_BUCKET}.s3.amazonaws.com"
+        cdn_base = settings.catalog.AWS_CLOUDFRONT_URL or f"https://{settings.catalog.AWS_S3_BUCKET}.s3.amazonaws.com"
         return {
             "upload_url": response["url"],
             "fields": response["fields"],

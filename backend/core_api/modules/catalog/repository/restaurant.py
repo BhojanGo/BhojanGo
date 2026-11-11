@@ -6,9 +6,9 @@ from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.menu import MenuCategory, MenuItem
-from app.models.restaurant import Restaurant
-from app.models.review import Review
+from core_api.modules.catalog.models.menu import MenuCategory, MenuItem
+from core_api.modules.catalog.models.restaurant import Restaurant
+from core_api.modules.catalog.models.review import Review
 
 
 def _make_slug(name: str) -> str:

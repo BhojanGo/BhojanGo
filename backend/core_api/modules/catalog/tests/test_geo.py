@@ -1,5 +1,5 @@
 """Unit tests for hyper-local delivery radius validation."""
-from app.services.geo import haversine_km, is_long_distance, is_within_radius
+from core_api.modules.catalog.service.geo import haversine_km, is_long_distance, is_within_radius
 
 # Bengaluru reference points
 MG_ROAD = (12.9756, 77.6068)

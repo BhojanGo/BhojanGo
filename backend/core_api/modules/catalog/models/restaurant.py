@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text,
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from shared.db import Base
 
 
 class Restaurant(Base):

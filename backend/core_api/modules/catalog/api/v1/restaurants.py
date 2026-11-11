@@ -6,11 +6,11 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CurrentUser, get_current_user, require_admin, require_owner_or_admin
-from app.core.cache import cache_delete_pattern, cache_get, cache_set
-from app.db.base import get_db
-from app.repositories.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
-from app.schemas.restaurant import (
+from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user, require_admin, require_owner_or_admin
+from core_api.modules.catalog.repository.cache import cache_delete_pattern, cache_get, cache_set
+from shared.db import get_db
+from core_api.modules.catalog.repository.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
+from core_api.modules.catalog.schemas.restaurant import (
     DeliveryCheckResponse,
     MenuItemCreateRequest,
     MenuItemResponse,
@@ -25,7 +25,7 @@ from app.schemas.restaurant import (
     ReviewResponse,
     SearchRequest,
 )
-from app.services import geo, search as search_svc
+from core_api.modules.catalog.service import geo, search as search_svc
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 logger = structlog.get_logger(__name__)
@@ -140,7 +140,7 @@ async def get_restaurant_menu(
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-    from app.schemas.restaurant import MenuCategoryResponse
+    from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
     categories = [
         MenuCategoryResponse(
             id=cat.id,

@@ -4,7 +4,7 @@ from typing import Any
 import structlog
 from opensearchpy import AsyncOpenSearch
 
-from app.config import get_settings
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -16,7 +16,7 @@ def get_opensearch() -> AsyncOpenSearch:
     global _client
     if _client is None:
         _client = AsyncOpenSearch(
-            hosts=[settings.OPENSEARCH_URL],
+            hosts=[settings.catalog.OPENSEARCH_URL],
             http_compress=True,
             use_ssl=False,
             verify_certs=False,
@@ -42,9 +42,9 @@ async def ensure_indices() -> None:
             }
         }
     }
-    if not await client.indices.exists(index=settings.OPENSEARCH_INDEX_RESTAURANTS):
+    if not await client.indices.exists(index=settings.catalog.OPENSEARCH_INDEX_RESTAURANTS):
         await client.indices.create(
-            index=settings.OPENSEARCH_INDEX_RESTAURANTS, body=restaurant_mapping
+            index=settings.catalog.OPENSEARCH_INDEX_RESTAURANTS, body=restaurant_mapping
         )
 
 
@@ -52,7 +52,7 @@ async def index_restaurant(restaurant_id: str, doc: dict[str, Any]) -> None:
     try:
         client = get_opensearch()
         await client.index(
-            index=settings.OPENSEARCH_INDEX_RESTAURANTS,
+            index=settings.catalog.OPENSEARCH_INDEX_RESTAURANTS,
             id=restaurant_id,
             body=doc,
         )
@@ -113,7 +113,7 @@ async def search_restaurants(
     }
 
     try:
-        result = await client.search(index=settings.OPENSEARCH_INDEX_RESTAURANTS, body=body)
+        result = await client.search(index=settings.catalog.OPENSEARCH_INDEX_RESTAURANTS, body=body)
         hits = result["hits"]
         return {
             "total": hits["total"]["value"],

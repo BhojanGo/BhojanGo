@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from core_api import errors, health
+from core_api.modules.catalog.main import register as register_catalog
 from core_api.modules.identity.main import register as register_identity
 from shared.config import get_settings
 from shared.db import engine
@@ -30,6 +31,7 @@ settings = get_settings()
 
 MODULES = [
     register_identity,
+    register_catalog,
 ]
 
 

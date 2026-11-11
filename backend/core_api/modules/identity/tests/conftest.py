@@ -9,6 +9,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core_api.modules.identity.api.v1.auth import limiter as auth_limiter
+from core_api.modules.identity.models.address import Address
+from core_api.modules.identity.models.user import User
 from shared.db import Base, get_db
 from core_api.main import app
 
@@ -24,13 +26,18 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
+# Base.metadata is shared by every core_api module (some use Postgres-only
+# types), so only create identity's tables in SQLite.
+IDENTITY_TABLES = [User.__table__, Address.__table__]
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def create_tables():
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all, tables=IDENTITY_TABLES)
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all, tables=IDENTITY_TABLES)
 
 
 @pytest_asyncio.fixture
