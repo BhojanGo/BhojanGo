@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCartStore } from "@bhojango/mobile-core";
 
-
 export default function CartScreen() {
   const { items, restaurantName, updateQuantity, removeItem, getSubtotal, deliveryFee, getTotal } =
     useCartStore();

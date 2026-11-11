@@ -32,13 +32,10 @@ function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaur
           >
             <View className={`w-2 h-2 rounded-full ${item.is_veg ? "bg-green-500" : "bg-red-500"}`} />
           </View>
-          {item.is_popular && (
-            <Text className="text-xs text-emerald-500 font-medium">Bestseller</Text>
-          )}
         </View>
         <Text className="text-sm font-medium text-gray-900">{item.name}</Text>
         <Text className="text-sm font-semibold text-gray-800 mt-1">
-          {item.currency === "INR" ? "₹" : "$"}{item.price}
+          {restaurant.currency === "INR" ? "₹" : "$"}{item.price}
         </Text>
         {item.description ? (
           <Text className="text-xs text-gray-500 mt-1" numberOfLines={2}>
@@ -111,8 +108,8 @@ export default function RestaurantScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Banner */}
         <View className="h-48 bg-gray-200">
-          {restaurant.banner_url && (
-            <Image source={{ uri: restaurant.banner_url }} className="w-full h-full" resizeMode="cover" />
+          {restaurant.cover_url && (
+            <Image source={{ uri: restaurant.cover_url }} className="w-full h-full" resizeMode="cover" />
           )}
         </View>
 

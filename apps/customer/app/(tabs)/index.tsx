@@ -20,8 +20,8 @@ function RestaurantItem({ item }: { item: Restaurant }) {
       onPress={() => router.push(`/restaurant/${item.id}`)}
       className="bg-white rounded-xl mb-3 overflow-hidden border border-gray-100"
     >
-      {item.banner_url ? (
-        <Image source={{ uri: item.banner_url }} className="w-full h-36" resizeMode="cover" />
+      {item.cover_url ? (
+        <Image source={{ uri: item.cover_url }} className="w-full h-36" resizeMode="cover" />
       ) : (
         <View className="w-full h-36 bg-emerald-50 items-center justify-center">
           <Text className="text-4xl">🍽️</Text>

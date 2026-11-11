@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore, useCartStore } from "@bhojango/mobile-core";
 
-
 interface MenuRow {
   icon: string;
   label: string;

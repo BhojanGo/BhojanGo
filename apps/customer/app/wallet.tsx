@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, useAuthStore } from "@bhojango/mobile-core";
 
-
 interface WalletBalance { balance: number; currency: string; }
 interface WalletTx { id: string; amount: number; type: "credit" | "debit"; description: string; created_at: string; }
 

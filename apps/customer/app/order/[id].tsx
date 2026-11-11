@@ -169,12 +169,12 @@ export default function OrderDetailScreen() {
           <View className="bg-white rounded-xl p-4 mb-3">
             <Text className="font-semibold text-gray-900 mb-3">{order.restaurant_name}</Text>
             {order.items?.map((item) => (
-              <View key={item.id} className="flex-row justify-between mb-2">
+              <View key={item.menu_item_id} className="flex-row justify-between mb-2">
                 <Text className="text-sm text-gray-700">
                   {item.name} × {item.quantity}
                 </Text>
                 <Text className="text-sm text-gray-700">
-                  {currencySymbol}{(item.unit_price * item.quantity).toFixed(2)}
+                  {currencySymbol}{(item.price * item.quantity).toFixed(2)}
                 </Text>
               </View>
             ))}

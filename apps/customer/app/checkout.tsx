@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import * as Crypto from "expo-crypto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api, useAuthStore, useCartStore } from "@bhojango/mobile-core";
-
 
 type PaymentMethod = "card" | "wallet" | "upi" | "cash_on_delivery";
 
@@ -69,7 +69,7 @@ export default function CheckoutScreen() {
       };
 
       const res = await api.post("/order/orders", orderPayload, {
-        headers: { "X-Idempotency-Key": crypto.randomUUID() },
+        headers: { "X-Idempotency-Key": Crypto.randomUUID() },
       });
 
       const order = res.data;
