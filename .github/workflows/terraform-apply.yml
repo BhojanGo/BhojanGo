@@ -1,0 +1,56 @@
+name: Terraform apply
+
+# Manual: Actions > Terraform apply > Run workflow > pick an environment.
+# Runs in the matching GitHub environment (production needs approval) with
+# the deploy role from infra/terraform/bootstrap, via GitHub OIDC.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to apply"
+        type: choice
+        options: [staging, prod]
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    name: Apply ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment == 'prod' && 'production' || 'staging' }}
+    concurrency:
+      group: terraform-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      ROLE: ${{ inputs.environment == 'prod' && vars.AWS_PROD_DEPLOY_ROLE_ARN || vars.AWS_STAGING_DEPLOY_ROLE_ARN }}
+      STATE_BUCKET: ${{ inputs.environment == 'prod' && vars.PROD_TF_STATE_BUCKET || vars.STAGING_TF_STATE_BUCKET }}
+    defaults:
+      run:
+        working-directory: infra/terraform/envs/${{ inputs.environment }}
+    steps:
+      - name: Check AWS is connected
+        working-directory: .
+        run: |
+          if [ -z "$ROLE" ] || [ -z "$STATE_BUCKET" ]; then
+            echo "::error::Set the deploy role and state bucket repository variables first (docs/runbooks/aws-setup.md)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.17.2"
+
+      - run: terraform init -input=false -backend-config=backend.hcl -backend-config="bucket=${STATE_BUCKET}"
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform apply -input=false tfplan

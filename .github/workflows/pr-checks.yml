@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  id-token: write   # terraform plan assumes the read-only plan role via GitHub OIDC
 
 concurrency:
   group: pr-${{ github.head_ref }}
@@ -58,7 +59,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install
@@ -122,15 +123,76 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.8"
+          terraform_version: "1.17.2"
 
-      - name: Terraform init
+      - name: terraform fmt
         working-directory: infra/terraform
-        run: terraform init -backend=false
+        run: terraform fmt -recursive -check -diff
 
-      - name: Terraform validate
+      - name: terraform validate (envs/staging, envs/prod, bootstrap)
         working-directory: infra/terraform
-        run: terraform validate
+        run: |
+          for dir in envs/staging envs/prod bootstrap; do
+            echo "::group::${dir}"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+
+  # Plans only when AWS is connected (the read-only plan role variable exists);
+  # otherwise these jobs are skipped, not failed.
+  terraform-plan:
+    name: Terraform Plan (${{ matrix.environment }})
+    needs: [changes, terraform-validate]
+    if: needs.changes.outputs.terraform == 'true' && (vars.AWS_STAGING_PLAN_ROLE_ARN != '' || vars.AWS_PROD_PLAN_ROLE_ARN != '')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: staging
+            role: AWS_STAGING_PLAN_ROLE_ARN
+            bucket: STAGING_TF_STATE_BUCKET
+          - environment: prod
+            role: AWS_PROD_PLAN_ROLE_ARN
+            bucket: PROD_TF_STATE_BUCKET
+    env:
+      ROLE: ${{ vars[matrix.role] }}
+      STATE_BUCKET: ${{ vars[matrix.bucket] }}
+    defaults:
+      run:
+        working-directory: infra/terraform/envs/${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip if this environment isn't connected
+        id: connected
+        working-directory: .
+        run: echo "ok=$([ -n "$ROLE" ] && [ -n "$STATE_BUCKET" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.connected.outputs.ok == 'true'
+        with:
+          role-to-assume: ${{ env.ROLE }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - uses: hashicorp/setup-terraform@v3
+        if: steps.connected.outputs.ok == 'true'
+        with:
+          terraform_version: "1.17.2"
+          terraform_wrapper: false
+
+      - name: terraform plan
+        if: steps.connected.outputs.ok == 'true'
+        run: |
+          terraform init -input=false -backend-config=backend.hcl -backend-config="bucket=${STATE_BUCKET}"
+          terraform plan -input=false -no-color -lock-timeout=5m | tee plan.txt
+          {
+            echo "### Terraform plan: ${{ matrix.environment }}"
+            echo '```'
+            grep -E "^Plan:|^No changes" plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ──────────────────────────────────────────
   # Status check gate
@@ -138,7 +200,7 @@ jobs:
   pr-status:
     name: PR Status
     if: always()
-    needs: [frontend-lint, backend-test, backend-checks, terraform-validate]
+    needs: [frontend-lint, backend-test, backend-checks, terraform-validate, terraform-plan]
     runs-on: ubuntu-latest
     steps:
       # Skipped jobs (no matching changes) are fine; failed or cancelled ones are not.

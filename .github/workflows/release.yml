@@ -1,0 +1,29 @@
+name: Release
+
+# A tag like v1.2.0 on a commit already deployed to staging deploys it to prod
+# after a manual approval: the deploy job runs in the "production" GitHub
+# environment, whose required reviewers must approve before the job (and its
+# AWS credentials) start. Skipped until AWS_PROD_DEPLOY_ROLE_ARN exists.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend-checks:
+    name: Backend checks
+    uses: ./.github/workflows/backend-checks.yml
+
+  deploy-prod:
+    name: Production
+    needs: [backend-checks]
+    if: vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: prod
+      github_environment: production
+      aws_role_arn: ${{ vars.AWS_PROD_DEPLOY_ROLE_ARN }}
+      aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}

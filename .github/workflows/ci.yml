@@ -1,5 +1,8 @@
 name: CI/CD Pipeline
 
+# Merge to dev: full checks, then build, push, migrate and deploy to staging.
+# The deploy is skipped (not failed) until AWS is connected, i.e. until the
+# repository variable AWS_STAGING_DEPLOY_ROLE_ARN exists (docs/runbooks/aws-setup.md).
 on:
   push:
     branches: [dev]
@@ -9,14 +12,9 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  AWS_REGION: us-east-1
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
-  ECS_CLUSTER: bhojango-prod-cluster
-
 jobs:
   # ──────────────────────────────────────────
-  # Frontend: lint + typecheck + build
+  # Frontend: build packages, lint, typecheck, test
   # ──────────────────────────────────────────
   frontend:
     name: Frontend Checks
@@ -28,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -92,64 +90,15 @@ jobs:
     uses: ./.github/workflows/backend-checks.yml
 
   # ──────────────────────────────────────────
-  # Deploy to ECS (only when AWS secrets exist)
+  # Deploy to staging (GitHub OIDC; skipped until AWS is connected)
   # ──────────────────────────────────────────
-  # Job-level `if` can't read secrets, so a tiny job reports whether AWS is set up.
-  aws-configured:
-    name: Check AWS credentials
-    runs-on: ubuntu-latest
-    outputs:
-      enabled: ${{ steps.check.outputs.enabled }}
-    steps:
-      - id: check
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: echo "enabled=$([ -n "$AWS_ACCOUNT_ID" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-
-  deploy:
-    name: Deploy ${{ matrix.service }}
-    needs: [backend-checks, aws-configured]
-    if: needs.aws-configured.outputs.enabled == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 2
-      matrix:
-        # ECS services/ECR repos for these three are created when P4 trims
-        # infra/terraform; until then this job has nothing to deploy to.
-        include:
-          - image: core_api
-            service: core-api
-          - image: realtime
-            service: realtime
-          - image: worker
-            service: worker
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: backend
-          file: backend/${{ matrix.image }}/Dockerfile
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/bhojango-prod/${{ matrix.service }}:${{ github.sha }}
-            ${{ env.ECR_REGISTRY }}/bhojango-prod/${{ matrix.service }}:latest
-
-      - name: Update ECS service
-        run: |
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service bhojango-prod-${{ matrix.service }} \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+  deploy-staging:
+    name: Staging
+    needs: [backend-checks]
+    if: github.ref == 'refs/heads/dev' && vars.AWS_STAGING_DEPLOY_ROLE_ARN != ''
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      github_environment: staging
+      aws_role_arn: ${{ vars.AWS_STAGING_DEPLOY_ROLE_ARN }}
+      aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
