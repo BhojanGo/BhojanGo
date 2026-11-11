@@ -27,6 +27,12 @@ variable "logs_bucket_name" {
   type = string
 }
 
+variable "waf_rate_limit" {
+  description = "Max requests per client IP per 5 minutes before WAF blocks."
+  type        = number
+  default     = 2000
+}
+
 variable "tags" {
   type = map(string)
 }

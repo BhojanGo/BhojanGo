@@ -44,9 +44,11 @@ resource "aws_db_parameter_group" "pg16" {
 }
 
 resource "aws_db_instance" "main" {
-  identifier     = "${var.name}-postgres"
-  engine         = "postgres"
-  engine_version = "16.3"
+  identifier = "${var.name}-postgres"
+  engine     = "postgres"
+  # Major version pinned (ADR-011); AWS applies minor versions in the maintenance window.
+  engine_version             = "16"
+  auto_minor_version_upgrade = true
 
   instance_class        = var.environment == "prod" ? "db.r6g.large" : "db.t4g.medium"
   allocated_storage     = var.environment == "prod" ? 100 : 20

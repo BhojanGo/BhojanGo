@@ -61,12 +61,13 @@ Thumbs.db
 .docker/
 
 # Terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.backup
-infra/terraform/*.tfvars
-!infra/terraform/*.tfvars.example
-infra/terraform/.terraform.lock.hcl
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/*.tfplan
+infra/terraform/**/*.tfvars
+!infra/terraform/**/*.tfvars.example
+# .terraform.lock.hcl files ARE committed (they pin provider builds).
 
 # Expo
 apps/*/.expo/
