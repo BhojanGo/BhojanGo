@@ -326,3 +326,73 @@ ADMINS = [
     ("finance.us@example.com", "USA Finance", "US", [("finance", "US")]),
     ("viewer@example.com", "Read-only Viewer", "US", [("viewer", "IN"), ("viewer", "US")]),
 ]
+
+
+# ── Markets (P6) ──────────────────────────────────────────────────────────────
+# Zones are simple boxes (south, west, north, east) drawn so every seeded
+# restaurant and customer address falls inside an open zone. Admins redraw
+# them on the map in the admin console.
+COUNTRIES = [
+    {
+        "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN"],
+        "timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
+        "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
+        "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"]},
+        "regions": [
+            {
+                "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
+                "cities": [
+                    {
+                        "code": "IN-TG-HYD", "name": "Hyderabad", "status": "live", "center": (17.4126, 78.4071),
+                        "service_hours": {"open": "07:00", "close": "23:30"}, "settings": {},
+                        "zones": [
+                            ("Hitech City", (17.440, 78.370, 17.460, 78.388), "149", "live", "#0B5D66"),
+                            ("Madhapur", (17.440, 78.388, 17.460, 78.405), "99", "live", "#5BA3AA"),
+                            ("Kondapur", (17.460, 78.350, 17.475, 78.370), "99", "live", "#2E7D86"),
+                            ("Gachibowli", (17.415, 78.335, 17.455, 78.370), "99", "live", "#D4932A"),
+                            ("Jubilee Hills", (17.405, 78.395, 17.440, 78.445), "149", "live", "#7FB7BD"),
+                            ("Tolichowki", (17.385, 78.400, 17.405, 78.430), "99", "live", "#B5762A"),
+                            ("Old City", (17.350, 78.460, 17.375, 78.490), "99", "live", "#8C6A2E"),
+                            ("Kokapet", (17.390, 78.320, 17.410, 78.345), "149", "draft", "#4C5A5E"),
+                        ],
+                    },
+                    {"code": "IN-TG-WGL", "name": "Warangal", "status": "draft", "center": (17.9689, 79.5941),
+                     "service_hours": None, "settings": {}, "zones": []},
+                ],
+            },
+            {
+                "code": "IN-AP", "name": "Andhra Pradesh", "status": "draft", "settings": {},
+                "cities": [
+                    {"code": "IN-AP-VSKP", "name": "Visakhapatnam", "status": "draft", "center": (17.6868, 83.2185),
+                     "service_hours": None, "settings": {}, "zones": []},
+                    {"code": "IN-AP-VJA", "name": "Vijayawada", "status": "draft", "center": (16.5062, 80.6480),
+                     "service_hours": None, "settings": {}, "zones": []},
+                ],
+            },
+        ],
+    },
+    {
+        "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US"],
+        "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
+        "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
+        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"]},
+        "regions": [
+            {
+                "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},
+                "cities": [
+                    {
+                        "code": "US-ID-BOI", "name": "Boise", "status": "beta", "center": (43.6150, -116.2023),
+                        "service_hours": {"open": "08:00", "close": "23:00"}, "settings": {},
+                        "zones": [
+                            ("Downtown", (43.605, -116.215, 43.625, -116.185), "15", "live", "#0B5D66"),
+                            ("North End", (43.625, -116.225, 43.645, -116.195), "15", "live", "#5BA3AA"),
+                            ("Boise Bench", (43.580, -116.250, 43.605, -116.215), "15", "live", "#D4932A"),
+                            ("West Boise", (43.598, -116.290, 43.620, -116.250), "20", "live", "#2E7D86"),
+                            ("Boise State", (43.590, -116.215, 43.605, -116.185), "15", "live", "#7FB7BD"),
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+]

@@ -29,12 +29,12 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "country_manager": frozenset(VIEW | {
         "markets.edit", "rules.edit", "rules.approve", "pricing.simulate",
         "partners.edit", "riders.edit", "orders.edit", "dispatch.edit",
-        "customers.edit", "refunds.issue", "admins.grant",
+        "customers.edit", "refunds.issue", "admins.grant", "zones.pause",
     }),
     "city_ops": frozenset({
         "markets.view", "rules.view", "pricing.simulate", "partners.view", "partners.edit",
         "riders.view", "riders.edit", "orders.view", "orders.edit", "dispatch.edit",
-        "customers.view", "refunds.issue", "reports.view",
+        "customers.view", "refunds.issue", "reports.view", "zones.pause",
     }),
     "support_agent": frozenset({
         "orders.view", "customers.view", "customers.edit", "refunds.issue", "partners.view", "riders.view",
@@ -121,7 +121,7 @@ def can_within(assignments: list[Assignment], permission: str, scope: str) -> bo
 def scopes_with(assignments: list[Assignment], permission: str) -> list[str]:
     """The widest scopes where the permission holds (for filtering lists).
     ["*"] means everywhere; [] means nowhere."""
-    scopes = sorted({a.scope for a in assignments if role_allows(a.role, permission)}, key=len)
+    scopes = sorted({a.scope for a in assignments if role_allows(a.role, permission)}, key=lambda s: (len(s), s))
     widest: list[str] = []
     for s in scopes:
         if not any(covers(w, s) for w in widest):
