@@ -7,24 +7,26 @@ Production-ready food delivery platform for **USA** and **India** — built like
 | Layer | Technology |
 |-------|-----------|
 | Monorepo | Turborepo + pnpm workspaces |
-| Web App | Next.js 14 (App Router, TypeScript, Tailwind) |
-| Mobile | Expo 51 (React Native, NativeWind) |
-| Admin | Next.js 14 dashboard |
+| Web App | Next.js (App Router, TypeScript, Tailwind): 14 today, 16 from P20 |
+| Mobile | Expo + EAS (React Native): SDK 51 today, latest SDK from P16–P19; customer + rider apps |
+| Admin | Next.js admin console: 14 today, 16 from P21 |
 | Backend | Python 3.12 FastAPI — 3 deployables (core_api, realtime, worker), one uv project |
 | Database | PostgreSQL 16 + Redis 7 |
 | Cloud | AWS (ECS Fargate, RDS, ElastiCache, SQS/SNS) |
-| Auth | AWS Cognito + JWT + Google + Apple + OTP |
+| Auth | Custom RS256 JWT + JWKS, phone OTP, Apple + Google (P5; ADR-007): no Cognito |
 | Payments | Stripe (USA) + Razorpay (India) + wallet |
 | Real-time | WebSockets + AWS Location Service |
-| Search | OpenSearch |
+| Search | PostgreSQL full-text + pg_trgm + PostGIS (ADR-009); OpenSearch until P4 |
 | API Gateway | Kong locally until P3 (then direct calls); AWS ALB + WAF from P4 |
 | IaC | Terraform (15 modules) |
 | CI/CD | GitHub Actions |
 | Observability | CloudWatch + X-Ray + Sentry |
 
+Pinned versions and the reasons behind them: [ADR-011](docs/adr/ADR-011-tech-stack.md).
+
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js 24 LTS (pinned in ADR-011; >= 20 still works until P3/P4 moves CI)
 - pnpm >= 9
 - Python >= 3.12
 - Docker Desktop
