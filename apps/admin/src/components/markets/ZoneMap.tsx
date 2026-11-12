@@ -10,7 +10,7 @@
 import "leaflet/dist/leaflet.css";
 
 import type * as Leaflet from "leaflet";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
 
 import type { Zone } from "@/lib/markets";
 
@@ -46,7 +46,9 @@ export function ZoneMap({
   const [, setReady] = useState(false); // re-render once Leaflet has loaded
   // Latest props for Leaflet event handlers registered once.
   const latest = useRef({ mode, draft, onDraftChange, onSelect });
-  latest.current = { mode, draft, onDraftChange, onSelect };
+  useLayoutEffect(() => {
+    latest.current = { mode, draft, onDraftChange, onSelect };
+  });
 
   // Create the map once.
   useEffect(() => {

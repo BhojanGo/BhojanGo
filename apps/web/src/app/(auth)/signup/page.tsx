@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,7 +20,6 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     phone: "",
-    country: "US",
     role: "customer",
     // Restaurant owner fields
     restaurant_name: "",
@@ -39,11 +38,9 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const isIndia = tz.startsWith("Asia/") && (tz.includes("Kolkata") || tz.includes("Calcutta") || tz.includes("Chennai") || tz.includes("Mumbai"));
-    setForm(f => ({ ...f, country: isIndia ? "IN" : "US" }));
-  }, []);
+  // The country the browser's time zone suggests; the customer can change it.
+  // (No country field on this form yet, so the guess is what's sent.)
+  const country = useSyncExternalStore(noopSubscribe, guessCountry, () => "US");
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -94,9 +91,9 @@ export default function SignupPage() {
         full_name: form.full_name,
         email: form.email,
         password: form.password,
-        country: form.country,
-        preferred_currency: form.country === "IN" ? "INR" : "USD",
-        preferred_locale: form.country === "IN" ? "en-IN" : "en-US",
+        country,
+        preferred_currency: country === "IN" ? "INR" : "USD",
+        preferred_locale: country === "IN" ? "en-IN" : "en-US",
       };
       if (form.phone) payload.phone = form.phone;
 
@@ -469,4 +466,11 @@ export default function SignupPage() {
       </div>
     </div>
   );
+}
+
+const noopSubscribe = () => () => {};
+
+function guessCountry(): "IN" | "US" {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return tz === "Asia/Kolkata" || tz === "Asia/Calcutta" ? "IN" : "US";
 }

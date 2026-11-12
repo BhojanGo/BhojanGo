@@ -55,7 +55,6 @@ export function CityPicker({
     onChange(code);
   }
 
-  let lastRegion = "";
   return (
     <div ref={wrapRef} className="relative">
       <button
@@ -103,8 +102,8 @@ export function CityPicker({
           <ul id={listId} role="listbox" aria-label="Cities" className="mt-2 max-h-72 overflow-y-auto">
             {matches.length === 0 && <li className="px-3 py-2 text-sm text-muted">No city matches</li>}
             {matches.map((c, i) => {
-              const header = c.regionName !== lastRegion ? c.regionName : null;
-              lastRegion = c.regionName;
+              // A state's name above its first city.
+              const header = i === 0 || c.regionName !== matches[i - 1]?.regionName ? c.regionName : null;
               return (
                 <li key={c.code} role="presentation">
                   {header && <div className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted">{header}</div>}

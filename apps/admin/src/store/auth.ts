@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -55,7 +55,8 @@ registerAuthHandlers({
  * auth guard must wait for this before redirecting to /login.
  */
 export function useAuthHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  return hydrated;
+  // false on the server snapshot, true once rendering on the client
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
 }
+
+const noopSubscribe = () => () => {};

@@ -94,14 +94,12 @@ function RazorpayPayment({
   currency: string;
 }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  // Already loaded by an earlier checkout: ready straight away.
+  const [ready, setReady] = useState(() => typeof window !== "undefined" && Boolean(window.Razorpay));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (window.Razorpay) {
-      setReady(true);
-      return;
-    }
+    if (window.Razorpay) return;
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;

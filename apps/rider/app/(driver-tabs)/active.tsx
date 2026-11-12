@@ -29,7 +29,10 @@ export default function ActiveDelivery() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchActive(); }, []);
+  useEffect(() => {
+    // Load once on mount; the request settles after the effect, not inside it.
+    void Promise.resolve().then(fetchActive);
+  }, []);
 
   const updateStatus = async (newStatus: string) => {
     if (!delivery) return;

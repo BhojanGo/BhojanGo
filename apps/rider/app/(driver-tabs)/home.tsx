@@ -17,9 +17,20 @@ export default function DriverHome() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/orders/driver/available");
+      setOrders(res.data.orders || []);
+    } catch {
+      // Best effort: keep the previous state if the request fails.
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!isOnline) return;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     const startTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -44,16 +55,6 @@ export default function DriverHome() {
     return () => clearInterval(interval);
   }, [isOnline]);
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/orders/driver/available");
-      setOrders(res.data.orders || []);
-    } catch {
-      // Best effort: keep the previous state if the request fails.
-    }
-    setLoading(false);
-  };
 
   const acceptOrder = async (orderId: string) => {
     try {
