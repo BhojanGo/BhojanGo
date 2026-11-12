@@ -38,6 +38,15 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 11. **Queue consumers are idempotent: record each event id, skip repeats.**
     Why: SQS and SNS deliver at least once, so without a record of handled events a retry sends the customer the same message twice.
 
+12. **Every endpoint gets an access test: no token, wrong role, someone else's resource. A route without a policy fails CI.**
+    Why: BhojanGo's first sweep found seven holes that unit tests had never asked about, including other customers' payments and other cities' menus.
+
+13. **Authorise by permission and scope, never by role name.**
+    Why: every hole the sweep found was a `role == "admin"` check, which let any admin act in any city, including read-only viewers.
+
+14. **The release gate runs the real flow over HTTP on a throwaway stack, with no mocks and no admin help.**
+    Why: BhojanGo's G1 found that no bag with options could reach checkout, which every mocked test had missed.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
