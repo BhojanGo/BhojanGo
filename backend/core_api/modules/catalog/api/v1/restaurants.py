@@ -388,6 +388,14 @@ async def create_review(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> ReviewResponse:
+    # Only the customer who ordered, for a delivered order from this restaurant.
+    from core_api.modules.orders.models.order import Order
+
+    order = await db.get(Order, data.order_id)
+    if order is None or order.customer_id != current_user.id or order.restaurant_id != restaurant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if order.status != "delivered":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You can review an order once it's delivered")
     review_repo = ReviewRepository(db)
     existing = await review_repo.get_by_order_id(data.order_id)
     if existing:
