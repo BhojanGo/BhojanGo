@@ -67,6 +67,26 @@ export function useOpsOrders(scope: string, view: "live" | "attention" | "today"
   });
 }
 
+// Support tickets (B3 call-back requests, B5 problem reports).
+export interface OpsTicket {
+  id: string; kind: "callback" | "problem" | string; status: string; topic: string; note: string | null; created_at: string;
+  resolved_at: string | null; resolution: string | null; city: string | null; requester_name: string; requester_phone: string | null;
+  requester_role: string; restaurant_id: string | null; restaurant_name: string | null; order_id: string | null; order_code: string | null;
+  details: Record<string, unknown>;
+}
+
+export const TICKET_TOPIC: Record<string, string> = {
+  order: "an order", payout: "a payout", menu: "the menu", account: "the account", other: "something else",
+};
+
+export function useTickets(scope: string, state: "open" | "resolved") {
+  return useQuery({
+    queryKey: ["ops", "tickets", scope, state],
+    queryFn: async () => (await adminApi.get<OpsTicket[]>("/user/ops/tickets", { params: { scope, state } })).data,
+    refetchInterval: 15_000,
+  });
+}
+
 export interface OrderDetail {
   id: string; status: string; restaurant_name: string; customer_id: string; driver_id: string | null; market_city: string | null;
   items: { name: string; quantity: number; unit_price: number; total: number; options?: string[]; menu_item_id: string }[];

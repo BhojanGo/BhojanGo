@@ -27,6 +27,7 @@ import shared.outbox  # noqa: F401
 import core_api.modules.finance.models  # noqa: F401
 import core_api.modules.orders.models  # noqa: F401
 import core_api.modules.payments.models  # noqa: F401
+import core_api.modules.support.models  # noqa: F401
 import worker.app.models  # noqa: F401
 from shared.config import get_settings
 from shared.db import Base

@@ -21,7 +21,17 @@ if [ "$APP" = rider ]; then
   adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
 fi
 fail=0
+# A busy host can leave an "isn't responding" dialog over everything (often System UI):
+# answer "Wait" before each flow so it doesn't hide the app.
+dismiss_anr() {
+  if timeout 10 adb -s "$DEVICE" shell dumpsys window 2>/dev/null | grep -q "mCurrentFocus=.*Application Not Responding"; then
+    echo "dismissing an 'isn't responding' dialog"
+    timeout 10 adb -s "$DEVICE" shell input keyevent KEYCODE_BACK >/dev/null 2>&1
+    sleep 2
+  fi
+}
 for f in $FLOWS; do
+  dismiss_anr
   $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_attempts:*' | xargs -r redis-cli -n 0 del" >/dev/null
   if maestro --device "$DEVICE" test "$ROOT/apps/$APP/.maestro/$f.yaml" >/tmp/maestro-$f.log 2>&1; then
     echo "PASS $f"

@@ -24,6 +24,7 @@ from core_api.modules.pricing.main import register as register_pricing
 from core_api.modules.rules.main import register as register_rules
 from core_api.modules.orders.main import register as register_orders
 from core_api.modules.payments.main import register as register_payments
+from core_api.modules.support.main import register as register_support
 from shared.config import get_settings
 from shared.db import engine
 from shared.logging import configure_logging
@@ -44,6 +45,7 @@ MODULES = [
     register_catalog,
     register_orders,
     register_payments,
+    register_support,
 ]
 
 

@@ -859,6 +859,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tickets
+         * @description Tickets in your scope for the support console: open ones oldest first,
+         *     resolved ones newest first.
+         */
+        get: operations["list_tickets_api_v1_ops_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/tickets/{ticket_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Ticket
+         * @description Done: we called, refunded or explained. The note is kept and audited.
+         */
+        post: operations["resolve_ticket_api_v1_ops_tickets__ticket_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders": {
         parameters: {
             query?: never;
@@ -1585,6 +1626,31 @@ export interface paths {
          */
         put: operations["busy_api_v1_restaurants__restaurant_id__busy_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Callback
+         * @description The kitchen's open call-back request, if any (the tablet shows "we'll call you").
+         */
+        get: operations["my_callback_api_v1_restaurants__restaurant_id__callback_get"];
+        put?: never;
+        /**
+         * Request Callback
+         * @description Ask BhojanGo to call the kitchen back. One open request at a time: asking
+         *     again while one is open returns it (with the newer topic and note).
+         */
+        post: operations["request_callback_api_v1_restaurants__restaurant_id__callback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2836,6 +2902,16 @@ export interface components {
              */
             extra_minutes: number;
         };
+        /** CallbackIn */
+        CallbackIn: {
+            /** Note */
+            note?: string | null;
+            /**
+             * Topic
+             * @enum {string}
+             */
+            topic: "order" | "payout" | "menu" | "account" | "other";
+        };
         /** CartItem */
         CartItem: {
             /**
@@ -3837,6 +3913,51 @@ export interface components {
             name: string;
             totals: components["schemas"]["OpsTotals"];
         };
+        /** OpsTicket */
+        OpsTicket: {
+            /** City */
+            city: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Note */
+            note: string | null;
+            /** Order Code */
+            order_code: string | null;
+            /** Order Id */
+            order_id: string | null;
+            /** Requester Name */
+            requester_name: string;
+            /** Requester Phone */
+            requester_phone: string | null;
+            /** Requester Role */
+            requester_role: string;
+            /** Resolution */
+            resolution: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Restaurant Id */
+            restaurant_id: string | null;
+            /** Restaurant Name */
+            restaurant_name: string | null;
+            /** Status */
+            status: string;
+            /** Topic */
+            topic: string;
+        };
         /** OpsTotals */
         OpsTotals: {
             /** Completed Pct */
@@ -4641,6 +4762,11 @@ export interface components {
             /** Phone */
             phone: string;
         };
+        /** ResolveIn */
+        ResolveIn: {
+            /** Resolution */
+            resolution: string;
+        };
         /** ResolvedRule */
         ResolvedRule: {
             /** Family */
@@ -5364,6 +5490,31 @@ export interface components {
             at?: string | null;
             /** Status */
             status: string;
+        };
+        /** TicketOut */
+        TicketOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Note */
+            note: string | null;
+            /** Resolution */
+            resolution: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Status */
+            status: string;
+            /** Topic */
+            topic: string;
         };
         /** UserResponse */
         UserResponse: {
@@ -7110,6 +7261,74 @@ export interface operations {
             };
         };
     };
+    list_tickets_api_v1_ops_tickets_get: {
+        parameters: {
+            query?: {
+                scope?: string;
+                state?: "open" | "resolved";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpsTicket"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_ticket_api_v1_ops_tickets__ticket_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_my_orders_api_v1_orders_get: {
         parameters: {
             query?: {
@@ -8392,6 +8611,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_callback_api_v1_restaurants__restaurant_id__callback_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_callback_api_v1_restaurants__restaurant_id__callback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketOut"];
                 };
             };
             /** @description Validation Error */

@@ -12,7 +12,8 @@ import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import {
-  apiMessage, clock, money, REFUND_REASONS, useDispatch, useOpsOrders, useScope, type OpsOrder, type OrderDetail, type Refund,
+  apiMessage, clock, money, REFUND_REASONS, TICKET_TOPIC, useDispatch, useOpsOrders, useScope, useTickets, type OpsOrder,
+  type OpsTicket, type OrderDetail, type Refund,
 } from "@/lib/ops";
 
 const DispatchMap = dynamic(() => import("@/components/ops/DispatchMap").then((m) => m.DispatchMap), { ssr: false });
@@ -122,19 +123,47 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
   );
 }
 
+function waited(iso: string): string {
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${Math.floor(min / 1440)} d`;
+}
+
+function ticketTitle(t: OpsTicket): string {
+  return t.kind === "callback" ? `Call back · ${t.restaurant_name ?? t.requester_name}` : `Problem · ${t.order_code ?? ""} · ${t.requester_name}`;
+}
+
 function Support({ scope, openId, setOpenId }: { scope: string; openId: string | null; setOpenId: (id: string | null) => void }) {
   const [q, setQ] = useState("");
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [state, setState] = useState<"open" | "resolved">("open");
   const found = useOpsOrders(scope, "search", q.trim());
   const queue = useOpsOrders(scope, "attention");
+  const tickets = useTickets(scope, state);
+  const ticket = tickets.data?.find((t) => t.id === ticketId) ?? null;
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <aside className="space-y-3">
+        <section className="rounded-2xl bg-white p-2" aria-label="Tickets">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="text-sm font-extrabold">{state === "open" ? "Open tickets" : "Resolved tickets"} · {tickets.data?.length ?? 0}</span>
+            <button type="button" onClick={() => { setState(state === "open" ? "resolved" : "open"); setTicketId(null); }}
+              className="text-xs font-bold text-peacock">{state === "open" ? "Show resolved" : "Show open"}</button>
+          </div>
+          {tickets.data?.length === 0 ? <p className="px-3 pb-3 text-sm text-muted">{state === "open" ? "No one is waiting on us." : "Nothing resolved yet."}</p> : null}
+          {tickets.data?.map((t) => (
+            <button key={t.id} type="button" onClick={() => { setTicketId(t.id); setOpenId(null); }}
+              className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${ticketId === t.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+              <div className="flex justify-between gap-2"><b>{ticketTitle(t)}</b><span className="shrink-0 text-muted">{state === "open" ? waited(t.created_at) : clock(t.resolved_at)}</span></div>
+              <div className="text-muted">About {TICKET_TOPIC[t.topic] ?? t.topic}{t.note ? ` · “${t.note}”` : ""}</div>
+            </button>
+          ))}
+        </section>
         <input aria-label="Find an order" placeholder="Order code (#A9D1C2) or customer's phone" value={q} onChange={(e) => setQ(e.target.value)}
           className="h-11 w-full rounded-full border border-line-strong bg-white px-4 text-sm" />
         <section className="rounded-2xl bg-white p-2" aria-label="Queue">
           <div className="px-3 py-2 text-sm font-extrabold">{q.trim().length >= 3 ? `Found · ${found.data?.length ?? 0}` : `Needs attention · ${queue.data?.length ?? 0}`}</div>
           {(q.trim().length >= 3 ? found.data : queue.data)?.map((o) => (
-            <button key={o.id} type="button" onClick={() => setOpenId(o.id)}
+            <button key={o.id} type="button" onClick={() => { setOpenId(o.id); setTicketId(null); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${openId === o.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex justify-between"><b>{o.customer} · {STATUS[o.status] ?? o.status}</b><span className="text-muted">{clock(o.placed_at)}</span></div>
               <div className="text-muted">{o.code} · {o.restaurant_name}</div>
@@ -143,8 +172,64 @@ function Support({ scope, openId, setOpenId }: { scope: string; openId: string |
           ))}
         </section>
       </aside>
-      {openId ? <OrderCase id={openId} /> : <div className="rounded-2xl bg-white p-6 text-muted">Pick an order to see its timeline and refund by item.</div>}
+      {ticket ? (
+        <div className="space-y-4">
+          <TicketCase t={ticket} onDone={() => { setTicketId(null); void tickets.refetch(); }} />
+          {ticket.order_id ? <OrderCase id={ticket.order_id} /> : null}
+        </div>
+      ) : openId ? <OrderCase id={openId} /> : <div className="rounded-2xl bg-white p-6 text-muted">Pick a ticket, or an order to see its timeline and refund by item.</div>}
     </div>
+  );
+}
+
+function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
+  const qc = useQueryClient();
+  const { data: me } = useAdminMe();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const where = t.city ?? "*";
+  const mayResolve = ["orders.edit", "customers.edit", "partners.edit"].some((p) => can(me, p, where));
+  async function resolve() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await adminApi.post(`/user/ops/tickets/${t.id}/resolve`, { resolution: text.trim() });
+      await qc.invalidateQueries({ queryKey: ["ops", "tickets"] });
+      onDone();
+    } catch (e) {
+      setMsg(apiMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={ticketTitle(t)}>
+      <div>
+        <h2 className="m-0 font-display text-2xl font-semibold">{ticketTitle(t)}</h2>
+        <p className="text-sm text-muted">{t.kind === "callback" ? "Asked for a call back" : "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
+      </div>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <div><dt className="font-bold">Who</dt><dd>{t.requester_name}{t.requester_role === "partner" && t.restaurant_name ? ` · ${t.restaurant_name}` : ""}</dd></div>
+        <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-extrabold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
+        <div><dt className="font-bold">About</dt><dd>{TICKET_TOPIC[t.topic] ?? t.topic}</dd></div>
+        <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>
+      </dl>
+      {t.status === "resolved" ? (
+        <p className="rounded-xl bg-porcelain p-4 text-sm"><b>Resolved:</b> {t.resolution}</p>
+      ) : mayResolve ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-bold">What did you do?
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={2}
+              placeholder="e.g. Called Ravi; last week's payout covered 6 days, explained the cut-off"
+              className="mt-1 block w-full rounded-lg border border-line p-2 font-normal" />
+          </label>
+          <button type="button" disabled={busy || text.trim().length < 3} onClick={resolve}
+            className="h-11 rounded-full bg-peacock px-5 font-extrabold text-white disabled:opacity-40">{busy ? "Saving…" : "Mark resolved"}</button>
+        </div>
+      ) : <p className="text-sm text-muted">You can see this ticket; city ops or support resolve it.</p>}
+      {msg ? <p role="alert" className="text-sm font-semibold text-chili">{msg}</p> : null}
+    </section>
   );
 }
 

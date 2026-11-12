@@ -148,6 +148,11 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
     ("GET", "/api/v1/orders/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("GET", "/api/v1/orders/{order_id}/breakdown"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
+    # call-back requests (B3): the kitchen's owner asks; admins see and resolve them in their city
+    ("POST", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd", body=lambda c: {"topic": "other"}),
+    ("GET", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd"),
+    ("GET", "/api/v1/ops/tickets"): admin(),
+    ("POST", "/api/v1/ops/tickets/{ticket_id}/resolve"): admin("ops_boi", "viewer", "finance_in", body=lambda c: {"resolution": "Sweep"}),
     # quick messages (B2): the order's customer and rider only; not the kitchen, not admins
     ("GET", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
     ("POST", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd",
@@ -300,6 +305,7 @@ class Ctx:
     rider_doc_key: str = ""
     customer_id: str = ""
     rider_id: str = ""
+    ticket: str = ""
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
@@ -307,7 +313,7 @@ class Ctx:
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
-                  "document_id": self.rider_doc,
+                  "document_id": self.rider_doc, "ticket_id": self.ticket,
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
@@ -405,6 +411,8 @@ async def _build() -> Ctx:
         c.quote = r.json()["quote_id"]
         r = await client.post(f"{R.format(restaurant_id=c.spice)}/option-groups", headers=partner, json=OPTION_GROUP)
         c.group = r.json()["id"]
+        r = await client.post(f"{R.format(restaurant_id=c.spice)}/callback", headers=partner, json={"topic": "other", "note": "Access sweep"})
+        c.ticket = r.json()["id"]
         cm = {k: v for k, v in tokens["cm_in"].items() if k != "_id"}
         r = await client.post("/api/v1/rules", headers=cm, json={
             "family": "business", "template": "cancel_window", "params": {"minutes": 2}, "name": "Access sweep",
