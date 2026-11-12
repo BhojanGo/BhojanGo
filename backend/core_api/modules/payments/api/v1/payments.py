@@ -295,11 +295,12 @@ async def razorpay_verify(
 ) -> dict:
     """The app calls this with what Razorpay Checkout returned. A valid signature
     captures the payment now; the webhook that follows is a duplicate."""
-    if not verify_razorpay_checkout(data.razorpay_order_id, data.razorpay_payment_id, data.razorpay_signature):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Razorpay signature")
+    # Whose payment first: someone else's gets the same answer as one that doesn't exist.
     intent = await PaymentRepository(db).get_by_provider_id(data.razorpay_order_id)
     if intent is None or intent.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+    if not verify_razorpay_checkout(data.razorpay_order_id, data.razorpay_payment_id, data.razorpay_signature):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Razorpay signature")
     return await apply_payment_event(db, "razorpay", {
         "event_type": "payment.captured", "provider_payment_id": data.razorpay_order_id, "status": "succeeded",
         "razorpay_payment_id": data.razorpay_payment_id, "event_id": f"{data.razorpay_payment_id}:captured"})
