@@ -150,6 +150,17 @@ def test_promotions_best_offer_codes_and_budgets() -> None:
     assert spent  # (kept for readability)
 
 
+def test_weekly_cap_on_an_offer_the_restaurant_funds() -> None:
+    flat = rule("promotion", "flat_off", {"amount": 75, "funded_by": "restaurant", "weekly_cap": 100}, key="r_weekly")
+    rules = hyderabad_rules(**{flat.slot: flat})
+    k = str(flat.rule_key)
+    assert quote(rules=rules).line("promotion") == Decimal("-75.00")
+    # ₹70 used this week: ₹30 of the offer left, so the platform's ₹50 launch offer is better now.
+    assert quote(rules=rules, promo_spent_week={k: Decimal("70")}).line("promotion") == Decimal("-50.00")
+    assert quote(rules=rules, promo_spent_week={k: Decimal("30")}).line("promotion") == Decimal("-70.00")
+    assert quote(rules=rules, promo_spent_week={k: Decimal("100")}).line("promotion") == Decimal("-50.00")
+
+
 def test_first_order_only_for_first_orders() -> None:
     fo = rule("promotion", "first_order", {"percent": 50, "max_discount": 100, "funded_by": "platform"}, key="welcome")
     rules = hyderabad_rules(**{fo.slot: fo})

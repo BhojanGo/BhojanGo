@@ -77,6 +77,8 @@ class OrderStatusUpdateRequest(BaseModel):
     note: str | None = None
     # Required when a rider marks the order delivered.
     proof: DeliveryProof | None = None
+    # When the restaurant accepts: how long it'll take (P19 tablet "Ready in"); default its usual prep time.
+    prep_minutes: int | None = Field(default=None, ge=5, le=120)
 
 
 class OrderCancelRequest(BaseModel):

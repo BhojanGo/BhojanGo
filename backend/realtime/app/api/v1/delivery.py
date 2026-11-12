@@ -16,8 +16,9 @@ logger = structlog.get_logger(__name__)
 
 
 def can_see(user: CurrentUser, info: dict) -> bool:
-    """The customer, the assigned rider, or an admin for the order's city."""
-    if user.user_id in (info.get("customer_id"), info.get("driver_id")):
+    """The customer, the assigned rider, the restaurant's owner (when its rider
+    arrives, P19), or an admin for the order's city."""
+    if user.user_id in (info.get("customer_id"), info.get("driver_id"), info.get("restaurant_owner_id")):
         return True
     city = info.get("market_city") or ""
     return bool(city) and authz.can([authz.Assignment.parse(a) for a in user.admin], "orders.view", city)

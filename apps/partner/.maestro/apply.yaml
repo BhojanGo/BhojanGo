@@ -1,0 +1,36 @@
+# A kitchen still applying (seed: Kesar Kitchen): 1 of 5, the FSSAI step, then GST and bank.
+appId: com.bhojango.partner
+env:
+  PHONE: "9000000901"
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Partner application"
+    timeout: 30000
+- tapOn: "FSSAI licence"
+- assertVisible: "Your terms"
+- assertVisible: "15%"
+- tapOn:
+    id: "fssai-number"
+- eraseText: 20
+- inputText: "13623012000487"
+- tapOn:
+    id: "fssai-until"
+- eraseText: 20
+- inputText: "31 Mar 2028"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/12-application-fssai
+- tapOn: "Save and continue"
+- extendedWaitUntil:
+    visible: "GST and bank"
+    timeout: 15000
+- tapOn:
+    id: "gstin"
+- eraseText: 20
+- inputText: "36AABCU9603R1ZM"
+- hideKeyboard
+- tapOn: "Save GSTIN|Update"
+- extendedWaitUntil:
+    visible: "Add bank account|Continue"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/13-application-gst-bank

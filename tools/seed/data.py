@@ -29,6 +29,10 @@ MARKETS = [
             ("Farhan Ali", "8-1-293, Tolichowki", "Tolichowki", "500008", 17.3990, 78.4130),
         ],
         "riders": ["Ravi Kumar", "Imran Shaikh", "Lakshmi Reddy"],  # "Ravi K." is on the board
+        # A kitchen applying to join (P19 board "Partner application", step 2: FSSAI): business details done.
+        "applicant": {"name": "Anil Varma", "restaurant": "Kesar Kitchen", "slug": "kesar-kitchen-kondapur",
+                      "area": "Kondapur", "street": "Plot 21, Botanical Garden Rd", "zip": "500084",
+                      "lat": 17.4610, "lng": 78.3660, "cuisines": ["Andhra", "Thali"]},
         "restaurants": [
             {
                 "name": "Spice Route Kitchen",  # board

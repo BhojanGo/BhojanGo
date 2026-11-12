@@ -233,6 +233,7 @@ class SupportRefundLimit(_P):
 class _Promo(_P):
     funded_by: Literal["platform", "restaurant"]
     budget_cap: Money | None = Field(default=None, gt=0, description="Stop when this much has been given away")
+    weekly_cap: Money | None = Field(default=None, gt=0, description="Stop each week (Monday, market time) at this much")
     min_subtotal: Money = Field(default=Decimal("0"), ge=0)
     code: str | None = Field(default=None, pattern=r"^[A-Z0-9]{3,20}$", description="None = applies automatically")
 

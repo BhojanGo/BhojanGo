@@ -1,0 +1,51 @@
+# The main path: pick the kitchen, a new order rings with an accept timer,
+# choose "ready in", accept, mark ready; busy +10 min and pause/resume.
+appId: com.bhojango.partner
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Which kitchen is this tablet for?"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/02-kitchens
+- tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Ready for pickup"
+    timeout: 30000
+- assertVisible: "Open till.*"
+- runScript: scripts/customer.js
+- extendedWaitUntil:
+    visible: "to accept"
+    timeout: 30000
+- assertVisible: "Note: Less oil, please"
+- assertVisible: ".*Priya"
+- tapOn: "Ready in 25"
+- takeScreenshot: docs/screenshots/partner/03-new-order
+- tapOn:
+    id: "accept"
+- extendedWaitUntil:
+    visible: "25 min left|24 min left"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/04-preparing
+- tapOn: "Mark ready"
+- extendedWaitUntil:
+    visible: 'ready \d.*'
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/05-ready
+- tapOn: 'Busy\? Add 10 min'
+- extendedWaitUntil:
+    visible: 'Busy . \+10 min . undo'
+    timeout: 10000
+- tapOn: 'Busy . \+10 min . undo'
+- extendedWaitUntil:
+    visible: 'Busy\? Add 10 min'
+    timeout: 10000
+- tapOn: "Pause orders"
+- tapOn: "15 min"
+- extendedWaitUntil:
+    visible: "Paused till.*"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/partner/06-paused
+- tapOn: "Resume orders"
+- extendedWaitUntil:
+    visible: "Open till.*"
+    timeout: 10000

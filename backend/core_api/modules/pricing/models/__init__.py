@@ -1,9 +1,9 @@
 """Pricing records (spec section 5: order_pricing_snapshot)."""
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Numeric, String, func
+from sqlalchemy import Date, DateTime, Numeric, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,3 +43,16 @@ class PromotionSpend(Base):
 
 
 __all__ = ["OrderPricingSnapshot", "PromotionSpend"]
+
+
+class PromotionSpendWeek(Base):
+    """Given away per promotion per week (Monday, market time), for weekly caps on
+    offers a restaurant funds (P19)."""
+
+    __tablename__ = "promotion_spend_week"
+
+    rule_key: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    week_start: Mapped[date] = mapped_column(Date, primary_key=True)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    spent: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
+    orders: Mapped[int] = mapped_column(nullable=False, default=0)

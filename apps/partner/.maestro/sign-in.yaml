@@ -1,0 +1,23 @@
+# Sign in on the tablet (landscape) with the kitchen's phone; seed phones get 123456.
+appId: com.bhojango.partner
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in to your kitchen"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/partner/01-sign-in
+- tapOn:
+    id: "phone"
+- inputText: ${PHONE || "9000000900"}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 15000
+- inputText: "123456"
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 30000

@@ -1,0 +1,60 @@
+# Menu & store: sold out today and back, store hours and prep time, an offer
+# the kitchen funds with a weekly cap (created, shown live, ended).
+appId: com.bhojango.partner
+---
+- runFlow: sign-in.yaml
+- runFlow:
+    when:
+      visible: "Which kitchen is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Ready for pickup"
+    timeout: 30000
+- tapOn: "Menu"
+- extendedWaitUntil:
+    visible: "Store hours"
+    timeout: 20000
+- assertVisible: "Offers you fund"
+- takeScreenshot: docs/screenshots/partner/07-menu
+- tapOn: "Search items"
+- inputText: "Veg Dum"
+- hideKeyboard
+- tapOn: "Veg Dum Biryani in stock"
+- extendedWaitUntil:
+    visible: "Sold out today"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/partner/07b-menu-sold-out
+- tapOn: "Veg Dum Biryani in stock"
+- tapOn: '\+ Create offer'
+- extendedWaitUntil:
+    visible: "Create an offer you fund"
+    timeout: 10000
+- tapOn:
+    id: "offer-cap"
+- inputText: "5000"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/08-create-offer
+- tapOn: "Start offer"
+- extendedWaitUntil:
+    visible: "Live"
+    timeout: 15000
+- assertVisible: "All orders . you cover the delivery fee"
+- takeScreenshot: docs/screenshots/partner/09-menu-offer
+- tapOn: "End offer"
+- tapOn:
+    text: "END OFFER|End offer"
+    index: 0
+- extendedWaitUntil:
+    notVisible: "All orders . you cover the delivery fee"
+    timeout: 15000
+- tapOn: "Payouts"
+- extendedWaitUntil:
+    visible: "Weekly statements"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/10-payouts
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible: "Mute the new-order alert"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/partner/11-help

@@ -8,7 +8,7 @@ split) that never changes afterwards.
 import json
 import uuid
 from dataclasses import asdict, replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -19,7 +19,7 @@ from core_api.modules.catalog.service.cart import CartError, price_cart
 from core_api.modules.markets.models import City, Country, Region
 from core_api.modules.markets.service.markets import MarketService
 from core_api.modules.orders.service.lookup import has_previous_orders
-from core_api.modules.pricing.models import OrderPricingSnapshot, PromotionSpend
+from core_api.modules.pricing.models import OrderPricingSnapshot, PromotionSpend, PromotionSpendWeek
 from core_api.modules.pricing.schemas import BillLineOut, QuoteOut, QuoteRequest, SimSide, SimulateOut, SimulateRequest, SplitOut
 from core_api.modules.payments.service.tax import TaxAddress, TaxableLine, TaxError, get_tax_provider
 from core_api.modules.pricing.service.engine import (
@@ -79,12 +79,21 @@ async def city_chain(db: AsyncSession, code: str) -> tuple[City, Region, Country
     return city, region, country, tz
 
 
+def week_of(local: datetime) -> date:
+    """The Monday that starts the week (market time): weekly caps and payouts."""
+    return local.date() - timedelta(days=local.weekday())
+
+
 class QuoteService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
     async def _promo_spent(self) -> dict[str, Decimal]:
         rows = (await self.db.execute(select(PromotionSpend))).scalars()
+        return {str(r.rule_key): Decimal(r.spent) for r in rows}
+
+    async def _promo_spent_week(self, week_start: date) -> dict[str, Decimal]:
+        rows = (await self.db.execute(select(PromotionSpendWeek).where(PromotionSpendWeek.week_start == week_start))).scalars()
         return {str(r.rule_key): Decimal(r.spent) for r in rows}
 
     async def _deliver_to(self, user_id: uuid.UUID, req: QuoteRequest) -> tuple[float, float, dict]:
@@ -151,6 +160,7 @@ class QuoteService:
             distance=distance, local_time=now.astimezone(tz), tip=req.tip, restaurant_tier=rest.tier,
             first_order=not await has_previous_orders(self.db, user_id),
             promo_code=req.promo_code, promo_spent=await self._promo_spent(),
+            promo_spent_week=await self._promo_spent_week(week_of(now.astimezone(tz))),
         )
         try:
             result = compute(inputs, rules)
@@ -173,6 +183,7 @@ class QuoteService:
             | {"detail": {k: str(v) for k, v in result.split.detail.items()}},
             "rules_used": result.rules_used, "tax_pending": result.tax_pending,
             "context": {"country": country.code, "region": region.code, "city": city.code, "zone_id": str(where.zone_id),
+                        "week_start": week_of(now.astimezone(tz)).isoformat(),
                         "zone": where.zone_name, "distance": str(distance), "distance_unit": country.distance_unit,
                         "local_time": inputs.local_time.isoformat(), "deliver_to": {"lat": lat, "lng": lng}},
             "expires_at": expires.isoformat(),
@@ -238,6 +249,15 @@ class QuoteService:
                 self.db.add(row)
             row.spent = Decimal(row.spent) - Decimal(ln["amount"])
             row.orders += 1
+            week = q["context"].get("week_start")
+            if week:
+                wk = await self.db.get(PromotionSpendWeek, (uuid.UUID(key), date.fromisoformat(week)), with_for_update=True)
+                if wk is None:
+                    wk = PromotionSpendWeek(rule_key=uuid.UUID(key), week_start=date.fromisoformat(week), currency=q["currency"],
+                                            spent=Decimal(0), orders=0)
+                    self.db.add(wk)
+                wk.spent = Decimal(wk.spent) - Decimal(ln["amount"])
+                wk.orders += 1
         await self.db.flush()
         return snap
 
