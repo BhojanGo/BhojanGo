@@ -111,6 +111,13 @@ fees, taxes, tip, total, split) and returns every bill line plus a token valid f
 snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
 test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
 
+**Payouts (P13):** restaurants and riders set up payouts (`POST /finance/payout-accounts`: Stripe
+Connect Express in the US, Razorpay Route in India, fake locally). Each week a draft payout run is
+prepared (or finance makes one); a second finance admin approves and pays it. Restaurant
+statements: food + packaging − commission − offers they funded − item refunds (business rule
+`refund_cost`). Rider statements: base, distance, waiting and tips per delivery, plus a top-up to
+the hourly floor (active time = time on deliveries). `GET /finance/reconciliation` (JSON or CSV).
+
 **Payments and refunds (P12):** `POST /payments/initiate` returns what the app's payment SDK needs:
 Stripe PaymentSheet (cards, Apple Pay, Google Pay) in the US, Razorpay Checkout (UPI, cards,
 wallets; `POST /payments/razorpay/verify`) in India, a fake equivalent locally. A failed payment
