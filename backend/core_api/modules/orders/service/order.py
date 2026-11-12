@@ -1,34 +1,77 @@
+"""Order flow (P11): no order without payment, timeouts, outbox events.
+
+    quote -> POST /orders (pending_payment) -> payment webhook -> placed
+          -> restaurant accepts -> preparing -> (almost_ready) -> ready
+          -> rider picks up -> delivered
+
+Unpaid orders cancel after the unpaid_auto_cancel rule; placed orders the
+restaurant doesn't accept within accept_timeout cancel and are refunded. Every
+change writes an outbox event in the same transaction (shared/outbox.py).
+"""
 import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 import structlog
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import get_settings
-from core_api.modules.orders.service.events import publish_order_event
-from core_api.modules.orders.service.state_machine import TRANSITION_PERMISSIONS, can_transition, is_transition_allowed
-from core_api.modules.orders.service.http_client import create_service_client, resilient_get
+from core_api.modules.orders.models.order import Order
 from core_api.modules.orders.repository.order import OrderRepository
 from core_api.modules.orders.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
-from core_api.modules.orders.service import commission, geo
+from core_api.modules.orders.service import state_machine as sm
+from shared import authz, outbox
+from shared.auth import CurrentUser
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
-# Tax rates as exact Decimals (8% US, 18% India GST)
-TAX_RATES = {"USD": Decimal("0.08"), "INR": Decimal("0.18")}
-
+SOURCE = "order-svc"
 _CENTS = Decimal("0.01")
+DEFAULT_UNPAID_MINUTES = 10
+DEFAULT_ACCEPT_SECONDS = 180
+DEFAULT_CANCEL_WINDOW_MINUTES = 2
 
 
 def _money(value: object) -> Decimal:
-    """Coerce any numeric input to an exact 2-decimal money Decimal.
-
-    Going through str() avoids inheriting binary-float artifacts (e.g. 19.99 -> 19.9900000001).
-    """
     return Decimal(str(value)).quantize(_CENTS, rounding=ROUND_HALF_UP)
+
+
+def _err(code: int, key: str, message: str) -> HTTPException:
+    return HTTPException(status_code=code, detail={"code": key, "message": message})
+
+
+def _event_payload(order: Order, **extra: object) -> dict:
+    return {
+        "order_id": str(order.id), "customer_id": str(order.customer_id), "restaurant_id": str(order.restaurant_id),
+        "restaurant_name": order.restaurant_name, "status": order.status, "total": str(order.total),
+        "currency": order.currency, "market_city": order.market_city,
+        "driver_id": str(order.driver_id) if order.driver_id else None, **extra,
+    }
+
+
+async def business_rules(db: AsyncSession, order: Order | None = None, context: dict | None = None) -> dict:
+    """The order's business rules (timeouts, cancel window) from the rule engine."""
+    from core_api.modules.rules.service.resolver import Context
+    from core_api.modules.rules.service.rules import RuleService
+
+    c = context or {}
+    city = c.get("city") or (order.market_city if order else None)
+    ctx = Context(country=c.get("country") or (city[:2] if city else None), region=c.get("region") or (city[:5] if city else None),
+                  city=city, zone_id=c.get("zone_id") or (str(order.zone_id) if order and order.zone_id else None))
+    rules = await RuleService(db).resolve(ctx)
+
+    def get(template: str, field: str, default: int) -> int:
+        r = rules.get(f"business:{template}")
+        return int(r.params[field]) if r else default
+
+    return {
+        "unpaid_minutes": get("unpaid_auto_cancel", "minutes", DEFAULT_UNPAID_MINUTES),
+        "accept_seconds": get("accept_timeout", "seconds", DEFAULT_ACCEPT_SECONDS),
+        "cancel_window_minutes": get("cancel_window", "minutes", DEFAULT_CANCEL_WINDOW_MINUTES),
+    }
 
 
 class OrderService:
@@ -36,171 +79,11 @@ class OrderService:
         self.db = db
         self.repo = OrderRepository(db)
 
-    async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str) -> dict:
-        if data.quote_token:
-            return await self._create_from_quote(data, customer_id)
-        # Fetch restaurant info from restaurant-svc
-        restaurant_name = "Unknown Restaurant"
-        delivery_fee = Decimal("0")
-        # Pain-point layer: pricing model, readiness, and radius config (with safe defaults)
-        pricing_model = "percentage_commission"
-        commission_rate = Decimal("0.20")
-        flat_fee_per_order = Decimal("0")
-        avg_prep_minutes = 20
-        restaurant_lat: float | None = None
-        restaurant_lng: float | None = None
-        delivery_radius_km = 5.0
-        restaurant_svc_url = settings.orders.RESTAURANT_SVC_URL
-        try:
-            async with create_service_client() as client:
-                resp = await resilient_get(client, f"{restaurant_svc_url}/api/v1/restaurants/{data.restaurant_id}")
-                if resp.status_code == 200:
-                    r_data = resp.json()
-                    restaurant_name = r_data.get("name", restaurant_name)
-                    delivery_fee = _money(r_data.get("delivery_fee", 0))
-                    pricing_model = r_data.get("pricing_model", pricing_model)
-                    commission_rate = Decimal(str(r_data.get("commission_rate", commission_rate)))
-                    flat_fee_per_order = Decimal(str(r_data.get("flat_fee_per_order", 0)))
-                    avg_prep_minutes = int(r_data.get("avg_prep_minutes", avg_prep_minutes))
-                    restaurant_lat = r_data.get("lat")
-                    restaurant_lng = r_data.get("lng")
-                    delivery_radius_km = float(r_data.get("delivery_radius_km", delivery_radius_km))
-
-                # Fetch menu items from restaurant-svc to get real prices
-                menu_resp = await resilient_get(
-                    client, f"{restaurant_svc_url}/api/v1/restaurants/{data.restaurant_id}/menu"
-                )
-                if menu_resp.status_code != 200:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Could not fetch restaurant menu",
-                    )
-                menu_data = menu_resp.json()
-
-                # Build price lookup from menu items
-                price_lookup: dict[str, Decimal] = {}
-                item_name_lookup: dict[str, str] = {}
-                for category in menu_data.get("categories", []):
-                    for item in category.get("items", []):
-                        price_lookup[item["id"]] = _money(item["price"])
-                        item_name_lookup[item["id"]] = item["name"]
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.warning("restaurant_fetch_failed", error=str(e))
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Could not fetch restaurant information",
-            )
-
-        # Calculate totals using real prices from restaurant menu
-        items_payload = []
-        subtotal = Decimal("0")
-        for item in data.items:
-            item_id = str(item.menu_item_id)
-            if item_id not in price_lookup:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Menu item {item_id} not found in restaurant menu",
-                )
-            unit_price = price_lookup[item_id]
-            line_total = _money(unit_price * item.quantity)
-            subtotal += line_total
-            items_payload.append({
-                "menu_item_id": item_id,
-                "name": item_name_lookup.get(item_id, ""),
-                "quantity": item.quantity,
-                # JSONB item snapshot is display data -> store as float for JSON serialization
-                "unit_price": float(unit_price),
-                "total": float(line_total),
-                "customizations": [c.model_dump() for c in item.customizations] if item.customizations else [],
-            })
-        items_serialized = items_payload
-        subtotal = _money(subtotal)
-        tax_rate = TAX_RATES.get(currency, Decimal("0.08"))
-        taxes = _money(subtotal * tax_rate)
-        tip = _money(data.tip)
-        loyalty_discount = Decimal("0")  # data.loyalty_points_to_use * 0.01 (1 point = $0.01)
-        total = _money(subtotal + delivery_fee + taxes + tip - loyalty_discount)
-
-        # Commission / platform revenue for this order (does not change the customer total)
-        platform_fee = commission.platform_revenue(
-            pricing_model,
-            subtotal,
-            commission_rate=commission_rate,
-            flat_fee_per_order=flat_fee_per_order,
-        )
-        restaurant_payout = commission.restaurant_payout(subtotal, platform_fee)
-
-        # Hyper-local delivery radius validation (only enforced when we have coordinates)
-        delivery_distance_km: Decimal | None = None
-        is_long_distance = False
-        dest_lat = data.delivery_address.lat
-        dest_lng = data.delivery_address.lng
-        if restaurant_lat is not None and restaurant_lng is not None and dest_lat is not None and dest_lng is not None:
-            distance = geo.haversine_km(restaurant_lat, restaurant_lng, dest_lat, dest_lng)
-            delivery_distance_km = _money(distance)
-            if distance > delivery_radius_km:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail={
-                        "code": "OUTSIDE_DELIVERY_RADIUS",
-                        "message": (
-                            f"Delivery address is {distance:.1f} km away, outside the "
-                            f"restaurant's {delivery_radius_km:.1f} km delivery radius"
-                        ),
-                    },
-                )
-            is_long_distance = geo.is_long_distance(distance, delivery_radius_km)
-
-        # Estimated delivery time
-        estimated_delivery = datetime.now(UTC) + timedelta(minutes=settings.orders.BASE_DELIVERY_MINUTES)
-        status_history = [{"status": "pending", "at": datetime.now(UTC).isoformat()}]
-
-        order = await self.repo.create(
-            customer_id=customer_id,
-            restaurant_id=data.restaurant_id,
-            restaurant_name=restaurant_name,
-            items=items_serialized,
-            status="pending",
-            subtotal=subtotal,
-            delivery_fee=delivery_fee,
-            taxes=taxes,
-            tip=tip,
-            discount=loyalty_discount,
-            total=total,
-            currency=currency,
-            platform_fee=platform_fee,
-            restaurant_payout=restaurant_payout,
-            estimated_prep_minutes=avg_prep_minutes,
-            delivery_distance_km=delivery_distance_km,
-            is_long_distance=is_long_distance,
-            status_history=status_history,
-            delivery_address=data.delivery_address.model_dump(),
-            payment_method=data.payment_method,
-            special_instructions=data.special_instructions,
-            promo_code=data.promo_code,
-            loyalty_points_used=data.loyalty_points_to_use,
-            estimated_delivery_time=estimated_delivery,
-        )
-
-        await publish_order_event("order.created", {
-            "order_id": str(order.id),
-            "customer_id": str(customer_id),
-            "restaurant_id": str(data.restaurant_id),
-            "total": float(total),
-            "currency": currency,
-            "payment_method": data.payment_method,
-        })
-
-        logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id))
-        return order
-
-    async def _create_from_quote(self, data: OrderCreateRequest, customer_id: uuid.UUID):  # type: ignore[no-untyped-def]
-        """Place an order at exactly the quoted price and store its pricing snapshot."""
+    # ── create: from a quote, waiting for payment ────────────────────────────
+    async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str | None = None) -> Order:
+        """Place an order at exactly the quoted price; it waits for payment."""
         from core_api.modules.pricing.service.quotes import QuoteError, QuoteService
 
-        # Until P10's option groups, customization_id is the group name and option_id the option name.
         items = [
             {"menu_item_id": str(i.menu_item_id), "quantity": i.quantity,
              "options": [{"group": c.customization_id, "option": c.option_id} for c in i.customizations]}
@@ -208,36 +91,39 @@ class OrderService:
         ]
         quotes = QuoteService(self.db)
         try:
-            q = await quotes.redeem(data.quote_token or "", customer_id, data.restaurant_id, items)
+            q = await quotes.redeem(data.quote_token, customer_id, data.restaurant_id, items)
         except QuoteError as e:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "QUOTE_INVALID", "message": str(e)})
+            raise _err(status.HTTP_409_CONFLICT, "QUOTE_INVALID", str(e))
 
         def line_sum(*codes: str) -> Decimal:
             return _money(sum((Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in codes), Decimal(0)))
 
-        fees = line_sum("delivery_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee")
-        promo = -line_sum("promotion")
         now = datetime.now(UTC)
+        ctx = q["context"]
+        rules = await business_rules(self.db, context=ctx)
         order = await self.repo.create(
             customer_id=customer_id,
             restaurant_id=data.restaurant_id,
             restaurant_name=q["restaurant_name"],
             items=[{**i, "unit_price": float(i["unit_price"]), "total": float(Decimal(i["unit_price"]) * i["quantity"])}
                    for i in q["items"]],
-            status="pending",
+            status="pending_payment",
+            market_city=ctx.get("city"),
+            zone_id=uuid.UUID(ctx["zone_id"]) if ctx.get("zone_id") else None,
+            payment_due_at=now + timedelta(minutes=rules["unpaid_minutes"]),
             subtotal=_money(q["food_subtotal"]),
-            delivery_fee=fees,
+            delivery_fee=line_sum("delivery_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee"),
             taxes=line_sum("tax"),
             tip=line_sum("tip"),
-            discount=promo,
+            discount=-line_sum("promotion"),
             total=_money(q["total"]),
             currency=q["currency"],
             platform_fee=_money(q["split"]["platform"]),
             restaurant_payout=_money(q["split"]["restaurant"]),
             estimated_prep_minutes=20,
-            delivery_distance_km=_money(q["context"]["distance"]),
+            delivery_distance_km=_money(ctx["distance"]),
             is_long_distance=False,
-            status_history=[{"status": "pending", "at": now.isoformat()}],
+            status_history=[{"status": "pending_payment", "at": now.isoformat()}],
             delivery_address=data.delivery_address.model_dump(),
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
@@ -248,93 +134,145 @@ class OrderService:
         try:
             await quotes.attach(q, order.id)
         except QuoteError as e:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "QUOTE_INVALID", "message": str(e)})
-        await publish_order_event("order.created", {
-            "order_id": str(order.id), "customer_id": str(customer_id), "restaurant_id": str(data.restaurant_id),
-            "total": float(order.total), "currency": order.currency, "payment_method": data.payment_method,
-        })
+            raise _err(status.HTTP_409_CONFLICT, "QUOTE_INVALID", str(e))
+        await outbox.add(self.db, "order.created", "order", order.id,
+                         _event_payload(order, payment_due_at=order.payment_due_at.isoformat()), SOURCE)  # type: ignore[union-attr]
         logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id), quote_id=q["quote_id"])
         return order
 
-    async def update_status(
-        self,
-        order_id: uuid.UUID,
-        data: OrderStatusUpdateRequest,
-        user_id: uuid.UUID,
-        role: str,
-    ):  # type: ignore[no-untyped-def]
-        order = await self.repo.get_by_id(order_id)
-        if not order:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    # ── payment ──────────────────────────────────────────────────────────────
+    async def on_payment_succeeded(self, order_id: uuid.UUID) -> None:
+        """Called by payments when an order's payment is captured (same transaction)."""
+        order = await self._locked(order_id)
+        if order is None:
+            logger.warning("payment_for_unknown_order", order_id=str(order_id))
+            return
+        if order.status == "pending_payment":
+            now = datetime.now(UTC)
+            rules = await business_rules(self.db, order)
+            await self._move(order, "placed", "system", extra={
+                "placed_at": now, "accept_due_at": now + timedelta(seconds=rules["accept_seconds"])})
+        elif order.status == "cancelled":
+            # Paid after it was cancelled (e.g. unpaid timeout): give the money back.
+            from core_api.modules.payments.service.order_payments import refund_in_full
 
-        if not can_transition(order.status, data.status):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail={"code": "ORDER_STATE_INVALID", "message": f"Cannot transition from {order.status} to {data.status}"},
-            )
+            await refund_in_full(self.db, order.id, "paid_after_cancel")
+            await outbox.add(self.db, "order.payment_after_cancel", "order", order.id, _event_payload(order), SOURCE)
+        # placed or later: a duplicate notice; nothing to do
 
-        if not is_transition_allowed(order.status, data.status, role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={"code": "FORBIDDEN", "message": "You don't have permission to make this status change"},
-            )
+    # ── transitions ──────────────────────────────────────────────────────────
+    async def actor_for(self, user: CurrentUser, order: Order, new_status: str) -> str | None:
+        """Which actor the user is for this order, or None."""
+        if order.market_city and authz.can([authz.Assignment.parse(a) for a in user.admin], "orders.edit", order.market_city):
+            return "admin"
+        if user.id == order.customer_id:
+            return "customer"
+        if user.role == "restaurant_owner":
+            from core_api.modules.catalog.models.restaurant import Restaurant
 
-        previous_status = order.status
+            r = await self.db.get(Restaurant, order.restaurant_id)
+            if r is not None and r.owner_id == user.id:
+                return "restaurant"
+        if user.role == "driver" and (order.driver_id == user.id or (order.driver_id is None and new_status == "picked_up")):
+            return "rider"
+        return None
+
+    async def update_status(self, order_id: uuid.UUID, data: OrderStatusUpdateRequest, user: CurrentUser) -> Order:
+        new = sm.LEGACY_NAMES.get(data.status, data.status)
+        if new == "cancelled":
+            return await self.cancel_order(order_id, OrderCancelRequest(reason="other", note=data.note), user)
+        order = await self._locked(order_id)
+        if order is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        actor = await self.actor_for(user, order, new)
+        if actor is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        if not sm.can_transition(order.status, new):
+            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't go from {order.status} to {new}")
+        if not sm.actor_allowed(order.status, new, actor):
+            raise _err(status.HTTP_403_FORBIDDEN, "FORBIDDEN", f"You can't move this order to {new}")
         now = datetime.now(UTC)
-        history = list(order.status_history or [])
-        history.append({"status": data.status, "at": now.isoformat()})
-        extra: dict = {"status_history": history}
-        # Predictive-dispatch readiness timestamps
-        if data.status == "confirmed" and order.restaurant_accepted_at is None:
-            extra["restaurant_accepted_at"] = now
-        if data.status == "ready_for_pickup" and order.actual_ready_at is None:
-            extra["actual_ready_at"] = now
-        updated = await self.repo.update_status(order_id, data.status, **extra)
+        extra: dict = {}
+        if new == "accepted":
+            extra = {"restaurant_accepted_at": now, "accept_due_at": None}
+        elif new == "ready":
+            extra = {"actual_ready_at": now}
+        elif new == "picked_up":
+            extra = {"picked_up_at": now, **({"driver_id": user.id} if actor == "rider" and order.driver_id is None else {})}
+        elif new == "delivered":
+            extra = {"actual_delivery_time": now}
+        return await self._move(order, new, actor, note=data.note, extra=extra)
 
-        await publish_order_event("order.status_changed", {
-            "order_id": str(order_id),
-            "customer_id": str(order.customer_id),
-            "driver_id": str(order.driver_id) if order.driver_id else None,
-            "restaurant_id": str(order.restaurant_id),
-            "previous_status": previous_status,
-            "new_status": data.status,
-            "note": data.note,
-        })
+    async def cancel_order(self, order_id: uuid.UUID, data: OrderCancelRequest, user: CurrentUser) -> Order:
+        order = await self._locked(order_id)
+        if order is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        actor = await self.actor_for(user, order, "cancelled")
+        if actor is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        if not sm.actor_allowed(order.status, "cancelled", actor):
+            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"This order can't be cancelled now ({order.status})")
+        if actor == "customer" and order.status == "accepted":
+            window = (await business_rules(self.db, order))["cancel_window_minutes"]
+            if order.placed_at and datetime.now(UTC) > order.placed_at + timedelta(minutes=window):
+                raise _err(status.HTTP_409_CONFLICT, "CANCEL_WINDOW_PASSED",
+                           "The restaurant has started on your order; contact support to cancel")
+        return await self._cancel(order, actor, data.reason, data.note)
 
-        logger.info("order_status_updated", order_id=str(order_id), previous=previous_status, new=data.status)
-        return updated
+    # ── timeouts ─────────────────────────────────────────────────────────────
+    async def sweep(self, now: datetime | None = None, limit: int = 100) -> dict[str, int]:
+        """Cancel unpaid orders past payment_due_at and placed orders past
+        accept_due_at (refunded). Safe with several core_api replicas."""
+        now = now or datetime.now(UTC)
+        counts = {"payment_timeout": 0, "restaurant_no_response": 0}
+        for state, due, reason in (("pending_payment", Order.payment_due_at, "payment_timeout"),
+                                   ("placed", Order.accept_due_at, "restaurant_no_response")):
+            rows = (await self.db.execute(
+                select(Order).where(Order.status == state, due.is_not(None), due < now)
+                .order_by(due).limit(limit).with_for_update(skip_locked=True)
+            )).scalars().all()
+            for order in rows:
+                await self._cancel(order, "system", reason, None)
+                counts[reason] += 1
+        if any(counts.values()):
+            logger.info("order_timeouts_swept", **counts)
+        return counts
 
-    async def cancel_order(self, order_id: uuid.UUID, data: OrderCancelRequest, user_id: uuid.UUID, role: str):  # type: ignore[no-untyped-def]
-        order = await self.repo.get_by_id(order_id)
-        if not order:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    # ── internals ────────────────────────────────────────────────────────────
+    async def _locked(self, order_id: uuid.UUID) -> Order | None:
+        return (await self.db.execute(select(Order).where(Order.id == order_id).with_for_update())).scalar_one_or_none()
 
-        if not can_transition(order.status, "cancelled"):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail={"code": "ORDER_STATE_INVALID", "message": f"Cannot cancel order in {order.status} state"},
-            )
+    async def _move(self, order: Order, new: str, actor: str, note: str | None = None, extra: dict | None = None) -> Order:
+        previous = order.status
+        now = datetime.now(UTC)
+        order.status = new
+        order.status_history = [*(order.status_history or []), {"status": new, "at": now.isoformat(), "by": actor}]
+        for k, v in (extra or {}).items():
+            setattr(order, k, v)
+        await self.db.flush()
+        await outbox.add(self.db, "order.placed" if new == "placed" else "order.status_changed", "order", order.id,
+                         _event_payload(order, previous_status=previous, new_status=new, by=actor, note=note), SOURCE)
+        logger.info("order_status_changed", order_id=str(order.id), previous=previous, new=new, by=actor)
+        await self.db.refresh(order)  # server-set columns (updated_at) for the response
+        return order
 
-        if not is_transition_allowed(order.status, "cancelled", role):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot cancel this order")
+    async def _cancel(self, order: Order, actor: str, reason: str, note: str | None) -> Order:
+        was_paid = order.status in sm.PAID_STATES
+        now = datetime.now(UTC)
+        previous = order.status
+        order.status, order.cancelled_at, order.cancelled_by = "cancelled", now, actor
+        order.cancellation_reason, order.cancellation_note = reason, note
+        order.payment_due_at = order.accept_due_at = None
+        order.status_history = [*(order.status_history or []), {"status": "cancelled", "at": now.isoformat(), "by": actor}]
+        await self.db.flush()
+        refund = None
+        if was_paid:
+            from core_api.modules.payments.service.order_payments import refund_in_full
 
-        history = list(order.status_history or [])
-        history.append({"status": "cancelled", "at": datetime.now(UTC).isoformat()})
-        updated = await self.repo.update_status(
-            order_id,
-            "cancelled",
-            cancellation_reason=data.reason,
-            cancellation_note=data.note,
-            status_history=history,
-        )
-
-        await publish_order_event("order.cancelled", {
-            "order_id": str(order_id),
-            "customer_id": str(order.customer_id),
-            "restaurant_id": str(order.restaurant_id),
-            "reason": data.reason,
-            "refund_amount": float(order.total),
-            "currency": order.currency,
-        })
-
-        return updated
+            refund = await refund_in_full(self.db, order.id, reason)
+        await outbox.add(self.db, "order.cancelled", "order", order.id, _event_payload(
+            order, previous_status=previous, reason=reason, by=actor,
+            refund_amount=refund["amount"] if refund else 0), SOURCE)
+        logger.info("order_cancelled", order_id=str(order.id), previous=previous, reason=reason, by=actor, refunded=bool(refund))
+        await self.db.refresh(order)
+        return order

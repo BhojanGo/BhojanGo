@@ -16,6 +16,15 @@ def _reset_login_rate_limit():
     yield
 
 
+@pytest.fixture(autouse=True)
+async def _fresh_db_pool():
+    """Each test has its own event loop; drop pooled connections bound to it."""
+    yield
+    from shared.db import engine
+
+    await engine.dispose()
+
+
 async def open_all_day(restaurant_ids: list | None = None) -> None:
     """Quotes respect real opening hours (P10). So the suite doesn't depend on
     the time it runs, every seeded restaurant gets 24-hour overrides around

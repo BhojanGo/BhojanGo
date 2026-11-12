@@ -1,4 +1,8 @@
-"""The fake payment gateway: create, webhook outcomes, idempotency, refunds."""
+"""The fake gateway and webhook handling: outcomes, signatures, idempotency.
+
+Payment initiation needs a real order (amount from the order), so it is
+tested on Postgres in core_api/integration/test_orders_flow.py.
+"""
 import uuid
 from unittest.mock import AsyncMock, patch
 
@@ -9,14 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from core_api.main import app
-from core_api.modules.identity.service.security import create_access_token
-from core_api.modules.payments.models.payment import PaymentIntent, Wallet, WalletTransaction
+from core_api.modules.payments.models.payment import PaymentIntent, ProcessedWebhookEvent, Wallet, WalletTransaction
 from core_api.modules.payments.service import gateways
 from shared.config import get_settings
 from shared.db import Base, get_db
+from shared.outbox import OutboxEvent
 from shared.providers import ProviderConfigError
 
-TABLES = [PaymentIntent.__table__, Wallet.__table__, WalletTransaction.__table__]
+TABLES = [PaymentIntent.__table__, Wallet.__table__, WalletTransaction.__table__, ProcessedWebhookEvent.__table__]
 engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
 Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -45,76 +49,60 @@ async def client():
 
 
 @pytest.fixture
-def user_id() -> str:
-    return str(uuid.uuid4())
+def hooks():
+    """The outbox and the orders hook, recorded instead of touching their tables."""
+    with (
+        patch("shared.outbox.add", new_callable=AsyncMock) as add,
+        patch("core_api.modules.orders.service.order.OrderService.on_payment_succeeded", new_callable=AsyncMock) as placed,
+    ):
+        yield add, placed
 
 
-@pytest.fixture
-def auth(user_id: str) -> dict:
-    token, _ = create_access_token(user_id, "c@example.com", "customer", "US")
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def published():
-    with patch("core_api.modules.payments.api.v1.payments.publish_payment_event", new_callable=AsyncMock) as m:
-        yield m
-
-
-async def _initiate(client: AsyncClient, auth: dict, pm: str | None = None, country: str = "US") -> dict:
-    body = {
-        "order_id": str(uuid.uuid4()),
-        "payment_method_type": "card",
-        "payment_method_id": pm,
-        "country": country,
-        "amount": 2599,
-        "currency": "USD" if country == "US" else "INR",
-    }
-    r = await client.post("/api/v1/payments/initiate", json=body, headers=auth)
-    assert r.status_code == 201, r.text
-    return r.json()
-
-
-async def test_initiate_uses_fake_gateway_without_keys(client, auth) -> None:
-    data = await _initiate(client, auth)
-    assert data["provider"] == "fake"
-    assert data["client_secret"].startswith("fake_pay_")
-
-    india = await _initiate(client, auth, country="IN")
-    assert india["razorpay_order_id"].startswith("fake_pay_")
-
-
-async def test_complete_succeeds_once_and_duplicate_webhook_is_ignored(client, auth, published) -> None:
-    data = await _initiate(client, auth, pm="pm_card_visa")
-    r = await client.post(f"/api/v1/payments/fake/{data['payment_intent_id']}/complete", json={}, headers=auth)
-    assert r.status_code == 200, r.text
-    assert r.json()["outcome"] == "succeeded"
-    assert published.await_count == 1
-    assert published.await_args.args[0] == "payment.succeeded"
-
+async def make_intent(pm: str | None = None) -> PaymentIntent:
+    created = await gateways.FakeGateway("IN").create(amount=63822, currency="INR", order_id="o",
+                                                      idempotency_key=str(uuid.uuid4()), payment_method_id=pm)
     async with Session() as s:
-        intent = await s.get(PaymentIntent, uuid.UUID(data["payment_intent_id"]))
-        assert intent.status == "succeeded"
-        pid = intent.provider_payment_id
+        intent = PaymentIntent(order_id=uuid.uuid4(), user_id=uuid.uuid4(), provider="fake",
+                               provider_payment_id=created["provider_payment_id"], amount=63822, currency="INR",
+                               status="pending", idempotency_key=str(uuid.uuid4()), metadata_={"fake_outcome": created["fake_outcome"]})
+        s.add(intent)
+        await s.commit()
+        return intent
 
-    # The same webhook delivered again (gateways retry) changes nothing.
-    body = gateways.fake_webhook_body(pid, "succeeded")
-    r = await client.post("/api/v1/payments/fake/webhook", content=body,
-                          headers={"x-fake-signature": gateways.sign_fake(body)})
-    assert r.json() == {"received": True, "duplicate": True}
-    # A late failure never undoes a captured payment.
-    body = gateways.fake_webhook_body(pid, "failed")
-    r = await client.post("/api/v1/payments/fake/webhook", content=body,
-                          headers={"x-fake-signature": gateways.sign_fake(body)})
+
+async def deliver(client: AsyncClient, pid: str, outcome: str, body: bytes | None = None):  # type: ignore[no-untyped-def]
+    body = body or gateways.fake_webhook_body(pid, outcome)
+    return await client.post("/api/v1/payments/fake/webhook", content=body, headers={"x-fake-signature": gateways.sign_fake(body)})
+
+
+async def test_success_places_the_order_once(client, hooks) -> None:
+    add, placed = hooks
+    intent = await make_intent("pm_card_visa")
+    body = gateways.fake_webhook_body(intent.provider_payment_id, "succeeded")
+    r = await deliver(client, intent.provider_payment_id, "succeeded", body)
+    assert r.json() == {"received": True}
+    assert placed.await_count == 1 and placed.await_args.args[0] == intent.order_id
+    assert add.await_args.args[1] == "payment.succeeded"
+
+    # The same event again (gateways retry): ignored by event id.
+    r = await deliver(client, intent.provider_payment_id, "succeeded", body)
     assert r.json()["duplicate"] is True
-    assert published.await_count == 1
+    # A different event with the same outcome: ignored by status.
+    r = await deliver(client, intent.provider_payment_id, "succeeded")
+    assert r.json()["duplicate"] is True
+    # A late failure never undoes a captured payment.
+    r = await deliver(client, intent.provider_payment_id, "failed")
+    assert r.json()["duplicate"] is True
+    assert placed.await_count == 1
+    async with Session() as s:
+        assert (await s.get(PaymentIntent, intent.id)).status == "succeeded"
 
 
-async def test_declined_test_card_fails(client, auth, published) -> None:
-    data = await _initiate(client, auth, pm="pm_card_chargeDeclined")
-    r = await client.post(f"/api/v1/payments/fake/{data['payment_intent_id']}/complete", json={}, headers=auth)
-    assert r.json()["outcome"] == "failed"
-    assert published.await_args.args[0] == "payment.failed"
+async def test_failure_is_recorded_and_does_not_place(client, hooks) -> None:
+    add, placed = hooks
+    intent = await make_intent("pm_card_chargeDeclined")
+    await deliver(client, intent.provider_payment_id, "failed")
+    assert placed.await_count == 0 and add.await_args.args[1] == "payment.failed"
 
 
 async def test_bad_signature_is_rejected(client) -> None:
@@ -123,26 +111,10 @@ async def test_bad_signature_is_rejected(client) -> None:
     assert r.status_code == 400
 
 
-async def test_only_the_payer_can_complete(client, auth) -> None:
-    data = await _initiate(client, auth)
-    token, _ = create_access_token(str(uuid.uuid4()), "x@example.com", "customer", "US")
-    r = await client.post(f"/api/v1/payments/fake/{data['payment_intent_id']}/complete", json={},
-                          headers={"Authorization": f"Bearer {token}"})
-    assert r.status_code == 404
-
-
-async def test_partial_refund_through_fake_gateway(client, auth, published) -> None:
-    data = await _initiate(client, auth)
-    await client.post(f"/api/v1/payments/fake/{data['payment_intent_id']}/complete", json={}, headers=auth)
-    async with Session() as s:
-        order_id = (await s.get(PaymentIntent, uuid.UUID(data["payment_intent_id"]))).order_id
-    r = await client.post(f"/api/v1/payments/{order_id}/refund",
-                          json={"amount": 599, "reason": "missing item", "refund_to": "original_payment"}, headers=auth)
-    assert r.status_code == 200, r.text
-    assert r.json()["refund_id"].startswith("fake_re_")
-    async with Session() as s:
-        intent = await s.get(PaymentIntent, uuid.UUID(data["payment_intent_id"]))
-        assert (intent.status, intent.refunded_amount) == ("partially_refunded", 599)
+def test_outcomes_follow_stripe_test_cards() -> None:
+    assert gateways.fake_outcome("pm_card_visa") == "succeeded"
+    assert gateways.fake_outcome("pm_card_chargeDeclined") == "failed"
+    assert gateways.fake_outcome(None) == "succeeded"
 
 
 def test_fake_gateway_is_refused_in_production(monkeypatch) -> None:
@@ -152,3 +124,7 @@ def test_fake_gateway_is_refused_in_production(monkeypatch) -> None:
     monkeypatch.setattr(get_settings().providers, "PAYMENT_PROVIDER", "fake")
     with pytest.raises(ProviderConfigError):
         gateways.get_gateway("IN")
+
+
+def test_outbox_model_is_importable() -> None:
+    assert OutboxEvent.__tablename__ == "outbox_events"

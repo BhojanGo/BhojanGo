@@ -47,11 +47,12 @@ async def process_webhook(payload: bytes, sig_header: str) -> dict:
     event_type = event["type"]
     data = event["data"]["object"]
 
+    eid = event.get("id")
     if event_type == "payment_intent.succeeded":
-        return {"event_type": "payment_intent.succeeded", "provider_payment_id": data["id"], "status": "succeeded"}
+        return {"event_type": "payment_intent.succeeded", "provider_payment_id": data["id"], "status": "succeeded", "event_id": eid}
     elif event_type == "payment_intent.payment_failed":
-        return {"event_type": "payment_intent.payment_failed", "provider_payment_id": data["id"], "status": "failed"}
-    return {"event_type": event_type, "provider_payment_id": data.get("id", ""), "status": "unknown"}
+        return {"event_type": "payment_intent.payment_failed", "provider_payment_id": data["id"], "status": "failed", "event_id": eid}
+    return {"event_type": event_type, "provider_payment_id": data.get("id", ""), "status": "unknown", "event_id": eid}
 
 
 async def create_refund(

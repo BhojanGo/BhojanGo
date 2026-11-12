@@ -147,7 +147,8 @@ class FakeGateway:
         data = json.loads(payload)
         event_type = data.get("type", "")
         status = {"payment.succeeded": "succeeded", "payment.failed": "failed"}.get(event_type, "unknown")
-        return {"event_type": event_type, "provider_payment_id": data.get("provider_payment_id", ""), "status": status}
+        return {"event_type": event_type, "provider_payment_id": data.get("provider_payment_id", ""), "status": status,
+                "event_id": data.get("id")}
 
     async def refund(self, provider_payment_id, amount, idempotency_key, meta):  # type: ignore[no-untyped-def]
         return {"refund_id": f"fake_re_{uuid.uuid4().hex[:20]}", "status": "succeeded"}

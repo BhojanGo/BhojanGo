@@ -13,9 +13,11 @@ class PaymentInitiateRequest(BaseModel):
     order_id: uuid.UUID
     payment_method_type: Literal["card", "upi", "net_banking", "wallet"]
     payment_method_id: str | None = None
-    country: Literal["US", "IN"] = "US"
-    amount: int = Field(gt=0, description="Amount in smallest unit (cents/paise)")
-    currency: Currency
+    # Ignored since P11: the order decides the gateway, amount and currency. If
+    # sent, amount and currency must match the order.
+    country: Literal["US", "IN"] | None = None
+    amount: int | None = Field(default=None, gt=0, description="Optional check, in cents/paise")
+    currency: Currency | None = None
 
 
 class FakeCompleteRequest(BaseModel):

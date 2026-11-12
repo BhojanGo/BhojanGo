@@ -84,7 +84,7 @@ class OrderRepository:
             select(Order).where(
                 and_(
                     Order.driver_id == driver_id,
-                    Order.status.in_(["ready_for_pickup", "picked_up"]),
+                    Order.status.in_(["ready", "picked_up"]),
                 )
             )
         )

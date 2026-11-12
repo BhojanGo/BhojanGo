@@ -111,6 +111,13 @@ fees, taxes, tip, total, split) and returns every bill line plus a token valid f
 snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
 test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
 
+**Order flow (P11):** `pending_payment → placed → accepted → preparing → almost_ready → ready →
+picked_up → delivered` (or `cancelled`). An order needs a quote and is placed only when its
+payment succeeds (`POST /api/v1/payments/initiate` takes the amount from the order). Unpaid
+orders cancel after 10 minutes and orders the restaurant doesn't accept within 3 minutes are
+cancelled and refunded (business rules; core_api's sweeper). Events go through a transactional
+outbox that the worker relays to SNS → SQS. Webhooks are idempotent (by event id and status).
+
 **Menu and hours (P10):** option groups with min/max picks and prices (Size 1..1, Add-ons
 0..3), weekly store hours (lunch/dinner splits, past midnight) with holiday overrides, "sold out
 today", default prep time, and FSSAI licences for India (an expired licence pauses the listing

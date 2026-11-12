@@ -17,3 +17,19 @@ async def order_customer(db: AsyncSession, order_id: uuid.UUID) -> uuid.UUID | N
     """Who placed the order (None if there is no such order)."""
     order = await db.get(Order, order_id)
     return order.customer_id if order else None
+
+
+async def order_for_payment(db: AsyncSession, order_id: uuid.UUID, customer_id: uuid.UUID) -> dict | None:
+    """What payments needs to charge an order: its total in minor units, the
+    currency and country. None if it isn't this customer's order."""
+    from decimal import Decimal
+
+    order = await db.get(Order, order_id)
+    if order is None or order.customer_id != customer_id:
+        return None
+    return {
+        "status": order.status,
+        "amount_minor": int((Decimal(order.total) * 100).to_integral_value()),
+        "currency": order.currency,
+        "country": (order.market_city or "")[:2] or ("IN" if order.currency == "INR" else "US"),
+    }
