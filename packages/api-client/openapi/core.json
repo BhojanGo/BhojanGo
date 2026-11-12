@@ -4342,6 +4342,59 @@
         "title": "PricingConfigRequest",
         "type": "object"
       },
+      "PublicCity": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "restaurants": {
+            "title": "Restaurants",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "slug",
+          "region",
+          "country",
+          "currency",
+          "lat",
+          "lng",
+          "restaurants"
+        ],
+        "title": "PublicCity",
+        "type": "object"
+      },
       "QuoteOut": {
         "properties": {
           "city": {
@@ -8836,6 +8889,32 @@
         ]
       }
     },
+    "/api/v1/markets/cities": {
+      "get": {
+        "description": "Cities where BhojanGo delivers (live or beta), for the web's city pages (P20). Public.",
+        "operationId": "public_cities_api_v1_markets_cities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PublicCity"
+                  },
+                  "title": "Response Public Cities Api V1 Markets Cities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Public Cities",
+        "tags": [
+          "Markets"
+        ]
+      }
+    },
     "/api/v1/markets/cities/{code}": {
       "get": {
         "operationId": "city_detail_api_v1_markets_cities__code__get",
@@ -11081,6 +11160,49 @@
           }
         ],
         "summary": "List Pending Restaurants",
+        "tags": [
+          "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurants/by-slug/{slug}": {
+      "get": {
+        "description": "A live restaurant by its URL slug (the web's restaurant pages, P20).",
+        "operationId": "get_restaurant_by_slug_api_v1_restaurants_by_slug__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Restaurant By Slug",
         "tags": [
           "Restaurants"
         ]

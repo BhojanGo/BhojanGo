@@ -1,393 +1,225 @@
 "use client";
-
-import { useState } from "react";
+// CustomerCheckout.html on the web: the bag, where it goes, the tip, the fair
+// bill from a live quote (the price is held while you pay), then pay.
+import { errorMessage, unwrap, type CoreSchemas } from "@bhojango/api-client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
-import { api } from "@/lib/api";
-import { useAuthStore } from "@/store/auth";
-import { useCartStore } from "@/store/cart";
+import { api, cartItems, useBag, useHydrated, useSession } from "@/lib/client";
+import { Button, FairBill, Segmented, Sheet } from "@bhojango/ui";
+import { money } from "@bhojango/ui/bill";
 
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-}
+type Quote = CoreSchemas["QuoteOut"];
+type Address = { id: string; street: string; city: string; state?: string | null; postal_code?: string | null; country?: string | null;
+  lat?: number | null; lng?: number | null; label?: string | null };
+type Where = { addressId?: string; lat?: number; lng?: number; street: string; city: string; state: string; zip: string; country: string };
 
-type PaymentMethod = "stripe" | "wallet" | "cod" | "razorpay";
+const TIPS: Record<string, number[]> = { INR: [0, 10, 20, 30], USD: [0, 2, 3, 5] };
 
-export default function CheckoutPage() {
-  const t = useTranslations("checkout");
+export default function Checkout() {
+  const ready = useHydrated();
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
-  const cart = useCartStore();
+  const user = useSession((s) => s.user);
+  const bag = useBag();
+  const [addresses, setAddresses] = useState<Address[] | null>(null);
+  const [where, setWhere] = useState<Where | null>(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const currency = bag.restaurant?.currency ?? "INR";
 
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showAddressForm, setShowAddressForm] = useState(false);
-  const [addressForm, setAddressForm] = useState({
-    label: "",
-    street: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: user?.country ?? "US",
-  });
-  const [savingAddress, setSavingAddress] = useState(false);
+  useEffect(() => {
+    if (!ready || !user) return;
+    api.core.GET("/api/v1/me/addresses").then((r) => {
+      const list = (unwrap(r) as Address[]).filter((a) => a.lat != null);
+      setAddresses(list);
+      const sameCity = list.find((a) => a.city === bag.restaurant?.city) ?? list[0];
+      if (sameCity) setWhere((w) => w ?? fromAddress(sameCity));
+    }).catch(() => setAddresses([]));
+  }, [ready, user, bag.restaurant?.city]);
 
-  const queryClient = useQueryClient();
-  const isIndia = user?.country === "IN";
+  const lines = bag.lines;
+  const key = useMemo(() => JSON.stringify([bag.restaurant?.id, lines, bag.tip, where]), [bag.restaurant?.id, lines, bag.tip, where]);
+  useEffect(() => {
+    if (!user || !bag.restaurant || !where || !lines.length) return;
+    let live = true;
+    api.core.POST("/api/v1/pricing/quote", { body: {
+      restaurant_id: bag.restaurant.id, items: cartItems(lines), tip: bag.tip,
+      deliver_to: where.addressId ? { address_id: where.addressId } : { lat: where.lat!, lng: where.lng! },
+    } }).then((r) => {
+      if (!live) return;
+      setQuote(unwrap(r));
+      setError(null);
+    }).catch((e) => {
+      if (!live) return;
+      setQuote(null);
+      setError(errorMessage((e as { body?: unknown }).body));
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, user]);
 
-  const { data: addresses } = useQuery<Address[]>({
-    queryKey: ["addresses"],
-    queryFn: async () => {
-      const { data } = await api.get("/user/me/addresses");
-      return data;
-    },
-    enabled: !!isAuthenticated,
-  });
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
-  const { data: walletBalance } = useQuery<{ balance: number; currency: string }>({
-    queryKey: ["wallet-balance"],
-    queryFn: async () => {
-      const { data } = await api.get("/payment/wallet/balance");
-      return data;
-    },
-    enabled: !!isAuthenticated,
-  });
-
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/checkout");
-    return null;
+  if (!ready) return <div className="mx-auto max-w-content px-5 py-14 text-muted">Loading your bag…</div>;
+  if (!lines.length || !bag.restaurant) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-20 text-center">
+        <h1 className="font-display text-3xl font-semibold">Your bag is empty</h1>
+        <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-extrabold text-white">Find something to eat</Link>
+      </div>
+    );
+  }
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-20 text-center">
+        <h1 className="font-display text-3xl font-semibold">Sign in to check out</h1>
+        <p className="mt-2 text-muted">Your bag from {bag.restaurant.name} is saved.</p>
+        <Link href="/sign-in?next=/checkout" className="mt-6 inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-extrabold text-white">Sign in with your phone</Link>
+      </div>
+    );
   }
 
-  // Redirect if cart empty
-  if (cart.items.length === 0) {
-    router.replace("/");
-    return null;
-  }
+  const held = quote ? Math.max(0, Math.floor((Date.parse(quote.expires_at) - now) / 1000)) : 0;
 
-  async function handleSaveAddress(e: React.FormEvent) {
-    e.preventDefault();
-    if (!addressForm.street.trim() || !addressForm.city.trim()) {
-      setError("Street and city are required.");
-      return;
-    }
-    setSavingAddress(true);
-    setError("");
+  async function pay(outcome: "approve" | "decline") {
+    if (!quote || !where || !bag.restaurant) return;
+    setSheet(false);
+    setPaying(true);
+    setError(null);
     try {
-      const { data: saved } = await api.post("/user/me/addresses", addressForm);
-      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
-      setSelectedAddressId(saved.id);
-      setShowAddressForm(false);
-      setAddressForm({ label: "", street: "", city: "", state: "", postal_code: "", country: user?.country ?? "US" });
-    } catch {
-      setError("Failed to save address. Please try again.");
-    } finally {
-      setSavingAddress(false);
-    }
-  }
-
-  async function handlePlaceOrder() {
-    if (!selectedAddressId) {
-      setError("Please select a delivery address.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-
-    try {
-      const address = addresses?.find((a) => a.id === selectedAddressId);
-      if (!address) throw new Error("Address not found");
-
-      // Map the UI payment choice to the order-svc payment_method enum.
-      const orderPaymentMethod =
-        paymentMethod === "wallet" ? "wallet" : paymentMethod === "cod" ? "cash_on_delivery" : "card";
-      const currency = isIndia ? "INR" : "USD";
-
-      // Create order. The server is the source of truth for money — it recomputes
-      // subtotal/tax/total from the live menu, so we only send line items + address.
-      const orderPayload = {
-        restaurant_id: cart.restaurantId,
-        items: cart.items.map((item) => ({
-          menu_item_id: item.menuItemId,
-          quantity: item.quantity,
-          customizations: item.customizations,
-        })),
-        delivery_address: {
-          street: address.street,
-          city: address.city,
-          state: address.state,
-          zip: address.postal_code,
-          country: address.country,
+      const order = unwrap(await api.core.POST("/api/v1/orders", {
+        params: { header: { "X-Idempotency-Key": quote.quote_id } },
+        body: {
+          restaurant_id: bag.restaurant.id, items: cartItems(lines), payment_method: currency === "INR" ? "upi" : "card", quote_token: quote.token,
+          delivery_address: { street: where.street, city: where.city, state: where.state, zip: where.zip || "000000", country: where.country,
+            ...(where.lat != null ? { lat: where.lat, lng: where.lng } : {}) },
         },
-        payment_method: orderPaymentMethod,
-      };
-
-      const { data: order } = await api.post("/order/orders", orderPayload);
-
-      // Amount must be in the smallest currency unit (cents/paise) for the payment service.
-      const amountMinor = Math.round((order.total ?? cart.getTotal()) * 100);
-
-      // Initiate payment (skip for cash on delivery)
-      if (paymentMethod !== "cod") {
-        const { data: paymentIntent } = await api.post("/payment/payments/initiate", {
-          order_id: order.id,
-          amount: amountMinor,
-          currency,
-          payment_method_type: paymentMethod === "wallet" ? "wallet" : "card",
-          country: isIndia ? "IN" : "US",
-        });
-
-        const params = new URLSearchParams({
-          order_id: order.id,
-          provider: paymentIntent.provider,
-          amount: String(paymentIntent.amount ?? amountMinor),
-          currency,
-        });
-        if (paymentMethod === "stripe" && paymentIntent.client_secret) {
-          params.set("client_secret", paymentIntent.client_secret);
-          cart.clearCart();
-          router.push(`/checkout/payment?${params.toString()}`);
+      })) as { id: string };
+      unwrap(await api.core.POST("/api/v1/payments/initiate", { body: {
+        order_id: order.id, payment_method_type: currency === "INR" ? "upi" : "card", payment_method_id: outcome === "decline" ? "fake_decline" : "fake_ok" } }));
+      // The provider's webhook places the order (or fails the payment) in a moment.
+      for (let i = 0; i < 30; i++) {
+        const s = unwrap(await api.core.GET("/api/v1/payments/orders/{order_id}/status", { params: { path: { order_id: order.id } } })) as unknown as { payment_status: string; failure_reason: string | null };
+        if (s.payment_status === "succeeded") {
+          bag.clear();
+          router.push(`/orders/${order.id}`);
           return;
         }
-        if (paymentMethod === "razorpay" && paymentIntent.razorpay_order_id) {
-          params.set("razorpay_order_id", paymentIntent.razorpay_order_id);
-          cart.clearCart();
-          router.push(`/checkout/payment?${params.toString()}`);
+        if (s.payment_status === "failed") {
+          setError(`Your payment didn't go through${s.failure_reason ? ` (${s.failure_reason})` : ""}. You weren't charged; the price is held, so you can try again.`);
           return;
         }
-        // Wallet — payment is settled synchronously by the initiate call.
+        await new Promise((r) => setTimeout(r, 1000));
       }
-
-      // Wallet / COD — order is placed
-      cart.clearCart();
-      router.push(`/orders/${order.id}?success=true`);
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to place order. Please try again.";
-      setError(msg);
+      setError("Your payment is taking longer than usual. We'll update your order when it's confirmed.");
+    } catch (e) {
+      setError(errorMessage((e as { body?: unknown }).body, "Something went wrong. Please try again."));
     } finally {
-      setLoading(false);
+      setPaying(false);
     }
   }
-
-  const total = cart.getTotal();
-  const currencySymbol = isIndia ? "₹" : "$";
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-xl font-bold text-gray-900">{t("title")}</h1>
-        </div>
-
-        {/* Delivery Address */}
-        <section className="bg-white rounded-xl p-4 mb-4">
-          <h2 className="font-semibold text-gray-900 mb-3">{t("deliveryAddress")}</h2>
-          {addresses && addresses.length > 0 && (
-            <div className="space-y-2 mb-3">
-              {addresses.map((addr) => (
-                <label
-                  key={addr.id}
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                    selectedAddressId === addr.id
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="address"
-                    value={addr.id}
-                    checked={selectedAddressId === addr.id}
-                    onChange={() => setSelectedAddressId(addr.id)}
-                    className="mt-0.5 accent-emerald-500"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{addr.label}</p>
-                    <p className="text-xs text-gray-500">
-                      {addr.street}, {addr.city}, {addr.state} {addr.postal_code}
-                    </p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          )}
-
-          {showAddressForm ? (
-            <form onSubmit={handleSaveAddress} className="space-y-3 border border-gray-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-900">New delivery address</p>
-              <input
-                type="text"
-                placeholder="Label (e.g. Home, Work)"
-                value={addressForm.label}
-                onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Street address *"
-                required
-                value={addressForm.street}
-                onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="City *"
-                  required
-                  value={addressForm.city}
-                  onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="State"
-                  value={addressForm.state}
-                  onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="Postal code"
-                value={addressForm.postal_code}
-                onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={savingAddress}
-                  className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
-                >
-                  {savingAddress ? "Saving..." : "Save Address"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddressForm(false)}
-                  className="px-4 py-2 border border-gray-300 text-sm text-gray-600 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button
-              onClick={() => setShowAddressForm(true)}
-              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-emerald-500 hover:border-emerald-400 transition"
-            >
-              + {t("addAddress")}
-            </button>
-          )}
-        </section>
-
-        {/* Order Summary */}
-        <section className="bg-white rounded-xl p-4 mb-4">
-          <h2 className="font-semibold text-gray-900 mb-3">{t("orderSummary")}</h2>
-          <div className="space-y-2">
-            {cart.items.map((item) => (
-              <div key={item.menuItemId} className="flex justify-between text-sm text-gray-700">
-                <span>
-                  {item.name} × {item.quantity}
-                </span>
-                <span>
-                  {currencySymbol}
-                  {(item.price * item.quantity).toFixed(2)}
-                </span>
-              </div>
+    <div className="mx-auto grid max-w-content gap-8 px-5 py-10 md:grid-cols-[1fr_420px] md:px-8">
+      <div className="space-y-6">
+        <h1 className="font-display text-4xl font-semibold tracking-[-1px]">Checkout</h1>
+        <section className="rounded-card bg-white p-6" aria-labelledby="bag-h">
+          <h2 id="bag-h" className="mb-3 text-lg font-extrabold">Your bag · {bag.restaurant.name}</h2>
+          <ul className="space-y-3">
+            {lines.map((l) => (
+              <li key={l.key} className="flex items-start gap-3">
+                <div className="min-w-0 flex-1"><p className="font-bold">{l.name}</p>{l.summary ? <p className="text-sm text-muted">{l.summary}</p> : null}</div>
+                <div className="flex items-center gap-2">
+                  <button type="button" aria-label={`One less ${l.name}`} onClick={() => bag.setQuantity(l.key, l.quantity - 1)} className="h-9 w-9 rounded-pill border border-line-strong">−</button>
+                  <span className="w-5 text-center tabular-nums">{l.quantity}</span>
+                  <button type="button" aria-label={`One more ${l.name}`} onClick={() => bag.setQuantity(l.key, l.quantity + 1)} className="h-9 w-9 rounded-pill border border-line-strong">+</button>
+                </div>
+              </li>
             ))}
-            <div className="h-px bg-gray-100 my-2" />
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>{currencySymbol}{cart.getSubtotal().toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Delivery</span>
-              <span>{cart.deliveryFee === 0 ? "FREE" : `${currencySymbol}${cart.deliveryFee.toFixed(2)}`}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Tax</span>
-              <span>{currencySymbol}{cart.getTax().toFixed(2)}</span>
-            </div>
-            <div className="h-px bg-gray-100 my-2" />
-            <div className="flex justify-between font-semibold text-gray-900">
-              <span>Total</span>
-              <span>{currencySymbol}{total.toFixed(2)}</span>
-            </div>
-          </div>
+          </ul>
         </section>
-
-        {/* Payment Method */}
-        <section className="bg-white rounded-xl p-4 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-3">{t("paymentMethod")}</h2>
-          <div className="space-y-2">
-            {[
-              {
-                value: isIndia ? "razorpay" : "stripe",
-                label: t("card"),
-                icon: "💳",
-              },
-              {
-                value: "wallet",
-                label: `${t("wallet")} ${walletBalance ? `(${currencySymbol}${walletBalance.balance.toFixed(2)})` : ""}`,
-                icon: "👛",
-              },
-              { value: "cod", label: t("cod"), icon: "💵" },
-            ].map((option) => (
-              <label
-                key={option.value}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                  paymentMethod === option.value
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value={option.value}
-                  checked={paymentMethod === (option.value as PaymentMethod)}
-                  onChange={() => setPaymentMethod(option.value as PaymentMethod)}
-                  className="accent-emerald-500"
-                />
-                <span className="text-lg">{option.icon}</span>
-                <span className="text-sm font-medium text-gray-900">{option.label}</span>
-              </label>
-            ))}
-          </div>
+        <section className="rounded-card bg-white p-6" aria-labelledby="where-h">
+          <h2 id="where-h" className="mb-3 text-lg font-extrabold">Deliver to</h2>
+          <AddressPicker addresses={addresses} where={where} city={bag.restaurant.city} onChange={setWhere} />
         </section>
-
-        {error && (
-          <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">{error}</div>
+        <section className="rounded-card bg-white p-6" aria-labelledby="tip-h">
+          <h2 id="tip-h" className="mb-1 text-lg font-extrabold">Tip your rider</h2>
+          <p className="mb-3 text-sm text-muted">100% goes to your rider.</p>
+          <Segmented label="Tip" value={String(bag.tip)} onChange={(v) => bag.setTip(Number(v))}
+            options={(TIPS[currency] ?? TIPS.INR!).map((t) => ({ value: String(t), label: t === 0 ? "No tip" : money(t, currency, { decimals: 0 }) }))} />
+        </section>
+      </div>
+      <aside className="space-y-4 md:sticky md:top-24 md:self-start">
+        {quote ? <FairBill lines={quote.lines as never} currency={quote.currency} /> : (
+          <div className="rounded-card bg-white p-6 text-muted">{where ? (error ? null : "Working out your bill…") : "Choose where it goes to see the whole bill."}</div>
         )}
+        {quote ? <p className="text-center text-sm text-muted" aria-live="polite">{held > 0 ? `Price held for ${Math.floor(held / 60)}:${String(held % 60).padStart(2, "0")}` : "The price has expired; we'll work it out again."}</p> : null}
+        {error ? <p role="alert" className="rounded-card bg-[#FBEAE8] p-4 text-sm font-semibold text-chili">{error}</p> : null}
+        <Button block size="lg" loading={paying} disabled={!quote || held === 0} onClick={() => setSheet(true)}>
+          {quote ? `Pay ${money(Number(quote.total), quote.currency)}` : "Pay"}
+        </Button>
+      </aside>
+      <Sheet open={sheet} onClose={() => setSheet(false)} title="Pay (test mode)"
+        footer={<div className="flex gap-3"><Button variant="secondary" onClick={() => pay("decline")}>Decline</Button><Button block onClick={() => pay("approve")}>Approve {quote ? money(Number(quote.total), quote.currency) : ""}</Button></div>}>
+        <p className="text-muted">This stands in for {currency === "INR" ? "Razorpay Checkout (UPI, cards)" : "Stripe (cards, Apple Pay, Google Pay)"} until live keys are set. Nothing is charged.</p>
+      </Sheet>
+    </div>
+  );
+}
 
-        <button
-          onClick={handlePlaceOrder}
-          disabled={loading || !selectedAddressId}
-          className="w-full py-3 bg-emerald-500 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-xl transition"
-        >
-          {loading ? t("processing") : `${t("placeOrder")} · ${currencySymbol}${total.toFixed(2)}`}
-        </button>
+function fromAddress(a: Address): Where {
+  return { addressId: a.id, street: a.street, city: a.city, state: a.state ?? "", zip: a.postal_code ?? "", country: a.country ?? "IN" };
+}
+
+function AddressPicker({ addresses, where, city, onChange }: { addresses: Address[] | null; where: Where | null; city: string; onChange: (w: Where) => void }) {
+  const [street, setStreet] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  function here() {
+    setMsg(null);
+    if (!navigator.geolocation) return setMsg("Your browser can't share your location.");
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setLocating(false);
+        onChange({ lat: p.coords.latitude, lng: p.coords.longitude, street: street || "Current location", city, state: "", zip: "", country: city === "Boise" ? "US" : "IN" });
+      },
+      () => {
+        setLocating(false);
+        setMsg("We couldn't get your location. Allow it in the browser, or choose a saved address.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {(addresses ?? []).map((a) => {
+        const on = where?.addressId === a.id;
+        return (
+          <label key={a.id} className={`flex cursor-pointer items-start gap-3 rounded-card border-[1.5px] p-4 ${on ? "border-peacock bg-peacock-mist" : "border-line"}`}>
+            <input type="radio" name="address" checked={on} onChange={() => onChange(fromAddress(a))} className="mt-1 accent-[#0B5D66]" />
+            <span><b className="block">{a.label ?? "Saved address"}</b><span className="text-sm text-muted">{a.street}, {a.city}</span></span>
+          </label>
+        );
+      })}
+      <div className="rounded-card border-[1.5px] border-dashed border-line-strong p-4">
+        <p className="mb-2 text-sm font-bold">Somewhere else</p>
+        <div className="flex flex-wrap gap-2">
+          <input aria-label="Flat, building and street" placeholder="Flat, building and street" value={street} onChange={(e) => setStreet(e.target.value)}
+            className="h-12 min-w-0 flex-1 rounded-card border-[1.5px] border-line-strong px-3" />
+          <Button variant="secondary" loading={locating} onClick={here}>Use my location</Button>
+        </div>
+        {where && !where.addressId ? <p className="mt-2 text-sm text-peacock">Delivering to your current location{where.street !== "Current location" ? ` · ${where.street}` : ""}.</p> : null}
+        {msg ? <p className="mt-2 text-sm text-chili">{msg}</p> : null}
       </div>
     </div>
   );

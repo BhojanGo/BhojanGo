@@ -104,6 +104,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
     ("GET", "/api/v1/markets/locate"): public("does this address get delivery"),
+    ("GET", "/api/v1/markets/cities"): public("where we deliver: the web's city pages"),
+    ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
     ("POST", "/api/v1/markets/waitlist"): public("tell me when you launch, from outside served areas"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),
@@ -285,7 +287,7 @@ class Ctx:
                   "address_id": self.address, "quote_id": self.quote, "payment_intent_id": self.intent,
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
-                  "offer_id": str(uuid.UUID(int=7)),
+                  "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)

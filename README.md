@@ -139,6 +139,13 @@ rider assigned, location + ETA (routing provider), status changes. The TypeScrip
 in shadow mode (`SHADOW_MODE=true`: publishes nothing, batches can't be accepted); realtime logs the
 batches it would have made at `GET /api/v1/dispatch/shadow-batches`.
 
+**Customer web (P20, apps/web):** city pages (`/hyderabad`, `/boise`) and restaurant pages
+(`/{city}/{slug}`) are server-rendered with structured data and listed in `/sitemap.xml`; they read
+core_api at `CORE_API_INTERNAL_URL` (set in compose) and the public `GET /markets/cities` and
+`GET /restaurants/by-slug/{slug}`. The browser signs in by phone code and calls core_api and
+realtime directly (`NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL`). End-to-end:
+`tools/web/e2e.sh` (Playwright in Docker against `make dev`).
+
 **Partner tablet app (P19, apps/partner, landscape):** the orders board rings for new orders until
 they're accepted (with a "ready in" time) or rejected, then Preparing and Ready for pickup with the
 rider's ETA; "Busy? Add 10 min" (`PUT /restaurants/{id}/busy`, an hour), pause orders

@@ -198,6 +198,8 @@ services:
         APP_DIR: apps/web
     environment:
       PORT: "3000"
+      # Server-rendered pages (city and restaurant pages) read core_api inside the network.
+      CORE_API_INTERNAL_URL: http://core-api:8001
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:

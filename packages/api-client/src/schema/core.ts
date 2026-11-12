@@ -546,6 +546,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Cities
+         * @description Cities where BhojanGo delivers (live or beta), for the web's city pages (P20). Public.
+         */
+        get: operations["public_cities_api_v1_markets_cities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets/cities/{code}": {
         parameters: {
             query?: never;
@@ -1279,6 +1299,26 @@ export interface paths {
          * @description Admin: restaurants pending approval in the cities the admin looks after.
          */
         get: operations["list_pending_restaurants_api_v1_restaurants_admin_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/by-slug/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Restaurant By Slug
+         * @description A live restaurant by its URL slug (the web's restaurant pages, P20).
+         */
+        get: operations["get_restaurant_by_slug_api_v1_restaurants_by_slug__slug__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3894,6 +3934,27 @@ export interface components {
              */
             pricing_model: "percentage_commission" | "flat_fee_per_order" | "monthly_subscription";
         };
+        /** PublicCity */
+        PublicCity: {
+            /** Code */
+            code: string;
+            /** Country */
+            country: string;
+            /** Currency */
+            currency: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /** Restaurants */
+            restaurants: number;
+            /** Slug */
+            slug: string;
+        };
         /** QuoteOut */
         QuoteOut: {
             /** City */
@@ -5940,6 +6001,26 @@ export interface operations {
             };
         };
     };
+    public_cities_api_v1_markets_cities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCity"][];
+                };
+            };
+        };
+    };
     city_detail_api_v1_markets_cities__code__get: {
         parameters: {
             query?: never;
@@ -7306,6 +7387,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RestaurantResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_restaurant_by_slug_api_v1_restaurants_by_slug__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestaurantResponse"];
                 };
             };
             /** @description Validation Error */

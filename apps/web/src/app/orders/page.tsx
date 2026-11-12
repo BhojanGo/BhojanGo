@@ -1,133 +1,60 @@
 "use client";
-
+// Your orders: what's on its way first, then past orders.
+import { ACTIVE_STATUSES, unwrap, type CoreSchemas, type OrderStatus } from "@bhojango/api-client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
-import { useAuthStore } from "@/store/auth";
-import type { Order } from "@bhojango/types";
+import { api, useHydrated, useSession } from "@/lib/client";
+import { StatusPill } from "@bhojango/ui";
+import { money } from "@bhojango/ui/bill";
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-50 text-yellow-700",
-  confirmed: "bg-blue-50 text-blue-700",
-  preparing: "bg-amber-50 text-amber-700",
-  ready_for_pickup: "bg-purple-50 text-purple-700",
-  picked_up: "bg-indigo-50 text-indigo-700",
-  delivered: "bg-green-50 text-green-700",
-  cancelled: "bg-red-50 text-red-700",
-};
+type Order = CoreSchemas["OrderResponse"];
 
-function OrderCard({ order }: { order: Order }) {
-  const t = useTranslations("orders");
-  const statusLabel = t(`status.${order.status}` as never) as string;
-  const colorClass = STATUS_COLORS[order.status] ?? "bg-gray-50 text-gray-700";
-  const isActive = !["delivered", "cancelled"].includes(order.status);
+export default function Orders() {
+  const ready = useHydrated();
+  const user = useSession((s) => s.user);
+  const signOut = useSession((s) => s.signOut);
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  useEffect(() => {
+    if (!ready || !user) return;
+    api.core.GET("/api/v1/orders", { params: { query: { limit: 50 } } }).then((r) => setOrders(unwrap(r).items)).catch(() => setOrders([]));
+  }, [ready, user]);
 
-  return (
-    <Link
-      href={`/orders/${order.id}`}
-      className="block bg-white rounded-xl p-4 hover:shadow-md transition border border-gray-100"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">
-            {t("orderNumber", { id: order.id.slice(0, 8).toUpperCase() })}
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(order.created_at).toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colorClass}`}>
-          {statusLabel}
-        </span>
+  if (ready && !user) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-20 text-center">
+        <h1 className="font-display text-3xl font-semibold">Sign in to see your orders</h1>
+        <Link href="/sign-in?next=/orders" className="mt-6 inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-extrabold text-white">Sign in</Link>
       </div>
-
-      <p className="text-sm text-gray-700 mb-2">{order.restaurant_name ?? "Restaurant"}</p>
-      <p className="text-xs text-gray-500">
-        {t("items", { count: order.items?.length ?? 0 })} ·{" "}
-        {t("total", { amount: `${order.currency === "INR" ? "₹" : "$"}${order.total?.toFixed(2)}` })}
-      </p>
-
-      {isActive && (
-        <div className="mt-3 flex items-center gap-1 text-emerald-500 text-xs font-medium">
-          <svg className="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" />
-          </svg>
-          {t("track")}
-        </div>
-      )}
-    </Link>
-  );
-}
-
-export default function OrdersPage() {
-  const t = useTranslations("orders");
-  const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["orders"],
-    queryFn: async () => {
-      const { data } = await api.get("/order/orders?limit=50");
-      return data as { items: Order[]; total: number };
-    },
-    enabled: !!isAuthenticated,
-  });
-
-  if (!isAuthenticated) {
-    router.replace("/login?redirect=/orders");
-    return null;
+    );
   }
-
+  const visible = (orders ?? []).filter((o) => o.status !== "pending_payment");
+  const active = visible.filter((o) => ACTIVE_STATUSES.includes(o.status as OrderStatus));
+  const past = visible.filter((o) => !ACTIVE_STATUSES.includes(o.status as OrderStatus));
+  const row = (o: Order) => (
+    <li key={o.id}>
+      <Link href={`/orders/${o.id}`} className="flex items-center gap-4 rounded-card bg-white p-5 hover:shadow-float">
+        <div className="min-w-0 flex-1">
+          <p className="font-extrabold">{o.restaurant_name}</p>
+          <p className="truncate text-sm text-muted">
+            {new Date(o.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {(o.items as { name?: string; quantity?: number }[]).map((i) => `${i.quantity ?? 1}× ${i.name}`).join(", ")}
+          </p>
+        </div>
+        <StatusPill status={o.status} />
+        <span className="w-24 text-right font-bold tabular-nums">{money(Number(o.total), o.currency)}</span>
+      </Link>
+    </li>
+  );
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">{t("title")}</h1>
-
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-28 bg-white rounded-xl animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {isError && (
-          <div className="text-center py-16">
-            <p className="text-gray-500">Failed to load orders. Please try again.</p>
-          </div>
-        )}
-
-        {data && data.items.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4">📦</div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">{t("noOrders")}</h2>
-            <p className="text-gray-500 text-sm mb-6">{t("noOrdersSubtext")}</p>
-            <Link
-              href="/restaurants"
-              className="inline-block px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-700 transition text-sm"
-            >
-              Order Now
-            </Link>
-          </div>
-        )}
-
-        {data && data.items.length > 0 && (
-          <div className="space-y-3">
-            {data.items.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
-          </div>
-        )}
+    <div className="mx-auto max-w-3xl space-y-8 px-5 py-10">
+      <div className="flex items-baseline justify-between">
+        <h1 className="font-display text-4xl font-semibold tracking-[-1px]">Your orders</h1>
+        {user ? <button type="button" className="text-sm font-bold text-muted hover:text-chili" onClick={() => void signOut()}>Sign out</button> : null}
       </div>
+      {orders === null ? <p className="text-muted">Loading…</p> : null}
+      {active.length ? <section><h2 className="mb-3 text-lg font-extrabold">On its way</h2><ul className="space-y-3">{active.map(row)}</ul></section> : null}
+      {past.length ? <section><h2 className="mb-3 text-lg font-extrabold">Past orders</h2><ul className="space-y-3">{past.map(row)}</ul></section> : null}
+      {orders && !visible.length ? <p className="text-muted">No orders yet. <Link href="/" className="font-bold text-peacock">Find something to eat</Link></p> : null}
     </div>
   );
 }
