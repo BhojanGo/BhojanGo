@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.service import menu as menu_svc
-from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user, require_admin, require_owner_or_admin
+from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user
+from core_api.modules.catalog.service import access
+from shared import authz
 from core_api.modules.catalog.repository.cache import cache_delete_pattern, cache_get, cache_set
 from shared.db import get_db
 from core_api.modules.catalog.repository.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
@@ -184,9 +186,12 @@ def item_out(item, groups) -> MenuItemResponse:  # type: ignore[no-untyped-def]
 @router.post("", response_model=RestaurantResponse, status_code=status.HTTP_201_CREATED)
 async def create_restaurant(
     data: RestaurantCreateRequest,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
+    if current_user.role != "restaurant_owner" and not authz.can(access.assignments(current_user), "partners.edit",
+                                                                 data.country):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Restaurant owners (or partner admins) only")
     repo = RestaurantRepository(db)
     address_dict = data.address.model_dump()
     restaurant = await repo.create(
@@ -233,16 +238,11 @@ async def create_restaurant(
 async def update_restaurant(
     restaurant_id: uuid.UUID,
     data: RestaurantUpdateRequest,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
+    await access.manage(db, current_user, restaurant_id)
     repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-
-    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     update_data = data.model_dump(exclude_none=True)
     updated = await repo.update(restaurant_id, **update_data)
@@ -255,20 +255,15 @@ async def update_restaurant(
 async def configure_pricing(
     restaurant_id: uuid.UUID,
     data: PricingConfigRequest,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     """Configure a restaurant's commission / fee model (restaurant-friendly pricing)."""
+    await access.manage(db, current_user, restaurant_id)
     missing = data.require_fields_for_model()
     if missing:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=missing)
-
     repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     values: dict = {"pricing_model": data.pricing_model}
     if data.commission_rate is not None:
@@ -319,15 +314,11 @@ async def delivery_check(
 async def create_menu_item(
     restaurant_id: uuid.UUID,
     data: MenuItemCreateRequest,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
+    await access.manage(db, current_user, restaurant_id)
     repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
     fields = data.model_dump()
@@ -347,15 +338,11 @@ async def update_menu_item(
     restaurant_id: uuid.UUID,
     item_id: uuid.UUID,
     data: MenuItemUpdateRequest,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
+    await access.manage(db, current_user, restaurant_id)
     repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
     current = await item_repo.get_by_id(item_id)
@@ -379,15 +366,11 @@ async def update_menu_item(
 async def delete_menu_item(
     restaurant_id: uuid.UUID,
     item_id: uuid.UUID,
-    current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> None:
+    await access.manage(db, current_user, restaurant_id)
     repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if current_user.role not in ("admin", "super_admin") and restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
     current = await item_repo.get_by_id(item_id)
@@ -431,12 +414,13 @@ async def create_review(
 @router.post(
     "/{restaurant_id}/approve",
     response_model=RestaurantResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def approve_restaurant(
     restaurant_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RestaurantResponse:
+    await access.administer(db, current_user, restaurant_id)
     """Admin: Approve a pending restaurant, making it visible to customers."""
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -455,12 +439,13 @@ async def approve_restaurant(
 @router.post(
     "/{restaurant_id}/reject",
     response_model=RestaurantResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def reject_restaurant(
     restaurant_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RestaurantResponse:
+    await access.administer(db, current_user, restaurant_id)
     """Admin: Reject a pending restaurant."""
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -479,14 +464,17 @@ async def reject_restaurant(
 @router.get(
     "/admin/pending",
     response_model=list[RestaurantResponse],
-    dependencies=[Depends(require_admin)],
 )
 async def list_pending_restaurants(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> list[RestaurantResponse]:
-    """Admin: List all restaurants pending approval."""
+    """Admin: restaurants pending approval in the cities the admin looks after."""
+    if not authz.scopes_with(access.assignments(current_user), "partners.view"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admins only")
     repo = RestaurantRepository(db)
     restaurants = await repo.list_pending_restaurants(limit=limit, offset=offset)
-    return [RestaurantResponse.model_validate(r) for r in restaurants]
+    mine = [r for r in restaurants if await access.admin_may(db, current_user, r, "partners.view")]
+    return [RestaurantResponse.model_validate(r) for r in mine]

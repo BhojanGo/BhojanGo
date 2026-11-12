@@ -12,7 +12,9 @@ from shared.auth import BearerAuth, CurrentUser, InvalidTokenError, decode_acces
 
 security = BearerAuth()
 
-__all__ = ["CurrentUser", "get_current_user", "require_admin", "require_owner_or_admin"]
+# Who may change a restaurant is decided per restaurant and city in
+# catalog/service/access.py, never by role alone.
+__all__ = ["CurrentUser", "get_current_user"]
 
 
 async def get_current_user(
@@ -27,19 +29,3 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return CurrentUser.from_claims(payload)
-
-
-async def require_admin(
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
-) -> CurrentUser:
-    if current_user.role not in ("admin", "super_admin"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
-    return current_user
-
-
-async def require_owner_or_admin(
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
-) -> CurrentUser:
-    if current_user.role not in ("restaurant_owner", "admin", "super_admin"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Restaurant owner access required")
-    return current_user
