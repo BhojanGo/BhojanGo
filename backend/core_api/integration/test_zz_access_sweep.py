@@ -130,7 +130,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/finance/payout-accounts/me"): user(), ("GET", "/api/v1/finance/statements/me"): user(),
     # riders only (P18)
     ("GET", "/api/v1/finance/earnings/me"): user("customer", "partner", "ops_hyd"),
-    ("POST", "/api/v1/uploads"): user("customer", "partner", "ops_hyd"),
+    ("POST", "/api/v1/uploads"): user("customer", "ops_hyd"),  # riders and partners (P19); purpose checked per role
     ("GET", "/api/v1/riders/me/onboarding"): user("customer", "partner", "ops_hyd"),
     ("POST", "/api/v1/riders/me/documents"): user("customer", "partner", "ops_hyd",
                                                    body=lambda c: {"kind": "licence", "file_key": f"rider_document/{c.rider_id}/x.jpg"}),
@@ -178,6 +178,17 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("PUT", f"{R}/licence"): user("customer", "rider", "other_partner", "ops_boi",
                                   body=lambda c: {"fssai_number": "12345678901234", "fssai_expires_on": "2030-01-01"}),
     ("PUT", f"{R}/prep-time"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"minutes": 25}),
+    # partner tablet (P19)
+    ("GET", "/api/v1/restaurants/mine"): user(),  # only ever your own
+    ("GET", f"{R}/today"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("PUT", f"{R}/pause"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"paused": False}),
+    ("PUT", f"{R}/busy"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"extra_minutes": 0}),
+    ("GET", f"{R}/offers"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("POST", f"{R}/offers"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {
+        "template": "free_delivery", "name": "Sweep", "weekly_cap": "100"}),
+    ("POST", f"{R}/offers/{{offer_id}}/end"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("GET", f"{R}/application"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("PUT", f"{R}/gst"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"gstin": "36AABCU9603R1ZM"}),
     ("PUT", f"{R}/pricing"): user("customer", "rider", "other_partner", "ops_boi",
                                   body=lambda c: {"pricing_model": "percentage_commission", "commission_rate": "0.15"}),
     ("POST", f"{R}/menu-items"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: MENU_ITEM),
@@ -274,6 +285,7 @@ class Ctx:
                   "address_id": self.address, "quote_id": self.quote, "payment_intent_id": self.intent,
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
+                  "offer_id": str(uuid.UUID(int=7)),
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)

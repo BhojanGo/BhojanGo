@@ -70,6 +70,7 @@ class QuoteInputs:
     first_order: bool = False
     promo_code: str | None = None
     promo_spent: dict[str, Decimal] = field(default_factory=dict)  # rule_key -> spent so far
+    promo_spent_week: dict[str, Decimal] = field(default_factory=dict)  # rule_key -> spent this week
     wait_minutes: Decimal = ZERO  # expected rider wait at the restaurant (rider pay)
     # None = not calculated yet (the quote is marked tax_pending); [] = no tax due.
     external_tax: list[ExternalTax] | None = None
@@ -173,6 +174,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             return False
         if p.get("budget_cap") is not None and inp.promo_spent.get(str(c.rule_key), ZERO) >= D(p["budget_cap"]):
             return False
+        if p.get("weekly_cap") is not None and inp.promo_spent_week.get(str(c.rule_key), ZERO) >= D(p["weekly_cap"]):
+            return False
         return True
 
     def promo_value(c: Candidate) -> Decimal:
@@ -187,6 +190,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             return ZERO
         if p.get("budget_cap") is not None:
             v = min(v, D(p["budget_cap"]) - inp.promo_spent.get(str(c.rule_key), ZERO))
+        if p.get("weekly_cap") is not None:
+            v = min(v, D(p["weekly_cap"]) - inp.promo_spent_week.get(str(c.rule_key), ZERO))
         return money(min(v, food))
 
     promos = [c for slot, c in rules.items() if slot.startswith("promotion:") and promo_ok(c)]

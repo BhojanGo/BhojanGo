@@ -75,6 +75,8 @@ class PrepIn(BaseModel):
 class LicenceIn(BaseModel):
     fssai_number: str = Field(pattern=r"^\d{14}$")
     fssai_expires_on: date
+    # The certificate, uploaded first with POST /uploads (purpose partner_document), P19.
+    document_key: str | None = Field(default=None, max_length=300)
 
 
 async def _restaurant(db: AsyncSession, rid: uuid.UUID) -> Restaurant:
@@ -247,13 +249,19 @@ async def set_prep_time(restaurant_id: uuid.UUID, data: PrepIn, user: User, db: 
 async def set_licence(restaurant_id: uuid.UUID, data: LicenceIn, user: User, db: DB) -> dict:
     """India: the FSSAI licence. A renewed licence lists a paused restaurant again."""
     r = await _manage(db, user, restaurant_id)
+    if data.document_key is not None and not data.document_key.startswith(f"partner_document/{user.user_id}/"):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            detail={"code": "FILE_NOT_YOURS", "message": "Upload the licence first (POST /uploads)"})
     try:
         r = await svc.set_licence(db, r, data.fssai_number, data.fssai_expires_on, datetime.now(UTC).date())
     except svc.MenuError as e:
         raise _menu_error(e)
+    if data.document_key:
+        r.fssai_document_key = data.document_key
+        await db.flush()
     return {"restaurant_id": str(r.id), "fssai_number": r.fssai_number,
             "fssai_expires_on": r.fssai_expires_on.isoformat() if r.fssai_expires_on else None,
-            "paused_reason": r.paused_reason}
+            "paused_reason": r.paused_reason, "document_key": r.fssai_document_key}
 
 
 @router.post("/licences/check")

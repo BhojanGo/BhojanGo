@@ -1307,6 +1307,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mine
+         * @description The partner's own restaurants, live or still applying (the tablet picks the first).
+         */
+        get: operations["mine_api_v1_restaurants_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/search": {
         parameters: {
             query?: never;
@@ -1335,6 +1355,26 @@ export interface paths {
         get: operations["get_restaurant_api_v1_restaurants__restaurant_id__get"];
         /** Update Restaurant */
         put: operations["update_restaurant_api_v1_restaurants__restaurant_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Application
+         * @description Where the partner application is: the five steps and what's left.
+         */
+        get: operations["application_api_v1_restaurants__restaurant_id__application_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1380,6 +1420,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/{restaurant_id}/busy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Busy
+         * @description Kitchen slammed: new orders quote this many extra prep minutes for the next hour.
+         */
+        put: operations["busy_api_v1_restaurants__restaurant_id__busy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/{restaurant_id}/delivery-check": {
         parameters: {
             query?: never;
@@ -1393,6 +1453,23 @@ export interface paths {
          */
         get: operations["delivery_check_api_v1_restaurants__restaurant_id__delivery_check_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/gst": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Gst */
+        put: operations["set_gst_api_v1_restaurants__restaurant_id__gst_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1557,6 +1634,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/{restaurant_id}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offers
+         * @description Offers this restaurant pays for, with what they've cost this week.
+         */
+        get: operations["offers_api_v1_restaurants__restaurant_id__offers_get"];
+        put?: never;
+        /**
+         * Create Offer
+         * @description Start an offer the restaurant funds. It comes off the weekly payout (itemised on
+         *     the statement) and stops for the week at the cap. Live at once: the restaurant
+         *     pays for it, so there's no platform approval.
+         */
+        post: operations["create_offer_api_v1_restaurants__restaurant_id__offers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/offers/{offer_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End Offer */
+        post: operations["end_offer_api_v1_restaurants__restaurant_id__offers__offer_id__end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/{restaurant_id}/option-groups": {
         parameters: {
             query?: never;
@@ -1591,6 +1711,27 @@ export interface paths {
         post?: never;
         /** Delete Group */
         delete: operations["delete_group_api_v1_restaurants__restaurant_id__option_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pause
+         * @description Stop new orders for a while (customers see "Paused by the restaurant"); orders
+         *     already placed carry on. Resumes by itself after ``minutes``.
+         */
+        put: operations["pause_api_v1_restaurants__restaurant_id__pause_put"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1664,6 +1805,26 @@ export interface paths {
         put?: never;
         /** Create Review */
         post: operations["create_review_api_v1_restaurants__restaurant_id__reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today
+         * @description The tablet's header: open or paused, busy, prep time, today's orders and sales.
+         */
+        get: operations["today_api_v1_restaurants__restaurant_id__today_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1953,8 +2114,8 @@ export interface paths {
         put?: never;
         /**
          * Upload
-         * @description A photo of the bags at the door, or a document photo/PDF. Returns the
-         *     key to send with the delivery or the document (files are private).
+         * @description A photo of the bags at the door, a rider's document, or a partner's licence
+         *     (photo or PDF). Returns the key to send with it (files are private).
          */
         post: operations["upload_api_v1_uploads_post"];
         delete?: never;
@@ -2300,6 +2461,37 @@ export interface components {
              */
             user_id: string;
         };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /** Area */
+            area: string | null;
+            /** Commission Percent */
+            commission_percent: string | null;
+            /** Current */
+            current: string | null;
+            /** Done */
+            done: number;
+            /** Fssai Document */
+            fssai_document: boolean;
+            /** Fssai Expires On */
+            fssai_expires_on: string | null;
+            /** Fssai Number */
+            fssai_number: string | null;
+            /** Gstin */
+            gstin: string | null;
+            /** Name */
+            name: string;
+            /** Payout Account */
+            payout_account: string | null;
+            /** Restaurant Id */
+            restaurant_id: string;
+            /** Status */
+            status: string;
+            /** Steps */
+            steps: components["schemas"]["core_api__modules__catalog__api__v1__partner__StepOut"][];
+            /** Total */
+            total: number;
+        };
         /** ApprovalOut */
         ApprovalOut: {
             /** Decided At */
@@ -2398,7 +2590,15 @@ export interface components {
              * Purpose
              * @enum {string}
              */
-            purpose: "delivery_proof" | "rider_document";
+            purpose: "delivery_proof" | "rider_document" | "partner_document";
+        };
+        /** BusyIn */
+        BusyIn: {
+            /**
+             * Extra Minutes
+             * @description 0 = not busy any more
+             */
+            extra_minutes: number;
         };
         /** CartItem */
         CartItem: {
@@ -2828,6 +3028,14 @@ export interface components {
             /** Options */
             options: components["schemas"]["OptionIn"][];
         };
+        /** GstIn */
+        GstIn: {
+            /**
+             * Gstin
+             * @description 15-character GSTIN
+             */
+            gstin: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2885,6 +3093,8 @@ export interface components {
         };
         /** LicenceIn */
         LicenceIn: {
+            /** Document Key */
+            document_key?: string | null;
             /**
              * Fssai Expires On
              * Format: date
@@ -3112,6 +3322,19 @@ export interface components {
              */
             success?: boolean;
         };
+        /** MineOut */
+        MineOut: {
+            /** City */
+            city: string | null;
+            /** Currency */
+            currency: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+        };
         /** NewVersion */
         NewVersion: {
             /** Effective From */
@@ -3122,6 +3345,56 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** OfferIn */
+        OfferIn: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Max Discount */
+            max_discount?: number | string | null;
+            /**
+             * Min Subtotal
+             * @default 0
+             */
+            min_subtotal?: number | string;
+            /**
+             * Name
+             * @example Free delivery
+             */
+            name: string;
+            /** Percent */
+            percent?: number | string | null;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "free_delivery" | "percent_off" | "flat_off";
+            /**
+             * Weekly Cap
+             * @description Stops for the week when this much has gone on the offer
+             */
+            weekly_cap: number | string;
+        };
+        /** OfferOut */
+        OfferOut: {
+            /** Id */
+            id: string;
+            /** Live */
+            live: boolean;
+            /** Name */
+            name: string;
+            /** Orders This Week */
+            orders_this_week: number;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Template */
+            template: string;
+            /** Used This Week */
+            used_this_week: string;
+            /** Weekly Cap */
+            weekly_cap: string | null;
         };
         /** OnboardingOut */
         OnboardingOut: {
@@ -3134,7 +3407,7 @@ export interface components {
             /** Ready */
             ready: boolean;
             /** Steps */
-            steps: components["schemas"]["StepOut"][];
+            steps: components["schemas"]["core_api__modules__identity__api__v1__riders__StepOut"][];
             /** Total */
             total: number;
         };
@@ -3400,6 +3673,8 @@ export interface components {
         OrderStatusUpdateRequest: {
             /** Note */
             note?: string | null;
+            /** Prep Minutes */
+            prep_minutes?: number | null;
             proof?: components["schemas"]["DeliveryProof"] | null;
             /**
              * Status
@@ -3480,6 +3755,16 @@ export interface components {
             total_orders: number;
             /** Total Platform Revenue */
             total_platform_revenue: number;
+        };
+        /** PauseIn */
+        PauseIn: {
+            /**
+             * Minutes
+             * @description None = until you resume
+             */
+            minutes?: number | null;
+            /** Paused */
+            paused: boolean;
         };
         /** PaymentInitiateRequest */
         PaymentInitiateRequest: {
@@ -4479,28 +4764,45 @@ export interface components {
             /** Tax */
             tax: string;
         };
+        /** StateOut */
+        StateOut: {
+            /** Area */
+            area: string | null;
+            /** Busy Extra Minutes */
+            busy_extra_minutes: number;
+            /** Busy Until */
+            busy_until: string | null;
+            /** Closes At */
+            closes_at: string | null;
+            /** Currency */
+            currency: string;
+            /** Name */
+            name: string;
+            /** Open Now */
+            open_now: boolean;
+            /** Paused */
+            paused: boolean;
+            /** Paused Until */
+            paused_until: string | null;
+            /** Prep Minutes */
+            prep_minutes: number;
+            /** Reason */
+            reason: string | null;
+            /** Restaurant Id */
+            restaurant_id: string;
+            /** Status */
+            status: string;
+            /** Today Orders */
+            today_orders: number;
+            /** Today Sales */
+            today_sales: string;
+        };
         /** StatusTimelineEntry */
         StatusTimelineEntry: {
             /** At */
             at?: string | null;
             /** Status */
             status: string;
-        };
-        /** StepOut */
-        StepOut: {
-            /** Detail */
-            detail: string;
-            /** Key */
-            key: string;
-            /** Required */
-            required: boolean;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "done" | "in_review" | "needed" | "waiting" | "rejected";
-            /** Title */
-            title: string;
         };
         /** UserResponse */
         UserResponse: {
@@ -4746,6 +5048,36 @@ export interface components {
             polygon?: components["schemas"]["GeoJsonPolygon"] | null;
             /** Status */
             status?: ("draft" | "beta" | "live") | null;
+        };
+        /** StepOut */
+        core_api__modules__catalog__api__v1__partner__StepOut: {
+            /** Detail */
+            detail: string;
+            /** Done */
+            done: boolean;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "business" | "fssai" | "gst_bank" | "menu" | "go_live";
+            /** Title */
+            title: string;
+        };
+        /** StepOut */
+        core_api__modules__identity__api__v1__riders__StepOut: {
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Required */
+            required: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "done" | "in_review" | "needed" | "waiting" | "rejected";
+            /** Title */
+            title: string;
         };
     };
     responses: never;
@@ -7009,6 +7341,26 @@ export interface operations {
             };
         };
     };
+    mine_api_v1_restaurants_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MineOut"][];
+                };
+            };
+        };
+    };
     search_restaurants_api_v1_restaurants_search_get: {
         parameters: {
             query?: {
@@ -7114,6 +7466,37 @@ export interface operations {
             };
         };
     };
+    application_api_v1_restaurants__restaurant_id__application_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_restaurant_api_v1_restaurants__restaurant_id__approve_post: {
         parameters: {
             query?: never;
@@ -7178,6 +7561,41 @@ export interface operations {
             };
         };
     };
+    busy_api_v1_restaurants__restaurant_id__busy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delivery_check_api_v1_restaurants__restaurant_id__delivery_check_get: {
         parameters: {
             query: {
@@ -7199,6 +7617,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeliveryCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_gst_api_v1_restaurants__restaurant_id__gst_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GstIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
                 };
             };
             /** @description Validation Error */
@@ -7595,6 +8048,104 @@ export interface operations {
             };
         };
     };
+    offers_api_v1_restaurants__restaurant_id__offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_offer_api_v1_restaurants__restaurant_id__offers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_offer_api_v1_restaurants__restaurant_id__offers__offer_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_groups_api_v1_restaurants__restaurant_id__option_groups_get: {
         parameters: {
             query?: never;
@@ -7733,6 +8284,41 @@ export interface operations {
             };
         };
     };
+    pause_api_v1_restaurants__restaurant_id__pause_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PauseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_prep_time_api_v1_restaurants__restaurant_id__prep_time_put: {
         parameters: {
             query?: never;
@@ -7858,6 +8444,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    today_api_v1_restaurants__restaurant_id__today_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StateOut"];
                 };
             };
             /** @description Validation Error */

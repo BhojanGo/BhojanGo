@@ -314,6 +314,26 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                         "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
                 logins.append((where, f"rider · {name}", email, PASSWORD))
 
+            ap = m.get("applicant")
+            if ap:
+                email = f"applicant.{k}@example.com"
+                owner = await upsert_user(conn, email, ap["name"], "restaurant_owner", m, f"{m['phone_prefix']}901")
+                await conn.execute(text("""
+                    INSERT INTO restaurants (id, name, slug, owner_id, description, cuisine_types, address, lat, lng, rating,
+                        review_count, is_open, delivery_time_min, delivery_time_max, minimum_order_amount, delivery_fee,
+                        currency, country, city, tags, status, is_active, avg_prep_minutes, commission_rate,
+                        busy_extra_minutes, created_at, updated_at)
+                    VALUES (:id, :name, :slug, :owner, '', :cuisines, CAST(:address AS jsonb), :lat, :lng, 0, 0, true, 30, 40,
+                        0, 0, :currency, :country, :city, '{}', 'pending_approval', true, 20, 0.15, 0, now(), now())
+                    ON CONFLICT (slug) DO UPDATE SET status = 'pending_approval', fssai_number = NULL, gstin = NULL"""), {
+                    "id": sid("restaurant", ap["slug"]), "name": ap["restaurant"], "slug": ap["slug"], "owner": owner,
+                    "cuisines": ap["cuisines"], "lat": ap["lat"], "lng": ap["lng"], "currency": m["currency"],
+                    "country": m["country"], "city": m["city"],
+                    "address": json.dumps({"street": ap["street"], "city": m["city"], "state": m["state"], "zip": ap["zip"],
+                                           "country": m["country"], "lat": ap["lat"], "lng": ap["lng"], "landmark": ap["area"]}),
+                })
+                logins.append((where, f"partner applying · {ap['restaurant']}", email, PASSWORD))
+
             for i, name in enumerate(m.get("new_riders", []), start=1):
                 email = f"new.rider{i}.{k}@example.com"
                 rider_id = await upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{90 + i:02d}")

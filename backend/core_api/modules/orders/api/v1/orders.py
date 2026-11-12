@@ -85,7 +85,7 @@ async def list_restaurant_orders(
     repo = OrderRepository(db)
     orders, total = await repo.list_by_restaurant(restaurant_id, page=page, limit=limit)
     return OrderListResponse(
-        items=[OrderResponse.model_validate(o) for o in orders],
+        items=[await _as_kitchen_sees_it(db, o) for o in orders],
         total=total,
         page=page,
         limit=limit,
@@ -120,6 +120,22 @@ async def get_driver_active_order(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active order")
     return await _as_rider_sees_it(db, order, OrderResponse.model_validate(order))
+
+
+async def _as_kitchen_sees_it(db: AsyncSession, order) -> OrderResponse:  # type: ignore[no-untyped-def]
+    """The customer's first name ("#A9F3 · Priya") and the rider's, for the tablet (P19)."""
+    from core_api.modules.identity.models.user import User
+
+    out = OrderResponse.model_validate(order)
+    cust = await db.get(User, order.customer_id)
+    out.customer = {"name": (cust.full_name or "").split(" ")[0] if cust else "Customer"}
+    if order.driver_id:
+        rider = await db.get(User, order.driver_id)
+        if rider is not None:
+            parts = (rider.full_name or "").split()
+            out.rider = {"id": str(rider.id), "first_name": parts[0] if parts else "",
+                         "name": f"{parts[0]} {parts[-1][0]}." if len(parts) > 1 else (parts[0] if parts else "")}
+    return out
 
 
 async def _as_rider_sees_it(db: AsyncSession, order, out: OrderResponse) -> OrderResponse:  # type: ignore[no-untyped-def]

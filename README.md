@@ -87,6 +87,8 @@ Customers can also sign in by phone (`POST /api/v1/auth/send-otp`, then `/auth/p
 seed phones `+919000000101..105` and `+12085550101..105` always get code **123456**.
 Riders sign in to the rider app the same way (`…201..203`); `new.rider1.boi@example.com`
 (Jordan Lee, `+12085550291`) is still signing up, so the app shows the onboarding checklist.
+Partners sign in to the partner tablet app with `+919000000900` (Hyderabad kitchens) or
+`+12085550900` (Boise); `applicant.hyd@example.com` (`+919000000901`) is applying with Kesar Kitchen.
 Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ Boise (`US-ID-BOI`).
 
 **Admin logins** (all `BhojanGoAdmin1`), one per role and scope (`shared/authz.py`):
@@ -136,6 +138,14 @@ rider, and admins for the city) watch `WS /ws/track/{order_id}`: a snapshot with
 rider assigned, location + ETA (routing provider), status changes. The TypeScript batch engine runs
 in shadow mode (`SHADOW_MODE=true`: publishes nothing, batches can't be accepted); realtime logs the
 batches it would have made at `GET /api/v1/dispatch/shadow-batches`.
+
+**Partner tablet app (P19, apps/partner, landscape):** the orders board rings for new orders until
+they're accepted (with a "ready in" time) or rejected, then Preparing and Ready for pickup with the
+rider's ETA; "Busy? Add 10 min" (`PUT /restaurants/{id}/busy`, an hour), pause orders
+(`PUT /restaurants/{id}/pause`, ends by itself), sold out today, store hours and prep time, and offers
+the kitchen funds (`/restaurants/{id}/offers`: promotion rules scoped to the restaurant with a
+`weekly_cap`, live at once, stop at the cap until Monday). A kitchen that isn't live yet sees the
+partner application (`GET /restaurants/{id}/application`: business, FSSAI, GST and bank, menu, go live).
 
 **Rider app (P18):** a rider goes online only after onboarding (`GET /api/v1/riders/me/onboarding`:
 phone, licence, payout account, insurance, background check; documents go up with
@@ -289,6 +299,7 @@ bhojango/
 ├── apps/
 │   ├── customer/         Expo · BhojanGo customer app
 │   ├── rider/            Expo · BhojanGo Rider app
+│   ├── partner/          Expo · BhojanGo Partner tablet app (landscape)
 │   ├── web/              Next.js 16 customer web
 │   └── admin/            Next.js 16 admin console
 ├── backend/              Python 3.12 · one uv project (pyproject.toml, uv.lock)

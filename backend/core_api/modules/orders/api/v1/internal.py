@@ -37,7 +37,11 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
     rules = await RuleService(db).resolve(Context(country=city[:2] or None, region=city[:5] or None, city=city or None,
                                                   zone_id=str(order.zone_id) if order.zone_id else None))
     timeout = rules.get("business:dispatch_offer_timeout")
+    from core_api.modules.catalog.models.restaurant import Restaurant
+
+    rest = await db.get(Restaurant, order.restaurant_id)
     return {**await offer_details(db, order),
+        "restaurant_owner_id": str(rest.owner_id) if rest and rest.owner_id else None,
         "order_id": str(order.id), "status": order.status, "customer_id": str(order.customer_id),
         "restaurant_id": str(order.restaurant_id), "restaurant_name": order.restaurant_name,
         "driver_id": str(order.driver_id) if order.driver_id else None, "market_city": order.market_city,

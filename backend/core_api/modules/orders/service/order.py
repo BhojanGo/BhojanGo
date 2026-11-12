@@ -129,7 +129,9 @@ class OrderService:
 
         rest = await self.db.get(Restaurant, data.restaurant_id)
         drop = ctx.get("deliver_to") or {}
-        prep = rest.avg_prep_minutes if rest else 20
+        from core_api.modules.catalog.service.menu import busy_minutes
+
+        prep = (rest.avg_prep_minutes + busy_minutes(rest, now)) if rest else 20
         pickup = (rest.lat, rest.lng) if rest else None
         order = await self.repo.create(
             pickup_lat=rest.lat if rest else None,
@@ -240,9 +242,10 @@ class OrderService:
         now = datetime.now(UTC)
         extra: dict = {}
         if new == "accepted":
-            extra = {"restaurant_accepted_at": now, "accept_due_at": None,
+            prep = data.prep_minutes or order.estimated_prep_minutes  # the kitchen picks "ready in" (P19)
+            extra = {"restaurant_accepted_at": now, "accept_due_at": None, "estimated_prep_minutes": prep,
                      "estimated_delivery_time": delivery_eta(
-                         order.estimated_prep_minutes, (order.pickup_lat, order.pickup_lng),
+                         prep, (order.pickup_lat, order.pickup_lng),
                          (order.delivery_lat, order.delivery_lng), now)}
         elif new == "ready":
             extra = {"actual_ready_at": now}

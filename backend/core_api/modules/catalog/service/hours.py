@@ -50,6 +50,16 @@ def is_open(local: datetime, weekly: list[Range], overrides: dict[date, Override
     return False
 
 
+def closes_at(local: datetime, weekly: list[Range], overrides: dict[date, Override]) -> datetime | None:
+    """When the range we're in now ends ("Open till 11:30 pm"); None if closed."""
+    t = local.replace(tzinfo=None)
+    for day in (t.date() - timedelta(days=1), t.date()):
+        for start, end in _ranges_starting(day, weekly, overrides):
+            if start <= t < end:
+                return end
+    return None
+
+
 def next_open(local: datetime, weekly: list[Range], overrides: dict[date, Override], days: int = 8) -> datetime | None:
     """When it next opens (now if open), within ``days``; None if not in that time."""
     t = local.replace(tzinfo=None)

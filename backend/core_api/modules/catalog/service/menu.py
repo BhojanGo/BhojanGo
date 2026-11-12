@@ -79,6 +79,16 @@ async def _hours(db: AsyncSession, restaurant_id: uuid.UUID) -> tuple[list[H.Ran
     return weekly, overrides
 
 
+def paused_by_kitchen(r: Restaurant, now: datetime) -> bool:
+    """"Pause orders" on the tablet (P19): until paused_until, or until resumed when it has none."""
+    return not r.is_open and (r.paused_until is None or r.paused_until > now)
+
+
+def busy_minutes(r: Restaurant, now: datetime) -> int:
+    """"Busy? Add 10 min": extra prep minutes while it lasts."""
+    return r.busy_extra_minutes if r.busy_until and r.busy_until > now else 0
+
+
 async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime | None = None) -> Availability:
     r = await db.get(Restaurant, restaurant_id)
     if r is None or r.deleted_at is not None:
@@ -92,7 +102,7 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
         reason = "Not taking orders"
     elif paused:
         reason = "Temporarily unavailable"
-    elif not r.is_open:
+    elif paused_by_kitchen(r, local):
         reason = "Paused by the restaurant"
     elif (weekly or overrides) and not H.is_open(local, weekly, overrides):
         o = overrides.get(local.date())

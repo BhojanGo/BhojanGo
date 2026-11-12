@@ -363,6 +363,136 @@
         "title": "AdminMeResponse",
         "type": "object"
       },
+      "ApplicationOut": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "commission_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commission Percent"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "fssai_document": {
+            "title": "Fssai Document",
+            "type": "boolean"
+          },
+          "fssai_expires_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fssai Expires On"
+          },
+          "fssai_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fssai Number"
+          },
+          "gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gstin"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payout_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Account"
+          },
+          "restaurant_id": {
+            "title": "Restaurant Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/core_api__modules__catalog__api__v1__partner__StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "restaurant_id",
+          "fssai_number",
+          "fssai_expires_on",
+          "fssai_document",
+          "gstin",
+          "payout_account",
+          "name",
+          "area",
+          "status",
+          "done",
+          "total",
+          "current",
+          "commission_percent",
+          "steps"
+        ],
+        "title": "ApplicationOut",
+        "type": "object"
+      },
       "ApprovalOut": {
         "properties": {
           "decided_at": {
@@ -610,7 +740,8 @@
           "purpose": {
             "enum": [
               "delivery_proof",
-              "rider_document"
+              "rider_document",
+              "partner_document"
             ],
             "title": "Purpose",
             "type": "string"
@@ -621,6 +752,22 @@
           "purpose"
         ],
         "title": "Body_upload_api_v1_uploads_post",
+        "type": "object"
+      },
+      "BusyIn": {
+        "properties": {
+          "extra_minutes": {
+            "description": "0 = not busy any more",
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Extra Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "extra_minutes"
+        ],
+        "title": "BusyIn",
         "type": "object"
       },
       "CartItem": {
@@ -1783,6 +1930,21 @@
         "title": "GroupIn",
         "type": "object"
       },
+      "GstIn": {
+        "properties": {
+          "gstin": {
+            "description": "15-character GSTIN",
+            "pattern": "^\\d{2}[A-Z]{5}\\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$",
+            "title": "Gstin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gstin"
+        ],
+        "title": "GstIn",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1910,6 +2072,18 @@
       },
       "LicenceIn": {
         "properties": {
+          "document_key": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Key"
+          },
           "fssai_expires_on": {
             "format": "date",
             "title": "Fssai Expires On",
@@ -2539,6 +2713,46 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "MineOut": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "currency",
+          "city"
+        ],
+        "title": "MineOut",
+        "type": "object"
+      },
       "NewVersion": {
         "properties": {
           "effective_from": {
@@ -2580,6 +2794,163 @@
         "title": "NewVersion",
         "type": "object"
       },
+      "OfferIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "max_discount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount"
+          },
+          "min_subtotal": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Min Subtotal"
+          },
+          "name": {
+            "examples": [
+              "Free delivery"
+            ],
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 60.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "template": {
+            "enum": [
+              "free_delivery",
+              "percent_off",
+              "flat_off"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "weekly_cap": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Stops for the week when this much has gone on the offer",
+            "title": "Weekly Cap"
+          }
+        },
+        "required": [
+          "template",
+          "name",
+          "weekly_cap"
+        ],
+        "title": "OfferIn",
+        "type": "object"
+      },
+      "OfferOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "live": {
+            "title": "Live",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "orders_this_week": {
+            "title": "Orders This Week",
+            "type": "integer"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "template": {
+            "title": "Template",
+            "type": "string"
+          },
+          "used_this_week": {
+            "title": "Used This Week",
+            "type": "string"
+          },
+          "weekly_cap": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Cap"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "template",
+          "params",
+          "live",
+          "weekly_cap",
+          "used_this_week",
+          "orders_this_week"
+        ],
+        "title": "OfferOut",
+        "type": "object"
+      },
       "OnboardingOut": {
         "properties": {
           "country": {
@@ -2600,7 +2971,7 @@
           },
           "steps": {
             "items": {
-              "$ref": "#/components/schemas/StepOut"
+              "$ref": "#/components/schemas/core_api__modules__identity__api__v1__riders__StepOut"
             },
             "title": "Steps",
             "type": "array"
@@ -3352,6 +3723,19 @@
             ],
             "title": "Note"
           },
+          "prep_minutes": {
+            "anyOf": [
+              {
+                "maximum": 120.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prep Minutes"
+          },
           "proof": {
             "anyOf": [
               {
@@ -3585,6 +3969,33 @@
           "orders_by_status"
         ],
         "title": "PainPointMetrics",
+        "type": "object"
+      },
+      "PauseIn": {
+        "properties": {
+          "minutes": {
+            "anyOf": [
+              {
+                "maximum": 1440.0,
+                "minimum": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None = until you resume",
+            "title": "Minutes"
+          },
+          "paused": {
+            "title": "Paused",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paused"
+        ],
+        "title": "PauseIn",
         "type": "object"
       },
       "PaymentInitiateRequest": {
@@ -6198,6 +6609,126 @@
         "title": "SplitOut",
         "type": "object"
       },
+      "StateOut": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "busy_extra_minutes": {
+            "title": "Busy Extra Minutes",
+            "type": "integer"
+          },
+          "busy_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Busy Until"
+          },
+          "closes_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closes At"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open_now": {
+            "title": "Open Now",
+            "type": "boolean"
+          },
+          "paused": {
+            "title": "Paused",
+            "type": "boolean"
+          },
+          "paused_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Until"
+          },
+          "prep_minutes": {
+            "title": "Prep Minutes",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "restaurant_id": {
+            "title": "Restaurant Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "today_orders": {
+            "title": "Today Orders",
+            "type": "integer"
+          },
+          "today_sales": {
+            "title": "Today Sales",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurant_id",
+          "name",
+          "area",
+          "currency",
+          "status",
+          "open_now",
+          "reason",
+          "paused",
+          "paused_until",
+          "busy_extra_minutes",
+          "busy_until",
+          "prep_minutes",
+          "today_orders",
+          "today_sales",
+          "closes_at"
+        ],
+        "title": "StateOut",
+        "type": "object"
+      },
       "StatusTimelineEntry": {
         "properties": {
           "at": {
@@ -6220,46 +6751,6 @@
           "status"
         ],
         "title": "StatusTimelineEntry",
-        "type": "object"
-      },
-      "StepOut": {
-        "properties": {
-          "detail": {
-            "title": "Detail",
-            "type": "string"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "required": {
-            "title": "Required",
-            "type": "boolean"
-          },
-          "status": {
-            "enum": [
-              "done",
-              "in_review",
-              "needed",
-              "waiting",
-              "rejected"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "title",
-          "status",
-          "detail",
-          "required"
-        ],
-        "title": "StepOut",
         "type": "object"
       },
       "UserResponse": {
@@ -6996,6 +7487,81 @@
           }
         },
         "title": "ZoneUpdate",
+        "type": "object"
+      },
+      "core_api__modules__catalog__api__v1__partner__StepOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "business",
+              "fssai",
+              "gst_bank",
+              "menu",
+              "go_live"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "done",
+          "detail"
+        ],
+        "title": "StepOut",
+        "type": "object"
+      },
+      "core_api__modules__identity__api__v1__riders__StepOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "done",
+              "in_review",
+              "needed",
+              "waiting",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "status",
+          "detail",
+          "required"
+        ],
+        "title": "StepOut",
         "type": "object"
       }
     },
@@ -10549,6 +11115,37 @@
         ]
       }
     },
+    "/api/v1/restaurants/mine": {
+      "get": {
+        "description": "The partner's own restaurants, live or still applying (the tablet picks the first).",
+        "operationId": "mine_api_v1_restaurants_mine_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MineOut"
+                  },
+                  "title": "Response Mine Api V1 Restaurants Mine Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Mine",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
     "/api/v1/restaurants/search": {
       "get": {
         "operationId": "search_restaurants_api_v1_restaurants_search_get",
@@ -10816,6 +11413,55 @@
         ]
       }
     },
+    "/api/v1/restaurants/{restaurant_id}/application": {
+      "get": {
+        "description": "Where the partner application is: the five steps and what's left.",
+        "operationId": "application_api_v1_restaurants__restaurant_id__application_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Application",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
     "/api/v1/restaurants/{restaurant_id}/approve": {
       "post": {
         "operationId": "approve_restaurant_api_v1_restaurants__restaurant_id__approve_post",
@@ -10910,6 +11556,65 @@
         ]
       }
     },
+    "/api/v1/restaurants/{restaurant_id}/busy": {
+      "put": {
+        "description": "Kitchen slammed: new orders quote this many extra prep minutes for the next hour.",
+        "operationId": "busy_api_v1_restaurants__restaurant_id__busy_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Busy",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
     "/api/v1/restaurants/{restaurant_id}/delivery-check": {
       "get": {
         "description": "Hyper-local radius check: can this restaurant deliver to the given point?",
@@ -10973,6 +11678,64 @@
         "summary": "Delivery Check",
         "tags": [
           "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/gst": {
+      "put": {
+        "operationId": "set_gst_api_v1_restaurants__restaurant_id__gst_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GstIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Gst",
+        "tags": [
+          "Partner tablet"
         ]
       }
     },
@@ -11622,6 +12385,182 @@
         ]
       }
     },
+    "/api/v1/restaurants/{restaurant_id}/offers": {
+      "get": {
+        "description": "Offers this restaurant pays for, with what they've cost this week.",
+        "operationId": "offers_api_v1_restaurants__restaurant_id__offers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferOut"
+                  },
+                  "title": "Response Offers Api V1 Restaurants  Restaurant Id  Offers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Offers",
+        "tags": [
+          "Partner tablet"
+        ]
+      },
+      "post": {
+        "description": "Start an offer the restaurant funds. It comes off the weekly payout (itemised on\nthe statement) and stops for the week at the cap. Live at once: the restaurant\npays for it, so there's no platform approval.",
+        "operationId": "create_offer_api_v1_restaurants__restaurant_id__offers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferOut"
+                  },
+                  "title": "Response Create Offer Api V1 Restaurants  Restaurant Id  Offers Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Create Offer",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/offers/{offer_id}/end": {
+      "post": {
+        "operationId": "end_offer_api_v1_restaurants__restaurant_id__offers__offer_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferOut"
+                  },
+                  "title": "Response End Offer Api V1 Restaurants  Restaurant Id  Offers  Offer Id  End Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "End Offer",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
     "/api/v1/restaurants/{restaurant_id}/option-groups": {
       "get": {
         "operationId": "list_groups_api_v1_restaurants__restaurant_id__option_groups_get",
@@ -11848,6 +12787,65 @@
         ]
       }
     },
+    "/api/v1/restaurants/{restaurant_id}/pause": {
+      "put": {
+        "description": "Stop new orders for a while (customers see \"Paused by the restaurant\"); orders\nalready placed carry on. Resumes by itself after ``minutes``.",
+        "operationId": "pause_api_v1_restaurants__restaurant_id__pause_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Pause",
+        "tags": [
+          "Partner tablet"
+        ]
+      }
+    },
     "/api/v1/restaurants/{restaurant_id}/prep-time": {
       "put": {
         "description": "Default minutes from accepting an order to it being ready.",
@@ -12071,6 +13069,55 @@
         "summary": "Create Review",
         "tags": [
           "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/today": {
+      "get": {
+        "description": "The tablet's header: open or paused, busy, prep time, today's orders and sales.",
+        "operationId": "today_api_v1_restaurants__restaurant_id__today_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Today",
+        "tags": [
+          "Partner tablet"
         ]
       }
     },
@@ -13039,7 +14086,7 @@
     },
     "/api/v1/uploads": {
       "post": {
-        "description": "A photo of the bags at the door, or a document photo/PDF. Returns the\nkey to send with the delivery or the document (files are private).",
+        "description": "A photo of the bags at the door, a rider's document, or a partner's licence\n(photo or PDF). Returns the key to send with it (files are private).",
         "operationId": "upload_api_v1_uploads_post",
         "requestBody": {
           "content": {

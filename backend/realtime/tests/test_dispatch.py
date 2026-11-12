@@ -234,6 +234,10 @@ def test_who_can_track() -> None:
     assert delivery.can_see(user(str(uuid.uuid4()), admin=["city_ops@IN-TG-HYD"]), i)
     assert not delivery.can_see(user(str(uuid.uuid4()), admin=["city_ops@US-ID-BOI"]), i)
     assert delivery.can_see(user(str(uuid.uuid4()), admin=["support_agent@IN"]), i)
+    # The kitchen sees its own orders' riders arriving (P19 tablet), not other kitchens'.
+    owner = str(uuid.uuid4())
+    assert delivery.can_see(user(owner, "restaurant_owner"), info(driver_id=RIDER_NEAR, restaurant_owner_id=owner))
+    assert not delivery.can_see(user(owner, "restaurant_owner"), i)
 
 
 async def test_eta_endpoint_hides_other_orders(r, core) -> None:  # type: ignore[no-untyped-def]

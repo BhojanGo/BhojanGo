@@ -44,11 +44,23 @@ REQUIRED = ("identity", "licence", "insurance", "background_check")
 
 # ── uploads ──────────────────────────────────────────────────────────────────
 
+def uploader(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
+    """Riders (delivery photos, documents) and partners (FSSAI licence, P19)."""
+    if user.role not in ("driver", "restaurant_owner"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders and partners only")
+    return user
+
+
+PURPOSES = {"delivery_proof": "driver", "rider_document": "driver", "partner_document": "restaurant_owner"}
+
+
 @router.post("/uploads", status_code=status.HTTP_201_CREATED)
-async def upload(user: Me, file: Annotated[UploadFile, File()],
-                 purpose: Annotated[Literal["delivery_proof", "rider_document"], Form()]) -> dict:
-    """A photo of the bags at the door, or a document photo/PDF. Returns the
-    key to send with the delivery or the document (files are private)."""
+async def upload(user: Annotated[CurrentUser, Depends(uploader)], file: Annotated[UploadFile, File()],
+                 purpose: Annotated[Literal["delivery_proof", "rider_document", "partner_document"], Form()]) -> dict:
+    """A photo of the bags at the door, a rider's document, or a partner's licence
+    (photo or PDF). Returns the key to send with it (files are private)."""
+    if PURPOSES[purpose] != user.role:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "WRONG_PURPOSE", "message": "Not an upload you can make"})
     ctype = (file.content_type or "").split(";")[0]
     if ctype not in TYPES or (purpose == "delivery_proof" and not ctype.startswith("image/")):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,

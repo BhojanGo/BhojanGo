@@ -67,6 +67,13 @@ class Restaurant(Base):
     fssai_expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Why the listing is hidden from customers (e.g. fssai_expired); None = listed.
     paused_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # P19 partner tablet: "Pause orders" (is_open=False) ends by itself at paused_until (None = until resumed);
+    # "Busy? Add 10 min" adds busy_extra_minutes to the prep time until busy_until.
+    paused_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    busy_extra_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    busy_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gstin: Mapped[str | None] = mapped_column(String(15), nullable=True)  # India: GST registration
+    fssai_document_key: Mapped[str | None] = mapped_column(String(300), nullable=True)  # uploaded licence (P19)
 
     # Status
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_approval", index=True)
