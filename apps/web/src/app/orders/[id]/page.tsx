@@ -1,407 +1,167 @@
 "use client";
+// CustomerTracking.html on the web: when it arrives, the four steps, who's
+// bringing it, the PIN for the door, and the route, live from /ws/track.
+import { unwrap, type CoreSchemas } from "@bhojango/api-client";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
+import { api, useHydrated, useSession, wsUrl } from "@/lib/client";
+import { FairBill, StatusPill } from "@bhojango/ui";
 
-import { api } from "@/lib/api";
-import { useAuthStore } from "@/store/auth";
-import type { Order } from "@bhojango/types";
+type Order = CoreSchemas["OrderResponse"];
+type Pt = [number, number];
+interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string }
+interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean }
 
-const STATUS_STEPS = [
-  "confirmed",
-  "preparing",
-  "almost_ready",
-  "ready_for_pickup",
-  "picked_up",
-  "delivered",
-] as const;
+const STEPS = [
+  { label: "Placed", states: ["placed", "accepted"] },
+  { label: "Cooked", states: ["preparing", "almost_ready", "ready"] },
+  { label: "Picked up", states: ["picked_up"] },
+  { label: "Home", states: ["delivered"] },
+];
 
-// Human labels for the full pain-point timeline (robust to missing i18n keys).
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Order placed",
-  confirmed: "Restaurant accepted",
-  preparing: "Preparing",
-  almost_ready: "Almost ready",
-  ready_for_pickup: "Ready for pickup",
-  picked_up: "Picked up",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
-interface FeeBreakdown {
-  food_subtotal: number;
-  delivery_fee: number;
-  platform_fee: number;
-  restaurant_payout: number;
-  tip: number;
-  taxes: number;
-  discount: number;
-  total: number;
-  currency: string;
+function time(iso?: string | null) {
+  return iso ? new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase() : "--:--";
 }
 
-interface OrderTimeline {
-  order_id: string;
-  status: string;
-  estimated_prep_minutes: number;
-  restaurant_accepted_at: string | null;
-  actual_ready_at: string | null;
-  timeline: { status: string; at: string | null }[];
-}
+export default function Tracking() {
+  const { id } = useParams<{ id: string }>();
+  const ready = useHydrated();
+  const user = useSession((s) => s.user);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [bill, setBill] = useState<{ lines: unknown[]; currency: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false });
 
-type TrackingMessage = {
-  type: "location_update" | "status_update" | "ping";
-  lat?: number;
-  lng?: number;
-  status?: string;
-  driver_name?: string;
-  eta_minutes?: number;
-};
+  useEffect(() => {
+    if (!ready || !user) return;
+    let alive = true;
+    const load = () => api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
+      .then((r) => alive && setOrder(unwrap(r))).catch(() => alive && setError("We couldn't find this order."));
+    void load();
+    api.core.GET("/api/v1/pricing/orders/{order_id}/bill", { params: { path: { order_id: id } } })
+      .then((r) => alive && setBill(unwrap(r) as never)).catch(() => undefined);
+    const ws = new WebSocket(wsUrl(`/ws/track/${id}`));
+    ws.onmessage = (e) => {
+      const m = JSON.parse(String(e.data)) as { type: string; payload: Record<string, unknown> };
+      const p = m.payload;
+      if (m.type === "rider_assigned" || m.type === "status_change") void load();
+      setLive((s) => {
+        switch (m.type) {
+          case "connected": {
+            const loc = p.location as { lat: number; lng: number } | null;
+            return { ...s, status: (p.status as string) ?? s.status, pickup: (p.pickup as Pt) ?? null, dropoff: (p.dropoff as Pt) ?? null,
+              rider: loc ? [loc.lat, loc.lng] : null, eta: (p.eta as Eta) ?? null,
+              trail: ((p.trail as [number, number, string][]) ?? []).map((t) => [t[0], t[1]] as Pt) };
+          }
+          case "searching_rider": return { ...s, searching: true };
+          case "rider_assigned": return { ...s, searching: false, eta: (p.eta as Eta) ?? s.eta };
+          case "location_update": {
+            const pt: Pt = [Number(p.lat), Number(p.lng)];
+            return { ...s, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
+          }
+          case "status_change": return { ...s, status: (p.status as string) ?? s.status };
+          default: return s;
+        }
+      });
+    };
+    const poll = setInterval(load, 15000);
+    return () => {
+      alive = false;
+      clearInterval(poll);
+      ws.close();
+    };
+  }, [id, ready, user]);
 
-function StatusTimeline({ status }: { status: string }) {
-  const currentIndex = STATUS_STEPS.indexOf(status as (typeof STATUS_STEPS)[number]);
+  if (ready && !user) return <Gate />;
+  if (error) return <div className="mx-auto max-w-md px-5 py-20 text-center text-muted">{error}</div>;
+  if (!order) return <div className="mx-auto max-w-content px-5 py-14 text-muted">Loading your order…</div>;
+
+  const status = order.status === "delivered" || order.status === "cancelled" || !live.status ? order.status : live.status;
+  const step = Math.max(0, STEPS.findIndex((s) => s.states.includes(status)));
+  const progress = status === "delivered" ? 1 : [0.12, 0.42, 0.78, 1][step] ?? 0.12;
+  const rider = (order.rider as { first_name?: string } | null)?.first_name;
+  const headline = status === "delivered" ? "Delivered. Enjoy your meal." : status === "cancelled" ? "This order was cancelled"
+    : status === "picked_up" ? `${rider ?? "Your rider"} is on the way` : rider ? `${rider} is heading to the kitchen`
+    : status === "placed" ? `${order.restaurant_name} has your order` : `${order.restaurant_name} is cooking`;
+  const stamp = (state: string) => (order.status_history as { status: string; at: string }[]).find((x) => x.status === state)?.at;
 
   return (
-    <div className="relative">
-      <div className="flex justify-between">
-        {STATUS_STEPS.map((step, i) => {
-          const isPast = i <= currentIndex;
-          const isCurrent = i === currentIndex;
-          return (
-            <div key={step} className="flex flex-col items-center flex-1">
-              <div
-                className={`w-5 h-5 rounded-full border-2 z-10 transition-colors ${
-                  isCurrent
-                    ? "bg-emerald-500 border-emerald-500"
-                    : isPast
-                    ? "bg-emerald-400 border-emerald-400"
-                    : "bg-white border-gray-300"
-                }`}
-              />
-              <p className={`text-xs mt-1 text-center ${isPast ? "text-emerald-700" : "text-gray-400"}`}>
-                {STATUS_LABELS[step] ?? step}
-              </p>
+    <div className="mx-auto grid max-w-content gap-8 px-5 py-10 md:grid-cols-[1fr_400px] md:px-8">
+      <div className="space-y-6">
+        <RouteMap live={live} />
+        <section className="space-y-5 rounded-sheet bg-white p-6" aria-label="Order status">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="font-semibold text-muted">{headline}</p>
+              {status !== "cancelled" ? (
+                <p className="font-display text-6xl font-semibold tracking-[-2px]" data-testid="eta">{time(live.eta?.arrives_at ?? order.estimated_delivery_time)}</p>
+              ) : null}
             </div>
-          );
-        })}
+            <p className="text-right text-sm text-muted">{live.eta ? `${live.eta.to_customer_minutes} min` : ""}{live.searching ? <><br />finding a rider</> : null}</p>
+          </div>
+          <div aria-label={`Progress: ${STEPS[step]?.label}, ${step + 1} of 4`}>
+            <div className="relative h-2 rounded-pill bg-line-divider">
+              <div className="h-2 rounded-pill bg-peacock" style={{ width: `${progress * 100}%` }} />
+              <div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-pill border-[3px] border-white bg-kesar" style={{ left: `${progress * 100}%` }} />
+            </div>
+            <div className="mt-3 flex justify-between text-xs font-semibold text-muted">
+              {STEPS.map((s, i) => (
+                <span key={s.label} className={i === step ? "font-extrabold text-kohl" : ""}>
+                  {s.label} {i === 0 ? time(stamp("placed")) : i === 1 && stamp("preparing") ? time(stamp("preparing")) : i === 2 && stamp("picked_up") ? time(stamp("picked_up")) : ""}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusPill status={status} />
+            <span className="text-sm text-muted">{order.restaurant_name}{rider ? ` · ${rider} is your rider` : ""}</span>
+          </div>
+          {order.pin && status !== "delivered" && status !== "cancelled" ? (
+            <div className="flex items-center justify-between rounded-card bg-peacock-mist px-5 py-4">
+              <span className="text-sm font-semibold text-muted">Give your rider this PIN at the door</span>
+              <span className="text-2xl font-extrabold tracking-[0.4em]" data-testid="delivery-pin">{order.pin}</span>
+            </div>
+          ) : null}
+        </section>
       </div>
-      {/* Connector line */}
-      <div className="absolute top-2.5 left-0 right-0 h-0.5 bg-gray-200 -z-0">
-        <div
-          className="h-full bg-emerald-400 transition-all"
-          style={{
-            width: `${Math.max(0, (currentIndex / (STATUS_STEPS.length - 1)) * 100)}%`,
-          }}
-        />
-      </div>
+      <aside className="space-y-4">
+        {bill ? <FairBill lines={bill.lines as never} currency={bill.currency} totalLabel="You paid" /> : null}
+        <Link href="/help" className="block rounded-card bg-white p-5 font-bold hover:text-peacock">Something wrong with this order? Get help →</Link>
+      </aside>
     </div>
   );
 }
 
-export default function OrderDetailPage() {
-  const t = useTranslations("orders");
-  const tTracking = useTranslations("tracking");
-  const params = useParams<{ id: string }>();
-  const router = useRouter();
-  const { isAuthenticated, accessToken } = useAuthStore();
-
-  const wsRef = useRef<WebSocket | null>(null);
-  const [tracking, setTracking] = useState<{
-    lat?: number;
-    lng?: number;
-    driverName?: string;
-    etaMinutes?: number;
-    wsStatus: "connecting" | "connected" | "disconnected";
-  }>({ wsStatus: "connecting" });
-
-  const { data: order, refetch } = useQuery({
-    queryKey: ["order", params.id],
-    queryFn: async () => {
-      const { data } = await api.get(`/order/orders/${params.id}`);
-      return data as Order;
-    },
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (!status || ["delivered", "cancelled"].includes(status)) return false;
-      return 30_000;
-    },
-  });
-
-  // Customer transparency: fee breakdown + detailed status timeline
-  const { data: breakdown } = useQuery({
-    queryKey: ["order-breakdown", params.id],
-    queryFn: async () => {
-      const { data } = await api.get(`/order/orders/${params.id}/breakdown`);
-      return data as FeeBreakdown;
-    },
-    enabled: !!params.id,
-  });
-
-  const { data: timeline } = useQuery({
-    queryKey: ["order-timeline", params.id],
-    queryFn: async () => {
-      const { data } = await api.get(`/order/orders/${params.id}/timeline`);
-      return data as OrderTimeline;
-    },
-    enabled: !!params.id,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (!status || ["delivered", "cancelled"].includes(status)) return false;
-      return 30_000;
-    },
-  });
-
-  // WebSocket tracking for active orders
-  useEffect(() => {
-    if (!order || ["delivered", "cancelled"].includes(order.status)) return;
-    if (!accessToken) return;
-
-    const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8004"}/ws/track/${params.id}?token=${accessToken}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-
-    ws.onopen = () => setTracking((prev) => ({ ...prev, wsStatus: "connected" }));
-    ws.onclose = () => setTracking((prev) => ({ ...prev, wsStatus: "disconnected" }));
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data as string) as TrackingMessage;
-        if (msg.type === "location_update") {
-          setTracking((prev) => ({
-            ...prev,
-            lat: msg.lat,
-            lng: msg.lng,
-            driverName: msg.driver_name ?? prev.driverName,
-            etaMinutes: msg.eta_minutes ?? prev.etaMinutes,
-          }));
-        } else if (msg.type === "status_update") {
-          void refetch();
-        }
-      } catch {
-        // ignore malformed messages
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [order, accessToken, params.id, refetch]);
-
-  if (!isAuthenticated) {
-    router.replace(`/login?redirect=/orders/${params.id}`);
-    return null;
-  }
-
-  if (!order) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-gray-500 text-sm">Loading order...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const isActive = !["delivered", "cancelled"].includes(order.status);
-  const currencySymbol = order.currency === "INR" ? "₹" : "$";
-
+function Gate() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => router.push("/orders")}
-            className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {t("orderNumber", { id: order.id.slice(0, 8).toUpperCase() })}
-            </h1>
-            <p className="text-xs text-gray-500">
-              {new Date(order.created_at).toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-        </div>
-
-        {/* Live tracking banner */}
-        {isActive && tracking.wsStatus === "connected" && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-emerald-800">{tTracking("liveTracking")}</span>
-            </div>
-            {tracking.etaMinutes && (
-              <span className="text-sm text-emerald-700">
-                {tTracking("eta", { time: tracking.etaMinutes })}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Driver info */}
-        {tracking.driverName && (
-          <div className="bg-white rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold">
-              {tracking.driverName[0]}
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">{tTracking("driverAssigned")}</p>
-              <p className="text-sm font-medium text-gray-900">
-                {tTracking("driverName", { name: tracking.driverName })}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Status timeline */}
-        {order.status !== "cancelled" && (
-          <div className="bg-white rounded-xl p-5 mb-4">
-            <StatusTimeline status={order.status} />
-          </div>
-        )}
-
-        {order.status === "cancelled" && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-            <p className="text-sm font-semibold text-red-700">Order Cancelled</p>
-            {order.cancellation_reason && (
-              <p className="text-xs text-red-600 mt-1">{order.cancellation_reason}</p>
-            )}
-          </div>
-        )}
-
-        {/* Map placeholder (real map integration would use react-leaflet or @vis.gl/react-google-maps) */}
-        {isActive && tracking.lat && tracking.lng && (
-          <div className="bg-gray-200 rounded-xl h-48 mb-4 flex items-center justify-center">
-            <p className="text-sm text-gray-500">
-              Driver at {tracking.lat.toFixed(4)}, {tracking.lng.toFixed(4)}
-            </p>
-          </div>
-        )}
-
-        {/* Restaurant & Items */}
-        <div className="bg-white rounded-xl p-4 mb-4">
-          <p className="font-semibold text-gray-900 mb-3">{order.restaurant_name}</p>
-          <div className="space-y-2">
-            {order.items?.map((item) => (
-              <div key={item.menu_item_id} className="flex justify-between text-sm text-gray-700">
-                <span>
-                  {item.name} × {item.quantity}
-                </span>
-                <span>
-                  {currencySymbol}
-                  {(item.price * item.quantity).toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="h-px bg-gray-100 my-3" />
-          {/* Customer transparency: full fee breakdown */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Food subtotal</span>
-              <span>{currencySymbol}{(breakdown?.food_subtotal ?? order.subtotal ?? 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Delivery fee</span>
-              <span>{currencySymbol}{(breakdown?.delivery_fee ?? order.delivery_fee ?? 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Platform fee</span>
-              <span>{currencySymbol}{(breakdown?.platform_fee ?? 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Taxes</span>
-              <span>{currencySymbol}{(breakdown?.taxes ?? order.taxes ?? 0).toFixed(2)}</span>
-            </div>
-            {(breakdown?.tip ?? order.tip ?? 0) > 0 && (
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Tip</span>
-                <span>{currencySymbol}{(breakdown?.tip ?? order.tip ?? 0).toFixed(2)}</span>
-              </div>
-            )}
-            {(breakdown?.discount ?? order.discount ?? 0) > 0 && (
-              <div className="flex justify-between text-sm text-emerald-600">
-                <span>Discount</span>
-                <span>-{currencySymbol}{(breakdown?.discount ?? order.discount ?? 0).toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-          <div className="h-px bg-gray-100 my-3" />
-          <div className="flex justify-between font-semibold text-gray-900">
-            <span>Total</span>
-            <span>
-              {currencySymbol}
-              {(breakdown?.total ?? order.total ?? 0).toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Detailed status timeline (customer transparency) */}
-        {timeline && timeline.timeline.length > 0 && (
-          <div className="bg-white rounded-xl p-4 mb-4">
-            <p className="font-semibold text-gray-900 mb-3">Order timeline</p>
-            <ol className="space-y-3">
-              {timeline.timeline.map((entry, i) => (
-                <li key={`${entry.status}-${i}`} className="flex items-start gap-3">
-                  <span className="mt-1 w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <div className="flex-1 flex justify-between gap-2">
-                    <span className="text-sm text-gray-800">{STATUS_LABELS[entry.status] ?? entry.status}</span>
-                    {entry.at && (
-                      <span className="text-xs text-gray-400 whitespace-nowrap">
-                        {new Date(entry.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-            {timeline.estimated_prep_minutes > 0 && timeline.actual_ready_at === null && (
-              <p className="text-xs text-gray-400 mt-3">
-                Estimated prep time: ~{timeline.estimated_prep_minutes} min
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Delivery address */}
-        {order.delivery_address && (
-          <div className="bg-white rounded-xl p-4 mb-4">
-            <p className="text-sm font-semibold text-gray-900 mb-1">{t("deliveryAddress")}</p>
-            <p className="text-sm text-gray-500">
-              {order.delivery_address.street}, {order.delivery_address.city},{" "}
-              {order.delivery_address.state} {order.delivery_address.zip}
-            </p>
-          </div>
-        )}
-
-        {/* Reorder button for completed */}
-        {order.status === "delivered" && (
-          <button
-            onClick={() => {
-              // Navigate back to restaurant — cart handling happens there
-              if (order.restaurant_id) router.push(`/restaurants/${order.restaurant_id}`);
-            }}
-            className="w-full py-3 border border-emerald-500 text-emerald-500 font-semibold rounded-xl hover:bg-emerald-50 transition"
-          >
-            {t("reorder")}
-          </button>
-        )}
-      </div>
+    <div className="mx-auto max-w-md px-5 py-20 text-center">
+      <h1 className="font-display text-3xl font-semibold">Sign in to see your order</h1>
+      <Link href="/sign-in?next=/orders" className="mt-6 inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-extrabold text-white">Sign in</Link>
     </div>
+  );
+}
+
+/** The route, drawn (no map provider key): kitchen, rider, home. */
+function RouteMap({ live }: { live: Live }) {
+  const W = 800, H = 320;
+  const pts = [live.pickup, live.dropoff, live.rider, ...live.trail].filter(Boolean) as Pt[];
+  if (!pts.length) return <div className="h-[320px] rounded-sheet bg-[#E9EEEE]" aria-hidden />;
+  const lats = pts.map((p) => p[0]), lngs = pts.map((p) => p[1]);
+  const [a, b, c, d] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
+  const span = Math.max(b - a, d - c, 0.005);
+  const xy = (p: Pt) => [80 + ((p[1] - c) / span) * (W - 160), H - 40 - ((p[0] - a) / span) * (H - 80)] as const;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-sheet" role="img" aria-label="Map of your order's route">
+      <rect width={W} height={H} fill="#E9EEEE" />
+      {[80, 160, 240].map((y) => <path key={y} d={`M0 ${y} H${W}`} stroke="#DDE4E4" strokeWidth={10} />)}
+      {[160, 400, 640].map((x) => <path key={x} d={`M${x} 0 V${H}`} stroke="#DDE4E4" strokeWidth={10} />)}
+      {live.trail.length > 1 ? <polyline points={live.trail.map((p) => xy(p).join(",")).join(" ")} fill="none" stroke="#0B5D66" strokeWidth={4} strokeLinecap="round" /> : null}
+      {live.pickup && live.dropoff ? <path d={`M${xy(live.pickup).join(" ")} L${xy(live.dropoff).join(" ")}`} stroke="#C9D3D4" strokeWidth={3} strokeDasharray="2 10" strokeLinecap="round" /> : null}
+      {live.pickup ? <circle cx={xy(live.pickup)[0]} cy={xy(live.pickup)[1]} r={10} fill="#111418" /> : null}
+      {live.dropoff ? <rect x={xy(live.dropoff)[0] - 10} y={xy(live.dropoff)[1] - 10} width={20} height={20} rx={5} fill="#D4932A" /> : null}
+      {live.rider ? <circle cx={xy(live.rider)[0]} cy={xy(live.rider)[1]} r={11} fill="#0B5D66" stroke="#fff" strokeWidth={4} /> : null}
+    </svg>
   );
 }

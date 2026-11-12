@@ -113,6 +113,20 @@ async def search_restaurants(
     )
 
 
+@router.get("/by-slug/{slug}", response_model=RestaurantResponse)
+async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, scope="function")) -> RestaurantResponse:
+    """A live restaurant by its URL slug (the web's restaurant pages, P20)."""
+    from sqlalchemy import select
+
+    from core_api.modules.catalog.models.restaurant import Restaurant
+
+    r = (await db.execute(select(Restaurant).where(
+        Restaurant.slug == slug, Restaurant.status == "active", Restaurant.deleted_at.is_(None)))).scalars().first()
+    if r is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    return RestaurantResponse.model_validate(r)
+
+
 @router.get("/{restaurant_id}", response_model=RestaurantResponse)
 async def get_restaurant(
     restaurant_id: uuid.UUID,

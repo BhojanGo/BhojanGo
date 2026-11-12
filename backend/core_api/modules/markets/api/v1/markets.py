@@ -89,6 +89,36 @@ async def join_waitlist(data: WaitlistIn, db: DB) -> dict:
 
 # ── Overview ──────────────────────────────────────────────────────────────────
 
+class PublicCity(BaseModel):
+    code: str
+    name: str
+    slug: str
+    region: str
+    country: str
+    currency: str
+    lat: float
+    lng: float
+    restaurants: int
+
+
+@router.get("/cities", response_model=list[PublicCity])
+async def public_cities(db: DB) -> list[PublicCity]:
+    """Cities where BhojanGo delivers (live or beta), for the web's city pages (P20). Public."""
+    from sqlalchemy import func, select
+
+    from core_api.modules.catalog.models.restaurant import Restaurant
+    from core_api.modules.markets.models import City, Country, Region
+
+    rows = (await db.execute(
+        select(City, Region, Country).join(Region, Region.id == City.region_id).join(Country, Country.id == City.country_id)
+        .where(City.status.in_(("live", "beta"))).order_by(Country.code, City.name))).all()
+    counts = dict((await db.execute(select(Restaurant.city, func.count(Restaurant.id)).where(
+        Restaurant.status == "active", Restaurant.is_active.is_(True), Restaurant.deleted_at.is_(None)).group_by(Restaurant.city))).all())
+    return [PublicCity(code=c.code, name=c.name, slug=c.name.lower().replace(" ", "-"), region=r.name, country=k.code,
+                       currency=k.currency, lat=c.center_lat, lng=c.center_lng, restaurants=counts.get(c.name, 0))
+            for c, r, k in rows]
+
+
 @router.get("", response_model=list[CountrySummary])
 async def overview(admin: Viewer, db: DB) -> list[CountrySummary]:
     """All countries -> states -> cities you can see, with launch checklists."""

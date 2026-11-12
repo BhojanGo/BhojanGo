@@ -1,16 +1,10 @@
 import type { MetadataRoute } from "next";
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bhojango.com";
+import { SITE } from "@/lib/server";
 
+export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: ["/", "/restaurants"],
-        disallow: ["/cart", "/checkout", "/orders", "/profile", "/wallet", "/api/"],
-      },
-    ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/checkout", "/orders", "/sign-in", "/design"] }],
+    sitemap: `${SITE}/sitemap.xml`,
   };
 }
