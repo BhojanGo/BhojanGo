@@ -3,7 +3,10 @@ import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
-import { useAuthStore } from "@bhojango/mobile-core";
+import { useAuthStore, useBrandFonts } from "@bhojango/mobile-core";
+import * as SplashScreen from "expo-splash-screen";
+
+void SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,10 +25,17 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
+  const fontsReady = useBrandFonts();
 
   useEffect(() => {
     void initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    if (fontsReady) void SplashScreen.hideAsync();
+  }, [fontsReady]);
+
+  if (!fontsReady) return null;
 
   return (
     <QueryClientProvider client={queryClient}>

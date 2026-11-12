@@ -5,12 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f97316"
-    },
+    "userInterfaceStyle": "dark",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -25,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f97316"
+        "backgroundColor": "#E8A93C"
       },
       "package": "com.bhojango.rider",
       "permissions": [
@@ -46,18 +41,27 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#f97316"
+          "color": "#E8A93C"
         }
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0C1416"
+        }
+      ]
     ],
     "scheme": "bhojango-rider",
     "extra": {
       "eas": {
         "projectId": "your-eas-project-id"
       }
-    }
+    },
+    "backgroundColor": "#0C1416"
   }
 }

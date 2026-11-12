@@ -195,9 +195,15 @@ cancellation, failed payment, a new order for a restaurant without the app); Ind
 template per message and language (`MSG91_TEMPLATE_IDS`, keys like `order_picked_up_hi`). Each
 message is sent once per event, person and channel, and kept in the in-app inbox.
 
-**Mobile apps** run on your machine with Expo (Node 24 + pnpm): copy
-`apps/customer/.env.example` (or `apps/rider/`) to `.env`, set your computer's LAN IP, then
-`pnpm install && pnpm --filter @bhojango/customer start`.
+**Mobile apps** are Expo development builds (not Expo Go):
+
+1. `make apk APP=customer` builds the Android debug APK in Linux (Docker), into `.apk/`. Windows path limits and OneDrive locks break React Native's native build on the host. Rebuild only when native packages change.
+2. `adb -s emulator-5554 install -r .apk/customer-debug.apk`, then `adb -s emulator-5554 reverse tcp:8081 tcp:8081` (do the same for 8001, 8004 and 8006 to reach the backend).
+3. `pnpm --filter @bhojango/customer start --dev-client` serves the JavaScript.
+4. Maestro flows are in `apps/<app>/.maestro/`: `maestro --device emulator-5554 test apps/customer/.maestro`.
+5. iOS: `pnpm turbo export:check` bundles both platforms (also in `make ci`). Device testing waits for a Mac.
+
+**Design system (P16):** the tokens in `@bhojango/ui/tokens` are the one source. `@bhojango/ui` holds the web components and Tailwind preset; `@bhojango/mobile-core` holds the same components in React Native. Galleries: http://localhost:3000/design and `bhojango://gallery` in the customer app. App icons, splash screens and favicons come from `docs/design/logo` via `pnpm brand:assets`.
 
 For hot reload on the backend or web apps, see CONTRIBUTING (run the databases in
 Docker and the code on your machine). There is no API gateway locally: apps and tests

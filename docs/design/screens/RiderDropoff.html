@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Courier drop-off and proof</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7FCFD4}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0C1416; color: #F2F5F5; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+  <svg width="390" height="260" viewBox="0 0 390 260" aria-hidden="true" style="position: absolute; left: 0; top: 0">
+    <rect width="390" height="260" fill="#0F1B1D"></rect>
+    <path d="M-10 90 C 100 70, 220 120, 400 80" stroke="#1A2A2D" stroke-width="14" fill="none"></path>
+    <path d="M-10 200 C 140 180, 260 230, 400 190" stroke="#1A2A2D" stroke-width="14" fill="none"></path>
+    <path d="M150 -10 C 170 100, 130 180, 160 270" stroke="#1A2A2D" stroke-width="10" fill="none"></path>
+    <path d="M90 210 C 130 180, 160 150, 210 130 S 270 110, 300 98" fill="none" stroke="#7FCFD4" stroke-width="4" stroke-linecap="round"></path>
+    <circle cx="90" cy="210" r="11" fill="#E8A93C" stroke="#0C1416" stroke-width="3"></circle>
+    <rect x="290" y="88" width="20" height="20" rx="5" fill="#F2F5F5"></rect>
+  </svg>
+
+  <div style="position: absolute; left: 20px; right: 20px; top: 16px; display: flex; justify-content: space-between; align-items: center">
+    <div style="height: 44px; padding: 0 16px; border-radius: 999px; background: rgba(20, 34, 37, 0.92); display: flex; align-items: center; font-size: 14px; font-weight: 700">Drop-off · step 2 of 2</div>
+    <button style="font: inherit; height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid #6B2A26; background: rgba(20, 34, 37, 0.92); color: #FF9A8F; font-weight: 800; font-size: 14px">SOS</button>
+  </div>
+
+  <section aria-label="Drop-off" style="position: absolute; left: 10px; right: 10px; bottom: 10px; height: 600px; box-sizing: border-box; border-radius: 32px; background: #142225; padding: 24px 20px 20px; display: flex; flex-direction: column">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+      <div>
+        <div style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 28px; letter-spacing: -0.6px; line-height: 1.1">Sam P.</div>
+        <div style="font-size: 14px; color: #A9B8BA; margin-top: 4px">1412 N 13th St · 0.4 mi · order #A7K2</div>
+      </div>
+      <button aria-label="Call Sam through a masked number" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 999px; border: 0; background: #1B2C2F; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7FCFD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg></button>
+    </div>
+
+    <div style="margin-top: 16px; padding: 16px; border-radius: 16px; background: #2A2310; color: #F6DFA8; font-size: 14px; line-height: 1.5"><b>Leave at door.</b> Side gate is unlocked. Dog is friendly.</div>
+
+    <a href="#" style="margin-top: 12px; height: 56px; border-radius: 999px; border: 1.5px solid #2E4447; color: #F2F5F5; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7FCFD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-8-8 18-2-8z"></path></svg>Navigate</a>
+
+    <div style="margin-top: 24px; font-size: 15px; font-weight: 800">Proof of delivery</div>
+    <div role="radiogroup" aria-label="Proof type" style="margin-top: 12px; display: flex; padding: 4px; border-radius: 999px; background: #0F1B1D">
+      <button role="radio" aria-checked="true" style="font: inherit; flex: 1; height: 44px; border: 0; border-radius: 999px; background: #24383B; color: #F2F5F5; font-weight: 800; font-size: 14px">Photo at door</button>
+      <button role="radio" aria-checked="false" style="font: inherit; flex: 1; height: 44px; border: 0; border-radius: 999px; background: transparent; color: #A9B8BA; font-weight: 600; font-size: 14px">Hand over · PIN</button>
+    </div>
+    <button style="font: inherit; margin-top: 12px; height: 112px; border-radius: 16px; border: 1.5px dashed #3A5256; background: #0F1B1D; color: #F2F5F5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-weight: 700">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7FCFD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+      Take photo of the bags at the door</button>
+
+    <button style="font: inherit; margin-top: auto; width: 100%; height: 64px; border-radius: 999px; border: 0; background: #E8A93C; color: #111418; font-weight: 800; font-size: 19px">Complete delivery</button>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

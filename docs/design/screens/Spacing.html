@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spacing and layout system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 1200px; height: 800px; box-sizing: border-box; padding: 48px 64px; background: #FFFFFF; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+  <div>
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #4C5A5E">Space · grid · shape</div>
+    <div style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 40px; letter-spacing: -1px; margin-top: 8px">Everything sits on a 4-point grid.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+    <section aria-label="Spacing scale" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 15px; font-weight: 800">Spacing scale</div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">4</span><span style="width: 4px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">icon to label</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">8</span><span style="width: 8px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">label to field, chip gap</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">12</span><span style="width: 12px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">between list cards, heading to content</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">16</span><span style="width: 16px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">card padding (mobile)</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">20</span><span style="width: 20px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">screen edge (phone)</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">24</span><span style="width: 24px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">card padding (tablet, web), group gap</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">32</span><span style="width: 32px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">between sections</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="width: 32px; color: #4C5A5E">48</span><span style="width: 48px; height: 16px; border-radius: 2px; background: #0B5D66"></span><span style="color: #4C5A5E">page top (web)</span></div>
+    </section>
+
+    <section aria-label="Layout grids" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 15px; font-weight: 800">Layout grids</div>
+      <div style="display: flex; gap: 12px; align-items: flex-end">
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 12px; color: #4C5A5E"><div style="width: 56px; height: 112px; border-radius: 10px; border: 1.5px solid #C9D3D4; padding: 0 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px"><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span></div>Phone</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 12px; color: #4C5A5E"><div style="width: 112px; height: 80px; border-radius: 10px; border: 1.5px solid #C9D3D4; padding: 0 5px; box-sizing: border-box; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px"><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span></div>Tablet</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 12px; color: #4C5A5E"><div style="width: 136px; height: 80px; border-radius: 10px; border: 1.5px solid #C9D3D4; padding: 0 6px; box-sizing: border-box; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px"><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span><span style="background: #DDEBEC"></span></div>Web</div>
+      </div>
+      <table style="border-collapse: collapse; font-size: 13px; width: 100%">
+        <thead><tr style="text-align: left; color: #4C5A5E"><th style="padding: 6px 0; font-weight: 700"></th><th style="font-weight: 700">Columns</th><th style="font-weight: 700">Edge</th><th style="font-weight: 700">Gap</th></tr></thead>
+        <tbody>
+          <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 8px 0; font-weight: 700">Phone 390</td><td>4</td><td>20</td><td>12</td></tr>
+          <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 8px 0; font-weight: 700">Tablet 1194</td><td>8</td><td>24</td><td>16</td></tr>
+          <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 8px 0; font-weight: 700">Web 1440</td><td>12</td><td>32</td><td>24</td></tr>
+        </tbody>
+      </table>
+      <div style="font-size: 13px; color: #4C5A5E; line-height: 1.5">Web content caps at 1280 px wide; side menu is a fixed 248 px.</div>
+    </section>
+
+    <section aria-label="Shape and touch" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 15px; font-weight: 800">Shape, depth, touch</div>
+      <div style="display: flex; gap: 12px">
+        <div style="flex: 1; height: 56px; border-radius: 8px; background: #F4F6F6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">8 · chip</div>
+        <div style="flex: 1; height: 56px; border-radius: 16px; background: #F4F6F6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">16 · card</div>
+        <div style="flex: 1; height: 56px; border-radius: 24px; background: #F4F6F6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">24 · sheet</div>
+        <div style="flex: 1; height: 56px; border-radius: 999px; background: #F4F6F6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">pill · CTA</div>
+      </div>
+      <div style="display: flex; gap: 12px">
+        <div style="flex: 1; height: 56px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E7E8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">Flat · hairline</div>
+        <div style="flex: 1; height: 56px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17, 20, 24, 0.06), 0 8px 24px rgba(17, 20, 24, 0.08); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">Floating</div>
+        <div style="flex: 1; height: 56px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 -8px 40px rgba(17, 20, 24, 0.12); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">Sheet</div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-end">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #4C5A5E"><span style="width: 48px; height: 48px; border-radius: 999px; border: 1.5px dashed #0B5D66; box-sizing: border-box"></span>48 · min</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #4C5A5E"><span style="width: 120px; height: 56px; border-radius: 999px; background: #0B5D66"></span>56 · primary</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #4C5A5E"><span style="width: 120px; height: 64px; border-radius: 999px; background: #E8A93C"></span>64 · courier</div>
+      </div>
+    </section>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding-top: 24px; border-top: 1px solid #E2E7E8; font-size: 14px; line-height: 1.5">
+    <div><b>Rhythm.</b> Sections 32 apart, items in a group 12 apart. Never mix more than two gap sizes on one screen.</div>
+    <div><b>Alignment.</b> One left edge per screen. Numbers right-aligned in tabular figures.</div>
+    <div><b>Thumb zone.</b> The main action sits in the bottom third on phones, always the same place.</div>
+    <div><b>Density by role.</b> Customer airy · courier glanceable · merchant big-target · admin dense but scannable.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

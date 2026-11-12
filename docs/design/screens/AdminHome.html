@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin · all countries</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="min-height: 1160px; box-sizing: border-box; background: #F4F6F6; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="background: #FFFFFF; padding: 12px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px">
+    <div style="display: flex; align-items: center; gap: 10px; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: -0.4px"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>bhojango <span style="font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; font-size: 14px; color: #4C5A5E; letter-spacing: 0">admin</span></div>
+    <label style="flex: 1 1 240px; max-width: 440px; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #F4F6F6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input aria-label="Search orders, restaurants, people in all countries" placeholder="Search all countries" style="font: inherit; font-size: 14px; border: 0; background: transparent; outline: none; width: 100%"></label>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="width: 32px; height: 32px; border-radius: 999px; background: #DDEBEC; color: #083F46; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center">SR</span>Srini · Super admin</div>
+  </header>
+
+  <nav aria-label="Country" style="background: #FFFFFF; border-bottom: 1px solid #E2E7E8; padding: 0 32px; display: flex; flex-wrap: wrap; gap: 4px; overflow-x: auto">
+    <a href="#" aria-current="page" style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 800; color: #083F46; border-bottom: 3px solid #0B5D66; box-sizing: border-box">All countries</a>
+    <a href="AdminCountry.dc.html" style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 600; color: #4C5A5E; border-bottom: 3px solid transparent; box-sizing: border-box"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1; color: #111418">IN</span>India<span style="font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 999px; background: #D4932A; color: #111418; display: inline-flex; align-items: center; justify-content: center">4</span></a>
+    <a href="#" style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 600; color: #4C5A5E; border-bottom: 3px solid transparent; box-sizing: border-box"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1; color: #111418">US</span>United States<span style="font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 999px; background: #B3261E; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center">2</span></a>
+    <a href="AdminMarkets.dc.html" style="height: 52px; padding: 0 16px; display: flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 700; color: #0B5D66; border-bottom: 3px solid transparent; box-sizing: border-box">+ Add country</a>
+  </nav>
+
+  <div style="display: flex; flex-wrap: wrap; flex-grow: 1">
+    <nav aria-label="Admin sections" style="flex: 1 1 248px; background: #FFFFFF; border-right: 1px solid #E2E7E8; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box">
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; background: #DDEBEC; color: #083F46; text-decoration: none; font-weight: 800; font-size: 15px">Overview</a>
+      <a href="AdminSupport.dc.html" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Operations</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Partners</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Customers</a>
+      <a href="AdminPricing.dc.html" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Pricing &amp; Rules</a>
+      <a href="AdminMarkets.dc.html" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Markets</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Finance</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Reports</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Settings</a>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box">
+      <div style="max-width: 1280px; display: flex; flex-direction: column; gap: 24px">
+        <div>
+          <h1 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 32px; letter-spacing: -0.8px">All countries</h1>
+          <div style="font-size: 14px; color: #4C5A5E; margin-top: 4px">Thu, Nov 5 · 2 countries · 3 states · 5 cities (2 live or in beta) · money stays in each country's currency</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px">
+          <article style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; font-variant-numeric: tabular-nums">
+            <div style="display: flex; align-items: center; gap: 12px">
+              <span style="font-size: 13px; font-weight: 800; padding: 4px 8px; border-radius: 8px; background: #EEF1F1">IN</span>
+              <div style="flex-grow: 1"><div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 24px; font-weight: 600; letter-spacing: -0.4px">India</div><div style="font-size: 13px; color: #4C5A5E">INR · GST · Razorpay · Asia/Kolkata</div></div>
+              <a href="AdminCountry.dc.html" style="height: 44px; padding: 0 20px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; font-weight: 800; font-size: 14px">Open India</a>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+              <div><div style="font-size: 12px; color: #4C5A5E">Live orders</div><div style="font-size: 24px; font-weight: 800">31</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">Orders today</div><div style="font-size: 24px; font-weight: 800">1,021</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">Median delivery</div><div style="font-size: 24px; font-weight: 800">33 min</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">GMV today</div><div style="font-size: 24px; font-weight: 800">₹4.82L</div></div>
+            </div>
+            <div style="border-top: 1px solid #EEF1F1">
+              <a href="AdminCountry.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EEF1F1; text-decoration: none; color: #111418; font-size: 14px"><span style="flex-grow: 1"><b>Telangana</b> <span style="color: #4C5A5E">· Hyderabad live, Warangal draft</span></span><span style="width: 96px; text-align: right">1,021 orders</span></a>
+              <a href="AdminCountry.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; text-decoration: none; color: #111418; font-size: 14px"><span style="flex-grow: 1"><b>Andhra Pradesh</b> <span style="color: #4C5A5E">· 2 cities in setup</span></span><span style="width: 96px; text-align: right; color: #4C5A5E">not live</span></a>
+            </div>
+            <div style="padding: 12px 16px; border-radius: 12px; background: #F7EBD3; color: #5C4100; font-size: 14px; display: flex; justify-content: space-between"><span><b>4 need action</b> · 1 rule approval, 3 documents</span><a href="AdminCountry.dc.html" style="font-weight: 700; text-decoration: none; color: #5C4100">View</a></div>
+          </article>
+
+          <article style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; font-variant-numeric: tabular-nums">
+            <div style="display: flex; align-items: center; gap: 12px">
+              <span style="font-size: 13px; font-weight: 800; padding: 4px 8px; border-radius: 8px; background: #EEF1F1">US</span>
+              <div style="flex-grow: 1"><div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 24px; font-weight: 600; letter-spacing: -0.4px">United States</div><div style="font-size: 13px; color: #4C5A5E">USD · Stripe Tax · Stripe · America/Boise</div></div>
+              <a href="#" style="height: 44px; padding: 0 20px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; font-weight: 800; font-size: 14px">Open US</a>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+              <div><div style="font-size: 12px; color: #4C5A5E">Live orders</div><div style="font-size: 24px; font-weight: 800">11</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">Orders today</div><div style="font-size: 24px; font-weight: 800">263</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">Median delivery</div><div style="font-size: 24px; font-weight: 800">36 min</div></div>
+              <div><div style="font-size: 12px; color: #4C5A5E">GMV today</div><div style="font-size: 24px; font-weight: 800">$8,940</div></div>
+            </div>
+            <div style="border-top: 1px solid #EEF1F1">
+              <a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; text-decoration: none; color: #111418; font-size: 14px"><span style="flex-grow: 1"><b>Idaho</b> <span style="color: #4C5A5E">· Boise</span></span><span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 8px; background: #F7EBD3; color: #5C4100">Beta</span><span style="width: 96px; text-align: right">263 orders</span></a>
+            </div>
+            <div style="margin-top: auto; padding: 12px 16px; border-radius: 12px; background: #FCE8E6; color: #8C1D18; font-size: 14px; display: flex; justify-content: space-between"><span><b>2 urgent</b> · orders waiting for a rider</span><a href="AdminSupport.dc.html" style="font-weight: 700; text-decoration: none; color: #8C1D18">Dispatch</a></div>
+          </article>
+        </div>
+
+        <section aria-label="Compare countries" style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px"><h2 style="margin: 0; font-size: 17px; font-weight: 800">Side by side</h2><span style="font-size: 13px; color: #4C5A5E">Today · local time in each city</span></div>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; font-variant-numeric: tabular-nums">
+              <thead><tr style="text-align: left; color: #4C5A5E; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px"><th style="padding: 12px 0; font-weight: 700">Country</th><th style="font-weight: 700; text-align: right">Completed</th><th style="font-weight: 700; text-align: right">On time</th><th style="font-weight: 700; text-align: right">Rider pay / active hr</th><th style="font-weight: 700; text-align: right">Riders online</th><th style="font-weight: 700; text-align: right">Rating</th><th style="font-weight: 700; text-align: right">Refunds</th></tr></thead>
+              <tbody>
+                <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 16px 0; font-weight: 700">India</td><td style="text-align: right">98.1%</td><td style="text-align: right">91%</td><td style="text-align: right">₹186</td><td style="text-align: right">142</td><td style="text-align: right">4.6</td><td style="text-align: right">1.4%</td></tr>
+                <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 16px 0; font-weight: 700">United States</td><td style="text-align: right">96.6%</td><td style="text-align: right">87%</td><td style="text-align: right">$19.75</td><td style="text-align: right">38</td><td style="text-align: right">4.5</td><td style="text-align: right">2.1%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-label="Needs action in all countries" style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px">
+          <h2 style="margin: 0 0 8px; font-size: 17px; font-weight: 800">Needs action · all countries</h2>
+          <a href="AdminSupport.dc.html" style="display: flex; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid #EEF1F1; text-decoration: none; color: #111418"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1">US</span><span style="width: 10px; height: 10px; border-radius: 999px; background: #B3261E; flex-shrink: 0"></span><span style="flex-grow: 1"><b>2 orders waiting for a rider</b> · Boise, Downtown</span><span style="font-weight: 700; font-size: 14px; color: #0B5D66">Dispatch</span></a>
+          <a href="AdminPricing.dc.html" style="display: flex; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid #EEF1F1; text-decoration: none; color: #111418"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1">IN</span><span style="width: 10px; height: 10px; border-radius: 999px; background: #D4932A; flex-shrink: 0"></span><span style="flex-grow: 1"><b>Rule waiting for your approval</b> · Delivery fee, Hyderabad v4</span><span style="font-weight: 700; font-size: 14px; color: #0B5D66">Review</span></a>
+          <a href="#" style="display: flex; gap: 16px; align-items: center; padding: 16px 0 0; text-decoration: none; color: #111418"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1">IN</span><span style="width: 10px; height: 10px; border-radius: 999px; background: #D4932A; flex-shrink: 0"></span><span style="flex-grow: 1"><b>3 restaurants waiting on documents</b> · FSSAI licence, Hyderabad</span><span style="font-weight: 700; font-size: 14px; color: #0B5D66">Open</span></a>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

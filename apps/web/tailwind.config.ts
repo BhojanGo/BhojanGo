@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
+import preset from "@bhojango/ui/tailwind-preset";
 
 const config: Config = {
+  presets: [preset],
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
@@ -9,33 +11,34 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Older pages still say brand/accent: they map onto Peacock and Kesar
+        // until P20/P21 rebuild them on the design system.
         brand: {
-          50: "#ecfdf5",
-          100: "#d1fae5",
-          200: "#a7f3d0",
-          300: "#6ee7b7",
-          400: "#34d399",
-          500: "#10b981",
-          600: "#059669",
-          700: "#047857",
-          800: "#065f46",
-          900: "#064e3b",
+          50: "#EFF6F6",
+          100: "#DDEBEC",
+          200: "#B9D6D9",
+          300: "#86B9BE",
+          400: "#3E8B93",
+          500: "#0B5D66",
+          600: "#0B5D66",
+          700: "#083F46",
+          800: "#083F46",
+          900: "#062F34",
         },
         accent: {
-          50: "#fffbeb",
-          100: "#fef3c7",
-          200: "#fde68a",
-          300: "#fcd34d",
-          400: "#fbbf24",
-          500: "#f59e0b",
-          600: "#d97706",
-          700: "#b45309",
-          800: "#92400e",
-          900: "#78350f",
+          50: "#FBF4E6",
+          100: "#F7EBD3",
+          200: "#F2D9A8",
+          300: "#ECC37A",
+          400: "#E8A93C",
+          500: "#D4932A",
+          600: "#B87A1D",
+          700: "#5C4100",
+          800: "#5C4100",
+          900: "#3D2B00",
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.2s ease-in-out",

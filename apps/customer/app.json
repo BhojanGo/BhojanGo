@@ -5,12 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f97316"
-    },
+    "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -25,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f97316"
+        "backgroundColor": "#0B5D66"
       },
       "package": "com.bhojango.app",
       "permissions": [
@@ -46,18 +41,27 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#f97316"
+          "color": "#0B5D66"
         }
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#F4F6F6"
+        }
+      ]
     ],
     "scheme": "bhojango",
     "extra": {
       "eas": {
         "projectId": "your-eas-project-id"
       }
-    }
+    },
+    "backgroundColor": "#F4F6F6"
   }
 }

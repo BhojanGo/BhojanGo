@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin pricing rule editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="min-height: 1200px; box-sizing: border-box; background: #F4F6F6; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="background: #FFFFFF; padding: 12px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px">
+    <div style="display: flex; align-items: center; gap: 10px; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: -0.4px"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>bhojango <span style="font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; font-size: 14px; color: #4C5A5E; letter-spacing: 0">admin</span></div>
+    <label style="flex: 1 1 240px; max-width: 440px; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #F4F6F6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input aria-label="Search in Hyderabad" placeholder="Search in Hyderabad" style="font: inherit; font-size: 14px; border: 0; background: transparent; outline: none; width: 100%"></label>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="width: 32px; height: 32px; border-radius: 999px; background: #DDEBEC; color: #083F46; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center">SR</span>Srini · Super admin</div>
+  </header>
+
+  <nav aria-label="Country" style="background: #FFFFFF; border-bottom: 1px solid #E2E7E8; padding: 0 32px; display: flex; flex-wrap: wrap; gap: 4px">
+    <a href="AdminHome.dc.html" style="height: 52px; padding: 0 16px; display: flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 600; color: #4C5A5E; border-bottom: 3px solid transparent; box-sizing: border-box">All countries</a>
+    <a href="AdminCountry.dc.html" aria-current="true" style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 800; color: #083F46; border-bottom: 3px solid #0B5D66; box-sizing: border-box"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #DDEBEC; color: #083F46">IN</span>India<span style="font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 999px; background: #D4932A; color: #111418; display: inline-flex; align-items: center; justify-content: center">4</span></a>
+    <a href="#" style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 600; color: #4C5A5E; border-bottom: 3px solid transparent; box-sizing: border-box"><span style="font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: #EEF1F1; color: #111418">US</span>United States<span style="font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 999px; background: #B3261E; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center">2</span></a>
+    <a href="AdminMarkets.dc.html" style="height: 52px; padding: 0 16px; display: flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 700; color: #0B5D66; border-bottom: 3px solid transparent; box-sizing: border-box">+ Add country</a>
+  </nav>
+  <nav aria-label="State and city in India" style="background: #FAFBFB; border-bottom: 1px solid #E2E7E8; padding: 10px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; color: #4C5A5E; margin-right: 4px">State</span>
+    <a href="AdminCountry.dc.html" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #E2E7E8; background: #FFFFFF; color: #111418; text-decoration: none; display: flex; align-items: center; font-size: 14px; font-weight: 600">All states</a>
+    <a href="#" aria-current="true" style="height: 36px; padding: 0 14px; border-radius: 999px; background: #111418; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700">Telangana <span style="font-size: 12px; color: #A9B8BA">2</span></a>
+    <a href="#" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #E2E7E8; background: #FFFFFF; color: #111418; text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">Andhra Pradesh <span style="font-size: 12px; color: #4C5A5E">2</span></a>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px">
+      <span style="font-size: 13px; font-weight: 700; color: #4C5A5E">City</span>
+      <button aria-haspopup="listbox" aria-expanded="false" style="font: inherit; height: 36px; min-width: 200px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #0B5D66; background: #FFFFFF; color: #111418; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 999px; background: #0B5D66"></span><span style="flex-grow: 1; text-align: left">Hyderabad</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+    </div>
+  </nav>
+
+  <div style="display: flex; flex-wrap: wrap; flex-grow: 1">
+    <nav aria-label="Pricing and rules" style="flex: 1 1 248px; background: #FFFFFF; border-right: 1px solid #E2E7E8; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box">
+      <a href="AdminHome.dc.html" style="display: flex; align-items: center; height: 44px; padding: 0 16px; color: #4C5A5E; text-decoration: none; font-weight: 600; font-size: 14px">← Home</a>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #4C5A5E; padding: 16px 16px 8px">Pricing &amp; Rules</div>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; background: #DDEBEC; color: #083F46; text-decoration: none; font-weight: 800; font-size: 15px">Delivery fees</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Customer fees</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Taxes</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Commissions</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Rider pay</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Business rules</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Promotions</a>
+      <a href="#" style="display: flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Price simulator</a>
+      <a href="#" style="display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px; border-radius: 12px; color: #111418; text-decoration: none; font-weight: 600; font-size: 15px">Approvals <span style="font-size: 12px; font-weight: 800; min-width: 22px; height: 22px; border-radius: 999px; background: #D4932A; color: #111418; display: inline-flex; align-items: center; justify-content: center">1</span></a>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box">
+      <div style="max-width: 1280px; display: flex; flex-direction: column; gap: 24px">
+        <div>
+          <div style="font-size: 13px; color: #4C5A5E">Pricing &amp; Rules ▸ Delivery fees</div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px">
+            <h1 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 32px; letter-spacing: -0.8px">Delivery fee · Hyderabad</h1>
+            <span style="font-size: 12px; font-weight: 800; padding: 6px 10px; border-radius: 999px; background: #F7EBD3; color: #5C4100">Draft v4 · waiting for approval</span>
+          </div>
+          <div style="font-size: 14px; color: #4C5A5E; margin-top: 8px">Distance slabs · applies to every Hyderabad zone unless a zone overrides it</div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+          <div style="flex: 8 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+            <section aria-label="Slabs" style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; overflow: hidden">
+              <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #EEF1F1"><h2 style="margin: 0; font-size: 17px; font-weight: 800">Fee slabs</h2><span style="font-size: 13px; color: #4C5A5E">Requested by Anil · Country manager · 2 h ago</span></div>
+              <div style="overflow-x: auto">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; font-variant-numeric: tabular-nums">
+                  <thead><tr style="text-align: left; color: #4C5A5E; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; background: #FAFBFB"><th style="padding: 12px 24px; font-weight: 700">Distance</th><th style="font-weight: 700; text-align: right; padding-right: 24px">Live v3</th><th style="font-weight: 700">Draft v4</th><th style="font-weight: 700; padding-right: 24px">Comes from</th></tr></thead>
+                  <tbody>
+                    <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 16px 24px; font-weight: 700">0 – 3 km</td><td style="text-align: right; padding-right: 24px; color: #4C5A5E">₹20</td><td><input aria-label="Draft fee for 0 to 3 km" value="₹20" style="font: inherit; width: 88px; height: 40px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #C9D3D4; box-sizing: border-box"></td><td style="padding-right: 24px"><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #F4F6F6; border: 1px solid #C9D3D4; color: #4C5A5E">Inherited · India</span></td></tr>
+                    <tr style="border-top: 1px solid #EEF1F1; background: #F2F8F8"><td style="padding: 16px 24px; font-weight: 700">3 – 6 km</td><td style="text-align: right; padding-right: 24px; color: #4C5A5E">₹30</td><td><input aria-label="Draft fee for 3 to 6 km" value="₹35" style="font: inherit; font-weight: 800; width: 88px; height: 40px; padding: 0 12px; border-radius: 8px; border: 2px solid #0B5D66; color: #083F46; box-sizing: border-box"></td><td style="padding-right: 24px"><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #DDEBEC; border: 1px solid #0B5D66; color: #083F46">Overridden · Hyderabad</span> <a href="#" style="font-size: 13px; margin-left: 8px">Reset</a></td></tr>
+                    <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 16px 24px; font-weight: 700">6 – 9 km</td><td style="text-align: right; padding-right: 24px; color: #4C5A5E">₹50</td><td><input aria-label="Draft fee for 6 to 9 km" value="₹50" style="font: inherit; width: 88px; height: 40px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #C9D3D4; box-sizing: border-box"></td><td style="padding-right: 24px"><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #F4F6F6; border: 1px solid #C9D3D4; color: #4C5A5E">Inherited · India</span></td></tr>
+                    <tr style="border-top: 1px solid #EEF1F1"><td style="padding: 16px 24px; font-weight: 700">Free above</td><td style="text-align: right; padding-right: 24px; color: #4C5A5E">₹599</td><td><input aria-label="Free delivery threshold" value="₹599" style="font: inherit; width: 88px; height: 40px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #C9D3D4; box-sizing: border-box"></td><td style="padding-right: 24px"><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #F4F6F6; border: 1px solid #C9D3D4; color: #4C5A5E">Inherited · India</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-label="Schedule and approve" style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 24px">
+              <div style="display: flex; flex-wrap: wrap; gap: 24px">
+                <label style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 700">Takes effect
+                  <input value="Mon, Nov 9 · 12:00 am IST" style="font: inherit; font-weight: 500; font-size: 15px; height: 48px; padding: 0 16px; border-radius: 12px; border: 1.5px solid #C9D3D4; background: #FFFFFF"></label>
+                <label style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 700">Reason
+                  <input value="Rider cost up in the 3–6 km band" style="font: inherit; font-weight: 500; font-size: 15px; height: 48px; padding: 0 16px; border-radius: 12px; border: 1.5px solid #C9D3D4; background: #FFFFFF"></label>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 12px">
+                <button style="font: inherit; height: 52px; padding: 0 24px; border-radius: 999px; border: 0; background: #0B5D66; color: #FFFFFF; font-weight: 800; font-size: 15px">Approve and schedule</button>
+                <button style="font: inherit; height: 52px; padding: 0 24px; border-radius: 999px; border: 1.5px solid #C9D3D4; background: #FFFFFF; color: #111418; font-weight: 700; font-size: 15px">Send back with comment</button>
+              </div>
+            </section>
+
+            <section aria-label="Version history" style="background: #FFFFFF; border: 1px solid #E2E7E8; border-radius: 16px; padding: 24px">
+              <h2 style="margin: 0 0 8px; font-size: 17px; font-weight: 800">History</h2>
+              <div style="display: flex; flex-direction: column; font-size: 14px">
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #EEF1F1"><span><b>v4 · draft</b> · 3–6 km ₹30 → ₹35</span><span style="color: #4C5A5E">Anil · today</span></div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #EEF1F1"><span><b>v3 · live since Nov 1</b> · free above ₹499 → ₹599</span><span style="color: #4C5A5E">Anil · approved by Finance</span></div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 16px 0 0"><span><b>v2 · retired</b> · first Hyderabad override</span><a href="#" style="font-weight: 700">Roll back to this</a></div>
+              </div>
+            </section>
+          </div>
+
+          <aside aria-label="Price simulator" style="flex: 4 1 300px; min-width: 0; background: #111418; color: #F2F5F5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; font-variant-numeric: tabular-nums">
+            <div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 20px; font-weight: 600">Price simulator</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: #1B2C2F">Cart ₹560</span>
+              <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: #1B2C2F">4.2 km</span>
+              <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: #1B2C2F">Thu 8 pm</span>
+              <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: #1B2C2F">Tier B</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px">
+              <thead><tr style="color: #A9B8BA; font-size: 12px; text-align: right"><th style="text-align: left; font-weight: 600; padding-bottom: 8px">Line</th><th style="font-weight: 600; padding-bottom: 8px">Live</th><th style="font-weight: 600; padding-bottom: 8px">Draft</th></tr></thead>
+              <tbody>
+                <tr><td style="padding: 6px 0">Delivery fee</td><td style="text-align: right">₹30.00</td><td style="text-align: right; font-weight: 800; color: #E8A93C">₹35.00</td></tr>
+                <tr><td style="padding: 6px 0">GST on fees</td><td style="text-align: right">₹10.12</td><td style="text-align: right; font-weight: 800; color: #E8A93C">₹11.02</td></tr>
+                <tr style="border-top: 1px solid #24383B"><td style="padding: 12px 0 6px; font-weight: 800">Customer pays</td><td style="text-align: right; padding-top: 12px">₹632.32</td><td style="text-align: right; padding-top: 12px; font-weight: 800">₹638.22</td></tr>
+                <tr><td style="padding: 6px 0">Restaurant gets</td><td style="text-align: right">₹486.00</td><td style="text-align: right">₹486.00</td></tr>
+                <tr><td style="padding: 6px 0">Rider gets</td><td style="text-align: right">₹70.20</td><td style="text-align: right">₹70.20</td></tr>
+                <tr><td style="padding: 6px 0">Platform keeps</td><td style="text-align: right">₹40.00</td><td style="text-align: right; font-weight: 800; color: #E8A93C">₹45.00</td></tr>
+              </tbody>
+            </table>
+            <div style="font-size: 13px; color: #A9B8BA; line-height: 1.5">Last 30 days: [share]% of Hyderabad orders fall in the 3–6 km band.</div>
+            <a href="#" style="height: 48px; border-radius: 999px; border: 1.5px solid #2E4447; color: #F2F5F5; text-decoration: none; display: flex; align-items: center; justify-content: center; font-weight: 700">Try another cart</a>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

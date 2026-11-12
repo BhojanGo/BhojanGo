@@ -2,23 +2,33 @@
   "name": "@bhojango/ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared React component library for BhojanGo web apps",
+  "description": "BhojanGo design system for the web: tokens, Tailwind preset, components (P16)",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+      "require": "./dist/index.js"
+    },
+    "./tokens": {
+      "types": "./tokens.d.ts",
+      "default": "./tokens.js"
+    },
+    "./bill": {
+      "types": "./bill.d.ts",
+      "default": "./bill.js"
+    },
+    "./tailwind-preset": "./tailwind-preset.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --external react",
     "dev": "tsup src/index.ts --format cjs,esm --dts --external react --watch",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "node --test test/bill.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -37,5 +47,13 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.3.0"
-  }
+  },
+  "files": [
+    "dist",
+    "tokens.js",
+    "tokens.d.ts",
+    "bill.js",
+    "bill.d.ts",
+    "tailwind-preset.js"
+  ]
 }

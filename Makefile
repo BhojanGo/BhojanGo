@@ -16,7 +16,7 @@ PROFILE ?= all
 # Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
 export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-e2e ci-terraform down reset logs ps
+.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps
 
 help:
 	@sed -n '1,15p' Makefile
@@ -71,6 +71,13 @@ E2E_COMPOSE := $(COMPOSE) -p bhojango-g1 -f infra/docker/compose.yaml -f infra/d
 ci-e2e:
 	$(E2E_COMPOSE) --profile backend up -d --build --wait || { $(E2E_COMPOSE) --profile backend logs --tail 50; $(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
 	$(E2E_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(E2E_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(E2E_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
+
+# Android debug APK for an Expo app, built in Linux (Windows path limits and
+# OneDrive locks break React Native's CMake builds). Output: .apk/<app>-debug.apk
+#   make apk APP=customer   then: adb -s emulator-5554 install -r .apk/customer-debug.apk
+APP ?= customer
+apk:
+	docker run --rm -v "$(CURDIR):/src:ro" -v "$(CURDIR)/.apk:/out" -v bhojango-gradle:/root/.gradle 	  -v bhojango-pnpm-store:/pnpm-store reactnativecommunity/react-native-android:v22.0 sh /src/tools/android/build-apk.sh $(APP)
 
 ci-docker:
 	for svc in core_api realtime worker; do docker build -q -f backend/$$svc/Dockerfile -t bhojango-$$svc:ci backend || exit 1; done
