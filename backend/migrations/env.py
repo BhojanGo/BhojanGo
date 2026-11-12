@@ -23,6 +23,7 @@ import core_api.modules.rules.models  # noqa: F401
 import core_api.modules.audit.models  # noqa: F401
 import core_api.modules.pricing.models  # noqa: F401
 import shared.outbox  # noqa: F401
+import core_api.modules.finance.models  # noqa: F401
 import core_api.modules.orders.models  # noqa: F401
 import core_api.modules.payments.models  # noqa: F401
 import worker.app.models  # noqa: F401

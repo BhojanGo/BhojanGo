@@ -221,6 +221,13 @@ class DispatchOfferTimeout(_P):
     seconds: int = Field(ge=10, le=120)
 
 
+class RefundCost(_P):
+    """Who bears item refunds in payouts (P13): the restaurant (its payout loses
+    the item, less the commission it paid on it) or the platform."""
+
+    item_refunds_charged_to: Literal["restaurant", "platform"] = "restaurant"
+
+
 class SupportRefundLimit(_P):
     """The most a support agent may refund on one order (P12); above it, a
     city ops, country manager or finance admin does it."""
@@ -307,6 +314,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "max_radius": MaxRadius,
         "dispatch_offer_timeout": DispatchOfferTimeout,
         "support_refund_limit": SupportRefundLimit,
+        "refund_cost": RefundCost,
     },
     "promotion": {
         "percent_off": PromoPercentOff,
