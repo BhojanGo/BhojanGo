@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.audit import service as audit
@@ -182,6 +183,36 @@ async def rollback(rule_id: uuid.UUID, admin: Editor, db: DB) -> RuleOut:
     """Bring back this (earlier) version, starting now. Money rules go for approval."""
     await _rule_for(admin, db, rule_id, "rules.edit")
     return out(await _run(RuleService(db).rollback(admin.user.id, rule_id)))
+
+
+class PauseOffer(BaseModel):
+    reason: str = Field(min_length=3, max_length=300, description="Shown to the kitchen")
+
+
+# Pausing a kitchen's own offer protects customers or the kitchen (B4): city ops
+# (partners.edit) or anyone who approves rules, for the offer's city.
+PAUSERS = ("partners.edit", "rules.approve")
+
+
+async def _pausable(admin: AdminContext, db: AsyncSession, rule_id: uuid.UUID) -> Rule:
+    r = await _run(RuleService(db).get(rule_id))
+    if not any(admin.can(p, r.market_scope) for p in PAUSERS):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "FORBIDDEN_SCOPE", "message": f"You can't pause offers in {r.market_scope}"})
+    return r
+
+
+@router.post("/{rule_id}/pause", response_model=RuleOut)
+async def pause_offer(rule_id: uuid.UUID, data: PauseOffer, admin: Viewer, db: DB) -> RuleOut:
+    """Pause a kitchen's own offer (they go live without approval): it stops at
+    once, the kitchen sees the reason, and it's in the audit log."""
+    await _pausable(admin, db, rule_id)
+    return out(await _run(RuleService(db).pause(admin.user.id, rule_id, data.reason)))
+
+
+@router.post("/{rule_id}/resume", response_model=RuleOut)
+async def resume_offer(rule_id: uuid.UUID, admin: Viewer, db: DB) -> RuleOut:
+    await _pausable(admin, db, rule_id)
+    return out(await _run(RuleService(db).resume(admin.user.id, rule_id)))
 
 
 @router.post("/{rule_id}/end", response_model=RuleOut)

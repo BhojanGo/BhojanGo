@@ -158,9 +158,10 @@ export default function MenuScreen() {
                 <Pressable key={o.id} onLongPress={() => endOffer(o)} accessibilityHint="Long press to end the offer" style={s.offer}>
                   <View style={s.hoursRow}>
                     <Text style={[textFont("800"), { fontSize: 15 }]}>{o.name}</Text>
-                    <Text style={[textFont("800"), { fontSize: 12, color: o.live ? color.peacockDeep : tone.kesarInk }]}>{o.live ? "Live" : "Cap reached"}</Text>
+                    <Text style={[textFont("800"), { fontSize: 12, color: o.live ? color.peacockDeep : tone.kesarInk }]}>{o.paused ? "Paused by BhojanGo" : o.live ? "Live" : "Cap reached"}</Text>
                   </View>
                   <Text style={t.muted}>{describe(o, cur)}</Text>
+                  {o.paused ? <Text style={[textFont("600"), { fontSize: 14, color: tone.kesarInk }]}>{o.paused_reason} Customers don&apos;t see it until we resume it; ask us from Help.</Text> : null}
                   <View style={s.track}><View style={[s.fill, { width: `${cap ? Math.min(100, (used / cap) * 100) : 0}%` }]} /></View>
                   <View style={s.hoursRow}>
                     <Text style={t.muted}>{cash(used, cur)} used this week</Text>

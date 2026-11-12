@@ -3177,6 +3177,22 @@
             "title": "Params",
             "type": "object"
           },
+          "paused": {
+            "default": false,
+            "title": "Paused",
+            "type": "boolean"
+          },
+          "paused_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Reason"
+          },
           "template": {
             "title": "Template",
             "type": "string"
@@ -4828,6 +4844,22 @@
           "paused"
         ],
         "title": "PauseIn",
+        "type": "object"
+      },
+      "PauseOffer": {
+        "properties": {
+          "reason": {
+            "description": "Shown to the kitchen",
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "PauseOffer",
         "type": "object"
       },
       "PaymentInitiateRequest": {
@@ -7174,6 +7206,29 @@
             "additionalProperties": true,
             "title": "Params",
             "type": "object"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "paused_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Reason"
           },
           "priority": {
             "title": "Priority",
@@ -15894,6 +15949,65 @@
         ]
       }
     },
+    "/api/v1/rules/{rule_id}/pause": {
+      "post": {
+        "description": "Pause a kitchen's own offer (they go live without approval): it stops at\nonce, the kitchen sees the reason, and it's in the audit log.",
+        "operationId": "pause_offer_api_v1_rules__rule_id__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseOffer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Pause Offer",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
     "/api/v1/rules/{rule_id}/reject": {
       "post": {
         "operationId": "reject_api_v1_rules__rule_id__reject_post",
@@ -15947,6 +16061,54 @@
           }
         ],
         "summary": "Reject",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/{rule_id}/resume": {
+      "post": {
+        "operationId": "resume_offer_api_v1_rules__rule_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Resume Offer",
         "tags": [
           "Rules"
         ]

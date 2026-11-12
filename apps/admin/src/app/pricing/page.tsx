@@ -21,10 +21,16 @@ interface History {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  published: "bg-peacock-tint text-peacock-dark", pending_approval: "bg-kesar-tint text-kesar-ink", draft: "bg-line-soft text-muted",
+  paused: "bg-kesar-tint text-kesar-ink", published: "bg-peacock-tint text-peacock-dark", pending_approval: "bg-kesar-tint text-kesar-ink", draft: "bg-line-soft text-muted",
   rejected: "bg-danger-tint text-danger-ink", superseded: "bg-line-soft text-muted", ended: "bg-line-soft text-muted",
 };
-const STATUS_LABEL: Record<string, string> = { published: "Live", pending_approval: "Waiting for approval", draft: "Draft", rejected: "Sent back", superseded: "Retired", ended: "Ended" };
+const STATUS_LABEL: Record<string, string> = { paused: "Paused", published: "Live", pending_approval: "Waiting for approval", draft: "Draft", rejected: "Sent back", superseded: "Retired", ended: "Ended" };
+
+/** What to call a rule now: an ended or paused rule still has status "published". */
+function shown(r: Rule): string {
+  if (r.status === "published" && r.effective_to && new Date(r.effective_to).getTime() <= Date.now()) return "ended";
+  return r.paused_at ? "paused" : r.status;
+}
 
 function Pill({ s }: { s: string }) {
   return <span className={`rounded-lg px-2 py-1 text-xs font-bold ${STATUS_STYLE[s] ?? "bg-line-soft"}`}>{STATUS_LABEL[s] ?? s}</span>;
@@ -71,12 +77,16 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
       await adminApi.post(`/user/rules/${v.id}/submit`);
     }, rule.family === "business" ? "Saved and live." : "Sent for approval: a second admin approves money rules.");
   }
+  // B4: a kitchen's own offer goes live without approval; city ops can pause it.
+  const kitchenOffer = rule.family === "promotion" && rule.scope_level === "restaurant" && rule.params.funded_by === "restaurant" && ["published", "paused"].includes(shown(rule));
+  const mayPause = kitchenOffer && (can(me, "partners.edit", scope) || can(me, "rules.approve", scope));
+  const [reason, setReason] = useState("");
   const mineToApprove = rule.status === "pending_approval" && can(me, "rules.approve", scope) && rule.created_by !== me?.user_id;
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Rule · ${rule.name ?? rule.template}`}>
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="m-0 font-display text-2xl font-semibold">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
-        <Pill s={rule.status} /> <span className="text-sm text-muted">v{rule.version} · {rule.market_scope === "*" ? "everywhere" : rule.market_scope} · since {new Date(rule.effective_from).toLocaleDateString()}</span>
+        <Pill s={shown(rule)} /> <span className="text-sm text-muted">v{rule.version} · {rule.market_scope === "*" ? "everywhere" : rule.market_scope} · since {new Date(rule.effective_from).toLocaleDateString()}</span>
       </div>
       {editing ? (
         <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(false)} onSave={(p) => void saveDraft(p)}
@@ -98,6 +108,24 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
         {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-sm text-muted">Waiting for a second admin to approve.</span> : null}
         <Link href={`/pricing/simulator?city=${rule.market_scope.split("-").length === 3 ? rule.market_scope : "IN-TG-HYD"}`} className="ml-auto text-sm font-bold text-peacock">Try it in the price simulator →</Link>
       </div>
+      {kitchenOffer ? (
+        <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The kitchen's own offer">
+          <p className="text-sm">The kitchen pays for this offer, so it went live without approval.{rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
+          {mayPause && !rule.paused_at ? (
+            <div className="flex flex-wrap gap-2">
+              <input aria-label="Why pause it (the kitchen sees this)" placeholder="Why pause it? The kitchen sees this" value={reason} maxLength={300}
+                onChange={(e) => setReason(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-sm" />
+              <button type="button" disabled={busy || reason.trim().length < 3}
+                onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/pause`, { reason: reason.trim() }), "Paused. Customers stop seeing it now; the kitchen sees why.")}
+                className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Pause offer</button>
+            </div>
+          ) : null}
+          {mayPause && rule.paused_at ? (
+            <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/resume`), "Resumed. Customers see it again.")}
+              className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Resume offer</button>
+          ) : null}
+        </section>
+      ) : null}
       {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
       <div>
         <h3 className="mb-2 text-sm font-extrabold">History</h3>
@@ -127,6 +155,7 @@ function PricingPage() {
   });
   const relevant = (tab === "approvals" ? approvals.data ?? [] : rules.data ?? [])
     .filter((r) => scope === "*" || r.market_scope === "*" || r.market_scope.startsWith(scope) || scope.startsWith(r.market_scope));
+  relevant.sort((a, b) => Number(shown(a) === "ended") - Number(shown(b) === "ended"));
   const selected = relevant.find((r) => r.id === open) ?? null;
   const go = (t: string) => {
     setOpen(null);
@@ -154,7 +183,7 @@ function PricingPage() {
           {relevant.length === 0 ? <p className="p-4 text-sm text-muted">{tab === "approvals" ? "Nothing waiting for you." : "No rules here."}</p> : null}
           {relevant.map((r) => (
             <button key={r.id} type="button" onClick={() => setOpen(r.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
-              <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill s={r.status} /></div>
+              <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill s={shown(r)} /></div>
               <div className="text-muted">{where(r, scope)} · v{r.version}</div><div className="mt-0.5 line-clamp-2 text-[13px]">{describe(r.template, r.params, r.market_scope)}</div>
             </button>
           ))}

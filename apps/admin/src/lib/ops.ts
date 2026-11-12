@@ -141,6 +141,7 @@ export interface Rule {
   id: string; rule_key: string; version: number; family: string; template: string; key: string | null; slot: string; name: string | null;
   params: Record<string, unknown>; scope_level: string; scope_id: string; market_scope: string; status: string;
   effective_from: string; effective_to: string | null; created_by: string; created_at: string;
+  paused_at?: string | null; paused_reason?: string | null; // B4: a kitchen's offer paused by an admin
 }
 
 export const FAMILIES: { key: string; label: string }[] = [

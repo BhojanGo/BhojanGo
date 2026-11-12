@@ -2305,6 +2305,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rules/{rule_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause Offer
+         * @description Pause a kitchen's own offer (they go live without approval): it stops at
+         *     once, the kitchen sees the reason, and it's in the audit log.
+         */
+        post: operations["pause_offer_api_v1_rules__rule_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rules/{rule_id}/reject": {
         parameters: {
             query?: never;
@@ -2316,6 +2337,23 @@ export interface paths {
         put?: never;
         /** Reject */
         post: operations["reject_api_v1_rules__rule_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/{rule_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume Offer */
+        post: operations["resume_offer_api_v1_rules__rule_id__resume_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3783,6 +3821,13 @@ export interface components {
             params: {
                 [key: string]: unknown;
             };
+            /**
+             * Paused
+             * @default false
+             */
+            paused?: boolean;
+            /** Paused Reason */
+            paused_reason?: string | null;
             /** Template */
             template: string;
             /** Used This Week */
@@ -4353,6 +4398,14 @@ export interface components {
             minutes?: number | null;
             /** Paused */
             paused: boolean;
+        };
+        /** PauseOffer */
+        PauseOffer: {
+            /**
+             * Reason
+             * @description Shown to the kitchen
+             */
+            reason: string;
         };
         /** PaymentInitiateRequest */
         PaymentInitiateRequest: {
@@ -5231,6 +5284,10 @@ export interface components {
             params: {
                 [key: string]: unknown;
             };
+            /** Paused At */
+            paused_at?: string | null;
+            /** Paused Reason */
+            paused_reason?: string | null;
             /** Priority */
             priority: number;
             /**
@@ -10079,6 +10136,41 @@ export interface operations {
             };
         };
     };
+    pause_offer_api_v1_rules__rule_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PauseOffer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reject_api_v1_rules__rule_id__reject_post: {
         parameters: {
             query?: never;
@@ -10093,6 +10185,37 @@ export interface operations {
                 "application/json": components["schemas"]["Rejection"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_offer_api_v1_rules__rule_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

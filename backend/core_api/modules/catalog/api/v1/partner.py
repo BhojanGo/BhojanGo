@@ -74,7 +74,8 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         paused_until=r.paused_until if paused_by_kitchen(r, now) else None,
         busy_extra_minutes=busy_minutes(r, now), busy_until=r.busy_until if busy_minutes(r, now) else None,
         prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=Decimal(sales),
-        closes_at=closes.strftime("%H:%M") if closes else (r.closes_at.strftime("%H:%M") if r.closes_at else None),
+        # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).
+        closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None),
     )
 
 
@@ -142,6 +143,8 @@ class OfferOut(BaseModel):
     weekly_cap: Decimal | None
     used_this_week: Decimal
     orders_this_week: int
+    paused: bool = False  # B4: paused by BhojanGo
+    paused_reason: str | None = None
 
 
 async def _offers(db: AsyncSession, r: Restaurant) -> list[OfferOut]:
@@ -164,8 +167,9 @@ async def _offers(db: AsyncSession, r: Restaurant) -> list[OfferOut]:
         cap = Decimal(str(x.params["weekly_cap"])) if x.params.get("weekly_cap") is not None else None
         used = Decimal(s.spent) if s else Decimal(0)
         out.append(OfferOut(id=str(x.id), name=x.name or x.template, template=x.template, params=x.params,
-                            live=x.effective_from <= now and (cap is None or used < cap), weekly_cap=cap,
-                            used_this_week=used, orders_this_week=s.orders if s else 0))
+                            live=x.paused_at is None and x.effective_from <= now and (cap is None or used < cap), weekly_cap=cap,
+                            used_this_week=used, orders_this_week=s.orders if s else 0,
+                            paused=x.paused_at is not None, paused_reason=x.paused_reason))
     return out
 
 
