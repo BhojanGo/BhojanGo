@@ -50,20 +50,27 @@ async def me(user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
 async def accept(order_id: str, user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
     try:
         return await dispatch.accept(_rider(user), order_id)
-    except LookupError as e:
+    except dispatch.NotYourOffer as e:  # never yours, or no longer open: nothing to accept
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "OFFER_GONE", "message": str(e)})
+    except LookupError as e:  # timed out at the same moment, or the order went elsewhere
         raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "OFFER_GONE", "message": str(e)})
 
 
 @router.post("/api/v1/offers/{order_id}/pass")
 async def pass_offer(order_id: str, user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
-    nxt = await dispatch.decline(_rider(user), order_id, "passed")
+    offer = await dispatch.current_offer(_rider(user))
+    if not offer or offer["order_id"] != order_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "OFFER_GONE", "message": "No open offer of this order for you"})
+    nxt = await dispatch.decline(user.user_id, order_id, "passed")
     return {"order_id": order_id, "passed": True, "offered_to_next": bool(nxt)}
 
 
 @router.get("/api/v1/dispatch/shadow-batches")
 async def shadow_batches(user: Annotated[CurrentUser, Depends(get_current_user)], limit: int = Query(50, le=500)) -> list[dict]:
-    """Batches the shadow batcher would have made (nothing is batched)."""
-    if not user.admin:
+    """Batches the shadow batcher would have made (nothing is batched): dispatch admins."""
+    from shared import authz
+
+    if not authz.scopes_with([authz.Assignment.parse(a) for a in user.admin], "dispatch.edit"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Admins only")
     return await dispatch.shadow_suggestions(limit)
 
