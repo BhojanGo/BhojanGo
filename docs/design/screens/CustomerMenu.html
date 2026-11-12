@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dish customise sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F4F6F6; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+  <div style="height: 284px; background: #F6E7CC; position: relative; display: flex; align-items: center; justify-content: center">
+    <svg width="224" height="224" viewBox="0 0 120 120" role="img" aria-label="Chicken Dum Biryani, plated"><circle cx="60" cy="60" r="56" fill="#FFFFFF"></circle><circle cx="60" cy="60" r="44" fill="#FBFAF7"></circle><ellipse cx="62" cy="64" rx="28" ry="22" fill="#E2B866"></ellipse><ellipse cx="66" cy="60" rx="16" ry="11" fill="#EBC77F"></ellipse><circle cx="54" cy="58" r="3" fill="#8A4B2A"></circle><circle cx="70" cy="70" r="3.4" fill="#8A4B2A"></circle><circle cx="62" cy="74" r="2.6" fill="#8A4B2A"></circle><circle cx="66" cy="57" r="2.6" fill="#4F7F52"></circle><circle cx="58" cy="68" r="2" fill="#4F7F52"></circle><circle cx="74" cy="62" r="2.4" fill="#C9772F"></circle><circle cx="33" cy="40" r="13" fill="#FFFFFF" stroke="#D5DEDF" stroke-width="2"></circle><circle cx="33" cy="40" r="9" fill="#F1EFE8"></circle><circle cx="31" cy="38" r="1.6" fill="#4F7F52"></circle></svg>
+    <a href="CustomerHome.dc.html" aria-label="Back" style="position: absolute; left: 16px; top: 16px; width: 44px; height: 44px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+  </div>
+
+  <section aria-label="Customise Chicken Dum Biryani" style="position: absolute; left: 0; right: 0; top: 256px; bottom: 0; border-radius: 24px 24px 0 0; background: #FFFFFF; display: flex; flex-direction: column">
+    <div style="padding: 24px 20px 0">
+      <div style="font-size: 13px; font-weight: 600; color: #4C5A5E">Spice Route Kitchen</div>
+      <h1 style="margin: 4px 0 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.8px; line-height: 1.05">Chicken Dum Biryani</h1>
+      <div style="font-size: 15px; line-height: 1.5; color: #4C5A5E; margin-top: 8px">Saffron basmati and chicken, sealed and steamed for two hours.</div>
+    </div>
+
+    <div style="padding: 24px 20px 0; display: flex; flex-direction: column; gap: 20px; flex-grow: 1">
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 8px; width: 100%; display: flex; justify-content: space-between">Size <span style="font-size: 13px; font-weight: 600; color: #4C5A5E">Choose 1</span></legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <label style="padding: 14px; border-radius: 16px; border: 2px solid #0B5D66; background: #EFF6F6; display: flex; flex-direction: column; gap: 2px"><span style="display: flex; justify-content: space-between; font-weight: 800">Regular <input type="radio" name="size" checked style="accent-color: #0B5D66; width: 18px; height: 18px; margin: 0"></span><span style="font-size: 13px; color: #4C5A5E">Serves 1 · ₹300</span></label>
+          <label style="padding: 14px; border-radius: 16px; border: 1.5px solid #E2E7E8; display: flex; flex-direction: column; gap: 2px"><span style="display: flex; justify-content: space-between; font-weight: 700">Family <input type="radio" name="size" style="accent-color: #0B5D66; width: 18px; height: 18px; margin: 0"></span><span style="font-size: 13px; color: #4C5A5E">Serves 3 · ₹780</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 8px">Spice</legend>
+        <div style="display: flex; padding: 4px; border-radius: 999px; background: #F4F6F6">
+          <button style="font: inherit; flex: 1; height: 44px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: #4C5A5E">Mild</button>
+          <button style="font: inherit; flex: 1; height: 44px; border: 0; border-radius: 999px; background: #FFFFFF; font-weight: 800; color: #111418; box-shadow: 0 1px 3px rgba(17, 20, 24, 0.12)">Medium</button>
+          <button style="font: inherit; flex: 1; height: 44px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: #4C5A5E">Hot</button>
+        </div>
+      </fieldset>
+
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 4px; width: 100%; display: flex; justify-content: space-between">Add-ons <span style="font-size: 13px; font-weight: 600; color: #4C5A5E">Up to 3</span></legend>
+        <label style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; border-bottom: 1px solid #EEF1F1"><span>Extra raita</span><span style="display: flex; align-items: center; gap: 12px; font-weight: 600">+₹40<input type="checkbox" checked style="accent-color: #0B5D66; width: 22px; height: 22px; margin: 0"></span></label>
+        <label style="display: flex; justify-content: space-between; align-items: center; min-height: 48px"><span>Mirchi ka salan</span><span style="display: flex; align-items: center; gap: 12px; font-weight: 600">+₹30<input type="checkbox" style="accent-color: #0B5D66; width: 22px; height: 22px; margin: 0"></span></label>
+      </fieldset>
+    </div>
+
+    <div style="padding: 12px 20px 24px; display: flex; gap: 10px; align-items: center">
+      <div style="display: flex; align-items: center; border-radius: 999px; background: #F4F6F6; height: 56px">
+        <button aria-label="Fewer" style="width: 48px; height: 56px; border: 0; background: none; font: inherit; font-size: 22px; color: #111418">−</button>
+        <span style="width: 16px; text-align: center; font-weight: 800">1</span>
+        <button aria-label="More" style="width: 48px; height: 56px; border: 0; background: none; font: inherit; font-size: 22px; color: #0B5D66">+</button>
+      </div>
+      <a href="CustomerCheckout.dc.html" style="flex-grow: 1; height: 56px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-weight: 800; font-size: 16px"><span>Add to bag</span><span style="font-variant-numeric: tabular-nums">₹340</span></a>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

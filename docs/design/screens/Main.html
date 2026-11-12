@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BhojanGo design language v0.2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 1200px; height: 800px; box-sizing: border-box; padding: 56px 64px; background: #FFFFFF; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-start">
+    <div style="display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="{{accent}}" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="{{accent}}" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>
+        <span style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.8px">bhojango</span>
+      </div>
+      <div style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 52px; line-height: 1.02; letter-spacing: -1.6px; max-width: 640px">The honest table.</div>
+      <div style="font-size: 18px; line-height: 1.5; color: #4C5A5E; max-width: 560px">Real food from real kitchens, and every rupee and dollar shown before you pay. Calm, warm, unhurried — premium through restraint, not decoration.</div>
+    </div>
+    <div style="font-size: 13px; font-weight: 600; color: #4C5A5E; text-align: right; line-height: 1.7">Design language v0.2 · “Thali”<br>Customer · Courier · Merchant · Admin</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 28px; flex-grow: 1">
+
+    <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #4C5A5E">Colour</div>
+      <div style="display: flex; height: 120px; border-radius: 20px; overflow: hidden">
+        <div style="flex: 3; background: {{accent}}; padding: 14px; color: #FFFFFF; display: flex; flex-direction: column; justify-content: flex-end"><b style="font-size: 15px">Peacock</b><span style="font-size: 12px; opacity: 0.85">#0B5D66 · brand, actions</span></div>
+        <div style="flex: 2; background: #111418; padding: 14px; color: #FFFFFF; display: flex; flex-direction: column; justify-content: flex-end"><b style="font-size: 15px">Kohl</b><span style="font-size: 12px; opacity: 0.85">#111418 · text</span></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <div style="height: 64px; border-radius: 14px; background: #D4932A; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; font-size: 12px; font-weight: 700">Kesar<span style="font-weight: 500">#D4932A</span></div>
+        <div style="height: 64px; border-radius: 14px; background: #F4F6F6; border: 1px solid #E2E7E8; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; font-size: 12px; font-weight: 700">Porcelain<span style="font-weight: 500">#F4F6F6</span></div>
+        <div style="height: 64px; border-radius: 14px; background: #B3261E; color: #FFFFFF; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; font-size: 12px; font-weight: 700">Chili<span style="font-weight: 500">alerts only</span></div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #4C5A5E">Peacock is unclaimed by the big delivery apps in India and the US. Kesar is a seasoning — offers and stars only, never a full button.</div>
+    </div>
+
+    <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #4C5A5E">Type</div>
+      <div style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 40px; letter-spacing: -1px; line-height: 1">Hyderabadi<br>Dum Biryani</div>
+      <div style="font-size: 13px; color: #4C5A5E">Display · Familjen Grotesk 600, tight tracking</div>
+      <div style="font-size: 17px; line-height: 1.55">Slow-cooked basmati, saffron and fried onion, sealed and steamed for two hours.</div>
+      <div style="font-size: 13px; color: #4C5A5E">Text · Hanken Grotesk 400–700 · tabular figures for money</div>
+      <div style="font-size: 13px; line-height: 1.5; color: #4C5A5E; padding-top: 6px; border-top: 1px solid #E2E7E8">Hindi and Telugu fall back to Noto Sans Devanagari and Noto Sans Telugu at matched x-height.</div>
+    </div>
+
+    <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #4C5A5E">Signatures</div>
+      <div style="display: flex; gap: 14px; align-items: center">
+        <div style="width: 112px; height: 112px; border-radius: 22px; background: #DDEBEC; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <svg width="92" height="92" viewBox="0 0 120 120" role="img" aria-label="Plate illustration placeholder"><circle cx="60" cy="60" r="56" fill="#FFFFFF" stroke="#D5DEDF" stroke-width="2"></circle><circle cx="60" cy="60" r="44" fill="#FBFAF7"></circle><ellipse cx="64" cy="66" rx="27" ry="21" fill="#E2B866"></ellipse><circle cx="56" cy="60" r="3" fill="#8A4B2A"></circle><circle cx="70" cy="70" r="3" fill="#8A4B2A"></circle><circle cx="66" cy="58" r="2.5" fill="#4F7F52"></circle><circle cx="35" cy="38" r="13" fill="#FFFFFF" stroke="#D5DEDF" stroke-width="2"></circle><circle cx="35" cy="38" r="9" fill="#F1EFE8"></circle></svg>
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #4C5A5E"><b style="color: #111418">The plate frame.</b> Dishes are shot overhead on a round plate, on a soft tinted ground. One art direction, every restaurant.</div>
+      </div>
+      <div style="border-radius: 18px; background: #F4F6F6; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-variant-numeric: tabular-nums">
+        <div style="font-weight: 700; display: flex; justify-content: space-between">The fair bill <span style="font-size: 12px; color: #0B5D66">every line shown</span></div>
+        <div style="display: flex; justify-content: space-between; color: #4C5A5E"><span>Food</span><span>₹560.00</span></div>
+        <div style="display: flex; justify-content: space-between; color: #4C5A5E"><span>Delivery · 4.2 km</span><span>₹35.00</span></div>
+        <div style="border-top: 1.5px dashed #C9D3D4; padding-top: 6px; display: flex; justify-content: space-between; font-weight: 800"><span>You pay</span><span>₹638.22</span></div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button style="font: inherit; font-weight: 700; font-size: 15px; border: 0; border-radius: 999px; padding: 0 22px; height: 50px; background: {{accent}}; color: #FFFFFF">Place order</button>
+        <button style="font: inherit; font-weight: 700; font-size: 15px; border: 1.5px solid #C9D3D4; border-radius: 999px; padding: 0 20px; height: 50px; background: #FFFFFF; color: #111418">Details</button>
+        <span style="display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 15px"><svg width="16" height="16" viewBox="0 0 24 24" fill="#D4932A" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z"></path></svg>4.6</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#0B5D66","options":["#0B5D66","#1F3A68","#5A3E2B","#111418"]},"$preview":{"width":1200,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#0B5D66' };
+  }
+}
+</script>
+</body>
+</html>

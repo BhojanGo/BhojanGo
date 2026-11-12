@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout with the fair bill</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F4F6F6; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <div style="padding: 12px 20px 8px 8px; display: flex; align-items: center; gap: 4px">
+    <a href="CustomerMenu.dc.html" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <h1 style="margin: 0; flex-grow: 1; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: -0.5px">Your bag</h1>
+    <span style="font-size: 12px; font-weight: 700; padding: 7px 11px; border-radius: 999px; background: #FFFFFF; color: #0B5D66; border: 1px solid #D5E4E5">Price held 9:42</span>
+  </div>
+
+  <div style="padding: 8px 20px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1">
+    <div style="background: #FFFFFF; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+      <div style="display: flex; justify-content: space-between; align-items: center"><span><b>Home</b> · Flat 302, Madhapur</span><a href="#" style="font-weight: 700; text-decoration: none">Change</a></div>
+      <div style="height: 1px; background: #EEF1F1"></div>
+      <div style="display: flex; justify-content: space-between"><span>Chicken Dum Biryani <span style="color: #4C5A5E">· Regular, medium, raita</span></span><span style="font-variant-numeric: tabular-nums">₹340</span></div>
+      <div style="display: flex; justify-content: space-between"><span>Paneer Tikka</span><span style="font-variant-numeric: tabular-nums">₹220</span></div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 16px; padding: 16px">
+      <div style="font-size: 14px; font-weight: 800">Tip your rider <span style="font-weight: 500; color: #4C5A5E">· every rupee goes to them</span></div>
+      <div style="display: flex; padding: 4px; border-radius: 999px; background: #F4F6F6; margin-top: 10px">
+        <button style="font: inherit; flex: 1; height: 42px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: #4C5A5E">None</button>
+        <button style="font: inherit; flex: 1; height: 42px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: #4C5A5E">₹10</button>
+        <button style="font: inherit; flex: 1; height: 42px; border: 0; border-radius: 999px; background: #FFFFFF; font-weight: 800; color: #111418; box-shadow: 0 1px 3px rgba(17, 20, 24, 0.12)">₹20</button>
+        <button style="font: inherit; flex: 1; height: 42px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: #4C5A5E">₹30</button>
+      </div>
+    </div>
+
+    <section aria-label="The fair bill" style="background: #FFFFFF; border-radius: 16px; padding: 16px; font-size: 14px; font-variant-numeric: tabular-nums">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px"><span style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 18px">The fair bill</span><span style="font-size: 12px; font-weight: 700; color: #0B5D66">who gets each rupee</span></div>
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 10px; row-gap: 8px; align-items: baseline">
+        <span>Food</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">KITCHEN</span><span style="text-align: right">₹560.00</span>
+        <span style="color: #0B5D66; font-weight: 600">Code BHOJAN10</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">US</span><span style="text-align: right; color: #0B5D66; font-weight: 600">−₹50.00</span>
+        <span>Delivery · 4.2 km</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">KITCHEN'S TREAT</span><span style="text-align: right"><s style="color: #7A878A">₹35</s> <b>₹0</b></span>
+        <span>Packaging</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">KITCHEN</span><span style="text-align: right">₹10.00</span>
+        <span>Service fee</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">US</span><span style="text-align: right">₹11.20</span>
+        <span>Busy-hour fee · till 9:30</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">US</span><span style="text-align: right">₹15.00</span>
+        <span>GST</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">GOVT</span><span style="text-align: right">₹30.72</span>
+        <span>Tip</span><span style="font-size: 11px; font-weight: 700; color: #4C5A5E">RIDER</span><span style="text-align: right">₹20.00</span>
+      </div>
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1.5px dashed #C9D3D4; display: flex; justify-content: space-between; font-size: 18px; font-weight: 800"><span>You pay</span><span>₹596.92</span></div>
+    </section>
+  </div>
+
+  <div style="padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 8px">
+    <button style="font: inherit; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0 4px; min-height: 44px; text-align: left; color: #111418">
+      <span style="height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid #C9D3D4; background: #FFFFFF; font-size: 11px; font-weight: 800; display: flex; align-items: center">UPI</span>
+      <span style="flex-grow: 1; font-size: 14px"><b>srini@okbank</b> <span style="color: #4C5A5E">· pay in your UPI app</span></span>
+      <span style="font-size: 14px; font-weight: 700; color: #0B5D66">Change</span>
+    </button>
+    <a href="CustomerTracking.dc.html" style="height: 58px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums">Pay ₹596.92</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
