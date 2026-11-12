@@ -49,7 +49,7 @@ export function Button({ title, variant = "primary", size = "md", loading, disab
       style={({ pressed }) => [
         styles.button,
         { height, backgroundColor: v.bg, borderColor: v.border ?? v.bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
-        block && { alignSelf: "stretch" },
+        block ? { alignSelf: "stretch" } : { alignSelf: "flex-start" },
         style,
       ]}
       {...rest}

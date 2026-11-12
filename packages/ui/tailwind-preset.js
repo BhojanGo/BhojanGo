@@ -1,7 +1,6 @@
 // Tailwind preset from the design tokens: `presets: [require("@bhojango/ui/tailwind-preset")]`.
 const { color, dark, radius, shadow, font } = require("./tokens");
 
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   theme: {
     extend: {

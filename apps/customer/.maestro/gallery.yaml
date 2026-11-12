@@ -1,0 +1,20 @@
+# P16: the design-system gallery renders on a phone with the brand components.
+appId: com.bhojango.app
+---
+- stopApp
+- openLink: bhojango://gallery
+- extendedWaitUntil:
+    visible: "Design system"
+    timeout: 30000
+- assertVisible: "Pay ₹596.92"
+- tapOn: "Dosa"
+- assertVisible: "Dosa"
+- scrollUntilVisible:
+    element: "KITCHEN'S TREAT"
+- assertVisible: "KITCHEN'S TREAT"
+- scrollUntilVisible:
+    element: "Open the customise sheet"
+- tapOn: "Open the customise sheet"
+- assertVisible: "Add to bag · ₹340"
+- tapOn: "Add to bag · ₹340"
+- assertNotVisible: "Add to bag · ₹340"

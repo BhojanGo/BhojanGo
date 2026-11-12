@@ -81,3 +81,6 @@ apps/*/ios/
 *.pem
 .vercel
 .cache/
+
+# Android debug builds (make apk)
+.apk/
