@@ -3,7 +3,15 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { registerAuthHandlers, setAdminTokens } from "@/lib/api";
-import type { User } from "@bhojango/types";
+
+/** The signed-in admin as /auth/login returns them. */
+export interface User {
+  id: string;
+  email: string | null;
+  full_name: string;
+  role: string;
+  country: string;
+}
 
 interface AdminAuthState {
   user: User | null;

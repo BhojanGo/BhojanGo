@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bhojango/types": "workspace:*",
     "@bhojango/ui": "workspace:*",
     "@tanstack/react-query": "^5.40.0",
     "@tanstack/react-table": "^8.17.3",

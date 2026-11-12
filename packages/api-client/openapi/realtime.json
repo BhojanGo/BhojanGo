@@ -759,6 +759,57 @@
         ]
       }
     },
+    "/api/v1/dispatch/riders": {
+      "get": {
+        "description": "Online riders in a city for the admin dispatch map: admins who can see\norders or dispatch there.",
+        "operationId": "dispatch_riders_api_v1_dispatch_riders_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
+              "title": "City",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Dispatch Riders Api V1 Dispatch Riders Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Dispatch Riders",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
     "/api/v1/dispatch/shadow-batches": {
       "get": {
         "description": "Batches the shadow batcher would have made (nothing is batched): dispatch admins.",

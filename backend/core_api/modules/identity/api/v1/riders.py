@@ -10,15 +10,16 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.identity.api.dependencies import AdminContext, require_permission
 from core_api.modules.identity.models.rider import RiderDocument
 from core_api.modules.identity.models.user import User
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
-from shared import internal_auth
+from shared import authz, internal_auth
 from shared.db import get_db
 from shared.providers.storage import get_storage
 
@@ -188,6 +189,95 @@ async def submit_document(data: DocumentIn, user: Me, db: DB) -> OnboardingOut:
         db.add(RiderDocument(rider_id=user.id, kind="background_check", status="submitted", updated_at=datetime.now(UTC)))
     await db.flush()
     return await onboarding(db, user.id)
+
+
+# ── admin: review documents, view files (P21) ─────────────────────────────────
+
+class DocumentOut(BaseModel):
+    id: str
+    rider_id: str
+    rider_name: str
+    rider_phone: str | None
+    country: str
+    kind: str
+    status: str
+    file_key: str | None
+    note: str | None
+    submitted_at: datetime
+
+
+class ReviewIn(BaseModel):
+    decision: Literal["approve", "reject"]
+    note: str | None = Field(default=None, max_length=500)
+
+
+@router.get("/riders/documents", response_model=list[DocumentOut])
+async def documents(admin: Annotated[AdminContext, Depends(require_permission("riders.view"))], db: DB,
+                    status_: Annotated[Literal["submitted", "approved", "rejected"], Query(alias="status")] = "submitted",
+                    country: str | None = Query(None, pattern=r"^[A-Z]{2}$")) -> list[DocumentOut]:
+    """Rider documents for review in the countries you can see (riders aren't tied to a city)."""
+    q = select(RiderDocument, User).join(User, User.id == RiderDocument.rider_id).where(RiderDocument.status == status_)
+    if country:
+        q = q.where(User.country == country)
+    rows = (await db.execute(q.order_by(RiderDocument.updated_at))).all()
+    return [DocumentOut(id=str(d.id), rider_id=str(u.id), rider_name=u.full_name, rider_phone=u.phone, country=u.country, kind=d.kind,
+                        status=d.status, file_key=d.file_key, note=d.note, submitted_at=d.updated_at)
+            for d, u in rows if authz.can_within(admin.assignments, "riders.view", u.country)]
+
+
+@router.post("/riders/documents/{document_id}/review", response_model=DocumentOut)
+async def review(document_id: uuid.UUID, data: ReviewIn, admin: Annotated[AdminContext, Depends(require_permission("riders.edit"))],
+                 db: DB) -> DocumentOut:
+    """Approve or reject a rider's document. The rider can go online once the
+    licence, insurance and background check are all approved."""
+    d = await db.get(RiderDocument, document_id)
+    u = await db.get(User, d.rider_id) if d else None
+    if d is None or u is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Document not found")
+    admin.require("riders.edit", u.country, within=True)
+    if data.decision == "reject" and not data.note:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOTE_REQUIRED", "message": "Tell the rider what to fix"})
+    d.status = "approved" if data.decision == "approve" else "rejected"
+    d.note, d.reviewed_by, d.reviewed_at = data.note, admin.user.id, datetime.now(UTC)
+    from core_api.modules.audit import service as audit
+
+    await audit.record(db, actor_id=admin.user.id, action=f"rider_document.{d.status}", entity_type="rider_document", entity_id=d.id,
+                       scope=u.country, after={"kind": d.kind, "note": d.note})
+    await db.flush()
+    await db.refresh(d)  # updated_at is set by the database
+    return DocumentOut(id=str(d.id), rider_id=str(u.id), rider_name=u.full_name, rider_phone=u.phone, country=u.country, kind=d.kind,
+                       status=d.status, file_key=d.file_key, note=d.note, submitted_at=d.updated_at)
+
+
+@router.get("/uploads/view")
+async def view_upload(key: Annotated[str, Query(max_length=300)], admin: Annotated[AdminContext, Depends(require_permission("partners.view"))],
+                      db: DB) -> Response:
+    """An uploaded document, for the admins who review it: rider documents (riders.view
+    in the rider's country) and kitchen licences (partners.view in the kitchen's city)."""
+    from core_api.modules.catalog.models.restaurant import Restaurant
+    from core_api.modules.catalog.service.lookup import restaurant_city_code
+
+    parts = key.split("/")
+    if len(parts) != 3 or parts[0] not in ("rider_document", "partner_document"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    try:
+        owner = uuid.UUID(parts[1])
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    if parts[0] == "rider_document":
+        u = await db.get(User, owner)
+        if u is None or not authz.can_within(admin.assignments, "riders.view", u.country):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    else:
+        kitchens = (await db.execute(select(Restaurant).where(Restaurant.owner_id == owner, Restaurant.fssai_document_key == key))).scalars().all()
+        scopes = [await restaurant_city_code(db, r.id) for r in kitchens]
+        if not any(sc and admin.can("partners.view", sc) for sc in scopes):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    got = await get_storage().get(key)
+    if got is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    data, ctype = got
+    return Response(content=data, media_type=ctype, headers={"Cache-Control": "private, no-store"})
 
 
 # ── for realtime (signed) ────────────────────────────────────────────────────

@@ -1,201 +1,189 @@
 "use client";
+// AdminPricing.html: Pricing & Rules. Rules by family for the scope you picked
+// (each with where it comes from: inherited or overridden here), a rule's
+// versions and approvals, a new draft version, and the approvals queue (a
+// second admin approves money rules). The price simulator is a tab.
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import AdminLayout from "@/components/layout/AdminLayout";
+import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
+import { can, useAdminMe } from "@/lib/markets";
+import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
 
-type PricingModel = "percentage_commission" | "flat_fee_per_order" | "monthly_subscription";
-
-interface Restaurant {
-  id: string;
-  name: string;
-  currency: string;
-  pricing_model: PricingModel;
-  commission_rate: number;
-  flat_fee_per_order: number;
-  monthly_subscription_fee: number;
-  delivery_radius_km: number;
+interface History {
+  versions: Rule[];
+  approvals: Record<string, { requested_at: string; decision: string | null; decided_at: string | null; note: string | null }[]>;
 }
 
-interface RestaurantList {
-  items: Restaurant[];
-  total: number;
+const STATUS_STYLE: Record<string, string> = {
+  published: "bg-peacock-tint text-peacock-dark", pending_approval: "bg-kesar-tint text-kesar-ink", draft: "bg-line-soft text-muted",
+  rejected: "bg-danger-tint text-danger-ink", superseded: "bg-line-soft text-muted", ended: "bg-line-soft text-muted",
+};
+const STATUS_LABEL: Record<string, string> = { published: "Live", pending_approval: "Waiting for approval", draft: "Draft", rejected: "Sent back", superseded: "Retired", ended: "Ended" };
+
+function Pill({ s }: { s: string }) {
+  return <span className={`rounded-lg px-2 py-1 text-xs font-bold ${STATUS_STYLE[s] ?? "bg-line-soft"}`}>{STATUS_LABEL[s] ?? s}</span>;
 }
 
-const MODELS: { value: PricingModel; label: string }[] = [
-  { value: "percentage_commission", label: "Percentage commission" },
-  { value: "flat_fee_per_order", label: "Flat fee per order" },
-  { value: "monthly_subscription", label: "Monthly subscription" },
-];
+function where(r: Rule, scope: string) {
+  if (r.market_scope === scope) return "Set here";
+  if (scope !== "*" && r.market_scope.length < scope.length) return `Inherited · ${r.market_scope === "*" ? "everywhere" : r.market_scope}`;
+  return r.scope_level === "restaurant" ? "A restaurant's own" : r.scope_level === "zone" ? "A zone's" : r.market_scope;
+}
 
-export default function PricingPage() {
-  const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<Restaurant | null>(null);
-  const [model, setModel] = useState<PricingModel>("percentage_commission");
-  const [commissionRate, setCommissionRate] = useState("0.20");
-  const [flatFee, setFlatFee] = useState("0");
-  const [subFee, setSubFee] = useState("0");
-  const [message, setMessage] = useState("");
-
-  const { data } = useQuery({
-    queryKey: ["admin-restaurants-pricing"],
-    queryFn: async () => {
-      const { data } = await adminApi.get("/restaurant/restaurants?limit=100");
-      return data as RestaurantList;
-    },
-  });
-
-  function selectRestaurant(r: Restaurant) {
-    setSelected(r);
-    setModel(r.pricing_model);
-    setCommissionRate(String(r.commission_rate ?? 0.2));
-    setFlatFee(String(r.flat_fee_per_order ?? 0));
-    setSubFee(String(r.monthly_subscription_fee ?? 0));
-    setMessage("");
-  }
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!selected) return;
-      const body: Record<string, unknown> = { pricing_model: model };
-      if (model === "percentage_commission") body.commission_rate = Number(commissionRate);
-      if (model === "flat_fee_per_order") body.flat_fee_per_order = Number(flatFee);
-      if (model === "monthly_subscription") body.monthly_subscription_fee = Number(subFee);
-      await adminApi.put(`/restaurant/restaurants/${selected.id}/pricing`, body);
-    },
-    onSuccess: () => {
-      setMessage("Pricing updated.");
-      queryClient.invalidateQueries({ queryKey: ["admin-restaurants-pricing"] });
-    },
-    onError: () => setMessage("Failed to update pricing."),
-  });
-
+function Params({ p }: { p: Record<string, unknown> }) {
   return (
-    <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-white mb-1">Restaurant Pricing</h1>
-        <p className="text-sm text-gray-500 mb-6">Configure each restaurant&apos;s commission / fee model.</p>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Restaurant list */}
-          <div className="bg-gray-900 rounded-xl p-4 lg:col-span-2">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 text-left">
-                  <th className="py-2 font-medium">Restaurant</th>
-                  <th className="py-2 font-medium">Model</th>
-                  <th className="py-2 font-medium text-right">Value</th>
-                  <th className="py-2 font-medium text-right">Radius</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.items.map((r) => (
-                  <tr key={r.id} className="border-t border-gray-800">
-                    <td className="py-2.5 text-white">{r.name}</td>
-                    <td className="py-2.5 text-gray-400">{r.pricing_model.replace(/_/g, " ")}</td>
-                    <td className="py-2.5 text-right text-gray-300">
-                      {r.pricing_model === "percentage_commission"
-                        ? `${(r.commission_rate * 100).toFixed(1)}%`
-                        : r.pricing_model === "flat_fee_per_order"
-                        ? `${r.currency} ${r.flat_fee_per_order.toFixed(2)}`
-                        : `${r.currency} ${r.monthly_subscription_fee.toFixed(0)}/mo`}
-                    </td>
-                    <td className="py-2.5 text-right text-gray-500">{r.delivery_radius_km} km</td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => selectRestaurant(r)}
-                        className="text-emerald-500 hover:underline text-xs"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {!data && (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-gray-600">Loading…</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Editor */}
-          <div className="bg-gray-900 rounded-xl p-5">
-            {selected ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  mutation.mutate();
-                }}
-                className="space-y-4"
-              >
-                <p className="font-semibold text-white">{selected.name}</p>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Pricing model</label>
-                  <select
-                    value={model}
-                    onChange={(e) => setModel(e.target.value as PricingModel)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                  >
-                    {MODELS.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {model === "percentage_commission" && (
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1">Commission rate (0–1, e.g. 0.20 = 20%)</label>
-                    <input
-                      type="number" step="0.01" min="0" max="1"
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-                )}
-                {model === "flat_fee_per_order" && (
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1">Flat fee per order ({selected.currency})</label>
-                    <input
-                      type="number" step="0.01" min="0"
-                      value={flatFee}
-                      onChange={(e) => setFlatFee(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-                )}
-                {model === "monthly_subscription" && (
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1">Monthly subscription fee ({selected.currency})</label>
-                    <input
-                      type="number" step="1" min="0"
-                      value={subFee}
-                      onChange={(e) => setSubFee(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
-                    />
-                  </div>
-                )}
-
-                {message && <p className="text-xs text-gray-400">{message}</p>}
-                <button
-                  type="submit"
-                  disabled={mutation.isPending}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
-                >
-                  {mutation.isPending ? "Saving…" : "Save pricing"}
-                </button>
-              </form>
-            ) : (
-              <p className="text-sm text-gray-500">Select a restaurant to edit its pricing model.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </AdminLayout>
+    <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+      {Object.entries(p).map(([k, v]) => (
+        <div key={k} className="flex justify-between gap-3 border-b border-line py-1.5"><dt className="text-muted">{k.replace(/_/g, " ")}</dt>
+          <dd className="text-right font-semibold">{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd></div>
+      ))}
+    </dl>
   );
+}
+
+function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) {
+  const { data: me } = useAdminMe();
+  const qc = useQueryClient();
+  const history = useQuery({ queryKey: ["rule-history", rule.id], queryFn: async () => (await adminApi.get<History>(`/user/rules/${rule.id}/history`)).data });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(JSON.stringify(rule.params, null, 2));
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const scope = rule.market_scope;
+  async function run(fn: () => Promise<unknown>, ok: string) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await fn();
+      setMsg({ ok: true, text: ok });
+      setEditing(false);
+      await qc.invalidateQueries({ queryKey: ["rules"] });
+      await qc.invalidateQueries({ queryKey: ["rule-history"] });
+      onChanged();
+    } catch (e) {
+      setMsg({ ok: false, text: apiMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveDraft() {
+    let params: unknown;
+    try {
+      params = JSON.parse(draft);
+    } catch {
+      setMsg({ ok: false, text: "That isn't valid JSON." });
+      return;
+    }
+    await run(async () => {
+      const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params })).data;
+      await adminApi.post(`/user/rules/${v.id}/submit`);
+    }, rule.family === "business" ? "Saved and live." : "Sent for approval: a second admin approves money rules.");
+  }
+  const mineToApprove = rule.status === "pending_approval" && can(me, "rules.approve", scope) && rule.created_by !== me?.user_id;
+  return (
+    <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Rule · ${rule.name ?? rule.template}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="m-0 font-display text-2xl font-semibold">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
+        <Pill s={rule.status} /> <span className="text-sm text-muted">v{rule.version} · {rule.market_scope === "*" ? "everywhere" : rule.market_scope} · since {new Date(rule.effective_from).toLocaleDateString()}</span>
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <textarea aria-label="Rule settings (JSON)" value={draft} onChange={(e) => setDraft(e.target.value)} rows={10} className="w-full rounded-xl border border-line p-3 font-mono text-sm" />
+          <div className="flex gap-2">
+            <button type="button" onClick={() => void saveDraft()} disabled={busy} className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">{rule.family === "business" ? "Save" : "Send for approval"}</button>
+            <button type="button" onClick={() => setEditing(false)} className="h-10 rounded-full border border-line-strong px-4 font-bold">Cancel</button>
+          </div>
+          <p className="text-xs text-muted">The settings are checked against the rule&apos;s template before anything is saved.</p>
+        </div>
+      ) : <Params p={rule.params} />}
+      <div className="flex flex-wrap items-center gap-2">
+        {!editing && rule.status === "published" && can(me, "rules.edit", scope) ? (
+          <button type="button" onClick={() => setEditing(true)} className="h-10 rounded-full border border-line-strong px-4 font-bold">New version</button>
+        ) : null}
+        {mineToApprove ? (
+          <>
+            <input aria-label="Comment" placeholder="Comment (needed to send back)" value={note} onChange={(e) => setNote(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-sm" />
+            <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/approve`, { note: note || null }), "Approved and scheduled.")}
+              className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Approve and schedule</button>
+            <button type="button" disabled={busy || note.trim().length < 3} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/reject`, { note }), "Sent back with your comment.")}
+              className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Send back with comment</button>
+          </>
+        ) : null}
+        {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-sm text-muted">Waiting for a second admin to approve.</span> : null}
+        <Link href={`/pricing/simulator?city=${rule.market_scope.split("-").length === 3 ? rule.market_scope : "IN-TG-HYD"}`} className="ml-auto text-sm font-bold text-peacock">Try it in the price simulator →</Link>
+      </div>
+      {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+      <div>
+        <h3 className="mb-2 text-sm font-extrabold">History</h3>
+        <ul className="space-y-1 text-sm">
+          {(history.data?.versions ?? []).slice().reverse().map((v) => (
+            <li key={v.id} className="flex flex-wrap gap-2"><b>v{v.version}</b> <Pill s={v.status} /> <span className="text-muted">{ago(v.created_at)}
+              {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision}${a.note ? ` (“${a.note}”)` : ""}`).join("")}</span></li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function PricingPage() {
+  const scope = useScope();
+  const params = useSearchParams();
+  const router = useRouter();
+  const tab = params.get("tab") ?? "delivery_fee";
+  const { country, region, city } = parseScope(scope);
+  const [open, setOpen] = useState<string | null>(null);
+  const approvals = useQuery({ queryKey: ["rules", "approvals"], queryFn: async () => (await adminApi.get<Rule[]>("/user/rules/approvals")).data, retry: false });
+  const rules = useQuery({
+    queryKey: ["rules", tab, scope],
+    queryFn: async () => (await adminApi.get<Rule[]>("/user/rules", { params: { family: tab } })).data,
+    enabled: tab !== "approvals",
+  });
+  const relevant = (tab === "approvals" ? approvals.data ?? [] : rules.data ?? [])
+    .filter((r) => scope === "*" || r.market_scope === "*" || r.market_scope.startsWith(scope) || scope.startsWith(r.market_scope));
+  const selected = relevant.find((r) => r.id === open) ?? null;
+  const go = (t: string) => {
+    setOpen(null);
+    router.replace(`/pricing?scope=${scope}&tab=${t}`);
+  };
+  return (
+    <ConsoleShell section="Pricing & Rules" country={country} region={region} city={city} scopeHref={(s) => `/pricing?scope=${s}&tab=${tab}`}>
+      <div>
+        <div className="text-[13px] text-muted">Pricing &amp; Rules ▸ {tab === "approvals" ? "Approvals" : FAMILIES.find((f) => f.key === tab)?.label}</div>
+        <h1 className="m-0 mt-1 font-display text-[32px] font-semibold tracking-[-0.8px]">Pricing &amp; Rules</h1>
+      </div>
+      <nav aria-label="Rule families" className="flex flex-wrap gap-1 rounded-2xl bg-white p-1">
+        {FAMILIES.map((f) => (
+          <button key={f.key} type="button" onClick={() => go(f.key)} aria-current={tab === f.key ? "page" : undefined}
+            className={`h-9 rounded-xl px-3 text-sm ${tab === f.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{f.label}</button>
+        ))}
+        <Link href={`/pricing/simulator?city=${city ?? (country === "US" ? "US-ID-BOI" : "IN-TG-HYD")}`} className="flex h-9 items-center rounded-xl px-3 text-sm font-semibold text-muted">Price simulator</Link>
+        <button type="button" onClick={() => go("approvals")} aria-current={tab === "approvals" ? "page" : undefined}
+          className={`h-9 rounded-xl px-3 text-sm ${tab === "approvals" ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>
+          Approvals {approvals.data?.length ? <span className="ml-1 rounded-full bg-kesar px-1.5 text-xs text-white">{approvals.data.length}</span> : null}
+        </button>
+      </nav>
+      <div className="grid gap-4 xl:grid-cols-[400px_1fr]">
+        <section className="rounded-2xl bg-white p-2" aria-label="Rules">
+          {relevant.length === 0 ? <p className="p-4 text-sm text-muted">{tab === "approvals" ? "Nothing waiting for you." : "No rules here."}</p> : null}
+          {relevant.map((r) => (
+            <button key={r.id} type="button" onClick={() => setOpen(r.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+              <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill s={r.status} /></div>
+              <div className="text-muted">{r.family.replace(/_/g, " ")} · {where(r, scope)} · v{r.version}</div>
+            </button>
+          ))}
+        </section>
+        {selected ? <RuleDetail key={selected.id} rule={selected} onChanged={() => setOpen(null)} /> : <div className="rounded-2xl bg-white p-6 text-muted">Pick a rule to see its settings, history and approvals.</div>}
+      </div>
+    </ConsoleShell>
+  );
+}
+
+export default function Page() {
+  return <Suspense><PricingPage /></Suspense>;
 }

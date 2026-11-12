@@ -44,6 +44,9 @@ NOT_READY = "00000000-0000-0000-0000-00000000dead"
 
 
 class FakeCore:
+    async def city_centre(self, code: str):  # type: ignore[no-untyped-def]
+        return {"IN-TG-HYD": (17.4486, 78.3908), "US-ID-BOI": (43.615, -116.2023)}.get(code)
+
     async def rider_ready(self, rider: str) -> dict:
         return {"rider_id": rider, "ready": rider != NOT_READY, "country": "IN"}
 
@@ -91,6 +94,7 @@ POLICY: dict[tuple[str, str], Policy] = {
                                                 {"order_id": OTHER_ORDER, "driver_id": IDS["other_rider"]}),
     ("GET", "/api/v1/dispatch/shadow-batches"): Policy("admin", NOT_ADMINS + ["viewer"]),
     ("GET", "/api/v1/dispatch/sos"): Policy("admin", NOT_ADMINS + ["viewer"]),
+    ("GET", "/api/v1/dispatch/riders"): Policy("admin", NOT_ADMINS + ["ops_boi"]),
 }
 
 
@@ -144,6 +148,8 @@ async def call(client: AsyncClient, method: str, template: str, actor: str | Non
     kw: dict[str, Any] = {"headers": token(actor) if actor else {}}
     if p.body is not None:
         kw["json"] = p.body
+    if template == "/api/v1/dispatch/riders":
+        kw["params"] = {"city": "IN-TG-HYD"}  # the Hyderabad map
     return await client.request(method, path_for(template, method), **kw)
 
 

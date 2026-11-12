@@ -241,6 +241,13 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/markets/zones/{zone_id}/pause"): admin("ops_boi", "cm_us", "viewer", body=lambda c: {"reason": "sweep"}),
     ("POST", "/api/v1/markets/zones/{zone_id}/resume"): admin("ops_boi", "cm_us", "viewer"),
     ("GET", "/api/v1/audit"): admin(),
+    # admin console (P21): cut to your scopes; another city's scope is refused
+    ("GET", "/api/v1/ops/overview"): admin("ops_boi", params=lambda c: {"scope": "IN-TG-HYD"}),
+    ("GET", "/api/v1/ops/orders"): admin("ops_boi", "finance_us", params=lambda c: {"scope": "IN-TG-HYD"}),
+    ("GET", "/api/v1/riders/documents"): admin(),  # filtered to the countries you can see
+    ("POST", "/api/v1/riders/documents/{document_id}/review"): admin("viewer", "ops_boi", "finance_in", "support_hyd",
+                                                                    body=lambda c: {"decision": "approve"}),
+    ("GET", "/api/v1/uploads/view"): admin("ops_boi", "finance_us", params=lambda c: {"key": c.rider_doc_key}),
     ("GET", "/api/v1/admin/me"): admin(),
     ("GET", "/api/v1/admin/role-assignments"): admin(),
     ("POST", "/api/v1/admin/role-assignments"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {
@@ -279,6 +286,8 @@ class Ctx:
     run: str = ""
     statement: str = ""
     assignment: str = ""
+    rider_doc: str = ""
+    rider_doc_key: str = ""
     customer_id: str = ""
     rider_id: str = ""
 
@@ -288,6 +297,7 @@ class Ctx:
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
+                  "document_id": self.rider_doc,
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
@@ -393,6 +403,10 @@ async def _build() -> Ctx:
         async with AsyncSessionLocal() as db:
             c.zone = str((await db.execute(text(
                 "SELECT z.id FROM zones z JOIN cities ci ON ci.id = z.city_id WHERE ci.code = 'IN-TG-HYD' LIMIT 1"))).scalar())
+            row = (await db.execute(text(
+                "SELECT d.id, d.file_key FROM rider_documents d JOIN users u ON u.id = d.rider_id "
+                "WHERE u.email = 'rider1.hyd@example.com' AND d.kind = 'licence'"))).one()
+            c.rider_doc, c.rider_doc_key = str(row[0]), row[1]
             c.assignment = str((await db.execute(text(
                 "SELECT a.id FROM admin_role_assignments a JOIN users u ON u.id = a.user_id "
                 "WHERE u.email = 'ops.hyd@example.com' LIMIT 1"))).scalar())

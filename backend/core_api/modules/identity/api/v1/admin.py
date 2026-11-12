@@ -50,7 +50,14 @@ async def list_assignments(
         r for r in rows
         if any(authz.covers(v, r.scope) for v in visible) and (scope is None or authz.covers(scope, r.scope))
     ]
-    return [RoleAssignmentResponse.model_validate(r) for r in out]
+    from sqlalchemy import select
+
+    from core_api.modules.identity.models.user import User
+
+    users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_({r.user_id for r in out})))).scalars()} if out else {}
+    return [RoleAssignmentResponse.model_validate(r).model_copy(update={
+        "email": users[r.user_id].email if r.user_id in users else None,
+        "full_name": users[r.user_id].full_name if r.user_id in users else None}) for r in out]
 
 
 @router.post("/role-assignments", response_model=RoleAssignmentResponse, status_code=status.HTTP_201_CREATED)

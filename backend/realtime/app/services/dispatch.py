@@ -396,6 +396,25 @@ async def on_order_event(event: dict) -> None:
                 await _engaged(rider, False)
 
 
+# ── the dispatch map (P21) ───────────────────────────────────────────────────
+
+async def riders_near(lat: float, lng: float, radius_km: float = 30) -> list[dict]:
+    """Online riders around a point with their state and last fix."""
+    r = await get_redis()
+    near = await r.geosearch(GEO, longitude=lng, latitude=lat, radius=radius_km, unit="km", sort="ASC", count=500, withdist=True)
+    out = []
+    for rider, dist in near:
+        if not await r.sismember(ONLINE, rider):
+            continue
+        fix = await last_fix(rider)
+        if not fix:
+            continue  # GPS gone quiet: not offered anything, not shown
+        state = await r.hgetall(state_key(rider))
+        out.append({"rider_id": rider, "lat": fix["lat"], "lng": fix["lng"], "at": fix["timestamp"], "km": round(float(dist), 2),
+                    "status": state.get("status", "available"), "order_id": state.get("order_id") or None})
+    return out
+
+
 # ── SOS ───────────────────────────────────────────────────────────────────────
 
 SOS_OPEN = "sos:open"

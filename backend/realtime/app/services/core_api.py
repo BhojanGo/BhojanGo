@@ -37,5 +37,14 @@ class CoreApi:
         """Has the rider finished onboarding (documents approved, background check cleared)?"""
         return await self._call("GET", f"/api/v1/internal/riders/{rider_id}/ready")
 
+    async def city_centre(self, code: str) -> tuple[float, float] | None:
+        """Where a city is (public GET /markets/cities), for the dispatch map."""
+        async with httpx.AsyncClient(base_url=get_settings().CORE_API_URL, timeout=10) as client:
+            r = await client.get("/api/v1/markets/cities")
+        if r.status_code != 200:
+            raise CoreApiError(r.status_code, r.text)
+        c = next((x for x in r.json() if x["code"] == code), None)
+        return (c["lat"], c["lng"]) if c else None
+
 
 core_api = CoreApi()

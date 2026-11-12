@@ -30,6 +30,11 @@ const nextConfig = {
         destination: `${svc("ORDER_SVC_URL", "http://localhost:8001")}/api/v1/:path*`,
       },
       {
+        // realtime: the dispatch map's riders and SOS alerts (P21)
+        source: "/api/realtime/:path*",
+        destination: `${svc("REALTIME_SVC_URL", "http://localhost:8004")}/api/v1/:path*`,
+      },
+      {
         source: "/api/payment/:path*",
         destination: `${svc("PAYMENT_SVC_URL", "http://localhost:8001")}/api/v1/:path*`,
       },

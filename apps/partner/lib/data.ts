@@ -51,7 +51,7 @@ export function cash(v: string | number | null | undefined, currency = "INR", de
 }
 
 export function code(id: string): string {
-  return "#" + id.replace(/-/g, "").slice(0, 4).toUpperCase();
+  return "#" + id.replace(/-/g, "").slice(0, 6).toUpperCase(); // as in messages and the rider app
 }
 
 export function clock(iso: string | null | undefined): string {

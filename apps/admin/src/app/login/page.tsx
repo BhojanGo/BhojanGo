@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
         return;
       }
       login(data.access_token, data.refresh_token ?? null, data.user);
-      router.push("/dashboard");
+      router.push("/overview");
     } catch {
       setError("Invalid email or password.");
     } finally {
@@ -34,43 +34,29 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 font-body text-kohl">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">BhojanGo</h1>
-          <p className="text-gray-400 text-sm mt-1">Admin Dashboard</p>
+        <div className="mb-8 flex items-center justify-center gap-2.5 font-display text-2xl font-bold tracking-[-0.4px]">
+          <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M11 5.5v24" stroke="#0B5D66" strokeWidth="5" strokeLinecap="round" fill="none" />
+            <circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" strokeWidth="5" />
+            <path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+          </svg>
+          bhojango <span className="font-body text-sm font-semibold tracking-normal text-muted">admin</span>
         </div>
-
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-8 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 outline-none text-sm"
-              placeholder="admin@bhojango.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 outline-none text-sm"
-              placeholder="••••••••"
-            />
-          </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg transition"
-          >
-            {loading ? "Signing in..." : "Sign In"}
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-3xl bg-white p-8 shadow-[0_8px_24px_rgba(17,20,24,0.08)]">
+          <h1 className="m-0 font-display text-2xl font-semibold">Sign in</h1>
+          <label className="block text-sm font-bold">Email
+            <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block h-12 w-full rounded-2xl border-[1.5px] border-line-strong px-4 font-normal outline-none focus:border-peacock" placeholder="you@bhojango.com" />
+          </label>
+          <label className="block text-sm font-bold">Password
+            <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block h-12 w-full rounded-2xl border-[1.5px] border-line-strong px-4 font-normal outline-none focus:border-peacock" />
+          </label>
+          {error && <p role="alert" className="text-sm font-semibold text-chili">{error}</p>}
+          <button type="submit" disabled={loading} className="h-12 w-full rounded-full bg-peacock font-extrabold text-white hover:bg-peacock-dark disabled:opacity-60">
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

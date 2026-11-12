@@ -22,6 +22,9 @@ class RoleAssignmentResponse(BaseModel):
     scope: str
     granted_by: uuid.UUID | None
     created_at: datetime
+    # Who it is (the console's Settings → Admins, P21)
+    email: str | None = None
+    full_name: str | None = None
 
 
 class AdminMeResponse(BaseModel):

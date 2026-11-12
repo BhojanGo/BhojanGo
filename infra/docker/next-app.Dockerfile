@@ -18,7 +18,9 @@ ARG APP_DIR
 # Rewrites in next.config.mjs are resolved at build time; these point the
 # server-side proxy at the core_api container.
 ARG CORE_API_URL=http://core-api:8001
+ARG REALTIME_URL=http://realtime:8004
 ENV USER_SVC_URL=${CORE_API_URL} \
+    REALTIME_SVC_URL=${REALTIME_URL} \
     RESTAURANT_SVC_URL=${CORE_API_URL} \
     ORDER_SVC_URL=${CORE_API_URL} \
     PAYMENT_SVC_URL=${CORE_API_URL} \
