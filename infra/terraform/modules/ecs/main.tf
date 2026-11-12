@@ -70,6 +70,12 @@ locals {
     firebase_key_id       = "${var.app_secret_arns["firebase"]}:private_key_id::"
     firebase_key          = "${var.app_secret_arns["firebase"]}:private_key::"
     firebase_email        = "${var.app_secret_arns["firebase"]}:client_email::"
+    msg91_auth_key        = "${var.app_secret_arns["msg91"]}:auth_key::"
+    msg91_template_ids    = "${var.app_secret_arns["msg91"]}:template_ids::"
+    apns_key_id           = "${var.app_secret_arns["apns"]}:key_id::"
+    apns_team_id          = "${var.app_secret_arns["apns"]}:team_id::"
+    apns_private_key      = "${var.app_secret_arns["apns"]}:private_key::"
+    expo_access_token     = "${var.app_secret_arns["expo"]}:access_token::"
   }
 
   common_env = {
@@ -143,9 +149,20 @@ locals {
         SNS_TOPIC_ARN_ORDER    = var.sns_topic_arns["order_events"]
         SNS_TOPIC_ARN_PAYMENT  = var.sns_topic_arns["payment_events"]
         SNS_TOPIC_ARN_DELIVERY = var.sns_topic_arns["driver_events"]
+        # Messages (P15): Twilio (US) / MSG91 (India) SMS, SendGrid email, Expo/FCM/APNs push.
+        SMS_PROVIDER   = "live"
+        EMAIL_PROVIDER = "sendgrid"
+        PUSH_PROVIDER  = "live"
+        APNS_SANDBOX   = local.is_prod ? "false" : "true"
       }
       secrets = {
         DATABASE_URL            = local.secret.database_url
+        MSG91_AUTH_KEY          = local.secret.msg91_auth_key
+        MSG91_TEMPLATE_IDS      = local.secret.msg91_template_ids
+        APNS_KEY_ID             = local.secret.apns_key_id
+        APNS_TEAM_ID            = local.secret.apns_team_id
+        APNS_PRIVATE_KEY        = local.secret.apns_private_key
+        EXPO_ACCESS_TOKEN       = local.secret.expo_access_token
         TWILIO_ACCOUNT_SID      = local.secret.twilio_sid
         TWILIO_AUTH_TOKEN       = local.secret.twilio_token
         TWILIO_PHONE_NUMBER     = local.secret.twilio_from_us

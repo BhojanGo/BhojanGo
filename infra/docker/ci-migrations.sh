@@ -15,4 +15,6 @@ uv run --frozen python ../tools/seed/seed.py >/dev/null
 uv run --frozen python ../tools/seed/seed.py
 echo "== API on the migrated database"
 RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest core_api/integration -q --tb=short
+echo "== worker messages on the migrated database"
+RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest worker/tests/integration -q --tb=short
 echo "== migrations OK"

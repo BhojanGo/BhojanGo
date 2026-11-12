@@ -13,7 +13,7 @@ logger = structlog.get_logger(__name__)
 class EmailProvider(Protocol):
     name: str
 
-    async def send(self, to: str, subject: str, html: str) -> bool: ...
+    async def send(self, to: str, subject: str, html: str, text: str = "") -> bool: ...
 
 
 def _sender() -> tuple[str, str]:
@@ -24,7 +24,7 @@ def _sender() -> tuple[str, str]:
 class LogEmail:
     name = "log"
 
-    async def send(self, to: str, subject: str, html: str) -> bool:
+    async def send(self, to: str, subject: str, html: str, text: str = "") -> bool:
         logger.info("email_local", to=to, subject=subject)
         return True
 
@@ -34,7 +34,7 @@ class SmtpEmail:
 
     name = "smtp"
 
-    async def send(self, to: str, subject: str, html: str) -> bool:
+    async def send(self, to: str, subject: str, html: str, text: str = "") -> bool:
         import aiosmtplib
 
         p = get_settings().providers
@@ -43,7 +43,7 @@ class SmtpEmail:
         msg["From"] = f"{from_name} <{from_email}>"
         msg["To"] = to
         msg["Subject"] = subject
-        msg.set_content("This email needs an HTML-capable mail client.")
+        msg.set_content(text or "This email needs an HTML-capable mail client.")
         msg.add_alternative(html, subtype="html")
         try:
             await aiosmtplib.send(msg, hostname=p.SMTP_HOST, port=p.SMTP_PORT, timeout=10)
@@ -57,14 +57,15 @@ class SmtpEmail:
 class SendGridEmail:
     name = "sendgrid"
 
-    async def send(self, to: str, subject: str, html: str) -> bool:
+    async def send(self, to: str, subject: str, html: str, text: str = "") -> bool:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
 
         from_email, from_name = _sender()
         try:
             r = SendGridAPIClient(get_settings().worker.SENDGRID_API_KEY).send(
-                Mail(from_email=(from_email, from_name), to_emails=to, subject=subject, html_content=html)
+                Mail(from_email=(from_email, from_name), to_emails=to, subject=subject, html_content=html,
+                     plain_text_content=text or None)
             )
             return r.status_code in (200, 201, 202)
         except Exception as e:  # noqa: BLE001

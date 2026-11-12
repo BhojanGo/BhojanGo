@@ -53,7 +53,7 @@ variable "jwks_url" {
 }
 
 variable "app_secret_arns" {
-  description = "Secret ARNs by name: stripe, razorpay, twilio, sendgrid, firebase."
+  description = "Secret ARNs by name: stripe, razorpay, twilio, sendgrid, firebase, msg91, apns, expo."
   type        = map(string)
 }
 
