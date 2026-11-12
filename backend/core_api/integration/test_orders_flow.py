@@ -235,3 +235,24 @@ async def test_outbox_relay_publishes_each_event_once() -> None:
     assert sent and all({"event_id", "event_type", "payload", "timestamp"} <= set(e) for e in sent)
     assert any(e["event_type"] == "order.placed" for e in sent)
     assert await relay_once(publish=lambda row: sent.append(row.envelope)) == 0
+
+
+async def test_a_failing_refund_does_not_block_other_timeouts(client: AsyncClient, monkeypatch) -> None:
+    """The provider is down for one refund: that order is still cancelled (refund
+    flagged for finance), and the sweep carries on with the others."""
+    from core_api.modules.payments.service import gateways
+
+    cust = await login(client, "customer3.hyd@example.com")
+    stuck, unpaid = await new_order(client, cust), await new_order(client, cust)
+    await pay(client, cust, stuck)
+
+    async def provider_down(self, *a, **k):  # type: ignore[no-untyped-def]
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(gateways.FakeGateway, "refund", provider_down)
+    counts = await sweep(minutes=11)
+    assert counts["restaurant_no_response"] >= 1 and counts["payment_timeout"] >= 1
+    assert (await get(client, cust, stuck["id"]))["status"] == "cancelled"
+    assert (await get(client, cust, unpaid["id"]))["status"] == "cancelled"
+    assert "payment.refund_failed" in await outbox_types(stuck["id"])
+    assert (await payment(stuck["id"]))["status"] == "succeeded"  # money not yet returned: finance follows up

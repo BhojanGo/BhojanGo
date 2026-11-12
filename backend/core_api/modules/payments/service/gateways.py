@@ -35,9 +35,15 @@ class PaymentGateway(Protocol):
     signature_header: str
 
     async def create(
-        self, *, amount: int, currency: str, order_id: str, idempotency_key: str, payment_method_id: str | None
+        self, *, amount: int, currency: str, order_id: str, idempotency_key: str, payment_method_id: str | None,
+        customer: dict | None = None,
     ) -> dict:
-        """Returns provider_payment_id plus client_secret / razorpay_order_id for the app."""
+        """Returns provider_payment_id, client_secret / razorpay_order_id, and
+        ``checkout``: what the app's payment SDK needs (P12)."""
+        ...
+
+    async def ensure_customer(self, profile: dict, existing: str | None) -> str | None:
+        """The customer's id at the provider (created once), or None."""
         ...
 
     async def parse_webhook(self, payload: bytes, signature: str) -> dict:
@@ -50,13 +56,45 @@ class PaymentGateway(Protocol):
         ...
 
 
+STRIPE_API_VERSION = "2024-06-20"  # the version the mobile SDK's ephemeral keys are made for
+
+
 class StripeGateway:
+    """Stripe PaymentSheet: cards, Apple Pay and Google Pay in one sheet."""
+
     name = "stripe"
     signature_header = "stripe-signature"
 
-    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id):  # type: ignore[no-untyped-def]
-        r = await stripe_svc.create_payment_intent(amount, currency, order_id, idempotency_key, payment_method_id)
-        return {"provider_payment_id": r["provider_payment_id"], "client_secret": r["client_secret"]}
+    async def ensure_customer(self, profile: dict, existing: str | None) -> str | None:
+        if existing:
+            return existing
+        s = stripe_svc.get_stripe()
+        cus = await asyncio.to_thread(s.Customer.create, email=profile.get("email") or None,
+                                      name=profile.get("name") or None, phone=profile.get("phone") or None,
+                                      metadata={"user_id": profile["user_id"]})
+        return cus.id
+
+    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id, customer=None):  # type: ignore[no-untyped-def]
+        s = stripe_svc.get_stripe()
+        customer = customer or {}
+        kwargs: dict = {"amount": amount, "currency": currency.lower(), "metadata": {"order_id": order_id},
+                        "idempotency_key": idempotency_key, "automatic_payment_methods": {"enabled": True}}
+        if customer.get("provider_customer_id"):
+            kwargs["customer"] = customer["provider_customer_id"]
+        if payment_method_id:  # server-side confirm (saved card)
+            kwargs.update(payment_method=payment_method_id, confirm=True)
+            kwargs.pop("automatic_payment_methods")
+        pi = await asyncio.to_thread(s.PaymentIntent.create, **kwargs)
+        checkout = {"sdk": "stripe_payment_sheet", "payment_intent_client_secret": pi.client_secret,
+                    "publishable_key": get_settings().payments.STRIPE_PUBLISHABLE_KEY,
+                    "merchant_display_name": "BhojanGo", "apple_pay": {"merchant_country_code": "US"},
+                    "google_pay": {"merchant_country_code": "US", "test_env": not get_settings().is_production},
+                    "methods": customer.get("methods", [])}
+        if kwargs.get("customer"):
+            eph = await asyncio.to_thread(s.EphemeralKey.create, customer=kwargs["customer"], stripe_version=STRIPE_API_VERSION)
+            checkout.update(customer_id=kwargs["customer"], customer_ephemeral_key=eph.secret)
+        logger.info("stripe_intent_created", intent_id=pi.id, amount=amount)
+        return {"provider_payment_id": pi.id, "client_secret": pi.client_secret, "checkout": checkout}
 
     async def parse_webhook(self, payload: bytes, signature: str) -> dict:
         return await stripe_svc.process_webhook(payload, signature)
@@ -67,12 +105,26 @@ class StripeGateway:
 
 
 class RazorpayGateway:
+    """Razorpay Checkout: UPI, cards and wallets."""
+
     name = "razorpay"
     signature_header = "x-razorpay-signature"
 
-    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id):  # type: ignore[no-untyped-def]
+    async def ensure_customer(self, profile: dict, existing: str | None) -> str | None:
+        return existing  # Razorpay Checkout works without a saved customer
+
+    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id, customer=None):  # type: ignore[no-untyped-def]
+        customer = customer or {}
         r = await razorpay_svc.create_order(amount, currency, order_id, idempotency_key)
-        return {"provider_payment_id": r["provider_payment_id"], "razorpay_order_id": r["razorpay_order_id"]}
+        methods = customer.get("methods", [])
+        checkout = {"sdk": "razorpay_checkout", "key_id": get_settings().payments.RAZORPAY_KEY_ID,
+                    "order_id": r["razorpay_order_id"], "amount": amount, "currency": currency, "name": "BhojanGo",
+                    "prefill": {"name": customer.get("name") or "", "email": customer.get("email") or "",
+                                "contact": customer.get("phone") or ""},
+                    "method": {"upi": "upi" in methods, "card": "card" in methods, "wallet": "wallet" in methods,
+                               "netbanking": "net_banking" in methods},
+                    "methods": methods}
+        return {"provider_payment_id": r["provider_payment_id"], "razorpay_order_id": r["razorpay_order_id"], "checkout": checkout}
 
     async def parse_webhook(self, payload: bytes, signature: str) -> dict:
         return await razorpay_svc.process_webhook(payload, signature)
@@ -127,7 +179,10 @@ class FakeGateway:
     def __init__(self, country: str) -> None:
         self.country = country
 
-    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id):  # type: ignore[no-untyped-def]
+    async def ensure_customer(self, profile: dict, existing: str | None) -> str | None:
+        return existing or f"fake_cus_{profile['user_id'][:8]}"
+
+    async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id, customer=None):  # type: ignore[no-untyped-def]
         pid = f"fake_pay_{uuid.uuid4().hex[:20]}"
         outcome = fake_outcome(payment_method_id)
         delay = get_settings().providers.FAKE_PAYMENT_AUTO_COMPLETE_SECONDS
@@ -139,6 +194,10 @@ class FakeGateway:
         result = {"provider_payment_id": pid, "client_secret": f"{pid}_secret_fake", "fake_outcome": outcome}
         if self.country == "IN":
             result["razorpay_order_id"] = pid
+        # What the app would get from Stripe/Razorpay; locally it "pays" by calling complete_path.
+        result["checkout"] = {"sdk": "fake", "mimics": "razorpay_checkout" if self.country == "IN" else "stripe_payment_sheet",
+                              "methods": (customer or {}).get("methods", []), "outcome": outcome,
+                              "complete_path": "/api/v1/payments/fake/{payment_intent_id}/complete"}
         return result
 
     async def parse_webhook(self, payload: bytes, signature: str) -> dict:
@@ -172,6 +231,14 @@ def get_gateway(country: str) -> PaymentGateway:
     if mode not in ("auto", "live"):
         raise ProviderConfigError(f"Unknown PAYMENT_PROVIDER '{mode}'")
     return StripeGateway() if country == "US" else RazorpayGateway()
+
+
+def verify_razorpay_checkout(order_id: str, payment_id: str, signature: str) -> bool:
+    """The signature Razorpay Checkout hands the app: HMAC-SHA256 of
+    "order_id|payment_id" with the key secret."""
+    secret = get_settings().payments.RAZORPAY_KEY_SECRET.encode()
+    expected = hmac.new(secret, f"{order_id}|{payment_id}".encode(), hashlib.sha256).hexdigest()
+    return bool(secret) and hmac.compare_digest(expected, signature or "")
 
 
 def gateway_by_name(name: str) -> PaymentGateway:

@@ -32,4 +32,11 @@ async def order_for_payment(db: AsyncSession, order_id: uuid.UUID, customer_id: 
         "amount_minor": int((Decimal(order.total) * 100).to_integral_value()),
         "currency": order.currency,
         "country": (order.market_city or "")[:2] or ("IN" if order.currency == "INR" else "US"),
+        "payment_due_at": order.payment_due_at.isoformat() if order.payment_due_at else None,
     }
+
+
+async def order_market(db: AsyncSession, order_id: uuid.UUID) -> str | None:
+    """The order's city code ("" if unknown); None if there is no such order."""
+    order = await db.get(Order, order_id)
+    return None if order is None else (order.market_city or "")

@@ -12,7 +12,7 @@ locals {
   placeholders = {
     stripe = {
       description = "Stripe API keys (US)"
-      keys        = ["secret_key", "webhook_secret"]
+      keys        = ["secret_key", "publishable_key", "webhook_secret"]
     }
     razorpay = {
       description = "Razorpay API keys (India)"

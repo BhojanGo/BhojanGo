@@ -266,10 +266,11 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             if inp.external_tax is None:
                 tax_pending = True
                 continue
+            external_targets = ",".join(sorted({bl.taxable_as for bl in lines if bl.taxable_as}))
             for ext in inp.external_tax:
                 amount = add("tax", ext.label, ext.amount, t, detail={
                     "rate_percent": str(ext.rate_percent), "base": str(money(ext.base)), "jurisdiction": ext.jurisdiction,
-                    "provider": ext.provider, "calculation_id": ext.calculation_id}).amount
+                    "provider": ext.provider, "calculation_id": ext.calculation_id, "targets": external_targets}).amount
                 tax_added += amount
                 tax_owed += amount
                 tax_by_collector["platform"] += amount  # marketplace facilitator: the platform collects
@@ -283,7 +284,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         )
         rate = D(tp["rate_percent"]) / 100
         detail = {"rate_percent": str(D(tp["rate_percent"]).normalize()), "base": str(money(base)),
-                  "collected_by": tp.get("collected_by", "platform")}
+                  "collected_by": tp.get("collected_by", "platform"), "targets": ",".join(tp["target_lines"])}
         if tp.get("inclusive"):
             amount = money(base - base / (1 + rate))  # already inside the prices
             add("tax_included", f'{tp["label"]} (included in prices)', ZERO, t, detail={**detail, "included": str(amount)})

@@ -54,6 +54,8 @@ def hooks():
     with (
         patch("shared.outbox.add", new_callable=AsyncMock) as add,
         patch("core_api.modules.orders.service.order.OrderService.on_payment_succeeded", new_callable=AsyncMock) as placed,
+        patch("core_api.modules.orders.service.order.OrderService.on_payment_failed", new_callable=AsyncMock),
+        patch("core_api.modules.payments.api.v1.payments._record_tax_transaction", new_callable=AsyncMock),
     ):
         yield add, placed
 

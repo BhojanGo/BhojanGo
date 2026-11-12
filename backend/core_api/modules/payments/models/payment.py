@@ -60,3 +60,36 @@ class ProcessedWebhookEvent(Base):
     provider: Mapped[str] = mapped_column(String(20), primary_key=True)
     event_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PaymentCustomer(Base):
+    """The customer's id at a payment provider (Stripe saves cards on it)."""
+
+    __tablename__ = "payment_customers"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(20), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class Refund(Base):
+    """A refund on an order: by item (with the item's discount share and matching
+    tax), the delivery fee, or the whole order (P12)."""
+
+    __tablename__ = "refunds"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    payment_intent_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)  # minor units
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # items | full
+    reason: Mapped[str] = mapped_column(String(60), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # [{"menu_item_id", "name", "quantity", "food", "discount", "tax", "amount"}], plus delivery lines
+    lines: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    provider_refund_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="succeeded")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

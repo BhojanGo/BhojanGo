@@ -33,6 +33,27 @@ class PaymentInitiateResponse(BaseModel):
     razorpay_order_id: str | None = None    # Razorpay
     amount: int
     currency: Currency
+    # What the app's payment SDK needs: Stripe PaymentSheet (cards, Apple Pay,
+    # Google Pay), Razorpay Checkout (UPI, cards, wallets), or the local fake.
+    checkout: dict | None = None
+
+
+class RazorpayVerifyRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+
+class RefundItem(BaseModel):
+    menu_item_id: uuid.UUID
+    quantity: int = Field(ge=1, le=50)
+
+
+class ItemRefundRequest(BaseModel):
+    items: list[RefundItem] = []
+    include_delivery_fee: bool = False
+    reason: str = Field(min_length=3, max_length=60, examples=["missing_item"])
+    note: str | None = Field(default=None, max_length=500)
 
 
 class PaymentResponse(BaseModel):
