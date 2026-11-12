@@ -17,4 +17,6 @@ echo "== API on the migrated database"
 RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest core_api/integration -q --tb=short
 echo "== worker messages on the migrated database"
 RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest worker/tests/integration -q --tb=short
+echo "== API contract: the generated client matches the OpenAPI documents"
+uv run --frozen python tools/dump_openapi.py --check
 echo "== migrations OK"

@@ -39,6 +39,7 @@ COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
 RUN uv sync --frozen --no-install-project
 COPY backend/ ./
 COPY tools/ /repo/tools/
+COPY packages/api-client/openapi /repo/packages/api-client/openapi
 COPY infra/docker/db/init.sql /repo/infra/docker/db/init.sql
 COPY infra/docker/ci-migrations.sh /repo/ci-migrations.sh
 CMD ["sh", "/repo/ci-migrations.sh"]

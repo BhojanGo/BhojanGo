@@ -1,0 +1,23 @@
+# Delivering to a place we don't serve yet: customer 3's saved address is in
+# Kondapur, outside Hyderabad's delivery zones, so home sends them to the
+# "not in your area" screen, where they join the launch waitlist.
+appId: com.bhojango.app
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: "9000000103"
+- extendedWaitUntil:
+    visible:
+      text: "We.re not in .* yet"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/09-out-of-area
+- tapOn:
+    text: "Mobile number"
+- inputText: "2085550199"
+- hideKeyboard
+- tapOn: "Tell me when you launch"
+- extendedWaitUntil:
+    visible:
+      text: "Thanks.*"
+    timeout: 15000

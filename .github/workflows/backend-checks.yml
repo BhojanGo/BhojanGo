@@ -79,6 +79,10 @@ jobs:
           RUN_MIGRATED_DB_TESTS: "1"
         run: uv run pytest core_api/integration -v --tb=short
 
+      - name: API contract (generated client matches OpenAPI)
+        working-directory: backend
+        run: uv run python tools/dump_openapi.py --check
+
       - name: Worker messages on the migrated database
         working-directory: backend
         env:

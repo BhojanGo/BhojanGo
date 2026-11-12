@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, apiErrorMessage, useAuthStore } from "@bhojango/mobile-core";
+import { legacyApi as api, apiErrorMessage, useAuthStore } from "@bhojango/mobile-core";
 
 const RIDERS_ONLY_MESSAGE =
   "This app is for BhojanGo riders. Customers can sign in with the BhojanGo app.";

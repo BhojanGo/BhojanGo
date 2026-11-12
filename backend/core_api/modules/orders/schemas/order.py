@@ -91,6 +91,8 @@ class OrderResponse(BaseModel):
     restaurant_id: uuid.UUID
     restaurant_name: str
     driver_id: uuid.UUID | None
+    # The assigned rider as the customer sees them (first name only); GET /orders/{id}.
+    rider: dict | None = None
     items: list[dict[str, Any]]
     status: str
     market_city: str | None = None

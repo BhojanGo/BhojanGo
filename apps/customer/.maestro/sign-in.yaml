@@ -1,0 +1,23 @@
+# Sign in with a phone number and the code (seed phones always get 123456).
+appId: com.bhojango.app
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Sign in or sign up"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/customer/01-sign-in
+- tapOn:
+    id: "phone"
+- inputText: ${PHONE || "9000000101"}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/customer/02-code
+- inputText: "123456"
+# Signed in: the code screen goes; where it lands depends on the address.
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 30000

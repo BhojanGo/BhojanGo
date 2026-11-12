@@ -104,6 +104,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
     ("GET", "/api/v1/markets/locate"): public("does this address get delivery"),
+    ("POST", "/api/v1/markets/waitlist"): public("tell me when you launch, from outside served areas"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),
     ("GET", f"{R}/delivery-check"): public("browse"), ("GET", f"{R}/hours"): public("browse"),

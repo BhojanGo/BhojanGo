@@ -1,0 +1,36 @@
+# A declined payment: not charged, price held, try again and it goes through.
+appId: com.bhojango.app
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Spice Route Kitchen"
+    timeout: 30000
+- tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Chicken Dum Biryani"
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Paneer Tikka"
+- tapOn: "Paneer Tikka"
+- tapOn: "Add to bag"
+- tapOn:
+    text: "View bag.*"
+- extendedWaitUntil:
+    visible: "The fair bill"
+    timeout: 20000
+- tapOn:
+    text: "Pay .*"
+- tapOn: "Decline"
+- extendedWaitUntil:
+    visible: "Payment didn't go through"
+    timeout: 30000
+- assertVisible:
+    text: ".*You have not been charged.*"
+- assertVisible: "Your price is still held"
+- takeScreenshot: docs/screenshots/customer/08-payment-failed
+- tapOn: "Try UPI again"
+- tapOn:
+    text: "Approve.*"
+- extendedWaitUntil:
+    visible: "Spice Route Kitchen has your order"
+    timeout: 30000

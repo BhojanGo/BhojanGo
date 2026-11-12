@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, Switch, StyleSheet } from "react-native";
 import * as Location from "expo-location";
-import { api, realtimeApi } from "@bhojango/mobile-core";
+import { legacyApi as api, legacyRealtimeApi as realtimeApi } from "@bhojango/mobile-core";
 
 type Order = {
   id: string;

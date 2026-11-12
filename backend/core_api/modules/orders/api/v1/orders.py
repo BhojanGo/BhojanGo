@@ -135,7 +135,14 @@ async def get_order(
 
     if not await _can_see_order(db, current_user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-    return OrderResponse.model_validate(order)
+    out = OrderResponse.model_validate(order)
+    if order.driver_id:
+        from core_api.modules.identity.models.user import User
+
+        rider = await db.get(User, order.driver_id)
+        if rider is not None:
+            out.rider = {"id": str(rider.id), "first_name": (rider.full_name or "").split(" ")[0]}
+    return out
 
 
 @router.get("/{order_id}/breakdown", response_model=FeeBreakdown)

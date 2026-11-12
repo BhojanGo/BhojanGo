@@ -1,0 +1,5 @@
+{
+  "extends": "@bhojango/config/tsconfig",
+  "compilerOptions": { "noEmit": true, "lib": ["ES2022", "dom"], "noUncheckedIndexedAccess": false },
+  "include": ["src"]
+}

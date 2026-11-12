@@ -1,0 +1,1235 @@
+{
+  "components": {
+    "schemas": {
+      "DeliveryAssignRequest": {
+        "properties": {
+          "driver_id": {
+            "format": "uuid",
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "driver_id"
+        ],
+        "title": "DeliveryAssignRequest",
+        "type": "object"
+      },
+      "DriverLocationResponse": {
+        "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
+          "driver_id": {
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "heading": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heading"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver_id",
+          "order_id",
+          "lat",
+          "lng",
+          "heading",
+          "speed",
+          "accuracy",
+          "timestamp"
+        ],
+        "title": "DriverLocationResponse",
+        "type": "object"
+      },
+      "DriverLocationUpdateRequest": {
+        "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
+          "heading": {
+            "anyOf": [
+              {
+                "maximum": 360.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heading"
+          },
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lng",
+            "type": "number"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "title": "DriverLocationUpdateRequest",
+        "type": "object"
+      },
+      "EarningsBreakdownResponse": {
+        "properties": {
+          "active_minutes": {
+            "title": "Active Minutes",
+            "type": "integer"
+          },
+          "active_payout": {
+            "title": "Active Payout",
+            "type": "number"
+          },
+          "available_minutes": {
+            "title": "Available Minutes",
+            "type": "integer"
+          },
+          "deductions": {
+            "title": "Deductions",
+            "type": "number"
+          },
+          "engaged_minutes": {
+            "title": "Engaged Minutes",
+            "type": "integer"
+          },
+          "floor_guarantee": {
+            "title": "Floor Guarantee",
+            "type": "number"
+          },
+          "floor_topup": {
+            "title": "Floor Topup",
+            "type": "number"
+          },
+          "gross_earnings": {
+            "title": "Gross Earnings",
+            "type": "number"
+          },
+          "mileage_payout": {
+            "title": "Mileage Payout",
+            "type": "number"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "number"
+          },
+          "net_earnings": {
+            "title": "Net Earnings",
+            "type": "number"
+          },
+          "num_orders": {
+            "title": "Num Orders",
+            "type": "integer"
+          },
+          "order_bonus": {
+            "title": "Order Bonus",
+            "type": "number"
+          },
+          "tips": {
+            "title": "Tips",
+            "type": "number"
+          },
+          "waiting_minutes": {
+            "title": "Waiting Minutes",
+            "type": "integer"
+          },
+          "waiting_time_payout": {
+            "title": "Waiting Time Payout",
+            "type": "number"
+          }
+        },
+        "required": [
+          "available_minutes",
+          "active_minutes",
+          "waiting_minutes",
+          "engaged_minutes",
+          "miles",
+          "num_orders",
+          "active_payout",
+          "waiting_time_payout",
+          "mileage_payout",
+          "order_bonus",
+          "floor_guarantee",
+          "floor_topup",
+          "tips",
+          "gross_earnings",
+          "deductions",
+          "net_earnings"
+        ],
+        "title": "EarningsBreakdownResponse",
+        "type": "object"
+      },
+      "EarningsEstimateRequest": {
+        "properties": {
+          "active_minutes": {
+            "minimum": 0.0,
+            "title": "Active Minutes",
+            "type": "integer"
+          },
+          "available_minutes": {
+            "minimum": 0.0,
+            "title": "Available Minutes",
+            "type": "integer"
+          },
+          "deductions": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Deductions",
+            "type": "number"
+          },
+          "miles": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Miles",
+            "type": "number"
+          },
+          "num_orders": {
+            "default": 1,
+            "minimum": 0.0,
+            "title": "Num Orders",
+            "type": "integer"
+          },
+          "tips": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Tips",
+            "type": "number"
+          },
+          "waiting_minutes": {
+            "minimum": 0.0,
+            "title": "Waiting Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available_minutes",
+          "active_minutes",
+          "waiting_minutes"
+        ],
+        "title": "EarningsEstimateRequest",
+        "type": "object"
+      },
+      "EtaResponse": {
+        "properties": {
+          "driver_lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Lat"
+          },
+          "driver_lng": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Lng"
+          },
+          "estimated_delivery_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Delivery Minutes"
+          },
+          "estimated_delivery_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Delivery Time"
+          },
+          "estimated_pickup_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Pickup Minutes"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "route_polyline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Polyline"
+          }
+        },
+        "required": [
+          "order_id",
+          "driver_lat",
+          "driver_lng",
+          "estimated_pickup_minutes",
+          "estimated_delivery_minutes",
+          "estimated_delivery_time"
+        ],
+        "title": "EtaResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Point": {
+        "properties": {
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lng",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "title": "Point",
+        "type": "object"
+      },
+      "ShiftActivityRequest": {
+        "properties": {
+          "status": {
+            "enum": [
+              "available",
+              "active",
+              "waiting",
+              "idle"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ShiftActivityRequest",
+        "type": "object"
+      },
+      "ShiftStatusResponse": {
+        "properties": {
+          "active_minutes": {
+            "default": 0,
+            "title": "Active Minutes",
+            "type": "integer"
+          },
+          "available_minutes": {
+            "default": 0,
+            "title": "Available Minutes",
+            "type": "integer"
+          },
+          "driver_id": {
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "waiting_minutes": {
+            "default": 0,
+            "title": "Waiting Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "driver_id",
+          "online"
+        ],
+        "title": "ShiftStatusResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Real-time GPS tracking, WebSockets, and ETA calculation",
+    "title": "BhojanGo \u2014 Delivery Service",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/delivery/assign": {
+      "post": {
+        "description": "Manual dispatch: an admin with dispatch.edit for the order's city gives it to a rider.",
+        "operationId": "assign_driver_api_v1_delivery_assign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Assign Driver Api V1 Delivery Assign Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Assign Driver",
+        "tags": [
+          "Delivery"
+        ]
+      }
+    },
+    "/api/v1/delivery/driver/active-order": {
+      "get": {
+        "operationId": "get_driver_active_order_api_v1_delivery_driver_active_order_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Driver Active Order Api V1 Delivery Driver Active Order Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Driver Active Order",
+        "tags": [
+          "Delivery"
+        ]
+      }
+    },
+    "/api/v1/delivery/driver/location": {
+      "post": {
+        "description": "A rider's GPS fix (every few seconds while online). Goes to the order\nthey are delivering, never to one they aren't assigned to.",
+        "operationId": "update_driver_location_api_v1_delivery_driver_location_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriverLocationUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverLocationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Update Driver Location",
+        "tags": [
+          "Delivery"
+        ]
+      }
+    },
+    "/api/v1/delivery/{order_id}/eta": {
+      "get": {
+        "description": "Minutes to pickup and drop-off from the rider's last position.",
+        "operationId": "get_order_eta_api_v1_delivery__order_id__eta_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Order Eta",
+        "tags": [
+          "Delivery"
+        ]
+      }
+    },
+    "/api/v1/dispatch/shadow-batches": {
+      "get": {
+        "description": "Batches the shadow batcher would have made (nothing is batched): dispatch admins.",
+        "operationId": "shadow_batches_api_v1_dispatch_shadow_batches_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Shadow Batches Api V1 Dispatch Shadow Batches Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Shadow Batches",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/drivers/me/earnings/estimate": {
+      "post": {
+        "description": "Compute a full earnings breakdown (floor pay, mileage, waiting, tips, batch bonus, net).",
+        "operationId": "estimate_earnings_api_v1_drivers_me_earnings_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EarningsEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarningsBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Estimate Earnings",
+        "tags": [
+          "Driver Earnings"
+        ]
+      }
+    },
+    "/api/v1/drivers/me/shift": {
+      "get": {
+        "operationId": "shift_status_api_v1_drivers_me_shift_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Shift Status",
+        "tags": [
+          "Driver Earnings"
+        ]
+      }
+    },
+    "/api/v1/drivers/me/shift/activity": {
+      "post": {
+        "description": "Switch between active (on delivery) and waiting/idle so the two are tracked separately.",
+        "operationId": "set_shift_activity_api_v1_drivers_me_shift_activity_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShiftActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Shift Activity",
+        "tags": [
+          "Driver Earnings"
+        ]
+      }
+    },
+    "/api/v1/drivers/me/shift/end": {
+      "post": {
+        "description": "Driver goes offline \u2014 finalizes the shift and returns the totals.",
+        "operationId": "end_shift_api_v1_drivers_me_shift_end_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "End Shift",
+        "tags": [
+          "Driver Earnings"
+        ]
+      }
+    },
+    "/api/v1/drivers/me/shift/start": {
+      "post": {
+        "description": "Driver goes online \u2014 begins available-time tracking.",
+        "operationId": "start_shift_api_v1_drivers_me_shift_start_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Start Shift",
+        "tags": [
+          "Driver Earnings"
+        ]
+      }
+    },
+    "/api/v1/offers/{order_id}/accept": {
+      "post": {
+        "operationId": "accept_api_v1_offers__order_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Accept Api V1 Offers  Order Id  Accept Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Accept",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/offers/{order_id}/pass": {
+      "post": {
+        "operationId": "pass_offer_api_v1_offers__order_id__pass_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Pass Offer Api V1 Offers  Order Id  Pass Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Pass Offer",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/riders/me": {
+      "get": {
+        "operationId": "me_api_v1_riders_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Me Api V1 Riders Me Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Me",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/riders/me/offline": {
+      "post": {
+        "operationId": "offline_api_v1_riders_me_offline_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Offline Api V1 Riders Me Offline Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Offline",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/riders/me/online": {
+      "post": {
+        "description": "Start taking orders here. Keep sending /delivery/driver/location while online.",
+        "operationId": "online_api_v1_riders_me_online_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Point"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Online Api V1 Riders Me Online Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Online",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Check Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "description": "Liveness probe \u2014 is the process alive?",
+        "operationId": "liveness_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Liveness Health Live Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Readiness probe \u2014 are all dependencies reachable?",
+        "operationId": "readiness_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Endpoint that serves Prometheus metrics.",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics"
+      }
+    }
+  }
+}

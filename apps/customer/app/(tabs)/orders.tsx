@@ -1,102 +1,46 @@
-import { FlatList, Pressable, Text, View } from "react-native";
-import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+// Your orders: what's on its way first, then past orders.
+import { ACTIVE_STATUSES, api, color, money, space, StatusPill, textFont, Txt, unwrap, type CoreSchemas, type OrderStatus } from "@bhojango/mobile-core";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { Order } from "@bhojango/types";
-import { api } from "@bhojango/mobile-core";
+type Order = CoreSchemas["OrderResponse"];
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  pending: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  confirmed: { bg: "bg-blue-50", text: "text-blue-700" },
-  preparing: { bg: "bg-emerald-50", text: "text-emerald-700" },
-  ready_for_pickup: { bg: "bg-purple-50", text: "text-purple-700" },
-  picked_up: { bg: "bg-indigo-50", text: "text-indigo-700" },
-  delivered: { bg: "bg-green-50", text: "text-green-700" },
-  cancelled: { bg: "bg-red-50", text: "text-red-600" },
-};
+export default function Orders() {
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const load = useCallback(() => {
+    setLoading(true);
+    api.core.GET("/api/v1/orders", { params: { query: { limit: 50 } } })
+      .then((r) => setOrders((unwrap(r) as { items: Order[] }).items))
+      .finally(() => setLoading(false));
+  }, []);
+  useFocusEffect(load);
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  preparing: "Preparing",
-  ready_for_pickup: "Ready for Pickup",
-  picked_up: "Out for Delivery",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
-function OrderCard({ order }: { order: Order }) {
-  const colors = STATUS_COLORS[order.status] ?? { bg: "bg-gray-50", text: "text-gray-700" };
-  const isActive = !["delivered", "cancelled"].includes(order.status);
-
+  const shown = (orders ?? []).filter((o) => o.status !== "pending_payment");
   return (
-    <Pressable
-      onPress={() => router.push(`/order/${order.id}`)}
-      className="bg-white rounded-xl p-4 mb-3 border border-gray-100"
-    >
-      <View className="flex-row justify-between items-start mb-2">
-        <Text className="font-semibold text-gray-900 text-sm">
-          #{order.id.slice(0, 8).toUpperCase()}
-        </Text>
-        <View className={`px-2.5 py-1 rounded-full ${colors.bg}`}>
-          <Text className={`text-xs font-semibold ${colors.text}`}>
-            {STATUS_LABELS[order.status] ?? order.status}
-          </Text>
-        </View>
-      </View>
-      <Text className="text-sm text-gray-700">{order.restaurant_name ?? "Restaurant"}</Text>
-      <Text className="text-xs text-gray-400 mt-1">
-        {order.items?.length ?? 0} items · {order.currency === "INR" ? "₹" : "$"}
-        {order.total?.toFixed(2)}
-      </Text>
-      {isActive && (
-        <View className="flex-row items-center gap-1 mt-2">
-          <View className="w-2 h-2 rounded-full bg-emerald-500" />
-          <Text className="text-xs text-emerald-500 font-medium">Track Order</Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-export default function OrdersScreen() {
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["orders"],
-    queryFn: async () => {
-      const { data } = await api.get("/orders?limit=50");
-      return data as { items: Order[]; total: number };
-    },
-  });
-
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-2xl font-bold text-gray-900">Your Orders</Text>
-      </View>
-
+    <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
+      <Txt variant="h1" accessibilityRole="header" style={{ padding: space[5] }}>Orders</Txt>
       <FlatList
-        data={data?.items ?? []}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingTop: 8 }}
-        refreshing={isLoading}
-        onRefresh={refetch}
-        ListEmptyComponent={
-          isLoading ? undefined : (
-            <View className="flex-1 items-center justify-center pt-20">
-              <Text className="text-5xl mb-3">📦</Text>
-              <Text className="text-lg font-semibold text-gray-900 mb-1">No orders yet</Text>
-              <Text className="text-gray-500 text-sm mb-4">Your order history will appear here</Text>
-              <Pressable
-                onPress={() => router.push("/")}
-                className="px-6 py-2.5 bg-emerald-500 rounded-xl"
-              >
-                <Text className="text-white font-semibold">Order Now</Text>
-              </Pressable>
+        data={shown.sort((a, b) => Number(ACTIVE_STATUSES.includes(b.status as OrderStatus)) - Number(ACTIVE_STATUSES.includes(a.status as OrderStatus)))}
+        keyExtractor={(o) => o.id}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: 120 }}
+        ListEmptyComponent={orders ? <Txt style={{ color: color.muted }}>No orders yet. Your first one will show up here.</Txt> : undefined}
+        renderItem={({ item: o }) => (
+          <Pressable accessibilityRole="button" accessibilityLabel={`${o.restaurant_name}, ${o.status}`} onPress={() => router.push(`/order/${o.id}`)}
+            style={{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 8 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Txt variant="title" style={{ flex: 1 }}>{o.restaurant_name}</Txt>
+              <Text style={[textFont("800"), { fontSize: 15, fontVariant: ["tabular-nums"] }]}>{money(o.total, o.currency)}</Text>
             </View>
-          )
-        }
-        renderItem={({ item }) => <OrderCard order={item} />}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <StatusPill status={o.status} />
+              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{new Date(o.created_at).toLocaleString()}</Text>
+            </View>
+          </Pressable>
+        )}
       />
     </SafeAreaView>
   );

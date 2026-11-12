@@ -18,7 +18,7 @@ MARKETS = [
         "city": "Hyderabad",
         "currency": "INR",
         "locale": "en-IN",
-        "phone_prefix": "+9190000",
+        "phone_prefix": "+919000000",  # +91 90000 00101: 10-digit mobiles, as the apps require
         "scope": "IN-TG-HYD",  # market code: country-state-city (shared/authz.py)
         "partner": "Hyderabad Partner",
         "customers": [

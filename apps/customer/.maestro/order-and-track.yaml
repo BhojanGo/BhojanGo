@@ -1,0 +1,36 @@
+# The main path: a kitchen near you, customise a dish, the fair bill, pay, live tracking.
+appId: com.bhojango.app
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Spice Route Kitchen"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/03-home
+- tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Chicken Dum Biryani"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/04-restaurant
+- tapOn: "Chicken Dum Biryani"
+- assertVisible: "Size"
+- tapOn: "Extra raita"
+- takeScreenshot: docs/screenshots/customer/05-customise
+- tapOn: "Add to bag"
+- tapOn:
+    text: "View bag.*"
+- extendedWaitUntil:
+    visible: "The fair bill"
+    timeout: 20000
+- assertVisible: "KITCHEN"
+- assertVisible: "GOVT"
+- takeScreenshot: docs/screenshots/customer/06-bag-fair-bill
+- tapOn:
+    text: "Pay .*"
+- tapOn:
+    text: "Approve.*"
+- extendedWaitUntil:
+    visible: "Spice Route Kitchen has your order"
+    timeout: 30000
+- assertVisible:
+    id: "eta"
+- takeScreenshot: docs/screenshots/customer/07-tracking
