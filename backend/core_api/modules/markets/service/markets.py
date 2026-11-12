@@ -311,7 +311,8 @@ class MarketService:
                 return LocateResult(
                     serviceable=True, country_code=country.code, region_code=region.code, city_code=city.code,
                     city_name=city.name, zone_id=zone.id, zone_name=zone.name, min_order=zone.min_order,
-                    currency=country.currency, status="beta" if "beta" in (country.status, region.status, city.status, zone.status) else "live",
+                    currency=country.currency, timezone=city.timezone or region.timezone or country.timezone,
+                    status="beta" if "beta" in (country.status, region.status, city.status, zone.status) else "live",
                 )
         if hits:
             zone, city, _, _ = hits[0]

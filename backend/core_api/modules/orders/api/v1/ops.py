@@ -29,6 +29,7 @@ Viewer = Annotated[AdminContext, Depends(require_permission("orders.view"))]
 ACTIVE = ("placed", "accepted", "preparing", "almost_ready", "ready", "picked_up")
 WAITING_FOR_RIDER = ("almost_ready", "ready")
 LATE_AFTER = timedelta(minutes=5)
+MIN_FOR_MEDIAN = 5  # fewer completed deliveries than this: no median ("—")
 RIDER_WAIT_ALERT = timedelta(minutes=5)
 
 
@@ -49,6 +50,7 @@ class OpsCity(BaseModel):
     code: str
     name: str
     status: str
+    timezone: str
     totals: OpsTotals
 
 
@@ -109,11 +111,17 @@ def _totals(orders: list, refunds: dict, start_utc: datetime, now: datetime) -> 
     t.today = len(today)
     t.gmv_today = sum((Decimal(o.total) for o in today if o.status != "cancelled"), Decimal(0))
     delivered = [o for o in today if o.status == "delivered" and o.actual_delivery_time and o.placed_at]
-    if delivered:
+    # Median delivery time: completed orders only, and only once there are enough of them.
+    if len(delivered) >= MIN_FOR_MEDIAN:
         t.median_delivery_min = round(statistics.median((o.actual_delivery_time - o.placed_at).total_seconds() / 60 for o in delivered), 1)
-        timed = [o for o in delivered if o.estimated_delivery_time]
-        if timed:
-            t.on_time_pct = round(100 * sum(1 for o in timed if o.actual_delivery_time <= o.estimated_delivery_time + LATE_AFTER) / len(timed), 1)
+    # On time: delivered within 5 min of the time the customer was given. Orders still on
+    # their way and already past it count as late, so a bad evening shows at once.
+    timed = [o for o in delivered if o.estimated_delivery_time]
+    running_late = [o for o in today if o.status in ACTIVE and o.estimated_delivery_time and now > o.estimated_delivery_time + LATE_AFTER]
+    if timed or running_late:
+        on_time = sum(1 for o in timed if o.actual_delivery_time <= o.estimated_delivery_time + LATE_AFTER)
+        t.on_time_pct = round(100 * on_time / (len(timed) + len(running_late)), 1)
+    if delivered:
         t.refund_pct = round(100 * sum(1 for o in delivered if refunds.get(o.id)) / len(delivered), 1)
     finished = [o for o in today if o.status in ("delivered", "cancelled")]
     if finished:
@@ -164,7 +172,7 @@ async def overview(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*
         ct.kitchens = kitchens.get(c.name, 0)
         entry = countries.setdefault(k.code, {"k": k, "start": start, "states": {}})
         st = entry["states"].setdefault(r.code, {"r": r, "cities": [], "orders": []})
-        st["cities"].append(OpsCity(code=c.code, name=c.name, status=c.status, totals=ct))
+        st["cities"].append(OpsCity(code=c.code, name=c.name, status=c.status, timezone=str(tz), totals=ct))
         st["orders"] += by_city[c.code]
 
     out: list[OpsCountry] = []

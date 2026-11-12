@@ -105,6 +105,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
     ("GET", "/api/v1/markets/locate"): public("does this address get delivery"),
     ("GET", "/api/v1/markets/cities"): public("where we deliver: the web's city pages"),
+    ("GET", "/api/v1/pricing/example"): public("the web home page's example bill, from the real engine"),
     ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
     ("POST", "/api/v1/markets/waitlist"): public("tell me when you launch, from outside served areas"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),

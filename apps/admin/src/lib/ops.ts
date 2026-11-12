@@ -34,7 +34,7 @@ export interface Totals {
   live: number; today: number; gmv_today: string; median_delivery_min: number | null; on_time_pct: number | null;
   completed_pct: number | null; refund_pct: number | null; waiting_for_rider: number; late: number; kitchens: number;
 }
-export interface OCity { code: string; name: string; status: string; totals: Totals }
+export interface OCity { code: string; name: string; status: string; timezone: string; totals: Totals }
 export interface OState { code: string; name: string; totals: Totals; cities: OCity[] }
 export interface Action { kind: string; label: string; detail: string; count: number; scope: string; urgent: boolean }
 export interface OCountry {

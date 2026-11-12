@@ -66,7 +66,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
           <section key={c.code} className="flex flex-col gap-4 rounded-2xl bg-white p-6" aria-label={c.name}>
             <div className="flex items-center gap-3">
               <span className="rounded-md bg-peacock-tint px-2 py-1 text-xs font-extrabold text-peacock-dark">{c.code}</span>
-              <div className="flex-1"><div className="text-lg font-extrabold">{c.name}</div><div className="text-[13px] text-muted">{c.currency} · {c.tax} · {c.payments} · {c.timezone}</div></div>
+              <div className="flex-1"><div className="text-lg font-extrabold">{c.name}</div><div className="text-[13px] text-muted">{c.currency} · {c.tax} · {c.payments} · main zone {c.timezone}</div></div>
               <Link href={`/overview?scope=${c.code}`} className="h-10 rounded-full bg-peacock px-4 text-sm font-extrabold leading-10 text-white">Open {c.code === "US" ? "US" : c.name}</Link>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -140,7 +140,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
         <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">{title}</h1>
         {one ? <StatusPill status={one.status as MarketStatus} /> : null}
         <p className="w-full text-sm text-muted">
-          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · times in {country.timezone} · amounts in {country.currency}
+          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {one ? `times in ${one.timezone}` : "times in each city's own zone"} · amounts in {country.currency}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -179,7 +179,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div><dt className="font-bold">Money and tax</dt><dd className="text-muted">{country.currency} · {country.tax}</dd></div>
           <div><dt className="font-bold">Payments</dt><dd className="text-muted">{country.payments}</dd></div>
-          <div><dt className="font-bold">Time zone</dt><dd className="text-muted">{country.timezone}</dd></div>
+          <div><dt className="font-bold">Main time zone</dt><dd className="text-muted">{country.timezone} · each city keeps its own ({[...new Set(country.states.flatMap((s) => s.cities.map((x) => x.timezone)))].join(", ")})</dd></div>
           <div><dt className="font-bold">Compliance</dt><dd className="text-muted">{country.code === "IN" ? "FSSAI licence required for every kitchen" : "Local food permits; sales tax by Stripe Tax"}</dd></div>
         </dl>
       </section>

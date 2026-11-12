@@ -1,9 +1,11 @@
 // The fair bill (P8 bill lines → what each row says and who gets the money).
 // Shared by web and the apps; no DOM, no React Native.
 
+// A line is RIDER only when all of it goes to the rider (the tip). The delivery
+// fee is ours: riders are paid separately (base, distance, waiting, the floor).
 const PAYEE = {
   food: "KITCHEN", packaging: "KITCHEN",
-  delivery_fee: "RIDER",
+  delivery_fee: "US",
   service_fee: "US", small_order_fee: "US", surge: "US", late_night_fee: "US",
   tax: "GOVT", tip: "RIDER",
 };

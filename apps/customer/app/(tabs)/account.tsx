@@ -4,8 +4,10 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Account() {
+  const bottom = useTabBarSpace();
   const { user, signOut, deleteAccount } = useSession();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +28,7 @@ export default function Account() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: bottom }}>
         <Txt variant="h1" accessibilityRole="header">Account</Txt>
         <Card style={{ gap: 4 }}>
           <Txt variant="title">{user?.full_name}</Txt>

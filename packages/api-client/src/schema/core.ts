@@ -1210,6 +1210,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pricing/example": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Example Quote
+         * @description An example bill for the web's home page, priced by the real engine with the
+         *     city's live rules (a typical cart, today at 8 pm local), cached for an hour. Public.
+         */
+        get: operations["example_quote_api_v1_pricing_example_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pricing/orders/{order_id}/bill": {
         parameters: {
             query?: never;
@@ -3299,6 +3320,11 @@ export interface components {
             serviceable: boolean;
             /** Status */
             status?: ("draft" | "beta" | "live" | "paused") | null;
+            /**
+             * Timezone
+             * @description The city's own time zone
+             */
+            timezone?: string | null;
             /** Zone Id */
             zone_id?: string | null;
             /** Zone Name */
@@ -3613,6 +3639,8 @@ export interface components {
             name: string;
             /** Status */
             status: string;
+            /** Timezone */
+            timezone: string;
             totals: components["schemas"]["OpsTotals"];
         };
         /** OpsCountry */
@@ -7478,6 +7506,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    example_quote_api_v1_pricing_example_get: {
+        parameters: {
+            query: {
+                city: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

@@ -47,6 +47,15 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 14. **The release gate runs the real flow over HTTP on a throwaway stack, with no mocks and no admin help.**
     Why: BhojanGo's G1 found that no bag with options could reach checkout, which every mocked test had missed.
 
+15. **Numbers shown to people come from the engine that charges them, never typed by hand.**
+    Why: the hand-typed home-page bill drifted from the real rules, and the "delivery fee to RIDER" tag was wrong everywhere.
+
+16. **Every city keeps its own time zone; the country's zone is only a label.**
+    Why: Boise was running on New York time, so "today", payout weeks and greetings were all wrong there.
+
+17. **Admin screens show settings in plain words; a test fails the build on raw JSON, "null" or "undefined".**
+    Why: rule parameters leaked onto the page as JSON, which no operator can check at a glance.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

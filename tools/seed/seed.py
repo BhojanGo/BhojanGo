@@ -92,11 +92,12 @@ RETURNING id
 
 UPSERT_CITY = text("""
 INSERT INTO cities (id, country_id, region_id, code, name, center_lat, center_lng,
-                    service_hours, settings, status)
+                    service_hours, settings, status, timezone)
 VALUES (:id, :country_id, :region_id, :code, :name, :lat, :lng,
-        CAST(:service_hours AS jsonb), CAST(:settings AS jsonb), :status)
+        CAST(:service_hours AS jsonb), CAST(:settings AS jsonb), :status, :timezone)
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name, center_lat = EXCLUDED.center_lat, center_lng = EXCLUDED.center_lng,
+    timezone = EXCLUDED.timezone,
     service_hours = EXCLUDED.service_hours, settings = EXCLUDED.settings,
     status = EXCLUDED.status, updated_at = now()
 RETURNING id
@@ -136,6 +137,8 @@ async def seed_markets(conn) -> None:
                     "name": city["name"], "lat": city["center"][0], "lng": city["center"][1],
                     "service_hours": json.dumps(city["service_hours"]), "settings": json.dumps(city["settings"]),
                     "status": city["status"],
+                    # every city has its own zone (the country's is only a label): Boise is America/Boise
+                    "timezone": city.get("timezone") or r.get("timezone") or c["timezone"],
                 })).scalar_one()
                 for name, bounds, min_order, status, color in city["zones"]:
                     await conn.execute(UPSERT_ZONE, {

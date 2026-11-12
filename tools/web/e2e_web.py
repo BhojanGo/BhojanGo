@@ -82,6 +82,18 @@ with sync_playwright() as p:
         expect(page.get_by_role("link", name="Order in Hyderabad")).to_be_visible(),
         expect(page.get_by_role("heading", name="Kitchens in Boise")).to_be_visible(),
         expect(page.get_by_role("link", name="Spice Route Kitchen").first).to_be_visible()))
+    fig = page.get_by_role("figure", name="An example of the fair bill")
+    check("home: the example bill is a real quote (engine, Hyderabad rules) with who gets each line", lambda: (
+        expect(fig.get_by_text("The fair bill")).to_be_visible(),
+        expect(fig.get_by_text(__import__("re").compile("A real Hyderabad bill"))).to_be_visible(),
+        expect(fig.get_by_text("GOVT").first).to_be_visible()))
+    # The delivery fee is ours (riders are paid separately); RIDER is only the tip.
+    rows = fig.locator("dt").all_inner_texts()
+    payees = fig.locator("dd").all_inner_texts()
+    check("fair bill: delivery fee is US, tip is RIDER", lambda: (
+        payees[2 * next(i for i, r in enumerate(rows) if r.lower().startswith("delivery"))] == "US"
+        and payees[2 * next(i for i, r in enumerate(rows) if "tip" in r.lower())] == "RIDER")
+        or (_ for _ in ()).throw(AssertionError(list(zip(rows, payees[::2])))))
     shot(page, "01-home")
 
     page.get_by_role("link", name="Order in Hyderabad").click()

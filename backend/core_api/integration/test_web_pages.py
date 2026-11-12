@@ -30,3 +30,13 @@ async def test_cities_and_slugs(client: AsyncClient) -> None:
     assert r.status_code == 200 and r.json()["name"] == "Spice Route Kitchen"
     # A kitchen still applying has no public page.
     assert (await client.get("/api/v1/restaurants/by-slug/kesar-kitchen-kondapur")).status_code == 404
+
+
+async def test_example_bill_comes_from_the_engine(client: AsyncClient) -> None:
+    r = await client.get("/api/v1/pricing/example", params={"city": "IN-TG-HYD"})
+    assert r.status_code == 200, r.text
+    b = r.json()
+    codes = [ln["code"] for ln in b["lines"]]
+    assert b["currency"] == "INR" and codes[0] == "food" and "delivery_fee" in codes and "tax" in codes and "tip" in codes
+    assert abs(sum(float(ln["amount"]) for ln in b["lines"]) - float(b["total"])) < 0.01
+    assert (await client.get("/api/v1/pricing/example", params={"city": "IN-TG-XXX"})).status_code == 404

@@ -16,7 +16,7 @@ export default function Help() {
           <p>At checkout choose where it goes (a saved address, or your current location) and whether to tip your rider.</p>
         </> },
         { id: "fair-bill", title: "The fair bill", body: <>
-          <p>Before you pay you see every line of the bill and who gets it: <b>KITCHEN</b> (the food and packaging), <b>RIDER</b> (delivery pay and your tip), <b>GOVT</b> (tax) and <b>US</b> (our service fee).</p>
+          <p>Before you pay you see every line of the bill and who gets it: <b>KITCHEN</b> (the food and packaging), <b>RIDER</b> (your tip, all of it), <b>GOVT</b> (tax) and <b>US</b> (delivery and service fees; we pay riders for every delivery separately).</p>
           <p>Offers say who pays for them. The price is held for a few minutes while you pay; if it runs out we work it out again before charging you.</p>
         </> },
         { id: "delivery", title: "Delivery and the PIN", body: <>

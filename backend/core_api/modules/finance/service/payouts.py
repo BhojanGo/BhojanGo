@@ -43,7 +43,32 @@ def _utc_range(start: date, end: date, tz: ZoneInfo) -> tuple[datetime, datetime
             datetime.combine(end, time(0), tzinfo=tz).astimezone(UTC))
 
 
-async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime, end_utc: datetime,
+async def city_zones(db: AsyncSession, country: str) -> dict[str, ZoneInfo]:
+    """Each city's own time zone (the country's is only a label: Boise is America/Boise)."""
+    from core_api.modules.markets.models import City, Country, Region
+
+    rows = (await db.execute(select(City, Region, Country).join(Region, Region.id == City.region_id)
+                             .join(Country, Country.id == City.country_id).where(Country.code == country))).all()
+    return {c.code: ZoneInfo(c.timezone or r.timezone or k.timezone) for c, r, k in rows}
+
+
+async def _in_period(db: AsyncSession, country: str, start: date, end: date, column):  # type: ignore[no-untyped-def]
+    """``column`` falls between local midnight on ``start`` and on ``end`` in its order's own city."""
+    from sqlalchemy import or_
+
+    from core_api.modules.orders.models.order import Order
+
+    zones = await city_zones(db, country)
+    if not zones:
+        return Order.id.is_(None)
+    parts = []
+    for code, tz in zones.items():
+        a, b = _utc_range(start, end, tz)
+        parts.append(and_(Order.market_city == code, column >= a, column < b))
+    return or_(*parts)
+
+
+async def _orders_for_period(db: AsyncSession, country: str, start: date, end: date,
                              rider_id: uuid.UUID | None = None) -> list[S.OrderForPayout]:
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import Refund
@@ -53,8 +78,7 @@ async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime
     rows = (await db.execute(
         select(Order, OrderPricingSnapshot)
         .join(OrderPricingSnapshot, OrderPricingSnapshot.order_id == Order.id)
-        .where(Order.status == "delivered", Order.market_city.like(f"{country}-%"),
-               Order.actual_delivery_time >= start_utc, Order.actual_delivery_time < end_utc,
+        .where(Order.status == "delivered", await _in_period(db, country, start, end, Order.actual_delivery_time),
                *([Order.driver_id == rider_id] if rider_id else []))
         .order_by(Order.actual_delivery_time)
     )).all()
@@ -99,8 +123,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
         PayoutRun.country == country, PayoutRun.period_start < end, PayoutRun.period_end > start))).scalars().first()
     if overlapping:
         raise FinanceError(f"Payouts for {overlapping.period_start}–{overlapping.period_end} already cover part of this period")
-    start_utc, end_utc = _utc_range(start, end, ZoneInfo(c.timezone))
-    orders = await _orders_for_period(db, country, start_utc, end_utc)
+    orders = await _orders_for_period(db, country, start, end)  # each city's own Monday to Monday
 
     run = PayoutRun(country=country, currency=c.currency, period_start=start, period_end=end, status="draft", created_by=actor)
     db.add(run)
@@ -218,22 +241,20 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
     from core_api.modules.orders.models.order import Order
 
     c = await _country(db, country)
-    tz = ZoneInfo(c.timezone)
-    local_now = (now or datetime.now(UTC)).astimezone(tz)
-    today = local_now.date()
-    start = today - timedelta(days=today.weekday())
-    end = start + timedelta(days=7)
-    start_utc, end_utc = _utc_range(start, end, tz)
-    orders = await _orders_for_period(db, country, start_utc, end_utc, rider_id)
-    city = await _city_of(db, orders[-1].order_id) if orders else None
-    if city is None:  # no deliveries yet this week: the city of the rider's last order
-        city = (await db.execute(select(Order.market_city).where(Order.driver_id == rider_id, Order.market_city.is_not(None))
-                                 .order_by(Order.created_at.desc()).limit(1))).scalar()
-    if city is None:  # a new rider: the country's live city (riders aren't tied to one yet)
+    # "This week" is in the rider's city (their latest order; a new rider: the country's live city).
+    city = (await db.execute(select(Order.market_city).where(Order.driver_id == rider_id, Order.market_city.is_not(None))
+                             .order_by(Order.created_at.desc()).limit(1))).scalar()
+    if city is None:
         from core_api.modules.markets.models import City
 
         city = (await db.execute(select(City.code).where(City.code.like(f"{country}-%"), City.status.in_(("live", "beta")))
                                  .order_by(City.code).limit(1))).scalar()
+    tz = (await city_zones(db, country)).get(city or "", ZoneInfo(c.timezone))
+    local_now = (now or datetime.now(UTC)).astimezone(tz)
+    today = local_now.date()
+    start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=7)
+    orders = await _orders_for_period(db, country, start, end, rider_id)
     floor = await _rule(db, city, "rider_pay:hourly_floor") if city else None
     floor_rate = Decimal(str(floor["per_active_hour"])) if floor else None
     total, summary, lines = S.rider_statement(orders, floor_rate)
@@ -296,9 +317,8 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     from core_api.modules.pricing.models import OrderPricingSnapshot
 
     c = await _country(db, country)
-    start_utc, end_utc = _utc_range(start, end, ZoneInfo(c.timezone))
     orders = (await db.execute(select(Order).where(
-        Order.market_city.like(f"{country}-%"), Order.created_at >= start_utc, Order.created_at < end_utc))).scalars().all()
+        await _in_period(db, country, start, end, Order.created_at)))).scalars().all()
     ids = [o.id for o in orders]
     intents = (await db.execute(select(PaymentIntent).where(PaymentIntent.order_id.in_(ids)))).scalars().all() if ids else []
     refunds = (await db.execute(select(Refund).where(Refund.order_id.in_(ids)))).scalars().all() if ids else []

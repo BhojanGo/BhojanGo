@@ -13,13 +13,19 @@ export function LogoMark({ size = 40, tone = "teal", title = "BhojanGo" }: { siz
   );
 }
 
-/** The mark and the lowercase wordmark, with an optional quiet suffix ("admin"). */
-export function Logo({ size = 32, suffix }: { size?: number; suffix?: string }) {
+/**
+ * The lockup as drawn on BrandLogo.html (route C): the mark, then "bhojango" in
+ * Familjen Grotesk 700, kohl, sized and spaced from the mark (52 px mark :
+ * 34 px wordmark, -1 px tracking, 12 px gap). Optional quiet suffix ("admin").
+ */
+export function Logo({ size = 32, suffix, tone = "teal" }: { size?: number; suffix?: string; tone?: "teal" | "white" }) {
+  const text = Math.round(size * (34 / 52) * 10) / 10;
   return (
-    <span className="inline-flex items-center gap-2.5 font-display text-xl font-bold tracking-[-0.4px] text-kohl">
-      <LogoMark size={size} />
-      bhojango
-      {suffix && <span className="font-sans text-sm font-semibold tracking-normal text-muted">{suffix}</span>}
+    <span className="inline-flex items-center" style={{ gap: Math.round(size * (12 / 52)) }}>
+      <LogoMark size={size} tone={tone} />
+      <span style={{ fontFamily: "var(--font-display), 'Familjen Grotesk', system-ui, sans-serif", fontWeight: 700, fontSize: text,
+        letterSpacing: `${-(text / 34)}px`, lineHeight: 1, color: tone === "white" ? "#FFFFFF" : "#111418" }}>bhojango</span>
+      {suffix && <span className="font-sans text-sm font-semibold tracking-normal text-muted" style={{ marginLeft: Math.round(size * 0.15) }}>{suffix}</span>}
     </span>
   );
 }
