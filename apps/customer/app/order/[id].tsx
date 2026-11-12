@@ -1,205 +1,195 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+// CustomerTracking.html: where the food is, when it arrives, who's bringing it.
+// Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
+// location + ETA and status changes. The map is drawn (no map provider key).
+import { api, color, radius, space, StatusPill, textFont, Txt, unwrap, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import MapView, { Marker } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
-import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
 
-import type { Order } from "@bhojango/types";
-import { api } from "@bhojango/mobile-core";
+import { Icon } from "../../lib/icons";
 
-const STATUS_STEPS = ["confirmed", "preparing", "ready_for_pickup", "picked_up", "delivered"] as const;
-const STATUS_LABELS: Record<string, string> = {
-  confirmed: "Confirmed",
-  preparing: "Preparing",
-  ready_for_pickup: "Ready",
-  picked_up: "On the way",
-  delivered: "Delivered",
-};
+type Order = CoreSchemas["OrderResponse"] & { rider?: { id: string; first_name: string } | null };
+type Pt = [number, number];
+interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string }
+interface Live { status: string; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean }
 
-export default function OrderDetailScreen() {
+const STEPS = [
+  { key: "placed", label: "Placed", states: ["placed", "accepted"] },
+  { key: "cooked", label: "Cooked", states: ["preparing", "almost_ready", "ready"] },
+  { key: "picked", label: "Picked up", states: ["picked_up"] },
+  { key: "home", label: "Home", states: ["delivered"] },
+];
+
+function clock(iso?: string | null): { time: string; ampm: string } {
+  if (!iso) return { time: "--:--", ampm: "" };
+  const d = new Date(iso);
+  const h = d.getHours();
+  return { time: `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}`, ampm: h < 12 ? "am" : "pm" };
+}
+
+export default function Tracking() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const wsRef = useRef<WebSocket | null>(null);
-  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const [driverName, setDriverName] = useState<string | null>(null);
-
-  const { data: order, refetch } = useQuery({
-    queryKey: ["order", id],
-    queryFn: async () => {
-      const { data } = await api.get(`/orders/${id}`);
-      return data as Order;
-    },
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (!status || ["delivered", "cancelled"].includes(status)) return false;
-      return 30_000;
-    },
-  });
+  const [order, setOrder] = useState<Order | null>(null);
+  const [live, setLive] = useState<Live>({ status: "placed", pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false });
 
   useEffect(() => {
-    if (!order || ["delivered", "cancelled"].includes(order.status)) return;
-
-    async function connectWs() {
-      const token = await SecureStore.getItemAsync("access_token");
-      if (!token) return;
-
-      const wsUrl = `${process.env.EXPO_PUBLIC_WS_URL ?? "ws://localhost:8004"}/ws/track/${id}?token=${token}`;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data as string);
-          if (msg.type === "location_update") {
-            setDriverLocation({ lat: msg.lat, lng: msg.lng });
-            if (msg.driver_name) setDriverName(msg.driver_name);
-            if (msg.eta_minutes) setEtaMinutes(msg.eta_minutes);
-          } else if (msg.type === "status_update") {
-            void refetch();
+    let live_ = true;
+    const load = () =>
+      api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
+        .then((r) => live_ && setOrder(unwrap(r) as Order))
+        .catch(() => undefined);
+    void load();
+    const ws = new WebSocket(wsUrl(`/ws/track/${id}`));
+    ws.onmessage = (e) => {
+      const m = JSON.parse(String(e.data)) as { type: string; payload: Record<string, unknown> };
+      const p = m.payload;
+      setLive((s) => {
+        switch (m.type) {
+          case "connected": {
+            const loc = p.location as { lat: number; lng: number } | null;
+            return {
+              ...s, status: String(p.status ?? s.status), pickup: (p.pickup as Pt) ?? null, dropoff: (p.dropoff as Pt) ?? null,
+              rider: loc ? [loc.lat, loc.lng] : null, eta: (p.eta as Eta) ?? null,
+              trail: ((p.trail as [number, number, string][]) ?? []).map((t) => [t[0], t[1]] as Pt),
+            };
           }
-        } catch {
-          // ignore
+          case "searching_rider":
+            return { ...s, searching: true };
+          case "rider_assigned":
+            void load();
+            return { ...s, searching: false, eta: (p.eta as Eta) ?? s.eta };
+          case "location_update": {
+            const pt: Pt = [Number(p.lat), Number(p.lng)];
+            return { ...s, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
+          }
+          case "status_change":
+            void load();
+            return { ...s, status: String(p.status ?? s.status) };
+          default:
+            return s;
         }
-      };
-    }
+      });
+    };
+    return () => {
+      live_ = false;
+      ws.close();
+    };
+  }, [id]);
 
-    void connectWs();
-    return () => wsRef.current?.close();
-  }, [order?.status, id, refetch]);
-
-  if (!order) {
-    return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-400">Loading order...</Text>
-      </View>
-    );
-  }
-
-  const currentStepIndex = STATUS_STEPS.indexOf(order.status as (typeof STATUS_STEPS)[number]);
-  const isActive = !["delivered", "cancelled"].includes(order.status);
-  const currencySymbol = order.currency === "INR" ? "₹" : "$";
+  const status = order?.status === "delivered" || order?.status === "cancelled" ? order.status : live.status;
+  const stepIndex = Math.max(0, STEPS.findIndex((st) => st.states.includes(status)));
+  const progress = status === "delivered" ? 1 : [0.12, 0.42, 0.78, 1][stepIndex] ?? 0.12;
+  const riderName = order?.rider?.first_name;
+  const arrives = clock(live.eta?.arrives_at ?? order?.estimated_delivery_time);
+  const headline =
+    status === "delivered" ? "Delivered. Enjoy your meal." :
+    status === "cancelled" ? "This order was cancelled" :
+    status === "picked_up" ? `${riderName ?? "Your rider"} is on the way` :
+    riderName ? `${riderName} is heading to the kitchen` :
+    status === "placed" ? `${order?.restaurant_name ?? "The kitchen"} has your order` : `${order?.restaurant_name ?? "The kitchen"} is cooking`;
+  const stamp = (state: string) => {
+    const h = (order?.status_history as { status: string; at: string }[] | undefined)?.find((x) => x.status === state);
+    return h ? clock(h.at).time : "";
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Map */}
-        {isActive && driverLocation ? (
-          <MapView
-            style={{ height: 200 }}
-            region={{
-              latitude: driverLocation.lat,
-              longitude: driverLocation.lng,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}
-          >
-            <Marker
-              coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }}
-              title={driverName ?? "Driver"}
-            />
-          </MapView>
-        ) : isActive ? (
-          <View className="h-40 bg-gray-100 items-center justify-center">
-            <Text className="text-gray-400 text-sm">Waiting for driver location...</Text>
-          </View>
-        ) : null}
-
-        <View className="px-4 py-4">
-          {/* Status + ETA */}
-          <View className="bg-white rounded-xl p-4 mb-3">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="font-semibold text-gray-900">
-                #{order.id.slice(0, 8).toUpperCase()}
+    <View style={styles.screen}>
+      <TrackMap live={live} />
+      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace("/orders")} style={[styles.float, { left: 20 }]}>
+        <Icon name="back" />
+      </Pressable>
+      <View style={[styles.float, { right: 20, width: undefined, paddingHorizontal: 18 }]}>
+        <Text style={[textFont("700"), { fontSize: 14 }]}>Help</Text>
+      </View>
+      <View style={styles.sheet} accessibilityLabel="Order status">
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[textFont("600"), { fontSize: 14, color: color.muted }]}>{headline}</Text>
+            {status !== "cancelled" ? (
+              <Text testID="eta" style={[{ fontFamily: "FamiljenGrotesk_600SemiBold", fontSize: 56, letterSpacing: -2, color: color.kohl, marginTop: 6 }]}>
+                {arrives.time}<Text style={{ fontSize: 22, letterSpacing: 0 }}> {arrives.ampm}</Text>
               </Text>
-              {etaMinutes && (
-                <Text className="text-emerald-500 text-sm font-medium">
-                  ~{etaMinutes} min away
-                </Text>
-              )}
-            </View>
-
-            {/* Timeline */}
-            {order.status !== "cancelled" && (
-              <View className="flex-row items-center">
-                {STATUS_STEPS.map((step, i) => (
-                  <View key={step} className="flex-1 items-center">
-                    <View
-                      className={`w-4 h-4 rounded-full ${
-                        i <= currentStepIndex ? "bg-emerald-500" : "bg-gray-200"
-                      }`}
-                    />
-                    {i < STATUS_STEPS.length - 1 && (
-                      <View
-                        className={`absolute top-2 left-1/2 right-0 h-0.5 ${
-                          i < currentStepIndex ? "bg-emerald-500" : "bg-gray-200"
-                        }`}
-                      />
-                    )}
-                    <Text className={`text-xs mt-1 text-center ${i <= currentStepIndex ? "text-emerald-700" : "text-gray-400"}`}>
-                      {STATUS_LABELS[step]}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {order.status === "cancelled" && (
-              <View className="bg-red-50 rounded-lg px-3 py-2">
-                <Text className="text-red-700 font-medium text-sm">Order Cancelled</Text>
-              </View>
-            )}
+            ) : null}
           </View>
-
-          {/* Driver info */}
-          {driverName && (
-            <View className="bg-white rounded-xl p-4 mb-3 flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-full bg-emerald-100 items-center justify-center">
-                <Text className="text-emerald-700 font-bold">{driverName[0]}</Text>
-              </View>
-              <View>
-                <Text className="text-xs text-gray-500">Delivery Partner</Text>
-                <Text className="text-sm font-medium text-gray-900">{driverName}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Restaurant + Items */}
-          <View className="bg-white rounded-xl p-4 mb-3">
-            <Text className="font-semibold text-gray-900 mb-3">{order.restaurant_name}</Text>
-            {order.items?.map((item) => (
-              <View key={item.menu_item_id} className="flex-row justify-between mb-2">
-                <Text className="text-sm text-gray-700">
-                  {item.name} × {item.quantity}
-                </Text>
-                <Text className="text-sm text-gray-700">
-                  {currencySymbol}{(item.price * item.quantity).toFixed(2)}
-                </Text>
-              </View>
-            ))}
-            <View className="h-px bg-gray-100 my-2" />
-            <View className="flex-row justify-between">
-              <Text className="font-semibold text-gray-900">Total</Text>
-              <Text className="font-semibold text-gray-900">
-                {currencySymbol}{order.total?.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Reorder */}
-          {order.status === "delivered" && (
-            <Pressable
-              onPress={() => {
-                if (order.restaurant_id) router.push(`/restaurant/${order.restaurant_id}`);
-              }}
-              className="border border-emerald-500 rounded-xl py-3 items-center active:bg-emerald-50"
-            >
-              <Text className="text-emerald-500 font-semibold">Reorder</Text>
-            </Pressable>
-          )}
+          <Text style={[textFont("400"), { textAlign: "right", fontSize: 13, color: color.muted, lineHeight: 20 }]}>
+            {live.eta ? `${live.eta.to_customer_minutes} min` : ""}{"\n"}{live.searching ? "finding a rider" : ""}
+          </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        <View accessibilityLabel={`Progress: ${STEPS[stepIndex]?.label}, ${stepIndex + 1} of ${STEPS.length} steps`}>
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.knob, { left: `${progress * 100}%` }]} />
+          </View>
+          <View style={styles.steps}>
+            {STEPS.map((st, i) => (
+              <Text key={st.key} style={[textFont(i === stepIndex ? "800" : "600"), { fontSize: 12, color: i === stepIndex ? color.kohl : color.muted }]}>
+                {st.label} {i === 0 ? stamp("placed") : i === 1 ? stamp("preparing") : i === 2 ? stamp("picked_up") : ""}
+              </Text>
+            ))}
+          </View>
+        </View>
+        {riderName ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={styles.avatar}><Text style={[textFont("800"), { fontSize: 17, color: color.peacockDeep }]}>{riderName.slice(0, 2).toUpperCase()}</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={[textFont("800"), { fontSize: 16 }]}>{riderName}</Text>
+              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>Your rider</Text>
+            </View>
+            <View style={styles.round} accessibilityLabel={`Call ${riderName}`}><Icon name="phone" size={20} /></View>
+            <View style={styles.round} accessibilityLabel={`Message ${riderName}`}><Icon name="message" size={20} /></View>
+          </View>
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <StatusPill status={status} />
+            <Txt variant="small" style={{ color: color.muted }}>{order?.restaurant_name}</Txt>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
+
+/** The route drawn over a plain ground: kitchen, home, the rider and their trail. */
+function TrackMap({ live }: { live: Live }) {
+  const pts = [live.pickup, live.dropoff, live.rider, ...live.trail].filter(Boolean) as Pt[];
+  const W = 390, H = 420, pad = 60;
+  if (pts.length === 0) return <View style={{ height: H, backgroundColor: color.mapGround }} />;
+  const lats = pts.map((p) => p[0]), lngs = pts.map((p) => p[1]);
+  const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
+  const span = Math.max(maxLat - minLat, maxLng - minLng, 0.004);
+  const xy = (p: Pt): [number, number] => [pad + ((p[1] - minLng) / span) * (W - 2 * pad), H - pad - ((p[0] - minLat) / span) * (H - 2 * pad)];
+  return (
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel="Map of your order's route">
+      <Rect width={W} height={H} fill={color.mapGround} />
+      {[80, 160, 240, 320].map((y) => <Path key={y} d={`M0 ${y} H${W}`} stroke="#DDE4E4" strokeWidth={10} />)}
+      {[70, 190, 310].map((x) => <Path key={x} d={`M${x} 0 V${H}`} stroke="#DDE4E4" strokeWidth={10} />)}
+      {live.pickup && live.dropoff ? (
+        <Path d={`M${xy(live.pickup).join(" ")} L${xy(live.dropoff).join(" ")}`} stroke={color.lineStrong} strokeWidth={4} strokeDasharray="8 8" />
+      ) : null}
+      {live.trail.length > 1 ? <Polyline points={live.trail.map((p) => xy(p).join(",")).join(" ")} fill="none" stroke={color.peacock} strokeWidth={5} strokeLinecap="round" /> : null}
+      {live.pickup ? <Circle cx={xy(live.pickup)[0]} cy={xy(live.pickup)[1]} r={10} fill={color.kohl} /> : null}
+      {live.dropoff ? <Circle cx={xy(live.dropoff)[0]} cy={xy(live.dropoff)[1]} r={10} fill={color.peacock} stroke={color.white} strokeWidth={3} /> : null}
+      {live.rider ? <Circle cx={xy(live.rider)[0]} cy={xy(live.rider)[1]} r={12} fill={color.kesar} stroke={color.white} strokeWidth={4} /> : null}
+    </Svg>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.mapGround },
+  float: {
+    position: "absolute", top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
+    alignItems: "center", justifyContent: "center", shadowColor: color.kohl, shadowOpacity: 0.1, shadowRadius: 14, elevation: 4,
+  },
+  sheet: {
+    position: "absolute", left: 0, right: 0, bottom: 0, minHeight: 380, backgroundColor: color.white,
+    borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: space[6], paddingHorizontal: space[5], gap: space[6],
+    shadowColor: color.kohl, shadowOpacity: 0.08, shadowRadius: 40, elevation: 12,
+  },
+  track: { height: 8, borderRadius: radius.pill, backgroundColor: color.divider },
+  fill: { height: 8, borderRadius: radius.pill, backgroundColor: color.peacock },
+  knob: { position: "absolute", top: -6, width: 20, height: 20, marginLeft: -10, borderRadius: radius.pill, backgroundColor: color.kesar, borderWidth: 3, borderColor: color.white },
+  steps: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
+  avatar: { width: 52, height: 52, borderRadius: radius.pill, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" },
+  round: { width: 48, height: 48, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, alignItems: "center", justifyContent: "center" },
+});

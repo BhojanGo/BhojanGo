@@ -104,3 +104,16 @@ class Zone(_Timestamps, Base):
 
 
 __all__ = ["STATUSES", "City", "Country", "Region", "Zone"]
+
+
+class LaunchWaitlist(Base):
+    """People outside a served area who asked to hear when we launch there."""
+
+    __tablename__ = "launch_waitlist"
+    __table_args__ = (UniqueConstraint("phone", name="uq_launch_waitlist_phone"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lng: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

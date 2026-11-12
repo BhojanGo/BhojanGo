@@ -12,6 +12,7 @@ Permissions (shared/authz.py), always at the scope of the record:
 import uuid
 from typing import Annotated
 
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,6 +67,24 @@ async def locate(db: DB, lat: float = Query(ge=-90, le=90), lng: float = Query(g
     """Is this point served? Returns the zone, city and country, or why not
     (the app's "not in your area" screen)."""
     return await MarketService(db).locate(lat, lng)
+
+
+class WaitlistIn(BaseModel):
+    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$", examples=["+12085550199"])
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
+
+@router.post("/waitlist", status_code=status.HTTP_202_ACCEPTED)
+async def join_waitlist(data: WaitlistIn, db: DB) -> dict:
+    """"Tell me when you launch" from the not-in-your-area screen. Signing up twice is fine."""
+    from sqlalchemy.dialects.postgresql import insert
+
+    from core_api.modules.markets.models import LaunchWaitlist
+
+    await db.execute(insert(LaunchWaitlist).values(id=uuid.uuid4(), phone=data.phone, lat=data.lat, lng=data.lng)
+                     .on_conflict_do_update(constraint="uq_launch_waitlist_phone", set_={"lat": data.lat, "lng": data.lng}))
+    return {"ok": True}
 
 
 # ── Overview ──────────────────────────────────────────────────────────────────

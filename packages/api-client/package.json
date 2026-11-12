@@ -1,0 +1,21 @@
+{
+  "name": "@bhojango/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed API client generated from the backend's OpenAPI (core_api, realtime, worker)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript openapi/core.json --default-non-nullable false -o src/schema/core.ts && openapi-typescript openapi/realtime.json --default-non-nullable false -o src/schema/realtime.ts && openapi-typescript openapi/worker.json --default-non-nullable false -o src/schema/worker.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'generated code: typecheck only'"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.4.5",
+    "@bhojango/config": "workspace:*"
+  }
+}

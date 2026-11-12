@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { realtimeApi } from "@bhojango/mobile-core";
+import { legacyRealtimeApi as realtimeApi } from "@bhojango/mobile-core";
 
 interface Breakdown {
   gross_earnings: number;

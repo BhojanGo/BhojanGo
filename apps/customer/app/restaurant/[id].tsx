@@ -1,216 +1,104 @@
-import { useState } from "react";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+// The restaurant: its menu by category; tap a dish to customise it.
+import { color, money, radius, space, textFont, Txt, useBag } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { MenuItem, MenuCategory, Restaurant } from "@bhojango/types";
-import { api, useCartStore } from "@bhojango/mobile-core";
+import { Icon } from "../../lib/icons";
+import { PlateHeader } from "../../lib/plate";
+import { useMenu } from "../../lib/restaurants";
 
-interface RestaurantWithMenu extends Restaurant {
-  categories: (MenuCategory & { items: MenuItem[] })[];
-}
+export default function RestaurantScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { menu, error } = useMenu(id);
+  const bag = useBag();
+  const inBag = bag.restaurantId === id ? bag.lines.reduce((n, l) => n + l.quantity, 0) : 0;
 
-function MenuItemRow({ item, restaurant }: { item: MenuItem; restaurant: Restaurant }) {
-  const { addItem, items } = useCartStore();
-  const cartItem = items.find((i) => i.menuItemId === item.id);
-
+  if (!menu) {
+    return (
+      <SafeAreaView style={styles.center}>
+        {error ? <Txt>{error}</Txt> : <ActivityIndicator color={color.peacock} />}
+      </SafeAreaView>
+    );
+  }
+  const r = menu.restaurant;
   return (
-    <View className="flex-row gap-3 py-4 border-b border-gray-100">
-      <View className="flex-1">
-        <View className="flex-row items-center gap-1.5 mb-1">
-          <View
-            className={`w-4 h-4 rounded-sm border-2 items-center justify-center ${
-              item.is_veg ? "border-green-500" : "border-red-500"
-            }`}
-          >
-            <View className={`w-2 h-2 rounded-full ${item.is_veg ? "bg-green-500" : "bg-red-500"}`} />
+    <View style={{ flex: 1, backgroundColor: color.porcelain }}>
+      <SectionList
+        sections={menu.categories.map((c) => ({ title: c.name, data: c.items }))}
+        keyExtractor={(i) => i.id}
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        ListHeaderComponent={
+          <View>
+            <PlateHeader label={r.name} height={220} size={170} />
+            <View style={styles.head}>
+              <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33 }}>{r.name}</Txt>
+              <Text style={[textFont("400"), { color: color.muted, fontSize: 14 }]}>
+                {r.cuisine_types.join(" · ")} · {r.delivery_time_min}–{r.delivery_time_max} min
+              </Text>
+              {r.description ? <Txt variant="small" style={{ color: color.muted }}>{r.description}</Txt> : null}
+            </View>
           </View>
-        </View>
-        <Text className="text-sm font-medium text-gray-900">{item.name}</Text>
-        <Text className="text-sm font-semibold text-gray-800 mt-1">
-          {restaurant.currency === "INR" ? "₹" : "$"}{item.price}
-        </Text>
-        {item.description ? (
-          <Text className="text-xs text-gray-500 mt-1" numberOfLines={2}>
-            {item.description}
-          </Text>
-        ) : null}
-      </View>
-      <View className="items-center gap-2">
-        {item.image_url && (
-          <Image source={{ uri: item.image_url }} className="w-24 h-20 rounded-xl" resizeMode="cover" />
+        }
+        renderSectionHeader={({ section }) => (
+          <Txt variant="h2" style={{ paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[2] }}>{section.title}</Txt>
         )}
-        {cartItem ? (
-          <View className="flex-row items-center border border-emerald-500 rounded-lg overflow-hidden">
+        renderItem={({ item }) => {
+          const off = !item.is_available || item.sold_out_today;
+          return (
             <Pressable
-              onPress={() => useCartStore.getState().updateQuantity(item.id, cartItem.quantity - 1)}
-              className="w-8 h-8 items-center justify-center bg-emerald-500"
+              accessibilityRole="button"
+              accessibilityLabel={item.name}
+              accessibilityState={{ disabled: off }}
+              disabled={off}
+              onPress={() => router.push({ pathname: "/item", params: { restaurantId: r.id, itemId: item.id } })}
+              style={[styles.item, off && { opacity: 0.5 }]}
             >
-              <Text className="text-white font-bold">−</Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={[textFont("800"), { fontSize: 16, color: color.kohl }]}>{item.name}</Text>
+                {item.description ? (
+                  <Text numberOfLines={2} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{item.description}</Text>
+                ) : null}
+                <Text style={[textFont("700"), { fontSize: 15, color: color.kohl }]}>
+                  {off ? "Sold out today" : money(item.price, r.currency, { decimals: 0 })}
+                </Text>
+              </View>
+              <View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>
             </Pressable>
-            <Text className="w-8 text-center text-sm font-semibold text-gray-900">
-              {cartItem.quantity}
-            </Text>
-            <Pressable
-              onPress={() => addItem({ id: restaurant.id, name: restaurant.name }, item)}
-              className="w-8 h-8 items-center justify-center bg-emerald-500"
-            >
-              <Text className="text-white font-bold">+</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            onPress={() => addItem({ id: restaurant.id, name: restaurant.name }, item)}
-            className="px-4 py-1.5 border border-emerald-500 rounded-lg active:bg-emerald-50"
-          >
-            <Text className="text-emerald-500 font-semibold text-sm">Add</Text>
-          </Pressable>
-        )}
-      </View>
+          );
+        }}
+      />
+      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+        <Icon name="back" />
+      </Pressable>
+      {inBag > 0 ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
+          <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>View bag · {inBag} {inBag === 1 ? "item" : "items"}</Text>
+          <Icon name="arrow" stroke={color.white} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
-export default function RestaurantScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const cart = useCartStore();
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const { data: restaurant, isLoading } = useQuery({
-    queryKey: ["restaurant", id],
-    queryFn: async () => {
-      // The detail endpoint has no menu; categories come from /menu.
-      const [detail, menu] = await Promise.all([
-        api.get(`/restaurants/${id}`),
-        api.get(`/restaurants/${id}/menu`),
-      ]);
-      const uncategorized: MenuItem[] = menu.data.uncategorized_items ?? [];
-      const categories: RestaurantWithMenu["categories"] = [...(menu.data.categories ?? [])];
-      if (uncategorized.length > 0) {
-        categories.push({
-          id: "uncategorized",
-          name: "More",
-          items: uncategorized,
-        } as unknown as RestaurantWithMenu["categories"][number]);
-      }
-      return { ...detail.data, categories } as RestaurantWithMenu;
-    },
-  });
-
-  if (isLoading || !restaurant) {
-    return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-400">Loading...</Text>
-      </View>
-    );
-  }
-
-  const categories = activeCategory
-    ? restaurant.categories?.filter((c) => c.id === activeCategory)
-    : restaurant.categories;
-
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Banner */}
-        <View className="h-48 bg-gray-200">
-          {restaurant.cover_url && (
-            <Image source={{ uri: restaurant.cover_url }} className="w-full h-full" resizeMode="cover" />
-          )}
-        </View>
-
-        {/* Info */}
-        <View className="bg-white px-4 py-4 mb-3">
-          <View className="flex-row justify-between items-start">
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900">{restaurant.name}</Text>
-              <Text className="text-sm text-gray-500 mt-0.5">{restaurant.cuisine_types?.join(", ")}</Text>
-            </View>
-            <View className={`px-2.5 py-1 rounded-full ${restaurant.is_open ? "bg-green-50" : "bg-red-50"}`}>
-              <Text className={`text-xs font-medium ${restaurant.is_open ? "text-green-700" : "text-red-600"}`}>
-                {restaurant.is_open ? "Open" : "Closed"}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row items-center gap-4 mt-2">
-            <Text className="text-sm text-gray-600">⭐ {restaurant.rating?.toFixed(1)}</Text>
-            <Text className="text-gray-300">·</Text>
-            <Text className="text-sm text-gray-600">
-              {restaurant.delivery_time_min}–{restaurant.delivery_time_max} min
-            </Text>
-            <Text className="text-gray-300">·</Text>
-            <Text className="text-sm text-gray-600">
-              {restaurant.currency === "INR" ? "₹" : "$"}{restaurant.delivery_fee} delivery
-            </Text>
-          </View>
-        </View>
-
-        {/* Category pills */}
-        {restaurant.categories?.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}
-          >
-            <Pressable
-              onPress={() => setActiveCategory(null)}
-              className={`px-4 py-1.5 rounded-full border ${!activeCategory ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-300"}`}
-            >
-              <Text className={`text-sm font-medium ${!activeCategory ? "text-white" : "text-gray-700"}`}>
-                All
-              </Text>
-            </Pressable>
-            {restaurant.categories.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => setActiveCategory(cat.id)}
-                className={`px-4 py-1.5 rounded-full border ${activeCategory === cat.id ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-300"}`}
-              >
-                <Text className={`text-sm font-medium ${activeCategory === cat.id ? "text-white" : "text-gray-700"}`}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Menu */}
-        {categories?.map((category) => (
-          <View key={category.id} className="bg-white px-4 mb-3">
-            <Text className="text-base font-bold text-gray-900 py-3">{category.name}</Text>
-            {category.items?.map((item) => (
-              <MenuItemRow key={item.id} item={item} restaurant={restaurant} />
-            ))}
-          </View>
-        ))}
-
-        <View className="h-24" />
-      </ScrollView>
-
-      {/* Cart button */}
-      {cart.restaurantId === restaurant.id && cart.items.length > 0 && (
-        <View className="absolute bottom-6 left-4 right-4">
-          <Pressable
-            onPress={() => router.push("/cart")}
-            className="bg-emerald-500 rounded-2xl py-4 px-5 flex-row items-center justify-between shadow-lg active:opacity-80"
-          >
-            <View className="bg-white/20 rounded-full w-7 h-7 items-center justify-center">
-              <Text className="text-white font-bold text-sm">{cart.getItemCount()}</Text>
-            </View>
-            <Text className="text-white font-semibold text-base">View Cart</Text>
-            <Text className="text-white font-semibold">
-              {restaurant.currency === "INR" ? "₹" : "$"}{cart.getTotal().toFixed(2)}
-            </Text>
-          </Pressable>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-}
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  head: {
+    marginTop: -24, backgroundColor: color.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
+    padding: space[5], gap: 6,
+  },
+  item: {
+    marginHorizontal: space[5], marginBottom: space[3], padding: space[4], borderRadius: radius.card, backgroundColor: color.white,
+    flexDirection: "row", gap: space[3], alignItems: "center",
+  },
+  add: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
+  back: {
+    position: "absolute", left: 16, top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
+    alignItems: "center", justifyContent: "center",
+  },
+  bagBar: {
+    position: "absolute", left: space[5], right: space[5], bottom: space[6], height: 56, borderRadius: radius.pill,
+    backgroundColor: color.peacock, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22,
+  },
+});

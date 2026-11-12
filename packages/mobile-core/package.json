@@ -13,7 +13,8 @@
     "@bhojango/types": "workspace:*",
     "axios": "^1.7.2",
     "zustand": "^4.5.2",
-    "@bhojango/ui": "workspace:*"
+    "@bhojango/ui": "workspace:*",
+    "@bhojango/api-client": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.3.0",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from "react-native";
-import { api } from "@bhojango/mobile-core";
+import { legacyApi as api } from "@bhojango/mobile-core";
 
 type ActiveDelivery = {
   id: string;

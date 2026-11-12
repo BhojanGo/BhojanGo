@@ -84,7 +84,7 @@ pre-P1 schema. Run `make reset` once to start clean.
 **Seed logins** (all `BhojanGo123`): `customer1..5.hyd@example.com`,
 `rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise.
 Customers can also sign in by phone (`POST /api/v1/auth/send-otp`, then `/auth/phone`):
-seed phones `+9190000101..105` and `+120855500101..105` always get code **123456**.
+seed phones `+919000000101..105` and `+120855500101..105` always get code **123456**.
 Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ Boise (`US-ID-BOI`).
 
 **Admin logins** (all `BhojanGoAdmin1`), one per role and scope (`shared/authz.py`):
@@ -175,7 +175,7 @@ needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateway
 | Provider | Locally | How to see it |
 | --- | --- | --- |
 | Payments (Stripe, Razorpay) | Fake gateway with signed webhooks | Payments succeed after 2 s; `payment_method_id` `pm_card_chargeDeclined` fails; or `POST /api/v1/payments/fake/{id}/complete` |
-| SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+9190000…`, `+120855500…`) always get **123456** |
+| SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+919000000…`, `+120855500…`) always get **123456** |
 | Email | Mailpit | http://localhost:8025 |
 | Push | Printed in the worker log | `[PUSH to 1 device(s)] …` |
 | US sales tax (Stripe Tax) | Local stand-in with illustrative state rates (Idaho 6%) | "Idaho sales tax" line on Boise quotes |

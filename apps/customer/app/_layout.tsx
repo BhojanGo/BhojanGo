@@ -1,53 +1,37 @@
-import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { color, useBrandFonts, useSession } from "@bhojango/mobile-core";
 import * as Notifications from "expo-notifications";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { StatusBar } from "expo-status-bar";
-import { useAuthStore, useBrandFonts } from "@bhojango/mobile-core";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 void SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 60_000, retry: 2 },
-  },
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
 });
 
 export default function RootLayout() {
-  const initialize = useAuthStore((s) => s.initialize);
   const fontsReady = useBrandFonts();
+  const status = useSession((s) => s.status);
+  const initialize = useSession((s) => s.initialize);
 
   useEffect(() => {
     void initialize();
   }, [initialize]);
 
   useEffect(() => {
-    if (fontsReady) void SplashScreen.hideAsync();
-  }, [fontsReady]);
+    if (fontsReady && status !== "loading") void SplashScreen.hideAsync();
+  }, [fontsReady, status]);
 
-  if (!fontsReady) return null;
+  if (!fontsReady || status === "loading") return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="restaurant/[id]" options={{ headerShown: true, title: "" }} />
-        <Stack.Screen name="cart" options={{ headerShown: true, title: "Cart" }} />
-        <Stack.Screen name="checkout" options={{ headerShown: true, title: "Checkout" }} />
-        <Stack.Screen name="order/[id]" options={{ headerShown: true, title: "Order" }} />
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }}>
+        <Stack.Screen name="item" options={{ presentation: "modal" }} />
       </Stack>
-    </QueryClientProvider>
+    </>
   );
 }
