@@ -93,7 +93,7 @@ export default function LoginScreen() {
             </Pressable>
 
             <View className="flex-row justify-center gap-1">
-              <Text className="text-gray-500 text-sm">Don't have an account?</Text>
+              <Text className="text-gray-500 text-sm">Don&apos;t have an account?</Text>
               <Pressable onPress={() => router.push("/(auth)/signup")}>
                 <Text className="text-emerald-500 font-semibold text-sm">Sign Up</Text>
               </Pressable>

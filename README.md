@@ -8,7 +8,7 @@ Production-ready food delivery platform for **USA** and **India** — built like
 |-------|-----------|
 | Monorepo | Turborepo + pnpm workspaces |
 | Web App | Next.js (App Router, TypeScript, Tailwind): 14 today, 16 from P20 |
-| Mobile | Expo + EAS (React Native): SDK 51 today, latest SDK from P16–P19; customer + rider apps |
+| Mobile | Expo SDK 58 (React Native 0.88, React 19.3) + EAS; customer, rider and partner apps |
 | Admin | Next.js admin console: 14 today, 16 from P21 |
 | Backend | Python 3.12 FastAPI — 3 deployables (core_api, realtime, worker), one uv project |
 | Database | PostgreSQL 16 + Redis 7 |
@@ -267,8 +267,8 @@ bhojango/
 ├── apps/
 │   ├── customer/         Expo · BhojanGo customer app
 │   ├── rider/            Expo · BhojanGo Rider app
-│   ├── web/              Next.js 14 customer web
-│   └── admin/            Next.js 14 admin console
+│   ├── web/              Next.js 16 customer web
+│   └── admin/            Next.js 16 admin console
 ├── backend/              Python 3.12 · one uv project (pyproject.toml, uv.lock)
 │   ├── core_api/         deployable 1 · FastAPI
 │   │   └── modules/      identity, catalog, orders, payments

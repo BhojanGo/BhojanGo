@@ -24,7 +24,7 @@ RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm turbo build --filter='./packages/*' \
- && pnpm turbo test lint typecheck --filter='./apps/*' --filter='./packages/*'
+ && pnpm turbo test lint typecheck export:check --filter='./apps/*' --filter='./packages/*'
 
 # ── Migrations: upgrade/downgrade/upgrade, alembic check, seed twice, and the
 #    API against the migrated database. Run by `make ci-migrations` through

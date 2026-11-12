@@ -29,28 +29,28 @@ export default function DriverTabsLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="active"
         options={{
           title: "Active",
-          tabBarIcon: ({ color, size }) => <Ionicons name="navigate" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="navigate" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="earnings"
         options={{
           title: "Earnings",
-          tabBarIcon: ({ color, size }) => <Ionicons name="wallet" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="wallet" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color as string} />,
         }}
       />
     </Tabs>

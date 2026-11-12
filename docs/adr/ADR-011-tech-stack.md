@@ -45,8 +45,8 @@ version.
 | Node.js | Node **24 LTS** | **24.22.3** | 24 in CI and images | — (done in P3/P4) |
 | JS package manager | pnpm | **12.18.0** | 9 | P3/P4 |
 | Monorepo tasks | Turborepo | **2.11.11** | 2.x | P3/P4 |
-| Web + admin | Next.js (latest stable) + React 19 | **16.4.6** | 14.2 | P20 (web), P21 (admin) |
-| Mobile | Expo (latest SDK) + EAS | **SDK 58** (expo 58.0.24, React Native 0.88.1, React 19.3), **EAS CLI 27.7.2** | SDK 51 | P16–P19 |
+| Web + admin | Next.js (latest stable) + React 19 | **16.4.6** | 16.4.6 (moved with the Expo upgrade so the monorepo has one React, 19.3.0) | P20 (web), P21 (admin) |
+| Mobile | Expo (latest SDK) + EAS | **SDK 58** (expo 58.0.24, React Native 0.88.1, React 19.3), **EAS CLI 27.7.2** | SDK 58 (done before P16, with React 19.3.0 across the monorepo) | P16–P19 |
 | Compute | AWS ECS Fargate | 3 services (core-api, realtime, worker) | 3 in Terraform | — (done in P4) |
 | Database (AWS) | RDS for PostgreSQL 16 + PostGIS | major 16, auto minor upgrades | 16 (+ extensions via migration 0003) | — (done in P4) |
 | Cache (AWS) | ElastiCache (Redis OSS 7) | 7.1, TLS + AUTH | 7.1 | — (done in P4) |

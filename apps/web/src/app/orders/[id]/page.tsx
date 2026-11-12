@@ -114,7 +114,7 @@ export default function OrderDetailPage() {
     driverName?: string;
     etaMinutes?: number;
     wsStatus: "connecting" | "connected" | "disconnected";
-  }>({ wsStatus: "disconnected" });
+  }>({ wsStatus: "connecting" });
 
   const { data: order, refetch } = useQuery({
     queryKey: ["order", params.id],
@@ -162,7 +162,6 @@ export default function OrderDetailPage() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    setTracking((prev) => ({ ...prev, wsStatus: "connecting" }));
 
     ws.onopen = () => setTracking((prev) => ({ ...prev, wsStatus: "connected" }));
     ws.onclose = () => setTracking((prev) => ({ ...prev, wsStatus: "disconnected" }));

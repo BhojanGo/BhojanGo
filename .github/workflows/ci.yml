@@ -44,6 +44,9 @@ jobs:
       - name: Test
         run: pnpm turbo test --filter='./apps/*' --filter='./packages/*'
 
+      - name: Expo apps bundle for Android and iOS
+        run: pnpm turbo export:check --filter='./apps/*'
+
   # ──────────────────────────────────────────
   # Backend: one uv project, three deployables
   # ──────────────────────────────────────────

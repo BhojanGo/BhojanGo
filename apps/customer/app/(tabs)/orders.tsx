@@ -82,7 +82,7 @@ export default function OrdersScreen() {
         refreshing={isLoading}
         onRefresh={refetch}
         ListEmptyComponent={
-          !isLoading ? (
+          isLoading ? undefined : (
             <View className="flex-1 items-center justify-center pt-20">
               <Text className="text-5xl mb-3">📦</Text>
               <Text className="text-lg font-semibold text-gray-900 mb-1">No orders yet</Text>
@@ -94,7 +94,7 @@ export default function OrdersScreen() {
                 <Text className="text-white font-semibold">Order Now</Text>
               </Pressable>
             </View>
-          ) : null
+          )
         }
         renderItem={({ item }) => <OrderCard order={item} />}
       />
