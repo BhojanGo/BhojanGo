@@ -1,65 +1,71 @@
+"""Order states and who may move them (P11)."""
 import pytest
 
 from core_api.modules.orders.service.state_machine import (
+    ACTIVE_STATES,
+    LEGACY_NAMES,
+    PAID_STATES,
+    TRANSITION_ACTORS,
+    VALID_TRANSITIONS,
+    actor_allowed,
     can_transition,
     is_terminal,
-    is_transition_allowed,
 )
 
-
-def test_pending_to_confirmed():
-    assert can_transition("pending", "confirmed") is True
+HAPPY_PATH = ["pending_payment", "placed", "accepted", "preparing", "almost_ready", "ready", "picked_up", "delivered"]
 
 
-def test_pending_to_cancelled():
-    assert can_transition("pending", "cancelled") is True
+def test_happy_path_is_a_chain() -> None:
+    for a, b in zip(HAPPY_PATH, HAPPY_PATH[1:]):
+        assert can_transition(a, b), (a, b)
+    assert can_transition("preparing", "ready")  # almost_ready is optional
 
 
-def test_invalid_transition_skip_state():
-    assert can_transition("pending", "preparing") is False
+@pytest.mark.parametrize(("a", "b"), [
+    ("pending_payment", "accepted"),  # no order without payment
+    ("placed", "preparing"),          # the restaurant must accept first
+    ("ready", "delivered"),           # must be picked up
+    ("picked_up", "cancelled"),       # on its way: can't cancel
+    ("delivered", "cancelled"),
+    ("cancelled", "placed"),
+])
+def test_impossible_moves(a, b) -> None:
+    assert not can_transition(a, b)
 
 
-def test_terminal_state_no_transitions():
-    assert can_transition("delivered", "cancelled") is False
-    assert can_transition("cancelled", "pending") is False
+@pytest.mark.parametrize(("a", "b", "actor", "ok"), [
+    ("pending_payment", "placed", "system", True),
+    ("pending_payment", "placed", "customer", False),   # only a payment places an order
+    ("pending_payment", "placed", "admin", False),
+    ("placed", "accepted", "restaurant", True),
+    ("placed", "accepted", "customer", False),
+    ("placed", "accepted", "rider", False),
+    ("placed", "cancelled", "system", True),           # accept timeout
+    ("placed", "cancelled", "customer", True),
+    ("accepted", "preparing", "restaurant", True),
+    ("preparing", "ready", "restaurant", True),
+    ("preparing", "cancelled", "customer", False),
+    ("ready", "picked_up", "rider", True),
+    ("ready", "picked_up", "restaurant", False),
+    ("ready", "cancelled", "restaurant", False),
+    ("ready", "cancelled", "admin", True),
+    ("picked_up", "delivered", "rider", True),
+    ("picked_up", "delivered", "customer", False),
+])
+def test_who_moves_what(a, b, actor, ok) -> None:
+    assert actor_allowed(a, b, actor) is ok
 
 
-def test_is_terminal():
-    assert is_terminal("delivered") is True
-    assert is_terminal("cancelled") is True
-    assert is_terminal("pending") is False
-    assert is_terminal("confirmed") is False
+def test_every_transition_has_actors_and_vice_versa() -> None:
+    pairs = {(a, b) for a, bs in VALID_TRANSITIONS.items() for b in bs}
+    assert pairs == set(TRANSITION_ACTORS)
 
 
-def test_role_permission_restaurant_owner():
-    assert is_transition_allowed("pending", "confirmed", "restaurant_owner") is True
-    assert is_transition_allowed("pending", "confirmed", "customer") is False
+def test_terminal_paid_active() -> None:
+    assert is_terminal("delivered") and is_terminal("cancelled") and not is_terminal("placed")
+    assert "pending_payment" not in PAID_STATES and "placed" in PAID_STATES
+    assert "pending_payment" in ACTIVE_STATES and "delivered" not in ACTIVE_STATES
 
 
-def test_role_permission_driver_pickup():
-    assert is_transition_allowed("ready_for_pickup", "picked_up", "driver") is True
-    assert is_transition_allowed("ready_for_pickup", "picked_up", "customer") is False
-
-
-def test_role_permission_driver_deliver():
-    assert is_transition_allowed("picked_up", "delivered", "driver") is True
-
-
-def test_admin_can_all():
-    assert is_transition_allowed("pending", "confirmed", "admin") is True
-    assert is_transition_allowed("ready_for_pickup", "picked_up", "admin") is True
-
-
-def test_full_happy_path():
-    states = ["pending", "confirmed", "preparing", "ready_for_pickup", "picked_up", "delivered"]
-    roles = [
-        ("pending", "confirmed", "restaurant_owner"),
-        ("confirmed", "preparing", "restaurant_owner"),
-        ("preparing", "ready_for_pickup", "restaurant_owner"),
-        ("ready_for_pickup", "picked_up", "driver"),
-        ("picked_up", "delivered", "driver"),
-    ]
-    for current, next_state, role in roles:
-        assert is_transition_allowed(current, next_state, role), (
-            f"Expected {role} to be able to transition {current} -> {next_state}"
-        )
+def test_legacy_names_map_onto_new_states() -> None:
+    assert {LEGACY_NAMES[k] for k in LEGACY_NAMES} <= set(VALID_TRANSITIONS)

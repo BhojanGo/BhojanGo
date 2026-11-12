@@ -35,6 +35,12 @@ class PaymentRepository:
         )
         return result.scalars().first()
 
+    async def list_by_order_id(self, order_id: uuid.UUID) -> list[PaymentIntent]:
+        result = await self.session.execute(
+            select(PaymentIntent).where(PaymentIntent.order_id == order_id).order_by(PaymentIntent.created_at)
+        )
+        return list(result.scalars().all())
+
     async def get_by_idempotency_key(self, key: str) -> PaymentIntent | None:
         result = await self.session.execute(select(PaymentIntent).where(PaymentIntent.idempotency_key == key))
         return result.scalar_one_or_none()

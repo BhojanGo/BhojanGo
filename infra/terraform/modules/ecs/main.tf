@@ -131,6 +131,9 @@ locals {
         DB_POOL_SIZE               = "5"
         SQS_QUEUE_URL_NOTIFICATION = var.sqs_queue_urls["notifications"]
         JWKS_URL                   = var.jwks_url
+        # The outbox relay (P11) publishes order/payment events to these topics.
+        SNS_TOPIC_ARN_ORDER   = var.sns_topic_arns["order_events"]
+        SNS_TOPIC_ARN_PAYMENT = var.sns_topic_arns["payment_events"]
       }
       secrets = {
         DATABASE_URL            = local.secret.database_url

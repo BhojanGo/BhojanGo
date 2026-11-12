@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
 from core_api.modules.orders.api.idempotency import check_idempotency, store_idempotency, validate_idempotency_key
+from shared import authz
 from shared.redis import get_redis
 from shared.db import get_db
 from core_api.modules.orders.repository.order import OrderRepository
@@ -35,15 +36,15 @@ async def create_order(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     idempotency_key: Annotated[str, Depends(validate_idempotency_key)],
 ) -> OrderResponse:
-    """Create a new order."""
+    """Place an order from a quote (POST /pricing/quote). It waits for payment
+    (pending_payment) until POST /payments/initiate and the payment webhook."""
     # Check idempotency
     redis = await get_redis()
     cached = await check_idempotency(redis, "order", idempotency_key)
     if cached:
         return cached
 
-    currency = "INR" if current_user.country == "IN" else "USD"
-    order = await OrderService(db).create_order(data, current_user.id, currency)
+    order = await OrderService(db).create_order(data, current_user.id)
 
     # Store for idempotency
     response = OrderResponse.model_validate(order)
@@ -78,8 +79,8 @@ async def list_restaurant_orders(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ) -> OrderListResponse:
-    """Get all orders for a restaurant (restaurant owner / admin)."""
-    if current_user.role not in ("restaurant_owner", "admin", "super_admin"):
+    """A restaurant's orders: its owner, or an admin with orders.view for its city."""
+    if not await _can_see_restaurant(db, current_user, restaurant_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     repo = OrderRepository(db)
     orders, total = await repo.list_by_restaurant(restaurant_id, page=page, limit=limit)
@@ -130,10 +131,8 @@ async def get_order(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
-    # Customers can only view their own orders
-    if current_user.role == "customer" and order.customer_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
+    if not await _can_see_order(db, current_user, order):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return OrderResponse.model_validate(order)
 
 
@@ -148,8 +147,8 @@ async def get_order_breakdown(
     order = await repo.get_by_id(order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-    if current_user.role == "customer" and order.customer_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if not await _can_see_order(db, current_user, order):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return FeeBreakdown(
         food_subtotal=float(order.subtotal),
         delivery_fee=float(order.delivery_fee),
@@ -174,8 +173,8 @@ async def get_order_timeline(
     order = await repo.get_by_id(order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-    if current_user.role == "customer" and order.customer_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if not await _can_see_order(db, current_user, order):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     timeline = [StatusTimelineEntry(status=e.get("status", ""), at=e.get("at")) for e in (order.status_history or [])]
     return OrderTimelineResponse(
         order_id=order.id,
@@ -194,8 +193,9 @@ async def update_order_status(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
-    """Update order status (restaurant/driver/admin only, enforces state machine)."""
-    updated = await OrderService(db).update_status(order_id, data, current_user.id, current_user.role)
+    """Move an order on: the restaurant accepts and prepares, the rider picks up
+    and delivers (each only on their own orders; see service/state_machine.py)."""
+    updated = await OrderService(db).update_status(order_id, data, current_user)
     return OrderResponse.model_validate(updated)
 
 
@@ -206,5 +206,34 @@ async def cancel_order(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
-    updated = await OrderService(db).cancel_order(order_id, data, current_user.id, current_user.role)
+    """Cancel: refunded in full if it was paid."""
+    updated = await OrderService(db).cancel_order(order_id, data, current_user)
     return OrderResponse.model_validate(updated)
+
+
+async def _can_see_order(db: AsyncSession, user: CurrentUser, order) -> bool:  # type: ignore[no-untyped-def]
+    """The customer, the restaurant's owner, the assigned rider, or an admin
+    with orders.view for the order's city."""
+    if order.customer_id == user.id or (order.driver_id is not None and order.driver_id == user.id):
+        return True
+    if order.market_city and authz.can([authz.Assignment.parse(a) for a in user.admin], "orders.view", order.market_city):
+        return True
+    return await _owns_restaurant(db, user, order.restaurant_id)
+
+
+async def _owns_restaurant(db: AsyncSession, user: CurrentUser, restaurant_id: uuid.UUID) -> bool:
+    if user.role != "restaurant_owner":
+        return False
+    from core_api.modules.catalog.models.restaurant import Restaurant
+
+    r = await db.get(Restaurant, restaurant_id)
+    return r is not None and r.owner_id == user.id
+
+
+async def _can_see_restaurant(db: AsyncSession, user: CurrentUser, restaurant_id: uuid.UUID) -> bool:
+    if await _owns_restaurant(db, user, restaurant_id):
+        return True
+    from core_api.modules.catalog.service.lookup import restaurant_city_code
+
+    city = await restaurant_city_code(db, restaurant_id)
+    return bool(city) and authz.can([authz.Assignment.parse(a) for a in user.admin], "orders.view", city)

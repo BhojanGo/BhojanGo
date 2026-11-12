@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.payments.api.dependencies import CurrentUser, get_current_user
-from core_api.modules.payments.service.events import publish_payment_event
+from shared import outbox
 from shared.db import get_db
 from core_api.modules.payments.repository.payment import PaymentRepository, WalletRepository
 from core_api.modules.payments.schemas.payment import (
@@ -41,90 +41,63 @@ async def initiate_payment(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> PaymentInitiateResponse:
-    """Initiate payment — routes to Stripe (US) or Razorpay (IN) based on country."""
+    """Pay for an order waiting for payment. The amount and currency are the
+    order's (its quoted total), never the client's; the gateway follows the
+    order's country (Razorpay in India, Stripe in the US). Calling it again
+    returns the same open payment; after a failure it starts a new one."""
+    from core_api.modules.orders.service.lookup import order_for_payment
+
+    order = await order_for_payment(db, data.order_id, current_user.id)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if order["status"] != "pending_payment":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail={"code": "ORDER_NOT_PAYABLE", "message": f"This order is {order['status'].replace('_', ' ')}"})
+    amount, currency, country = order["amount_minor"], order["currency"], order["country"]
+    if (data.amount is not None and data.amount != amount) or (data.currency is not None and data.currency != currency):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail={"code": "AMOUNT_MISMATCH", "message": "The amount doesn't match the order"})
+
     repo = PaymentRepository(db)
-
-    # Idempotency key: order_id + user_id + amount
-    idempotency_key = f"{data.order_id}:{current_user.user_id}:{data.amount}"
-
-    # Check for existing intent (idempotency)
-    existing = await repo.get_by_idempotency_key(idempotency_key)
-    if existing and existing.status in ("pending", "processing", "succeeded"):
+    attempts = await repo.list_by_order_id(data.order_id)
+    open_intent = next((i for i in attempts if i.status in ("pending", "processing", "succeeded")), None)
+    if open_intent:
         return PaymentInitiateResponse(
-            payment_intent_id=str(existing.id),
-            provider=existing.provider,  # type: ignore[arg-type]
-            client_secret=existing.metadata_.get("client_secret"),
-            razorpay_order_id=existing.metadata_.get("razorpay_order_id"),
-            amount=existing.amount,
-            currency=existing.currency,  # type: ignore[arg-type]
+            payment_intent_id=str(open_intent.id), provider=open_intent.provider,  # type: ignore[arg-type]
+            client_secret=open_intent.metadata_.get("client_secret"),
+            razorpay_order_id=open_intent.metadata_.get("razorpay_order_id"),
+            amount=open_intent.amount, currency=open_intent.currency,  # type: ignore[arg-type]
         )
+    idempotency_key = f"{data.order_id}:attempt-{len(attempts) + 1}"
 
     if data.payment_method_type == "wallet":
-        # Deduct from wallet directly
         wallet_repo = WalletRepository(db)
-        _, _ = await wallet_repo.debit(
-            current_user.id,
-            amount=Decimal(data.amount) / 100,  # cents/paise -> major units
-            description=f"Order payment {data.order_id}",
-            reference_id=str(data.order_id),
-            reference_type="order",
-        )
+        await wallet_repo.debit(current_user.id, amount=Decimal(amount) / 100, description=f"Order payment {data.order_id}",
+                                reference_id=str(data.order_id), reference_type="order")
         intent = await repo.create_intent(
-            order_id=data.order_id,
-            user_id=current_user.id,
-            provider="wallet",
-            provider_payment_id=idempotency_key,
-            amount=data.amount,
-            currency=data.currency,
-            status="succeeded",
-            idempotency_key=idempotency_key,
+            order_id=data.order_id, user_id=current_user.id, provider="wallet", provider_payment_id=idempotency_key,
+            amount=amount, currency=currency, status="pending", idempotency_key=idempotency_key,
             metadata_={"payment_method": "wallet"},
         )
-        await publish_payment_event("payment.succeeded", {
-            "payment_intent_id": str(intent.id),
-            "order_id": str(data.order_id),
-            "user_id": current_user.user_id,
-            "amount": data.amount,
-            "currency": data.currency,
-            "provider": "wallet",
-        })
-        return PaymentInitiateResponse(
-            payment_intent_id=str(intent.id),
-            provider="wallet",
-            amount=data.amount,
-            currency=data.currency,
-        )
+        await apply_payment_event(db, "wallet", {"event_type": "payment.succeeded", "provider_payment_id": idempotency_key,
+                                                 "status": "succeeded", "event_id": f"wallet:{intent.id}"})
+        return PaymentInitiateResponse(payment_intent_id=str(intent.id), provider="wallet", amount=amount, currency=currency)
 
-    gateway = get_gateway(data.country)
+    gateway = get_gateway(country)
     result = await gateway.create(
-        amount=data.amount,
-        currency=data.currency,
-        order_id=str(data.order_id),
-        idempotency_key=idempotency_key,
+        amount=amount, currency=currency, order_id=str(data.order_id), idempotency_key=idempotency_key,
         payment_method_id=data.payment_method_id,
     )
-    provider = gateway.name
     meta = {k: v for k, v in result.items() if k in ("client_secret", "razorpay_order_id", "fake_outcome")}
-
     intent = await repo.create_intent(
-        order_id=data.order_id,
-        user_id=current_user.id,
-        provider=provider,
-        provider_payment_id=result["provider_payment_id"],
-        amount=data.amount,
-        currency=data.currency,
-        status="pending",
-        idempotency_key=idempotency_key,
-        metadata_=meta,
+        order_id=data.order_id, user_id=current_user.id, provider=gateway.name,
+        provider_payment_id=result["provider_payment_id"], amount=amount, currency=currency, status="pending",
+        idempotency_key=idempotency_key, metadata_=meta,
     )
-
     return PaymentInitiateResponse(
-        payment_intent_id=str(intent.id),
-        provider=provider,  # type: ignore[arg-type]
-        client_secret=meta.get("client_secret"),
-        razorpay_order_id=meta.get("razorpay_order_id"),
-        amount=data.amount,
-        currency=data.currency,
+        payment_intent_id=str(intent.id), provider=gateway.name,  # type: ignore[arg-type]
+        client_secret=meta.get("client_secret"), razorpay_order_id=meta.get("razorpay_order_id"),
+        amount=amount, currency=currency,
     )
 
 
@@ -144,6 +117,9 @@ async def _handle_webhook(gateway_name: str, request: Request, db: AsyncSession)
 async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) -> dict:
     if event["status"] not in ("succeeded", "failed"):
         return {"received": True}
+    if event.get("event_id") and not await _first_delivery(db, gateway_name, event["event_id"]):
+        logger.info("webhook_event_already_processed", provider=gateway_name, event_id=event["event_id"])
+        return {"received": True, "duplicate": True}
     repo = PaymentRepository(db)
     intent = await repo.get_by_provider_id(event["provider_payment_id"], for_update=True)
     if not intent:
@@ -172,10 +148,24 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
         "provider": gateway_name,
     }
     if new_status == "succeeded":
-        await publish_payment_event("payment.succeeded", base)
+        await outbox.add(db, "payment.succeeded", "order", intent.order_id, base, "payment-svc")
+        from core_api.modules.orders.service.order import OrderService
+
+        await OrderService(db).on_payment_succeeded(intent.order_id)  # same transaction: paid <=> placed
     else:
-        await publish_payment_event("payment.failed", {**base, "failure_reason": event["event_type"]})
+        await outbox.add(db, "payment.failed", "order", intent.order_id,
+                         {**base, "failure_reason": event["event_type"]}, "payment-svc")
     return {"received": True}
+
+
+async def _first_delivery(db: AsyncSession, provider: str, event_id: str) -> bool:
+    """Record the event id; False if we have seen it (a redelivery)."""
+    from sqlalchemy import text
+
+    row = (await db.execute(text(
+        "INSERT INTO processed_webhook_events (provider, event_id) VALUES (:p, :e) "
+        "ON CONFLICT DO NOTHING RETURNING event_id"), {"p": provider, "e": event_id})).first()
+    return row is not None
 
 
 @router.post("/stripe/webhook")

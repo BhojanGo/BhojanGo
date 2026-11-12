@@ -5,13 +5,16 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 OrderStatus = Literal[
-    "pending", "confirmed", "preparing", "almost_ready", "ready_for_pickup",
-    "picked_up", "delivered", "cancelled"
+    "pending_payment", "placed", "accepted", "preparing", "almost_ready", "ready",
+    "picked_up", "delivered", "cancelled",
+    # older names, mapped on input (state_machine.LEGACY_NAMES) until the apps move over
+    "pending", "confirmed", "ready_for_pickup",
 ]
 PaymentMethod = Literal["card", "wallet", "upi", "net_banking", "cash_on_delivery"]
 CancellationReason = Literal[
     "customer_cancelled", "restaurant_cancelled", "driver_not_found",
-    "payment_failed", "item_unavailable", "restaurant_closed", "other"
+    "payment_failed", "item_unavailable", "restaurant_closed", "other",
+    "payment_timeout", "restaurant_no_response",  # set by the timeout sweeper (P11)
 ]
 
 
@@ -46,9 +49,9 @@ class OrderCreateRequest(BaseModel):
     promo_code: str | None = None
     tip: float = Field(default=0.0, ge=0)
     loyalty_points_to_use: int = Field(default=0, ge=0)
-    # P8: the token from POST /pricing/quote. The order is charged exactly the
-    # quoted total and keeps its pricing snapshot. (P11 makes it required.)
-    quote_token: str | None = None
+    # The token from POST /pricing/quote: the order is charged exactly the quoted
+    # total and keeps its pricing snapshot. Required since P11.
+    quote_token: str = Field(min_length=20)
 
 
 class OrderStatusUpdateRequest(BaseModel):
@@ -81,6 +84,13 @@ class OrderResponse(BaseModel):
     driver_id: uuid.UUID | None
     items: list[dict[str, Any]]
     status: str
+    market_city: str | None = None
+    payment_due_at: datetime | None = None
+    accept_due_at: datetime | None = None
+    placed_at: datetime | None = None
+    picked_up_at: datetime | None = None
+    cancelled_at: datetime | None = None
+    cancelled_by: str | None = None
     subtotal: float
     delivery_fee: float
     taxes: float

@@ -19,7 +19,8 @@ logger = structlog.get_logger(__name__)
 
 # Map SNS event_type → notification template key
 EVENT_TO_TEMPLATE = {
-    "order.created": "order_created",
+    # P11 flow: order.created waits for payment (no message); order.placed = paid.
+    "order.placed": "order_created",
     "order.confirmed": "order_confirmed",
     "order.status_changed": None,          # handled by status below
     "order.cancelled": "order_cancelled",
@@ -29,7 +30,9 @@ EVENT_TO_TEMPLATE = {
 }
 
 STATUS_TO_TEMPLATE = {
+    "accepted": "order_confirmed",
     "preparing": "order_preparing",
+    "ready": "order_ready",
     "ready_for_pickup": "order_ready",
     "picked_up": "order_picked_up",
     "delivered": "order_delivered",

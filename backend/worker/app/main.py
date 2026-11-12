@@ -12,6 +12,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.api.v1 import notifications
 from shared.config import get_settings
 from shared.db import engine
+from app.services.outbox_relay import run_relay, stop_relay
 from app.services.sqs_consumer import poll_sqs, stop_polling
 
 logger = structlog.get_logger(__name__)
@@ -47,13 +48,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("notification_svc_starting")
     # Fail fast rather than silently mocking notification delivery in production.
     _validate_production_config()
-    # Start SQS consumer in background
+    # Start SQS consumer and the outbox relay (P11) in the background
     _sqs_task = asyncio.create_task(poll_sqs())
+    relay_task = None if settings.APP_ENV == "test" else asyncio.create_task(run_relay())
     logger.info("notification_svc_ready")
     yield
     stop_polling()
-    if _sqs_task:
-        _sqs_task.cancel()
+    stop_relay()
+    for task in (_sqs_task, relay_task):
+        if task:
+            task.cancel()
     await engine.dispose()
     logger.info("notification_svc_stopped")
 

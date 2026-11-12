@@ -56,12 +56,14 @@ async def process_webhook(payload: bytes, sig_header: str) -> dict:
             "provider_payment_id": payment_entity.get("order_id", ""),
             "razorpay_payment_id": payment_entity.get("id", ""),
             "status": "succeeded",
+            "event_id": f"{payment_entity.get('id', '')}:captured",
         }
     elif event_type == "payment.failed":
         return {
             "event_type": "payment.failed",
             "provider_payment_id": payment_entity.get("order_id", ""),
             "status": "failed",
+            "event_id": f"{payment_entity.get('id', '')}:failed",
         }
     return {"event_type": event_type, "provider_payment_id": "", "status": "unknown"}
 

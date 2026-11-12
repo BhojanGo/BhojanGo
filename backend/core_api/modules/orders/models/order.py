@@ -22,7 +22,19 @@ class Order(Base):
     items: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     # State machine
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_payment", index=True)
+
+    # Where the order is (from its quote): admin scopes and the business rules.
+    market_city: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    zone_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+    # P11 lifecycle: deadlines the timeout sweeper enforces, and when each step happened.
+    payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    accept_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    placed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_by: Mapped[str | None] = mapped_column(String(20), nullable=True)  # customer | restaurant | admin | system
 
     # Financials (stored as NUMERIC for exact money arithmetic; denominated in major units, e.g. dollars/rupees)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))

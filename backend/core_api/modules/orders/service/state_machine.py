@@ -1,64 +1,68 @@
-"""
-Order State Machine
-===================
-Valid transitions:
+"""Order states (P11).
 
-pending -> confirmed | cancelled
-confirmed -> preparing | cancelled
-preparing -> ready_for_pickup | cancelled
-ready_for_pickup -> picked_up | cancelled
-picked_up -> delivered
-delivered -> (terminal)
-cancelled -> (terminal)
+    pending_payment -> placed -> accepted -> preparing -> almost_ready -> ready -> picked_up -> delivered
+          \\            \\          \\           \\              \\           \\
+           `------------`----------`-----------`--------------`-----------`--> cancelled
+
+* pending_payment: created from a quote, waiting for the payment. Cancelled by
+  the system if unpaid after the unpaid_auto_cancel rule (10 min).
+* placed: paid; the restaurant must accept within the accept_timeout rule
+  (3 min) or the order is cancelled and refunded.
+* almost_ready is optional (preparing -> ready is fine); it triggers rider
+  dispatch (P14).
+
+Who may make each move ("actors"): customer, restaurant (the order's own),
+rider (the order's own), admin (orders.edit for the order's city), system.
 """
 from typing import Final
 
 VALID_TRANSITIONS: Final[dict[str, set[str]]] = {
-    "pending": {"confirmed", "cancelled"},
-    "confirmed": {"preparing", "cancelled"},
-    # "almost_ready" is an optional intermediate used for predictive dispatch.
-    # "preparing -> ready_for_pickup" remains valid for backward compatibility.
-    "preparing": {"almost_ready", "ready_for_pickup", "cancelled"},
-    "almost_ready": {"ready_for_pickup", "cancelled"},
-    "ready_for_pickup": {"picked_up", "cancelled"},
+    "pending_payment": {"placed", "cancelled"},
+    "placed": {"accepted", "cancelled"},
+    "accepted": {"preparing", "cancelled"},
+    "preparing": {"almost_ready", "ready", "cancelled"},
+    "almost_ready": {"ready", "cancelled"},
+    "ready": {"picked_up", "cancelled"},
     "picked_up": {"delivered"},
     "delivered": set(),
     "cancelled": set(),
 }
 
-# Which roles can trigger which transitions
-TRANSITION_PERMISSIONS: Final[dict[tuple[str, str], set[str]]] = {
-    ("pending", "confirmed"): {"restaurant_owner", "admin", "super_admin"},
-    ("pending", "cancelled"): {"customer", "restaurant_owner", "admin", "super_admin"},
-    ("confirmed", "preparing"): {"restaurant_owner", "admin", "super_admin"},
-    ("confirmed", "cancelled"): {"customer", "restaurant_owner", "admin", "super_admin"},
-    ("preparing", "almost_ready"): {"restaurant_owner", "admin", "super_admin"},
-    ("preparing", "ready_for_pickup"): {"restaurant_owner", "admin", "super_admin"},
-    ("preparing", "cancelled"): {"restaurant_owner", "admin", "super_admin"},
-    ("almost_ready", "ready_for_pickup"): {"restaurant_owner", "admin", "super_admin"},
-    ("almost_ready", "cancelled"): {"restaurant_owner", "admin", "super_admin"},
-    ("ready_for_pickup", "picked_up"): {"driver", "admin", "super_admin"},
-    ("ready_for_pickup", "cancelled"): {"admin", "super_admin"},
-    ("picked_up", "delivered"): {"driver", "admin", "super_admin"},
+RESTAURANT = frozenset({"restaurant", "admin"})
+TRANSITION_ACTORS: Final[dict[tuple[str, str], frozenset[str]]] = {
+    ("pending_payment", "placed"): frozenset({"system"}),
+    ("pending_payment", "cancelled"): frozenset({"customer", "admin", "system"}),
+    ("placed", "accepted"): RESTAURANT,
+    ("placed", "cancelled"): frozenset({"customer", "restaurant", "admin", "system"}),
+    ("accepted", "preparing"): RESTAURANT,
+    ("accepted", "cancelled"): frozenset({"customer", "restaurant", "admin"}),  # customer: within the cancel window
+    ("preparing", "almost_ready"): RESTAURANT,
+    ("preparing", "ready"): RESTAURANT,
+    ("preparing", "cancelled"): RESTAURANT,
+    ("almost_ready", "ready"): RESTAURANT,
+    ("almost_ready", "cancelled"): RESTAURANT,
+    ("ready", "picked_up"): frozenset({"rider", "admin"}),
+    ("ready", "cancelled"): frozenset({"admin"}),
+    ("picked_up", "delivered"): frozenset({"rider", "admin"}),
 }
 
-# Status at which the order is "near ready" — the trigger point for predictive
-# driver dispatch (don't assign a driver before this to avoid idle waiting).
+PAID_STATES = frozenset({"placed", "accepted", "preparing", "almost_ready", "ready", "picked_up", "delivered"})
+TERMINAL_STATES = frozenset({"delivered", "cancelled"})
+ACTIVE_STATES = frozenset(VALID_TRANSITIONS) - TERMINAL_STATES
+
+# The trigger point for rider dispatch (P14): don't send a rider too early.
 DISPATCH_TRIGGER_STATUS = "almost_ready"
 
-
-def can_transition(current_status: str, new_status: str) -> bool:
-    return new_status in VALID_TRANSITIONS.get(current_status, set())
-
-
-def is_transition_allowed(current_status: str, new_status: str, role: str) -> bool:
-    if not can_transition(current_status, new_status):
-        return False
-    allowed_roles = TRANSITION_PERMISSIONS.get((current_status, new_status), set())
-    return role in allowed_roles
+# Older names, accepted on input so existing apps keep working until P17-P21.
+LEGACY_NAMES: Final[dict[str, str]] = {"pending": "pending_payment", "confirmed": "accepted", "ready_for_pickup": "ready"}
 
 
-TERMINAL_STATES = {"delivered", "cancelled"}
+def can_transition(current: str, new: str) -> bool:
+    return new in VALID_TRANSITIONS.get(current, set())
+
+
+def actor_allowed(current: str, new: str, actor: str) -> bool:
+    return can_transition(current, new) and actor in TRANSITION_ACTORS.get((current, new), frozenset())
 
 
 def is_terminal(status: str) -> bool:
