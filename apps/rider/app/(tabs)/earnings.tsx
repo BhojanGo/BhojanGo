@@ -2,7 +2,7 @@
 // deliveries and the next payout.
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
@@ -118,15 +118,12 @@ export default function Earnings() {
           ))}
         </View>
       </ScrollView>
-      <View style={styles.footer}>
+      {/* B6: payouts are weekly only; there's no instant cash-out, so no button that suggests one. */}
+      <View style={styles.footer} accessibilityLabel="Payout">
         <View style={styles.payout}>
-          <Text style={[ui.bold, { fontSize: 14 }]}>Payout {md(w.payout_date, { weekday: "short", month: "short", day: "numeric" })}</Text>
-          <Text style={[ui.muted, { fontSize: 12 }]}>to your bank</Text>
+          <Text style={[ui.bold, { fontSize: 15 }]}>Paid weekly · next payout {md(w.payout_date, { weekday: "short", month: "short", day: "numeric" })}</Text>
+          <Text style={[ui.muted, { fontSize: 13, textAlign: "center" }]}>Everything you earn this week goes to your bank together. There&apos;s no instant cash-out.</Text>
         </View>
-        <Pressable accessibilityRole="button" style={[ui.cta, { flex: 1, height: 56 }]}
-          onPress={() => Alert.alert("Cash out now", "Instant cash-out isn't available yet. Your pay goes to your bank every Monday.")}>
-          <Text style={[ui.ctaText, { fontSize: 16 }]}>Cash out now</Text>
-        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -147,5 +144,5 @@ const styles = StyleSheet.create({
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, gap: space[3] },
   lineBorder: { borderBottomWidth: 1, borderBottomColor: night.raised },
   footer: { position: "absolute", left: 20, right: 20, bottom: 16, flexDirection: "row", gap: 12 },
-  payout: { flex: 1, height: 56, borderRadius: radius.pill, borderWidth: 1.5, borderColor: night.lineStrong, alignItems: "center", justifyContent: "center", backgroundColor: night.ground },
+  payout: { flex: 1, minHeight: 64, paddingHorizontal: 16, paddingVertical: 8, gap: 2, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, alignItems: "center", justifyContent: "center", backgroundColor: night.ground },
 });
