@@ -6,6 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.catalog.service import menu as menu_svc
 from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user, require_admin, require_owner_or_admin
 from core_api.modules.catalog.repository.cache import cache_delete_pattern, cache_get, cache_set
 from shared.db import get_db
@@ -135,12 +136,15 @@ async def get_restaurant_menu(
     restaurant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantMenuResponse:
+    """The menu with option groups (min/max picks, prices) and what is sold out today."""
     repo = RestaurantRepository(db)
     restaurant = await repo.get_with_menu(restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
     from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
+
+    groups = await menu_svc.groups_for_items(db, [i.id for i in restaurant.menu_items])
     categories = [
         MenuCategoryResponse(
             id=cat.id,
@@ -149,14 +153,14 @@ async def get_restaurant_menu(
             description=cat.description,
             sort_order=cat.sort_order,
             is_active=cat.is_active,
-            items=[MenuItemResponse.model_validate(item) for item in cat.items if item.is_available],
+            items=[item_out(item, groups.get(item.id, [])) for item in cat.items if item.is_available],
         )
         for cat in sorted(restaurant.categories, key=lambda c: c.sort_order)
         if cat.is_active
     ]
 
     uncategorized = [
-        MenuItemResponse.model_validate(item)
+        item_out(item, groups.get(item.id, []))
         for item in restaurant.menu_items
         if item.category_id is None and item.is_available
     ]
@@ -166,6 +170,15 @@ async def get_restaurant_menu(
         categories=categories,
         uncategorized_items=uncategorized,
     )
+
+
+def item_out(item, groups) -> MenuItemResponse:  # type: ignore[no-untyped-def]
+    base = MenuItemResponse.model_validate(item)
+    return base.model_copy(update={
+        "option_groups": [menu_svc.group_out(g) for g in groups],
+        "customizations": menu_svc.legacy_customizations(groups),
+        "sold_out_today": menu_svc.is_sold_out(item),
+    })
 
 
 @router.post("", response_model=RestaurantResponse, status_code=status.HTTP_201_CREATED)
@@ -317,8 +330,16 @@ async def create_menu_item(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
-    item = await item_repo.create(restaurant_id=restaurant_id, **data.model_dump())
-    return MenuItemResponse.model_validate(item)
+    fields = data.model_dump()
+    customizations = fields.pop("customizations", [])
+    item = await item_repo.create(restaurant_id=restaurant_id, **fields)
+    if customizations:
+        try:
+            await menu_svc.groups_from_legacy(db, item, customizations)
+        except menu_svc.MenuError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    groups = await menu_svc.groups_for_items(db, [item.id])
+    return item_out(item, groups.get(item.id, []))
 
 
 @router.put("/{restaurant_id}/menu-items/{item_id}", response_model=MenuItemResponse)
@@ -337,10 +358,21 @@ async def update_menu_item(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
-    item = await item_repo.update(item_id, **data.model_dump(exclude_none=True))
+    current = await item_repo.get_by_id(item_id)
+    if not current or current.restaurant_id != restaurant_id:  # an item of another restaurant: not yours
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+    fields = data.model_dump(exclude_none=True)
+    customizations = fields.pop("customizations", None)
+    item = await item_repo.update(item_id, **fields)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
-    return MenuItemResponse.model_validate(item)
+    if customizations is not None:
+        try:
+            await menu_svc.groups_from_legacy(db, item, customizations)
+        except menu_svc.MenuError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    groups = await menu_svc.groups_for_items(db, [item.id])
+    return item_out(item, groups.get(item.id, []))
 
 
 @router.delete("/{restaurant_id}/menu-items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -358,6 +390,9 @@ async def delete_menu_item(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
 
     item_repo = MenuItemRepository(db)
+    current = await item_repo.get_by_id(item_id)
+    if not current or current.restaurant_id != restaurant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     deleted = await item_repo.delete(item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")

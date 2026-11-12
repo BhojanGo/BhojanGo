@@ -122,7 +122,7 @@ class QuoteService:
         now = now or datetime.now(UTC)
         items = [i.model_dump(mode="json") for i in req.items]
         try:
-            rest, priced = await price_cart(self.db, req.restaurant_id, items)
+            rest, priced = await price_cart(self.db, req.restaurant_id, items, now=now)
         except CartError as e:
             raise QuoteError(str(e))
         lat, lng, postal = await self._deliver_to(user_id, req)
@@ -253,7 +253,8 @@ class QuoteService:
             if req.restaurant_id is None:
                 raise QuoteError("Pick a restaurant to price menu items")
             try:
-                _, priced = await price_cart(self.db, req.restaurant_id, [i.model_dump(mode="json") for i in req.cart.items])
+                _, priced = await price_cart(self.db, req.restaurant_id, [i.model_dump(mode="json") for i in req.cart.items],
+                                             check_open=False)
             except CartError as e:
                 raise QuoteError(str(e))
             lines = [CartLine(_label(ln), ln.quantity, ln.unit_price) for ln in priced]

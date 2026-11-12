@@ -64,7 +64,8 @@ class RestaurantRepository:
         page: int = 1,
         limit: int = 20,
     ) -> tuple[list[Restaurant], int]:
-        conditions = [Restaurant.is_active == True, Restaurant.status == "active", Restaurant.deleted_at.is_(None)]  # noqa: E712
+        conditions = [Restaurant.is_active == True, Restaurant.status == "active", Restaurant.deleted_at.is_(None),  # noqa: E712
+                      Restaurant.paused_reason.is_(None)]  # P10: e.g. an expired FSSAI licence hides the listing
 
         if city:
             conditions.append(func.lower(Restaurant.city) == city.lower())

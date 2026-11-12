@@ -450,3 +450,32 @@ RULES = [
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
     ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
 ]
+
+
+# ── Store hours, FSSAI licences and tiers (P10) ───────────────────────────────
+# slug -> [(days, opens, closes)]; days "daily" or "mon..sun" style lists.
+# A close earlier than the open runs past midnight.
+DAILY = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+HOURS = {
+    "spice-route-kitchen-madhapur": [(DAILY, "11:00", "23:30")],
+    "curry-leaf-gachibowli": [(DAILY, "11:30", "23:00")],
+    "charminar-chai-house-old-city": [(DAILY, "06:30", "23:30")],
+    "banjara-dosa-co-banjara-hills": [(DAILY, "07:00", "22:30")],
+    # lunch and dinner, closed in between
+    "hitech-thali-hitec-city": [(DAILY, "11:00", "15:30"), (DAILY, "18:30", "23:00")],
+    "boise-bowl-co-hyde-park": [(DAILY, "11:00", "22:00")],
+    "basque-corner-kitchen-downtown": [(["tue", "wed", "thu", "fri", "sat", "sun"], "11:00", "21:30")],  # closed Mondays
+    "treasure-valley-tandoor-bench": [(DAILY, "11:30", "22:00")],
+    # open late at the weekend: runs past midnight
+    "foothills-pizza-co-north-end": [(["sun", "mon", "tue", "wed", "thu"], "11:00", "23:00"), (["fri", "sat"], "11:00", "01:00")],
+    "spud-and-sage-downtown": [(DAILY, "10:00", "22:00")],
+}
+HOLIDAYS = [("boise-bowl-co-hyde-park", "2026-12-25", "Christmas Day")]
+FSSAI = {  # India: 14-digit licence numbers (placeholders) and expiry dates
+    "spice-route-kitchen-madhapur": ("13626010000101", "2027-09-30"),
+    "curry-leaf-gachibowli": ("13626010000102", "2027-06-30"),
+    "charminar-chai-house-old-city": ("13626010000103", "2027-03-31"),
+    "banjara-dosa-co-banjara-hills": ("13626010000104", "2028-01-31"),
+    "hitech-thali-hitec-city": ("13626010000105", "2027-12-31"),
+}
+TIERS = {"spice-route-kitchen-madhapur": "B", "hitech-thali-hitec-city": "A", "boise-bowl-co-hyde-park": "B"}
