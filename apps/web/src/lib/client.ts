@@ -22,6 +22,7 @@ interface Session {
   verify: (phone: string, code: string, country: "IN" | "US") => Promise<void>;
   refresh: () => Promise<string | null>;
   signOut: () => Promise<void>;
+  adopt: (t: { access_token: string; refresh_token: string }) => Promise<void>;
 }
 
 export const useSession = create<Session>()(persist((set, get) => ({
@@ -46,6 +47,10 @@ export const useSession = create<Session>()(persist((set, get) => ({
     const t = (await r.json()) as { access_token: string; refresh_token: string };
     set({ access: t.access_token, refreshToken: t.refresh_token });
     return t.access_token;
+  },
+  adopt: async (t) => {
+    set({ access: t.access_token, refreshToken: t.refresh_token });
+    set({ user: unwrap(await api.core.GET("/api/v1/users/me")) });
   },
   signOut: async () => {
     if (get().access) await api.core.POST("/api/v1/auth/logout").catch(() => undefined);

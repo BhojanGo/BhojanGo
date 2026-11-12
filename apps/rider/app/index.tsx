@@ -3,5 +3,7 @@ import { Redirect } from "expo-router";
 
 export default function Index() {
   const status = useSession((s) => s.status);
-  return <Redirect href={status === "signed-in" ? "/drive" : "/sign-in"} />;
+  const role = useSession((s) => s.user?.role);
+  if (status !== "signed-in") return <Redirect href="/sign-in" />;
+  return <Redirect href={role === "customer" ? "/join" : "/drive"} />; // a new number finishes signing up first
 }
