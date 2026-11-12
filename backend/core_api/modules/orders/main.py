@@ -36,9 +36,14 @@ async def _sweep_forever() -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from shared.config import get_settings
 
-    task = None if get_settings().APP_ENV == "test" else asyncio.create_task(_sweep_forever())
+    from core_api.modules.orders.service import kpi
+
+    tasks = [] if get_settings().APP_ENV == "test" else [
+        asyncio.create_task(_sweep_forever()),
+        asyncio.create_task(kpi.refresh_forever()),  # P23: pilot KPIs on /metrics
+    ]
     yield
-    if task:
+    for task in tasks:
         task.cancel()
 
 

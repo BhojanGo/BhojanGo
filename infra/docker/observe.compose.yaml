@@ -1,0 +1,93 @@
+# P23: local monitoring on top of `make dev` (zero spend, instead of Sentry and
+# CloudWatch): OpenTelemetry → collector → Tempo (traces), Prometheus (metrics,
+# alert rules) → Alertmanager → core_api (admin console + logs), Docker logs →
+# Promtail → Loki, all in Grafana. Used by `make observe`:
+#   docker compose -f compose.yaml -f observe.compose.yaml --profile all --profile observe up -d
+# Grafana http://localhost:3300 (admin/admin), Prometheus :9090, Alertmanager :9093.
+
+x-observed: &observed
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  LOG_FORMAT: json
+  ALERT_WEBHOOK_TOKEN: local-observe-token
+
+services:
+  core-api:
+    environment: *observed
+  realtime:
+    environment: *observed
+  worker:
+    environment: *observed
+
+  otel-collector:
+    profiles: ["observe"]
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config=/etc/otelcol/collector.yml"]
+    volumes:
+      - ../observe/otel/collector.yml:/etc/otelcol/collector.yml:ro
+    depends_on: [tempo]
+
+  tempo:
+    profiles: ["observe"]
+    image: grafana/tempo:2.7.1
+    command: ["-config.file=/etc/tempo.yml"]
+    user: "0"
+    volumes:
+      - ../observe/tempo/tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/var/tempo
+
+  prometheus:
+    profiles: ["observe"]
+    image: prom/prometheus:v3.2.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3d", "--web.enable-lifecycle"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]
+    volumes:
+      - ../observe/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observe/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+
+  alertmanager:
+    profiles: ["observe"]
+    image: prom/alertmanager:v0.28.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    ports: ["${ALERTMANAGER_PORT:-9093}:9093"]
+    volumes:
+      - ../observe/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+  loki:
+    profiles: ["observe"]
+    image: grafana/loki:3.4.2
+    command: ["-config.file=/etc/loki/loki.yml"]
+    user: "0"
+    volumes:
+      - ../observe/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+
+  promtail:
+    profiles: ["observe"]
+    image: grafana/promtail:3.4.2
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    volumes:
+      - ../observe/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+
+  grafana:
+    profiles: ["observe"]
+    image: grafana/grafana:11.5.2
+    ports: ["${GRAFANA_PORT:-3300}:3000"]
+    environment:
+      GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3300}/
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/bhojango-pilot-kpis.json
+    volumes:
+      - ../observe/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observe/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus, loki, tempo]
+
+volumes:
+  tempo-data:
+  prometheus-data:
+  loki-data:

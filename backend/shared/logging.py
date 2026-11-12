@@ -9,6 +9,8 @@ from shared.config import get_settings
 def configure_logging() -> None:
     settings = get_settings()
     is_production = settings.APP_ENV == "production"
+    as_json = settings.LOG_FORMAT == "json" or (not settings.LOG_FORMAT and is_production)
+    from shared.observability import add_trace_id
 
     shared_processors: list = [
         structlog.contextvars.merge_contextvars,
@@ -16,9 +18,10 @@ def configure_logging() -> None:
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
+        add_trace_id,  # P23: links a log line (Loki) to its trace (Tempo)
     ]
 
-    if is_production:
+    if as_json:
         processors = shared_processors + [structlog.processors.JSONRenderer()]
     else:
         processors = shared_processors + [

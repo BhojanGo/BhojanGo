@@ -816,6 +816,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description Alerts in your scope: firing ones (the Operations page), or recently resolved.
+         *     Platform-wide ones (error spikes) show to admins who see everywhere.
+         */
+        get: operations["list_alerts_api_v1_ops_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/orders": {
         parameters: {
             query?: never;
@@ -3894,6 +3915,28 @@ export interface components {
              * @default false
              */
             urgent?: boolean;
+        };
+        /** OpsAlertOut */
+        OpsAlertOut: {
+            /** City */
+            city: string | null;
+            /** Description */
+            description: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Name */
+            name: string;
+            /** Severity */
+            severity: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
         };
         /** OpsCity */
         OpsCity: {
@@ -7307,6 +7350,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_alerts_api_v1_ops_alerts_get: {
+        parameters: {
+            query?: {
+                scope?: string;
+                state?: "firing" | "resolved";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpsAlertOut"][];
+                };
             };
             /** @description Validation Error */
             422: {

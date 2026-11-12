@@ -219,6 +219,14 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     PORT: int = 8001
     LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = ""  # json | console; empty = json in production, console elsewhere
+
+    # Observability (P23): traces to an OTLP collector (empty = off); the Sentry
+    # adapter stays off unless a DSN is set (shared/observability.py).
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = ""
+    SENTRY_DSN: str = ""
+    # Alertmanager's webhook to core_api (P23): a shared token, empty = refused.
+    ALERT_WEBHOOK_TOKEN: str = ""
 
     # Database (realtime does not use it, so it is not required at import time;
     # shared.db refuses to start without it)

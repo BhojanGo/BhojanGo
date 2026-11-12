@@ -97,5 +97,12 @@ Instrumentator(
     excluded_handlers=["/health", "/metrics"],
 ).instrument(app).expose(app)
 
+# P23: traces (OpenTelemetry → collector → Tempo) and the Sentry adapter (off).
+from shared import observability  # noqa: E402
+
+from shared.db import engine as _engine  # noqa: E402
+
+observability.setup(app, "core-api", sqlalchemy_engine=_engine)
+
 errors.install(app)
 app.include_router(health.router)

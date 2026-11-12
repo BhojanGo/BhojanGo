@@ -83,6 +83,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 26. **Money formatting never rounds: "no decimals" means drop ".00" from whole amounts only.**
     Why: menus written for whole rupees showed a $14.50 bowl as "$15" in the US.
 
+27. **Metrics and the console come from one function.**
+    Why: the KPI gauges reuse the admin overview's `_totals`, so Grafana and the console can't disagree, which was the bug A5 fixed.
+
+28. **Time-box side quests; report what's missing.**
+    Why: Grafana screenshots would not render in the headless container after three attempts, while the monitoring itself was verified through its APIs. We moved on and said so.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

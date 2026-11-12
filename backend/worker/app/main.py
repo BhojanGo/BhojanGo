@@ -71,6 +71,13 @@ app = FastAPI(
 
 app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
+
+# P23: traces (OpenTelemetry → collector → Tempo) and the Sentry adapter (off).
+from shared import observability  # noqa: E402
+
+from shared.db import engine as _engine  # noqa: E402
+
+observability.setup(app, "worker", sqlalchemy_engine=_engine)
 app.include_router(notifications.router, prefix="/api/v1")
 
 

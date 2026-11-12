@@ -3,6 +3,7 @@
 # with `winget install ezwinports.make`). See README, "Run it locally".
 #
 #   make dev     build and start everything (profile "all"), run migrations, seed
+#   make observe make dev + Grafana, Prometheus, Alertmanager, Loki, Tempo (P23)
 #   make seed    (re)load the Hyderabad + Boise seed data; safe to run again
 #   make test    backend pytest + JS lint/typecheck/test, inside Docker
 #   make ci      everything GitHub CI runs (the merge gate), inside Docker
@@ -16,7 +17,7 @@ PROFILE ?= all
 # Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
 export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps
+.PHONY: help dev observe up seed test test-backend test-js ci ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps
 
 help:
 	@sed -n '1,15p' Makefile
@@ -38,6 +39,20 @@ dev: up seed
 # after `alembic upgrade head` has run in its container).
 up:
 	$(COMPOSE) --profile $(PROFILE) up -d --build --wait
+
+# P23: `make dev` plus local monitoring (OpenTelemetry to Tempo, Prometheus and
+# Alertmanager to the admin console, Loki, Grafana). Zero spend; see
+# docs/runbooks/observe.md.
+OBSERVE := $(COMPOSE) -f infra/docker/compose.yaml -f infra/docker/observe.compose.yaml
+observe:
+	$(OBSERVE) --profile all --profile observe up -d --build --wait
+	$(OBSERVE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null
+	@echo ""
+	@echo "Monitoring is running (on top of make dev):"
+	@echo "  grafana       http://localhost:$${GRAFANA_PORT:-3300}  (Pilot KPIs, Service health; admin/admin)"
+	@echo "  prometheus    http://localhost:$${PROMETHEUS_PORT:-9090}/alerts"
+	@echo "  alertmanager  http://localhost:$${ALERTMANAGER_PORT:-9093}"
+	@echo "Firing alerts also show in the admin console (Operations) and in the logs."
 
 seed:
 	$(COMPOSE) --profile backend up -d --wait core-api

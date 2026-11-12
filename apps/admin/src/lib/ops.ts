@@ -67,6 +67,17 @@ export function useOpsOrders(scope: string, view: "live" | "attention" | "today"
   });
 }
 
+// Alerts from Prometheus via Alertmanager (P23), firing in your scope.
+export interface OpsAlert { name: string; status: string; severity: string; city: string | null; summary: string; description: string | null; starts_at: string }
+
+export function useAlerts(scope: string) {
+  return useQuery({
+    queryKey: ["ops", "alerts", scope],
+    queryFn: async () => (await adminApi.get<OpsAlert[]>("/user/ops/alerts", { params: { scope } })).data,
+    refetchInterval: 15_000,
+  });
+}
+
 // Support tickets (B3 call-back requests, B5 problem reports).
 export interface OpsTicket {
   id: string; kind: "callback" | "problem" | string; status: string; topic: string; note: string | null; created_at: string;
