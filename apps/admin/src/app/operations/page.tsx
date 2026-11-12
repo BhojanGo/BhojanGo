@@ -12,7 +12,7 @@ import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import {
-  apiMessage, clock, money, REFUND_REASONS, TICKET_TOPIC, useDispatch, useOpsOrders, useScope, useTickets, type OpsOrder,
+  apiMessage, clock, money, REFUND_REASONS, TICKET_TOPIC, useAlerts, useDispatch, useOpsOrders, useScope, useTickets, type OpsOrder,
   type OpsTicket, type OrderDetail, type Refund,
 } from "@/lib/ops";
 
@@ -29,6 +29,22 @@ const STATUS: Record<string, string> = {
   placed: "Waiting for kitchen", accepted: "Accepted", preparing: "Cooking", almost_ready: "Almost ready", ready: "Ready",
   picked_up: "On the way", delivered: "Delivered", cancelled: "Cancelled", pending_payment: "Not paid",
 };
+
+/** Alerts firing now (P23): payment failures, orders without a rider, error spikes. */
+function Alerts({ scope }: { scope: string }) {
+  const { data } = useAlerts(scope);
+  if (!data?.length) return null;
+  return (
+    <section aria-label="Alerts" className="space-y-2 rounded-2xl bg-danger-tint p-4 text-danger-ink">
+      <h2 className="m-0 text-base font-extrabold">Alerts · {data.length} firing</h2>
+      {data.map((a) => (
+        <div key={`${a.name}-${a.city ?? "all"}`} className="text-sm">
+          <b>{a.summary}</b> <span className="opacity-80">· since {clock(a.starts_at)}{a.description ? ` · ${a.description}` : ""}</span>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 function Flags({ o }: { o: OpsOrder }) {
   return (
@@ -370,6 +386,7 @@ function OperationsPage() {
           ))}
         </nav>
       </div>
+      <Alerts scope={scope} />
       {tab === "live" || tab === "attention" ? (
         live.error ? <p className="text-chili">{apiMessage(live.error)}</p> :
           <OrdersTable orders={live.data ?? []} onOpen={(id) => { setOpenId(id); go("support"); }} />

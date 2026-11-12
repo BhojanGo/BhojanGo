@@ -1,0 +1,37 @@
+# P23: the alerts ops need, delivered by Alertmanager to the admin console
+# (core_api /ops/alerts/webhook) and to the logs. Thresholds are for the pilot.
+groups:
+  - name: bhojango
+    rules:
+      - alert: PaymentFailures
+        expr: max by (country, city) (bhojango_payment_failures_15m) >= 3
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $value }} payments failed in {{ $labels.city }} in the last 15 minutes"
+          description: "Check the payment provider's status and the payments logs; customers may be stuck at checkout."
+
+      - alert: OrdersWithoutRider
+        expr: max by (country, city) (bhojango_orders_waiting_for_rider_5m) > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $value }} order(s) in {{ $labels.city }} without a rider for more than 5 minutes"
+          description: "Open Operations > Dispatch map and give each one to a free rider."
+
+      - alert: ErrorSpike
+        expr: |
+          (sum by (service) (rate(http_requests_total{status="5xx"}[5m]))
+            / clamp_min(sum by (service) (rate(http_requests_total[5m])), 0.001)) > 0.05
+          and sum by (service) (rate(http_requests_total{status="5xx"}[5m])) > 0.05
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }}: {{ $value | humanizePercentage }} of requests failing (5xx)"
+          description: "Look at the service's logs and traces in Grafana (Explore > Loki, then the trace link)."
+
+      - alert: KpisNotUpdating
+        expr: time() - bhojango_kpi_refreshed_timestamp_seconds > 300
+        labels: { severity: warning }
+        annotations:
+          summary: "Pilot KPIs haven't updated for 5 minutes"
+          description: "core_api's KPI loop is failing: look for kpi_refresh_failed in its logs."

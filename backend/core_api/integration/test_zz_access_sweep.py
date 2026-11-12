@@ -104,6 +104,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
     ("GET", "/api/v1/markets/locate"): public("does this address get delivery"),
+    ("POST", "/api/v1/ops/alerts/webhook"): public("Alertmanager's webhook, token-checked (P23)"),
     ("GET", "/api/v1/markets/cities"): public("where we deliver: the web's city pages"),
     ("GET", "/api/v1/pricing/example"): public("the web home page's example bill, from the real engine"),
     ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
@@ -155,6 +156,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd", body=lambda c: {"topic": "other"}),
     ("GET", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd"),
     ("GET", "/api/v1/ops/tickets"): admin(),
+    ("GET", "/api/v1/ops/alerts"): admin(),  # P23
     ("POST", "/api/v1/ops/tickets/{ticket_id}/resolve"): admin("ops_boi", "viewer", "finance_in", body=lambda c: {"resolution": "Sweep"}),
     # quick messages (B2): the order's customer and rider only; not the kitchen, not admins
     ("GET", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),

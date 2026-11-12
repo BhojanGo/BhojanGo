@@ -48,6 +48,11 @@ app.add_middleware(
 )
 
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
+
+# P23: traces (OpenTelemetry → collector → Tempo) and the Sentry adapter (off).
+from shared import observability  # noqa: E402
+
+observability.setup(app, "realtime")
 app.include_router(delivery.router, prefix="/api/v1")
 app.include_router(earnings.router, prefix="/api/v1")
 app.include_router(riders.router)  # /api/v1/riders, /api/v1/offers and /ws/rider
