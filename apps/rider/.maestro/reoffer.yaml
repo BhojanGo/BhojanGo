@@ -1,0 +1,52 @@
+# Dispatch re-offer (P22): an offer comes to us (the nearest rider), we pass,
+# and dispatch offers the same order to the next rider straight away.
+# Needs the emulator's location near Spice Route Kitchen (tools/mobile/e2e.sh sets it).
+appId: com.bhojango.rider
+env:
+  PHONE: "9000000201"
+  INDIA: "true"
+---
+- runScript:
+    file: scripts/kitchen.js
+    env:
+      STEP: cleanup
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "You're offline|Looking for deliveries"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
+- setLocation:
+    latitude: 17.4495
+    longitude: 78.3925
+- tapOn: "Go online"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 30000
+- runScript:
+    file: scripts/reoffer.js
+    env:
+      STEP: setup
+- extendedWaitUntil:
+    visible: "NEW DELIVERY"
+    timeout: 45000
+- takeScreenshot: docs/screenshots/rider/17-offer-before-pass
+- tapOn: "Pass"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 20000
+- runScript:
+    file: scripts/reoffer.js
+    env:
+      STEP: check
+- runScript:
+    file: scripts/reoffer.js
+    env:
+      STEP: cleanup
+- tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 20000

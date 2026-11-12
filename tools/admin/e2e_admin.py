@@ -186,6 +186,25 @@ with sync_playwright() as p:
     page.get_by_role("link", name="Price simulator", exact=True).click()
     check("price simulator opens from Pricing & Rules", lambda: expect(page.get_by_role("heading", name=re.compile("Price simulator"))).to_be_visible(timeout=15000))
 
+    # Rule approval (P22): a country manager changes a money rule; a second admin approves it.
+    cm = token("cm.in@example.com", PW)
+    live = next(r for r in api.get(f"{CORE}/rules", headers=cm, params={"family": "delivery_fee"}).json()
+                if r["status"] == "published" and r["market_scope"] == "IN-TG-HYD" and not (r.get("effective_to")))
+    draft = api.post(f"{CORE}/rules/{live['id']}/versions", headers=cm, data={"params": live["params"]}).json()
+    submitted = api.post(f"{CORE}/rules/{draft['id']}/submit", headers=cm).json()
+    check("rule approval: a money rule waits for a second admin", lambda: _ok(submitted["status"] == "pending_approval"))
+    page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=approvals", wait_until="networkidle")
+    queue = page.get_by_role("region", name="Rules")
+    queue.get_by_role("button", name=re.compile(re.escape(live["name"] or "distance slabs"))).first.click()
+    detail = page.get_by_role("region", name=re.compile("^Rule · "))
+    expect(detail.get_by_role("button", name="Approve and schedule")).to_be_visible(timeout=15000)
+    page.screenshot(path=f"{OUT}/07c-rule-approval.png", full_page=True)
+    detail.get_by_label("Comment").fill("Checked against the simulator")
+    detail.get_by_role("button", name="Approve and schedule").click()
+    check("rule approval: approved by the second admin, the new version is live", lambda: (
+        expect(page.get_by_text("Nothing waiting for you.")).to_be_visible(timeout=15000),
+        _ok(api.get(f"{CORE}/rules/{draft['id']}", headers=cm).json()["status"] == "published")))
+
     # A kitchen's own offer is live without approval; an admin pauses it (B4).
     partner_h = token("partner.hyd@example.com")
     offer_name = f"Rs 40 off, admin pause {uuid.uuid4().hex[:4]}"

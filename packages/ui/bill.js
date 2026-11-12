@@ -17,6 +17,8 @@ function money(amount, currency, { decimals = 2 } = {}) {
   const n = Number(amount);
   const sign = n < 0 ? "−" : "";
   const abs = Math.abs(n);
+  // decimals: 0 drops ".00" from whole amounts; it never rounds money away ($14.50 stays $14.50).
+  if (decimals === 0 && Math.round(abs * 100) % 100 !== 0) decimals = 2;
   const locale = currency === "INR" ? "en-IN" : "en-US";
   const body = abs.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   return `${sign}${SYMBOL[currency] ?? currency + " "}${body}`;

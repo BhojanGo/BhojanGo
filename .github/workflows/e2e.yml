@@ -1,0 +1,68 @@
+name: End-to-end (Playwright)
+
+# P22: the web and admin end-to-end runs on every pull request, against the
+# same stack as `make dev` (Docker Compose, LocalStack, seeded data). G1 and the
+# contract tests run in PR Checks (backend-checks.yml). Maestro flows for the
+# three apps run on Android emulators (tools/mobile/e2e.sh); see docs/PLAYBOOK.md.
+
+on:
+  pull_request:
+    branches: [dev, main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright web + admin
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      COMPOSE_PROJECT_NAME: bhojango-e2e
+      COMPOSE: docker compose -f infra/docker/compose.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Host tools for the runs (opening hours helper)
+        run: pip install httpx==0.28.1
+
+      - name: Start the stack (make dev)
+        run: $COMPOSE --profile all up -d --build --wait --wait-timeout 600
+
+      - name: Seed
+        run: $COMPOSE exec -T core-api python /srv/tools/seed/seed.py
+
+      - name: Web (customer site)
+        run: sh tools/web/e2e.sh
+
+      - name: Admin console
+        if: always()
+        run: sh tools/admin/e2e.sh
+
+      - name: Service logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 300 core-api realtime worker web admin
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: |
+            docs/screenshots/web
+            docs/screenshots/admin
+          retention-days: 7
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v
