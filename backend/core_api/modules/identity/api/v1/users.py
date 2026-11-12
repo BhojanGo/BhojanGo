@@ -35,7 +35,7 @@ async def get_me(
 async def patch_me(
     data: UserUpdateRequest,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> UserResponse:
     """Update the current user's profile (PATCH)."""
     return await update_me(data, current_user, db)
@@ -45,7 +45,7 @@ async def patch_me(
 async def update_me(
     data: UserUpdateRequest,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> UserResponse:
     """Update the current user's profile."""
     repo = UserRepository(db)
@@ -76,7 +76,7 @@ async def update_me(
 async def delete_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Delete my account (GDPR / India DPDP / app store rules).
 
@@ -92,7 +92,7 @@ async def delete_me(
 async def get_user(
     user_id: uuid.UUID,
     admin: Annotated[AdminContext, Depends(require_permission("customers.view"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> UserResponse:
     """Admin: get any user in a country you cover."""
     user = await UserRepository(db).get_by_id(user_id)
@@ -106,7 +106,7 @@ async def get_user(
 async def admin_anonymize_user(
     user_id: uuid.UUID,
     admin: Annotated[AdminContext, Depends(require_permission("customers.edit"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Admin: erase a user's personal data on request (right to erasure)."""
     user = await UserRepository(db).get_by_id(user_id)

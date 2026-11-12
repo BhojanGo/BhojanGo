@@ -47,6 +47,19 @@ class CartLine:
 
 
 @dataclass(frozen=True)
+class ExternalTax:
+    """Tax a provider calculated (US: Stripe Tax), one per jurisdiction."""
+
+    label: str
+    rate_percent: Decimal
+    base: Decimal
+    amount: Decimal
+    jurisdiction: str
+    provider: str
+    calculation_id: str
+
+
+@dataclass(frozen=True)
 class QuoteInputs:
     currency: str
     lines: list[CartLine]
@@ -58,6 +71,8 @@ class QuoteInputs:
     promo_code: str | None = None
     promo_spent: dict[str, Decimal] = field(default_factory=dict)  # rule_key -> spent so far
     wait_minutes: Decimal = ZERO  # expected rider wait at the restaurant (rider pay)
+    # None = not calculated yet (the quote is marked tax_pending); [] = no tax due.
+    external_tax: list[ExternalTax] | None = None
 
 
 @dataclass
@@ -69,6 +84,7 @@ class BillLine:
     rule_version: int | None = None
     funded_by: str | None = None  # promotions
     taxable_as: str | None = None  # the tax target this line counts as
+    detail: dict[str, str] | None = None  # taxes: rate, base, jurisdiction (the fair bill shows these)
 
 
 @dataclass
@@ -108,6 +124,15 @@ def _in_window(t: datetime, w: dict) -> bool:
 def _ref(c: Candidate) -> dict[str, Any]:
     return {"rule_id": str(c.id), "rule_key": str(c.rule_key), "version": c.version, "slot": c.slot,
             "scope_level": c.scope_level, "scope_id": c.scope_id}
+
+
+def taxable_amounts(q: "QuoteResult") -> dict[str, Decimal]:
+    """Each taxable line's amount after discounts (what a tax provider is sent)."""
+    out: dict[str, Decimal] = {}
+    for ln in q.lines:
+        if ln.taxable_as:
+            out[ln.taxable_as] = out.get(ln.taxable_as, ZERO) + ln.amount
+    return {k: money(v) for k, v in out.items() if v > 0}
 
 
 def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
@@ -237,8 +262,17 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     for slot in sorted((s for s in rules if s.startswith("tax:")), key=tax_order):
         t = rules[slot]
         if t.template == "external":
-            tax_pending = True
             used.append(t)
+            if inp.external_tax is None:
+                tax_pending = True
+                continue
+            for ext in inp.external_tax:
+                amount = add("tax", ext.label, ext.amount, t, detail={
+                    "rate_percent": str(ext.rate_percent), "base": str(money(ext.base)), "jurisdiction": ext.jurisdiction,
+                    "provider": ext.provider, "calculation_id": ext.calculation_id}).amount
+                tax_added += amount
+                tax_owed += amount
+                tax_by_collector["platform"] += amount  # marketplace facilitator: the platform collects
             continue
         tp = t.params
         targets = set(tp["target_lines"])
@@ -248,11 +282,13 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             ZERO,
         )
         rate = D(tp["rate_percent"]) / 100
+        detail = {"rate_percent": str(D(tp["rate_percent"]).normalize()), "base": str(money(base)),
+                  "collected_by": tp.get("collected_by", "platform")}
         if tp.get("inclusive"):
             amount = money(base - base / (1 + rate))  # already inside the prices
-            used.append(t)
+            add("tax_included", f'{tp["label"]} (included in prices)', ZERO, t, detail={**detail, "included": str(amount)})
         else:
-            amount = add("tax", tp["label"], base * rate, t).amount
+            amount = add("tax", tp["label"], base * rate, t, detail=detail).amount
             tax_added += amount
         tax_owed += amount
         tax_by_collector[tp.get("collected_by", "platform")] += amount

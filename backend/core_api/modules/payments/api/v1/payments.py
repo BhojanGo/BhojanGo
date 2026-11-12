@@ -39,7 +39,7 @@ logger = structlog.get_logger(__name__)
 async def initiate_payment(
     data: PaymentInitiateRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> PaymentInitiateResponse:
     """Initiate payment — routes to Stripe (US) or Razorpay (IN) based on country."""
     repo = PaymentRepository(db)
@@ -179,18 +179,18 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
 
 
 @router.post("/stripe/webhook")
-async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db, scope="function")]) -> dict:
     """Stripe webhook. Verifies the signature, then applies the event."""
     return await _handle_webhook("stripe", request, db)
 
 
 @router.post("/razorpay/webhook")
-async def razorpay_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+async def razorpay_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db, scope="function")]) -> dict:
     return await _handle_webhook("razorpay", request, db)
 
 
 @router.post("/fake/webhook", include_in_schema=False)
-async def fake_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]) -> dict:
+async def fake_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db, scope="function")]) -> dict:
     """Webhooks from the local fake gateway (refused in production)."""
     if get_settings().is_production:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
@@ -202,7 +202,7 @@ async def complete_fake_payment(
     payment_intent_id: uuid.UUID,
     data: FakeCompleteRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> dict:
     """Local only: finish a fake payment as if the customer paid (or the card
     was declined). Sends the same signed webhook a real gateway would."""
@@ -223,7 +223,7 @@ async def complete_fake_payment(
 async def get_payment(
     order_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> PaymentResponse:
     repo = PaymentRepository(db)
     intent = await repo.get_by_order_id(order_id)
@@ -237,7 +237,7 @@ async def refund_payment(
     order_id: uuid.UUID,
     data: RefundRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RefundResponse:
     if current_user.role not in ("admin", "super_admin", "customer"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
@@ -333,7 +333,7 @@ wallet_router = APIRouter(prefix="/wallet", tags=["Wallet"])
 async def topup_wallet(
     data: WalletTopupRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> WalletBalanceResponse:
     wallet_repo = WalletRepository(db)
     wallet, _ = await wallet_repo.credit(
@@ -349,7 +349,7 @@ async def topup_wallet(
 @wallet_router.get("/balance", response_model=WalletBalanceResponse)
 async def get_wallet_balance(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> WalletBalanceResponse:
     wallet_repo = WalletRepository(db)
     wallet = await wallet_repo.get_or_create(current_user.id, currency="INR" if current_user.country == "IN" else "USD")
@@ -359,7 +359,7 @@ async def get_wallet_balance(
 @wallet_router.get("/transactions", response_model=WalletTransactionListResponse)
 async def get_wallet_transactions(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ) -> WalletTransactionListResponse:

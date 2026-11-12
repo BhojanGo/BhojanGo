@@ -42,7 +42,7 @@ class AddressResponse(BaseModel):
 @router.get("", response_model=list[AddressResponse])
 async def list_addresses(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> list[AddressResponse]:
     result = await db.execute(
         select(Address).where(Address.user_id == current_user.id).order_by(Address.created_at)
@@ -54,7 +54,7 @@ async def list_addresses(
 async def create_address(
     data: AddressCreate,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AddressResponse:
     address = Address(
         user_id=current_user.id,
@@ -77,7 +77,7 @@ async def create_address(
 async def delete_address(
     address_id: uuid.UUID,
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> None:
     result = await db.execute(
         select(Address).where(Address.id == address_id, Address.user_id == current_user.id)

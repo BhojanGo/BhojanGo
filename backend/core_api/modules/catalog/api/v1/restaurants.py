@@ -44,7 +44,7 @@ async def list_restaurants(
     country: str | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantListResponse:
     cache_key = f"restaurants:list:{city}:{cuisine}:{country}:{page}:{limit}"
     cached = await cache_get(cache_key)
@@ -85,7 +85,7 @@ async def search_restaurants(
     lng: float | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantListResponse:
     result = await search_svc.search_restaurants(
         q=q, city=city, cuisine=cuisine, min_rating=min_rating,
@@ -113,7 +113,7 @@ async def search_restaurants(
 @router.get("/{restaurant_id}", response_model=RestaurantResponse)
 async def get_restaurant(
     restaurant_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     cache_key = f"restaurants:{restaurant_id}"
     cached = await cache_get(cache_key)
@@ -133,7 +133,7 @@ async def get_restaurant(
 @router.get("/{restaurant_id}/menu", response_model=RestaurantMenuResponse)
 async def get_restaurant_menu(
     restaurant_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantMenuResponse:
     repo = RestaurantRepository(db)
     restaurant = await repo.get_with_menu(restaurant_id)
@@ -172,7 +172,7 @@ async def get_restaurant_menu(
 async def create_restaurant(
     data: RestaurantCreateRequest,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     repo = RestaurantRepository(db)
     address_dict = data.address.model_dump()
@@ -221,7 +221,7 @@ async def update_restaurant(
     restaurant_id: uuid.UUID,
     data: RestaurantUpdateRequest,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -243,7 +243,7 @@ async def configure_pricing(
     restaurant_id: uuid.UUID,
     data: PricingConfigRequest,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     """Configure a restaurant's commission / fee model (restaurant-friendly pricing)."""
     missing = data.require_fields_for_model()
@@ -276,7 +276,7 @@ async def delivery_check(
     restaurant_id: uuid.UUID,
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> DeliveryCheckResponse:
     """Hyper-local radius check: can this restaurant deliver to the given point?"""
     repo = RestaurantRepository(db)
@@ -307,7 +307,7 @@ async def create_menu_item(
     restaurant_id: uuid.UUID,
     data: MenuItemCreateRequest,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -327,7 +327,7 @@ async def update_menu_item(
     item_id: uuid.UUID,
     data: MenuItemUpdateRequest,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -348,7 +348,7 @@ async def delete_menu_item(
     restaurant_id: uuid.UUID,
     item_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(require_owner_or_admin)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> None:
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
@@ -368,7 +368,7 @@ async def create_review(
     restaurant_id: uuid.UUID,
     data: ReviewCreateRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope="function"),
 ) -> ReviewResponse:
     review_repo = ReviewRepository(db)
     existing = await review_repo.get_by_order_id(data.order_id)
@@ -400,7 +400,7 @@ async def create_review(
 )
 async def approve_restaurant(
     restaurant_id: uuid.UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RestaurantResponse:
     """Admin: Approve a pending restaurant, making it visible to customers."""
     repo = RestaurantRepository(db)
@@ -424,7 +424,7 @@ async def approve_restaurant(
 )
 async def reject_restaurant(
     restaurant_id: uuid.UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RestaurantResponse:
     """Admin: Reject a pending restaurant."""
     repo = RestaurantRepository(db)
@@ -447,7 +447,7 @@ async def reject_restaurant(
     dependencies=[Depends(require_admin)],
 )
 async def list_pending_restaurants(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> list[RestaurantResponse]:

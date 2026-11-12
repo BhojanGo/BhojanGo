@@ -41,7 +41,7 @@ from shared.db import get_db
 
 router = APIRouter(prefix="/markets", tags=["Markets"])
 
-DB = Annotated[AsyncSession, Depends(get_db)]
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 Viewer = Annotated[AdminContext, Depends(require_permission("markets.view"))]
 Editor = Annotated[AdminContext, Depends(require_permission("markets.edit"))]
 Pauser = Annotated[AdminContext, Depends(require_permission("zones.pause"))]

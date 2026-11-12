@@ -7,7 +7,7 @@ split) that never changes afterwards.
 """
 import json
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -21,7 +21,17 @@ from core_api.modules.markets.service.markets import MarketService
 from core_api.modules.orders.service.lookup import has_previous_orders
 from core_api.modules.pricing.models import OrderPricingSnapshot, PromotionSpend
 from core_api.modules.pricing.schemas import BillLineOut, QuoteOut, QuoteRequest, SimSide, SimulateOut, SimulateRequest, SplitOut
-from core_api.modules.pricing.service.engine import CartLine, NotDeliverable, QuoteInputs, QuoteResult, compute, money
+from core_api.modules.payments.service.tax import TaxAddress, TaxableLine, TaxError, get_tax_provider
+from core_api.modules.pricing.service.engine import (
+    CartLine,
+    ExternalTax,
+    NotDeliverable,
+    QuoteInputs,
+    QuoteResult,
+    compute,
+    money,
+    taxable_amounts,
+)
 from core_api.modules.rules.service.resolver import Context
 from core_api.modules.rules.service.rules import RuleService
 from shared.auth import InvalidTokenError, decode_jwt, encode_jwt
@@ -49,7 +59,8 @@ def _cart_signature(restaurant_id: str, items: list[dict]) -> list:
 
 
 def lines_out(q: QuoteResult) -> list[BillLineOut]:
-    return [BillLineOut(code=ln.code, label=ln.label, amount=ln.amount, funded_by=ln.funded_by) for ln in q.lines]
+    return [BillLineOut(code=ln.code, label=ln.label, amount=ln.amount, funded_by=ln.funded_by, detail=ln.detail)
+            for ln in q.lines]
 
 
 def split_out(q: QuoteResult) -> SplitOut:
@@ -76,15 +87,35 @@ class QuoteService:
         rows = (await self.db.execute(select(PromotionSpend))).scalars()
         return {str(r.rule_key): Decimal(r.spent) for r in rows}
 
-    async def _deliver_to(self, user_id: uuid.UUID, req: QuoteRequest) -> tuple[float, float]:
-        if req.deliver_to.address_id is None:
-            return req.deliver_to.lat, req.deliver_to.lng  # type: ignore[return-value]
-        from core_api.modules.identity.service.addresses import address_point
+    async def _deliver_to(self, user_id: uuid.UUID, req: QuoteRequest) -> tuple[float, float, dict]:
+        """(lat, lng, postal details) of where the order goes."""
+        w = req.deliver_to
+        if w.address_id is None:
+            return w.lat, w.lng, {"postal_code": w.postal_code}  # type: ignore[return-value]
+        from core_api.modules.identity.service.addresses import address_details
 
-        point = await address_point(self.db, user_id, req.deliver_to.address_id)
-        if point is None:
+        a = await address_details(self.db, user_id, w.address_id)
+        if a is None or a["lat"] is None:
             raise QuoteError("We couldn't find that address on the map; drop a pin instead")
-        return point
+        return a["lat"], a["lng"], a
+
+    async def _with_tax(self, inputs: QuoteInputs, rules, result: QuoteResult, region_code: str,  # type: ignore[no-untyped-def]
+                        city_name: str, postal: dict) -> tuple[QuoteInputs, QuoteResult]:
+        """US: send the taxable lines and the address to the tax provider, then
+        price again with the tax it returns. Never quote without tax."""
+        if not result.tax_pending:
+            return inputs, result
+        lines = [TaxableLine(ref, amount) for ref, amount in taxable_amounts(result).items()]
+        address = TaxAddress(country=region_code[:2], state=region_code[3:], city=postal.get("city") or city_name,
+                             postal_code=postal.get("postal_code"), line1=postal.get("street"))
+        try:
+            calc = await get_tax_provider().calculate(inputs.currency, lines, address)
+        except TaxError as e:
+            raise QuoteError(str(e))
+        ext = [ExternalTax(b.label, b.rate_percent, b.taxable_amount, b.amount, b.jurisdiction, calc.provider,
+                           calc.calculation_id) for b in calc.breakdown]
+        inputs = replace(inputs, external_tax=ext)
+        return inputs, compute(inputs, rules)
 
     # ── customer quotes ──────────────────────────────────────────────────────
     async def quote(self, user_id: uuid.UUID, req: QuoteRequest, now: datetime | None = None) -> QuoteOut:
@@ -94,7 +125,7 @@ class QuoteService:
             rest, priced = await price_cart(self.db, req.restaurant_id, items)
         except CartError as e:
             raise QuoteError(str(e))
-        lat, lng = await self._deliver_to(user_id, req)
+        lat, lng, postal = await self._deliver_to(user_id, req)
 
         where = await MarketService(self.db).locate(lat, lng)
         if not where.serviceable:
@@ -125,6 +156,7 @@ class QuoteService:
             result = compute(inputs, rules)
         except NotDeliverable as e:
             raise QuoteError(str(e))
+        inputs, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal)
 
         quote_id = uuid.uuid4()
         expires = now + QUOTE_TTL
@@ -135,6 +167,8 @@ class QuoteService:
                        "unit_price": str(ln.unit_price), "options": list(ln.options)} for ln in priced],
             "currency": result.currency, "total": str(result.total), "food_subtotal": str(result.food_subtotal),
             "lines": [{**asdict(ln), "amount": str(ln.amount)} for ln in result.lines],
+            "tax_calculation": next(({"provider": e.provider, "calculation_id": e.calculation_id}
+                                     for e in (inputs.external_tax or [])), None),
             "split": {k: str(v) for k, v in asdict(result.split).items() if k != "detail"}
             | {"detail": {k: str(v) for k, v in result.split.detail.items()}},
             "rules_used": result.rules_used, "tax_pending": result.tax_pending,
@@ -188,7 +222,8 @@ class QuoteService:
             raise QuoteError("This quote was already used")
         snap = OrderPricingSnapshot(
             order_id=order_id, quote_id=uuid.UUID(q["quote_id"]), currency=q["currency"], total=Decimal(q["total"]),
-            lines=q["lines"], rule_versions=q["rules_used"], split=q["split"], context=q["context"],
+            lines=q["lines"], rule_versions=q["rules_used"], split=q["split"],
+            context={**q["context"], "tax_calculation": q.get("tax_calculation")},
         )
         self.db.add(snap)
         for ln in q["lines"]:
@@ -235,21 +270,22 @@ class QuoteService:
                              promo_spent=await self._promo_spent())
         svc = RuleService(self.db)
         at = local.astimezone(UTC)
-        live = _side(inputs, await svc.resolve(ctx, at))
-        draft = _side(inputs, await svc.resolve(ctx, at, overlay_ids=req.draft_rule_ids)) if req.draft_rule_ids else live
+
+        async def side(rules) -> SimSide:  # type: ignore[no-untyped-def]
+            try:
+                result = compute(inputs, rules)
+                _, result = await self._with_tax(inputs, rules, result, region.code, city.name, {})
+            except NotDeliverable as e:
+                return SimSide(ok=False, message=str(e))
+            return SimSide(ok=True, lines=lines_out(result), total=result.total, split=split_out(result), rules=result.rules_used)
+
+        live = await side(await svc.resolve(ctx, at))
+        draft = await side(await svc.resolve(ctx, at, overlay_ids=req.draft_rule_ids)) if req.draft_rule_ids else live
         return SimulateOut(currency=country.currency, live=live, draft=draft, changes=_changes(live, draft))
 
 
 def _label(ln) -> str:  # type: ignore[no-untyped-def]
     return ln.name + (" · " + " · ".join(ln.options) if ln.options else "")
-
-
-def _side(inputs: QuoteInputs, rules) -> SimSide:  # type: ignore[no-untyped-def]
-    try:
-        q = compute(inputs, rules)
-    except NotDeliverable as e:
-        return SimSide(ok=False, message=str(e))
-    return SimSide(ok=True, lines=lines_out(q), total=q.total, split=split_out(q), rules=q.rules_used)
 
 
 def _changes(live: SimSide, draft: SimSide) -> list[dict]:

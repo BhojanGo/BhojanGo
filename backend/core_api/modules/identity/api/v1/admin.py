@@ -22,7 +22,7 @@ ALL_PERMISSIONS = sorted({p for perms in authz.PERMISSIONS.values() for p in per
 @router.get("/me", response_model=AdminMeResponse)
 async def admin_me(
     admin: Annotated[AdminContext, Depends(get_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AdminMeResponse:
     """My admin roles, and for each permission the widest scopes where I hold it.
     The admin console uses this to build the scope bar and hide what I can't do."""
@@ -40,7 +40,7 @@ async def admin_me(
 @router.get("/role-assignments", response_model=list[RoleAssignmentResponse])
 async def list_assignments(
     admin: Annotated[AdminContext, Depends(require_permission("admins.view"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     scope: str | None = Query(default=None, description="Only assignments at or inside this scope"),
 ) -> list[RoleAssignmentResponse]:
     """Assignments I can see: those inside the scopes where I hold admins.view."""
@@ -57,7 +57,7 @@ async def list_assignments(
 async def grant_role(
     data: RoleAssignmentCreate,
     admin: Annotated[AdminContext, Depends(get_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> RoleAssignmentResponse:
     """Grant a role at a scope. Super admins grant anything; country managers
     grant city ops, support, finance and viewer inside their country."""
@@ -96,7 +96,7 @@ async def grant_role(
 async def revoke_role(
     assignment_id: uuid.UUID,
     admin: Annotated[AdminContext, Depends(get_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> None:
     """Revoke a role. Same rule as granting it. Takes effect at once for
     core_api (roles are read from the database on each request)."""
