@@ -86,7 +86,7 @@ GitHub OIDC means **no AWS keys are stored in GitHub**. If old secrets
 2. Fill the app secrets in Secrets Manager. Terraform creates them with `SET_ME` placeholders and never overwrites them. Use **test-mode** keys for staging:
    ```bash
    aws secretsmanager put-secret-value --profile bhojango-staging --secret-id bhojango-staging/stripe \
-     --secret-string '{"secret_key":"sk_test_...","webhook_secret":"whsec_..."}'
+     --secret-string '{"secret_key":"sk_test_...","publishable_key":"pk_test_...","webhook_secret":"whsec_..."}'
    aws secretsmanager put-secret-value --profile bhojango-staging --secret-id bhojango-staging/razorpay \
      --secret-string '{"key_id":"rzp_test_...","key_secret":"...","webhook_secret":"..."}'
    aws secretsmanager put-secret-value --profile bhojango-staging --secret-id bhojango-staging/twilio \

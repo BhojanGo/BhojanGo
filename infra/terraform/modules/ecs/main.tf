@@ -56,6 +56,7 @@ locals {
     redis_password        = "${var.redis_secret_arn}:password::"
     stripe_secret_key     = "${var.app_secret_arns["stripe"]}:secret_key::"
     stripe_webhook_secret = "${var.app_secret_arns["stripe"]}:webhook_secret::"
+    stripe_publishable    = "${var.app_secret_arns["stripe"]}:publishable_key::"
     razorpay_key_id       = "${var.app_secret_arns["razorpay"]}:key_id::"
     razorpay_key_secret   = "${var.app_secret_arns["razorpay"]}:key_secret::"
     razorpay_webhook      = "${var.app_secret_arns["razorpay"]}:webhook_secret::"
@@ -97,6 +98,7 @@ locals {
         REDIS_PASSWORD          = local.secret.redis_password
         STRIPE_SECRET_KEY       = local.secret.stripe_secret_key
         STRIPE_WEBHOOK_SECRET   = local.secret.stripe_webhook_secret
+        STRIPE_PUBLISHABLE_KEY  = local.secret.stripe_publishable
         RAZORPAY_KEY_ID         = local.secret.razorpay_key_id
         RAZORPAY_KEY_SECRET     = local.secret.razorpay_key_secret
         RAZORPAY_WEBHOOK_SECRET = local.secret.razorpay_webhook

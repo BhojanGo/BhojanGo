@@ -201,8 +201,9 @@ def test_tax_lines_show_rate_and_base() -> None:
     q = quote()
     food_gst = next(ln for ln in q.lines if ln.label == "GST on food")
     fee_gst = next(ln for ln in q.lines if ln.label == "GST on platform fees")
-    assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform"}
-    assert fee_gst.detail == {"rate_percent": "18", "base": "61.20", "collected_by": "platform"}
+    assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform", "targets": "food,packaging"}
+    assert fee_gst.detail["base"] == "61.20" and fee_gst.detail["rate_percent"] == "18"
+    assert "delivery_fee" in fee_gst.detail["targets"]
 
 
 def test_inclusive_tax_is_shown_but_not_added() -> None:

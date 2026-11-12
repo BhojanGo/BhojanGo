@@ -111,6 +111,14 @@ fees, taxes, tip, total, split) and returns every bill line plus a token valid f
 snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
 test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
 
+**Payments and refunds (P12):** `POST /payments/initiate` returns what the app's payment SDK needs:
+Stripe PaymentSheet (cards, Apple Pay, Google Pay) in the US, Razorpay Checkout (UPI, cards,
+wallets; `POST /payments/razorpay/verify`) in India, a fake equivalent locally. A failed payment
+keeps the order's price held and can be retried (`GET /payments/orders/{id}/status`). Admins
+refund by item (`POST /payments/orders/{id}/refunds`): each item's price, its discount share and
+its matching tax; support agents up to a per-order limit (₹500 / $25, a business rule).
+Customers can't refund themselves.
+
 **Order flow (P11):** `pending_payment → placed → accepted → preparing → almost_ready → ready →
 picked_up → delivered` (or `cancelled`). An order needs a quote and is placed only when its
 payment succeeds (`POST /api/v1/payments/initiate` takes the amount from the order). Unpaid

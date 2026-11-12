@@ -156,3 +156,20 @@ def get_tax_provider() -> TaxProvider:
     if mode in ("auto", "stripe_tax"):
         return StripeTax()
     raise ProviderConfigError(f"Unknown TAX_PROVIDER '{mode}'")
+
+
+async def record_tax_transaction(provider: str, calculation_id: str, reference: str) -> dict | None:
+    """After a US payment succeeds: Stripe Tax turns the calculation into a
+    transaction (what it reports and files). The local stand-in records nothing."""
+    if provider != "stripe_tax":
+        return None
+    import stripe
+
+    stripe.api_key = get_settings().payments.STRIPE_SECRET_KEY
+    try:
+        tx = await asyncio.to_thread(stripe.tax.Transaction.create_from_calculation,
+                                     calculation=calculation_id, reference=reference)
+        return {"provider": provider, "transaction_id": tx.id}
+    except stripe.StripeError as e:  # type: ignore[attr-defined]
+        logger.error("stripe_tax_transaction_failed", calculation_id=calculation_id, error=str(e))
+        return {"provider": provider, "error": str(e)[:200]}

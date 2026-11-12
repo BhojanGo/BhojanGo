@@ -33,6 +33,7 @@ _CENTS = Decimal("0.01")
 DEFAULT_UNPAID_MINUTES = 10
 DEFAULT_ACCEPT_SECONDS = 180
 DEFAULT_CANCEL_WINDOW_MINUTES = 2
+PAYMENT_RETRY_MINUTES = 5  # after a failed payment the price stays held at least this long
 
 
 def _money(value: object) -> Decimal:
@@ -160,6 +161,17 @@ class OrderService:
             await outbox.add(self.db, "order.payment_after_cancel", "order", order.id, _event_payload(order), SOURCE)
         # placed or later: a duplicate notice; nothing to do
 
+    async def on_payment_failed(self, order_id: uuid.UUID) -> None:
+        """"Payment didn't go through": the order keeps its quoted price, and the
+        customer gets at least PAYMENT_RETRY_MINUTES to try another way."""
+        order = await self._locked(order_id)
+        if order is None or order.status != "pending_payment":
+            return
+        floor = datetime.now(UTC) + timedelta(minutes=PAYMENT_RETRY_MINUTES)
+        if order.payment_due_at is None or order.payment_due_at < floor:
+            order.payment_due_at = floor
+            await self.db.flush()
+
     # ── transitions ──────────────────────────────────────────────────────────
     async def actor_for(self, user: CurrentUser, order: Order, new_status: str) -> str | None:
         """Which actor the user is for this order, or None."""
@@ -232,8 +244,12 @@ class OrderService:
                 .order_by(due).limit(limit).with_for_update(skip_locked=True)
             )).scalars().all()
             for order in rows:
-                await self._cancel(order, "system", reason, None)
-                counts[reason] += 1
+                try:
+                    async with self.db.begin_nested():  # one bad order must not stop the rest
+                        await self._cancel(order, "system", reason, None)
+                    counts[reason] += 1
+                except Exception as e:  # noqa: BLE001
+                    logger.error("order_timeout_failed", order_id=str(order.id), reason=reason, error=str(e))
         if any(counts.values()):
             logger.info("order_timeouts_swept", **counts)
         return counts
@@ -269,7 +285,13 @@ class OrderService:
         if was_paid:
             from core_api.modules.payments.service.order_payments import refund_in_full
 
-            refund = await refund_in_full(self.db, order.id, reason)
+            try:
+                async with self.db.begin_nested():
+                    refund = await refund_in_full(self.db, order.id, reason)
+            except Exception as e:  # noqa: BLE001 - the order is still cancelled; finance retries the refund
+                logger.error("order_refund_failed", order_id=str(order.id), error=str(e))
+                await outbox.add(self.db, "payment.refund_failed", "order", order.id,
+                                 _event_payload(order, reason=reason, error=str(e)[:300]), SOURCE)
         await outbox.add(self.db, "order.cancelled", "order", order.id, _event_payload(
             order, previous_status=previous, reason=reason, by=actor,
             refund_amount=refund["amount"] if refund else 0), SOURCE)

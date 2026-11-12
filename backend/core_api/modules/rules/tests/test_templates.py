@@ -31,6 +31,7 @@ GOOD = {
     ("business", "tip_presets"): {"amounts": [10, 20, 30]},
     ("business", "max_radius"): {"distance": 10},
     ("business", "dispatch_offer_timeout"): {"seconds": 30},
+    ("business", "support_refund_limit"): {"max_per_order": 500},
     ("promotion", "percent_off"): {"percent": 10, "max_discount": 50, "funded_by": "platform"},
     ("promotion", "flat_off"): {"amount": 75, "funded_by": "restaurant", "min_subtotal": 299, "code": "SAVE75"},
     ("promotion", "free_delivery"): {"funded_by": "restaurant", "budget_cap": 5000},

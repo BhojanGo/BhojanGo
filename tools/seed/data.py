@@ -429,6 +429,7 @@ RULES = [
     ("business", "max_radius", None, "Max delivery distance", "country", "IN", {"distance": 10}),
     ("business", "tip_presets", None, "Tip presets", "country", "IN", {"amounts": [10, 20, 30], "default_index": 1}),
     ("business", "cod_limit", None, "Cash on delivery limit", "country", "IN", {"max_amount": 1000}),
+    ("business", "support_refund_limit", None, "Support refund limit", "country", "IN", {"max_per_order": 500}),
     # USA
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}),
@@ -443,6 +444,7 @@ RULES = [
     ("business", "max_radius", None, "Max delivery distance", "country", "US", {"distance": 6}),
     ("business", "tip_presets", None, "Tip presets", "country", "US", {"amounts": [2, 3, 5], "default_index": 1}),
     ("business", "cod_limit", None, "Cash on delivery off", "country", "US", {"max_amount": 0}),
+    ("business", "support_refund_limit", None, "Support refund limit", "country", "US", {"max_per_order": 25}),
     # Platform defaults (docs/specs/01-structure.md section 3, business rules)
     ("business", "accept_timeout", None, "Restaurant accept timeout", "platform", "*", {"seconds": 180}),
     ("business", "unpaid_auto_cancel", None, "Unpaid orders cancel", "platform", "*", {"minutes": 10}),

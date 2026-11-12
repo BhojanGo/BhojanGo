@@ -12,6 +12,8 @@ from shared import outbox
 from shared.db import get_db
 from core_api.modules.payments.repository.payment import PaymentRepository, WalletRepository
 from core_api.modules.payments.schemas.payment import (
+    ItemRefundRequest,
+    RazorpayVerifyRequest,
     FakeCompleteRequest,
     PaymentInitiateRequest,
     PaymentInitiateResponse,
@@ -23,7 +25,9 @@ from core_api.modules.payments.schemas.payment import (
     WalletTransactionListResponse,
     WalletTransactionResponse,
 )
+from core_api.modules.identity.api.dependencies import AdminContext, require_permission
 from core_api.modules.payments.service.gateways import (
+    verify_razorpay_checkout,
     fake_webhook_body,
     gateway_by_name,
     get_gateway,
@@ -67,6 +71,7 @@ async def initiate_payment(
             client_secret=open_intent.metadata_.get("client_secret"),
             razorpay_order_id=open_intent.metadata_.get("razorpay_order_id"),
             amount=open_intent.amount, currency=open_intent.currency,  # type: ignore[arg-type]
+            checkout=_with_ids(open_intent.metadata_.get("checkout"), open_intent.id),
         )
     idempotency_key = f"{data.order_id}:attempt-{len(attempts) + 1}"
 
@@ -84,11 +89,12 @@ async def initiate_payment(
         return PaymentInitiateResponse(payment_intent_id=str(intent.id), provider="wallet", amount=amount, currency=currency)
 
     gateway = get_gateway(country)
+    customer = await _checkout_customer(db, gateway, current_user.id, country)
     result = await gateway.create(
         amount=amount, currency=currency, order_id=str(data.order_id), idempotency_key=idempotency_key,
-        payment_method_id=data.payment_method_id,
+        payment_method_id=data.payment_method_id, customer=customer,
     )
-    meta = {k: v for k, v in result.items() if k in ("client_secret", "razorpay_order_id", "fake_outcome")}
+    meta = {k: v for k, v in result.items() if k in ("client_secret", "razorpay_order_id", "fake_outcome", "checkout")}
     intent = await repo.create_intent(
         order_id=data.order_id, user_id=current_user.id, provider=gateway.name,
         provider_payment_id=result["provider_payment_id"], amount=amount, currency=currency, status="pending",
@@ -97,8 +103,31 @@ async def initiate_payment(
     return PaymentInitiateResponse(
         payment_intent_id=str(intent.id), provider=gateway.name,  # type: ignore[arg-type]
         client_secret=meta.get("client_secret"), razorpay_order_id=meta.get("razorpay_order_id"),
-        amount=amount, currency=currency,
+        amount=amount, currency=currency, checkout=_with_ids(meta.get("checkout"), intent.id),
     )
+
+
+def _with_ids(checkout: dict | None, intent_id) -> dict | None:  # type: ignore[no-untyped-def]
+    if checkout and "complete_path" in checkout:
+        checkout = {**checkout, "complete_path": checkout["complete_path"].format(payment_intent_id=intent_id)}
+    return checkout
+
+
+async def _checkout_customer(db: AsyncSession, gateway, user_id: uuid.UUID, country: str) -> dict:  # type: ignore[no-untyped-def]
+    """Who is paying (prefill) and how they may pay in this country (markets)."""
+    from core_api.modules.identity.service.profile import user_profile
+    from core_api.modules.markets.service.markets import MarketService
+    from core_api.modules.payments.models.payment import PaymentCustomer
+
+    profile = await user_profile(db, user_id) or {"user_id": str(user_id)}
+    c = await MarketService(db).repo.country(country)
+    methods = list((c.settings or {}).get("payment_methods", [])) if c else []
+    row = await db.get(PaymentCustomer, (user_id, gateway.name))
+    customer_id = await gateway.ensure_customer(profile, row.customer_id if row else None)
+    if customer_id and row is None:
+        db.add(PaymentCustomer(user_id=user_id, provider=gateway.name, customer_id=customer_id))
+        await db.flush()
+    return {**profile, "provider_customer_id": customer_id, "methods": methods}
 
 
 async def _handle_webhook(gateway_name: str, request: Request, db: AsyncSession) -> dict:
@@ -152,10 +181,30 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
         from core_api.modules.orders.service.order import OrderService
 
         await OrderService(db).on_payment_succeeded(intent.order_id)  # same transaction: paid <=> placed
+        await _record_tax_transaction(db, intent)
     else:
+        intent.metadata_ = {**intent.metadata_, "failure_reason": event.get("failure_reason") or event["event_type"]}
         await outbox.add(db, "payment.failed", "order", intent.order_id,
                          {**base, "failure_reason": event["event_type"]}, "payment-svc")
+        from core_api.modules.orders.service.order import OrderService
+
+        await OrderService(db).on_payment_failed(intent.order_id)
     return {"received": True}
+
+
+async def _record_tax_transaction(db: AsyncSession, intent) -> None:  # type: ignore[no-untyped-def]
+    """US: turn the order's Stripe Tax calculation into a tax transaction (what
+    Stripe reports and files). Best effort: a failure is logged for finance."""
+    from core_api.modules.payments.service.tax import record_tax_transaction
+    from core_api.modules.pricing.service.quotes import QuoteService
+
+    snap = await QuoteService(db).snapshot(intent.order_id)
+    calc = (snap.context or {}).get("tax_calculation") if snap else None
+    if not calc:
+        return
+    tx = await record_tax_transaction(calc["provider"], calc["calculation_id"], str(intent.order_id))
+    if tx:
+        intent.metadata_ = {**intent.metadata_, "tax_transaction": tx}
 
 
 async def _first_delivery(db: AsyncSession, provider: str, event_id: str) -> bool:
@@ -222,97 +271,101 @@ async def get_payment(
     return PaymentResponse.model_validate(intent)
 
 
-@router.post("/{order_id}/refund", response_model=RefundResponse)
-async def refund_payment(
-    order_id: uuid.UUID,
-    data: RefundRequest,
+@router.post("/razorpay/verify")
+async def razorpay_verify(
+    data: RazorpayVerifyRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> RefundResponse:
-    if current_user.role not in ("admin", "super_admin", "customer"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+) -> dict:
+    """The app calls this with what Razorpay Checkout returned. A valid signature
+    captures the payment now; the webhook that follows is a duplicate."""
+    if not verify_razorpay_checkout(data.razorpay_order_id, data.razorpay_payment_id, data.razorpay_signature):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Razorpay signature")
+    intent = await PaymentRepository(db).get_by_provider_id(data.razorpay_order_id)
+    if intent is None or intent.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+    return await apply_payment_event(db, "razorpay", {
+        "event_type": "payment.captured", "provider_payment_id": data.razorpay_order_id, "status": "succeeded",
+        "razorpay_payment_id": data.razorpay_payment_id, "event_id": f"{data.razorpay_payment_id}:captured"})
 
-    repo = PaymentRepository(db)
-    intent = await repo.get_by_order_id(order_id)
-    if not intent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No payment found for this order")
 
-    # Idempotency: a retry with the same key returns the original refund without re-charging.
-    # Checked before the refundable-status gate so a retried *full* refund still replays.
-    refunds_log: list[dict] = list(intent.metadata_.get("refunds", []))
-    if data.idempotency_key:
-        for record in refunds_log:
-            if record.get("idempotency_key") == data.idempotency_key:
-                return RefundResponse(
-                    refund_id=record["refund_id"],
-                    order_id=str(order_id),
-                    amount=record["amount"],
-                    currency=intent.currency,
-                    status=record["status"],  # type: ignore[arg-type]
-                    refund_to=record["refund_to"],
-                    created_at=record["created_at"],
-                )
+@router.get("/orders/{order_id}/status")
+async def payment_status(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> dict:
+    """For the "payment didn't go through" screen: what happened, whether the
+    customer can try again, and until when the order's price is held."""
+    from core_api.modules.orders.service.lookup import order_for_payment
 
-    if intent.status not in ("succeeded", "partially_refunded"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment is not in a refundable state")
+    order = await order_for_payment(db, order_id, current_user.id)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    attempts = await PaymentRepository(db).list_by_order_id(order_id)
+    last = attempts[-1] if attempts else None
+    return {
+        "order_id": str(order_id), "order_status": order["status"],
+        "amount": order["amount_minor"], "currency": order["currency"],
+        "payment_status": last.status if last else "not_started",
+        "failure_reason": last.metadata_.get("failure_reason") if last else None,
+        "attempts": len(attempts),
+        "can_retry": order["status"] == "pending_payment" and (last is None or last.status == "failed"),
+        "price_held_until": order["payment_due_at"],
+    }
 
-    # Cap: cannot refund more than what remains on the original payment.
-    already_refunded = intent.refunded_amount or 0
-    remaining = intent.amount - already_refunded
-    if remaining <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment has already been fully refunded")
 
-    refund_amount = data.amount or remaining
-    if refund_amount > remaining:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Refund amount {refund_amount} exceeds remaining refundable amount {remaining}",
-        )
+@router.post("/orders/{order_id}/refunds", status_code=status.HTTP_201_CREATED)
+async def refund_by_item(
+    order_id: uuid.UUID,
+    data: ItemRefundRequest,
+    admin: Annotated[AdminContext, Depends(require_permission("refunds.issue"))],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> dict:
+    """Refund items (each with its share of discounts and its tax), and/or the
+    delivery fee. Support agents are limited per order (business rule)."""
+    from core_api.modules.orders.service.lookup import order_market
+    from core_api.modules.payments.service import refunds
 
-    if data.refund_to == "wallet":
-        wallet_repo = WalletRepository(db)
-        await wallet_repo.credit(
-            current_user.id,
-            amount=Decimal(refund_amount) / 100,  # cents/paise -> major units
-            description=f"Refund for order {order_id}",
-            reference_id=str(order_id),
-            reference_type="refund",
-        )
-        refund_id = f"wallet_refund_{uuid.uuid4()}"
-        refund_status = "succeeded"
-    else:
-        result = await gateway_by_name(intent.provider).refund(
-            intent.provider_payment_id, refund_amount, data.idempotency_key, intent.metadata_
-        )
-        refund_id, refund_status = result["refund_id"], result["status"]
+    city = await order_market(db, order_id)
+    if city is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    admin.require("refunds.issue", city or "*")
+    try:
+        r = await refunds.refund_items(
+            db, order_id=order_id, requests=[refunds.ItemRequest(str(i.menu_item_id), i.quantity) for i in data.items],
+            include_delivery=data.include_delivery_fee, reason=data.reason, note=data.note,
+            actor_id=admin.user.id, assignments=admin.assignments)
+    except refunds.RefundError as e:
+        code = status.HTTP_403_FORBIDDEN if "refund limit" in str(e) else status.HTTP_409_CONFLICT
+        raise HTTPException(status_code=code, detail={"code": "REFUND_REFUSED", "message": str(e)})
+    return _refund_out(r)
 
-    created_at = datetime.now(UTC).isoformat()
 
-    # Persist refund state on the loaded intent (committed by the get_db dependency).
-    new_refunded_total = already_refunded + refund_amount
-    intent.refunded_amount = new_refunded_total
-    intent.status = "refunded" if new_refunded_total >= intent.amount else "partially_refunded"
-    refunds_log.append({
-        "idempotency_key": data.idempotency_key,
-        "refund_id": refund_id,
-        "amount": refund_amount,
-        "status": refund_status,
-        "refund_to": data.refund_to,
-        "reason": data.reason,
-        "created_at": created_at,
-    })
-    # Reassign metadata_ so SQLAlchemy detects the JSONB mutation.
-    intent.metadata_ = {**intent.metadata_, "refunds": refunds_log}
+@router.get("/orders/{order_id}/refunds")
+async def list_order_refunds(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> list[dict]:
+    """The order's refunds: for its customer, or an admin who can view it."""
+    from core_api.modules.orders.service.lookup import order_customer, order_market
+    from core_api.modules.payments.service.refunds import list_refunds
+    from shared import authz
 
-    return RefundResponse(
-        refund_id=refund_id,
-        order_id=str(order_id),
-        amount=refund_amount,
-        currency=intent.currency,
-        status=refund_status,  # type: ignore[arg-type]
-        refund_to=data.refund_to,
-        created_at=created_at,
-    )
+    owner = await order_customer(db, order_id)
+    city = await order_market(db, order_id)
+    allowed = owner == current_user.id or (city and authz.can(
+        [authz.Assignment.parse(a) for a in current_user.admin], "orders.view", city))
+    if owner is None or not allowed:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    return [_refund_out(r) for r in await list_refunds(db, order_id)]
+
+
+def _refund_out(r) -> dict:  # type: ignore[no-untyped-def]
+    return {"id": str(r.id), "order_id": str(r.order_id), "amount": r.amount, "currency": r.currency, "kind": r.kind,
+            "reason": r.reason, "note": r.note, "lines": r.lines, "status": r.status,
+            "provider_refund_id": r.provider_refund_id, "created_at": r.created_at.isoformat() if r.created_at else None}
 
 
 # ── Wallet routes ─────────────────────────────────────────────────────────────
