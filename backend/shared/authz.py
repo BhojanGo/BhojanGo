@@ -40,7 +40,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
         "orders.view", "customers.view", "customers.edit", "refunds.issue", "partners.view", "riders.view",
     }),
     "finance": frozenset({
-        "finance.view", "finance.edit", "payouts.approve", "refunds.issue", "rules.view",
+        "finance.view", "finance.edit", "payouts.approve", "refunds.issue", "rules.view", "pricing.simulate",
         "rules.approve", "orders.view", "reports.view", "partners.view", "riders.view",
     }),
     "viewer": frozenset(VIEW - {"admins.view"}),

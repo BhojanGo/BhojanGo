@@ -21,6 +21,8 @@ class AddressCreate(BaseModel):
     state: str = Field(default="", max_length=100)
     postal_code: str = Field(default="", max_length=20)
     country: str = Field(default="US", max_length=2)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
 
 
 class AddressResponse(BaseModel):
@@ -33,6 +35,8 @@ class AddressResponse(BaseModel):
     state: str
     postal_code: str
     country: str
+    lat: float | None = None
+    lng: float | None = None
 
 
 @router.get("", response_model=list[AddressResponse])
@@ -60,6 +64,8 @@ async def create_address(
         state=data.state,
         postal_code=data.postal_code,
         country=data.country,
+        lat=data.lat,
+        lng=data.lng,
     )
     db.add(address)
     await db.flush()

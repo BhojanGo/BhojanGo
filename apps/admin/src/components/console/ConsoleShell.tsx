@@ -42,9 +42,16 @@ export function ConsoleShell({
   country,
   region,
   city,
+  cityHref,
+  countryHref,
   children,
 }: {
   section: string;
+  /** Where picking a city goes; defaults to that city's Markets page. */
+  cityHref?: (country: string, city: string) => string;
+  /** Where a country tab goes; defaults to that country's Markets page. Pages
+      that set this show only the city picker (no state chips). */
+  countryHref?: (country: string) => string;
   /** "ALL" for the all-countries view, else a country code */
   country: string;
   region?: string | null;
@@ -107,7 +114,7 @@ export function ConsoleShell({
         {markets?.map((c) => (
           <Link
             key={c.code}
-            href={`/markets/${c.code}`}
+            href={countryHref ? countryHref(c.code) : `/markets/${c.code}`}
             aria-current={c.code === country ? "page" : undefined}
             className={`box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-[15px] ${
               c.code === country ? "border-peacock font-extrabold text-peacock-dark" : "border-transparent font-semibold text-muted"
@@ -123,8 +130,8 @@ export function ConsoleShell({
 
       {current && (
         <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 sm:px-8">
-          <span className="mr-1 text-[13px] font-bold text-muted">State</span>
-          <Link
+          {!countryHref && <span className="mr-1 text-[13px] font-bold text-muted">State</span>}
+          {!countryHref && <Link
             href={`/markets/${current.code}`}
             aria-current={!region && !city ? "true" : undefined}
             className={`flex h-9 items-center rounded-full px-3.5 text-sm ${
@@ -132,8 +139,8 @@ export function ConsoleShell({
             }`}
           >
             All states
-          </Link>
-          {current.regions.map((r) => {
+          </Link>}
+          {!countryHref && current.regions.map((r) => {
             const on = region === r.code;
             return (
               <Link
@@ -150,7 +157,11 @@ export function ConsoleShell({
           })}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[13px] font-bold text-muted">City</span>
-            <CityPicker country={current} value={city ?? null} onChange={(code) => router.push(`/markets/${current.code}/${code}`)} />
+            <CityPicker
+              country={current}
+              value={city ?? null}
+              onChange={(code) => router.push(cityHref ? cityHref(current.code, code) : `/markets/${current.code}/${code}`)}
+            />
           </div>
         </nav>
       )}

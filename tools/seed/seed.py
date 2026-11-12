@@ -52,11 +52,12 @@ RETURNING id
 """)
 
 UPSERT_ADDRESS = text("""
-INSERT INTO addresses (id, user_id, label, street, city, state, postal_code, country, created_at)
-VALUES (:id, :user_id, 'Home', :street, :city, :state, :postal_code, :country, now())
+INSERT INTO addresses (id, user_id, label, street, city, state, postal_code, country, lat, lng, created_at)
+VALUES (:id, :user_id, 'Home', :street, :city, :state, :postal_code, :country, :lat, :lng, now())
 ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id, street = EXCLUDED.street, city = EXCLUDED.city,
-    state = EXCLUDED.state, postal_code = EXCLUDED.postal_code, country = EXCLUDED.country
+    state = EXCLUDED.state, postal_code = EXCLUDED.postal_code, country = EXCLUDED.country,
+    lat = EXCLUDED.lat, lng = EXCLUDED.lng
 """)
 
 UPSERT_COUNTRY = text("""
@@ -241,13 +242,13 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
             partner_id = await upsert_user(conn, partner_email, m["partner"], "restaurant_owner", m, f"{m['phone_prefix']}900")
             logins.append((where, "partner (owns the restaurants)", partner_email, PASSWORD))
 
-            for i, (name, street, area, postal, _lat, _lng) in enumerate(m["customers"], start=1):
+            for i, (name, street, area, postal, lat, lng) in enumerate(m["customers"], start=1):
                 email = f"customer{i}.{k}@example.com"
                 user_id = await upsert_user(conn, email, name, "customer", m, f"{m['phone_prefix']}1{i:02d}")
                 await conn.execute(UPSERT_ADDRESS, {
                     "id": sid("address", email, "home"), "user_id": user_id,
                     "street": f"{street}, {area}", "city": m["city"], "state": m["state"],
-                    "postal_code": postal, "country": m["country"],
+                    "postal_code": postal, "country": m["country"], "lat": lat, "lng": lng,
                 })
                 logins.append((where, f"customer · {name}", email, PASSWORD))
 

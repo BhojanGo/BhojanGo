@@ -37,6 +37,8 @@ class OrderService:
         self.repo = OrderRepository(db)
 
     async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str) -> dict:
+        if data.quote_token:
+            return await self._create_from_quote(data, customer_id)
         # Fetch restaurant info from restaurant-svc
         restaurant_name = "Unknown Restaurant"
         delivery_fee = Decimal("0")
@@ -192,6 +194,66 @@ class OrderService:
         })
 
         logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id))
+        return order
+
+    async def _create_from_quote(self, data: OrderCreateRequest, customer_id: uuid.UUID):  # type: ignore[no-untyped-def]
+        """Place an order at exactly the quoted price and store its pricing snapshot."""
+        from core_api.modules.pricing.service.quotes import QuoteError, QuoteService
+
+        # Until P10's option groups, customization_id is the group name and option_id the option name.
+        items = [
+            {"menu_item_id": str(i.menu_item_id), "quantity": i.quantity,
+             "options": [{"group": c.customization_id, "option": c.option_id} for c in i.customizations]}
+            for i in data.items
+        ]
+        quotes = QuoteService(self.db)
+        try:
+            q = await quotes.redeem(data.quote_token or "", customer_id, data.restaurant_id, items)
+        except QuoteError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "QUOTE_INVALID", "message": str(e)})
+
+        def line_sum(*codes: str) -> Decimal:
+            return _money(sum((Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in codes), Decimal(0)))
+
+        fees = line_sum("delivery_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee")
+        promo = -line_sum("promotion")
+        now = datetime.now(UTC)
+        order = await self.repo.create(
+            customer_id=customer_id,
+            restaurant_id=data.restaurant_id,
+            restaurant_name=q["restaurant_name"],
+            items=[{**i, "unit_price": float(i["unit_price"]), "total": float(Decimal(i["unit_price"]) * i["quantity"])}
+                   for i in q["items"]],
+            status="pending",
+            subtotal=_money(q["food_subtotal"]),
+            delivery_fee=fees,
+            taxes=line_sum("tax"),
+            tip=line_sum("tip"),
+            discount=promo,
+            total=_money(q["total"]),
+            currency=q["currency"],
+            platform_fee=_money(q["split"]["platform"]),
+            restaurant_payout=_money(q["split"]["restaurant"]),
+            estimated_prep_minutes=20,
+            delivery_distance_km=_money(q["context"]["distance"]),
+            is_long_distance=False,
+            status_history=[{"status": "pending", "at": now.isoformat()}],
+            delivery_address=data.delivery_address.model_dump(),
+            payment_method=data.payment_method,
+            special_instructions=data.special_instructions,
+            promo_code=data.promo_code,
+            loyalty_points_used=0,
+            estimated_delivery_time=now + timedelta(minutes=settings.orders.BASE_DELIVERY_MINUTES),
+        )
+        try:
+            await quotes.attach(q, order.id)
+        except QuoteError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "QUOTE_INVALID", "message": str(e)})
+        await publish_order_event("order.created", {
+            "order_id": str(order.id), "customer_id": str(customer_id), "restaurant_id": str(data.restaurant_id),
+            "total": float(order.total), "currency": order.currency, "payment_method": data.payment_method,
+        })
+        logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id), quote_id=q["quote_id"])
         return order
 
     async def update_status(
