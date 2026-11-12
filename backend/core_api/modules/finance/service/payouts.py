@@ -60,7 +60,8 @@ async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime
     refunds: dict[uuid.UUID, list[dict]] = defaultdict(list)
     if order_ids:
         for r in (await db.execute(select(Refund).where(Refund.order_id.in_(order_ids), Refund.kind == "items"))).scalars():
-            refunds[r.order_id] += [ln for ln in r.lines if ln.get("menu_item_id")]
+            refunds[r.order_id] += [{**ln, "reason": r.reason, "fault": r.fault or "restaurant"}
+                                    for ln in r.lines if ln.get("menu_item_id")]
     rule_ids = {uuid.UUID(v["rule_id"]) for _, snap in rows for v in snap.rule_versions
                 if v["slot"] == "rider_pay:base_distance_wait"}
     rule_params = {}
@@ -74,7 +75,7 @@ async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime
             order_id=str(o.id), delivered_at=o.actual_delivery_time, restaurant_id=str(o.restaurant_id),
             rider_id=str(o.driver_id) if o.driver_id else None, lines=snap.lines, split=snap.split,
             distance=Decimal(str(snap.context.get("distance", 0))), rider_rule=rider_rule,
-            started_at=o.picked_up_at, refund_lines=refunds.get(o.id, []),
+            started_at=o.rider_assigned_at or o.picked_up_at, refund_lines=refunds.get(o.id, []),
         ))
     return out
 
@@ -116,10 +117,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
     totals = {"restaurants": Decimal(0), "riders": Decimal(0)}
     for rid, items in by_restaurant.items():
         r = await db.get(Restaurant, uuid.UUID(rid))
-        city = await _city_of(db, items[0].order_id)
-        cost = await _rule(db, city, "business:refund_cost") if city else None
-        to_restaurant = (cost or {}).get("item_refunds_charged_to", "restaurant") == "restaurant"
-        total, summary, lines = S.restaurant_statement(items, to_restaurant)
+        total, summary, lines = S.restaurant_statement(items)
         db.add(PayoutStatement(run_id=run.id, payee_type="restaurant", payee_id=uuid.UUID(rid), payee_name=r.name if r else "",
                                currency=c.currency, amount=_minor(total), summary=summary, lines=lines))
         totals["restaurants"] += total

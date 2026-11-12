@@ -30,6 +30,7 @@ class EarningsBreakdownResponse(BaseModel):
     available_minutes: int
     active_minutes: int
     waiting_minutes: int
+    engaged_minutes: int  # accepted offer to drop-off; the hourly floor applies to this
     miles: float
     num_orders: int
     active_payout: float

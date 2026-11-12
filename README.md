@@ -114,9 +114,13 @@ test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simu
 **Payouts (P13):** restaurants and riders set up payouts (`POST /finance/payout-accounts`: Stripe
 Connect Express in the US, Razorpay Route in India, fake locally). Each week a draft payout run is
 prepared (or finance makes one); a second finance admin approves and pays it. Restaurant
-statements: food + packaging − commission − offers they funded − item refunds (business rule
-`refund_cost`). Rider statements: base, distance, waiting and tips per delivery, plus a top-up to
-the hourly floor (active time = time on deliveries). `GET /finance/reconciliation` (JSON or CSV).
+statements: food + packaging − commission − offers they funded − item refunds that were the
+restaurant's fault. Support picks a reason for every item refund: wrong_item, missing_item or
+quality (restaurant's fault, comes off its payout less commission); late, damaged_in_transit or
+rider_issue (delivery) and goodwill (the platform pays). Every refund is listed on the statement
+with its reason. Rider statements: base, distance, waiting and tips per delivery, plus a top-up to
+the hourly floor over engaged time (from accepting the offer to drop-off, including the drive to
+the restaurant and waiting there). `GET /finance/reconciliation` (JSON or CSV).
 
 **Dispatch and live tracking (P14, realtime):** riders go online (`POST /api/v1/riders/me/online`)
 and send GPS to `POST /api/v1/delivery/driver/location`; positions are in a Redis GEO set. When

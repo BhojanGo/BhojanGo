@@ -98,8 +98,22 @@ async def rider_state(rider: str) -> dict:
     return await r.hgetall(state_key(rider)) or {"status": "offline"}
 
 
+async def _engaged(rider: str, on: bool) -> None:
+    """Engaged time for the hourly floor runs from accepting an offer to drop-off."""
+    from app.services import shifts
+
+    try:
+        await shifts.set_activity(rider, shifts.ACTIVE if on else shifts.AVAILABLE, _now())
+    except LookupError:  # no shift (went online before shifts were tracked)
+        pass
+
+
 async def go_online(rider: str, lat: float, lng: float) -> dict:
+    from app.services import shifts
+
     r = await get_redis()
+    if not await r.exists(f"driver:{rider}:shift"):
+        await shifts.start_shift(rider, _now())
     await r.sadd(ONLINE, rider)
     state = await r.hgetall(state_key(rider))
     if state.get("status") not in ("offered", "busy"):
@@ -118,6 +132,9 @@ async def go_offline(rider: str) -> dict:
     await r.srem(ONLINE, rider)
     await r.zrem(GEO, rider)
     await r.hset(state_key(rider), mapping={"status": "offline", "order_id": ""})
+    from app.services import shifts
+
+    await shifts.end_shift(rider, _now())
     return await rider_state(rider)
 
 
@@ -268,6 +285,7 @@ async def accept(rider: str, order: str) -> dict:
     await r.srem(ACTIVE, order)
     await r.zrem(RETRY, order)
     await r.hset(state_key(rider), mapping={"status": "busy", "order_id": order})
+    await _engaged(rider, True)
     fix = await last_fix(rider)
     eta = eta_for(info, (fix["lat"], fix["lng"])) if fix else None
     await _publish(order_tracking_channel(order), "rider_assigned", {"order_id": order, "rider_id": rider, "eta": eta,
@@ -360,6 +378,7 @@ async def on_order_event(event: dict) -> None:
             state = await r.hgetall(state_key(rider))
             if state.get("order_id") == order:
                 await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
+                await _engaged(rider, False)
 
 
 # ── shadow batching ───────────────────────────────────────────────────────────

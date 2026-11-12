@@ -3,8 +3,11 @@
 delivery-svc is intentionally stateless (Redis + DynamoDB), so shift accounting
 lives in Redis rather than a relational table. We track:
   - available_minutes: total time logged in & online
-  - active_minutes:    time in the "active" state (on a delivery)
-  - waiting_minutes:   time in the "waiting"/idle state
+  - active_minutes:    "active": on a delivery, from accepting the offer to drop-off
+                       (dispatch sets this on accept and clears it on delivery)
+  - waiting_minutes:   "waiting": on a delivery, waiting at the restaurant
+  Engaged time (the hourly floor) = active + waiting. "available" and "idle"
+  (online without an order) aren't engaged.
 
 Elapsed time is accumulated into the *previous* state whenever the state changes
 or the shift ends.
@@ -30,7 +33,7 @@ def _accumulate(shift: dict, now: float) -> dict:
     state = shift.get("status", AVAILABLE)
     if state == ACTIVE:
         shift["active_seconds"] = float(shift.get("active_seconds", 0)) + elapsed
-    elif state in (WAITING, "idle"):
+    elif state == WAITING:
         shift["waiting_seconds"] = float(shift.get("waiting_seconds", 0)) + elapsed
     shift["last_event_at"] = now
     return shift

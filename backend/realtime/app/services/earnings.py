@@ -4,7 +4,9 @@ No I/O so it is trivial to unit-test. Money is exact Decimal in major units.
 
 Pay model:
   base      = active-time pay + waiting-time pay + mileage pay + per-order (batch) bonus
-  floor     = guaranteed minimum from logged-in/available time
+  floor     = guaranteed minimum per ENGAGED hour: from accepting an offer to
+              drop-off, including the drive to the restaurant and waiting there.
+              Time online without an order doesn't count.
   floor_topup = max(0, floor - base)            # tips never count toward the floor
   gross     = base + floor_topup + tips
   net       = gross - deductions
@@ -25,7 +27,7 @@ def _money(value: object) -> Decimal:
 class EarningsConfig:
     """Per-market payout rates (overridable)."""
 
-    floor_per_hour: Decimal = Decimal("12.00")       # minimum guaranteed pay per available hour
+    floor_per_hour: Decimal = Decimal("12.00")       # minimum guaranteed pay per engaged hour
     per_mile: Decimal = Decimal("0.65")              # mileage payout
     per_active_minute: Decimal = Decimal("0.25")     # active delivery time
     per_waiting_minute: Decimal = Decimal("0.15")    # waiting/idle time on a delivery
@@ -37,6 +39,7 @@ class EarningsResult:
     available_minutes: int
     active_minutes: int
     waiting_minutes: int
+    engaged_minutes: int
     miles: Decimal
     num_orders: int
     active_payout: Decimal
@@ -55,6 +58,7 @@ class EarningsResult:
             "available_minutes": self.available_minutes,
             "active_minutes": self.active_minutes,
             "waiting_minutes": self.waiting_minutes,
+            "engaged_minutes": self.engaged_minutes,
             "miles": float(self.miles),
             "num_orders": self.num_orders,
             "active_payout": float(self.active_payout),
@@ -70,9 +74,9 @@ class EarningsResult:
         }
 
 
-def floor_pay(available_minutes: int, floor_per_hour: Decimal) -> Decimal:
-    """Minimum guaranteed pay for the time a driver was logged-in and available."""
-    return _money(Decimal(max(0, available_minutes)) / Decimal(60) * Decimal(str(floor_per_hour)))
+def floor_pay(engaged_minutes: int, floor_per_hour: Decimal) -> Decimal:
+    """Minimum guaranteed pay for engaged time (accepted offer to drop-off)."""
+    return _money(Decimal(max(0, engaged_minutes)) / Decimal(60) * Decimal(str(floor_per_hour)))
 
 
 def mileage_payout(miles: object, per_mile: Decimal) -> Decimal:
@@ -99,7 +103,8 @@ def calculate_earnings(
     order_bonus = _money(Decimal(max(0, num_orders)) * cfg.per_order_bonus)
 
     base = _money(active_payout + waiting_time_payout + mileage + order_bonus)
-    floor_guarantee = floor_pay(available_minutes, cfg.floor_per_hour)
+    engaged = max(0, active_minutes) + max(0, waiting_minutes)  # on a delivery: driving or waiting at the restaurant
+    floor_guarantee = floor_pay(engaged, cfg.floor_per_hour)
     floor_topup = _money(max(Decimal("0"), floor_guarantee - base))
 
     tips_d = _money(tips)
@@ -111,6 +116,7 @@ def calculate_earnings(
         available_minutes=available_minutes,
         active_minutes=active_minutes,
         waiting_minutes=waiting_minutes,
+        engaged_minutes=engaged,
         miles=_money(miles_d),
         num_orders=num_orders,
         active_payout=active_payout,

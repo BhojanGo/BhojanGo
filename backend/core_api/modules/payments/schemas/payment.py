@@ -49,10 +49,17 @@ class RefundItem(BaseModel):
     quantity: int = Field(ge=1, le=50)
 
 
+RefundReason = Literal[
+    "wrong_item", "missing_item", "quality",            # restaurant fault: charged to the restaurant's payout
+    "late", "damaged_in_transit", "rider_issue",        # delivery fault: the platform pays
+    "goodwill",                                         # the platform pays
+]
+
+
 class ItemRefundRequest(BaseModel):
     items: list[RefundItem] = []
     include_delivery_fee: bool = False
-    reason: str = Field(min_length=3, max_length=60, examples=["missing_item"])
+    reason: RefundReason = Field(examples=["missing_item"])
     note: str | None = Field(default=None, max_length=500)
 
 

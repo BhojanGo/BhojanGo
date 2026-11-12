@@ -59,6 +59,10 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support,
                           json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "missing_item"})
     assert r.status_code == 201
+    # The second biryani arrived crushed: delivery's fault, so the platform pays for it.
+    r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support,
+                          json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "damaged_in_transit"})
+    assert r.status_code == 201
 
     finance = await login(client, "finance.in@example.com", ADMIN)
     period = {"country": "IN", "period_start": (ist_today() - timedelta(days=1)).isoformat(),
@@ -77,7 +81,10 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     line = next(ln for ln in stmt["lines"] if ln["order_id"] == order["id"])
     food, commission = Decimal(line["food"]), -Decimal(line["commission"])
     assert commission == (food * Decimal("0.15")).quantize(Decimal("0.01"))  # tier B 15%
+    # Only the restaurant's own mistake comes off its payout; both are listed with their reason.
     assert -Decimal(line["refunds"]) == (Decimal("240") * (1 - commission / food)).quantize(Decimal("0.01"))
+    assert [(d["reason"], d["charged_to"]) for d in line["refund_details"]] == [
+        ("missing_item", "restaurant"), ("damaged_in_transit", "platform")]
     assert Decimal(line["net"]) == food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()

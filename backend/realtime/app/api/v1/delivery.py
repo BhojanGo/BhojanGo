@@ -67,6 +67,7 @@ async def assign_driver(data: DeliveryAssignRequest, current_user: Annotated[Cur
         raise HTTPException(status_code=e.status, detail=e.args[0])
     r = await dispatch.get_redis()
     await r.hset(dispatch.state_key(rider), mapping={"status": "busy", "order_id": order})
+    await dispatch._engaged(rider, True)
     await r.srem(dispatch.ACTIVE, order)
     await r.zrem(dispatch.RETRY, order)
     logger.info("rider_assigned_manually", order_id=order, rider_id=rider, by=current_user.user_id)
