@@ -48,6 +48,26 @@ async def new_order(client: AsyncClient, h: dict) -> dict:
     return r.json()
 
 
+def user_id(h: dict) -> str:
+    import base64
+    import json
+
+    part = h["Authorization"].split()[1].split(".")[1]
+    return json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))["sub"]
+
+
+async def assign(client: AsyncClient, order_id: str, rider: dict, *, sign: bool = True):  # type: ignore[no-untyped-def]
+    """What realtime does when a rider accepts an offer (P14): a signed internal call."""
+    import json
+
+    from shared import internal_auth
+
+    path = f"/api/v1/internal/orders/{order_id}/assign-rider"
+    body = json.dumps({"rider_id": user_id(rider)}).encode()
+    headers = {"content-type": "application/json", **(internal_auth.sign("POST", path, body) if sign else {})}
+    return await client.post(path, content=body, headers=headers)
+
+
 async def pay(client: AsyncClient, h: dict, order: dict, outcome: str = "succeeded") -> dict:
     r = await client.post("/api/v1/payments/initiate", headers=h, json={"order_id": order["id"], "payment_method_type": "upi"})
     assert r.status_code == 201, r.text
@@ -129,8 +149,17 @@ async def test_happy_path(client: AsyncClient) -> None:
 
     rider, rider2 = await login(client, "rider1.hyd@example.com"), await login(client, "rider2.hyd@example.com")
     assert (await move(client, partner, order["id"], "picked_up")).status_code == 403
+    # Riders are assigned by dispatch (P14), never by claiming an order at pickup.
+    assert (await move(client, rider, order["id"], "picked_up")).status_code == 404
+    assert (await assign(client, order["id"], rider, sign=False)).status_code == 401
+    r = await assign(client, order["id"], rider)
+    assert r.status_code == 200 and r.json()["driver_id"] == user_id(rider), r.text
+    assert r.json()["pickup"] and r.json()["dropoff"] == [17.4483, 78.3915]
+    assert (await assign(client, order["id"], rider)).status_code == 200  # idempotent
+    assert (await assign(client, order["id"], rider2)).status_code == 409
+    assert (await move(client, rider2, order["id"], "picked_up")).status_code == 404
     r = await move(client, rider, order["id"], "picked_up")
-    assert r.status_code == 200 and r.json()["driver_id"]
+    assert r.status_code == 200 and r.json()["driver_id"] == user_id(rider)
     assert (await move(client, rider2, order["id"], "delivered")).status_code == 404  # not their order
     r = await move(client, rider, order["id"], "delivered")
     assert r.json()["status"] == "delivered" and r.json()["actual_delivery_time"]
@@ -138,7 +167,7 @@ async def test_happy_path(client: AsyncClient) -> None:
     assert await outbox_types(order["id"]) == [
         "order.created", "payment.succeeded", "order.placed",
         "order.status_changed", "order.status_changed", "order.status_changed", "order.status_changed",
-        "order.status_changed", "order.status_changed",
+        "driver.assigned", "order.status_changed", "order.status_changed",
     ]
     # Who can see it.
     assert (await client.get(f"/api/v1/orders/{order['id']}", headers=other_partner)).status_code == 404

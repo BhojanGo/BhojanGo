@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text, func
+from sqlalchemy import Float, DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,7 +32,13 @@ class Order(Base):
     payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accept_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     placed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rider_assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Dispatch and tracking (P14): the restaurant and the delivery point.
+    pickup_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pickup_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delivery_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delivery_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_by: Mapped[str | None] = mapped_column(String(20), nullable=True)  # customer | restaurant | admin | system
 

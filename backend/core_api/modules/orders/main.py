@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
-from core_api.modules.orders.api.v1 import orders
+from core_api.modules.orders.api.v1 import internal, orders
 
 logger = structlog.get_logger(__name__)
 SWEEP_SECONDS = 10
@@ -45,3 +45,4 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def register(app: FastAPI) -> None:
     app.state.module_lifespans.append(lifespan)
     app.include_router(orders.router, prefix="/api/v1")
+    app.include_router(internal.router, prefix="/api/v1")

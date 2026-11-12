@@ -118,6 +118,19 @@ statements: food + packaging − commission − offers they funded − item refu
 `refund_cost`). Rider statements: base, distance, waiting and tips per delivery, plus a top-up to
 the hourly floor (active time = time on deliveries). `GET /finance/reconciliation` (JSON or CSV).
 
+**Dispatch and live tracking (P14, realtime):** riders go online (`POST /api/v1/riders/me/online`)
+and send GPS to `POST /api/v1/delivery/driver/location`; positions are in a Redis GEO set. When
+the restaurant marks an order almost ready (or ready), realtime offers it to the nearest available
+rider within 6 km whose GPS is fresh, over `WS /ws/rider`, for the `dispatch_offer_timeout` business
+rule (30 s). Pass (`POST /api/v1/offers/{id}/pass`) or a timeout re-offers it to the next nearest;
+with nobody free it retries every 15 s. Accept (`POST /api/v1/offers/{id}/accept`) assigns the rider
+in core_api through a signed internal call (`/api/v1/internal/orders/...`, HMAC with
+`INTERNAL_SERVICE_SECRET`); only the assigned rider can pick up and deliver. Customers (and the
+rider, and admins for the city) watch `WS /ws/track/{order_id}`: a snapshot with the trail, then
+rider assigned, location + ETA (routing provider), status changes. The TypeScript batch engine runs
+in shadow mode (`SHADOW_MODE=true`: publishes nothing, batches can't be accepted); realtime logs the
+batches it would have made at `GET /api/v1/dispatch/shadow-batches`.
+
 **Payments and refunds (P12):** `POST /payments/initiate` returns what the app's payment SDK needs:
 Stripe PaymentSheet (cards, Apple Pay, Google Pay) in the US, Razorpay Checkout (UPI, cards,
 wallets; `POST /payments/razorpay/verify`) in India, a fake equivalent locally. A failed payment
@@ -295,7 +308,7 @@ bootstrap/                one-time: state bucket, lock table, GitHub OIDC roles
 | Piece | What |
 |--------|-----------|
 | Compute | ECS Fargate: core-api :8001, realtime :8004, worker :8006 |
-| Edge | ALB + AWS WAF; `/ws`, `/api/v1/delivery`, `/api/v1/drivers` → realtime, `/api/v1/notifications` → worker, everything else → core-api |
+| Edge | ALB + AWS WAF; `/ws`, `/api/v1/delivery`, `/api/v1/drivers`, `/api/v1/riders`, `/api/v1/offers`, `/api/v1/dispatch` → realtime, `/api/v1/notifications` → worker, everything else → core-api |
 | Data | RDS PostgreSQL 16 + PostGIS (Multi-AZ in prod), ElastiCache Redis 7 (TLS + AUTH) |
 | Messaging / storage | SQS + SNS, S3 (+ CloudFront for assets) |
 | Secrets | Secrets Manager; third-party keys are set by hand, never in Terraform state |
@@ -329,7 +342,8 @@ Until AWS is connected (runbook steps 1–4), the AWS jobs are skipped, not fail
 7. **Webhook** — Payment gateway confirms -> publishes `payment.succeeded`
 8. **Confirm** — orders receives event, updates to `confirmed`
 9. **Track** — `WS /ws/track/:orderId` (realtime streams GPS)
-10. **Deliver** — Driver updates status through `preparing` -> `picked_up` -> `delivered`
+10. **Dispatch** — almost ready → offered to the nearest rider (`WS /ws/rider`), accept assigns them
+11. **Deliver** — the assigned rider moves it `picked_up` -> `delivered`
 
 ## Contributing
 

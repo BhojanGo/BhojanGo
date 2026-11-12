@@ -49,7 +49,11 @@ def _event_payload(order: Order, **extra: object) -> dict:
         "order_id": str(order.id), "customer_id": str(order.customer_id), "restaurant_id": str(order.restaurant_id),
         "restaurant_name": order.restaurant_name, "status": order.status, "total": str(order.total),
         "currency": order.currency, "market_city": order.market_city,
-        "driver_id": str(order.driver_id) if order.driver_id else None, **extra,
+        "driver_id": str(order.driver_id) if order.driver_id else None,
+        # dispatch and tracking (P14)
+        "pickup": [order.pickup_lat, order.pickup_lng] if order.pickup_lat is not None else None,
+        "dropoff": [order.delivery_lat, order.delivery_lng] if order.delivery_lat is not None else None,
+        **extra,
     }
 
 
@@ -102,7 +106,15 @@ class OrderService:
         now = datetime.now(UTC)
         ctx = q["context"]
         rules = await business_rules(self.db, context=ctx)
+        from core_api.modules.catalog.models.restaurant import Restaurant
+
+        rest = await self.db.get(Restaurant, data.restaurant_id)
+        drop = ctx.get("deliver_to") or {}
         order = await self.repo.create(
+            pickup_lat=rest.lat if rest else None,
+            pickup_lng=rest.lng if rest else None,
+            delivery_lat=drop.get("lat"),
+            delivery_lng=drop.get("lng"),
             customer_id=customer_id,
             restaurant_id=data.restaurant_id,
             restaurant_name=q["restaurant_name"],
@@ -185,7 +197,7 @@ class OrderService:
             r = await self.db.get(Restaurant, order.restaurant_id)
             if r is not None and r.owner_id == user.id:
                 return "restaurant"
-        if user.role == "driver" and (order.driver_id == user.id or (order.driver_id is None and new_status == "picked_up")):
+        if user.role == "driver" and order.driver_id == user.id:  # assigned by dispatch (P14)
             return "rider"
         return None
 
@@ -210,7 +222,7 @@ class OrderService:
         elif new == "ready":
             extra = {"actual_ready_at": now}
         elif new == "picked_up":
-            extra = {"picked_up_at": now, **({"driver_id": user.id} if actor == "rider" and order.driver_id is None else {})}
+            extra = {"picked_up_at": now}
         elif new == "delivered":
             extra = {"actual_delivery_time": now}
         return await self._move(order, new, actor, note=data.note, extra=extra)
@@ -230,6 +242,29 @@ class OrderService:
                 raise _err(status.HTTP_409_CONFLICT, "CANCEL_WINDOW_PASSED",
                            "The restaurant has started on your order; contact support to cancel")
         return await self._cancel(order, actor, data.reason, data.note)
+
+    # ── dispatch (called by realtime over the internal API) ──────────────────
+    async def assign_rider(self, order_id: uuid.UUID, rider_id: uuid.UUID) -> Order:
+        """A rider accepted the offer. Idempotent for the same rider."""
+        order = await self._locked(order_id)
+        if order is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        if order.driver_id == rider_id:
+            return order
+        if order.driver_id is not None:
+            raise _err(status.HTTP_409_CONFLICT, "ALREADY_ASSIGNED", "Another rider has this order")
+        if order.status not in ("accepted", "preparing", "almost_ready", "ready"):
+            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't assign a rider to a {order.status} order")
+        order.driver_id, order.rider_assigned_at = rider_id, datetime.now(UTC)
+        await self.db.flush()
+        from core_api.modules.identity.service.profile import user_profile
+
+        profile = await user_profile(self.db, rider_id) or {}
+        await outbox.add(self.db, "driver.assigned", "order", order.id,
+                         _event_payload(order, driver_name=profile.get("name", "your rider")), SOURCE)
+        logger.info("rider_assigned", order_id=str(order.id), rider_id=str(rider_id))
+        await self.db.refresh(order)
+        return order
 
     # ── timeouts ─────────────────────────────────────────────────────────────
     async def sweep(self, now: datetime | None = None, limit: int = 100) -> dict[str, int]:

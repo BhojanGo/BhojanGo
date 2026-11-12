@@ -36,6 +36,9 @@ async def delivered_order(client: AsyncClient, cust: dict) -> dict:
     partner, rider = await login(client, "partner.hyd@example.com"), await login(client, "rider1.hyd@example.com")
     for s in ("accepted", "preparing", "ready"):
         await move(client, partner, order["id"], s)
+    from core_api.integration.test_orders_flow import assign
+
+    await assign(client, order["id"], rider)
     await move(client, rider, order["id"], "picked_up")
     await move(client, rider, order["id"], "delivered")
     return order

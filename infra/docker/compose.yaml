@@ -31,6 +31,8 @@ x-backend-env: &backend-env
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
   ROUTING_PROVIDER: straight_line
+  # realtime -> core_api internal calls are HMAC-signed (shared/internal_auth.py)
+  INTERNAL_SERVICE_SECRET: local-internal-secret
   # LocalStack queues and topics (infra/docker/localstack/init-aws.sh)
   SQS_QUEUE_URL_NOTIFICATION: http://localstack:4566/000000000000/bhojango-notification-events
   SNS_TOPIC_ARN_ORDER: arn:aws:sns:us-east-1:000000000000:bhojango-order-topic
@@ -149,11 +151,15 @@ services:
       SERVICE_NAME: delivery-svc
       JWKS_URL: http://core-api:8001/.well-known/jwks.json
       REDIS_URL: redis://redis:6379/3
-      ORDER_SVC_URL: http://core-api:8001
+      CORE_API_URL: http://core-api:8001
+      # Order events start dispatch and feed live tracking (P14).
+      SQS_QUEUE_URL_ORDERS: http://localstack:4566/000000000000/bhojango-order-events
     ports:
       - "${REALTIME_PORT:-8004}:8004"
     depends_on:
       redis:
+        condition: service_healthy
+      localstack:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health/live')"]

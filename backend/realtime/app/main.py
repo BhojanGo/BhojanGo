@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.v1 import delivery, earnings, websocket
+from app.api.v1 import delivery, earnings, riders, websocket
+from app.services import order_events
 from shared.config import get_settings
 from app.core.redis import close_redis, get_redis
 
@@ -21,8 +22,12 @@ _start_time = time.time()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("delivery_svc_starting")
     await get_redis()
+    tasks = [] if settings.APP_ENV == "test" else order_events.start()  # dispatch (P14)
     logger.info("delivery_svc_ready")
     yield
+    order_events.stop()
+    for t in tasks:
+        t.cancel()
     await close_redis()
     logger.info("delivery_svc_stopped")
 
@@ -45,6 +50,7 @@ app.add_middleware(
 Instrumentator(excluded_handlers=["/health", "/metrics"]).instrument(app).expose(app)
 app.include_router(delivery.router, prefix="/api/v1")
 app.include_router(earnings.router, prefix="/api/v1")
+app.include_router(riders.router)  # /api/v1/riders, /api/v1/offers and /ws/rider
 app.include_router(websocket.router)  # WebSocket has no /api/v1 prefix
 
 
