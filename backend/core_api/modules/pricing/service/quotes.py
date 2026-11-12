@@ -181,7 +181,7 @@ class QuoteService:
         await redis.setex(_key(str(quote_id)), int(QUOTE_TTL.total_seconds()) + 300, json.dumps(stored))
         token = encode_jwt({
             "type": "quote", "sub": str(user_id), "qid": str(quote_id), "total": str(result.total),
-            "cur": result.currency, "iat": now, "exp": expires,
+            "cur": result.currency, "iat": datetime.now(UTC), "exp": expires,  # iat = when issued; `now` = pricing time
         })
         return QuoteOut(
             quote_id=quote_id, token=token, expires_at=expires, currency=result.currency, lines=lines_out(result),
