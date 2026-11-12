@@ -103,3 +103,16 @@ jobs:
 
       - name: Build Docker image
         run: docker build -f backend/${{ matrix.image }}/Dockerfile -t bhojango-${{ matrix.image }}:test backend
+
+  # ──────────────────────────────────────────
+  # G1, the Phase 1 gate: the whole backend on a throwaway stack; an order
+  # from payment to payouts and messages with no admin action (backend/e2e)
+  # ──────────────────────────────────────────
+  e2e-g1:
+    name: G1 end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Order to payout on a throwaway stack
+        run: make ci-e2e

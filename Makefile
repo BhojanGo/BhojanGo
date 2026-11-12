@@ -13,8 +13,10 @@
 
 COMPOSE := docker compose
 PROFILE ?= all
+# Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
+export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-terraform down reset logs ps
+.PHONY: help dev up seed test test-backend test-js ci ci-migrations ci-docker ci-e2e ci-terraform down reset logs ps
 
 help:
 	@sed -n '1,15p' Makefile
@@ -51,9 +53,9 @@ test-js:
 
 # Everything .github/workflows runs on a PR and on dev: JS lint/typecheck/test,
 # backend pytest, migrations up/down/up + alembic check + seed + integration
-# tests, the three service images, and terraform fmt/validate. Passing
-# `make ci` is the merge gate.
-ci: test-backend test-js ci-migrations ci-docker ci-terraform
+# tests, the three service images, the Phase 1 gate (G1) end to end on a
+# throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
+ci: test-backend test-js ci-migrations ci-docker ci-e2e ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -61,6 +63,14 @@ CI_COMPOSE := $(COMPOSE) -f infra/docker/ci.compose.yaml
 ci-migrations:
 	$(CI_COMPOSE) build migrations
 	$(CI_COMPOSE) run --rm migrations; status=$$?; $(CI_COMPOSE) down -v --remove-orphans; exit $$status
+
+# G1: the whole backend as its own compose project (no host ports), seeded; the
+# runner orders, pays, dispatches, delivers and checks payouts and messages
+# over HTTP (backend/e2e). Always torn down with its volumes.
+E2E_COMPOSE := $(COMPOSE) -p bhojango-g1 -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml
+ci-e2e:
+	$(E2E_COMPOSE) --profile backend up -d --build --wait || { $(E2E_COMPOSE) --profile backend logs --tail 50; $(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
+	$(E2E_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(E2E_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(E2E_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
 
 ci-docker:
 	for svc in core_api realtime worker; do docker build -q -f backend/$$svc/Dockerfile -t bhojango-$$svc:ci backend || exit 1; done
