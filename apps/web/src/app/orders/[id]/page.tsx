@@ -129,7 +129,11 @@ export default function Tracking() {
       <aside className="space-y-4">
         <Messages orderId={id} />
         {bill ? <FairBill lines={bill.lines as never} currency={bill.currency} totalLabel="You paid" /> : null}
-        <Link href="/help" className="block rounded-card bg-white p-5 font-bold hover:text-peacock">Something wrong with this order? Get help →</Link>
+        {status === "delivered" ? (
+          <Link href={`/orders/${id}/report`} className="block rounded-card bg-white p-5 font-bold hover:text-peacock">Something wrong with this order? Report a problem →</Link>
+        ) : (
+          <Link href="/help" className="block rounded-card bg-white p-5 font-bold hover:text-peacock">Something wrong with this order? Get help →</Link>
+        )}
       </aside>
     </div>
   );

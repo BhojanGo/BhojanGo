@@ -138,7 +138,7 @@ POLICY: dict[tuple[str, str], Policy] = {
         "zip": "500081", "lat": 17.44, "lng": 78.39, "cuisines": ["Thali"]}),
     # riders only (P18)
     ("GET", "/api/v1/finance/earnings/me"): user("customer", "partner", "ops_hyd"),
-    ("POST", "/api/v1/uploads"): user("customer", "ops_hyd"),  # riders and partners (P19); purpose checked per role
+    ("POST", "/api/v1/uploads"): user("ops_hyd"),  # riders, partners (P19) and customers (problem photos, B5); purpose checked per role
     ("GET", "/api/v1/riders/me/onboarding"): user("customer", "partner", "ops_hyd"),
     ("POST", "/api/v1/riders/me/documents"): user("customer", "partner", "ops_hyd",
                                                    body=lambda c: {"kind": "licence", "file_key": f"rider_document/{c.rider_id}/x.jpg"}),
@@ -148,6 +148,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
     ("GET", "/api/v1/orders/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("GET", "/api/v1/orders/{order_id}/breakdown"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
+    # report a problem (B5): the order's customer only
+    ("POST", "/api/v1/orders/{order_id}/problems"): user("other_customer", "partner", "rider", "ops_hyd",
+                                                        body=lambda c: {"items": [{"menu_item_id": c.item, "quantity": 1}], "reason": "quality"}),
     # call-back requests (B3): the kitchen's owner asks; admins see and resolve them in their city
     ("POST", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd", body=lambda c: {"topic": "other"}),
     ("GET", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd"),

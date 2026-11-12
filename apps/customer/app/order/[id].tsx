@@ -151,6 +151,11 @@ export default function Tracking() {
             <Text testID="delivery-pin" style={[textFont("800"), { fontSize: 22, letterSpacing: 6, color: color.kohl }]}>{order.pin}</Text>
           </View>
         ) : null}
+        {status === "delivered" ? (
+          <Pressable testID="report-problem" accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={styles.report}>
+            <Text style={[textFont("700"), { fontSize: 15, color: color.peacockDeep }]}>Something wrong? Report a problem</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -182,6 +187,7 @@ function TrackMap({ live }: { live: Live }) {
 }
 
 const styles = StyleSheet.create({
+  report: { height: 48, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.line, alignItems: "center", justifyContent: "center" },
   pinRow: {
     flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16,
     backgroundColor: color.peacockMist,

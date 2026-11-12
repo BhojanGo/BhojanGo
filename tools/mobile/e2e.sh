@@ -21,14 +21,24 @@ if [ "$APP" = rider ]; then
   adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
 fi
 fail=0
+# The emulator renders in software (swiftshader), so System UI is slow to answer and Android
+# shows "isn't responding" over the app. Hide those dialogs for the run (emulator only).
+timeout 10 adb -s "$DEVICE" shell settings put global hide_error_dialogs 1 >/dev/null 2>&1
 # A busy host can leave an "isn't responding" dialog over everything (often System UI):
 # answer "Wait" before each flow so it doesn't hide the app.
 dismiss_anr() {
-  if timeout 10 adb -s "$DEVICE" shell dumpsys window 2>/dev/null | grep -q "mCurrentFocus=.*Application Not Responding"; then
-    echo "dismissing an 'isn't responding' dialog"
-    timeout 10 adb -s "$DEVICE" shell input keyevent KEYCODE_BACK >/dev/null 2>&1
-    sleep 2
-  fi
+  focus="$(timeout 10 adb -s "$DEVICE" shell dumpsys window 2>/dev/null | grep "mCurrentFocus=")"
+  case "$focus" in
+    *"Not Responding: com.android.systemui"*)
+      # A hung System UI keeps its dialog up: restart it (emulator images allow adb root).
+      echo "restarting System UI (it stopped responding)"
+      timeout 15 adb -s "$DEVICE" root >/dev/null 2>&1; sleep 3
+      timeout 10 adb -s "$DEVICE" shell pkill -f com.android.systemui >/dev/null 2>&1; sleep 8
+      for p in 8081 8001 8004 8006; do adb -s "$DEVICE" reverse tcp:$p tcp:$p >/dev/null 2>&1; done ;;  # adb root drops them
+    *"Application Not Responding"*)
+      echo "dismissing an 'isn't responding' dialog"
+      timeout 10 adb -s "$DEVICE" shell input keyevent KEYCODE_BACK >/dev/null 2>&1; sleep 2 ;;
+  esac
 }
 for f in $FLOWS; do
   dismiss_anr

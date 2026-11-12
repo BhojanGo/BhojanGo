@@ -1,0 +1,33 @@
+# Report a problem (B5): a delivered order, one chai missing. Under Hyderabad's
+# automatic refund limit (Rs 100 per order), so it's refunded at once to the
+# original payment.
+appId: com.bhojango.app
+---
+- runScript: scripts/problem.js
+- runFlow: sign-in.yaml
+- openLink: bhojango://order/${output.orderId}
+- extendedWaitUntil:
+    visible: "Delivered. Enjoy your meal."
+    timeout: 30000
+- tapOn:
+    id: "report-problem"
+- extendedWaitUntil:
+    visible: "Which items?"
+    timeout: 20000
+- tapOn: "One more Irani Chai"
+- tapOn: "Missing"
+- tapOn:
+    id: "problem-note"
+- inputText: "Only one cup came"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/customer/13-report-problem
+- tapOn: "Send report"
+- extendedWaitUntil:
+    visible: "Refunded"
+    timeout: 20000
+- assertVisible: "Refunded .* to your original payment.*"
+- takeScreenshot: docs/screenshots/customer/14-problem-refunded
+- tapOn: "Back to your order"
+- extendedWaitUntil:
+    visible: "Delivered. Enjoy your meal."
+    timeout: 20000

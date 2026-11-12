@@ -215,6 +215,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
         <div><dt className="font-bold">About</dt><dd>{TICKET_TOPIC[t.topic] ?? t.topic}</dd></div>
         <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>
       </dl>
+      {t.kind === "problem" ? <ProblemDetails t={t} /> : null}
       {t.status === "resolved" ? (
         <p className="rounded-xl bg-porcelain p-4 text-sm"><b>Resolved:</b> {t.resolution}</p>
       ) : mayResolve ? (
@@ -230,6 +231,24 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
       ) : <p className="text-sm text-muted">You can see this ticket; city ops or support resolve it.</p>}
       {msg ? <p role="alert" className="text-sm font-semibold text-chili">{msg}</p> : null}
     </section>
+  );
+}
+
+/** What the customer reported (B5): over the automatic refund limit, so a person checks it. */
+function ProblemDetails({ t }: { t: OpsTicket }) {
+  const d = t.details as { items?: { name: string; quantity: number; amount: string }[]; amount?: string; currency?: string; photo_key?: string | null };
+  const cur = d.currency ?? "INR";
+  return (
+    <div className="space-y-2 rounded-xl bg-porcelain p-4 text-sm" aria-label="What they reported">
+      <ul className="space-y-1">{(d.items ?? []).map((i) => <li key={i.name}><b>{i.quantity} × {i.name}</b> · {money(Number(i.amount), cur, 2)}</li>)}</ul>
+      <p>Comes to <b>{money(Number(d.amount ?? 0), cur, 2)}</b>, over the city&apos;s automatic refund limit, so it waits for you. Refund by item below if it checks out.</p>
+      {d.photo_key ? (
+        <button type="button" className="font-bold text-peacock" onClick={async () => {
+          const r = await adminApi.get("/user/uploads/view", { params: { key: d.photo_key }, responseType: "blob" });
+          window.open(URL.createObjectURL(r.data as Blob), "_blank", "noopener");
+        }}>See their photo</button>
+      ) : <p className="text-muted">No photo.</p>}
+    </div>
   );
 }
 

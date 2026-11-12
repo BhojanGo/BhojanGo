@@ -47,6 +47,13 @@
       "expo-secure-store",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "BhojanGo uses the camera for a photo when you report a problem with an order.",
+          "photosPermission": "BhojanGo lets you choose a photo when you report a problem with an order."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

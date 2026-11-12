@@ -47,23 +47,24 @@ REQUIRED = ("identity", "licence", "insurance", "background_check")
 
 def uploader(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
     """Riders (delivery photos, documents) and partners (FSSAI licence, P19)."""
-    if user.role not in ("driver", "restaurant_owner"):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders and partners only")
+    if user.role not in ("driver", "restaurant_owner", "customer"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders, partners and customers only")
     return user
 
 
-PURPOSES = {"delivery_proof": "driver", "rider_document": "driver", "partner_document": "restaurant_owner"}
+PURPOSES = {"delivery_proof": "driver", "rider_document": "driver", "partner_document": "restaurant_owner",
+            "problem_photo": "customer"}  # B5: a photo with a problem report
 
 
 @router.post("/uploads", status_code=status.HTTP_201_CREATED)
 async def upload(user: Annotated[CurrentUser, Depends(uploader)], file: Annotated[UploadFile, File()],
-                 purpose: Annotated[Literal["delivery_proof", "rider_document", "partner_document"], Form()]) -> dict:
+                 purpose: Annotated[Literal["delivery_proof", "rider_document", "partner_document", "problem_photo"], Form()]) -> dict:
     """A photo of the bags at the door, a rider's document, or a partner's licence
     (photo or PDF). Returns the key to send with it (files are private)."""
     if PURPOSES[purpose] != user.role:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "WRONG_PURPOSE", "message": "Not an upload you can make"})
     ctype = (file.content_type or "").split(";")[0]
-    if ctype not in TYPES or (purpose == "delivery_proof" and not ctype.startswith("image/")):
+    if ctype not in TYPES or (purpose in ("delivery_proof", "problem_photo") and not ctype.startswith("image/")):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                             detail={"code": "FILE_TYPE", "message": "Send a JPEG, PNG or WebP photo (or a PDF for documents)"})
     data = await file.read(MAX_BYTES + 1)
@@ -258,13 +259,20 @@ async def view_upload(key: Annotated[str, Query(max_length=300)], admin: Annotat
     from core_api.modules.catalog.service.lookup import restaurant_city_code
 
     parts = key.split("/")
-    if len(parts) != 3 or parts[0] not in ("rider_document", "partner_document"):
+    if len(parts) != 3 or parts[0] not in ("rider_document", "partner_document", "problem_photo"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
     try:
         owner = uuid.UUID(parts[1])
     except ValueError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
-    if parts[0] == "rider_document":
+    if parts[0] == "problem_photo":  # B5: support sees the photo on the customer's ticket
+        from core_api.modules.support.models import SupportTicket
+
+        tickets = (await db.execute(select(SupportTicket).where(SupportTicket.requester_id == owner,
+                                                                SupportTicket.details["photo_key"].astext == key))).scalars().all()
+        if not any(admin.can("orders.view", t.market_city or t.country) for t in tickets):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    elif parts[0] == "rider_document":
         u = await db.get(User, owner)
         if u is None or not authz.can_within(admin.assignments, "riders.view", u.country):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
