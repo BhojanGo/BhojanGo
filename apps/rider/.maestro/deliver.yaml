@@ -100,6 +100,9 @@ env:
     visible: "This week so far"
     timeout: 20000
 - assertVisible: "Spice Route Kitchen . Jubilee Hills"  # "→"; Maestro on Windows mangles non-ASCII
+# Payouts are weekly only (B6): no cash-out button, the copy says so.
+- assertVisible: "Paid weekly .*"
+- assertNotVisible: "Cash out now"
 - takeScreenshot: docs/screenshots/rider/10-earnings
 - tapOn: "Drive"
 - tapOn: "Go offline"
