@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.db import Base
@@ -50,7 +50,9 @@ class MenuItem(Base):
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     allergens: Mapped[list] = mapped_column(ARRAY(String), nullable=False, default=list)
-    customizations: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # Option groups (size, spice, add-ons) live in catalog/models/options.py (P10).
+    # "Sold out today": hidden from ordering until this time (the restaurant's next local midnight).
+    sold_out_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     prep_time_minutes: Mapped[int] = mapped_column(Integer, default=15, nullable=False)

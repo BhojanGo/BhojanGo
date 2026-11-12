@@ -27,7 +27,7 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
     if (_backend / "core_api").is_dir():
         sys.path.insert(1, str(_backend))
         break
-from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, MARKETS, PASSWORD, RULES  # noqa: E402
+from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, TIERS  # noqa: E402
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -165,6 +165,51 @@ async def seed_rules(conn, created_by) -> int:
     return len(RULES)
 
 
+UPSERT_GROUP = text("""
+INSERT INTO option_groups (id, restaurant_id, name, min_picks, max_picks, sort_order)
+VALUES (:id, :restaurant_id, :name, :min_picks, :max_picks, :sort_order)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, min_picks = EXCLUDED.min_picks,
+    max_picks = EXCLUDED.max_picks, sort_order = EXCLUDED.sort_order
+""")
+
+UPSERT_OPTION = text("""
+INSERT INTO options (id, group_id, name, price, is_default, is_available, sort_order)
+VALUES (:id, :group_id, :name, :price, :is_default, true, :sort_order)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, price = EXCLUDED.price,
+    is_default = EXCLUDED.is_default, is_available = true, sort_order = EXCLUDED.sort_order
+""")
+
+UPSERT_ITEM_GROUP = text("""
+INSERT INTO menu_item_option_groups (menu_item_id, group_id, sort_order) VALUES (:item, :group, :sort_order)
+ON CONFLICT (menu_item_id, group_id) DO UPDATE SET sort_order = EXCLUDED.sort_order
+""")
+
+DAY_INDEX = {d: i for i, d in enumerate(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])}
+
+
+async def seed_hours_and_licences(conn, restaurant_ids: dict) -> None:
+    from datetime import date, time
+
+    for slug, rid in restaurant_ids.items():
+        await conn.execute(text("DELETE FROM store_hours WHERE restaurant_id = :r"), {"r": rid})
+        for days, opens, closes in HOURS.get(slug, []):
+            for day in days:
+                await conn.execute(text(
+                    "INSERT INTO store_hours (id, restaurant_id, weekday, opens, closes) VALUES (:id, :r, :w, :o, :c)"),
+                    {"id": sid("hours", slug, day, opens), "r": rid, "w": DAY_INDEX[day],
+                     "o": time.fromisoformat(opens), "c": time.fromisoformat(closes)})
+        number, expires = FSSAI.get(slug, (None, None))
+        await conn.execute(text(
+            "UPDATE restaurants SET fssai_number = :n, fssai_expires_on = :e, tier = :t, "
+            "paused_reason = NULL WHERE id = :r"),
+            {"n": number, "e": date.fromisoformat(expires) if expires else None, "t": TIERS.get(slug), "r": rid})
+    for slug, day, note in HOLIDAYS:
+        await conn.execute(text(
+            "INSERT INTO store_hour_overrides (id, restaurant_id, day, closed, note) VALUES (:id, :r, :d, true, :n) "
+            "ON CONFLICT (restaurant_id, day) DO UPDATE SET closed = true, opens = NULL, closes = NULL, note = EXCLUDED.note"),
+            {"id": sid("holiday", slug, day), "r": restaurant_ids[slug], "d": date.fromisoformat(day), "n": note})
+
+
 UPSERT_ADMIN_ROLE = text("""
 INSERT INTO admin_role_assignments (id, user_id, role, scope, created_at)
 VALUES (:id, :user_id, :role, :scope, now())
@@ -204,16 +249,16 @@ ON CONFLICT (id) DO UPDATE SET
 
 UPSERT_ITEM = text("""
 INSERT INTO menu_items (id, restaurant_id, category_id, name, description, price, category,
-                        is_veg, is_vegan, is_available, allergens, customizations, sort_order,
+                        is_veg, is_vegan, is_available, allergens, sort_order,
                         prep_time_minutes, created_at, updated_at)
 VALUES (:id, :restaurant_id, :category_id, :name, :description, :price, :category,
-        :is_veg, false, true, '{}', CAST(:customizations AS jsonb), :sort_order,
+        :is_veg, false, true, '{}', :sort_order,
         15, now(), now())
 ON CONFLICT (id) DO UPDATE SET
     restaurant_id = EXCLUDED.restaurant_id, category_id = EXCLUDED.category_id,
     name = EXCLUDED.name, description = EXCLUDED.description, price = EXCLUDED.price,
     category = EXCLUDED.category, is_veg = EXCLUDED.is_veg, is_available = true,
-    customizations = EXCLUDED.customizations, sort_order = EXCLUDED.sort_order,
+    sort_order = EXCLUDED.sort_order, sold_out_until = NULL,
     deleted_at = NULL, updated_at = now()
 """)
 
@@ -232,6 +277,7 @@ async def upsert_user(conn, email, name, role, market, phone, password=PASSWORD)
 async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
     engine = create_async_engine(database_url)
     logins: list[tuple[str, str, str, str]] = []
+    restaurant_ids: dict = {}
     async with engine.begin() as conn:
         await seed_markets(conn)
         for m in MARKETS:
@@ -276,11 +322,30 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     cid = sid("category", r["slug"], category)
                     await conn.execute(UPSERT_CATEGORY, {"id": cid, "restaurant_id": rid, "name": category, "sort_order": c_order})
                     for i_order, (name, price, veg, desc, custom) in enumerate(items):
+                        item_id = sid("item", r["slug"], name)
                         await conn.execute(UPSERT_ITEM, {
-                            "id": sid("item", r["slug"], name), "restaurant_id": rid, "category_id": cid,
+                            "id": item_id, "restaurant_id": rid, "category_id": cid,
                             "name": name, "description": desc, "price": Decimal(price), "category": category,
-                            "is_veg": veg, "customizations": json.dumps(custom), "sort_order": i_order,
+                            "is_veg": veg, "sort_order": i_order,
                         })
+                        # Option groups (P10): one per customization on the board.
+                        await conn.execute(text("DELETE FROM menu_item_option_groups WHERE menu_item_id = :i"), {"i": item_id})
+                        for g_order, g in enumerate(custom):
+                            gid = sid("group", r["slug"], name, g["name"])
+                            await conn.execute(UPSERT_GROUP, {
+                                "id": gid, "restaurant_id": rid, "name": g["name"], "sort_order": g_order,
+                                "min_picks": 1 if g.get("required") else 0, "max_picks": g.get("max", 1)})
+                            for o_order, o in enumerate(g["options"]):
+                                await conn.execute(UPSERT_OPTION, {
+                                    "id": sid("option", r["slug"], name, g["name"], o["name"]), "group_id": gid,
+                                    "name": o["name"], "price": Decimal(str(o["price"])),
+                                    "is_default": o_order == 0 and bool(g.get("required")), "sort_order": o_order})
+                            await conn.execute(UPSERT_ITEM_GROUP, {"item": item_id, "group": gid, "sort_order": g_order})
+                restaurant_ids[r["slug"]] = rid
+                # Groups no item uses any more (e.g. copies made by migration 0008).
+                await conn.execute(text(
+                    "DELETE FROM option_groups g WHERE g.restaurant_id = :r AND NOT EXISTS "
+                    "(SELECT 1 FROM menu_item_option_groups l WHERE l.group_id = g.id)"), {"r": rid})
 
         for email, name, country, roles in ADMINS:
             market = next(m for m in MARKETS if m["country"] == country)
@@ -295,6 +360,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
             logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, ADMIN_PASSWORD))
 
         await seed_rules(conn, sid("user", "admin@example.com"))
+        await seed_hours_and_licences(conn, restaurant_ids)
 
         counts = (await conn.execute(text(
             "SELECT (SELECT count(*) FROM restaurants WHERE slug = ANY(:slugs)),"

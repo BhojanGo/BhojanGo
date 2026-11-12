@@ -111,6 +111,12 @@ fees, taxes, tip, total, split) and returns every bill line plus a token valid f
 snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
 test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
 
+**Menu and hours (P10):** option groups with min/max picks and prices (Size 1..1, Add-ons
+0..3), weekly store hours (lunch/dinner splits, past midnight) with holiday overrides, "sold out
+today", default prep time, and FSSAI licences for India (an expired licence pauses the listing
+automatically). Quotes refuse closed restaurants, out-of-hours cities and sold-out items, so
+outside 07:00–23:30 IST / 08:00–23:00 Boise a local quote says when deliveries run.
+
 **Tax (P9):** India GST comes from rules (5% on food and packaging, 18% on platform fees). US
 sales tax comes from the tax provider: Stripe Tax when `STRIPE_SECRET_KEY` is set, otherwise a
 local stand-in with illustrative state rates (Idaho 6%; not tax advice). Every tax line in a

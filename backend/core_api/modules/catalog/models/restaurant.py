@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Float, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +58,15 @@ class Restaurant(Base):
 
     # Tags
     tags: Mapped[list] = mapped_column(ARRAY(String), nullable=False, default=list)
+
+    # Commission / delivery tier used by the rule engine (A, B, C); None = the rule's default.
+    tier: Mapped[str | None] = mapped_column(String(1), nullable=True)
+
+    # India: FSSAI food licence. The listing pauses itself when it expires (P10).
+    fssai_number: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    fssai_expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Why the listing is hidden from customers (e.g. fssai_expired); None = listed.
+    paused_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # Status
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_approval", index=True)

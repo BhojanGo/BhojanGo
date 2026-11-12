@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -139,6 +139,10 @@ class RestaurantResponse(BaseModel):
     tags: list[str]
     status: str
     is_active: bool
+    tier: str | None = None
+    fssai_number: str | None = None
+    fssai_expires_on: date | None = None
+    paused_reason: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -187,7 +191,11 @@ class MenuItemResponse(BaseModel):
     is_vegan: bool
     is_available: bool
     allergens: list[str]
-    customizations: list[dict[str, Any]]
+    # P10: real option groups with min/max picks; ``customizations`` is the same
+    # data in the pre-P10 shape for apps that still read it.
+    option_groups: list[dict[str, Any]] = []
+    customizations: list[dict[str, Any]] = []
+    sold_out_today: bool = False
     sort_order: int
     prep_time_minutes: int
     calories: int | None
