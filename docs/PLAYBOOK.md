@@ -62,6 +62,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 19. **End-to-end flows clean up after earlier runs before they start, not half-way through.**
     Why: an aborted run left orders in "ready"; dispatch offered one to the test rider, who then stayed busy with it, and the next run failed before its cleanup step. The rider flow now cancels its customer's leftovers before the app launches.
 
+20. **Don't run emulator flows while `make ci` loads the machine; if one fails at its first screen, look at the screenshot before changing the flow.**
+    Why: under CI load the tablet showed "System UI isn't responding" over the app and the sign-in assertion failed. Nothing was wrong with the app. The e2e runner now answers those dialogs, and the flows run after CI.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

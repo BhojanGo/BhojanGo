@@ -141,6 +141,27 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Refund to original payment").click()
     check("support: refund by item goes through", lambda: expect(page.get_by_role("status")).to_contain_text("Refunded", timeout=20000))
 
+    # The kitchen asks for a call back from its tablet (B3): a ticket in the support console.
+    partner = token("partner.hyd@example.com")
+    api.post(f"{CORE}/restaurants/{rest['id']}/callback", headers=partner, data={"topic": "payout", "note": "Last week's payout looks short"})
+    page.goto(f"{BASE}/operations?scope=IN-TG-HYD&tab=support", wait_until="networkidle")
+    tickets = page.get_by_role("region", name="Tickets")
+    check("support: the kitchen's call-back request is an open ticket", lambda: (
+        expect(tickets.get_by_role("button", name=re.compile("Call back · Spice Route Kitchen"))).to_be_visible(timeout=20000),
+        expect(tickets.get_by_text(re.compile("Last week's payout looks short")).first).to_be_visible()))
+    tickets.get_by_role("button", name=re.compile("Call back · Spice Route Kitchen")).first.click()
+    case = page.get_by_role("region", name="Call back · Spice Route Kitchen")
+    check("support: the ticket shows who to call and what about", lambda: (
+        expect(case.get_by_role("link", name=re.compile(r"^\+\d+"))).to_be_visible(timeout=10000),
+        expect(case.get_by_text("a payout")).to_be_visible()))
+    case.get_by_label("What did you do?").fill("Called the kitchen; the payout covered six days, explained the cut-off")
+    page.screenshot(path=f"{OUT}/05b-support-callback.png", full_page=True)
+    case.get_by_role("button", name="Mark resolved").click()
+    check("support: resolved tickets leave the open queue", lambda: (
+        expect(tickets.get_by_role("button", name=re.compile("Call back · Spice Route Kitchen"))).to_have_count(0, timeout=15000),
+        tickets.get_by_role("button", name="Show resolved").click(),
+        expect(tickets.get_by_role("button", name=re.compile("Call back · Spice Route Kitchen")).first).to_be_visible(timeout=15000)))
+
     page.goto(f"{BASE}/partners?scope=IN-TG-HYD&tab=applications", wait_until="networkidle")
     page.get_by_role("button", name=re.compile("Kesar Kitchen")).click()
     check("partners: an application with its five steps and the licence", lambda: (

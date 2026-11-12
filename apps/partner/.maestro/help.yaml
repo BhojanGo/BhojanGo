@@ -1,0 +1,30 @@
+# Help: ask BhojanGo to call the kitchen back (B3). The request lands in the
+# admin support console; the tablet shows that we'll call.
+appId: com.bhojango.partner
+---
+- runScript: scripts/resolve_callbacks.js
+- runFlow: sign-in.yaml
+- runFlow:
+    when:
+      visible: "Which kitchen is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Ready for pickup"
+    timeout: 30000
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible: "Request a call back"
+    timeout: 20000
+- tapOn: "A payout"
+- tapOn:
+    id: "callback-note"
+- inputText: "Last week looks short"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/13-help
+- tapOn: "Request a call back"
+- extendedWaitUntil:
+    visible: "We'll call you back"
+    timeout: 20000
+- assertVisible: "About: A payout.*"
+- takeScreenshot: docs/screenshots/partner/13b-callback-requested
