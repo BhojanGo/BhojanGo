@@ -71,6 +71,13 @@ resource "aws_sns_topic_subscription" "order_to_order_events" {
   endpoint  = aws_sqs_queue.queues["order_events"].arn
 }
 
+# The worker tells customers who is bringing their order (P15).
+resource "aws_sns_topic_subscription" "driver_to_notifications" {
+  topic_arn = aws_sns_topic.topics["driver_events"].arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.queues["notifications"].arn
+}
+
 # realtime also needs rider assignments (driver.assigned) for live tracking.
 resource "aws_sns_topic_subscription" "driver_to_order_events" {
   topic_arn = aws_sns_topic.topics["driver_events"].arn

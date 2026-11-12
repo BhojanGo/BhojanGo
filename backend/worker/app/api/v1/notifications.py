@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, get_current_user
 from shared.db import get_db
 from app.models.notification import DeviceToken, Notification
+from shared.providers.push import provider_for_token
 from app.schemas.notification import (
     DeviceTokenRequest,
     NotificationListResponse,
@@ -27,20 +28,21 @@ async def register_device_token(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> dict:
-    """Register or update a device's FCM token."""
-    # Upsert: if token exists, update user_id; otherwise create
+    """Register a device's push token (Expo, FCM or APNs); a token moves to whoever signed in last."""
+    provider = data.provider or provider_for_token(data.token, data.platform)
     result = await db.execute(select(DeviceToken).where(DeviceToken.token == data.token))
     existing = result.scalar_one_or_none()
 
     if existing:
         await db.execute(
-            update(DeviceToken).where(DeviceToken.token == data.token).values(user_id=current_user.id, platform=data.platform)
+            update(DeviceToken).where(DeviceToken.token == data.token)
+            .values(user_id=current_user.id, platform=data.platform, provider=provider)
         )
     else:
-        db.add(DeviceToken(user_id=current_user.id, token=data.token, platform=data.platform))
+        db.add(DeviceToken(user_id=current_user.id, token=data.token, platform=data.platform, provider=provider))
         await db.flush()
 
-    return {"message": "Device token registered", "platform": data.platform}
+    return {"message": "Device token registered", "platform": data.platform, "provider": provider}
 
 
 @router.delete("/device-token")
@@ -67,10 +69,10 @@ async def get_notifications(
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
 ) -> NotificationListResponse:
-    """Get user's notification inbox."""
+    """The user's in-app inbox (push, SMS and email copies are kept as delivery records, not listed)."""
     from sqlalchemy import and_, func
 
-    where_clause = Notification.user_id == current_user.id
+    where_clause = and_(Notification.user_id == current_user.id, Notification.channel == "in_app")
     if unread_only:
         where_clause = and_(where_clause, Notification.is_read == False)  # noqa: E712
 
@@ -88,7 +90,8 @@ async def get_notifications(
         total_pages=math.ceil(total / limit) if total else 0,
         unread_count=(await db.execute(
             select(func.count(Notification.id)).where(
-                Notification.user_id == current_user.id, Notification.is_read == False  # noqa: E712
+                Notification.user_id == current_user.id, Notification.channel == "in_app",
+                Notification.is_read == False,  # noqa: E712
             )
         )).scalar_one(),
     )

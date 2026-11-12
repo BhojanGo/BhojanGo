@@ -30,6 +30,18 @@ locals {
       description = "Firebase service account for FCM push"
       keys        = ["project_id", "private_key_id", "private_key", "client_email"]
     }
+    msg91 = {
+      description = "MSG91 SMS for India: auth key and DLT template ids (JSON map, e.g. {\"order_picked_up_hi\": \"...\"})"
+      keys        = ["auth_key", "template_ids"]
+    }
+    apns = {
+      description = "Apple Push Notification service token key (.p8)"
+      keys        = ["key_id", "team_id", "private_key"]
+    }
+    expo = {
+      description = "Expo push access token"
+      keys        = ["access_token"]
+    }
   }
 }
 

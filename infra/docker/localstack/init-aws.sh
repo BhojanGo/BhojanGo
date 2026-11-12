@@ -2,7 +2,7 @@
 # LocalStack init (runs once LocalStack is ready; safe to run again).
 # Creates the queues, topics and buckets the backend uses locally, matching
 # the names in compose.yaml. Event flow: core_api publishes to the SNS topics,
-# the notification queue receives order and payment events, and the worker
+# the notification queue receives order, payment and rider events, and the worker
 # consumes it (core_api also puts notify.send messages straight on it).
 set -euo pipefail
 
@@ -24,7 +24,8 @@ for t in order payment driver notification user; do
 done
 
 topic_arn() { echo "arn:aws:sns:${REGION}:${ACCOUNT}:bhojango-$1-topic"; }
-for t in order payment; do
+# The worker messages people about orders, payments and rider assignments.
+for t in order payment driver; do
   aws sns subscribe --topic-arn "$(topic_arn "$t")" --protocol sqs \
     --notification-endpoint "$(queue_arn bhojango-notification-events)" >/dev/null
 done

@@ -188,7 +188,13 @@ class ProviderSettings(BaseSettings):
     EMAIL_PROVIDER: str = "log"  # log | smtp | sendgrid
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
-    PUSH_PROVIDER: str = "log"  # log | fcm
+    PUSH_PROVIDER: str = "log"  # log | live (Expo, FCM or APNs by the device's token)
+    EXPO_ACCESS_TOKEN: str = ""  # optional: Expo push security
+    APNS_KEY_ID: str = ""
+    APNS_TEAM_ID: str = ""
+    APNS_PRIVATE_KEY: str = ""  # the .p8 key (PEM)
+    APNS_BUNDLE_ID: str = "com.bhojango.app"
+    APNS_SANDBOX: bool = False
     ROUTING_PROVIDER: str = "straight_line"
     ROAD_FACTOR: float = 1.3
     AVG_SPEED_KMH: float = 25.0

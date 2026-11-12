@@ -53,8 +53,26 @@ def _event_payload(order: Order, **extra: object) -> dict:
         # dispatch and tracking (P14)
         "pickup": [order.pickup_lat, order.pickup_lng] if order.pickup_lat is not None else None,
         "dropoff": [order.delivery_lat, order.delivery_lng] if order.delivery_lat is not None else None,
+        # messages (P15)
+        "estimated_delivery_time": order.estimated_delivery_time.isoformat() if order.estimated_delivery_time else None,
+        "items_count": sum(int(i.get("quantity", 1)) for i in (order.items or [])),
         **extra,
     }
+
+
+HANDOVER_MINUTES = 5  # parking, stairs, handing over
+
+
+def delivery_eta(prep_minutes: int, pickup: tuple | None, dropoff: tuple | None, start: datetime) -> datetime:
+    """When the food should arrive if the kitchen starts at ``start``: prep time,
+    then the ride from the restaurant to the customer (routing provider), then handover."""
+    from shared.providers.routing import get_routing_provider
+
+    if pickup and dropoff and None not in (*pickup, *dropoff):
+        ride = get_routing_provider().leg(pickup, dropoff).minutes  # type: ignore[arg-type]
+    else:
+        ride = float(settings.orders.BASE_DELIVERY_MINUTES)
+    return start + timedelta(minutes=prep_minutes + ride + HANDOVER_MINUTES)
 
 
 async def business_rules(db: AsyncSession, order: Order | None = None, context: dict | None = None) -> dict:
@@ -110,6 +128,8 @@ class OrderService:
 
         rest = await self.db.get(Restaurant, data.restaurant_id)
         drop = ctx.get("deliver_to") or {}
+        prep = rest.avg_prep_minutes if rest else 20
+        pickup = (rest.lat, rest.lng) if rest else None
         order = await self.repo.create(
             pickup_lat=rest.lat if rest else None,
             pickup_lng=rest.lng if rest else None,
@@ -133,7 +153,7 @@ class OrderService:
             currency=q["currency"],
             platform_fee=_money(q["split"]["platform"]),
             restaurant_payout=_money(q["split"]["restaurant"]),
-            estimated_prep_minutes=20,
+            estimated_prep_minutes=prep,
             delivery_distance_km=_money(ctx["distance"]),
             is_long_distance=False,
             status_history=[{"status": "pending_payment", "at": now.isoformat()}],
@@ -142,7 +162,7 @@ class OrderService:
             special_instructions=data.special_instructions,
             promo_code=data.promo_code,
             loyalty_points_used=0,
-            estimated_delivery_time=now + timedelta(minutes=settings.orders.BASE_DELIVERY_MINUTES),
+            estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
         try:
             await quotes.attach(q, order.id)
@@ -218,7 +238,10 @@ class OrderService:
         now = datetime.now(UTC)
         extra: dict = {}
         if new == "accepted":
-            extra = {"restaurant_accepted_at": now, "accept_due_at": None}
+            extra = {"restaurant_accepted_at": now, "accept_due_at": None,
+                     "estimated_delivery_time": delivery_eta(
+                         order.estimated_prep_minutes, (order.pickup_lat, order.pickup_lng),
+                         (order.delivery_lat, order.delivery_lng), now)}
         elif new == "ready":
             extra = {"actual_ready_at": now}
         elif new == "picked_up":

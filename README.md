@@ -179,7 +179,17 @@ needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateway
 | Storage, queues | LocalStack (S3, SQS, SNS) | http://localhost:4566 |
 
 Real keys plug in later through env vars (`PAYMENT_PROVIDER=live`, `SMS_PROVIDER=live` (Twilio US, MSG91 India),
-`EMAIL_PROVIDER=sendgrid`, `PUSH_PROVIDER=fcm`); `APP_ENV=production` refuses the local stand-ins.
+`EMAIL_PROVIDER=sendgrid`, `PUSH_PROVIDER=live` (Expo, FCM or APNs per device)); `APP_ENV=production` refuses the local stand-ins.
+
+**Messages (P15, worker):** order, payment and payout events become messages in the person's
+language (`preferred_locale`: English, Hindi or Telugu), in the brand voice (plain, specific, warm;
+times and amounts, no emoji). Push goes to every registered device (`POST /api/v1/notifications/device-token`
+with `provider` expo | fcm | apns, or worked out from the token); dead tokens are dropped. Email
+(Mailpit locally, SendGrid live) for the confirmation, receipt, cancellations, refunds and payouts.
+SMS only as a fallback when push reached no device, for the moments that matter (rider on the way,
+cancellation, failed payment, a new order for a restaurant without the app); India SMS uses a DLT
+template per message and language (`MSG91_TEMPLATE_IDS`, keys like `order_picked_up_hi`). Each
+message is sent once per event, person and channel, and kept in the in-app inbox.
 
 **Mobile apps** run on your machine with Expo (Node 24 + pnpm): copy
 `apps/customer/.env.example` (or `apps/rider/`) to `.env`, set your computer's LAN IP, then
@@ -216,7 +226,7 @@ call core_api (:8001), realtime (:8004) and worker (:8006) directly.
 |---------|------|-------------|
 | core_api | 8001 | identity (auth, profiles, addresses), catalog (restaurants, menus, search), orders (state machine, fees), payments (Stripe, Razorpay, wallet) |
 | realtime | 8004 | Rider GPS, tracking WebSocket, ETA, earnings (was delivery-svc) |
-| worker | 8006 | Push (FCM) + SMS (Twilio) + email (SendGrid), SQS consumer (was notification-svc) |
+| worker | 8006 | Messages in en/hi/te: push (Expo/FCM/APNs), SMS (Twilio US, MSG91 India), email (SendGrid); outbox relay; SQS consumer |
 | web | 3000 | Customer web app (Next.js) |
 | admin | 3001 | Admin dashboard (Next.js) |
 | customer | 8081 | Expo dev server — BhojanGo app (`com.bhojango.app`) |
