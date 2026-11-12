@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from core_api.modules.pricing.schemas import OptionPick
+
 OrderStatus = Literal[
     "pending_payment", "placed", "accepted", "preparing", "almost_ready", "ready",
     "picked_up", "delivered", "cancelled",
@@ -37,7 +39,14 @@ class OrderItemCustomizationInput(BaseModel):
 class OrderItemInput(BaseModel):
     menu_item_id: uuid.UUID
     quantity: int = Field(ge=1, le=50)
+    # The same picks as in the quote ({"group", "option"}).
+    options: list[OptionPick] = Field(default=[])
+    # Older clients: {"customization_id": group, "option_id": option}.
     customizations: list[OrderItemCustomizationInput] = Field(default=[])
+
+    def picks(self) -> list[dict]:
+        return [o.model_dump() for o in self.options] + [
+            {"group": c.customization_id, "option": c.option_id} for c in self.customizations]
 
 
 class OrderCreateRequest(BaseModel):
