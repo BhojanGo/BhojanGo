@@ -84,3 +84,6 @@ apps/*/ios/
 
 # Android debug builds (make apk)
 .apk/
+
+# k6 results (P24): the report keeps the one that matters in docs/load
+tools/load/out/

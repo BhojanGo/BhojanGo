@@ -8,6 +8,7 @@ import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.auth import _decode_token
+from app.core.hub import hub
 from app.core.redis import get_redis, order_tracking_channel
 from app.services.core_api import CoreApiError
 
@@ -108,7 +109,7 @@ async def track_order(
 
     try:
         uuid.UUID(order_id)
-        info = await dispatch.order_info(order_id, refresh=True)
+        info = await dispatch.order_info(order_id, max_age=15)  # fresh enough for who may watch
     except (ValueError, CoreApiError):
         info = None
     if info is None or not can_see(current_user, info):
@@ -129,57 +130,30 @@ async def track_order(
         "timestamp": datetime.now(UTC).isoformat(),
     })
 
-    # Subscribe to Redis pub/sub channel for this order
-    redis = await get_redis()
-    pubsub = redis.pubsub()
-    channel = order_tracking_channel(order_id)
-    await pubsub.subscribe(channel)
+    # Updates for this order through the process's shared subscription (app/core/hub.py):
+    # this socket gets its own queue and sends only to itself.
+    async def forward(q: "asyncio.Queue[str]") -> None:
+        while True:
+            await websocket.send_text(await q.get())
+
+    async def keepalive() -> None:
+        while True:
+            await asyncio.sleep(30)
+            await websocket.send_json({"type": "ping", "payload": {}, "timestamp": datetime.now(UTC).isoformat()})
 
     try:
-        # Listen for messages from Redis pub/sub
-        async def redis_listener() -> None:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    try:
-                        data = json.loads(message["data"])
-                        await manager.broadcast_to_order(order_id, data)
-                    except Exception as e:
-                        logger.error("ws_broadcast_error", error=str(e))
-
-        async def ws_keepalive() -> None:
-            """Keep connection alive with periodic pings."""
-            while True:
-                await asyncio.sleep(30)
-                try:
-                    await websocket.send_json({
-                        "type": "ping",
-                        "payload": {},
-                        "timestamp": datetime.now(UTC).isoformat(),
-                    })
-                except Exception:
-                    break
-
-        # Run both tasks concurrently
-        listener_task = asyncio.create_task(redis_listener())
-        keepalive_task = asyncio.create_task(ws_keepalive())
-
-        # Wait for WebSocket to disconnect
-        try:
-            while True:
-                data = await websocket.receive_text()
-                if data == "ping":
-                    await websocket.send_text("pong")
-        except WebSocketDisconnect:
-            pass
-        finally:
-            listener_task.cancel()
-            keepalive_task.cancel()
-
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
+        async with hub.subscribe(order_tracking_channel(order_id)) as q:
+            tasks = [asyncio.create_task(forward(q)), asyncio.create_task(keepalive())]
+            try:
+                while True:
+                    if await websocket.receive_text() == "ping":
+                        await websocket.send_text("pong")
+            except WebSocketDisconnect:
+                pass
+            finally:
+                for t in tasks:
+                    t.cancel()
+    except Exception as e:  # noqa: BLE001
         logger.error("ws_error", order_id=order_id, error=str(e))
     finally:
-        await pubsub.unsubscribe(channel)
-        await pubsub.aclose()
         manager.disconnect(websocket, order_id)
