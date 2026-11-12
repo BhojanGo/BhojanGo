@@ -1,6 +1,6 @@
 // The accepted delivery: step 1 pickup, step 2 drop-off (RiderDropoff.html)
 // with proof: a photo of the bags at the door, or the customer's PIN.
-import { api, ApiError, unwrap } from "@bhojango/mobile-core";
+import { api, ApiError, QuickChat, unwrap } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -160,6 +160,7 @@ export default function Delivery() {
                 <Icon name="navigate" size={20} stroke={night.link} />
                 <Text style={[ui.bold, { ...textFont("700") }]}>Navigate</Text>
               </Pressable>
+              <ChatButton orderId={order.id} />
 
               <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>Proof of delivery</Text>
               <View accessibilityRole="radiogroup" accessibilityLabel="Proof type" style={styles.seg}>
@@ -210,6 +211,7 @@ export default function Delivery() {
                 <Icon name="navigate" size={20} stroke={night.link} />
                 <Text style={[ui.bold, textFont("700")]}>Navigate</Text>
               </Pressable>
+              <ChatButton orderId={order.id} />
               <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>In the bag</Text>
               {items.map((it, i) => (
                 <View key={i} style={styles.itemRow}>
@@ -237,6 +239,19 @@ export default function Delivery() {
         </View>
       </View>
     </View>
+  );
+}
+
+/** Quick messages with the customer (B2): presets and short text, no phone numbers. */
+function ChatButton({ orderId }: { orderId: string }) {
+  return (
+    <QuickChat orderId={orderId} tone="dark" render={(open, unread, who) => (
+      <Pressable testID="chat-open" accessibilityRole="button" onPress={open} style={[ui.outline, { marginTop: 12 }]}
+        accessibilityLabel={`Message ${who}${unread ? `, ${unread} new` : ""}`}>
+        <Icon name="message" size={20} stroke={night.link} />
+        <Text style={[ui.bold, textFont("700")]}>Message {who}{unread ? ` · ${unread} new` : ""}</Text>
+      </Pressable>
+    )} />
   );
 }
 

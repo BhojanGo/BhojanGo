@@ -1,7 +1,7 @@
 // CustomerTracking.html: where the food is, when it arrives, who's bringing it.
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes. The map is drawn (no map provider key).
-import { api, color, radius, space, StatusPill, textFont, Txt, unwrap, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, color, QuickChat, radius, space, StatusPill, textFont, Txt, unwrap, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -136,8 +136,8 @@ export default function Tracking() {
               <Text style={[textFont("800"), { fontSize: 16 }]}>{riderName}</Text>
               <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>Your rider</Text>
             </View>
-            <View style={styles.round} accessibilityLabel={`Call ${riderName}`}><Icon name="phone" size={20} /></View>
-            <View style={styles.round} accessibilityLabel={`Message ${riderName}`}><Icon name="message" size={20} /></View>
+            {/* No calls and no phone numbers: quick messages while the order is on its way (B2). */}
+            <QuickChat orderId={id} />
           </View>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -201,5 +201,4 @@ const styles = StyleSheet.create({
   knob: { position: "absolute", top: -6, width: 20, height: 20, marginLeft: -10, borderRadius: radius.pill, backgroundColor: color.kesar, borderWidth: 3, borderColor: color.white },
   steps: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
   avatar: { width: 52, height: 52, borderRadius: radius.pill, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" },
-  round: { width: 48, height: 48, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, alignItems: "center", justifyContent: "center" },
 });

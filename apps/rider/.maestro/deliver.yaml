@@ -7,6 +7,10 @@ env:
   PHONE: "9000000201"
   INDIA: "true"
 ---
+- runScript:
+    file: scripts/kitchen.js
+    env:
+      STEP: cleanup
 - runFlow: sign-in.yaml
 - extendedWaitUntil:
     visible: "You're offline|Looking for deliveries"
@@ -46,6 +50,22 @@ env:
 - extendedWaitUntil:
     visible: "Pickup . step 1 of 2"
     timeout: 20000
+# Quick messages with the customer (B2): presets and short text, no phone numbers.
+- tapOn:
+    id: "chat-open"
+- extendedWaitUntil:
+    visible: "Message Priya"
+    timeout: 15000
+- tapOn: "I'm at the kitchen, waiting for your order."
+# Sent: the message now shows twice, as a bubble and as the quick-message chip.
+- extendedWaitUntil:
+    visible:
+      text: "I'm at the kitchen, waiting for your order."
+      index: 1
+    timeout: 15000
+- assertVisible: "Your number stays private.*"
+- takeScreenshot: docs/screenshots/rider/16-messages
+- tapOn: "Close"
 - runScript:
     file: scripts/kitchen.js
     env:

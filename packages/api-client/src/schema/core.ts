@@ -1001,6 +1001,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Messages
+         * @description The conversation with the rider (or the customer). Empty and closed
+         *     before a rider is assigned and after the order is delivered or cancelled.
+         */
+        get: operations["list_messages_api_v1_orders__order_id__messages_get"];
+        put?: never;
+        /**
+         * Send Message
+         * @description Send a quick message or a short text (140 characters) to the other side.
+         */
+        post: operations["send_message_api_v1_orders__order_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}/status": {
         parameters: {
             query?: never;
@@ -4357,6 +4382,58 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** QuickMessage */
+        QuickMessage: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mine */
+            mine: boolean;
+            /**
+             * Sender Role
+             * @enum {string}
+             */
+            sender_role: "customer" | "rider";
+            /** Text */
+            text: string;
+        };
+        /** QuickMessageIn */
+        QuickMessageIn: {
+            /** Preset */
+            preset?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /** QuickMessagesOut */
+        QuickMessagesOut: {
+            /**
+             * Me
+             * @enum {string}
+             */
+            me: "customer" | "rider";
+            /** Messages */
+            messages: components["schemas"]["QuickMessage"][];
+            /** Open */
+            open: boolean;
+            /** Other Name */
+            other_name: string;
+            /** Presets */
+            presets: components["schemas"]["QuickPreset"][];
+        };
+        /** QuickPreset */
+        QuickPreset: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** QuoteOut */
         QuoteOut: {
             /** City */
@@ -7258,6 +7335,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_messages_api_v1_orders__order_id__messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickMessagesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_orders__order_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuickMessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickMessage"];
                 };
             };
             /** @description Validation Error */

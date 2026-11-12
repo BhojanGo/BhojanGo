@@ -148,6 +148,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
     ("GET", "/api/v1/orders/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("GET", "/api/v1/orders/{order_id}/breakdown"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
+    # quick messages (B2): the order's customer and rider only; not the kitchen, not admins
+    ("GET", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
+    ("POST", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd",
+                                                         body=lambda c: {"preset": "outside"}),
     ("GET", "/api/v1/orders/{order_id}/timeline"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("POST", "/api/v1/orders/{order_id}/cancel"): user("other_customer", "other_partner", "other_rider", "ops_boi",
                                                        body=lambda c: {"reason": "customer_cancelled"}),

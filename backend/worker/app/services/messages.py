@@ -26,6 +26,9 @@ ARRIVING = {
     "te": "సుమారు {eta}కి చేరుతుంది.",
 }
 
+# Messages whose body is someone's own words (a quick message, B2): only the title is translated.
+VERBATIM = frozenset({"order_message"})
+
 # (title, body) per message per language.
 CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
     "order_placed": {
@@ -52,6 +55,11 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "en": ("On the way", "{rider} picked up your order and is heading to you. {arriving}"),
         "hi": ("रास्ते में है", "{rider} ने आपका ऑर्डर ले लिया है और आपके पास आ रहे हैं। {arriving}"),
         "te": ("దారిలో ఉంది", "{rider} మీ ఆర్డర్ తీసుకుని మీ వద్దకు వస్తున్నారు. {arriving}"),
+    },
+    "order_message": {
+        "en": ("Message from {name}", "{text}"),
+        "hi": ("{name} का संदेश", "{text}"),
+        "te": ("{name} నుండి సందేశం", "{text}"),
     },
     "order_delivered": {
         "en": ("Delivered", "Your order from {restaurant} is here. Enjoy your meal."),
