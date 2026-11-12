@@ -228,6 +228,13 @@ class SupportRefundLimit(_P):
     max_per_order: Money = Field(ge=0)
 
 
+class AutoRefundLimit(_P):
+    """B5: a customer's problem report is refunded at once up to this much per
+    order; above it, it goes to support as a ticket."""
+
+    max_per_order: Money = Field(ge=0)
+
+
 # ── Promotions ────────────────────────────────────────────────────────────────
 
 class _Promo(_P):
@@ -308,6 +315,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "max_radius": MaxRadius,
         "dispatch_offer_timeout": DispatchOfferTimeout,
         "support_refund_limit": SupportRefundLimit,
+        "auto_refund_limit": AutoRefundLimit,
     },
     "promotion": {
         "percent_off": PromoPercentOff,

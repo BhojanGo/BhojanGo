@@ -1067,6 +1067,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Problem
+         * @description The customer reports a problem with a delivered order: which items, why,
+         *     and a photo if they like. Up to the city's automatic refund limit per order
+         *     it's refunded at once to the original payment (who pays follows the reason:
+         *     the kitchen for its own mistakes, BhojanGo for delivery problems). Above the
+         *     limit, support gets a ticket and gets back to them.
+         */
+        post: operations["report_problem_api_v1_orders__order_id__problems_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}/status": {
         parameters: {
             query?: never;
@@ -2930,7 +2954,7 @@ export interface components {
              * Purpose
              * @enum {string}
              */
-            purpose: "delivery_proof" | "rider_document" | "partner_document";
+            purpose: "delivery_proof" | "rider_document" | "partner_document" | "problem_photo";
         };
         /** BusyIn */
         BusyIn: {
@@ -4534,6 +4558,48 @@ export interface components {
              * @enum {string}
              */
             pricing_model: "percentage_commission" | "flat_fee_per_order" | "monthly_subscription";
+        };
+        /** ProblemIn */
+        ProblemIn: {
+            /** Items */
+            items: components["schemas"]["ProblemItem"][];
+            /** Note */
+            note?: string | null;
+            /** Photo Key */
+            photo_key?: string | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "missing_item" | "wrong_item" | "quality" | "damaged_in_transit" | "late";
+        };
+        /** ProblemItem */
+        ProblemItem: {
+            /**
+             * Menu Item Id
+             * Format: uuid
+             */
+            menu_item_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** ProblemOut */
+        ProblemOut: {
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Limit */
+            limit: string;
+            /** Message */
+            message: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "refunded" | "ticket";
+            /** Ticket Id */
+            ticket_id?: string | null;
         };
         /** PublicCity */
         PublicCity: {
@@ -7677,6 +7743,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_problem_api_v1_orders__order_id__problems_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProblemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemOut"];
                 };
             };
             /** @description Validation Error */

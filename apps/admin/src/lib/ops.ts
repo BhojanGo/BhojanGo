@@ -77,6 +77,8 @@ export interface OpsTicket {
 
 export const TICKET_TOPIC: Record<string, string> = {
   order: "an order", payout: "a payout", menu: "the menu", account: "the account", other: "something else",
+  missing_item: "missing items", wrong_item: "a wrong item", quality: "food that wasn't good", damaged_in_transit: "spilled or damaged food",
+  late: "a very late order",
 };
 
 export function useTickets(scope: string, state: "open" | "resolved") {

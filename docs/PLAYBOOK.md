@@ -68,6 +68,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 21. **Tests never delete shared fixtures they didn't create; and export `COMPOSE_PROJECT_NAME=bhojango-e2e` in every command that runs an e2e script.**
     Why: a regression test removed the conftest's "open all day" hours and every later integration test failed with "Closed now" after midnight in India; an admin e2e run without the variable joined the wrong compose network and couldn't find core-api.
 
+22. **The emulator's System UI can hang for good; the e2e runner restarts it (adb root + pkill) and puts the port reversals back.**
+    Why: on a software-rendered emulator "System UI isn't responding" stayed over the app after a fresh boot, so the first assertion of every flow failed; pressing back didn't clear it.
+
+23. **Healthchecks prove the service answers the way clients connect (Postgres: `pg_isready -h 127.0.0.1`).**
+    Why: during first start the Postgres image runs a socket-only server; a socket healthcheck said healthy and CI's migrations got "connection refused".
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

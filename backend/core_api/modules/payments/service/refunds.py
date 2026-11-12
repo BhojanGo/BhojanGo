@@ -94,6 +94,34 @@ def compute_item_refund(order_items: list[dict], bill: list[dict], requests: lis
     return _m(total), lines
 
 
+async def business_rule(db: AsyncSession, market_city: str | None, name: str):  # type: ignore[no-untyped-def]
+    from core_api.modules.rules.service.resolver import Context
+    from core_api.modules.rules.service.rules import RuleService
+
+    city = market_city or ""
+    rules = await RuleService(db).resolve(Context(country=city[:2] or None, region=city[:5] or None, city=city or None))
+    return rules.get(f"business:{name}")
+
+
+async def preview_items(db: AsyncSession, order_id: uuid.UUID, requests: list[ItemRequest]) -> tuple[Decimal, list[dict], str]:
+    """(amount, lines, currency) refunding these items would give back now; RefundError if it can't."""
+    from core_api.modules.orders.models.order import Order
+    from core_api.modules.pricing.service.quotes import QuoteService
+
+    order = await db.get(Order, order_id)
+    snap = await QuoteService(db).snapshot(order_id) if order else None
+    if order is None or snap is None:
+        raise RefundError("This order has no itemised bill to refund against")
+    previous = (await db.execute(select(Refund).where(Refund.order_id == order_id))).scalars().all()
+    already: dict[str, int] = {}
+    for r in previous:
+        for ln in r.lines:
+            if ln.get("menu_item_id"):
+                already[ln["menu_item_id"]] = already.get(ln["menu_item_id"], 0) + int(ln["quantity"])
+    total, lines = compute_item_refund(order.items, snap.lines, requests, already, False, False)
+    return total, lines, order.currency
+
+
 async def agent_limit(db: AsyncSession, market_city: str | None, currency: str) -> Decimal:
     from core_api.modules.rules.service.resolver import Context
     from core_api.modules.rules.service.rules import RuleService

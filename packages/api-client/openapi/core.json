@@ -752,7 +752,8 @@
             "enum": [
               "delivery_proof",
               "rider_document",
-              "partner_document"
+              "partner_document",
+              "problem_photo"
             ],
             "title": "Purpose",
             "type": "string"
@@ -5204,6 +5205,130 @@
           "pricing_model"
         ],
         "title": "PricingConfigRequest",
+        "type": "object"
+      },
+      "ProblemIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProblemItem"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "photo_key": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Key"
+          },
+          "reason": {
+            "enum": [
+              "missing_item",
+              "wrong_item",
+              "quality",
+              "damaged_in_transit",
+              "late"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "reason"
+        ],
+        "title": "ProblemIn",
+        "type": "object"
+      },
+      "ProblemItem": {
+        "properties": {
+          "menu_item_id": {
+            "format": "uuid",
+            "title": "Menu Item Id",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "menu_item_id",
+          "quantity"
+        ],
+        "title": "ProblemItem",
+        "type": "object"
+      },
+      "ProblemOut": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "refunded",
+              "ticket"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "ticket_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Id"
+          }
+        },
+        "required": [
+          "outcome",
+          "amount",
+          "currency",
+          "limit",
+          "message"
+        ],
+        "title": "ProblemOut",
         "type": "object"
       },
       "PublicCity": {
@@ -11695,6 +11820,65 @@
         "summary": "Send Message",
         "tags": [
           "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/problems": {
+      "post": {
+        "description": "The customer reports a problem with a delivered order: which items, why,\nand a photo if they like. Up to the city's automatic refund limit per order\nit's refunded at once to the original payment (who pays follows the reason:\nthe kitchen for its own mistakes, BhojanGo for delivery problems). Above the\nlimit, support gets a ticket and gets back to them.",
+        "operationId": "report_problem_api_v1_orders__order_id__problems_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Report Problem",
+        "tags": [
+          "Support"
         ]
       }
     },

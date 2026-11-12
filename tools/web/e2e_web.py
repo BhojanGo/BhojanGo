@@ -212,10 +212,29 @@ with sync_playwright() as p:
     pin = page.get_by_test_id("delivery-pin").inner_text()
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "picked_up"})
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "delivered", "proof": {"method": "pin", "pin": pin}})
-    page.reload(wait_until="networkidle")
+    page.reload(wait_until="domcontentloaded")
     check("messages: hidden after delivery", lambda: (
         expect(page.get_by_text("Delivered. Enjoy your meal.")).to_be_visible(timeout=20000),
         expect(chat).to_have_count(0)))
+
+    # Report a problem (B5): the biryani came cold. Over Hyderabad's automatic
+    # refund limit (Rs 100), so it goes to support as a ticket with the photo.
+    page.get_by_role("link", name=__import__("re").compile("Report a problem")).click()
+    form = page.get_by_role("form", name="Report a problem")
+    expect(form).to_be_visible(timeout=15000)
+    form.get_by_label("How many Chicken Dum Biryani").fill("1")
+    form.get_by_text("Not good", exact=True).click()
+    form.get_by_label("Tell us more (optional)").fill("Cold when it came")
+    png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
+    form.get_by_label("A photo helps (optional)").set_input_files(files=[{"name": "biryani.png", "mimeType": "image/png", "buffer": png}])
+    page.screenshot(path=f"{OUT}/14-report-problem.png", full_page=True)
+    form.get_by_role("button", name="Send report").click()
+    check("report a problem: over the city's limit, sent to support with the photo", lambda: (
+        expect(page.get_by_role("heading", name="Sent to support")).to_be_visible(timeout=20000),
+        expect(page.get_by_text(__import__("re").compile("above .100 on one order are checked by a person"))).to_be_visible(),
+        _assert(any(t["kind"] == "problem" and t["order_id"] == order_id and t["details"].get("photo_key")
+                    for t in api("GET", "/ops/tickets?scope=IN-TG-HYD", ops)))))
+    page.screenshot(path=f"{OUT}/15-problem-sent.png", full_page=True)
 
     for path, heading in (("/help", "Help"), ("/terms", "Terms of use"), ("/privacy", "Privacy notice")):
         page.goto(base + path, wait_until="networkidle")

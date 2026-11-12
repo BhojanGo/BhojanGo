@@ -156,3 +156,93 @@ async def resolve_ticket(ticket_id: uuid.UUID, data: ResolveIn, admin: Viewer, d
                  scope=where, before=before, after={"status": "resolved", "resolution": t.resolution, "kind": t.kind})
     await db.flush()
     return _out(t)
+
+
+# ── Report a problem (B5) ─────────────────────────────────────────────────────
+
+ProblemReason = Literal["missing_item", "wrong_item", "quality", "damaged_in_transit", "late"]
+REASON_WORDS = {"missing_item": "Missing", "wrong_item": "Wrong item", "quality": "Not good",
+                "damaged_in_transit": "Spilled or damaged", "late": "Very late"}
+
+
+class ProblemItem(BaseModel):
+    menu_item_id: uuid.UUID
+    quantity: int = Field(ge=1, le=50)
+
+
+class ProblemIn(BaseModel):
+    items: list[ProblemItem] = Field(min_length=1, max_length=30)
+    reason: ProblemReason
+    note: str | None = Field(default=None, max_length=300)
+    photo_key: str | None = Field(default=None, max_length=300)
+
+
+class ProblemOut(BaseModel):
+    outcome: Literal["refunded", "ticket"]
+    amount: str  # what the items come to (refunded, or what support will look at)
+    currency: str
+    limit: str  # the city's automatic refund limit per order
+    ticket_id: uuid.UUID | None = None
+    message: str
+
+
+@router.post("/orders/{order_id}/problems", response_model=ProblemOut, status_code=status.HTTP_201_CREATED)
+async def report_problem(order_id: uuid.UUID, data: ProblemIn, user: User, db: DB) -> ProblemOut:
+    """The customer reports a problem with a delivered order: which items, why,
+    and a photo if they like. Up to the city's automatic refund limit per order
+    it's refunded at once to the original payment (who pays follows the reason:
+    the kitchen for its own mistakes, BhojanGo for delivery problems). Above the
+    limit, support gets a ticket and gets back to them."""
+    from decimal import Decimal
+
+    from sqlalchemy import func
+
+    from core_api.modules.orders.models.order import Order
+    from core_api.modules.payments.models.payment import Refund
+    from core_api.modules.payments.service import refunds
+
+    order = await db.get(Order, order_id)
+    if order is None or order.customer_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if order.status != "delivered":
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "NOT_DELIVERED", "message": "You can report a problem once the order is delivered"})
+    window = await refunds.business_rule(db, order.market_city, "refund_window")
+    hours = int(window.params["hours"]) if window else 72
+    delivered = order.actual_delivery_time or order.updated_at
+    if delivered and (datetime.now(UTC) - delivered).total_seconds() > hours * 3600:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "TOO_LATE", "message": f"Problems can be reported up to {hours} hours after delivery"})
+    if data.photo_key and not data.photo_key.startswith(f"problem_photo/{user.user_id}/"):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "PHOTO", "message": "Upload the photo first"})
+
+    requests = [refunds.ItemRequest(str(i.menu_item_id), i.quantity) for i in data.items]
+    try:
+        amount, lines, currency = await refunds.preview_items(db, order.id, requests)
+    except refunds.RefundError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "CANT_REFUND", "message": str(e)})
+    rule = await refunds.business_rule(db, order.market_city, "auto_refund_limit")
+    limit = Decimal(str(rule.params["max_per_order"])) if rule else Decimal(0)
+    # What this customer was already refunded automatically on this order counts towards the limit.
+    auto_before = (await db.execute(select(func.coalesce(func.sum(Refund.amount), 0)).where(
+        Refund.order_id == order.id, Refund.requested_by == user.id))).scalar_one()
+    sym = "₹" if currency == "INR" else "$"
+    if amount + Decimal(auto_before) / 100 <= limit:
+        try:
+            await refunds.refund_items(db, order_id=order.id, requests=requests, include_delivery=False, reason=data.reason,
+                                       note=f"Customer report{': ' + data.note.strip() if data.note and data.note.strip() else ''}",
+                                       actor_id=user.id, assignments=[])
+        except refunds.RefundError as e:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "CANT_REFUND", "message": str(e)})
+        return ProblemOut(outcome="refunded", amount=str(amount), currency=currency, limit=str(limit),
+                          message=f"Refunded {sym}{amount:.2f} to your original payment. Sorry about that.")
+    t = SupportTicket(kind="problem", status="open", market_city=order.market_city, country=(order.market_city or "IN")[:2],
+                      requester_id=user.id, requester_role="customer", restaurant_id=order.restaurant_id, order_id=order.id,
+                      topic=data.reason, note=(data.note or "").strip() or None,
+                      details={"items": [{"menu_item_id": ln["menu_item_id"], "name": ln["name"], "quantity": ln["quantity"],
+                                          "amount": ln["amount"]} for ln in lines],
+                               "amount": str(amount), "currency": currency, "photo_key": data.photo_key,
+                               "reason_words": REASON_WORDS[data.reason]})
+    db.add(t)
+    await db.flush()
+    await db.refresh(t)
+    return ProblemOut(outcome="ticket", amount=str(amount), currency=currency, limit=str(limit), ticket_id=t.id,
+                      message="Thanks for telling us. Our support team will look at it and get back to you within a day.")
