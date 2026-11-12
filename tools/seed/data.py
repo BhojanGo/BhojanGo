@@ -174,7 +174,7 @@ MARKETS = [
         "city": "Boise",
         "currency": "USD",
         "locale": "en-US",
-        "phone_prefix": "+120855500",
+        "phone_prefix": "+12085550",  # +1 208 555 0101: 10-digit numbers, as the apps require
         "scope": "US-ID-BOI",
         "partner": "Boise Partner",
         "customers": [
@@ -185,6 +185,9 @@ MARKETS = [
             ("Sofia Garcia", "2200 S Broadway Ave", "Boise State", "83706", 43.6000, -116.1990),
         ],
         "riders": ["Jake Miller", "Ana Torres", "Sam Nguyen"],
+        # Signing up (P18 board "Almost ready to ride, Jordan"): licence checked and payouts set up,
+        # insurance still to upload, background check after that. Can't go online yet.
+        "new_riders": ["Jordan Lee"],
         "restaurants": [
             {
                 "name": "Boise Bowl Co.",  # board ("near Hyde Park")

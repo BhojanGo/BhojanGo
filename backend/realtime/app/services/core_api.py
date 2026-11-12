@@ -33,5 +33,9 @@ class CoreApi:
     async def assign_rider(self, order_id: str, rider_id: str) -> dict:
         return await self._call("POST", f"/api/v1/internal/orders/{order_id}/assign-rider", {"rider_id": rider_id})
 
+    async def rider_ready(self, rider_id: str) -> dict:
+        """Has the rider finished onboarding (documents approved, background check cleared)?"""
+        return await self._call("GET", f"/api/v1/internal/riders/{rider_id}/ready")
+
 
 core_api = CoreApi()

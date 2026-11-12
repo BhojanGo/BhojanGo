@@ -1,7 +1,7 @@
+import { useSession } from "@bhojango/mobile-core";
 import { Redirect } from "expo-router";
 
-// "/" used to be the customer home tab; in the rider app it is the rider home
-// tab, whose layout sends signed-out users to the login screen.
 export default function Index() {
-  return <Redirect href="/(driver-tabs)/home" />;
+  const status = useSession((s) => s.status);
+  return <Redirect href={status === "signed-in" ? "/drive" : "/sign-in"} />;
 }

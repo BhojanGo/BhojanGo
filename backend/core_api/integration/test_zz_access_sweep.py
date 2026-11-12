@@ -112,6 +112,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── service to service ───────────────────────────────────────────────────
     ("GET", "/api/v1/internal/orders/{order_id}/dispatch"): Policy("signed"),
     ("POST", "/api/v1/internal/orders/{order_id}/assign-rider"): Policy("signed", body=lambda c: {"rider_id": c.rider_id}),
+    ("GET", "/api/v1/internal/riders/{rider_id}/ready"): Policy("signed"),
     # ── signed-in, own data only (nothing in the path points at someone else) ─
     ("POST", "/api/v1/auth/logout"): user(), ("GET", "/api/v1/users/me"): user(),
     ("PATCH", "/api/v1/users/me"): user(body=lambda c: {}), ("PUT", "/api/v1/users/me"): user(body=lambda c: {}),
@@ -127,6 +128,13 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/orders"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c), "payment_method": "upi",
                                                      "quote_token": "x", "delivery_address": ADDRESS}),
     ("GET", "/api/v1/finance/payout-accounts/me"): user(), ("GET", "/api/v1/finance/statements/me"): user(),
+    # riders only (P18)
+    ("GET", "/api/v1/finance/earnings/me"): user("customer", "partner", "ops_hyd"),
+    ("POST", "/api/v1/uploads"): user("customer", "partner", "ops_hyd"),
+    ("GET", "/api/v1/riders/me/onboarding"): user("customer", "partner", "ops_hyd"),
+    ("POST", "/api/v1/riders/me/documents"): user("customer", "partner", "ops_hyd",
+                                                   body=lambda c: {"kind": "licence", "file_key": f"rider_document/{c.rider_id}/x.jpg"}),
+    # a key another rider uploaded is refused even to a rider: see test_riders.py
     ("POST", "/api/v1/finance/payout-accounts"): user(
         "other_partner", "customer", body=lambda c: {"payee_type": "restaurant", "restaurant_id": c.spice}),
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
@@ -265,7 +273,7 @@ class Ctx:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
                   "address_id": self.address, "quote_id": self.quote, "payment_intent_id": self.intent,
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
-                  "assignment_id": self.assignment, "user_id": self.customer_id,
+                  "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)

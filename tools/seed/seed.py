@@ -51,6 +51,13 @@ ON CONFLICT (email) DO UPDATE SET
 RETURNING id
 """)
 
+# Seed riders have finished onboarding (P18): licence, insurance and background check approved.
+UPSERT_RIDER_DOC = text("""
+INSERT INTO rider_documents (id, rider_id, kind, status, file_key, created_at, updated_at, reviewed_at)
+VALUES (:id, :rider_id, :kind, 'approved', :file_key, now(), now(), now())
+ON CONFLICT (rider_id, kind) DO UPDATE SET status = 'approved', updated_at = now()
+""")
+
 UPSERT_ADDRESS = text("""
 INSERT INTO addresses (id, user_id, label, street, city, state, postal_code, country, lat, lng, created_at)
 VALUES (:id, :user_id, 'Home', :street, :city, :state, :postal_code, :country, :lat, :lng, now())
@@ -300,8 +307,24 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
 
             for i, name in enumerate(m["riders"], start=1):
                 email = f"rider{i}.{k}@example.com"
-                await upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{i:02d}")
+                rider_id = await upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{i:02d}")
+                for kind in ("licence", "insurance", "background_check"):
+                    await conn.execute(UPSERT_RIDER_DOC, {
+                        "id": sid("rider_document", email, kind), "rider_id": rider_id, "kind": kind,
+                        "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
                 logins.append((where, f"rider · {name}", email, PASSWORD))
+
+            for i, name in enumerate(m.get("new_riders", []), start=1):
+                email = f"new.rider{i}.{k}@example.com"
+                rider_id = await upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{90 + i:02d}")
+                await conn.execute(text("DELETE FROM rider_documents WHERE rider_id = :r AND kind <> 'licence'"), {"r": rider_id})
+                await conn.execute(UPSERT_RIDER_DOC, {"id": sid("rider_document", email, "licence"), "rider_id": rider_id,
+                                                      "kind": "licence", "file_key": f"rider_document/{rider_id}/seed-licence.jpg"})
+                await conn.execute(text("""
+                    INSERT INTO payout_accounts (id, payee_type, payee_id, provider, external_id, status, country, created_at)
+                    VALUES (:id, 'rider', :r, 'fake', :ext, 'active', :c, now()) ON CONFLICT (id) DO NOTHING"""),
+                    {"id": sid("payout_account", email), "r": rider_id, "ext": f"fake_acct_{rider_id.hex[:12]}", "c": m["country"]})
+                logins.append((where, f"rider signing up · {name}", email, PASSWORD))
 
             for r in m["restaurants"]:
                 address = {

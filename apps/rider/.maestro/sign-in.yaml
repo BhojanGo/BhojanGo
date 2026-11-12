@@ -1,0 +1,31 @@
+# Sign in with a rider's phone and the code (seed phones always get 123456).
+# PHONE: 10 digits; INDIA=true switches the country code to +91.
+appId: com.bhojango.rider
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Ride on your.*"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/rider/01-sign-in
+- runFlow:
+    when:
+      true: ${INDIA == "true"}
+    commands:
+      - tapOn:
+          text: "Country code.*"
+- tapOn:
+    id: "phone"
+- inputText: ${PHONE || "9000000201"}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/rider/02-code
+- inputText: "123456"
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 30000

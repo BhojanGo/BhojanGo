@@ -131,14 +131,28 @@ async def _payee_ids(db: AsyncSession, user: CurrentUser) -> list[tuple[str, uui
 
 @router.get("/statements/me")
 async def my_statements(user: User, db: DB) -> list[dict]:
-    """A partner's statements for their restaurants, or a rider's own."""
+    """A partner's statements for their restaurants, or a rider's own (newest first)."""
     payees = await _payee_ids(db, user)
     out = []
     for kind, pid in payees:
-        rows = (await db.execute(select(PayoutStatement).where(
-            PayoutStatement.payee_type == kind, PayoutStatement.payee_id == pid))).scalars().all()
-        out += [statement_out(s) for s in rows]
+        rows = (await db.execute(select(PayoutStatement, PayoutRun).join(PayoutRun, PayoutRun.id == PayoutStatement.run_id).where(
+            PayoutStatement.payee_type == kind, PayoutStatement.payee_id == pid)
+            .order_by(PayoutRun.period_start.desc()))).all()
+        out += [{**statement_out(s), "period_start": r.period_start.isoformat(), "period_end": r.period_end.isoformat(),
+                 "run_status": r.status} for s, r in rows]
     return out
+
+
+@router.get("/earnings/me")
+async def my_earnings(user: User, db: DB) -> dict:
+    """A rider's week so far: what the next weekly payout will pay, by day, with
+    the hourly-floor top-up (engaged time: from accepting an offer to drop-off)."""
+    if user.role != "driver":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
+    try:
+        return await payouts.rider_week(db, user.id, user.country)
+    except FinanceError as e:
+        raise _bad(e)
 
 
 @router.get("/statements/{statement_id}")

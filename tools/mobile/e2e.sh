@@ -8,13 +8,18 @@
 set -u
 APP="${1:?usage: e2e.sh <customer|rider|partner> [flow ...]}"
 shift
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))"  # a Windows path under Git Bash (MSYS_NO_PATHCONV below)
 DEVICE="${DEVICE:-emulator-5554}"
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bhojango}" MSYS_NO_PATHCONV=1
 COMPOSE="docker compose -f $ROOT/infra/docker/compose.yaml"
-FLOWS="${*:-$(cd "$ROOT/apps/$APP/.maestro" && ls *.yaml | sed 's/\.yaml$//')}"
+# sign-in.yaml is a sub-flow the others start with.
+FLOWS="${*:-$(cd "$ROOT/apps/$APP/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')}"
 
 python "$ROOT/tools/mobile/hours.py" open >/dev/null
+if [ "$APP" = rider ]; then
+  # The rider waits near Spice Route Kitchen, Madhapur (emulator GPS: longitude latitude).
+  adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
+fi
 fail=0
 for f in $FLOWS; do
   $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_attempts:*' | xargs -r redis-cli -n 0 del" >/dev/null

@@ -33,4 +33,7 @@ appId: com.bhojango.app
     timeout: 30000
 - assertVisible:
     id: "eta"
+# The 4-digit PIN the rider asks for at the door (P18).
+- assertVisible:
+    id: "delivery-pin"
 - takeScreenshot: docs/screenshots/customer/07-tracking

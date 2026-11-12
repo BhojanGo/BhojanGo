@@ -244,7 +244,11 @@ async def offer_next(order: str) -> str | None:
         eta = eta_for(info, (fix["lat"], fix["lng"])) if fix else None
         offer = {"order_id": order, "rider_id": rider, "expires_at": _iso(expires), "expires_in": timeout,
                  "distance_km": round(float(dist_km), 2), "restaurant_name": info.get("restaurant_name"),
-                 "pickup": info["pickup"], "dropoff": info.get("dropoff"), "eta": eta}
+                 "pickup": info["pickup"], "dropoff": info.get("dropoff"), "eta": eta,
+                 # P18: what the offer card shows
+                 **{k: info.get(k) for k in ("code", "currency", "rider_pay", "tip", "items_count", "bags",
+                                             "ready_in_minutes", "drop_area", "distance_unit")},
+                 "trip_km": _trip_km(info)}
         await r.set(offer_key(order), json.dumps(offer), ex=timeout + 5)
         await r.hset(state_key(rider), mapping={"status": "offered", "order_id": order})
         await r.zadd(OFFER_EXPIRY, {order: expires})
@@ -254,6 +258,13 @@ async def offer_next(order: str) -> str | None:
     await r.zadd(RETRY, {order: _now() + _s().DISPATCH_RETRY_SECONDS})
     logger.info("no_rider_available", order_id=order, nearby=len(near), declined=len(declined))
     return None
+
+
+def _trip_km(info: dict) -> float | None:
+    """Pickup to drop-off, by the routing provider (road distance)."""
+    if not info.get("pickup") or not info.get("dropoff"):
+        return None
+    return round(get_routing_provider().leg(tuple(info["pickup"]), tuple(info["dropoff"])).distance_km, 2)  # type: ignore[arg-type]
 
 
 async def current_offer(rider: str) -> dict | None:
@@ -383,6 +394,46 @@ async def on_order_event(event: dict) -> None:
             if state.get("order_id") == order:
                 await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
                 await _engaged(rider, False)
+
+
+# ── SOS ───────────────────────────────────────────────────────────────────────
+
+SOS_OPEN = "sos:open"
+SOS_CHANNEL = "ops:sos"
+EMERGENCY = {"IN": "112", "US": "911"}
+
+
+async def raise_sos(rider: str, country: str, lat: float | None, lng: float | None, note: str | None) -> dict:
+    """Store the alert (kept 7 days) and tell the ops consoles listening on ops:sos."""
+    import uuid
+
+    r = await get_redis()
+    state = await r.hgetall(state_key(rider))
+    order = state.get("order_id") or None
+    fix = await last_fix(rider)
+    if lat is None and fix:
+        lat, lng = fix["lat"], fix["lng"]
+    info = await order_info(order) if order else None
+    alert = {"id": str(uuid.uuid4()), "rider_id": rider, "country": country, "order_id": order,
+             "market_city": (info or {}).get("market_city"), "lat": lat, "lng": lng, "note": note,
+             "at": datetime.now(UTC).isoformat()}
+    await r.set(f"sos:{alert['id']}", json.dumps(alert), ex=7 * DAY)
+    await r.zadd(SOS_OPEN, {alert["id"]: _now()})
+    await _publish(SOS_CHANNEL, "sos", alert)
+    logger.warning("rider_sos", **{k: v for k, v in alert.items() if k != "note"})
+    return {**alert, "emergency_number": EMERGENCY.get(country, "112")}
+
+
+async def open_sos(limit: int = 100) -> list[dict]:
+    r = await get_redis()
+    out = []
+    for sid in await r.zrevrange(SOS_OPEN, 0, limit - 1):
+        raw = await r.get(f"sos:{sid}")
+        if raw:
+            out.append(json.loads(raw))
+        else:
+            await r.zrem(SOS_OPEN, sid)
+    return out
 
 
 # ── shadow batching ───────────────────────────────────────────────────────────

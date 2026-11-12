@@ -34,6 +34,9 @@ class Order(Base):
     placed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     rider_assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # P18: the customer gives the rider this PIN at the door; the proof the rider gave.
+    delivery_pin: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    delivery_proof: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     # Dispatch and tracking (P14): the restaurant and the delivery point.
     pickup_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     pickup_lng: Mapped[float | None] = mapped_column(Float, nullable=True)

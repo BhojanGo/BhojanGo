@@ -83,8 +83,24 @@ async def get(client: AsyncClient, h: dict, order_id: str) -> dict:
     return r.json()
 
 
-async def move(client: AsyncClient, h: dict, order_id: str, new: str):  # type: ignore[no-untyped-def]
-    return await client.put(f"/api/v1/orders/{order_id}/status", headers=h, json={"status": new})
+PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
+
+
+async def upload(client: AsyncClient, h: dict, purpose: str = "delivery_proof"):  # type: ignore[no-untyped-def]
+    return await client.post("/api/v1/uploads", headers=h, data={"purpose": purpose},
+                              files={"file": ("door.png", PNG, "image/png")})
+
+
+async def move(client: AsyncClient, h: dict, order_id: str, new: str, proof: dict | None = None):  # type: ignore[no-untyped-def]
+    """Move an order on. A rider delivering sends a photo of the door (P18) unless a proof is given."""
+    body: dict = {"status": new}
+    if new == "delivered" and proof is None:
+        r = await upload(client, h)
+        if r.status_code == 201:
+            proof = {"method": "photo", "photo_key": r.json()["key"]}
+    if proof:
+        body["proof"] = proof
+    return await client.put(f"/api/v1/orders/{order_id}/status", headers=h, json=body)
 
 
 async def sweep(minutes: float) -> dict:

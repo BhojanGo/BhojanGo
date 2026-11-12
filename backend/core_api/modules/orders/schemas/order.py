@@ -63,9 +63,20 @@ class OrderCreateRequest(BaseModel):
     quote_token: str = Field(min_length=20)
 
 
+class DeliveryProof(BaseModel):
+    """How the rider proved the drop-off (P18): the customer's PIN, or a photo
+    uploaded with POST /uploads (purpose delivery_proof)."""
+
+    method: Literal["pin", "photo"]
+    pin: str | None = Field(default=None, pattern=r"^\d{4}$")
+    photo_key: str | None = Field(default=None, max_length=300)
+
+
 class OrderStatusUpdateRequest(BaseModel):
     status: OrderStatus
     note: str | None = None
+    # Required when a rider marks the order delivered.
+    proof: DeliveryProof | None = None
 
 
 class OrderCancelRequest(BaseModel):
@@ -93,6 +104,10 @@ class OrderResponse(BaseModel):
     driver_id: uuid.UUID | None
     # The assigned rider as the customer sees them (first name only); GET /orders/{id}.
     rider: dict | None = None
+    # The PIN the customer gives the rider at the door (P18): GET /orders/{id}, customer only.
+    pin: str | None = None
+    # The customer as the assigned rider sees them ("Sam P."), P18.
+    customer: dict | None = None
     items: list[dict[str, Any]]
     status: str
     market_city: str | None = None
@@ -119,6 +134,11 @@ class OrderResponse(BaseModel):
     is_long_distance: bool = False
     status_history: list[dict[str, Any]] = []
     delivery_address: dict[str, Any]
+    # The restaurant and the drop-off point, for the rider's and customer's maps (P18).
+    pickup_lat: float | None = None
+    pickup_lng: float | None = None
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
     payment_method: str
     payment_intent_id: str | None
     estimated_delivery_time: datetime | None
