@@ -17,6 +17,7 @@ from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_u
 from core_api.modules.catalog.models.menu import MenuItem
 from core_api.modules.catalog.models.options import OptionGroup, StoreHours, StoreHoursOverride
 from core_api.modules.catalog.models.restaurant import Restaurant
+from core_api.modules.catalog.service import access
 from core_api.modules.catalog.service import menu as svc
 from core_api.modules.catalog.service.lookup import restaurant_city_code
 from shared import authz
@@ -77,20 +78,11 @@ class LicenceIn(BaseModel):
 
 
 async def _restaurant(db: AsyncSession, rid: uuid.UUID) -> Restaurant:
-    r = await db.get(Restaurant, rid)
-    if r is None or r.deleted_at is not None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    return r
+    return await access.restaurant_or_404(db, rid)
 
 
 async def _manage(db: AsyncSession, user: CurrentUser, rid: uuid.UUID) -> Restaurant:
-    r = await _restaurant(db, rid)
-    if r.owner_id == user.id:
-        return r
-    city = await restaurant_city_code(db, r.id) or r.country
-    if authz.can([authz.Assignment.parse(a) for a in user.admin], "partners.edit", city):
-        return r
-    raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "FORBIDDEN", "message": "Not your restaurant"})
+    return await access.manage(db, user, rid)
 
 
 def _menu_error(e: svc.MenuError) -> HTTPException:
