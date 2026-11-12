@@ -2,6 +2,7 @@
 # ALB + WAF — the only edge (ADR-008): TLS, path routing to the three ECS
 # services, AWS managed rule sets and a per-IP rate limit. No API gateway.
 #   /ws/*, /api/v1/delivery/*, /api/v1/drivers/*  -> realtime
+#   /api/v1/riders/*, /api/v1/offers/*, /api/v1/dispatch/* -> realtime (P14)
 #   /api/v1/notifications*                         -> worker
 #   everything else                                -> core-api
 # ──────────────────────────────────────────────
@@ -33,9 +34,11 @@ locals {
     "worker"   = 8006
   }
 
+  # One listener rule takes at most five path patterns.
   routes = {
-    "realtime" = { priority = 100, paths = ["/ws/*", "/api/v1/delivery/*", "/api/v1/drivers/*"] }
-    "worker"   = { priority = 110, paths = ["/api/v1/notifications", "/api/v1/notifications/*"] }
+    "realtime"          = { service = "realtime", priority = 100, paths = ["/ws/*", "/api/v1/delivery/*", "/api/v1/drivers/*"] }
+    "realtime-dispatch" = { service = "realtime", priority = 105, paths = ["/api/v1/riders/*", "/api/v1/offers/*", "/api/v1/dispatch/*"] }
+    "worker"            = { service = "worker", priority = 110, paths = ["/api/v1/notifications", "/api/v1/notifications/*"] }
   }
 
   https = var.certificate_arn != ""
@@ -112,7 +115,7 @@ resource "aws_lb_listener_rule" "services" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.services[each.key].arn
+    target_group_arn = aws_lb_target_group.services[each.value.service].arn
   }
 
   condition {

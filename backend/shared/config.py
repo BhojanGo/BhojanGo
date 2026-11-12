@@ -114,6 +114,11 @@ class RealtimeSettings(BaseSettings):
     model_config = _ENV
 
     DRIVER_LOCATION_TTL: int = 30  # seconds
+    # Dispatch (P14): offer to riders within this distance of the restaurant,
+    # and only those whose last GPS fix is fresh (DRIVER_LOCATION_TTL).
+    DISPATCH_RADIUS_KM: float = 6.0
+    DISPATCH_RETRY_SECONDS: int = 15  # no rider free: try again after this
+    SQS_QUEUE_URL_ORDERS: str = ""  # order events (order topic -> this queue)
 
     SNS_TOPIC_ARN_DELIVERY: str = ""
     SQS_QUEUE_URL_DELIVERY: str = ""
@@ -221,6 +226,10 @@ class Settings(BaseSettings):
     JWKS_URL: str = ""  # realtime/worker: core_api's /.well-known/jwks.json
     JWT_DEV_KEY_PATH: str = Field(default_factory=lambda: str(Path(tempfile.gettempdir()) / "bhojango-jwt-dev.pem"))
     JWT_SECRET: str = ""  # unused since P5 (HS256 -> RS256); kept so old env files still load
+
+    # realtime -> core_api internal calls (shared/internal_auth.py, P14)
+    INTERNAL_SERVICE_SECRET: str = "local-internal-secret"  # placeholder; production sets its own
+    CORE_API_URL: str = "http://localhost:8001"
 
     # AWS
     AWS_REGION: str = "us-east-1"

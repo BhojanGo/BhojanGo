@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.auth import _decode_token
 from app.core.redis import get_redis, order_tracking_channel
+from app.services.core_api import CoreApiError
 
 router = APIRouter(tags=["WebSocket"])
 logger = structlog.get_logger(__name__)
@@ -101,12 +102,30 @@ async def track_order(
         await websocket.close(code=4001, reason="Unauthorized")
         return
 
+    # Only the customer, the assigned rider and admins for the city may watch (P14).
+    from app.api.v1.delivery import can_see
+    from app.services import dispatch
+
+    try:
+        uuid.UUID(order_id)
+        info = await dispatch.order_info(order_id, refresh=True)
+    except (ValueError, CoreApiError):
+        info = None
+    if info is None or not can_see(current_user, info):
+        await websocket.close(code=4004, reason="Order not found")
+        return
+
     await manager.connect(websocket, order_id)
 
-    # Send initial connection confirmation
+    # Send the current picture first: status, rider position, ETA, the trail so far.
+    fix = await dispatch.last_fix(info["driver_id"]) if info.get("driver_id") else None
+    trail = [json.loads(x) for x in await (await get_redis()).lrange(f"trail:{order_id}", 0, 199)]
     await websocket.send_json({
         "type": "connected",
-        "payload": {"order_id": order_id, "user_id": current_user.user_id},
+        "payload": {"order_id": order_id, "user_id": current_user.user_id, "status": info.get("status"),
+                    "driver_id": info.get("driver_id"), "location": fix,
+                    "eta": dispatch.eta_for(info, (fix["lat"], fix["lng"])) if fix else None,
+                    "pickup": info.get("pickup"), "dropoff": info.get("dropoff"), "trail": list(reversed(trail))},
         "timestamp": datetime.now(UTC).isoformat(),
     })
 

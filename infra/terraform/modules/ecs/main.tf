@@ -53,6 +53,7 @@ locals {
   secret = {
     database_url          = "${var.db_secret_arn}:url::"
     jwt_private_key       = "${var.jwt_secret_arn}:private_key::"
+    internal_secret       = "${var.jwt_secret_arn}:internal_secret::"
     redis_password        = "${var.redis_secret_arn}:password::"
     stripe_secret_key     = "${var.app_secret_arns["stripe"]}:secret_key::"
     stripe_webhook_secret = "${var.app_secret_arns["stripe"]}:webhook_secret::"
@@ -95,6 +96,7 @@ locals {
       secrets = {
         DATABASE_URL            = local.secret.database_url
         JWT_PRIVATE_KEY         = local.secret.jwt_private_key
+        INTERNAL_SERVICE_SECRET = local.secret.internal_secret
         REDIS_PASSWORD          = local.secret.redis_password
         STRIPE_SECRET_KEY       = local.secret.stripe_secret_key
         STRIPE_WEBHOOK_SECRET   = local.secret.stripe_webhook_secret
@@ -118,9 +120,13 @@ locals {
         REDIS_URL              = "rediss://${var.redis_endpoint}:6379/3"
         SNS_TOPIC_ARN_DELIVERY = var.sns_topic_arns["driver_events"]
         JWKS_URL               = var.jwks_url
+        # Dispatch (P14): order events in, signed calls out to core_api.
+        SQS_QUEUE_URL_ORDERS = var.sqs_queue_urls["order_events"]
+        CORE_API_URL         = var.core_api_url
       }
       secrets = {
-        REDIS_PASSWORD = local.secret.redis_password
+        REDIS_PASSWORD          = local.secret.redis_password
+        INTERNAL_SERVICE_SECRET = local.secret.internal_secret
       }
     }
     "worker" = {
@@ -134,8 +140,9 @@ locals {
         SQS_QUEUE_URL_NOTIFICATION = var.sqs_queue_urls["notifications"]
         JWKS_URL                   = var.jwks_url
         # The outbox relay (P11) publishes order/payment events to these topics.
-        SNS_TOPIC_ARN_ORDER   = var.sns_topic_arns["order_events"]
-        SNS_TOPIC_ARN_PAYMENT = var.sns_topic_arns["payment_events"]
+        SNS_TOPIC_ARN_ORDER    = var.sns_topic_arns["order_events"]
+        SNS_TOPIC_ARN_PAYMENT  = var.sns_topic_arns["payment_events"]
+        SNS_TOPIC_ARN_DELIVERY = var.sns_topic_arns["driver_events"]
       }
       secrets = {
         DATABASE_URL            = local.secret.database_url

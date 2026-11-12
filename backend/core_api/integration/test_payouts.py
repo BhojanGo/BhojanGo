@@ -154,6 +154,9 @@ async def test_weekly_draft_on_payout_day(client: AsyncClient) -> None:
     partner, rider = await login(client, "partner.boi@example.com"), await login(client, "rider1.boi@example.com")
     for s in ("accepted", "preparing", "ready"):
         await move(client, partner, o["id"], s)
+    from core_api.integration.test_orders_flow import assign
+
+    assert (await assign(client, o["id"], rider)).status_code == 200
     await move(client, rider, o["id"], "picked_up")
     await move(client, rider, o["id"], "delivered")
 

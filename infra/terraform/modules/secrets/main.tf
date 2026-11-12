@@ -50,9 +50,19 @@ resource "aws_secretsmanager_secret" "jwt" {
   tags                    = merge(var.tags, { Name = "${var.name}/jwt" })
 }
 
+# Shared secret for signed realtime -> core_api calls (shared/internal_auth.py).
+resource "random_password" "internal" {
+  length  = 48
+  special = false
+}
+
 resource "aws_secretsmanager_secret_version" "jwt" {
-  secret_id     = aws_secretsmanager_secret.jwt.id
-  secret_string = jsonencode({ private_key = tls_private_key.jwt.private_key_pem, algorithm = "RS256" })
+  secret_id = aws_secretsmanager_secret.jwt.id
+  secret_string = jsonencode({
+    private_key     = tls_private_key.jwt.private_key_pem
+    algorithm       = "RS256"
+    internal_secret = random_password.internal.result
+  })
 }
 
 resource "aws_secretsmanager_secret" "app" {

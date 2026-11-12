@@ -66,6 +66,13 @@ export const AWS_CONFIG = {
   sqsOrderEventsUrl: env("SQS_QUEUE_URL_BATCH", ""),
 } as const;
 
+// ── Shadow mode (P14) ───────────────────────────────────────────────────────
+// Dispatch is single-order (backend/realtime). The batch engine still runs and
+// scores batches, but publishes nothing and lets no rider accept a batch until
+// SHADOW_MODE=false is set on purpose.
+
+export const SHADOW_MODE = env("SHADOW_MODE", "true") !== "false";
+
 // ── Batch Engine Rules ──────────────────────────────────────────────────────
 
 export const ENGINE_CONFIG: BatchEngineConfig = {

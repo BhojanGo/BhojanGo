@@ -42,6 +42,11 @@ variable "jwt_secret_arn" {
   type = string
 }
 
+variable "core_api_url" {
+  description = "Where realtime reaches core_api's internal endpoints"
+  type        = string
+}
+
 variable "jwks_url" {
   description = "core_api's JWKS (public token keys) for realtime and worker"
   type        = string

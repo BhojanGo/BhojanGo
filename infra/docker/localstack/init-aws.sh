@@ -28,8 +28,11 @@ for t in order payment; do
   aws sns subscribe --topic-arn "$(topic_arn "$t")" --protocol sqs \
     --notification-endpoint "$(queue_arn bhojango-notification-events)" >/dev/null
 done
-aws sns subscribe --topic-arn "$(topic_arn order)" --protocol sqs \
-  --notification-endpoint "$(queue_arn bhojango-order-events)" >/dev/null
+# realtime reads order and rider-assignment events (dispatch, live tracking).
+for t in order driver; do
+  aws sns subscribe --topic-arn "$(topic_arn "$t")" --protocol sqs \
+    --notification-endpoint "$(queue_arn bhojango-order-events)" >/dev/null
+done
 aws sns subscribe --topic-arn "$(topic_arn driver)" --protocol sqs \
   --notification-endpoint "$(queue_arn bhojango-delivery-events)" >/dev/null
 

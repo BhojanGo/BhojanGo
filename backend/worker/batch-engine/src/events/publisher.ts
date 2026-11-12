@@ -10,7 +10,7 @@
  */
 
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
-import { AWS_CONFIG } from "../config";
+import { AWS_CONFIG, SHADOW_MODE } from "../config";
 import { BatchEvent } from "../types";
 import { logger } from "../utils/logger";
 
@@ -24,6 +24,10 @@ const sns = new SNSClient({
  * Fails silently in development if SNS is not configured.
  */
 export async function publishBatchEvent(event: BatchEvent): Promise<void> {
+  if (SHADOW_MODE) {
+    logger.info("Shadow mode: batch event not published", { type: event.type, batchId: event.batchId });
+    return;
+  }
   if (!AWS_CONFIG.snsTopicArn) {
     logger.debug("SNS not configured — skipping event publish", {
       eventType: event.type,

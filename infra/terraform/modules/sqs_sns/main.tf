@@ -71,6 +71,13 @@ resource "aws_sns_topic_subscription" "order_to_order_events" {
   endpoint  = aws_sqs_queue.queues["order_events"].arn
 }
 
+# realtime also needs rider assignments (driver.assigned) for live tracking.
+resource "aws_sns_topic_subscription" "driver_to_order_events" {
+  topic_arn = aws_sns_topic.topics["driver_events"].arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.queues["order_events"].arn
+}
+
 # ── SQS Policies (allow SNS to send) ────────
 resource "aws_sqs_queue_policy" "allow_sns" {
   for_each  = local.queues
