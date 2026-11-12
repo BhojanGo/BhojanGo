@@ -1,0 +1,40 @@
+# Used by `make ci-e2e` on top of compose.yaml: the whole backend (core-api,
+# realtime, worker, Postgres, Redis, LocalStack, Mailpit) as its own project
+# with no host ports, so it never clashes with `make dev`. The g1 runner sits
+# on the same network and runs backend/e2e (the Phase 1 gate) against it, then
+# everything is torn down with its volumes.
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  localstack:
+    ports: !reset []
+  mailpit:
+    ports: !reset []
+  core-api:
+    ports: !reset []
+  realtime:
+    ports: !reset []
+  worker:
+    ports: !reset []
+
+  g1:
+    profiles: ["e2e"]
+    build:
+      context: ../..
+      dockerfile: infra/docker/test.Dockerfile
+      target: migrations
+    working_dir: /repo/backend
+    command: ["uv", "run", "--frozen", "pytest", "e2e", "-v", "--tb=short", "-p", "no:cacheprovider"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      REDIS_URL: redis://redis:6379/0
+      JWT_DEV_KEY_PATH: /srv/keys/jwt-dev.pem  # the same signing key as core-api (quote tokens)
+      E2E_CORE_API: http://core-api:8001
+      E2E_REALTIME: http://realtime:8004
+      E2E_WORKER: http://worker:8006
+      E2E_MAILPIT: http://mailpit:8025
+    volumes:
+      - jwt_keys:/srv/keys:ro
