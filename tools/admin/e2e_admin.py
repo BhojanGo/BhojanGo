@@ -59,6 +59,10 @@ def check(name: str, fn) -> None:  # type: ignore[no-untyped-def]
         print("FAIL", name, str(e)[:300], flush=True)
 
 
+def _ok(v: bool) -> None:
+    assert v
+
+
 def fail(msg: str):  # type: ignore[no-untyped-def]
     raise AssertionError(msg)
 
@@ -181,6 +185,33 @@ with sync_playwright() as p:
     page.screenshot(path=f"{OUT}/07-pricing-rules.png", full_page=True)
     page.get_by_role("link", name="Price simulator", exact=True).click()
     check("price simulator opens from Pricing & Rules", lambda: expect(page.get_by_role("heading", name=re.compile("Price simulator"))).to_be_visible(timeout=15000))
+
+    # A kitchen's own offer is live without approval; an admin pauses it (B4).
+    partner_h = token("partner.hyd@example.com")
+    offer_name = f"Rs 40 off, admin pause {uuid.uuid4().hex[:4]}"
+    for o in api.get(f"{CORE}/restaurants/{rest['id']}/offers", headers=partner_h).json():  # left from an earlier run
+        if o["name"].startswith("Rs 40 off, admin pause"):
+            api.post(f"{CORE}/restaurants/{rest['id']}/offers/{o['id']}/end", headers=partner_h)
+    offers = api.post(f"{CORE}/restaurants/{rest['id']}/offers", headers=partner_h, data={
+        "template": "flat_off", "name": offer_name, "amount": "40", "weekly_cap": "2000"}).json()
+    offer = next(o for o in offers if o["name"] == offer_name)
+    page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=promotion", wait_until="networkidle")
+    page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile(re.escape(offer_name))).first.click()
+    box = page.get_by_role("region", name="The kitchen's own offer")
+    check("promotions: the kitchen's own offer is live without approval", lambda: expect(box.get_by_text(re.compile("went live without approval"))).to_be_visible(timeout=15000))
+    box.get_by_label("Why pause it (the kitchen sees this)").fill("Looks like a typo in the amount; please check")
+    box.get_by_role("button", name="Pause offer").click()
+    check("promotions: paused, the reason shown, audited", lambda: (
+        expect(page.get_by_role("region", name="Rules").get_by_text("Paused").first).to_be_visible(timeout=15000),
+        page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile(re.escape(offer_name))).first.click(),
+        expect(page.get_by_role("region", name="The kitchen's own offer").get_by_text(re.compile("Looks like a typo"))).to_be_visible(timeout=15000),
+        expect(page.get_by_role("button", name="Resume offer")).to_be_visible(),
+        _ok(any(o["id"] == offer["id"] and o["paused"] for o in api.get(f"{CORE}/restaurants/{rest['id']}/offers", headers=partner_h).json())),
+        _ok(any(a["action"] == "offer.paused" for a in api.get(f"{CORE}/audit", headers=token("admin@example.com", PW), params={"entity_type": "rule"}).json()))))
+    page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile(re.escape(offer_name))).first.click()
+    expect(page.get_by_role("button", name="Resume offer")).to_be_visible(timeout=10000)
+    page.screenshot(path=f"{OUT}/07b-offer-paused.png", full_page=True)
+    api.post(f"{CORE}/restaurants/{rest['id']}/offers/{offer['id']}/end", headers=partner_h)
 
     page.goto(f"{BASE}/markets/IN/IN-TG-HYD", wait_until="networkidle")
     check("markets: the city with its zones", lambda: expect(page.get_by_text(re.compile("Zones")).first).to_be_visible(timeout=15000))

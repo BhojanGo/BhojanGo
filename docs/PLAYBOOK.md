@@ -65,6 +65,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 20. **Don't run emulator flows while `make ci` loads the machine; if one fails at its first screen, look at the screenshot before changing the flow.**
     Why: under CI load the tablet showed "System UI isn't responding" over the app and the sign-in assertion failed. Nothing was wrong with the app. The e2e runner now answers those dialogs, and the flows run after CI.
 
+21. **Tests never delete shared fixtures they didn't create; and export `COMPOSE_PROJECT_NAME=bhojango-e2e` in every command that runs an e2e script.**
+    Why: a regression test removed the conftest's "open all day" hours and every later integration test failed with "Closed now" after midnight in India; an admin e2e run without the variable joined the wrong compose network and couldn't find core-api.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

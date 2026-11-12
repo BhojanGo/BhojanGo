@@ -69,6 +69,8 @@ class RuleOut(BaseModel):
     created_by: uuid.UUID | None
     created_at: datetime
     money: bool = False
+    paused_at: datetime | None = None
+    paused_reason: str | None = None
 
 
 class ApprovalOut(BaseModel):

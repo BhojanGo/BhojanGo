@@ -38,6 +38,7 @@ def snapshot(r: Rule) -> dict[str, Any]:
         "scope_id": r.scope_id, "priority": r.priority, "locked": r.locked, "status": r.status,
         "effective_from": r.effective_from.isoformat() if r.effective_from else None,
         "effective_to": r.effective_to.isoformat() if r.effective_to else None,
+        "paused": r.paused_at is not None, "paused_reason": r.paused_reason,
     }
 
 
@@ -274,12 +275,42 @@ class RuleService:
                            scope=r.market_scope, before=before, after=snapshot(r))
         return r
 
+    # ── pause (B4) ───────────────────────────────────────────────────────────
+    async def pause(self, actor: uuid.UUID, rule_id: uuid.UUID, reason: str) -> Rule:
+        """Stop a kitchen's own offer for now without ending it: it stops
+        applying at once and the kitchen sees why. Resume brings it back."""
+        r = await self.get(rule_id)
+        if r.family != "promotion" or r.scope_level != "restaurant" or r.params.get("funded_by") != "restaurant":
+            raise RuleError("Only a kitchen's own offer can be paused; end other rules instead")
+        if r.status != "published" or (r.effective_to is not None and r.effective_to <= now()):
+            raise RuleError("Only a live offer can be paused")
+        if r.paused_at is not None:
+            raise RuleError("This offer is already paused")
+        before = snapshot(r)
+        r.paused_at, r.paused_by, r.paused_reason = now(), actor, reason.strip()
+        await self.db.flush()
+        await audit.record(self.db, actor_id=actor, action="offer.paused", entity_type="rule", entity_id=r.rule_key,
+                           scope=r.market_scope, before=before, after=snapshot(r))
+        return r
+
+    async def resume(self, actor: uuid.UUID, rule_id: uuid.UUID) -> Rule:
+        r = await self.get(rule_id)
+        if r.paused_at is None:
+            raise RuleError("This offer isn't paused")
+        before = snapshot(r)
+        r.paused_at = r.paused_by = r.paused_reason = None
+        await self.db.flush()
+        await audit.record(self.db, actor_id=actor, action="offer.resumed", entity_type="rule", entity_id=r.rule_key,
+                           scope=r.market_scope, before=before, after=snapshot(r))
+        return r
+
     # ── resolve ──────────────────────────────────────────────────────────────
     async def candidates(self, ctx: Context, at: datetime) -> list[Candidate]:
         pairs = ctx.scope_ids()
         conds = [(Rule.scope_level == lvl) & (Rule.scope_id == sid) for lvl, sid in pairs.items()]
         q = select(Rule).where(
             Rule.status == "published",
+            Rule.paused_at.is_(None),  # B4: paused by an admin
             or_(*conds),
             Rule.effective_from <= at,
             or_(Rule.effective_to.is_(None), Rule.effective_to > at),

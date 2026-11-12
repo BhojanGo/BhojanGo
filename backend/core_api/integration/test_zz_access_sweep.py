@@ -237,6 +237,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/rules/{rule_id}/approve"): admin("viewer", "ops_boi", "cm_us", body=lambda c: {}),
     ("POST", "/api/v1/rules/{rule_id}/reject"): admin("viewer", "ops_boi", "cm_us", body=lambda c: {"note": "sweep"}),
     ("POST", "/api/v1/rules/{rule_id}/rollback"): admin("viewer", "ops_boi", "cm_us"),
+    # B4: pause/resume a kitchen's own offer (partners.edit or rules.approve in its city)
+    ("POST", "/api/v1/rules/{rule_id}/pause"): admin("viewer", "ops_boi", "cm_us", "support_hyd", body=lambda c: {"reason": "Sweep"}),
+    ("POST", "/api/v1/rules/{rule_id}/resume"): admin("viewer", "ops_boi", "cm_us", "support_hyd"),
     ("POST", "/api/v1/rules/{rule_id}/end"): admin("viewer", "ops_boi", "cm_us", body=lambda c: {}),
     ("GET", "/api/v1/markets"): admin(),
     ("POST", "/api/v1/markets/countries"): admin("cm_in", "viewer", body=lambda c: {

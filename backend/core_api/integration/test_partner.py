@@ -151,3 +151,63 @@ async def test_application_steps(client: AsyncClient) -> None:
     assert a["payout_account"] is None  # still needs the bank
     # The pending kitchen isn't listed for customers.
     assert all(x["id"] != rid for x in (await client.get("/api/v1/restaurants", params={"limit": 100})).json()["items"])
+
+
+async def test_admin_pauses_a_kitchens_offer(client: AsyncClient) -> None:
+    """B4: a kitchen's own offer goes live without approval; city ops can pause it
+    (the kitchen sees why, customers stop getting it) and resume it, all audited."""
+    partner, cust = await login(client, "partner.hyd@example.com"), await login(client, "customer1.hyd@example.com")
+    rid, item = await spice(client)
+    r = await client.post(f"/api/v1/restaurants/{rid}/offers", headers=partner, json={
+        "template": "flat_off", "name": "₹60 off, pause test", "amount": "60", "weekly_cap": "100000"})
+    offer = next(x for x in r.json() if x["name"] == "₹60 off, pause test")
+    assert r.status_code == 201 and offer["live"] and not offer["paused"]  # live at once, no approval
+
+    def kitchen_promo(q: dict) -> list[float]:
+        return [float(ln["amount"]) for ln in q["lines"] if ln["code"] == "promotion" and ln.get("funded_by") == "restaurant"]
+
+    try:
+        assert kitchen_promo(await quote(client, cust, rid, item)) == [-60]
+        pw = "BhojanGoAdmin1"
+        for who in ("ops.boi@example.com", "support.hyd@example.com", "viewer@example.com"):
+            h = await login(client, who, pw)
+            assert (await client.post(f"/api/v1/rules/{offer['id']}/pause", headers=h, json={"reason": "Checking it"})).status_code in (403, 404)
+        ops = await login(client, "ops.hyd@example.com", pw)
+        r = await client.post(f"/api/v1/rules/{offer['id']}/pause", headers=ops, json={"reason": "Price looks wrong, please check"})
+        assert r.status_code == 200 and r.json()["paused_reason"] == "Price looks wrong, please check", r.text
+        assert (await client.post(f"/api/v1/rules/{offer['id']}/pause", headers=ops, json={"reason": "again"})).status_code == 409
+        assert kitchen_promo(await quote(client, cust, rid, item)) == []
+        listed = next(x for x in (await client.get(f"/api/v1/restaurants/{rid}/offers", headers=partner)).json() if x["id"] == offer["id"])
+        assert listed["paused"] and not listed["live"] and listed["paused_reason"] == "Price looks wrong, please check"
+
+        r = await client.post(f"/api/v1/rules/{offer['id']}/resume", headers=ops)
+        assert r.status_code == 200 and r.json()["paused_at"] is None
+        assert kitchen_promo(await quote(client, cust, rid, item)) == [-60]
+
+        # Only kitchens' own offers pause; platform rules are ended instead.
+        rules = (await client.get("/api/v1/rules", headers=ops, params={"family": "delivery_fee"})).json()
+        hyd = next(x for x in rules if x["status"] == "published" and x["market_scope"].startswith("IN"))
+        cm = await login(client, "cm.in@example.com", pw)
+        assert (await client.post(f"/api/v1/rules/{hyd['id']}/pause", headers=cm, json={"reason": "nope"})).status_code == 409
+
+        from sqlalchemy import select
+
+        from core_api.modules.audit.models import AuditLog
+        from shared.db import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            acts = [a.action for a in (await db.execute(select(AuditLog).where(AuditLog.entity_id == r.json()["rule_key"])
+                                                         .order_by(AuditLog.at))).scalars()]
+        assert acts[-2:] == ["offer.paused", "offer.resumed"] and "partner_offer_started" in acts
+    finally:
+        await client.post(f"/api/v1/restaurants/{rid}/offers/{offer['id']}/end", headers=partner)
+
+
+async def test_today_when_open_all_day(client: AsyncClient) -> None:
+    """Regression: with an "open all day" override (00:00–00:00, which conftest
+    gives every seeded restaurant) there's no closing time; the tablet's /today
+    fell back to the legacy closes_at string and crashed."""
+    partner = await login(client, "partner.hyd@example.com")
+    rid, _ = await spice(client)
+    r = await client.get(f"/api/v1/restaurants/{rid}/today", headers=partner)
+    assert r.status_code == 200, r.text
