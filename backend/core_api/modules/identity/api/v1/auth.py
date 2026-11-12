@@ -37,7 +37,7 @@ security = BearerAuth()
 async def register(
     request: Request,
     data: RegisterRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
     """Register a new customer account."""
     return await AuthService(db).register(data)
@@ -48,7 +48,7 @@ async def register(
 async def login(
     request: Request,
     data: LoginRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
     """Login with email and password."""
     return await AuthService(db).login(data)
@@ -57,7 +57,7 @@ async def login(
 @router.post("/refresh", response_model=AuthTokensResponse)
 async def refresh_token(
     data: RefreshTokenRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
     """Exchange a refresh token for a new access + refresh token pair."""
     return await AuthService(db).refresh(data.refresh_token)
@@ -67,7 +67,7 @@ async def refresh_token(
 async def logout(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
     current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Logout — invalidates the current access token and all refresh tokens."""
     await AuthService(db).logout(credentials.credentials, str(current_user.id))
@@ -79,7 +79,7 @@ async def logout(
 async def send_otp(
     request: Request,
     data: OtpSendRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Send a 6-digit OTP to the given phone number via SMS."""
     success = await AuthService(db).send_otp(data)
@@ -96,7 +96,7 @@ async def send_otp(
 async def verify_otp(
     request: Request,
     data: OtpVerifyRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Verify the OTP and mark the phone number as verified."""
     verified = await AuthService(db).verify_otp_and_update(data)
@@ -113,7 +113,7 @@ async def verify_otp(
 async def phone_sign_in(
     request: Request,
     data: PhoneSignInRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
     """Sign in with the SMS code from /auth/send-otp. A new number gets a
     customer account (``is_new_user`` is true; ask for their name next)."""
@@ -133,7 +133,7 @@ async def jwks_alias() -> dict:
 async def reset_password(
     request: Request,
     data: ResetPasswordRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
     """Reset a forgotten password using an OTP sent to the account's phone number.
 
@@ -146,7 +146,7 @@ async def reset_password(
 @router.post("/social-login", response_model=AuthTokensResponse)
 async def social_login(
     data: SocialLoginRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
     """Login with Google or Apple identity token."""
     return await AuthService(db).social_login(data)

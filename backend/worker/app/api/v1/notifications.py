@@ -25,7 +25,7 @@ logger = structlog.get_logger(__name__)
 async def register_device_token(
     data: DeviceTokenRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> dict:
     """Register or update a device's FCM token."""
     # Upsert: if token exists, update user_id; otherwise create
@@ -47,7 +47,7 @@ async def register_device_token(
 async def remove_device_token(
     data: DeviceTokenRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> dict:
     """Remove a device token (on logout / app uninstall)."""
     result = await db.execute(
@@ -62,7 +62,7 @@ async def remove_device_token(
 @router.get("", response_model=NotificationListResponse)
 async def get_notifications(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
@@ -98,7 +98,7 @@ async def get_notifications(
 async def mark_notification_read(
     notification_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> dict:
     result = await db.execute(
         select(Notification).where(Notification.id == notification_id, Notification.user_id == current_user.id)

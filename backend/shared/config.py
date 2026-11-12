@@ -174,6 +174,7 @@ class ProviderSettings(BaseSettings):
     FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: float = 0
     FAKE_PAYMENT_WEBHOOK_URL: str = "http://localhost:8001/api/v1/payments/fake/webhook"
 
+    TAX_PROVIDER: str = "auto"  # auto | stripe_tax | local (US sales tax, P9)
     SMS_PROVIDER: str = "log"  # log | live (Twilio for US, MSG91 for India)
     MSG91_AUTH_KEY: str = ""
     # DLT-registered template id per message key, e.g. {"otp": "6650..."}

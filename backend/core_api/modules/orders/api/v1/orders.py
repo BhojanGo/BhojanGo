@@ -32,7 +32,7 @@ logger = structlog.get_logger(__name__)
 async def create_order(
     data: OrderCreateRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     idempotency_key: Annotated[str, Depends(validate_idempotency_key)],
 ) -> OrderResponse:
     """Create a new order."""
@@ -54,7 +54,7 @@ async def create_order(
 @router.get("", response_model=OrderListResponse)
 async def list_my_orders(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ) -> OrderListResponse:
@@ -74,7 +74,7 @@ async def list_my_orders(
 async def list_restaurant_orders(
     restaurant_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ) -> OrderListResponse:
@@ -95,7 +95,7 @@ async def list_restaurant_orders(
 @router.get("/admin/pain-points", response_model=PainPointMetrics)
 async def admin_pain_point_metrics(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> PainPointMetrics:
     """Aggregate pain-point analytics (admin / city-manager only)."""
     if current_user.role not in ("admin", "super_admin", "city_manager"):
@@ -107,7 +107,7 @@ async def admin_pain_point_metrics(
 @router.get("/driver/active", response_model=OrderResponse)
 async def get_driver_active_order(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
     """Get the driver's currently active order."""
     if current_user.role != "driver":
@@ -123,7 +123,7 @@ async def get_driver_active_order(
 async def get_order(
     order_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
     repo = OrderRepository(db)
     order = await repo.get_by_id(order_id)
@@ -141,7 +141,7 @@ async def get_order(
 async def get_order_breakdown(
     order_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> FeeBreakdown:
     """Customer-facing fee transparency breakdown for an order."""
     repo = OrderRepository(db)
@@ -167,7 +167,7 @@ async def get_order_breakdown(
 async def get_order_timeline(
     order_id: uuid.UUID,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderTimelineResponse:
     """Detailed order status timeline for customer transparency."""
     repo = OrderRepository(db)
@@ -192,7 +192,7 @@ async def update_order_status(
     order_id: uuid.UUID,
     data: OrderStatusUpdateRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
     """Update order status (restaurant/driver/admin only, enforces state machine)."""
     updated = await OrderService(db).update_status(order_id, data, current_user.id, current_user.role)
@@ -204,7 +204,7 @@ async def cancel_order(
     order_id: uuid.UUID,
     data: OrderCancelRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> OrderResponse:
     updated = await OrderService(db).cancel_order(order_id, data, current_user.id, current_user.role)
     return OrderResponse.model_validate(updated)

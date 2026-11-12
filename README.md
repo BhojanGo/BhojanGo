@@ -111,6 +111,12 @@ fees, taxes, tip, total, split) and returns every bill line plus a token valid f
 snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
 test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
 
+**Tax (P9):** India GST comes from rules (5% on food and packaging, 18% on platform fees). US
+sales tax comes from the tax provider: Stripe Tax when `STRIPE_SECRET_KEY` is set, otherwise a
+local stand-in with illustrative state rates (Idaho 6%; not tax advice). Every tax line in a
+quote and in the customer's bill (`GET /api/v1/pricing/orders/{id}/bill`) shows its rate and
+what it was charged on.
+
 **Sign-in (P5):** email + password, phone OTP, Sign in with Apple and Google (ID tokens
 verified against the providers' keys; set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`).
 Tokens are RS256: 15-minute access tokens and rotating refresh tokens (a reused refresh
@@ -127,6 +133,7 @@ needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateway
 | SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+9190000…`, `+120855500…`) always get **123456** |
 | Email | Mailpit | http://localhost:8025 |
 | Push | Printed in the worker log | `[PUSH to 1 device(s)] …` |
+| US sales tax (Stripe Tax) | Local stand-in with illustrative state rates (Idaho 6%) | "Idaho sales tax" line on Boise quotes |
 | Maps / ETA | Straight-line distance × 1.3 road factor, 25 km/h | `GET /api/v1/delivery/{order_id}/eta` on realtime |
 | Storage, queues | LocalStack (S3, SQS, SNS) | http://localhost:4566 |
 

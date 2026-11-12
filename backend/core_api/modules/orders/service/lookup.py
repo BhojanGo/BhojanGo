@@ -11,3 +11,9 @@ async def has_previous_orders(db: AsyncSession, customer_id: uuid.UUID) -> bool:
     """True when the customer has an order that wasn't cancelled (first-order offers)."""
     q = select(func.count()).select_from(Order).where(Order.customer_id == customer_id, Order.status != "cancelled")
     return bool((await db.execute(q)).scalar())
+
+
+async def order_customer(db: AsyncSession, order_id: uuid.UUID) -> uuid.UUID | None:
+    """Who placed the order (None if there is no such order)."""
+    order = await db.get(Order, order_id)
+    return order.customer_id if order else None

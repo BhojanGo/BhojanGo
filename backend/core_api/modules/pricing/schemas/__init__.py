@@ -22,6 +22,7 @@ class Where(BaseModel):
     address_id: uuid.UUID | None = None
     lat: float | None = Field(default=None, ge=-90, le=90)
     lng: float | None = Field(default=None, ge=-180, le=180)
+    postal_code: str | None = Field(default=None, max_length=20, description="US: needed for sales tax with a pin")
 
     @model_validator(mode="after")
     def one(self) -> "Where":
@@ -43,6 +44,7 @@ class BillLineOut(BaseModel):
     label: str
     amount: Decimal
     funded_by: str | None = None
+    detail: dict[str, str] | None = Field(default=None, description="Taxes: rate_percent, base, jurisdiction")
 
 
 class QuoteOut(BaseModel):

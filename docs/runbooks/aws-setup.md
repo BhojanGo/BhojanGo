@@ -97,6 +97,8 @@ GitHub OIDC means **no AWS keys are stored in GitHub**. If old secrets
      --secret-string '{"project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...","client_email":"...@....iam.gserviceaccount.com"}'
    ```
    The services start with placeholders; only OTP, payments, email and push need the real values.
+   US sales tax uses the same Stripe key: in the Stripe dashboard turn on **Stripe Tax** and add
+   your tax registrations (e.g. Idaho) before taking US orders.
 3. **Actions → CI/CD Pipeline → Run workflow** on `dev` (or merge anything into `dev`). The *Staging* job builds the images, runs the migrations and rolls out the three services.
 4. Check it:
    ```bash

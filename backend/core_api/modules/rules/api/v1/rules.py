@@ -37,7 +37,7 @@ from shared.db import get_db
 
 router = APIRouter(prefix="/rules", tags=["Rules"])
 
-DB = Annotated[AsyncSession, Depends(get_db)]
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 Viewer = Annotated[AdminContext, Depends(require_permission("rules.view"))]
 Editor = Annotated[AdminContext, Depends(require_permission("rules.edit"))]
 Approver = Annotated[AdminContext, Depends(require_permission("rules.approve"))]

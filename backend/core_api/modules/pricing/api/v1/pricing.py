@@ -12,7 +12,7 @@ from core_api.modules.pricing.service.quotes import QuoteError, QuoteService
 from shared.db import get_db
 
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
-DB = Annotated[AsyncSession, Depends(get_db)]
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 def _unprocessable(e: Exception) -> HTTPException:
@@ -37,6 +37,24 @@ async def get_quote(quote_id: uuid.UUID, user: Annotated[CurrentUser, Depends(ge
     except QuoteError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "QUOTE_EXPIRED", "message": str(e)})
     return {k: q[k] for k in ("quote_id", "restaurant_id", "currency", "total", "lines", "tax_pending", "expires_at", "items")}
+
+
+@router.get("/orders/{order_id}/bill")
+async def order_bill(order_id: uuid.UUID, user: Annotated[CurrentUser, Depends(get_current_user)], db: DB) -> dict:
+    """The fair bill of your order: every line, and each tax with its rate and
+    what it was charged on. (Who gets what stays internal.)"""
+    from core_api.modules.orders.service.lookup import order_customer
+
+    if await order_customer(db, order_id) != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Order not found")
+    snap = await QuoteService(db).snapshot(order_id)
+    if snap is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="This order has no itemised bill")
+    lines = [{k: ln.get(k) for k in ("code", "label", "amount", "funded_by", "detail")} for ln in snap.lines]
+    taxes = [ln for ln in lines if ln["code"] in ("tax", "tax_included")]
+    return {"order_id": str(order_id), "currency": snap.currency, "total": str(snap.total), "lines": lines,
+            "taxes": taxes, "zone": snap.context.get("zone"), "distance": snap.context.get("distance"),
+            "distance_unit": snap.context.get("distance_unit")}
 
 
 @router.get("/orders/{order_id}/snapshot")

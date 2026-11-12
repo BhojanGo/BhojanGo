@@ -167,14 +167,6 @@ def test_free_delivery_stacks_with_a_discount_and_untaxes_the_fee() -> None:
     assert q.split.restaurant == Decimal("486.00") - Decimal("35.00")
 
 
-def test_inclusive_tax_is_not_added() -> None:
-    incl = rule("tax", "rate_on_lines", {"label": "GST on food (included)", "rate_percent": 5,
-                                         "target_lines": ["food"], "inclusive": True}, key="gst_food")
-    q = quote(rules=hyderabad_rules(**{incl.slot: incl}))
-    assert "GST on food (included)" not in [ln.label for ln in q.lines]
-    assert q.split.tax == Decimal("11.02") + Decimal("24.29")  # 510 - 510/1.05 = 24.285... -> 24.29
-
-
 def test_restaurant_collected_tax_goes_to_the_restaurant() -> None:
     rest = rule("tax", "rate_on_lines", {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"],
                                          "collected_by": "restaurant"}, key="gst_food")
@@ -203,3 +195,47 @@ def test_empty_cart_and_no_delivery_rule() -> None:
         quote(lines=[])
     with pytest.raises(NotDeliverable):
         quote(rules=hyderabad_rules(delivery_fee=None))
+
+
+def test_tax_lines_show_rate_and_base() -> None:
+    q = quote()
+    food_gst = next(ln for ln in q.lines if ln.label == "GST on food")
+    fee_gst = next(ln for ln in q.lines if ln.label == "GST on platform fees")
+    assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform"}
+    assert fee_gst.detail == {"rate_percent": "18", "base": "61.20", "collected_by": "platform"}
+
+
+def test_inclusive_tax_is_shown_but_not_added() -> None:
+    incl = rule("tax", "rate_on_lines", {"label": "GST on food", "rate_percent": 5, "target_lines": ["food"],
+                                         "inclusive": True}, key="gst_food")
+    q = quote(rules=hyderabad_rules(**{incl.slot: incl}))
+    shown = next(ln for ln in q.lines if ln.code == "tax_included")
+    assert shown.amount == 0 and shown.detail["included"] == "24.29"
+    assert shown.label == "GST on food (included in prices)"
+    assert q.split.tax == Decimal("11.02") + Decimal("24.29")  # 510 - 510/1.05 = 24.285... -> 24.29
+
+
+def test_external_tax_lines_from_the_provider() -> None:
+    from dataclasses import replace
+
+    from core_api.modules.pricing.service.engine import ExternalTax, taxable_amounts
+
+    us = {
+        "delivery_fee": rule("delivery_fee", "distance_slabs", {"slabs": [{"up_to": 2, "fee": "1.99"}, {"up_to": 4, "fee": "3.49"}]}),
+        "customer_fee:service_fee": rule("customer_fee", "service_fee", {"percent": 5, "min": 1, "max": 5}),
+        "tax:external": rule("tax", "external", {"provider": "stripe_tax"}),
+    }
+    inp = QuoteInputs(currency="USD", lines=[CartLine("Bowl", 2, Decimal("12.50"))], distance=Decimal("1.5"),
+                      local_time=datetime(2026, 11, 12, 18, 0, tzinfo=ZoneInfo("America/Boise")), tip=Decimal("3"))
+    first = compute(inp, us)
+    assert first.tax_pending
+    assert taxable_amounts(first) == {"food": Decimal("25.00"), "delivery_fee": Decimal("1.99"), "service_fee": Decimal("1.25")}
+
+    ext = [ExternalTax("Idaho sales tax", Decimal("6"), Decimal("28.24"), Decimal("1.69"), "US-ID", "local", "taxcalc_x")]
+    q = compute(replace(inp, external_tax=ext), us)
+    assert not q.tax_pending
+    tax = next(ln for ln in q.lines if ln.code == "tax")
+    assert (tax.label, tax.amount, tax.detail["rate_percent"], tax.detail["base"]) == ("Idaho sales tax", Decimal("1.69"), "6", "28.24")
+    assert q.total == Decimal("25.00") + Decimal("1.99") + Decimal("1.25") + Decimal("1.69") + Decimal("3.00")
+    assert q.split.tax == Decimal("1.69")
+    assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform == q.total

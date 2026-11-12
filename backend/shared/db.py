@@ -37,6 +37,12 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """One session per request, committed when the endpoint returns.
+
+    Always use ``Depends(get_db, scope="function")``: the default ("request")
+    scope runs the commit *after* the response is sent, so a client that reads
+    what it just wrote can miss it (seen in P9: a new order's bill was 404).
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
