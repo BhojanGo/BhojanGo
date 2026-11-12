@@ -46,6 +46,9 @@ class OrderCreateRequest(BaseModel):
     promo_code: str | None = None
     tip: float = Field(default=0.0, ge=0)
     loyalty_points_to_use: int = Field(default=0, ge=0)
+    # P8: the token from POST /pricing/quote. The order is charged exactly the
+    # quoted total and keeps its pricing snapshot. (P11 makes it required.)
+    quote_token: str | None = None
 
 
 class OrderStatusUpdateRequest(BaseModel):

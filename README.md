@@ -105,6 +105,12 @@ city, zone or restaurant. Rules are versioned with start dates; money rules need
 to approve (`cm.in@` makes, `finance.in@` approves); every change is in the audit log.
 `GET /api/v1/rules/resolve?country=IN&region=IN-TG&city=IN-TG-HYD` shows what applies where.
 
+**Quotes (P8):** `POST /api/v1/pricing/quote` prices a bag in 8 steps (locate, food, promotions,
+fees, taxes, tip, total, split) and returns every bill line plus a token valid for 10 minutes;
+`POST /api/v1/orders` with `quote_token` charges exactly that and stores the order's pricing
+snapshot (lines, rule versions, who gets what). The Hyderabad worked example (₹638.22) is a unit
+test. Admin price simulator (live vs drafts): http://localhost:3001/pricing/simulator.
+
 **Sign-in (P5):** email + password, phone OTP, Sign in with Apple and Google (ID tokens
 verified against the providers' keys; set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`).
 Tokens are RS256: 15-minute access tokens and rotating refresh tokens (a reused refresh

@@ -191,7 +191,7 @@ export default function CityPage() {
           <div className="text-[13px] font-semibold text-muted">City settings</div>
           <div className="mt-2 text-lg font-extrabold">{overrides.length ? `${overrides.length} overridden here` : `All inherited from ${city.region.name}`}</div>
           <div className="mt-1 text-[13px] text-muted">
-            <Link href="/pricing" className="font-bold text-peacock">Open Pricing &amp; Rules</Link>
+            <Link href={`/pricing/simulator?city=${code}`} className="font-bold text-peacock">Open the price simulator</Link>
           </div>
         </div>
       </div>
