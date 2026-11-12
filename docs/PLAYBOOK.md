@@ -74,6 +74,15 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 23. **Healthchecks prove the service answers the way clients connect (Postgres: `pg_isready -h 127.0.0.1`).**
     Why: during first start the Postgres image runs a socket-only server; a socket healthcheck said healthy and CI's migrations got "connection refused".
 
+24. **Scripts are committed executable (`git update-index --chmod=+x`); Windows hides a missing bit that Linux won't.**
+    Why: LocalStack skipped a 100644 init hook on GitHub's Linux runners, so no queues existed and G1 failed there for weeks while passing locally.
+
+25. **A test that walks routes must prove it found some.**
+    Why: FastAPI now wraps included routers (`_IncludedRouter`); a contract test that only looked for `APIRoute` found nothing and would have passed while checking nothing.
+
+26. **Money formatting never rounds: "no decimals" means drop ".00" from whole amounts only.**
+    Why: menus written for whole rupees showed a $14.50 bowl as "$15" in the US.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

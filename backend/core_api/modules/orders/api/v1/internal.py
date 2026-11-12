@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.orders.models.order import Order
 from core_api.modules.orders.service.order import OrderService
 from shared import internal_auth
+from shared.contracts import DispatchInfo
 from shared.db import get_db
 
 router = APIRouter(prefix="/internal/orders", tags=["Internal"], include_in_schema=False)
@@ -85,7 +86,7 @@ async def offer_details(db: AsyncSession, order: Order) -> dict:
             "drop_area": drop_area(order.delivery_address)}
 
 
-@router.get("/{order_id}/dispatch", dependencies=[Depends(signed)])
+@router.get("/{order_id}/dispatch", dependencies=[Depends(signed)], response_model=DispatchInfo)
 async def get_dispatch(order_id: uuid.UUID, db: DB) -> dict:
     order = await db.get(Order, order_id)
     if order is None:
@@ -93,7 +94,7 @@ async def get_dispatch(order_id: uuid.UUID, db: DB) -> dict:
     return await dispatch_info(db, order)
 
 
-@router.post("/{order_id}/assign-rider", dependencies=[Depends(signed)])
+@router.post("/{order_id}/assign-rider", dependencies=[Depends(signed)], response_model=DispatchInfo)
 async def assign_rider(order_id: uuid.UUID, data: AssignRider, db: DB) -> dict:
     order = await OrderService(db).assign_rider(order_id, data.rider_id)
     return await dispatch_info(db, order)

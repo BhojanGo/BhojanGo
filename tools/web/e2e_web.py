@@ -275,6 +275,40 @@ with sync_playwright() as p:
     check("kitchen sign-up on the web: licence saved, GST next", lambda: expect(k.get_by_text("Lata's Kitchen · 2 of 5 done")).to_be_visible(timeout=15000))
     k.screenshot(path=f"{OUT}/12-partner-application.png", full_page=True)
 
+    # The order happy path in the US (P22): Boise, dollars, Idaho sales tax, a US number.
+    us = b.new_context(viewport={"width": 1280, "height": 900}, geolocation={"latitude": 43.6150, "longitude": -116.2023},
+                       permissions=["geolocation"]).new_page()
+    us.goto(base + "/boise/boise-bowl-co-hyde-park", wait_until="networkidle")
+    check("US: Boise kitchen page in dollars", lambda: (
+        expect(us.get_by_role("heading", name="Boise Bowl Co.", level=1)).to_be_visible(timeout=15000),
+        expect(us.get_by_text("$14.50").first).to_be_visible()))
+    us.get_by_role("button", name="Teriyaki Chicken Bowl").click()
+    us_dialog = us.get_by_role("dialog", name="Teriyaki Chicken Bowl")
+    if us_dialog.count():
+        us_dialog.get_by_role("button", name="Add to bag").click()
+    us.get_by_role("link", name="Go to checkout").click()
+    us.get_by_role("link", name="Sign in with your phone").click()
+    us.get_by_label("Country code").select_option("US")
+    us.locator("#phone").fill("2085550101")
+    us.get_by_role("button", name="Send code").click()
+    us.get_by_label("Code", exact=True).fill("123456")
+    us.get_by_role("button", name="Verify").click()
+    us.wait_for_url("**/checkout", timeout=20000)
+    # North End's minimum order is $15: one $14.50 bowl isn't enough, two are.
+    check("US checkout: the zone's minimum order is enforced", lambda: expect(us.get_by_text("The minimum order in North End is USD 15")).to_be_visible(timeout=20000))
+    us.get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
+    check("US checkout: the fair bill in dollars with Idaho sales tax", lambda: (
+        expect(us.get_by_text("The fair bill")).to_be_visible(timeout=20000),
+        expect(us.get_by_text("GOVT").first).to_be_visible(),
+        expect(us.get_by_text(__import__("re").compile(r"^\$\d+\.\d{2}$")).first).to_be_visible()))
+    shot(us, "16-us-checkout")
+    us.get_by_role("button", name="Pay").click()
+    us.get_by_role("button", name="Approve").click()
+    us.wait_for_url("**/orders/*", timeout=40000)
+    check("US: paid, tracking the Boise order", lambda: (
+        expect(us.get_by_text("Boise Bowl Co. has your order")).to_be_visible(timeout=20000),
+        expect(us.get_by_text("You paid")).to_be_visible()))
+
     m = b.new_page(viewport={"width": 390, "height": 844})
     for path in ("/", "/hyderabad", "/hyderabad/spice-route-kitchen-madhapur", "/help"):
         m.goto(base + path, wait_until="networkidle")

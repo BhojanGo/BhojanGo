@@ -7,6 +7,10 @@ test("money in rupees and dollars", () => {
   assert.equal(money(596.92, "INR"), "₹596.92");
   assert.equal(money(124050, "INR"), "₹1,24,050.00");
   assert.equal(money(-50, "INR"), "−₹50.00");
+  // Whole amounts can drop ".00"; cents are never rounded away (P22: "$14.50" showed as "$15").
+  assert.equal(money(240, "INR", { decimals: 0 }), "₹240");
+  assert.equal(money(14.5, "USD", { decimals: 0 }), "$14.50");
+  assert.equal(money(3, "USD", { decimals: 0 }), "$3");
   assert.equal(money(1240.5, "USD"), "$1,240.50");
 });
 
