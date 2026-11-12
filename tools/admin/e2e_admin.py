@@ -177,6 +177,32 @@ with sync_playwright() as p:
         expect(page.get_by_text("ops.hyd@example.com")).to_be_visible()))
     page.screenshot(path=f"{OUT}/10-settings.png", full_page=True)
 
+    # No raw data on any page: JSON-like text, "null", "undefined" or "NaN" fail the run.
+    RAW = re.compile(r'[{\[]\s*"[A-Za-z_]+"\s*:|\bnull\b|\bundefined\b|\bNaN\b')
+    pages = ["/overview", "/overview?scope=IN", "/overview?scope=US-ID-BOI", "/operations?scope=IN-TG-HYD&tab=live",
+             "/operations?scope=IN-TG-HYD&tab=attention", "/operations?scope=IN-TG-HYD&tab=dispatch", "/operations?scope=IN-TG-HYD&tab=support",
+             "/partners?scope=IN-TG-HYD&tab=kitchens", "/partners?scope=IN-TG-HYD&tab=applications", "/partners?scope=IN&tab=riders",
+             "/markets", "/markets/IN", "/markets/IN/IN-TG-HYD", "/pricing/simulator?city=IN-TG-HYD", "/finance?scope=IN", "/finance?scope=US",
+             "/settings"] + [f"/pricing?scope=IN-TG-HYD&tab={f}" for f in
+                             ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "business", "promotion", "approvals")]
+    dirty: list[str] = []
+    for path in pages:
+        page.goto(BASE + path, wait_until="networkidle")
+        page.wait_for_timeout(800)
+        if "/pricing?" in path and "approvals" not in path:
+            for i in range(page.get_by_role("region", name="Rules").get_by_role("button").count()):
+                page.get_by_role("region", name="Rules").get_by_role("button").nth(i).click()
+                page.wait_for_timeout(300)
+                hit = RAW.search(page.inner_text("body"))
+                if hit:
+                    dirty.append(f"{path} rule {i}: {hit.group(0)!r}")
+        hit = RAW.search(page.inner_text("body"))
+        if hit:
+            dirty.append(f"{path}: {hit.group(0)!r}")
+    check("no JSON-like text or null on any admin page", lambda: not dirty or fail("; ".join(dirty[:8])))
+    page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
+    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"0–\d+ km: ₹\d+")).first).to_be_visible(timeout=10000))
+
     # Role scopes: a Hyderabad city ops sees Hyderabad only, and no Finance or Settings.
     ops = b.new_page(viewport={"width": 1440, "height": 1000})
     sign_in(ops, "ops.hyd@example.com")

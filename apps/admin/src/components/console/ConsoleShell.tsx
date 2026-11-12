@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { CityPicker } from "@/components/console/CityPicker";
+import { Logo } from "@bhojango/ui";
 import { ROLE_LABELS, useAdminMe, useMarkets } from "@/lib/markets";
 import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 
@@ -25,19 +26,6 @@ const SECTIONS = [
   { href: "/finance", label: "Finance", perm: "finance.view" },
   { href: "/settings", label: "Settings", perm: "admins.view" },
 ];
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2.5 font-display text-xl font-bold tracking-[-0.4px]">
-      <svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true">
-        <path d="M11 5.5v24" stroke="#0B5D66" strokeWidth="5" strokeLinecap="round" fill="none" />
-        <circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" strokeWidth="5" />
-        <path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-      </svg>
-      bhojango <span className="font-body text-sm font-semibold tracking-normal text-muted">admin</span>
-    </div>
-  );
-}
 
 /** "IN-TG-HYD" → { country: "IN", region: "IN-TG", city: "IN-TG-HYD" }; "*" → ALL. */
 export function parseScope(scope: string | null | undefined): { country: string; region: string | null; city: string | null } {
@@ -93,7 +81,7 @@ export function ConsoleShell({
   return (
     <div className="flex min-h-screen flex-col bg-porcelain font-body text-kohl">
       <header className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-white px-4 py-3 sm:px-8">
-        <Logo />
+        <Logo size={30} suffix="admin" />
         <div className="ml-auto flex items-center gap-2.5 text-sm">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-peacock-tint text-xs font-extrabold text-peacock-dark">{initials}</span>
           <span data-testid="who">

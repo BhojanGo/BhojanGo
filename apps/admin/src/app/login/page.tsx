@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi } from "@/lib/api";
 import { useAdminAuth } from "@/store/auth";
+import { Logo } from "@bhojango/ui";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -36,14 +37,7 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 font-body text-kohl">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center justify-center gap-2.5 font-display text-2xl font-bold tracking-[-0.4px]">
-          <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
-            <path d="M11 5.5v24" stroke="#0B5D66" strokeWidth="5" strokeLinecap="round" fill="none" />
-            <circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" strokeWidth="5" />
-            <path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-          </svg>
-          bhojango <span className="font-body text-sm font-semibold tracking-normal text-muted">admin</span>
-        </div>
+        <div className="mb-8 flex justify-center"><Logo size={36} suffix="admin" /></div>
         <form onSubmit={handleSubmit} className="space-y-5 rounded-3xl bg-white p-8 shadow-[0_8px_24px_rgba(17,20,24,0.08)]">
           <h1 className="m-0 font-display text-2xl font-semibold">Sign in</h1>
           <label className="block text-sm font-bold">Email

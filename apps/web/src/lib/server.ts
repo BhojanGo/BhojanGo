@@ -51,4 +51,15 @@ export async function menu(id: string): Promise<Menu | null> {
   return get<Menu>(`/restaurants/${id}/menu`, 120);
 }
 
+export interface ExampleBill {
+  city: string; city_name: string; currency: string; total: string;
+  lines: { code: string; label: string; amount: string; funded_by?: string | null }[];
+  assumptions: { food: string; distance: string; distance_unit: string; tip: string; local_time: string };
+}
+
+/** The home page's example bill: priced by the real engine with the city's live rules. */
+export async function exampleBill(code: string): Promise<ExampleBill | null> {
+  return get<ExampleBill>(`/pricing/example?city=${encodeURIComponent(code)}`, 3600);
+}
+
 export const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://bhojango.com";

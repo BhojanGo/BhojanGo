@@ -9,6 +9,7 @@ import { PlateHeader } from "../../lib/plate";
 import { Icon } from "../../lib/icons";
 import { km, useRestaurants } from "../../lib/restaurants";
 import { greeting, useWhere, type DropPoint } from "../../lib/where";
+import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Home() {
   const user = useSession((s) => s.user);
@@ -26,10 +27,12 @@ export default function Home() {
 
   const { items, loading } = useRestaurants(market?.serviceable ? market.city_name : null);
   const first = (user?.full_name ?? "").split(" ")[0];
+  const hi = greeting(market?.timezone);
+  const bottom = useTabBarSpace();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottom }}>
         <View style={styles.top}>
           <Pressable testID="where" accessibilityRole="button" accessibilityLabel="Delivery address" onPress={() => void saved().then(setPicking)} style={styles.where}>
             <Icon name="pin" size={20} stroke={color.peacock} />
@@ -42,8 +45,8 @@ export default function Home() {
         </View>
 
         <View style={{ paddingHorizontal: space[5], paddingTop: space[4] }}>
-          <Txt variant="hero" accessibilityRole="header">{greeting()}{first ? `, ${first}.` : "."}</Txt>
-          <Txt variant="hero" style={{ color: color.muted }}>What&apos;s for dinner?</Txt>
+          <Txt variant="hero" accessibilityRole="header">{hi.hello}{first ? `, ${first}.` : "."}</Txt>
+          <Txt variant="hero" style={{ color: color.muted }}>{hi.ask}</Txt>
         </View>
 
         <Pressable accessibilityRole="search" onPress={() => router.push("/search")} style={styles.search}>
@@ -140,7 +143,8 @@ function initials(name?: string | null): string {
 
 const styles = StyleSheet.create({
   top: { paddingHorizontal: space[5], paddingTop: space[4], flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  where: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  // Rounded, so the Android focus highlight (after a tap) follows the pill instead of a grey box.
+  where: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, borderRadius: radius.pill, paddingHorizontal: 4, overflow: "hidden" },
   avatar: {
     width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   search: {
     marginHorizontal: space[5], marginTop: space[6], height: 54, borderRadius: radius.pill, backgroundColor: color.white,
     flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18,
-    shadowColor: color.kohl, shadowOpacity: 0.06, shadowRadius: 24, shadowOffset: { width: 0, height: 8 }, elevation: 3,
+    borderWidth: 1, borderColor: color.line, // a hairline, not an Android elevation box
   },
   banner: { marginHorizontal: space[5], marginTop: space[6], height: 184, borderRadius: radius.sheet, backgroundColor: color.peacock, padding: space[6] },
   eyebrow: { fontSize: 12, letterSpacing: 1.2, color: "#F2C77A" },

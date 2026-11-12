@@ -36,3 +36,11 @@ test("free delivery the kitchen pays is one row, struck through", () => {
   ]);
   assert.equal(billTotal(lines), 0);
 });
+
+test("the delivery fee is ours, not the rider's: only the tip is RIDER", () => {
+  const lines = [
+    { code: "delivery_fee", label: "Delivery · 4.2 km", amount: "35.00" },
+    { code: "tip", label: "Tip for your rider", amount: "20.00" },
+  ];
+  assert.deepEqual(billRows(lines, "INR").map((r) => r.payee), ["US", "RIDER"]);
+});

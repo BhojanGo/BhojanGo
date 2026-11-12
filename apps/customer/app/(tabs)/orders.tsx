@@ -4,10 +4,12 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTabBarSpace } from "../../lib/tabbar";
 
 type Order = CoreSchemas["OrderResponse"];
 
 export default function Orders() {
+  const bottom = useTabBarSpace();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);
   const load = useCallback(() => {
@@ -26,7 +28,7 @@ export default function Orders() {
         data={shown.sort((a, b) => Number(ACTIVE_STATUSES.includes(b.status as OrderStatus)) - Number(ACTIVE_STATUSES.includes(a.status as OrderStatus)))}
         keyExtractor={(o) => o.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-        contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
         ListEmptyComponent={orders ? <Txt style={{ color: color.muted }}>No orders yet. Your first one will show up here.</Txt> : undefined}
         renderItem={({ item: o }) => (
           <Pressable accessibilityRole="button" accessibilityLabel={`${o.restaurant_name}, ${o.status}`} onPress={() => router.push(`/order/${o.id}`)}

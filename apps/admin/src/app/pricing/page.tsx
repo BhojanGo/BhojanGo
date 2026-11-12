@@ -11,7 +11,9 @@ import { Suspense, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe } from "@/lib/markets";
+import { RuleEditor } from "@/components/ops/RuleEditor";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
+import { describe } from "@/lib/ruleWords";
 
 interface History {
   versions: Rule[];
@@ -34,15 +36,8 @@ function where(r: Rule, scope: string) {
   return r.scope_level === "restaurant" ? "A restaurant's own" : r.scope_level === "zone" ? "A zone's" : r.market_scope;
 }
 
-function Params({ p }: { p: Record<string, unknown> }) {
-  return (
-    <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-      {Object.entries(p).map(([k, v]) => (
-        <div key={k} className="flex justify-between gap-3 border-b border-line py-1.5"><dt className="text-muted">{k.replace(/_/g, " ")}</dt>
-          <dd className="text-right font-semibold">{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd></div>
-      ))}
-    </dl>
-  );
+function Params({ rule }: { rule: Rule }) {
+  return <p className="rounded-xl bg-porcelain p-4 text-[15px] leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, rule.market_scope)}</p>;
 }
 
 function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) {
@@ -50,7 +45,6 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
   const qc = useQueryClient();
   const history = useQuery({ queryKey: ["rule-history", rule.id], queryFn: async () => (await adminApi.get<History>(`/user/rules/${rule.id}/history`)).data });
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(JSON.stringify(rule.params, null, 2));
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -71,14 +65,7 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
       setBusy(false);
     }
   }
-  async function saveDraft() {
-    let params: unknown;
-    try {
-      params = JSON.parse(draft);
-    } catch {
-      setMsg({ ok: false, text: "That isn't valid JSON." });
-      return;
-    }
+  async function saveDraft(params: Record<string, unknown>) {
     await run(async () => {
       const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params })).data;
       await adminApi.post(`/user/rules/${v.id}/submit`);
@@ -92,15 +79,9 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
         <Pill s={rule.status} /> <span className="text-sm text-muted">v{rule.version} · {rule.market_scope === "*" ? "everywhere" : rule.market_scope} · since {new Date(rule.effective_from).toLocaleDateString()}</span>
       </div>
       {editing ? (
-        <div className="space-y-2">
-          <textarea aria-label="Rule settings (JSON)" value={draft} onChange={(e) => setDraft(e.target.value)} rows={10} className="w-full rounded-xl border border-line p-3 font-mono text-sm" />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => void saveDraft()} disabled={busy} className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">{rule.family === "business" ? "Save" : "Send for approval"}</button>
-            <button type="button" onClick={() => setEditing(false)} className="h-10 rounded-full border border-line-strong px-4 font-bold">Cancel</button>
-          </div>
-          <p className="text-xs text-muted">The settings are checked against the rule&apos;s template before anything is saved.</p>
-        </div>
-      ) : <Params p={rule.params} />}
+        <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(false)} onSave={(p) => void saveDraft(p)}
+          saveLabel={rule.family === "business" ? "Save" : "Send for approval"} />
+      ) : <Params rule={rule} />}
       <div className="flex flex-wrap items-center gap-2">
         {!editing && rule.status === "published" && can(me, "rules.edit", scope) ? (
           <button type="button" onClick={() => setEditing(true)} className="h-10 rounded-full border border-line-strong px-4 font-bold">New version</button>
@@ -122,7 +103,7 @@ function RuleDetail({ rule, onChanged }: { rule: Rule; onChanged: () => void }) 
         <h3 className="mb-2 text-sm font-extrabold">History</h3>
         <ul className="space-y-1 text-sm">
           {(history.data?.versions ?? []).slice().reverse().map((v) => (
-            <li key={v.id} className="flex flex-wrap gap-2"><b>v{v.version}</b> <Pill s={v.status} /> <span className="text-muted">{ago(v.created_at)}
+            <li key={v.id} className="flex flex-wrap gap-2"><b>v{v.version}</b> <Pill s={v.status} /> <span className="text-muted">{describe(v.template, v.params, v.market_scope)} · {ago(v.created_at)}
               {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision}${a.note ? ` (“${a.note}”)` : ""}`).join("")}</span></li>
           ))}
         </ul>
@@ -174,7 +155,7 @@ function PricingPage() {
           {relevant.map((r) => (
             <button key={r.id} type="button" onClick={() => setOpen(r.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill s={r.status} /></div>
-              <div className="text-muted">{r.family.replace(/_/g, " ")} · {where(r, scope)} · v{r.version}</div>
+              <div className="text-muted">{where(r, scope)} · v{r.version}</div><div className="mt-0.5 line-clamp-2 text-[13px]">{describe(r.template, r.params, r.market_scope)}</div>
             </button>
           ))}
         </section>

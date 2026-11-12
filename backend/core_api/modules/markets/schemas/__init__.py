@@ -225,3 +225,4 @@ class LocateResult(BaseModel):
     min_order: Decimal | None = None
     currency: str | None = None
     status: Status | None = None
+    timezone: str | None = Field(default=None, description="The city's own time zone")

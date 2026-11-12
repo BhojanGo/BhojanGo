@@ -85,7 +85,23 @@ export const useWhere = create<WhereState>()((set, get) => ({
 }));
 
 /** "Good morning", "Good afternoon" or "Good evening" for the local time. */
-export function greeting(now = new Date()): string {
-  const h = now.getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+/** The hour in the delivery city (its own time zone), else the phone's. */
+export function localHour(timeZone?: string | null, now = new Date()): number {
+  if (timeZone) {
+    try {
+      return Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now)) % 24;
+    } catch {
+      // no time-zone data on this phone: fall back to its clock
+    }
+  }
+  return now.getHours();
+}
+
+/** "Good morning" … "Late night" and what to ask, by the city's local time. */
+export function greeting(timeZone?: string | null, now = new Date()): { hello: string; ask: string } {
+  const h = localHour(timeZone, now);
+  if (h >= 5 && h < 12) return { hello: "Good morning", ask: "What's for breakfast?" };
+  if (h >= 12 && h < 17) return { hello: "Good afternoon", ask: "What's for lunch?" };
+  if (h >= 17 && h < 22) return { hello: "Good evening", ask: "What's for dinner?" };
+  return { hello: "Late night", ask: "Something to keep you going?" };
 }

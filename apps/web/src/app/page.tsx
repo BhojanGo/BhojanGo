@@ -3,7 +3,9 @@
 import Link from "next/link";
 
 import { RestaurantCard } from "@/components/RestaurantCard";
-import { cities, restaurantsIn } from "@/lib/server";
+import { cities, exampleBill, restaurantsIn } from "@/lib/server";
+import { FairBill } from "@bhojango/ui";
+import { money } from "@bhojango/ui/bill";
 
 export const revalidate = 300;
 
@@ -25,7 +27,7 @@ export default async function Home() {
               ))}
             </div>
           </div>
-          <FairBillPromise />
+          <FairBillPromise city={list.find((c) => c.country === "IN") ?? list[0]} />
         </div>
       </section>
       {byCity.map(({ city, restaurants }) => (
@@ -53,23 +55,16 @@ export default async function Home() {
   );
 }
 
-function FairBillPromise() {
-  const rows: [string, string, string][] = [
-    ["Food", "KITCHEN", "₹480.00"], ["Delivery", "RIDER", "₹30.00"], ["Service", "US", "₹19.00"], ["GST", "GOVT", "₹24.00"], ["Tip", "RIDER", "₹20.00"],
-  ];
+async function FairBillPromise({ city }: { city: { code: string; name: string } | undefined }) {
+  const ex = city ? await exampleBill(city.code) : null;
+  if (!ex) return null;
+  const a = ex.assumptions;
   return (
-    <figure aria-label="An example of the fair bill" className="rounded-card bg-white p-5 shadow-float">
-      <div className="mb-3 flex items-baseline justify-between">
-        <span className="font-display text-lg font-semibold">The fair bill</span>
-        <span className="text-xs font-bold text-peacock">who gets each rupee</span>
-      </div>
-      <dl className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-2 text-sm tabular-nums">
-        {rows.map(([l, p, a]) => (
-          <div key={l} className="contents"><dt>{l}</dt><dd className="text-[11px] font-bold text-muted">{p}</dd><dd className="text-right">{a}</dd></div>
-        ))}
-      </dl>
-      <div className="mt-3 flex justify-between border-t-[1.5px] border-dashed border-line-strong pt-3 text-lg font-extrabold"><span>You pay</span><span>₹573.00</span></div>
-      <figcaption className="mt-2 text-xs text-muted">An example. Your bill is worked out live for your order and address.</figcaption>
+    <figure aria-label="An example of the fair bill" className="space-y-2">
+      <FairBill lines={ex.lines as never} currency={ex.currency} className="shadow-float" />
+      <figcaption className="text-xs text-muted">
+        A real {ex.city_name} bill for {money(Number(a.food), ex.currency, { decimals: 0 })} of food, {Number(a.distance)} {a.distance_unit} away, at 8 pm with a {money(Number(a.tip), ex.currency, { decimals: 0 })} tip — priced with today&apos;s rules. Yours is worked out live for your order and address.
+      </figcaption>
     </figure>
   );
 }

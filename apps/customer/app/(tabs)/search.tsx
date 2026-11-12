@@ -7,8 +7,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useRestaurants } from "../../lib/restaurants";
 import { useWhere } from "../../lib/where";
+import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Search() {
+  const bottom = useTabBarSpace();
   const market = useWhere((s) => s.market);
   const { items } = useRestaurants(market?.serviceable ? market.city_name : null);
   const [q, setQ] = useState("");
@@ -25,7 +27,7 @@ export default function Search() {
       <FlatList
         data={results}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
         ListEmptyComponent={<Txt style={{ color: color.muted }}>Nothing matches “{q}” nearby.</Txt>}
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" onPress={() => router.push(`/restaurant/${item.id}`)}
