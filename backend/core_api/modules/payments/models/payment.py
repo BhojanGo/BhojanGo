@@ -86,6 +86,8 @@ class Refund(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)  # items | full
     reason: Mapped[str] = mapped_column(String(60), nullable=False)
+    # Item refunds: restaurant (its payout pays) | delivery | goodwill (the platform pays). None for full refunds.
+    fault: Mapped[str | None] = mapped_column(String(12), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     # [{"menu_item_id", "name", "quantity", "food", "discount", "tax", "amount"}], plus delivery lines
     lines: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

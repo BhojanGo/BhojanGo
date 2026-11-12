@@ -104,6 +104,22 @@ async def agent_limit(db: AsyncSession, market_city: str | None, currency: str) 
     return Decimal(str(r.params["max_per_order"])) if r else DEFAULT_AGENT_LIMIT.get(currency, Decimal("25"))
 
 
+# Why the customer gets money back decides who pays for it (Phase 1 decision):
+# the restaurant for its own mistakes, the platform for delivery problems and goodwill.
+FAULT_BY_REASON = {
+    "wrong_item": "restaurant", "missing_item": "restaurant", "quality": "restaurant",
+    "late": "delivery", "damaged_in_transit": "delivery", "rider_issue": "delivery",
+    "goodwill": "goodwill",
+}
+
+
+def fault_for(reason: str) -> str:
+    try:
+        return FAULT_BY_REASON[reason]
+    except KeyError:
+        raise RefundError(f"Unknown refund reason {reason!r}; pick one of {', '.join(FAULT_BY_REASON)}")
+
+
 def limited_to_agent(assignments: list[authz.Assignment], city: str) -> bool:
     """True when refunds.issue here comes only from the support agent role."""
     roles = {a.role for a in assignments if authz.role_allows(a.role, "refunds.issue") and authz.covers(a.scope, city)}
@@ -115,6 +131,7 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
     from core_api.modules.orders.models.order import Order
     from core_api.modules.pricing.service.quotes import QuoteService
 
+    fault = fault_for(reason)
     order = await db.get(Order, order_id)
     if order is None:
         raise RefundError("Order not found")
@@ -154,7 +171,7 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
                               "ask city ops, a country manager or finance")
 
     refund = Refund(order_id=order_id, payment_intent_id=intent.id, amount=minor, currency=intent.currency, kind="items",
-                    reason=reason, note=note, lines=lines, requested_by=actor_id, status="pending")
+                    reason=reason, fault=fault, note=note, lines=lines, requested_by=actor_id, status="pending")
     db.add(refund)
     await db.flush()
     result = await gateway_by_name(intent.provider).refund(intent.provider_payment_id, minor, f"refund:{refund.id}", intent.metadata_)
@@ -163,7 +180,7 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
     intent.status = "refunded" if intent.refunded_amount >= intent.amount else "partially_refunded"
     await outbox.add(db, "payment.refunded", "order", order_id, {
         "order_id": str(order_id), "user_id": str(intent.user_id), "refund_id": str(refund.id), "amount": minor,
-        "currency": intent.currency, "reason": reason, "items": lines, "provider": intent.provider,
+        "currency": intent.currency, "reason": reason, "fault": fault, "items": lines, "provider": intent.provider,
     }, "payment-svc")
     await db.flush()
     logger.info("refund_by_item", order_id=str(order_id), amount=minor, items=len(lines), by=str(actor_id))

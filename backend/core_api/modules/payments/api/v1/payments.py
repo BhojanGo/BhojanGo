@@ -364,7 +364,7 @@ async def list_order_refunds(
 
 def _refund_out(r) -> dict:  # type: ignore[no-untyped-def]
     return {"id": str(r.id), "order_id": str(r.order_id), "amount": r.amount, "currency": r.currency, "kind": r.kind,
-            "reason": r.reason, "note": r.note, "lines": r.lines, "status": r.status,
+            "reason": r.reason, "fault": r.fault, "note": r.note, "lines": r.lines, "status": r.status,
             "provider_refund_id": r.provider_refund_id, "created_at": r.created_at.isoformat() if r.created_at else None}
 
 

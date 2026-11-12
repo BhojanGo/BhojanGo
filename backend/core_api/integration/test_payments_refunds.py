@@ -109,9 +109,15 @@ async def test_refund_by_item_with_tax_and_limits(client: AsyncClient) -> None:
                           json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "missing_item"})
     assert r.status_code == 201, r.text
     first = r.json()
+    assert first["reason"] == "missing_item" and first["fault"] == "restaurant"
     line = first["lines"][0]
     assert line["quantity"] == 1 and line["food"] == "240.00" and Decimal(line["tax"]) > 0
     assert first["amount"] == int(Decimal(line["amount"]) * 100)
+
+    # Support picks a reason from the list; free text is refused.
+    r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support,
+                          json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "cold food"})
+    assert r.status_code == 422
 
     # Hyderabad lowers the support limit to ₹200 per order (a business rule):
     # the second biryani would take this order over it.
@@ -130,9 +136,10 @@ async def test_refund_by_item_with_tax_and_limits(client: AsyncClient) -> None:
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=ops, json={
         "items": [{"menu_item_id": biryani, "quantity": 1}], "include_delivery_fee": True, "reason": "late"})
     assert r.status_code == 201, r.text
+    assert r.json()["fault"] == "delivery"
     # Nothing left of that item, and the delivery fee is done.
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=ops,
-                          json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "again"})
+                          json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "missing_item"})
     assert r.status_code == 409
 
     refunds = (await client.get(f"/api/v1/payments/orders/{order['id']}/refunds", headers=cust)).json()
@@ -151,7 +158,7 @@ async def test_who_can_refund(client: AsyncClient, email, status) -> None:
     order = await delivered_order(client, cust)
     h = await login(client, email, ADMIN)
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=h,
-                          json={"items": [{"menu_item_id": order["items"][0]["menu_item_id"], "quantity": 1}], "reason": "cold food"})
+                          json={"items": [{"menu_item_id": order["items"][0]["menu_item_id"], "quantity": 1}], "reason": "quality"})
     assert r.status_code == status, r.text
 
 
@@ -161,7 +168,7 @@ async def test_customers_cannot_refund_themselves(client: AsyncClient) -> None:
     r = await client.post(f"/api/v1/payments/{order['id']}/refund", headers=cust, json={"reason": "free money"})
     assert r.status_code in (404, 405)
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=cust,
-                          json={"items": [{"menu_item_id": order["items"][0]["menu_item_id"], "quantity": 1}], "reason": "x y z"})
+                          json={"items": [{"menu_item_id": order["items"][0]["menu_item_id"], "quantity": 1}], "reason": "goodwill"})
     assert r.status_code == 403
     other = await login(client, "customer2.hyd@example.com")
     assert (await client.get(f"/api/v1/payments/orders/{order['id']}/refunds", headers=other)).status_code == 404

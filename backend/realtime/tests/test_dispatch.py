@@ -58,8 +58,10 @@ def r(monkeypatch):  # type: ignore[no-untyped-def]
     async def get() -> fakeredis.aioredis.FakeRedis:
         return client
 
+    from app.services import shifts
+
     monkeypatch.setattr(dispatch, "get_redis", get)
-    monkeypatch.setattr(delivery.dispatch, "get_redis", get)
+    monkeypatch.setattr(shifts, "get_redis", get)
     return client
 
 
@@ -234,3 +236,22 @@ async def test_eta_endpoint_hides_other_orders(r, core) -> None:  # type: ignore
     assert e.value.status_code == 404
     eta = await delivery.get_order_eta(uuid.UUID(ORDER), user(CUSTOMER_ID))
     assert eta.driver_lat is None
+
+
+async def test_engaged_time_runs_from_accept_to_drop_off(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from app.services import shifts
+
+    clock = {"t": 1_800_000_000.0}
+    monkeypatch.setattr(dispatch, "_now", lambda: clock["t"])
+    await three_riders()
+    assert (await shifts.get_shift(RIDER_NEAR, clock["t"]))["status"] == "available"  # online, not engaged
+    clock["t"] += 600  # 10 idle minutes online
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    assert (await shifts.get_shift(RIDER_NEAR, clock["t"] + 60))["status"] == "active"
+    clock["t"] += 40 * 60  # drive to the restaurant, wait, ride to the customer
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "delivered", "driver_id": RIDER_NEAR}})
+    after = await shifts.get_shift(RIDER_NEAR, clock["t"] + 30 * 60)
+    # only the 40 minutes from accept to drop-off are engaged, not the idle time before or after
+    assert after["status"] == "available" and after["active_minutes"] == 40 and after["available_minutes"] == 80

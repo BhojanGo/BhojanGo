@@ -3,15 +3,18 @@
 Restaurant, per delivered order (from its pricing snapshot):
     food + packaging - commission - offers the restaurant funded
     (+ tax the restaurant collects itself)
-    - item refunds charged to the restaurant (the item's food value less the
-      commission it paid on it), if the refund_cost rule says so (default)
+    - item refunds that were the restaurant's fault (wrong or missing item,
+      quality): the item's food value less the commission it paid on it.
+      Delivery-fault and goodwill refunds are the platform's; they're listed
+      on the statement for information only.
 
 Rider, per delivered order:
     base + per km/mi x distance + waiting pay, + tip
   and for the period a top-up to the hourly floor:
     floor x active hours - (base + distance + waiting)   if positive
-  Active time = time on deliveries (from assignment, or pickup, to drop-off),
-  overlapping deliveries counted once. Tips never count towards the floor.
+  Engaged time = from accepting the offer to drop-off (driving to the
+  restaurant and waiting there count), overlapping deliveries counted once.
+  Tips never count towards the floor.
 """
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -39,12 +42,12 @@ class OrderForPayout:
     split: dict  # snapshot split (restaurant, rider, detail...)
     distance: Decimal
     rider_rule: dict | None  # rider_pay base_distance_wait params used for this order
-    started_at: datetime | None  # rider assignment or pickup
+    started_at: datetime | None  # when the rider accepted the offer (pickup for older orders)
     wait_minutes: Decimal = ZERO
-    refund_lines: list[dict] = field(default_factory=list)  # refunded items (P12)
+    refund_lines: list[dict] = field(default_factory=list)  # refunded items (P12), each with "reason" and "fault"
 
 
-def restaurant_statement(orders: list[OrderForPayout], refunds_to_restaurant: bool) -> tuple[Decimal, dict, list[dict]]:
+def restaurant_statement(orders: list[OrderForPayout]) -> tuple[Decimal, dict, list[dict]]:
     lines: list[dict] = []
     totals = {k: ZERO for k in ("food", "packaging", "commission", "restaurant_funded_offers", "restaurant_tax", "refunds")}
     for o in orders:
@@ -55,13 +58,19 @@ def restaurant_statement(orders: list[OrderForPayout], refunds_to_restaurant: bo
         funded = D(detail.get("restaurant_funded_offers"))
         tax = D(detail.get("tax_collected_by_restaurant"))
         refund = ZERO
-        if refunds_to_restaurant and food > 0:
+        theirs = [r for r in o.refund_lines if r.get("fault", "restaurant") == "restaurant"]
+        if theirs and food > 0:
             keep = 1 - commission / food
-            refund = m(sum((D(r["food"]) * keep for r in o.refund_lines), ZERO))
+            refund = m(sum((D(r["food"]) * keep for r in theirs), ZERO))
+        refund_notes = [{"item": r.get("name", ""), "quantity": r.get("quantity", 1), "reason": r.get("reason", ""),
+                         "fault": r.get("fault", "restaurant"),
+                         "charged_to": "restaurant" if r.get("fault", "restaurant") == "restaurant" else "platform"}
+                        for r in o.refund_lines]
         net = m(food + packaging - commission - funded + tax - refund)
         lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "food": str(food),
                       "packaging": str(packaging), "commission": str(-commission), "restaurant_funded_offers": str(-funded),
-                      "restaurant_tax": str(tax), "refunds": str(-refund), "net": str(net)})
+                      "restaurant_tax": str(tax), "refunds": str(-refund), "refund_details": refund_notes,
+                      "net": str(net)})
         for k, v in (("food", food), ("packaging", packaging), ("commission", commission),
                      ("restaurant_funded_offers", funded), ("restaurant_tax", tax), ("refunds", refund)):
             totals[k] += v

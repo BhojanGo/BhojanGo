@@ -20,19 +20,25 @@ def test_mileage_payout():
     assert mileage_payout("2.5", Decimal("0.65")) == Decimal("1.63")  # 1.625 -> 1.63
 
 
-def test_floor_topup_when_base_low():
-    # base is small, available time guarantees a floor of 24.00
-    r = calculate_earnings(
-        available_minutes=120, active_minutes=10, waiting_minutes=5, miles=2, num_orders=1
-    )
-    assert r.active_payout == Decimal("2.50")
-    assert r.waiting_time_payout == Decimal("0.75")
-    assert r.mileage_payout == Decimal("1.30")
-    assert r.order_bonus == Decimal("1.50")
-    assert r.floor_guarantee == Decimal("24.00")
-    assert r.floor_topup == Decimal("17.95")  # 24.00 - 6.05
-    assert r.gross_earnings == Decimal("24.00")
-    assert r.net_earnings == Decimal("24.00")
+FLOOR_30 = EarningsConfig(floor_per_hour=Decimal("30.00"))
+
+
+def test_floor_counts_engaged_time_only():
+    # Online 2 h, engaged 1 h (45 min driving to the restaurant and on to the
+    # customer, 15 min waiting at the restaurant): the floor covers the hour.
+    r = calculate_earnings(available_minutes=120, active_minutes=45, waiting_minutes=15, miles=0, num_orders=0,
+                           config=FLOOR_30)
+    assert r.engaged_minutes == 60
+    assert r.active_payout == Decimal("11.25") and r.waiting_time_payout == Decimal("2.25")
+    assert r.floor_guarantee == Decimal("30.00")
+    assert r.floor_topup == Decimal("16.50")  # 30.00 - 13.50
+    assert r.gross_earnings == Decimal("30.00")
+
+
+def test_online_without_an_order_has_no_floor():
+    r = calculate_earnings(available_minutes=120, active_minutes=0, waiting_minutes=0, miles=0, num_orders=0,
+                           config=FLOOR_30)
+    assert r.floor_guarantee == Decimal("0.00") and r.gross_earnings == Decimal("0.00")
 
 
 def test_no_topup_when_base_exceeds_floor():
@@ -40,20 +46,20 @@ def test_no_topup_when_base_exceeds_floor():
         available_minutes=60, active_minutes=200, waiting_minutes=0, miles=10,
         tips="5.00", deductions="2.00", num_orders=3,
     )
-    # base = 50.00 + 0 + 6.50 + 4.50 = 61.00 > floor 12.00
+    # base = 50.00 + 0 + 6.50 + 4.50 = 61.00 > floor 40.00 (200 engaged min x 12/h)
     assert r.floor_topup == Decimal("0.00")
     assert r.gross_earnings == Decimal("66.00")   # 61.00 + 5.00 tips
     assert r.net_earnings == Decimal("64.00")     # - 2.00 deductions
 
 
 def test_tips_excluded_from_floor():
-    # base 5.00 (20 active min), floor 12.00 -> topup 7.00; tips on top
+    # base 5.00 (20 engaged min), floor 10.00 -> topup 5.00; tips on top
     r = calculate_earnings(
         available_minutes=60, active_minutes=20, waiting_minutes=0, miles=0,
-        tips="20.00", num_orders=0,
+        tips="20.00", num_orders=0, config=FLOOR_30,
     )
-    assert r.floor_topup == Decimal("7.00")
-    assert r.gross_earnings == Decimal("32.00")   # 5 + 7 + 20
+    assert r.floor_topup == Decimal("5.00")
+    assert r.gross_earnings == Decimal("30.00")   # 5 + 5 + 20
 
 
 def test_batch_complexity_increases_pay():
@@ -64,8 +70,8 @@ def test_batch_complexity_increases_pay():
 
 
 def test_custom_config():
-    cfg = EarningsConfig(floor_per_hour=Decimal("18.00"), per_mile=Decimal("1.00"))
-    r = calculate_earnings(available_minutes=60, active_minutes=0, waiting_minutes=0, miles=0, num_orders=0, config=cfg)
+    cfg = EarningsConfig(floor_per_hour=Decimal("18.00"), per_mile=Decimal("1.00"), per_active_minute=Decimal("0"))
+    r = calculate_earnings(available_minutes=90, active_minutes=60, waiting_minutes=0, miles=0, num_orders=0, config=cfg)
     assert r.floor_guarantee == Decimal("18.00")
     assert r.gross_earnings == Decimal("18.00")
 

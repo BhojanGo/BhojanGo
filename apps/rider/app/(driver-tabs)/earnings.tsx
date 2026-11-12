@@ -23,6 +23,10 @@ interface Shift {
   waiting_minutes: number;
 }
 
+// Engaged time = from accepting an order to drop-off, including the drive to
+// the restaurant and waiting there. The hourly floor is paid on engaged time.
+const engaged = (s: Shift | null) => (s?.active_minutes ?? 0) + (s?.waiting_minutes ?? 0);
+
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <View style={styles.row}>
@@ -109,9 +113,8 @@ export default function Earnings() {
             <Text style={styles.badgeText}>{shift?.online ? "ONLINE" : "OFFLINE"}</Text>
           </View>
         </View>
-        <Row label="Available time" value={`${shift?.available_minutes ?? 0} min`} />
-        <Row label="Active (on delivery)" value={`${shift?.active_minutes ?? 0} min`} />
-        <Row label="Waiting / idle" value={`${shift?.waiting_minutes ?? 0} min`} />
+        <Row label="Online" value={`${shift?.available_minutes ?? 0} min`} />
+        <Row label="Engaged (accepted to drop-off)" value={`${engaged(shift)} min`} />
       </View>
 
       {/* Earnings breakdown (driver earnings protection) */}
@@ -121,12 +124,12 @@ export default function Earnings() {
           <ActivityIndicator color="#059669" style={{ marginTop: 12 }} />
         ) : breakdown ? (
           <>
-            <Row label="Active-time pay" value={money(breakdown.active_payout)} />
-            <Row label="Waiting-time pay" value={money(breakdown.waiting_time_payout)} />
+            <Row label="Time on orders" value={money(breakdown.active_payout)} />
+            <Row label="Waiting at restaurants" value={money(breakdown.waiting_time_payout)} />
             <Row label="Mileage" value={money(breakdown.mileage_payout)} />
             <Row label="Order bonus" value={money(breakdown.order_bonus)} />
             {breakdown.floor_topup > 0 && (
-              <Row label={`Guaranteed-floor top-up`} value={money(breakdown.floor_topup)} />
+              <Row label="Top-up to your hourly minimum" value={money(breakdown.floor_topup)} />
             )}
             <Row label="Tips" value={money(breakdown.tips)} />
             {breakdown.deductions > 0 && (
@@ -135,7 +138,9 @@ export default function Earnings() {
             <View style={styles.divider} />
             <Row label="Net earnings" value={money(breakdown.net_earnings)} strong />
             <Text style={styles.note}>
-              Minimum guaranteed: {money(breakdown.floor_guarantee)} for your available time.
+              Minimum guaranteed: {money(breakdown.floor_guarantee)} for {engaged(shift)} engaged minutes. Engaged
+              time runs from accepting an order to drop-off, including the drive to the restaurant and waiting
+              there. Tips are always on top.
             </Text>
           </>
         ) : (
