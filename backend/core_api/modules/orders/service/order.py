@@ -8,6 +8,7 @@ Unpaid orders cancel after the unpaid_auto_cancel rule; placed orders the
 restaurant doesn't accept within accept_timeout cancel and are refunded. Every
 change writes an outbox event in the same transaction (shared/outbox.py).
 """
+import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -161,6 +162,7 @@ class OrderService:
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
             promo_code=data.promo_code,
+            delivery_pin=f"{secrets.randbelow(10000):04d}",
             loyalty_points_used=0,
             estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
@@ -248,7 +250,33 @@ class OrderService:
             extra = {"picked_up_at": now}
         elif new == "delivered":
             extra = {"actual_delivery_time": now}
+            proof = await self._delivery_proof(order, data, actor, user)
+            if proof:
+                extra["delivery_proof"] = proof
         return await self._move(order, new, actor, note=data.note, extra=extra)
+
+    @staticmethod
+    async def _delivery_proof(order: Order, data: OrderStatusUpdateRequest, actor: str, user: CurrentUser) -> dict | None:
+        """A rider proves the drop-off with the customer's PIN or a photo of the
+        bags at the door (P18). Admins (support) may mark delivered without one."""
+        p = data.proof
+        if p is None:
+            if actor == "rider":
+                raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "PROOF_REQUIRED",
+                           "Enter the customer's PIN or take a photo at the door")
+            return None
+        at = datetime.now(UTC).isoformat()
+        if p.method == "pin":
+            if not p.pin or (order.delivery_pin and not secrets.compare_digest(p.pin, order.delivery_pin)):
+                raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "PIN_WRONG", "That PIN doesn't match. Ask the customer again")
+            return {"method": "pin", "at": at}
+        # Only a photo this rider uploaded for proof (see POST /uploads).
+        from shared.providers.storage import get_storage
+
+        if (not p.photo_key or not p.photo_key.startswith(f"delivery_proof/{user.user_id}/")
+                or not await get_storage().exists(p.photo_key)):
+            raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "PHOTO_REQUIRED", "Take a photo of the bags at the door")
+        return {"method": "photo", "photo_key": p.photo_key, "at": at}
 
     async def cancel_order(self, order_id: uuid.UUID, data: OrderCancelRequest, user: CurrentUser) -> Order:
         order = await self._locked(order_id)

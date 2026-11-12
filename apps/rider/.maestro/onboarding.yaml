@@ -1,0 +1,24 @@
+# A rider still signing up (seed: Jordan Lee, Boise): the checklist, 3 of 5,
+# insurance needed now, background check after it; the upload screen.
+appId: com.bhojango.rider
+env:
+  PHONE: "2085550291"
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Almost ready to ride, Jordan"
+    timeout: 30000
+- assertVisible: "3 of 5"
+- assertVisible: "Vehicle insurance"
+- assertVisible: "Needed now.*"
+- assertVisible: "Starts after insurance.*"
+- assertVisible: ".*per active hour.*"
+- takeScreenshot: docs/screenshots/rider/03-onboarding
+- tapOn: "Upload insurance"
+- extendedWaitUntil:
+    visible: "Send for review"
+    timeout: 10000
+- assertVisible: "Take photo"
+- takeScreenshot: docs/screenshots/rider/04-upload-document
+- tapOn: "Close"
+- assertVisible: "Almost ready to ride, Jordan"

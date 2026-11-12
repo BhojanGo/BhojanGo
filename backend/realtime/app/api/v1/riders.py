@@ -27,8 +27,17 @@ def _rider(user: CurrentUser) -> str:
 
 @router.post("/api/v1/riders/me/online")
 async def online(data: Point, user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
-    """Start taking orders here. Keep sending /delivery/driver/location while online."""
-    return await dispatch.go_online(_rider(user), data.lat, data.lng)
+    """Start taking orders here. Keep sending /delivery/driver/location while online.
+    Only riders who have finished onboarding (core_api /riders/me/onboarding)."""
+    rider = _rider(user)
+    try:
+        ready = (await dispatch.core_api.rider_ready(rider)).get("ready")
+    except dispatch.CoreApiError as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Can't check your account right now") from e
+    if not ready:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail={
+            "code": "ONBOARDING_INCOMPLETE", "message": "Finish your checklist before you go online"})
+    return await dispatch.go_online(rider, data.lat, data.lng)
 
 
 @router.post("/api/v1/riders/me/offline")
@@ -63,6 +72,31 @@ async def pass_offer(order_id: str, user: Annotated[CurrentUser, Depends(get_cur
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "OFFER_GONE", "message": "No open offer of this order for you"})
     nxt = await dispatch.decline(user.user_id, order_id, "passed")
     return {"order_id": order_id, "passed": True, "offered_to_next": bool(nxt)}
+
+
+class SosIn(BaseModel):
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    note: str | None = Field(default=None, max_length=500)
+
+
+@router.post("/api/v1/riders/me/sos", status_code=status.HTTP_201_CREATED)
+async def sos(data: SosIn, user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
+    """The rider needs help: the safety team sees it at once (admin dispatch view)
+    with where they are and the order they're on. Call emergency services first."""
+    rider = _rider(user)
+    return await dispatch.raise_sos(rider, user.country, data.lat, data.lng, data.note)
+
+
+@router.get("/api/v1/dispatch/sos")
+async def open_sos(user: Annotated[CurrentUser, Depends(get_current_user)]) -> list[dict]:
+    """Open SOS alerts in the cities the admin dispatches for."""
+    from shared import authz
+
+    mine = [authz.Assignment.parse(a) for a in user.admin]
+    if not authz.scopes_with(mine, "dispatch.edit"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Admins only")
+    return [a for a in await dispatch.open_sos() if authz.can(mine, "dispatch.edit", a.get("market_city") or a["country"])]
 
 
 @router.get("/api/v1/dispatch/shadow-batches")

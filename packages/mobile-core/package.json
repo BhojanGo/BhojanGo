@@ -2,7 +2,7 @@
   "name": "@bhojango/mobile-core",
   "version": "0.1.0",
   "private": true,
-  "description": "Auth store, API client and shared state for the BhojanGo Expo apps",
+  "description": "Session, typed API client, bag and design system for the BhojanGo Expo apps",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
@@ -10,8 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bhojango/types": "workspace:*",
-    "axios": "^1.7.2",
     "zustand": "^4.5.2",
     "@bhojango/ui": "workspace:*",
     "@bhojango/api-client": "workspace:*"

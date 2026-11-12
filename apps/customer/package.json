@@ -20,7 +20,6 @@
     "@expo/metro-runtime": "~58.0.17",
     "@expo/vector-icons": "^15.1.1",
     "@react-navigation/native": "^6.1.17",
-    "axios": "^1.7.2",
     "expo": "~58.0.24",
     "expo-constants": "^58.0.16",
     "expo-crypto": "~58.0.8",

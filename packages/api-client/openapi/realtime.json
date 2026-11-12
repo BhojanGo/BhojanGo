@@ -487,6 +487,50 @@
         "title": "ShiftStatusResponse",
         "type": "object"
       },
+      "SosIn": {
+        "properties": {
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lng": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "SosIn",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -765,6 +809,38 @@
           }
         ],
         "summary": "Shadow Batches",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/dispatch/sos": {
+      "get": {
+        "description": "Open SOS alerts in the cities the admin dispatches for.",
+        "operationId": "open_sos_api_v1_dispatch_sos_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Open Sos Api V1 Dispatch Sos Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Open Sos",
         "tags": [
           "Dispatch"
         ]
@@ -1100,7 +1176,7 @@
     },
     "/api/v1/riders/me/online": {
       "post": {
-        "description": "Start taking orders here. Keep sending /delivery/driver/location while online.",
+        "description": "Start taking orders here. Keep sending /delivery/driver/location while online.\nOnly riders who have finished onboarding (core_api /riders/me/onboarding).",
         "operationId": "online_api_v1_riders_me_online_post",
         "requestBody": {
           "content": {
@@ -1142,6 +1218,55 @@
           }
         ],
         "summary": "Online",
+        "tags": [
+          "Dispatch"
+        ]
+      }
+    },
+    "/api/v1/riders/me/sos": {
+      "post": {
+        "description": "The rider needs help: the safety team sees it at once (admin dispatch view)\nwith where they are and the order they're on. Call emergency services first.",
+        "operationId": "sos_api_v1_riders_me_sos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SosIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sos Api V1 Riders Me Sos Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Sos",
         "tags": [
           "Dispatch"
         ]

@@ -1,0 +1,88 @@
+# The main path: go online, a delivery offer with the full pay and a 30-second
+# timer, accept, pick up when the kitchen is ready, drop off with the
+# customer's PIN, see it in this week's earnings, go offline.
+# Needs the emulator's location near Spice Route Kitchen (tools/mobile/e2e.sh sets it).
+appId: com.bhojango.rider
+env:
+  PHONE: "9000000201"
+  INDIA: "true"
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "You're offline|Looking for deliveries"
+    timeout: 30000
+# Still online from an earlier run: start from offline.
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/05-offline
+# Waiting near Spice Route Kitchen, Madhapur.
+- setLocation:
+    latitude: 17.4495
+    longitude: 78.3925
+- tapOn: "Go online"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 30000
+- runScript:
+    file: scripts/kitchen.js
+    env:
+      STEP: order
+- extendedWaitUntil:
+    visible: "NEW DELIVERY"
+    timeout: 45000
+- assertVisible: "Spice Route Kitchen"
+- assertVisible: "Near Jubilee Hills"
+- assertVisible: ".*address after pickup"
+- assertVisible:
+    id: "offer-pay"
+- takeScreenshot: docs/screenshots/rider/06-offer
+- tapOn: "Accept"
+- extendedWaitUntil:
+    visible: "Pickup . step 1 of 2"
+    timeout: 20000
+- runScript:
+    file: scripts/kitchen.js
+    env:
+      STEP: ready
+- extendedWaitUntil:
+    visible: "Ready for pickup.*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/07-pickup
+- tapOn: "Picked up"
+- extendedWaitUntil:
+    visible: "Proof of delivery"
+    timeout: 20000
+- assertVisible: "Priya S."
+- assertVisible: ".*Ring the bell twice.*"
+- takeScreenshot: docs/screenshots/rider/08-dropoff
+- tapOn: "Hand over . PIN"
+- tapOn:
+    id: "pin"
+- inputText: ${output.pin}
+- hideKeyboard
+- takeScreenshot: docs/screenshots/rider/09-dropoff-pin
+- tapOn: "Complete delivery"
+- extendedWaitUntil:
+    visible: "Delivered"
+    timeout: 20000
+- tapOn: "Back to driving"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 20000
+- tapOn: "Earnings"
+- extendedWaitUntil:
+    visible: "This week so far"
+    timeout: 20000
+- assertVisible: "Spice Route Kitchen . Jubilee Hills"  # "→"; Maestro on Windows mangles non-ASCII
+- takeScreenshot: docs/screenshots/rider/10-earnings
+- tapOn: "Drive"
+- tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 20000

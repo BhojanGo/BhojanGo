@@ -311,6 +311,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/earnings/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Earnings
+         * @description A rider's week so far: what the next weekly payout will pay, by day, with
+         *     the hourly-floor top-up (engaged time: from accepting an offer to drop-off).
+         */
+        get: operations["my_earnings_api_v1_finance_earnings_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/payout-accounts": {
         parameters: {
             query?: never;
@@ -457,7 +478,7 @@ export interface paths {
         };
         /**
          * My Statements
-         * @description A partner's statements for their restaurants, or a rider's own.
+         * @description A partner's statements for their restaurants, or a rider's own (newest first).
          */
         get: operations["my_statements_api_v1_finance_statements_me_get"];
         put?: never;
@@ -1649,6 +1670,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/riders/me/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Document
+         * @description Send an uploaded licence or insurance for review. When both are in, the
+         *     background check starts.
+         */
+        post: operations["submit_document_api_v1_riders_me_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/riders/me/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Onboarding */
+        get: operations["my_onboarding_api_v1_riders_me_onboarding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rules": {
         parameters: {
             query?: never;
@@ -1877,6 +1936,27 @@ export interface paths {
          * @description Change a published rule: a new draft version, published on review.
          */
         post: operations["new_version_api_v1_rules__rule_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload
+         * @description A photo of the bags at the door, or a document photo/PDF. Returns the
+         *     key to send with the delivery or the document (files are private).
+         */
+        post: operations["upload_api_v1_uploads_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2310,6 +2390,16 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** Body_upload_api_v1_uploads_post */
+        Body_upload_api_v1_uploads_post: {
+            /** File */
+            file: string;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "delivery_proof" | "rider_document";
+        };
         /** CartItem */
         CartItem: {
             /**
@@ -2630,6 +2720,32 @@ export interface components {
             is_long_distance: boolean;
             /** Radius Km */
             radius_km: number;
+        };
+        /**
+         * DeliveryProof
+         * @description How the rider proved the drop-off (P18): the customer's PIN, or a photo
+         *     uploaded with POST /uploads (purpose delivery_proof).
+         */
+        DeliveryProof: {
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "pin" | "photo";
+            /** Photo Key */
+            photo_key?: string | null;
+            /** Pin */
+            pin?: string | null;
+        };
+        /** DocumentIn */
+        DocumentIn: {
+            /** File Key */
+            file_key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "licence" | "insurance";
         };
         /** EndRule */
         EndRule: {
@@ -3007,6 +3123,21 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** OnboardingOut */
+        OnboardingOut: {
+            /** Country */
+            country: string;
+            /** Done */
+            done: number;
+            /** First Name */
+            first_name: string;
+            /** Ready */
+            ready: boolean;
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /** Total */
+            total: number;
+        };
         /** OptionIn */
         OptionIn: {
             /** Id */
@@ -3147,6 +3278,10 @@ export interface components {
             created_at: string;
             /** Currency */
             currency: string;
+            /** Customer */
+            customer?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Customer Id
              * Format: uuid
@@ -3160,6 +3295,10 @@ export interface components {
             delivery_distance_km?: number | null;
             /** Delivery Fee */
             delivery_fee: number;
+            /** Delivery Lat */
+            delivery_lat?: number | null;
+            /** Delivery Lng */
+            delivery_lng?: number | null;
             /** Discount */
             discount: number;
             /** Driver Id */
@@ -3199,6 +3338,12 @@ export interface components {
             payment_method: string;
             /** Picked Up At */
             picked_up_at?: string | null;
+            /** Pickup Lat */
+            pickup_lat?: number | null;
+            /** Pickup Lng */
+            pickup_lng?: number | null;
+            /** Pin */
+            pin?: string | null;
             /** Placed At */
             placed_at?: string | null;
             /**
@@ -3255,6 +3400,7 @@ export interface components {
         OrderStatusUpdateRequest: {
             /** Note */
             note?: string | null;
+            proof?: components["schemas"]["DeliveryProof"] | null;
             /**
              * Status
              * @enum {string}
@@ -4340,6 +4486,22 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** StepOut */
+        StepOut: {
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Required */
+            required: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "done" | "in_review" | "needed" | "waiting" | "rejected";
+            /** Title */
+            title: string;
+        };
         /** UserResponse */
         UserResponse: {
             /** Avatar Url */
@@ -5065,6 +5227,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_earnings_api_v1_finance_earnings_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -7687,6 +7871,59 @@ export interface operations {
             };
         };
     };
+    submit_document_api_v1_riders_me_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_onboarding_api_v1_riders_me_onboarding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+        };
+    };
     list_rules_api_v1_rules_get: {
         parameters: {
             query?: {
@@ -8150,6 +8387,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_api_v1_uploads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_v1_uploads_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

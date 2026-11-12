@@ -43,7 +43,8 @@ def _utc_range(start: date, end: date, tz: ZoneInfo) -> tuple[datetime, datetime
             datetime.combine(end, time(0), tzinfo=tz).astimezone(UTC))
 
 
-async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime, end_utc: datetime) -> list[S.OrderForPayout]:
+async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime, end_utc: datetime,
+                             rider_id: uuid.UUID | None = None) -> list[S.OrderForPayout]:
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import Refund
     from core_api.modules.pricing.models import OrderPricingSnapshot
@@ -53,7 +54,8 @@ async def _orders_for_period(db: AsyncSession, country: str, start_utc: datetime
         select(Order, OrderPricingSnapshot)
         .join(OrderPricingSnapshot, OrderPricingSnapshot.order_id == Order.id)
         .where(Order.status == "delivered", Order.market_city.like(f"{country}-%"),
-               Order.actual_delivery_time >= start_utc, Order.actual_delivery_time < end_utc)
+               Order.actual_delivery_time >= start_utc, Order.actual_delivery_time < end_utc,
+               *([Order.driver_id == rider_id] if rider_id else []))
         .order_by(Order.actual_delivery_time)
     )).all()
     order_ids = [o.id for o, _ in rows]
@@ -203,6 +205,58 @@ async def retry(db: AsyncSession, actor: uuid.UUID, run_id: uuid.UUID) -> Payout
     await audit.record(db, actor_id=actor, action="payout_run.retried", entity_type="payout_run", entity_id=run.id,
                        scope=run.country, after={"status": run.status})
     return run
+
+
+# ── a rider's week so far (P18) ───────────────────────────────────────────────
+
+async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: datetime | None = None) -> dict:
+    """This week (Monday to now, local time) as the weekly run will pay it: per
+    day, today's deliveries, and the hourly-floor top-up so far. Paid the
+    Monday after the week ends."""
+    from datetime import timedelta
+
+    from core_api.modules.orders.models.order import Order
+
+    c = await _country(db, country)
+    tz = ZoneInfo(c.timezone)
+    local_now = (now or datetime.now(UTC)).astimezone(tz)
+    today = local_now.date()
+    start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=7)
+    start_utc, end_utc = _utc_range(start, end, tz)
+    orders = await _orders_for_period(db, country, start_utc, end_utc, rider_id)
+    city = await _city_of(db, orders[-1].order_id) if orders else None
+    if city is None:  # no deliveries yet this week: the city of the rider's last order
+        city = (await db.execute(select(Order.market_city).where(Order.driver_id == rider_id, Order.market_city.is_not(None))
+                                 .order_by(Order.created_at.desc()).limit(1))).scalar()
+    if city is None:  # a new rider: the country's live city (riders aren't tied to one yet)
+        from core_api.modules.markets.models import City
+
+        city = (await db.execute(select(City.code).where(City.code.like(f"{country}-%"), City.status.in_(("live", "beta")))
+                                 .order_by(City.code).limit(1))).scalar()
+    floor = await _rule(db, city, "rider_pay:hourly_floor") if city else None
+    floor_rate = Decimal(str(floor["per_active_hour"])) if floor else None
+    total, summary, lines = S.rider_statement(orders, floor_rate)
+    if lines:  # "Boise Bowl Co. → Hyde Park" on each line
+        from core_api.modules.orders.api.v1.internal import drop_area
+
+        found = {str(o.id): o for o in (await db.execute(select(Order).where(
+            Order.id.in_([uuid.UUID(ln["order_id"]) for ln in lines])))).scalars()}
+        for ln in lines:
+            o = found.get(ln["order_id"])
+            ln["restaurant_name"] = o.restaurant_name if o else ""
+            ln["drop_area"] = drop_area(o.delivery_address) if o else None
+    days = []
+    for i in range(7):
+        d = start + timedelta(days=i)
+        day_lines = [ln for ln in lines if datetime.fromisoformat(ln["delivered_at"]).astimezone(tz).date() == d]
+        days.append({"date": d.isoformat(), "deliveries": len(day_lines),
+                     "total": str(S.m(sum((Decimal(ln["total"]) for ln in day_lines), Decimal(0))))})
+    today_lines = [ln for ln in lines if datetime.fromisoformat(ln["delivered_at"]).astimezone(tz).date() == today]
+    return {"currency": c.currency, "city": city, "period_start": start.isoformat(), "period_end": end.isoformat(),
+            "payout_date": end.isoformat(), "total": str(total), "summary": summary, "days": days,
+            "today": {"date": today.isoformat(), "total": str(S.m(sum((Decimal(ln["total"]) for ln in today_lines), Decimal(0)))),
+                      "lines": today_lines}}
 
 
 # ── payee accounts ────────────────────────────────────────────────────────────

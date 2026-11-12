@@ -600,6 +600,29 @@
         "title": "BillLineOut",
         "type": "object"
       },
+      "Body_upload_api_v1_uploads_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "delivery_proof",
+              "rider_document"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "purpose"
+        ],
+        "title": "Body_upload_api_v1_uploads_post",
+        "type": "object"
+      },
       "CartItem": {
         "properties": {
           "menu_item_id": {
@@ -1500,6 +1523,71 @@
           "currency"
         ],
         "title": "DeliveryCheckResponse",
+        "type": "object"
+      },
+      "DeliveryProof": {
+        "description": "How the rider proved the drop-off (P18): the customer's PIN, or a photo\nuploaded with POST /uploads (purpose delivery_proof).",
+        "properties": {
+          "method": {
+            "enum": [
+              "pin",
+              "photo"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "photo_key": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Key"
+          },
+          "pin": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin"
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "title": "DeliveryProof",
+        "type": "object"
+      },
+      "DocumentIn": {
+        "properties": {
+          "file_key": {
+            "maxLength": 300,
+            "title": "File Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "licence",
+              "insurance"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "file_key"
+        ],
+        "title": "DocumentIn",
         "type": "object"
       },
       "EndRule": {
@@ -2492,6 +2580,47 @@
         "title": "NewVersion",
         "type": "object"
       },
+      "OnboardingOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first_name",
+          "country",
+          "done",
+          "total",
+          "ready",
+          "steps"
+        ],
+        "title": "OnboardingOut",
+        "type": "object"
+      },
       "OptionIn": {
         "properties": {
           "id": {
@@ -2865,6 +2994,18 @@
             "title": "Currency",
             "type": "string"
           },
+          "customer": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer"
+          },
           "customer_id": {
             "format": "uuid",
             "title": "Customer Id",
@@ -2889,6 +3030,28 @@
           "delivery_fee": {
             "title": "Delivery Fee",
             "type": "number"
+          },
+          "delivery_lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Lat"
+          },
+          "delivery_lng": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Lng"
           },
           "discount": {
             "title": "Discount",
@@ -2998,6 +3161,39 @@
               }
             ],
             "title": "Picked Up At"
+          },
+          "pickup_lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Lat"
+          },
+          "pickup_lng": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Lng"
+          },
+          "pin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin"
           },
           "placed_at": {
             "anyOf": [
@@ -3155,6 +3351,16 @@
               }
             ],
             "title": "Note"
+          },
+          "proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "enum": [
@@ -6016,6 +6222,46 @@
         "title": "StatusTimelineEntry",
         "type": "object"
       },
+      "StepOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "done",
+              "in_review",
+              "needed",
+              "waiting",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "status",
+          "detail",
+          "required"
+        ],
+        "title": "StepOut",
+        "type": "object"
+      },
       "UserResponse": {
         "properties": {
           "avatar_url": {
@@ -7439,6 +7685,35 @@
         ]
       }
     },
+    "/api/v1/finance/earnings/me": {
+      "get": {
+        "description": "A rider's week so far: what the next weekly payout will pay, by day, with\nthe hourly-floor top-up (engaged time: from accepting an offer to drop-off).",
+        "operationId": "my_earnings_api_v1_finance_earnings_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response My Earnings Api V1 Finance Earnings Me Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "My Earnings",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
     "/api/v1/finance/payout-accounts": {
       "post": {
         "description": "Set up where you're paid: Stripe Connect Express (US) or Razorpay Route\n(India). Follow onboarding_url to finish (bank, identity).",
@@ -7860,7 +8135,7 @@
     },
     "/api/v1/finance/statements/me": {
       "get": {
-        "description": "A partner's statements for their restaurants, or a rider's own.",
+        "description": "A partner's statements for their restaurants, or a rider's own (newest first).",
         "operationId": "my_statements_api_v1_finance_statements_me_get",
         "responses": {
           "200": {
@@ -11799,6 +12074,79 @@
         ]
       }
     },
+    "/api/v1/riders/me/documents": {
+      "post": {
+        "description": "Send an uploaded licence or insurance for review. When both are in, the\nbackground check starts.",
+        "operationId": "submit_document_api_v1_riders_me_documents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Submit Document",
+        "tags": [
+          "Riders"
+        ]
+      }
+    },
+    "/api/v1/riders/me/onboarding": {
+      "get": {
+        "operationId": "my_onboarding_api_v1_riders_me_onboarding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "My Onboarding",
+        "tags": [
+          "Riders"
+        ]
+      }
+    },
     "/api/v1/rules": {
       "get": {
         "description": "Rules you can see (latest version of each, unless all_versions).",
@@ -12686,6 +13034,55 @@
         "summary": "New Version",
         "tags": [
           "Rules"
+        ]
+      }
+    },
+    "/api/v1/uploads": {
+      "post": {
+        "description": "A photo of the bags at the door, or a document photo/PDF. Returns the\nkey to send with the delivery or the document (files are private).",
+        "operationId": "upload_api_v1_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_v1_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Upload Api V1 Uploads Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Upload",
+        "tags": [
+          "Riders"
         ]
       }
     },

@@ -196,13 +196,18 @@ class ProviderSettings(BaseSettings):
     APNS_BUNDLE_ID: str = "com.bhojango.app"
     APNS_SANDBOX: bool = False
     ROUTING_PROVIDER: str = "straight_line"
+    # Uploaded files (P18: delivery photos, rider documents): local disk, or S3
+    # (LocalStack in `make dev`).
+    STORAGE_PROVIDER: str = "local"  # local | s3
+    UPLOADS_BUCKET: str = "bhojango-uploads"
+    LOCAL_STORAGE_DIR: str = Field(default_factory=lambda: str(Path(tempfile.gettempdir()) / "bhojango-uploads"))
     ROAD_FACTOR: float = 1.3
     AVG_SPEED_KMH: float = 25.0
 
     # Seed users (tools/seed) get this OTP outside production, so local sign-in
     # needs no SMS. Their phones start with these prefixes.
     OTP_FIXED_CODE: str = "123456"
-    OTP_FIXED_CODE_PHONE_PREFIXES: list[str] = ["+9190000", "+120855500"]
+    OTP_FIXED_CODE_PHONE_PREFIXES: list[str] = ["+9190000", "+12085550"]
 
 
 class Settings(BaseSettings):

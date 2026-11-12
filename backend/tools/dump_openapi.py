@@ -20,7 +20,9 @@ def spec(name: str) -> str:
     env = {**os.environ, "APP_ENV": "test", "PYTHONPATH": f"{cwd}{os.pathsep}{HERE}",
            "DATABASE_URL": os.environ.get("DATABASE_URL", "postgresql+asyncpg://x:y@localhost:5432/openapi")}
     out = subprocess.run([sys.executable, "-c", DUMP, module], cwd=cwd, env=env, capture_output=True, text=True, check=True)
-    return out.stdout.strip() + "\n"
+    # Start-up logs (e.g. "jwt_dev_key_created" in a fresh container) can precede the JSON.
+    text = out.stdout if out.stdout.startswith("{") else out.stdout[out.stdout.index("\n{") + 1:]
+    return text.strip() + "\n"
 
 
 def main() -> int:

@@ -84,7 +84,9 @@ pre-P1 schema. Run `make reset` once to start clean.
 **Seed logins** (all `BhojanGo123`): `customer1..5.hyd@example.com`,
 `rider1..3.hyd@example.com`, `partner.hyd@example.com`, the same with `.boi` for Boise.
 Customers can also sign in by phone (`POST /api/v1/auth/send-otp`, then `/auth/phone`):
-seed phones `+919000000101..105` and `+120855500101..105` always get code **123456**.
+seed phones `+919000000101..105` and `+12085550101..105` always get code **123456**.
+Riders sign in to the rider app the same way (`…201..203`); `new.rider1.boi@example.com`
+(Jordan Lee, `+12085550291`) is still signing up, so the app shows the onboarding checklist.
 Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ Boise (`US-ID-BOI`).
 
 **Admin logins** (all `BhojanGoAdmin1`), one per role and scope (`shared/authz.py`):
@@ -135,6 +137,20 @@ rider assigned, location + ETA (routing provider), status changes. The TypeScrip
 in shadow mode (`SHADOW_MODE=true`: publishes nothing, batches can't be accepted); realtime logs the
 batches it would have made at `GET /api/v1/dispatch/shadow-batches`.
 
+**Rider app (P18):** a rider goes online only after onboarding (`GET /api/v1/riders/me/onboarding`:
+phone, licence, payout account, insurance, background check; documents go up with
+`POST /api/v1/uploads` then `POST /api/v1/riders/me/documents`; realtime checks
+`/internal/riders/{id}/ready`). Files are stored by `STORAGE_PROVIDER` (`local` disk, or `s3`:
+the `bhojango-uploads` bucket in LocalStack under `make dev`). Offers carry the guaranteed pay
+(tip included), bags, ready-in time and drop-off area; the address shows after pickup. Every order
+has a 4-digit delivery PIN, shown only on the customer's tracking screen; a rider marks it
+delivered with that PIN or a photo they uploaded (`proof` on `PUT /orders/{id}/status`).
+`GET /api/v1/finance/earnings/me` is the week so far as the Monday payout will pay it (by day,
+today's deliveries, hourly-floor top-up). SOS: `POST /api/v1/riders/me/sos` (realtime) stores the
+alert with the rider's position and order, publishes it on `ops:sos`, and dispatch admins for the
+city list it at `GET /api/v1/dispatch/sos`. GPS runs as an Android foreground service once the
+rider allows location all the time (otherwise only while the app is open).
+
 **Payments and refunds (P12):** `POST /payments/initiate` returns what the app's payment SDK needs:
 Stripe PaymentSheet (cards, Apple Pay, Google Pay) in the US, Razorpay Checkout (UPI, cards,
 wallets; `POST /payments/razorpay/verify`) in India, a fake equivalent locally. A failed payment
@@ -175,7 +191,7 @@ needs a card or a sign-up (`backend/shared/providers`, `payments/service/gateway
 | Provider | Locally | How to see it |
 | --- | --- | --- |
 | Payments (Stripe, Razorpay) | Fake gateway with signed webhooks | Payments succeed after 2 s; `payment_method_id` `pm_card_chargeDeclined` fails; or `POST /api/v1/payments/fake/{id}/complete` |
-| SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+919000000…`, `+120855500…`) always get **123456** |
+| SMS / OTP | Printed in the worker log | `make logs` → `[SMS to +91…] Your BhojanGo verification code is: …`. Seed phones (`+919000000…`, `+12085550…`) always get **123456** |
 | Email | Mailpit | http://localhost:8025 |
 | Push | Printed in the worker log | `[PUSH to 1 device(s)] …` |
 | US sales tax (Stripe Tax) | Local stand-in with illustrative state rates (Idaho 6%) | "Idaho sales tax" line on Boise quotes |

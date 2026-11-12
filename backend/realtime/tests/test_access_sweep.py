@@ -40,7 +40,13 @@ def info(order: str = ORDER, **kw: Any) -> dict:
             "pickup": [17.4486, 78.3908], "dropoff": [17.43, 78.41], "offer_timeout_seconds": 30, "distance_unit": "km", **kw}
 
 
+NOT_READY = "00000000-0000-0000-0000-00000000dead"
+
+
 class FakeCore:
+    async def rider_ready(self, rider: str) -> dict:
+        return {"rider_id": rider, "ready": rider != NOT_READY, "country": "IN"}
+
     async def dispatch_info(self, order: str) -> dict:
         if order not in (ORDER, OTHER_ORDER):
             raise CoreApiError(404, "Order not found")
@@ -66,6 +72,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/riders/me/online"): Policy("user", ["customer", "partner"], {"lat": 17.45, "lng": 78.39}),
     ("POST", "/api/v1/riders/me/offline"): Policy("user", ["customer", "partner"]),
     ("GET", "/api/v1/riders/me"): Policy("user", ["customer", "partner"]),
+    ("POST", "/api/v1/riders/me/sos"): Policy("user", ["customer", "partner", "ops_hyd"], {"note": "test"}),
     # OTHER_ORDER is on offer to other_rider: the rider (busy with ORDER) can't take or pass it
     ("POST", "/api/v1/offers/{order_id}/accept"): Policy("user", ["customer", "partner", "rider"]),
     ("POST", "/api/v1/offers/{order_id}/pass"): Policy("user", ["customer", "partner", "rider"]),
@@ -83,6 +90,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/delivery/assign"): Policy("admin", NOT_ADMINS + ["ops_boi", "viewer"],
                                                 {"order_id": OTHER_ORDER, "driver_id": IDS["other_rider"]}),
     ("GET", "/api/v1/dispatch/shadow-batches"): Policy("admin", NOT_ADMINS + ["viewer"]),
+    ("GET", "/api/v1/dispatch/sos"): Policy("admin", NOT_ADMINS + ["viewer"]),
 }
 
 

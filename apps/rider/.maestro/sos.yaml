@@ -1,0 +1,31 @@
+# Safety: SOS from Account; alert the safety team (stored, shown to dispatch admins).
+appId: com.bhojango.rider
+env:
+  PHONE: "9000000202"
+  INDIA: "true"
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000
+- tapOn: "Account"
+- extendedWaitUntil:
+    visible: "Sign out"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/rider/11-account
+- tapOn: "Safety"
+- extendedWaitUntil:
+    visible: "Get help now"
+    timeout: 10000
+- assertVisible: "Call 112"
+- tapOn: "Alert BhojanGo safety team"
+- extendedWaitUntil:
+    visible: "The safety team has your alert.*"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/rider/12-sos
+- tapOn: "Close"
+- tapOn: "Payouts"
+- extendedWaitUntil:
+    visible: "Past weeks"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/rider/13-payouts

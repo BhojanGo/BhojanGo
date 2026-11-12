@@ -33,7 +33,13 @@ def info(**kw) -> dict:  # type: ignore[no-untyped-def]
             "dropoff": CUSTOMER, "offer_timeout_seconds": 30, "distance_unit": "km", **kw}
 
 
+NOT_READY = "00000000-0000-0000-0000-00000000dead"
+
+
 class FakeCore:
+    async def rider_ready(self, rider: str) -> dict:
+        return {"rider_id": rider, "ready": rider != NOT_READY, "country": "IN"}
+
     def __init__(self) -> None:
         self.assigned: list[tuple[str, str]] = []
         self.fail: CoreApiError | None = None
@@ -255,3 +261,46 @@ async def test_engaged_time_runs_from_accept_to_drop_off(r, core, monkeypatch) -
     after = await shifts.get_shift(RIDER_NEAR, clock["t"] + 30 * 60)
     # only the 40 minutes from accept to drop-off are engaged, not the idle time before or after
     assert after["status"] == "available" and after["active_minutes"] == 40 and after["available_minutes"] == 80
+
+
+async def test_offer_shows_pay_bags_and_drop_area(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    extra = {"code": "#AB12CD", "currency": "INR", "rider_pay": "45.00", "tip": "20.00", "items_count": 3, "bags": 1,
+             "ready_in_minutes": 6, "drop_area": "Kondapur"}
+    monkeypatch.setattr(core, "dispatch_info", lambda order: _async(info(**extra)))
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    assert {k: offer[k] for k in extra} == extra
+    assert offer["trip_km"] > 0 and offer["distance_unit"] == "km"
+
+
+async def _async(v):  # type: ignore[no-untyped-def]
+    return v
+
+
+async def test_online_needs_finished_onboarding(r, core) -> None:  # type: ignore[no-untyped-def]
+    from app.api.v1 import riders
+
+    with pytest.raises(HTTPException) as e:
+        await riders.online(riders.Point(lat=17.45, lng=78.39), CurrentUser(NOT_READY, "driver", "IN"))
+    assert e.value.status_code == 403 and e.value.detail["code"] == "ONBOARDING_INCOMPLETE"
+    assert not await r.sismember(dispatch.ONLINE, NOT_READY)
+    ok = str(uuid.uuid4())
+    assert (await riders.online(riders.Point(lat=17.45, lng=78.39), CurrentUser(ok, "driver", "IN")))["status"] == "available"
+
+
+async def test_sos_reaches_admins_for_the_city(r, core) -> None:  # type: ignore[no-untyped-def]
+    from app.api.v1 import riders
+
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    pubsub = r.pubsub()
+    await pubsub.subscribe(dispatch.SOS_CHANNEL)
+    alert = await riders.sos(riders.SosIn(note="Followed"), CurrentUser(RIDER_NEAR, "driver", "IN"))
+    assert alert["emergency_number"] == "112" and alert["order_id"] == ORDER and alert["lat"] == 17.4520
+    assert [m["type"] for m in await drain(pubsub)] == ["sos"]
+    hyd = CurrentUser(str(uuid.uuid4()), "customer", "IN", admin=["city_ops@IN-TG-HYD"])
+    boi = CurrentUser(str(uuid.uuid4()), "customer", "US", admin=["city_ops@US-ID-BOI"])
+    assert [a["id"] for a in await riders.open_sos(hyd)] == [alert["id"]]
+    assert await riders.open_sos(boi) == []

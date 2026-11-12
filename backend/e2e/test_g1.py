@@ -104,9 +104,16 @@ def deliver_through_dispatch(order: dict, customer: Api, partner: Api, rider: Ap
     r = rider.rt("POST", f"/offers/{oid}/accept")
     assert r.status_code == 200 and r.json()["status"] == "assigned", r.text
     assert partner.core("PUT", f"/orders/{oid}/status", json={"status": "ready"}).status_code == 200
-    for s in ("picked_up", "delivered"):
-        r = rider.core("PUT", f"/orders/{oid}/status", json={"status": s})
-        assert r.status_code == 200, (s, r.text)
+    r = rider.core("PUT", f"/orders/{oid}/status", json={"status": "picked_up"})
+    assert r.status_code == 200, r.text
+    # At the door the customer reads out the PIN from their tracking screen (P18).
+    pin = customer.core("GET", f"/orders/{oid}").json()["pin"]
+    assert pin and rider.core("GET", f"/orders/{oid}").json()["pin"] is None, "only the customer sees the PIN"
+    wrong = f"{(int(pin) + 1) % 10000:04d}"
+    r = rider.core("PUT", f"/orders/{oid}/status", json={"status": "delivered", "proof": {"method": "pin", "pin": wrong}})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "PIN_WRONG", r.text
+    r = rider.core("PUT", f"/orders/{oid}/status", json={"status": "delivered", "proof": {"method": "pin", "pin": pin}})
+    assert r.status_code == 200, r.text
     rider.rt("POST", "/riders/me/offline")
 
 

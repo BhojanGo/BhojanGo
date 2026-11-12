@@ -31,6 +31,7 @@ x-backend-env: &backend-env
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
   ROUTING_PROVIDER: straight_line
+  STORAGE_PROVIDER: s3   # uploads go to the bhojango-uploads bucket in LocalStack
   # realtime -> core_api internal calls are HMAC-signed (shared/internal_auth.py)
   INTERNAL_SERVICE_SECRET: local-internal-secret
   # LocalStack queues and topics (infra/docker/localstack/init-aws.sh)

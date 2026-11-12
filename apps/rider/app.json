@@ -14,7 +14,12 @@
       "bundleIdentifier": "com.bhojango.rider",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "BhojanGo Rider uses your location to show nearby deliveries and share your position with customers.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Rider shares your location during an active delivery."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Rider shares your location during an active delivery.",
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSCameraUsageDescription": "BhojanGo Rider uses the camera for photos at the door and of your documents.",
+        "NSPhotoLibraryUsageDescription": "BhojanGo Rider lets you choose a photo of your documents."
       }
     },
     "android": {
@@ -26,6 +31,10 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
       ],
@@ -36,7 +45,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-location",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "BhojanGo Rider shares your location while you are online, even with the screen off, so you get nearby offers and customers can follow their order.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -53,6 +69,13 @@
           "imageWidth": 160,
           "resizeMode": "contain",
           "backgroundColor": "#0C1416"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "BhojanGo Rider uses the camera for photos at the door and of your documents.",
+          "photosPermission": "BhojanGo Rider lets you choose a photo of your documents."
         }
       ]
     ],

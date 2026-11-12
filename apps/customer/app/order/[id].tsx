@@ -145,6 +145,12 @@ export default function Tracking() {
             <Txt variant="small" style={{ color: color.muted }}>{order?.restaurant_name}</Txt>
           </View>
         )}
+        {order?.pin && status !== "delivered" && status !== "cancelled" ? (
+          <View style={styles.pinRow} accessibilityLabel={`Delivery PIN ${order.pin.split("").join(" ")}. Give it to your rider at the door.`}>
+            <Text style={[textFont("600"), { fontSize: 13, color: color.muted, flex: 1 }]}>Give your rider this PIN at the door</Text>
+            <Text testID="delivery-pin" style={[textFont("800"), { fontSize: 22, letterSpacing: 6, color: color.kohl }]}>{order.pin}</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -176,6 +182,10 @@ function TrackMap({ live }: { live: Live }) {
 }
 
 const styles = StyleSheet.create({
+  pinRow: {
+    flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16,
+    backgroundColor: color.peacockMist,
+  },
   screen: { flex: 1, backgroundColor: color.mapGround },
   float: {
     position: "absolute", top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,

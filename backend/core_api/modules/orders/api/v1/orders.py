@@ -119,7 +119,20 @@ async def get_driver_active_order(
     order = await repo.get_driver_active_order(current_user.id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active order")
-    return OrderResponse.model_validate(order)
+    return await _as_rider_sees_it(db, order, OrderResponse.model_validate(order))
+
+
+async def _as_rider_sees_it(db: AsyncSession, order, out: OrderResponse) -> OrderResponse:  # type: ignore[no-untyped-def]
+    """The customer's first name and initial; the full address only after pickup (P18)."""
+    from core_api.modules.identity.models.user import User
+    from core_api.modules.orders.api.v1.internal import drop_area
+
+    cust = await db.get(User, order.customer_id)
+    parts = (cust.full_name if cust else "").split()
+    out.customer = {"name": f"{parts[0]} {parts[-1][0]}." if len(parts) > 1 else (parts[0] if parts else "Customer")}
+    if order.status not in ("picked_up", "delivered"):
+        out.delivery_address = {"area": drop_area(order.delivery_address), "city": order.delivery_address.get("city")}
+    return out
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -136,6 +149,10 @@ async def get_order(
     if not await _can_see_order(db, current_user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     out = OrderResponse.model_validate(order)
+    if order.customer_id == current_user.id and order.status not in ("delivered", "cancelled"):
+        out.pin = order.delivery_pin
+    if order.driver_id is not None and order.driver_id == current_user.id:
+        await _as_rider_sees_it(db, order, out)
     if order.driver_id:
         from core_api.modules.identity.models.user import User
 
