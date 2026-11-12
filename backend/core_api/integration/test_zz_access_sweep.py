@@ -131,6 +131,11 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/orders"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c), "payment_method": "upi",
                                                      "quote_token": "x", "delivery_address": ADDRESS}),
     ("GET", "/api/v1/finance/payout-accounts/me"): user(), ("GET", "/api/v1/finance/statements/me"): user(),
+    # self sign-up (B1): your own account only; admins use another number
+    ("POST", "/api/v1/riders/apply"): user("ops_hyd", body=lambda c: {"full_name": "Sweep", "city_code": "IN-TG-HYD"}),
+    ("POST", "/api/v1/restaurants/apply"): user("ops_hyd", body=lambda c: {
+        "full_name": "Sweep", "kitchen_name": "Sweep", "city_code": "IN-TG-HYD", "street": "Road 1", "area": "Madhapur",
+        "zip": "500081", "lat": 17.44, "lng": 78.39, "cuisines": ["Thali"]}),
     # riders only (P18)
     ("GET", "/api/v1/finance/earnings/me"): user("customer", "partner", "ops_hyd"),
     ("POST", "/api/v1/uploads"): user("customer", "ops_hyd"),  # riders and partners (P19); purpose checked per role

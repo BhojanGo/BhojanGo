@@ -1371,6 +1371,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kitchen Apply
+         * @description Apply with a kitchen: it's created pending approval and the partner
+         *     application (FSSAI, GST and bank, menu) follows. Admins approve it in
+         *     Partners → Applications.
+         */
+        post: operations["kitchen_apply_api_v1_restaurants_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/by-slug/{slug}": {
         parameters: {
             query?: never;
@@ -1929,6 +1951,27 @@ export interface paths {
         get: operations["today_api_v1_restaurants__restaurant_id__today_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/riders/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rider Apply
+         * @description Become a rider applicant: then the onboarding checklist (licence, insurance,
+         *     payout account, background check). Admins review in Partners → Rider documents.
+         */
+        post: operations["rider_apply_api_v1_riders_apply_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3284,6 +3327,57 @@ export interface components {
              * @enum {string}
              */
             reason: "wrong_item" | "missing_item" | "quality" | "late" | "damaged_in_transit" | "rider_issue" | "goodwill";
+        };
+        /** KitchenApplied */
+        KitchenApplied: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Admin Roles
+             * @default []
+             */
+            admin_roles?: string[];
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Is New User
+             * @default false
+             */
+            is_new_user?: boolean;
+            /** Refresh Token */
+            refresh_token: string;
+            /** Restaurant Id */
+            restaurant_id: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type?: string;
+            user: components["schemas"]["UserResponse"];
+        };
+        /** KitchenApply */
+        KitchenApply: {
+            /** Area */
+            area: string;
+            /** City Code */
+            city_code: string;
+            /** Cuisines */
+            cuisines: string[];
+            /**
+             * Full Name
+             * @description Your name
+             */
+            full_name: string;
+            /** Kitchen Name */
+            kitchen_name: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Street */
+            street: string;
+            /** Zip */
+            zip: string;
         };
         /** LicenceIn */
         LicenceIn: {
@@ -4776,6 +4870,13 @@ export interface components {
              * Format: uuid
              */
             restaurant_id: string;
+        };
+        /** RiderApply */
+        RiderApply: {
+            /** City Code */
+            city_code: string;
+            /** Full Name */
+            full_name: string;
         };
         /**
          * RoleAssignmentCreate
@@ -7820,6 +7921,39 @@ export interface operations {
             };
         };
     };
+    kitchen_apply_api_v1_restaurants_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitchenApplied"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_restaurant_by_slug_api_v1_restaurants_by_slug__slug__get: {
         parameters: {
             query?: never;
@@ -9007,6 +9141,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rider_apply_api_v1_riders_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RiderApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"];
                 };
             };
             /** @description Validation Error */

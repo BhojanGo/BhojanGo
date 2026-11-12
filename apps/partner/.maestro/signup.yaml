@@ -1,0 +1,43 @@
+# Apply with a kitchen from the tablet with a brand-new number: then the partner application.
+appId: com.bhojango.partner
+---
+- runScript: scripts/new_phone.js
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+- extendedWaitUntil:
+    visible: "Apply with your kitchen"
+    timeout: 30000
+- tapOn:
+    id: "full_name"
+- inputText: "Lata Menon"
+- hideKeyboard
+- tapOn:
+    id: "kitchen_name"
+- inputText: "Lata Kitchen"
+- hideKeyboard
+- tapOn: "Hyderabad"
+- tapOn:
+    id: "street"
+- inputText: "Plot 9, Road 12"
+- hideKeyboard
+- tapOn:
+    id: "area"
+- inputText: "Banjara Hills"
+- hideKeyboard
+- tapOn:
+    id: "zip"
+- inputText: "500034"
+- hideKeyboard
+- tapOn:
+    id: "cuisines"
+- inputText: "Kerala, Thali"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/14-signup
+- tapOn: "Send application"
+- extendedWaitUntil:
+    visible: "Partner application"
+    timeout: 30000
+- assertVisible: "1 of 5 done"
+- takeScreenshot: docs/screenshots/partner/15-signup-application

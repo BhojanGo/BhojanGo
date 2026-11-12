@@ -48,7 +48,7 @@ export default function SignIn() {
       </View>
       {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
       <Btn title="Send code" kind="primary" height={56} busy={busy} disabled={digits.length !== 10} onPress={send} />
-      <Text style={t.muted}>Not on BhojanGo yet? Ask your BhojanGo contact for a partner account, then sign in to apply.</Text>
+      <Text style={t.muted}>New to BhojanGo? Sign in with your kitchen&apos;s number and apply: it takes about ten minutes.</Text>
     </Split>
   );
 }

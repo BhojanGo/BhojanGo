@@ -10,12 +10,14 @@ import { t } from "../lib/ui";
 
 export default function Index() {
   const status = useSession((s) => s.status);
+  const role = useSession((s) => s.user?.role);
   const { kitchens, kitchen, error, load } = useKitchen();
   useEffect(() => {
-    if (status === "signed-in" && kitchens === null) void load();
-  }, [status, kitchens, load]);
+    if (status === "signed-in" && role !== "customer" && kitchens === null) void load();
+  }, [status, role, kitchens, load]);
 
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
+  if (role === "customer") return <Redirect href="/join" />;
   if (kitchen) return <Redirect href={kitchen.status === "active" ? "/orders" : "/apply"} />;
   if (kitchens && kitchens.length > 1) return <Redirect href="/kitchens" />;
   return (

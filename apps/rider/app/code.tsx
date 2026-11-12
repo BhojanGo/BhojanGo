@@ -32,9 +32,14 @@ export default function Code() {
     setError(null);
     try {
       await verify(phone, value, country);
-      if (useSession.getState().user?.role !== "driver") {
+      const role = useSession.getState().user?.role;
+      if (role === "customer") {
+        router.replace("/join"); // a new number: sign up to ride
+        return;
+      }
+      if (role !== "driver") {
         await signOut();
-        setError("This number isn't a rider account. Use the BhojanGo app to order food.");
+        setError("This number is a partner or admin account. Use another number to ride.");
         setCode("");
         return;
       }

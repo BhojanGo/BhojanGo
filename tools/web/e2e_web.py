@@ -129,7 +129,7 @@ with sync_playwright() as p:
     page.locator("#phone").fill("9000000101")
     shot(page, "05-sign-in")
     page.get_by_role("button", name="Send code").click()
-    page.get_by_label("Code").fill("123456")
+    page.get_by_label("Code", exact=True).fill("123456")
     page.get_by_role("button", name="Verify").click()
     page.wait_for_url("**/checkout")
     check("checkout: saved address, live fair bill with who gets what", lambda: (
@@ -169,6 +169,31 @@ with sync_playwright() as p:
     check("robots keeps checkout and orders out", lambda: ("Disallow: /checkout" in rb and "Disallow: /orders" in rb) or (_ for _ in ()).throw(AssertionError(rb)))
     check("unknown kitchen is a 404", lambda: page.request.get(f"{base}/hyderabad/no-such-kitchen").status == 404 or (_ for _ in ()).throw(AssertionError("not 404")))
     check("old /restaurants URL redirects home", lambda: page.request.get(f"{base}/restaurants", max_redirects=0).status in (301, 308) or (_ for _ in ()).throw(AssertionError("no redirect")))
+
+    # A kitchen applies on the web with a brand-new number (B1).
+    k = b.new_context(viewport={"width": 1280, "height": 900}).new_page()
+    k.goto(base + "/partner", wait_until="networkidle")
+    k.get_by_role("link", name="Sign in to apply").click()
+    k.locator("#phone").fill(f"90000{__import__('random').randint(10000, 99999)}")
+    k.get_by_role("button", name="Send code").click()
+    k.get_by_label("Code", exact=True).fill("123456")
+    k.get_by_role("button", name="Verify").click()
+    k.wait_for_url("**/partner", timeout=20000)
+    form = k.get_by_role("form", name="Apply with your kitchen")
+    for label, value in (("Your name", "Lata Menon"), ("Kitchen name", "Lata's Kitchen"), ("Area", "Banjara Hills"),
+                         ("Street address", "Plot 9, Road 12"), ("PIN / ZIP code", "500034"), ("Cuisines", "Kerala, Thali")):
+        form.get_by_label(label, exact=True).fill(value)
+    k.screenshot(path=f"{OUT}/11-partner-apply.png", full_page=True)
+    form.get_by_role("button", name="Send application").click()
+    check("kitchen sign-up on the web: application created, FSSAI step next", lambda: (
+        expect(k.get_by_role("region", name="Your application")).to_be_visible(timeout=20000),
+        expect(k.get_by_text("Lata's Kitchen · 1 of 5 done")).to_be_visible(),
+        expect(k.get_by_label("FSSAI licence number")).to_be_visible()))
+    k.get_by_label("FSSAI licence number").fill("13623012000487")
+    k.get_by_label("Valid until").fill("2028-03-31")
+    k.get_by_role("button", name="Save licence").click()
+    check("kitchen sign-up on the web: licence saved, GST next", lambda: expect(k.get_by_text("Lata's Kitchen · 2 of 5 done")).to_be_visible(timeout=15000))
+    k.screenshot(path=f"{OUT}/12-partner-application.png", full_page=True)
 
     m = b.new_page(viewport={"width": 390, "height": 844})
     for path in ("/", "/hyderabad", "/hyderabad/spice-route-kitchen-madhapur", "/help"):

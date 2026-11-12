@@ -1,0 +1,24 @@
+# Sign up to ride with a brand-new number: name and city, then the onboarding checklist.
+appId: com.bhojango.rider
+---
+- runScript: scripts/new_phone.js
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+      INDIA: "true"
+- extendedWaitUntil:
+    visible: "Sign up to ride"
+    timeout: 30000
+- tapOn:
+    id: "name"
+- inputText: "Kiran Rao"
+- hideKeyboard
+- tapOn: "Hyderabad"
+- takeScreenshot: docs/screenshots/rider/14-signup
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Almost ready to ride, Kiran"
+    timeout: 30000
+- assertVisible: "1 of 5"
+- takeScreenshot: docs/screenshots/rider/15-signup-checklist

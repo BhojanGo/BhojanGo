@@ -52,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <ul className="space-y-2 text-muted">
                 <li><Link href="/help" className="hover:text-peacock">Help centre</Link></li>
                 <li><Link href="/orders" className="hover:text-peacock">Your orders</Link></li>
+                <li><Link href="/partner" className="hover:text-peacock">Add your kitchen</Link></li>
               </ul>
             </div>
             <div>

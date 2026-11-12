@@ -24,9 +24,14 @@ export default function Code() {
     setError(null);
     try {
       await verify(phone, value, country);
-      if (useSession.getState().user?.role !== "restaurant_owner") {
+      const role = useSession.getState().user?.role;
+      if (role === "customer") {
+        router.replace("/join"); // a new number: apply with a kitchen
+        return;
+      }
+      if (role !== "restaurant_owner") {
         await signOut();
-        setError("This number isn't a partner account. Customers order in the BhojanGo app.");
+        setError("This number is a rider or admin account. Use another number for your kitchen.");
         setCode("");
         return;
       }

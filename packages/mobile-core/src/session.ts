@@ -31,6 +31,8 @@ interface SessionState {
   loadUser: () => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  /** After applying to ride or with a kitchen: the account's new role comes with new tokens. */
+  adopt: (tokens: { access_token: string; refresh_token: string }) => Promise<void>;
 }
 
 export const useSession = create<SessionState>()((set, get) => ({
@@ -95,6 +97,14 @@ export const useSession = create<SessionState>()((set, get) => ({
     await SecureStore.deleteItemAsync(ACCESS).catch(() => undefined);
     await SecureStore.deleteItemAsync(REFRESH).catch(() => undefined);
     set({ status: "signed-out", accessToken: null, user: null });
+  },
+
+  adopt: async (tokens) => {
+    await SecureStore.setItemAsync(ACCESS, tokens.access_token);
+    await SecureStore.setItemAsync(REFRESH, tokens.refresh_token);
+    set({ accessToken: tokens.access_token });
+    await get().loadUser();
+    set({ status: "signed-in" });
   },
 
   deleteAccount: async () => {
