@@ -165,24 +165,29 @@ async def last_fix(rider: str) -> dict | None:
 
 # ── orders ────────────────────────────────────────────────────────────────────
 
-async def order_info(order: str, refresh: bool = False) -> dict | None:
+async def order_info(order: str, refresh: bool = False, max_age: float | None = None) -> dict | None:
+    """The order as dispatch sees it, from the cache unless ``refresh`` or the cached
+    copy is older than ``max_age`` seconds (P24: a burst of trackers opening at once
+    shouldn't each make a call to core_api)."""
     r = await get_redis()
     raw = None if refresh else await r.get(info_key(order))
     if raw:
-        return json.loads(raw)
+        cached = json.loads(raw)
+        if max_age is None or time.time() - float(cached.get("_at", 0)) <= max_age:
+            return cached
     try:
         info = await core_api.dispatch_info(order)
     except CoreApiError as e:
         if e.status == 404:
             return None
         raise
-    await r.set(info_key(order), json.dumps(info), ex=DAY)
+    await _save_info(info)
     return info
 
 
 async def _save_info(info: dict) -> None:
     r = await get_redis()
-    await r.set(info_key(info["order_id"]), json.dumps(info), ex=DAY)
+    await r.set(info_key(info["order_id"]), json.dumps({**info, "_at": time.time()}), ex=DAY)
 
 
 def eta_for(info: dict, rider_at: tuple[float, float] | None) -> dict | None:

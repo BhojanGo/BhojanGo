@@ -238,6 +238,7 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: str = ""
+    REDIS_MAX_CONNECTIONS: int = 100  # per process; WebSockets share one pub/sub connection (realtime hub)
 
     # JWT: RS256 (shared/jwt_keys.py). Only core_api signs; everyone verifies.
     JWT_PRIVATE_KEY: str = ""  # PEM; required in production (core_api)

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.api.v1.websocket import _extract_ws_token
 from app.core.auth import CurrentUser, _decode_token, get_current_user
-from app.core.redis import get_redis
+from app.core.hub import hub
 from app.services import dispatch
 
 router = APIRouter(tags=["Dispatch"])
@@ -146,16 +146,17 @@ async def rider_socket(websocket: WebSocket, token: str | None = Query(default=N
     offer = await dispatch.current_offer(user.user_id)
     if offer:
         await websocket.send_json({"type": "offer", "payload": offer})
-    pubsub = (await get_redis()).pubsub()
-    await pubsub.subscribe(dispatch.rider_channel(user.user_id))
-    try:
-        while True:
-            msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-            if msg and msg["type"] == "message":
-                await websocket.send_json(json.loads(msg["data"]))
-            await asyncio.sleep(0.05)
-    except (WebSocketDisconnect, RuntimeError):
-        pass
-    finally:
-        await pubsub.unsubscribe()
-        await pubsub.aclose()
+    # Offers through the process's shared subscription (app/core/hub.py), not a connection per rider.
+    async with hub.subscribe(dispatch.rider_channel(user.user_id)) as q:
+        async def forward() -> None:
+            while True:
+                await websocket.send_json(json.loads(await q.get()))
+
+        task = asyncio.create_task(forward())
+        try:
+            while True:
+                await websocket.receive_text()  # pings from the app; a disconnect ends it
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+        finally:
+            task.cancel()

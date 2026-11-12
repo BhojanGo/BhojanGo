@@ -89,6 +89,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 28. **Time-box side quests; report what's missing.**
     Why: Grafana screenshots would not render in the headless container after three attempts, while the monitoring itself was verified through its APIs. We moved on and said so.
 
+29. **A load test runs each path on its own before the mix.**
+    Why: with everything at once, core_api looked slow (quote p95 21 s) when realtime was the cause. Alone, core_api was under 112 ms; realtime's exhausted Redis pool and a burst of trackers calling core_api were the problem.
+
+30. **Long-lived connections share resources per process, never one each.**
+    Why: one Redis pub/sub connection per WebSocket ran out at 200 watchers and took every other Redis call down with it.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
