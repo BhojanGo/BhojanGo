@@ -816,6 +816,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Orders
+         * @description Orders in your scope: live ones, the ones that need attention (late,
+         *     waiting for a rider, kitchen not answering), today's, or a search by order
+         *     code (#A9D1) or the customer's phone.
+         */
+        get: operations["orders_api_v1_ops_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Overview
+         * @description Live orders, today's orders and money, delivery times and what needs
+         *     someone's attention, for each country, state and city in ``scope``.
+         */
+        get: operations["overview_api_v1_ops_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders": {
         parameters: {
             query?: never;
@@ -1871,6 +1914,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/riders/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Documents
+         * @description Rider documents for review in the countries you can see (riders aren't tied to a city).
+         */
+        get: operations["documents_api_v1_riders_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/riders/documents/{document_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review
+         * @description Approve or reject a rider's document. The rider can go online once the
+         *     licence, insurance and background check are all approved.
+         */
+        post: operations["review_api_v1_riders_documents__document_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/riders/me/documents": {
         parameters: {
             query?: never;
@@ -2158,6 +2242,27 @@ export interface paths {
          *     (photo or PDF). Returns the key to send with it (files are private).
          */
         post: operations["upload_api_v1_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View Upload
+         * @description An uploaded document, for the admins who review it: rider documents (riders.view
+         *     in the rider's country) and kitchen licences (partners.view in the kitchen's city).
+         */
+        get: operations["view_upload_api_v1_uploads_view_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2513,6 +2618,8 @@ export interface components {
             done: number;
             /** Fssai Document */
             fssai_document: boolean;
+            /** Fssai Document Key */
+            fssai_document_key?: string | null;
             /** Fssai Expires On */
             fssai_expires_on: string | null;
             /** Fssai Number */
@@ -2987,6 +3094,32 @@ export interface components {
              */
             kind: "licence" | "insurance";
         };
+        /** DocumentOut */
+        DocumentOut: {
+            /** Country */
+            country: string;
+            /** File Key */
+            file_key: string | null;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Note */
+            note: string | null;
+            /** Rider Id */
+            rider_id: string;
+            /** Rider Name */
+            rider_name: string;
+            /** Rider Phone */
+            rider_phone: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+        };
         /** EndRule */
         EndRule: {
             /** At */
@@ -3450,6 +3583,153 @@ export interface components {
             steps: components["schemas"]["core_api__modules__identity__api__v1__riders__StepOut"][];
             /** Total */
             total: number;
+        };
+        /** OpsAction */
+        OpsAction: {
+            /** Count */
+            count: number;
+            /** Detail */
+            detail: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "rule_approval" | "kitchen_application" | "rider_documents" | "waiting_for_rider" | "late_orders";
+            /** Label */
+            label: string;
+            /** Scope */
+            scope: string;
+            /**
+             * Urgent
+             * @default false
+             */
+            urgent?: boolean;
+        };
+        /** OpsCity */
+        OpsCity: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            totals: components["schemas"]["OpsTotals"];
+        };
+        /** OpsCountry */
+        OpsCountry: {
+            /** Code */
+            code: string;
+            /** Currency */
+            currency: string;
+            /** Name */
+            name: string;
+            /** Needs Action */
+            needs_action: components["schemas"]["OpsAction"][];
+            /** Payments */
+            payments: string;
+            /** States */
+            states: components["schemas"]["OpsState"][];
+            /** Tax */
+            tax: string;
+            /** Timezone */
+            timezone: string;
+            totals: components["schemas"]["OpsTotals"];
+        };
+        /** OpsOrder */
+        OpsOrder: {
+            /** Code */
+            code: string;
+            /** Currency */
+            currency: string;
+            /** Customer */
+            customer: string;
+            /** Estimated Delivery Time */
+            estimated_delivery_time: string | null;
+            /** Flags */
+            flags: string[];
+            /** Id */
+            id: string;
+            /** Market City */
+            market_city: string | null;
+            /** Minutes Late */
+            minutes_late: number | null;
+            /** Pickup */
+            pickup?: number[] | null;
+            /** Placed At */
+            placed_at: string | null;
+            /** Restaurant Name */
+            restaurant_name: string;
+            /** Rider */
+            rider: string | null;
+            /** Status */
+            status: string;
+            /** Total */
+            total: string;
+            /** Waiting For Rider Min */
+            waiting_for_rider_min: number | null;
+        };
+        /** OpsOverview */
+        OpsOverview: {
+            /** Countries */
+            countries: components["schemas"]["OpsCountry"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Scope */
+            scope: string;
+        };
+        /** OpsState */
+        OpsState: {
+            /** Cities */
+            cities: components["schemas"]["OpsCity"][];
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            totals: components["schemas"]["OpsTotals"];
+        };
+        /** OpsTotals */
+        OpsTotals: {
+            /** Completed Pct */
+            completed_pct?: number | null;
+            /**
+             * Gmv Today
+             * @default 0
+             */
+            gmv_today?: string;
+            /**
+             * Kitchens
+             * @default 0
+             */
+            kitchens?: number;
+            /**
+             * Late
+             * @default 0
+             */
+            late?: number;
+            /**
+             * Live
+             * @default 0
+             */
+            live?: number;
+            /** Median Delivery Min */
+            median_delivery_min?: number | null;
+            /** On Time Pct */
+            on_time_pct?: number | null;
+            /** Refund Pct */
+            refund_pct?: number | null;
+            /**
+             * Today
+             * @default 0
+             */
+            today?: number;
+            /**
+             * Waiting For Rider
+             * @default 0
+             */
+            waiting_for_rider?: number;
         };
         /** OptionIn */
         OptionIn: {
@@ -4419,6 +4699,16 @@ export interface components {
             /** Rating */
             rating: number;
         };
+        /** ReviewIn */
+        ReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /** Note */
+            note?: string | null;
+        };
         /** ReviewResponse */
         ReviewResponse: {
             /** Comment */
@@ -4487,6 +4777,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Email */
+            email?: string | null;
+            /** Full Name */
+            full_name?: string | null;
             /** Granted By */
             granted_by: string | null;
             /**
@@ -6533,6 +6827,71 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    orders_api_v1_ops_orders_get: {
+        parameters: {
+            query?: {
+                scope?: string;
+                view?: "live" | "attention" | "today" | "search";
+                q?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpsOrder"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_v1_ops_overview_get: {
+        parameters: {
+            query?: {
+                scope?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpsOverview"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -8600,6 +8959,73 @@ export interface operations {
             };
         };
     };
+    documents_api_v1_riders_documents_get: {
+        parameters: {
+            query?: {
+                status?: "submitted" | "approved" | "rejected";
+                country?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_api_v1_riders_documents__document_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     submit_document_api_v1_riders_me_documents_post: {
         parameters: {
             query?: never;
@@ -9151,6 +9577,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    view_upload_api_v1_uploads_view_get: {
+        parameters: {
+            query: {
+                key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

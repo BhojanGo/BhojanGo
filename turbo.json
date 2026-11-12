@@ -21,6 +21,8 @@
         "RESTAURANT_SVC_URL",
         "ORDER_SVC_URL",
         "PAYMENT_SVC_URL",
+        "REALTIME_SVC_URL",
+        "CORE_API_INTERNAL_URL",
         "NEXT_PUBLIC_*"
       ]
     },

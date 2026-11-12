@@ -99,6 +99,28 @@ async def open_sos(user: Annotated[CurrentUser, Depends(get_current_user)]) -> l
     return [a for a in await dispatch.open_sos() if authz.can(mine, "dispatch.edit", a.get("market_city") or a["country"])]
 
 
+@router.get("/api/v1/dispatch/riders")
+async def dispatch_riders(user: Annotated[CurrentUser, Depends(get_current_user)],
+                          city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")) -> dict:
+    """Online riders in a city for the admin dispatch map: admins who can see
+    orders or dispatch there."""
+    from shared import authz
+
+    mine = [authz.Assignment.parse(a) for a in user.admin]
+    if not (authz.can(mine, "dispatch.edit", city) or authz.can(mine, "orders.view", city)):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Admins for this city only")
+    try:
+        centre = await dispatch.core_api.city_centre(city)
+    except dispatch.CoreApiError as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Can't look up the city right now") from e
+    if centre is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
+    riders = await dispatch.riders_near(*centre)
+    sos = [a for a in await dispatch.open_sos() if a.get("market_city") == city or (a.get("market_city") is None and a.get("lat") is not None
+           and dispatch.haversine_km((a["lat"], a["lng"]), centre) <= 30)]
+    return {"city": city, "centre": list(centre), "riders": riders, "sos": sos}
+
+
 @router.get("/api/v1/dispatch/shadow-batches")
 async def shadow_batches(user: Annotated[CurrentUser, Depends(get_current_user)], limit: int = Query(50, le=500)) -> list[dict]:
     """Batches the shadow batcher would have made (nothing is batched): dispatch admins."""

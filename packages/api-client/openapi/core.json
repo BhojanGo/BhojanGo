@@ -406,6 +406,17 @@
             "title": "Fssai Document",
             "type": "boolean"
           },
+          "fssai_document_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fssai Document Key"
+          },
           "fssai_expires_on": {
             "anyOf": [
               {
@@ -1737,6 +1748,86 @@
         "title": "DocumentIn",
         "type": "object"
       },
+      "DocumentOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "file_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Key"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rider_id": {
+            "title": "Rider Id",
+            "type": "string"
+          },
+          "rider_name": {
+            "title": "Rider Name",
+            "type": "string"
+          },
+          "rider_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rider Phone"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "rider_id",
+          "rider_name",
+          "rider_phone",
+          "country",
+          "kind",
+          "status",
+          "file_key",
+          "note",
+          "submitted_at"
+        ],
+        "title": "DocumentOut",
+        "type": "object"
+      },
       "EndRule": {
         "properties": {
           "at": {
@@ -2990,6 +3081,412 @@
           "steps"
         ],
         "title": "OnboardingOut",
+        "type": "object"
+      },
+      "OpsAction": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "rule_approval",
+              "kitchen_application",
+              "rider_documents",
+              "waiting_for_rider",
+              "late_orders"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "urgent": {
+            "default": false,
+            "title": "Urgent",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "detail",
+          "count",
+          "scope"
+        ],
+        "title": "OpsAction",
+        "type": "object"
+      },
+      "OpsCity": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OpsTotals"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "status",
+          "totals"
+        ],
+        "title": "OpsCity",
+        "type": "object"
+      },
+      "OpsCountry": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "needs_action": {
+            "items": {
+              "$ref": "#/components/schemas/OpsAction"
+            },
+            "title": "Needs Action",
+            "type": "array"
+          },
+          "payments": {
+            "title": "Payments",
+            "type": "string"
+          },
+          "states": {
+            "items": {
+              "$ref": "#/components/schemas/OpsState"
+            },
+            "title": "States",
+            "type": "array"
+          },
+          "tax": {
+            "title": "Tax",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OpsTotals"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "currency",
+          "timezone",
+          "tax",
+          "payments",
+          "totals",
+          "states",
+          "needs_action"
+        ],
+        "title": "OpsCountry",
+        "type": "object"
+      },
+      "OpsOrder": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer": {
+            "title": "Customer",
+            "type": "string"
+          },
+          "estimated_delivery_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Delivery Time"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "market_city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market City"
+          },
+          "minutes_late": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes Late"
+          },
+          "pickup": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup"
+          },
+          "placed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placed At"
+          },
+          "restaurant_name": {
+            "title": "Restaurant Name",
+            "type": "string"
+          },
+          "rider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rider"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "string"
+          },
+          "waiting_for_rider_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For Rider Min"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "restaurant_name",
+          "market_city",
+          "customer",
+          "rider",
+          "total",
+          "currency",
+          "placed_at",
+          "estimated_delivery_time",
+          "minutes_late",
+          "waiting_for_rider_min",
+          "flags"
+        ],
+        "title": "OpsOrder",
+        "type": "object"
+      },
+      "OpsOverview": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/OpsCountry"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "generated_at",
+          "countries"
+        ],
+        "title": "OpsOverview",
+        "type": "object"
+      },
+      "OpsState": {
+        "properties": {
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/OpsCity"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OpsTotals"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "totals",
+          "cities"
+        ],
+        "title": "OpsState",
+        "type": "object"
+      },
+      "OpsTotals": {
+        "properties": {
+          "completed_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed Pct"
+          },
+          "gmv_today": {
+            "default": "0",
+            "title": "Gmv Today",
+            "type": "string"
+          },
+          "kitchens": {
+            "default": 0,
+            "title": "Kitchens",
+            "type": "integer"
+          },
+          "late": {
+            "default": 0,
+            "title": "Late",
+            "type": "integer"
+          },
+          "live": {
+            "default": 0,
+            "title": "Live",
+            "type": "integer"
+          },
+          "median_delivery_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Delivery Min"
+          },
+          "on_time_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Pct"
+          },
+          "refund_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refund Pct"
+          },
+          "today": {
+            "default": 0,
+            "title": "Today",
+            "type": "integer"
+          },
+          "waiting_for_rider": {
+            "default": 0,
+            "title": "Waiting For Rider",
+            "type": "integer"
+          }
+        },
+        "title": "OpsTotals",
         "type": "object"
       },
       "OptionIn": {
@@ -5714,6 +6211,35 @@
         "title": "ReviewCreateRequest",
         "type": "object"
       },
+      "ReviewIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewIn",
+        "type": "object"
+      },
       "ReviewResponse": {
         "properties": {
           "comment": {
@@ -5866,6 +6392,28 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
           },
           "granted_by": {
             "anyOf": [
@@ -9728,6 +10276,155 @@
         ]
       }
     },
+    "/api/v1/ops/orders": {
+      "get": {
+        "description": "Orders in your scope: live ones, the ones that need attention (late,\nwaiting for a rider, kitchen not answering), today's, or a search by order\ncode (#A9D1) or the customer's phone.",
+        "operationId": "orders_api_v1_ops_orders_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "*",
+              "pattern": "^(\\*|[A-Z]{2}(-[A-Z0-9]{1,3}(-[A-Z0-9]{2,5})?)?)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "default": "live",
+              "enum": [
+                "live",
+                "attention",
+                "today",
+                "search"
+              ],
+              "title": "View",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 300,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OpsOrder"
+                  },
+                  "title": "Response Orders Api V1 Ops Orders Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Orders",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/api/v1/ops/overview": {
+      "get": {
+        "description": "Live orders, today's orders and money, delivery times and what needs\nsomeone's attention, for each country, state and city in ``scope``.",
+        "operationId": "overview_api_v1_ops_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "*",
+              "pattern": "^(\\*|[A-Z]{2}(-[A-Z0-9]{1,3}(-[A-Z0-9]{2,5})?)?)$",
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Overview",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
     "/api/v1/orders": {
       "get": {
         "description": "Get authenticated customer's order history.",
@@ -13243,6 +13940,140 @@
         ]
       }
     },
+    "/api/v1/riders/documents": {
+      "get": {
+        "description": "Rider documents for review in the countries you can see (riders aren't tied to a city).",
+        "operationId": "documents_api_v1_riders_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "submitted",
+              "enum": [
+                "submitted",
+                "approved",
+                "rejected"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response Documents Api V1 Riders Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Documents",
+        "tags": [
+          "Riders"
+        ]
+      }
+    },
+    "/api/v1/riders/documents/{document_id}/review": {
+      "post": {
+        "description": "Approve or reject a rider's document. The rider can go online once the\nlicence, insurance and background check are all approved.",
+        "operationId": "review_api_v1_riders_documents__document_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Review",
+        "tags": [
+          "Riders"
+        ]
+      }
+    },
     "/api/v1/riders/me/documents": {
       "post": {
         "description": "Send an uploaded licence or insurance for review. When both are in, the\nbackground check starts.",
@@ -14250,6 +15081,53 @@
           }
         ],
         "summary": "Upload",
+        "tags": [
+          "Riders"
+        ]
+      }
+    },
+    "/api/v1/uploads/view": {
+      "get": {
+        "description": "An uploaded document, for the admins who review it: rider documents (riders.view\nin the rider's country) and kitchen licences (partners.view in the kitchen's city).",
+        "operationId": "view_upload_api_v1_uploads_view_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "maxLength": 300,
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "View Upload",
         "tags": [
           "Riders"
         ]

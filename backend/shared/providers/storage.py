@@ -21,6 +21,8 @@ class Storage(Protocol):
 
     async def exists(self, key: str) -> bool: ...
 
+    async def get(self, key: str) -> tuple[bytes, str] | None: ...
+
 
 class LocalStorage:
     name = "local"
@@ -41,6 +43,13 @@ class LocalStorage:
 
     async def exists(self, key: str) -> bool:
         return self._path(key).is_file()
+
+    async def get(self, key: str) -> tuple[bytes, str] | None:
+        path = self._path(key)
+        if not path.is_file():
+            return None
+        ext = path.suffix.lower()
+        return path.read_bytes(), {".pdf": "application/pdf", ".png": "image/png", ".webp": "image/webp"}.get(ext, "image/jpeg")
 
 
 class S3Storage:
@@ -70,6 +79,15 @@ class S3Storage:
             return True
         except ClientError:
             return False
+
+    async def get(self, key: str) -> tuple[bytes, str] | None:
+        from botocore.exceptions import ClientError
+
+        try:
+            r = await asyncio.to_thread(self._client().get_object, Bucket=self.bucket, Key=key)
+        except ClientError:
+            return None
+        return await asyncio.to_thread(r["Body"].read), r.get("ContentType") or "application/octet-stream"
 
 
 def get_storage() -> Storage:

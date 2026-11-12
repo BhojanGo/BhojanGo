@@ -82,6 +82,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dispatch/riders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dispatch Riders
+         * @description Online riders in a city for the admin dispatch map: admins who can see
+         *     orders or dispatch there.
+         */
+        get: operations["dispatch_riders_api_v1_dispatch_riders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dispatch/shadow-batches": {
         parameters: {
             query?: never;
@@ -721,6 +742,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EtaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dispatch_riders_api_v1_dispatch_riders_get: {
+        parameters: {
+            query: {
+                city: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

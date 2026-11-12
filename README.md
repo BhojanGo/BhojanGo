@@ -139,6 +139,13 @@ rider assigned, location + ETA (routing provider), status changes. The TypeScrip
 in shadow mode (`SHADOW_MODE=true`: publishes nothing, batches can't be accepted); realtime logs the
 batches it would have made at `GET /api/v1/dispatch/shadow-batches`.
 
+**Admin console (P21, apps/admin):** every page carries the scope bar (country tabs → state chips →
+city picker; `?scope=IN-TG-HYD`), and admins only see what their roles cover. Overview
+(`GET /ops/overview`), Operations (`GET /ops/orders`, the realtime dispatch map
+`GET /dispatch/riders?city=`, refund by item), Partners (applications, rider documents:
+`GET /riders/documents`, `POST /riders/documents/{id}/review`, files via `GET /uploads/view`),
+Pricing & Rules, Markets, Finance and Settings. End-to-end: `tools/admin/e2e.sh`.
+
 **Customer web (P20, apps/web):** city pages (`/hyderabad`, `/boise`) and restaurant pages
 (`/{city}/{slug}`) are server-rendered with structured data and listed in `/sitemap.xml`; they read
 core_api at `CORE_API_INTERNAL_URL` (set in compose) and the public `GET /markets/cities` and
@@ -318,9 +325,9 @@ bhojango/
 │   ├── shared/           config, DB session, Redis, auth, events, logging, middleware
 │   └── migrations/       one Alembic history (alembic.ini in backend/)
 ├── packages/
-│   ├── mobile-core/      Auth store, API client, cart for the Expo apps
-│   ├── types/            Shared TypeScript interfaces (replaced by api-client in P17)
-│   ├── ui/               Shared React component library
+│   ├── mobile-core/      Session, design system and bag for the Expo apps
+│   ├── api-client/       Typed client generated from the services' OpenAPI
+│   ├── ui/               Design tokens and the web component library
 │   └── config/           Shared ESLint/TS/Prettier config
 ├── infra/
 │   ├── terraform/        AWS IaC

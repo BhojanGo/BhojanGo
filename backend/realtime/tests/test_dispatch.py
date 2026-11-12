@@ -37,6 +37,9 @@ NOT_READY = "00000000-0000-0000-0000-00000000dead"
 
 
 class FakeCore:
+    async def city_centre(self, code: str):  # type: ignore[no-untyped-def]
+        return {"IN-TG-HYD": (17.4486, 78.3908), "US-ID-BOI": (43.615, -116.2023)}.get(code)
+
     async def rider_ready(self, rider: str) -> dict:
         return {"rider_id": rider, "ready": rider != NOT_READY, "country": "IN"}
 
@@ -308,3 +311,21 @@ async def test_sos_reaches_admins_for_the_city(r, core) -> None:  # type: ignore
     boi = CurrentUser(str(uuid.uuid4()), "customer", "US", admin=["city_ops@US-ID-BOI"])
     assert [a["id"] for a in await riders.open_sos(hyd)] == [alert["id"]]
     assert await riders.open_sos(boi) == []
+
+
+async def test_dispatch_map_shows_riders_and_sos_to_the_citys_admins(r, core) -> None:  # type: ignore[no-untyped-def]
+    from app.api.v1 import riders
+
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    await riders.sos(riders.SosIn(note="Flat tyre"), CurrentUser(RIDER_MID, "driver", "IN"))
+    hyd = CurrentUser(str(uuid.uuid4()), "customer", "IN", admin=["city_ops@IN-TG-HYD"])
+    m = await riders.dispatch_riders(hyd, city="IN-TG-HYD")
+    got = {x["rider_id"]: x for x in m["riders"]}
+    assert set(got) == {RIDER_NEAR, RIDER_MID, RIDER_FAR}  # all within 30 km of the centre
+    assert got[RIDER_NEAR]["status"] == "offered" and got[RIDER_NEAR]["order_id"] == ORDER
+    assert [a["rider_id"] for a in m["sos"]] == [RIDER_MID]
+    boi = CurrentUser(str(uuid.uuid4()), "customer", "US", admin=["city_ops@US-ID-BOI"])
+    with pytest.raises(HTTPException) as e:
+        await riders.dispatch_riders(boi, city="IN-TG-HYD")
+    assert e.value.status_code == 403
