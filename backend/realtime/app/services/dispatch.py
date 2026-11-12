@@ -266,12 +266,16 @@ async def current_offer(rider: str) -> dict | None:
     return offer if offer and offer["rider_id"] == rider else None
 
 
+class NotYourOffer(LookupError):
+    """No offer of this order is open for this rider (another rider's, or none)."""
+
+
 async def accept(rider: str, order: str) -> dict:
     r = await get_redis()
     raw = await r.get(offer_key(order))
     offer = json.loads(raw) if raw else None
     if not offer or offer["rider_id"] != rider:
-        raise LookupError("This offer has expired or went to another rider")
+        raise NotYourOffer("This offer has expired or went to another rider")
     if not await r.zrem(OFFER_EXPIRY, order):  # the timeout got there first
         raise LookupError("This offer has expired")
     try:

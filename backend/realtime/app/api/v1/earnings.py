@@ -20,7 +20,7 @@ logger = structlog.get_logger(__name__)
 
 
 def _require_driver(user: CurrentUser) -> None:
-    if user.role not in ("driver", "admin", "super_admin"):
+    if user.role != "driver":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Driver access required")
 
 
