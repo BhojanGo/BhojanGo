@@ -109,7 +109,7 @@ class OrderService:
 
         items = [
             {"menu_item_id": str(i.menu_item_id), "quantity": i.quantity,
-             "options": [{"group": c.customization_id, "option": c.option_id} for c in i.customizations]}
+             "options": i.picks()}
             for i in data.items
         ]
         quotes = QuoteService(self.db)

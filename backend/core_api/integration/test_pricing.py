@@ -152,3 +152,16 @@ async def test_simulator_live_vs_draft(client: AsyncClient) -> None:
 
     viewer, _ = await login(client, "viewer@example.com", "BhojanGoAdmin1")
     assert (await client.post("/api/v1/pricing/simulate", headers=viewer, json=body)).status_code == 403
+
+
+async def test_order_with_options_matches_its_quote(client: AsyncClient) -> None:
+    """The bag at checkout carries the same option picks as the quote (found by the G1 gate)."""
+    h, _ = await login(client, "customer3.hyd@example.com")
+    rid, cart = await spice_route_cart(client)
+    q = (await client.post("/api/v1/pricing/quote", headers=h, json={
+        "restaurant_id": rid, "items": cart, "deliver_to": {"lat": JUBILEE_HILLS[0], "lng": JUBILEE_HILLS[1]}})).json()
+    r = await client.post("/api/v1/orders", headers={**h, "X-Idempotency-Key": str(uuid.uuid4())}, json={
+        "restaurant_id": rid, "items": cart, "payment_method": "upi", "quote_token": q["token"],
+        "delivery_address": {"street": "12-2-41", "city": "Hyderabad", "state": "Telangana", "zip": "500033", "country": "IN"}})
+    assert r.status_code == 201, r.text
+    assert Decimal(str(r.json()["total"])) == Decimal(q["total"])
