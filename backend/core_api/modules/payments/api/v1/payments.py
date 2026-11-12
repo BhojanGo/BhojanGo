@@ -264,11 +264,27 @@ async def get_payment(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> PaymentResponse:
-    repo = PaymentRepository(db)
-    intent = await repo.get_by_order_id(order_id)
+    """The order's payment: for the customer who paid, or an admin who can view the order."""
+    if not await _may_view_order(db, current_user, order_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+    intent = await PaymentRepository(db).get_by_order_id(order_id)
     if not intent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     return PaymentResponse.model_validate(intent)
+
+
+async def _may_view_order(db: AsyncSession, user: CurrentUser, order_id: uuid.UUID) -> bool:
+    """The order's customer, or an admin with orders.view for its city."""
+    from core_api.modules.orders.service.lookup import order_customer, order_market
+    from shared import authz
+
+    owner = await order_customer(db, order_id)
+    if owner is None:
+        return False
+    if owner == user.id:
+        return True
+    city = await order_market(db, order_id)
+    return bool(city) and authz.can([authz.Assignment.parse(a) for a in user.admin], "orders.view", city)
 
 
 @router.post("/razorpay/verify")
@@ -349,15 +365,9 @@ async def list_order_refunds(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> list[dict]:
     """The order's refunds: for its customer, or an admin who can view it."""
-    from core_api.modules.orders.service.lookup import order_customer, order_market
     from core_api.modules.payments.service.refunds import list_refunds
-    from shared import authz
 
-    owner = await order_customer(db, order_id)
-    city = await order_market(db, order_id)
-    allowed = owner == current_user.id or (city and authz.can(
-        [authz.Assignment.parse(a) for a in current_user.admin], "orders.view", city))
-    if owner is None or not allowed:
+    if not await _may_view_order(db, current_user, order_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return [_refund_out(r) for r in await list_refunds(db, order_id)]
 
