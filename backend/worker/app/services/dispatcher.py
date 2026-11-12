@@ -179,8 +179,9 @@ class Sender:
         if "email" in channels and person.email:
             nid = await self._claim(event_id, person, r, "email", data)
             if nid:
-                subject = f"{r.title} · {r.params['code']}" if r.params.get("code") and r.params["code"] not in r.title else r.title
-                ok = await self.email.send(person.email, subject, m.email_html(r, total=out.total, code=r.params.get("code")),
+                code = out.params.get("code")  # receipts carry the order code even when the message doesn't
+                subject = f"{r.title} · {code}" if code and code not in r.title else r.title
+                ok = await self.email.send(person.email, subject, m.email_html(r, total=out.total, code=code),
                                            text=f"{r.title}\n\n{r.body}")
                 await self._done(nid, ok)
                 results["email"] = "sent" if ok else "failed"
