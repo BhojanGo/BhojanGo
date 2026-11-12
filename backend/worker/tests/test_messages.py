@@ -9,7 +9,7 @@ from app.services import messages as m
 
 PARAMS = {"restaurant": "Spice Route Kitchen", "code": "#AB12CD", "eta": "8:24 PM", "rider": "Imran",
           "refund": "₹638.22", "amount": "₹187.00", "items": 3, "total": "₹638.22", "accept_by": "8:03 PM",
-          "period": "3–9 Nov"}
+          "period": "3–9 Nov", "name": "Imran", "text": "I'm outside."}
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
 DEVANAGARI, TELUGU = re.compile("[ऀ-ॿ]"), re.compile("[ఀ-౿]")
 
@@ -21,10 +21,11 @@ def test_every_message_renders_in_every_language(key: str, lang: str) -> None:
     text = r.title + r.body
     assert "{" not in text and "}" not in text
     assert not EMOJI.search(text), "brand voice: no emoji"
+    translated = r.title if key in m.VERBATIM else r.body  # a quick message is the sender's own words
     if lang == "hi":
-        assert DEVANAGARI.search(r.body)
+        assert DEVANAGARI.search(translated)
     if lang == "te":
-        assert TELUGU.search(r.body)
+        assert TELUGU.search(translated)
     # SMS with ₹ or Indian scripts is UCS-2: 70 characters a part; keep to 3 parts.
     assert len(r.sms) <= 201, len(r.sms)
     assert r.dlt_template == f"{key}_{lang}"

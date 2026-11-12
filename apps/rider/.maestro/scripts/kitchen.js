@@ -42,6 +42,17 @@ function waitFor(check, tries) {
 var partner = login("partner.hyd@example.com");
 var customer = login("customer2.hyd@example.com");
 
+if (STEP === "cleanup") {
+  // Leftovers from an earlier run that stopped half-way would be offered first
+  // (or keep the rider busy): cancel them before the app starts.
+  var ops = login("ops.hyd@example.com", "BhojanGoAdmin1");
+  call("GET", API + "/orders?limit=50", customer).body.items.forEach(function (o) {
+    if (["placed", "accepted", "preparing", "almost_ready", "ready"].indexOf(o.status) >= 0) {
+      call("POST", API + "/orders/" + o.id + "/cancel", ops, { reason: "other", note: "e2e: left over from an earlier run" });
+    }
+  });
+}
+
 if (STEP === "order") {
   ["rider2.hyd@example.com", "rider3.hyd@example.com"].forEach(function (e) {
     call("POST", RT + "/riders/me/offline", login(e));

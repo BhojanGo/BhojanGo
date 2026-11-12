@@ -61,6 +61,33 @@ def shot(page, name: str) -> None:  # type: ignore[no-untyped-def]
     page.screenshot(path=f"{OUT}/{name}.png", full_page=True)
 
 
+def api(method: str, path: str, token: str | None = None, body: dict | None = None, host: int = 8001) -> dict:
+    """The rest of the world (kitchen, ops, rider) through the same APIs the apps use."""
+    import urllib.request
+
+    req = urllib.request.Request(f"http://localhost:{host}/api/v1{path}", method=method,
+                                 data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        raw = r.read()
+    return json.loads(raw) if raw else {}
+
+
+def login(email: str, password: str = "BhojanGo123") -> str:
+    return api("POST", "/auth/login", None, {"email": email, "password": password})["access_token"]
+
+
+def sub(token: str) -> str:
+    import base64
+
+    part = token.split(".")[1]
+    return json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))["sub"]
+
+
+def _assert(ok: bool) -> None:
+    assert ok
+
+
 def no_sideways_scroll(page) -> None:  # type: ignore[no-untyped-def]
     w = page.evaluate("document.documentElement.scrollWidth")
     assert w <= 392, f"page is {w}px wide at 390"
@@ -143,6 +170,7 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Pay").click()
     page.get_by_role("button", name="Approve").click()
     page.wait_for_url("**/orders/*", timeout=40000)
+    order_url = page.url
     check("tracking: arrival time, steps, PIN for the door, the bill paid", lambda: (
         expect(page.get_by_text("Spice Route Kitchen has your order")).to_be_visible(timeout=20000),
         expect(page.get_by_test_id("eta")).to_be_visible(),
@@ -155,6 +183,39 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading", name="On its way")).to_be_visible(),
         expect(page.get_by_text("Spice Route Kitchen").first).to_be_visible()))
     shot(page, "08-orders")
+
+    # Quick messages with the rider (B2): the kitchen gets it ready, ops assigns a
+    # rider, and the rider and the customer message each other; no phone numbers,
+    # and the conversation is gone once the order is delivered.
+    order_id = order_url.rstrip("/").split("/")[-1]
+    partner, ops, rider = login("partner.hyd@example.com"), login("ops.hyd@example.com", "BhojanGoAdmin1"), login("rider3.hyd@example.com")
+    for st in ("accepted", "preparing", "ready"):
+        api("PUT", f"/orders/{order_id}/status", partner, {"status": st})
+    api("POST", "/delivery/assign", ops, {"order_id": order_id, "driver_id": sub(rider)}, host=8004)
+    api("POST", f"/orders/{order_id}/messages", rider, {"preset": "at_kitchen"})
+    page.goto(order_url, wait_until="networkidle")
+    chat = page.get_by_role("region", name=__import__("re").compile("^Messages with "))
+    check("messages: the rider's quick message arrives on the tracking page", lambda: (
+        expect(chat).to_be_visible(timeout=20000),
+        expect(chat.get_by_text("I'm at the kitchen, waiting for your order.")).to_be_visible(),
+        expect(chat.get_by_text("Your number stays private")).to_be_visible()))
+    chat.get_by_role("button", name="I'm coming down.").click()
+    chat.get_by_label("Write a short message").fill("Gate 2, my number is 98480 22334")
+    chat.get_by_role("button", name="Send").click()
+    check("messages: the customer's replies reach the rider, phone number hidden", lambda: (
+        expect(chat.get_by_text("Gate 2, my number is •••")).to_be_visible(timeout=10000),
+        _assert([m["text"] for m in api("GET", f"/orders/{order_id}/messages", rider)["messages"]][-2:]
+                == ["I'm coming down.", "Gate 2, my number is •••"])))
+    api("POST", f"/orders/{order_id}/messages", rider, {"preset": "outside"})
+    check("messages: live from the rider without reloading", lambda: expect(chat.get_by_text("I'm outside.")).to_be_visible(timeout=15000))
+    shot(page, "13-messages")
+    pin = page.get_by_test_id("delivery-pin").inner_text()
+    api("PUT", f"/orders/{order_id}/status", rider, {"status": "picked_up"})
+    api("PUT", f"/orders/{order_id}/status", rider, {"status": "delivered", "proof": {"method": "pin", "pin": pin}})
+    page.reload(wait_until="networkidle")
+    check("messages: hidden after delivery", lambda: (
+        expect(page.get_by_text("Delivered. Enjoy your meal.")).to_be_visible(timeout=20000),
+        expect(chat).to_have_count(0)))
 
     for path, heading in (("/help", "Help"), ("/terms", "Terms of use"), ("/privacy", "Privacy notice")):
         page.goto(base + path, wait_until="networkidle")

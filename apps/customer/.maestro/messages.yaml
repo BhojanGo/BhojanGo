@@ -1,0 +1,42 @@
+# Quick messages with the rider (B2): the rider says they're at the kitchen,
+# the customer replies with a quick message, the rider's next message arrives
+# live, and the conversation is gone once the order is delivered. No calls and
+# no phone numbers anywhere.
+appId: com.bhojango.app
+---
+- runScript:
+    file: scripts/chat.js
+    env:
+      STEP: order
+- runFlow: sign-in.yaml
+- openLink: bhojango://order/${output.orderId}
+- extendedWaitUntil:
+    visible:
+      id: "chat-open"
+    timeout: 30000
+- assertNotVisible: "Call.*"
+- tapOn:
+    id: "chat-open"
+- extendedWaitUntil:
+    visible: "I'm at the kitchen, waiting for your order."
+    timeout: 15000
+- assertVisible: "Your number stays private.*"
+- tapOn: "Please ring the bell."
+- runScript:
+    file: scripts/chat.js
+    env:
+      STEP: check
+- extendedWaitUntil:
+    visible: "I'm outside."
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/12-messages
+- tapOn: "Close"
+- runScript:
+    file: scripts/chat.js
+    env:
+      STEP: finish
+- extendedWaitUntil:
+    visible: "Delivered. Enjoy your meal."
+    timeout: 30000
+- assertNotVisible:
+    id: "chat-open"

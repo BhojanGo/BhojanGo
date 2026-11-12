@@ -99,3 +99,17 @@ def test_sms_only_where_it_matters() -> None:
     assert always_sms == []  # SMS costs money: only as a fallback
     assert {k for k, c in POLICY.items() if "sms_fallback" in c} == {
         "order_picked_up", "order_cancelled_refunded", "order_cancelled_unpaid", "payment_failed", "partner_new_order"}
+
+
+async def test_quick_message_goes_to_the_other_person_by_push_only() -> None:
+    from app.services import messages as m
+    from app.services.dispatcher import NO_INBOX
+
+    out = await plan(ev("order.message", to_user_id=CUSTOMER, from_name="Imran", text="I'm outside.",  # type: ignore[arg-type]
+                        message_id="m1"), FakeDirectory())
+    assert [(o.user_id, o.key) for o in out] == [(CUSTOMER, "order_message")]
+    assert out[0].params == {"name": "Imran", "text": "I'm outside."} and out[0].data == {"message_id": "m1"}
+    r = m.render("order_message", "te", **out[0].params)
+    assert r.title == "Imran నుండి సందేశం" and r.body == "I'm outside."
+    # Pushed, never kept in the inbox: the conversation is gone once the order is delivered.
+    assert POLICY["order_message"] == ("push",) and "order_message" in NO_INBOX

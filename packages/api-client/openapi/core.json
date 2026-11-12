@@ -5033,6 +5033,136 @@
         "title": "PublicCity",
         "type": "object"
       },
+      "QuickMessage": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "sender_role": {
+            "enum": [
+              "customer",
+              "rider"
+            ],
+            "title": "Sender Role",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "mine",
+          "sender_role",
+          "text",
+          "at"
+        ],
+        "title": "QuickMessage",
+        "type": "object"
+      },
+      "QuickMessageIn": {
+        "properties": {
+          "preset": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 140,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "QuickMessageIn",
+        "type": "object"
+      },
+      "QuickMessagesOut": {
+        "properties": {
+          "me": {
+            "enum": [
+              "customer",
+              "rider"
+            ],
+            "title": "Me",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/QuickMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "open": {
+            "title": "Open",
+            "type": "boolean"
+          },
+          "other_name": {
+            "title": "Other Name",
+            "type": "string"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/QuickPreset"
+            },
+            "title": "Presets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "open",
+          "me",
+          "other_name",
+          "presets",
+          "messages"
+        ],
+        "title": "QuickMessagesOut",
+        "type": "object"
+      },
+      "QuickPreset": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "QuickPreset",
+        "type": "object"
+      },
       "QuoteOut": {
         "properties": {
           "city": {
@@ -10982,6 +11112,112 @@
           }
         ],
         "summary": "Cancel Order",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/messages": {
+      "get": {
+        "description": "The conversation with the rider (or the customer). Empty and closed\nbefore a rider is assigned and after the order is delivered or cancelled.",
+        "operationId": "list_messages_api_v1_orders__order_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickMessagesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Messages",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "post": {
+        "description": "Send a quick message or a short text (140 characters) to the other side.",
+        "operationId": "send_message_api_v1_orders__order_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuickMessageIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Send Message",
         "tags": [
           "Orders"
         ]

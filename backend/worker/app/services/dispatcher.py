@@ -48,7 +48,10 @@ POLICY: dict[str, tuple[str, ...]] = {
     "refund_items": ("push", "email"),
     "partner_new_order": ("push", "sms_fallback"),
     "payout_paid": ("push", "email"),
+    "order_message": ("push",),
 }
+# Live conversation (B2): pushed only; never kept in the inbox, so it is gone after delivery.
+NO_INBOX = {"order_message"}
 STATUS_MESSAGES = {"accepted": "order_accepted", "preparing": "order_preparing",
                    "picked_up": "order_picked_up", "delivered": "order_delivered"}
 RECEIPTS = {"order_placed", "order_delivered", "order_cancelled_refunded", "refund_items"}
@@ -81,6 +84,9 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
                          data={"statement_id": p.get("statement_id", "")})]
     if order is None:
         return []
+    if kind == "order.message":
+        return [Outgoing(str(p["to_user_id"]), "order_message", {"name": p.get("from_name") or "", "text": p.get("text") or ""},
+                         str(order["id"]), data={"message_id": str(p.get("message_id", ""))})]
 
     tz = await d.timezone(order["market_city"])
     code = m.order_code(str(order["id"]))
@@ -151,12 +157,14 @@ class Sender:
             return {}
         r = m.render(out.key, m.language_for(person.locale), **out.params)
         data = {"type": out.key, **({"order_id": out.order_id} if out.order_id else {}), **out.data}
-        inbox = await self._claim(event_id, person, r, "in_app", data)
-        if inbox is None:
-            logger.info("message_already_sent", event_id=event_id, user_id=out.user_id, message=out.key)
-            return {}
-        await self._done(inbox, True)
-        results: dict[str, str] = {"in_app": "sent"}
+        results: dict[str, str] = {}
+        if out.key not in NO_INBOX:
+            inbox = await self._claim(event_id, person, r, "in_app", data)
+            if inbox is None:
+                logger.info("message_already_sent", event_id=event_id, user_id=out.user_id, message=out.key)
+                return {}
+            await self._done(inbox, True)
+            results["in_app"] = "sent"
         channels = POLICY[out.key]
         pushed = False
         if "push" in channels and person.devices:

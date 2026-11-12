@@ -4,7 +4,7 @@
 import { unwrap, type CoreSchemas } from "@bhojango/api-client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, useHydrated, useSession, wsUrl } from "@/lib/client";
 import { FairBill, StatusPill } from "@bhojango/ui";
@@ -127,10 +127,102 @@ export default function Tracking() {
         </section>
       </div>
       <aside className="space-y-4">
+        <Messages orderId={id} />
         {bill ? <FairBill lines={bill.lines as never} currency={bill.currency} totalLabel="You paid" /> : null}
         <Link href="/help" className="block rounded-card bg-white p-5 font-bold hover:text-peacock">Something wrong with this order? Get help →</Link>
       </aside>
     </div>
+  );
+}
+
+type Chat = CoreSchemas["QuickMessagesOut"];
+type ChatMessage = CoreSchemas["QuickMessage"];
+
+async function fetchChat(orderId: string): Promise<Chat | null> {
+  try {
+    return unwrap(await api.core.GET("/api/v1/orders/{order_id}/messages", { params: { path: { order_id: orderId } } }));
+  } catch {
+    return null;
+  }
+}
+
+/** Quick messages with the rider while the order is on its way (B2). No phone
+ *  numbers; hidden once the order is delivered. */
+function Messages({ orderId }: { orderId: string }) {
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const seen = useRef(new Set<string>());
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => fetchChat(orderId).then((c) => {
+      if (!alive || !c) return;
+      c.messages.forEach((m) => seen.current.add(m.id));
+      setChat(c);
+    });
+    void refresh();
+    const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
+    ws.onmessage = (e) => {
+      const m = JSON.parse(String(e.data)) as { type: string; payload: { id: string; sender_role: string; text: string; at: string } };
+      if (m.type === "status_change" || m.type === "rider_assigned") void refresh();
+      if (m.type !== "chat_message" || seen.current.has(m.payload.id)) return;
+      seen.current.add(m.payload.id);
+      setChat((c) => c && { ...c, messages: [...c.messages, { ...m.payload, mine: m.payload.sender_role === c.me } as ChatMessage] });
+    };
+    const poll = setInterval(refresh, 20000);
+    return () => {
+      alive = false;
+      clearInterval(poll);
+      ws.close();
+    };
+  }, [orderId]);
+
+  async function send(body: { preset: string } | { text: string }) {
+    setBusy(true);
+    setError(null);
+    try {
+      const m = unwrap(await api.core.POST("/api/v1/orders/{order_id}/messages", { params: { path: { order_id: orderId } }, body }));
+      if (!seen.current.has(m.id)) {
+        seen.current.add(m.id);
+        setChat((c) => c && { ...c, messages: [...c.messages, m] });
+      }
+      if ("text" in body) setText("");
+    } catch {
+      setError("Couldn't send. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!chat?.open) return null;
+  return (
+    <section aria-label={`Messages with ${chat.other_name}`} className="space-y-3 rounded-card bg-white p-5">
+      <div>
+        <h2 className="font-extrabold">Message {chat.other_name}</h2>
+        <p className="text-sm text-muted">Your number stays private. Messages close once the order is delivered.</p>
+      </div>
+      <ol className="flex max-h-64 flex-col gap-2 overflow-y-auto" aria-live="polite">
+        {chat.messages.length === 0 ? <li className="text-sm text-muted">No messages yet.</li> : chat.messages.map((m) => (
+          <li key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm font-semibold ${m.mine ? "self-end bg-peacock text-white" : "self-start bg-porcelain"}`}>
+            <span className="sr-only">{m.mine ? "You: " : `${chat.other_name}: `}</span>{m.text}
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-wrap gap-2">
+        {chat.presets.map((p) => (
+          <button key={p.key} type="button" disabled={busy} onClick={() => void send({ preset: p.key })}
+            className="rounded-pill bg-peacock-mist px-3 py-2 text-sm font-bold text-peacock-deep hover:bg-peacock-tint disabled:opacity-50">{p.text}</button>
+        ))}
+      </div>
+      <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send({ text: text.trim() }); }}>
+        <label className="sr-only" htmlFor="chat-text">Write a short message</label>
+        <input id="chat-text" value={text} maxLength={140} onChange={(e) => setText(e.target.value)} placeholder="Write a short message"
+          className="h-11 flex-1 rounded-pill border-[1.5px] border-line-strong px-4" />
+        <button type="submit" disabled={busy || !text.trim()} className="h-11 rounded-pill bg-peacock px-5 font-extrabold text-white disabled:opacity-50">Send</button>
+      </form>
+      {error ? <p role="alert" className="text-sm font-semibold text-chili">{error}</p> : null}
+    </section>
   );
 }
 

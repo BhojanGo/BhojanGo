@@ -56,6 +56,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 17. **Admin screens show settings in plain words; a test fails the build on raw JSON, "null" or "undefined".**
     Why: rule parameters leaked onto the page as JSON, which no operator can check at a glance.
 
+18. **Every wait on an emulator, server or test run has a time limit and reports what it saw when it gives up.**
+    Why: a hung tablet emulator answered `adb devices` but never finished booting; an unbounded wait sat for five hours. Cold-boot (`-no-snapshot-load`) and close the keyboard after each Maestro text entry on the tablet.
+
+19. **End-to-end flows clean up after earlier runs before they start, not half-way through.**
+    Why: an aborted run left orders in "ready"; dispatch offered one to the test rider, who then stayed busy with it, and the next run failed before its cleanup step. The rider flow now cancels its customer's leftovers before the app launches.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
