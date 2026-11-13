@@ -46,11 +46,12 @@ class FakeCore:
     def __init__(self) -> None:
         self.assigned: list[tuple[str, str]] = []
         self.fail: CoreApiError | None = None
+        self.others: set[str] = set()  # more orders at the same kitchen (fairness tests)
 
     async def dispatch_info(self, order: str) -> dict:
-        if order != ORDER:
+        if order != ORDER and order not in self.others:
             raise CoreApiError(404, "Order not found")
-        return info()
+        return info(order_id=order)
 
     async def assign_rider(self, order: str, rider: str) -> dict:
         if self.fail:
@@ -329,3 +330,52 @@ async def test_dispatch_map_shows_riders_and_sos_to_the_citys_admins(r, core) ->
     with pytest.raises(HTTPException) as e:
         await riders.dispatch_riders(boi, city="IN-TG-HYD")
     assert e.value.status_code == 403
+
+
+async def test_a_free_rider_gets_the_oldest_waiting_order(r, core) -> None:  # type: ignore[no-untyped-def]
+    """Pilot dress rehearsal: with every rider busy, orders queue; the next free
+    rider must get the one that has waited longest, not whichever retries first."""
+    orders = [str(uuid.uuid4()) for _ in range(3)]
+    core.others.update(orders)
+    for i, o in enumerate(orders):  # nobody online: all three wait, oldest first
+        await dispatch.start_dispatch(o)
+        await r.zadd(dispatch.WAITING, {o: 1000.0 + i}, xx=True)
+    # The newest order's retry timer comes up first.
+    for i, o in enumerate(reversed(orders)):
+        await r.zadd(dispatch.RETRY, {o: 1.0 + i})
+    await dispatch.go_online(RIDER_NEAR, SPICE_ROUTE[0] + 0.004, SPICE_ROUTE[1])
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    assert offer and offer["order_id"] == orders[0]  # the oldest, at once, not after a retry
+
+    await dispatch.accept(RIDER_NEAR, orders[0])
+    assert await r.zscore(dispatch.WAITING, orders[0]) is None
+    await dispatch.go_online(RIDER_MID, SPICE_ROUTE[0] + 0.012, SPICE_ROUTE[1])
+    assert (await dispatch.current_offer(RIDER_MID))["order_id"] == orders[1]
+
+
+async def test_retries_run_oldest_first(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = [str(uuid.uuid4()) for _ in range(2)]
+    core.others.update(orders)
+    for i, o in enumerate(orders):
+        await dispatch.start_dispatch(o)
+        await r.zadd(dispatch.WAITING, {o: 1000.0 + i}, xx=True)
+        await r.zadd(dispatch.RETRY, {o: 5.0 - i})  # the newer one is due first
+    # A rider whose GPS arrives without go_online's hand-off (e.g. after a restart).
+    await r.sadd(dispatch.ONLINE, RIDER_NEAR)
+    await r.hset(dispatch.state_key(RIDER_NEAR), mapping={"status": "available", "order_id": ""})
+    await dispatch.update_location(RIDER_NEAR, SPICE_ROUTE[0] + 0.004, SPICE_ROUTE[1])
+    await dispatch.tick(now=10.0)
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == orders[0]
+
+
+async def test_a_pass_frees_the_rider_for_the_oldest_other_order(r, core) -> None:  # type: ignore[no-untyped-def]
+    old, new = str(uuid.uuid4()), str(uuid.uuid4())
+    core.others.update([old, new])
+    await dispatch.go_online(RIDER_NEAR, SPICE_ROUTE[0] + 0.004, SPICE_ROUTE[1])
+    await dispatch.start_dispatch(new)  # offered to the only rider
+    await r.zadd(dispatch.WAITING, {new: 2000.0}, xx=True)
+    await dispatch.start_dispatch(old)  # nobody free: waits
+    await r.zadd(dispatch.WAITING, {old: 1000.0}, xx=True)
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == new
+    await dispatch.decline(RIDER_NEAR, new, "passed")
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == old

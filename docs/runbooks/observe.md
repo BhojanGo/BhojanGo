@@ -41,13 +41,14 @@ function as the admin overview, so the two always agree.
 | `bhojango_orders_waiting_for_rider`, `…_5m` | Ready orders with no rider, and those waiting more than 5 minutes |
 | `bhojango_orders_late` | More than 5 minutes past the promised time |
 | `bhojango_payment_failures_15m` | Payments that failed in the last 15 minutes |
+| `bhojango_payment_attempts_15m` | Payments that finished (succeeded or failed) in the last 15 minutes |
 
 ## The alerts (`infra/observe/prometheus/alerts.yml`)
 
 | Alert | Fires when | What to do |
 |---|---|---|
 | **OrdersWithoutRider** | An order has been ready with no rider for more than 5 minutes (held 1 min) | Operations → Dispatch map: give it to a free rider |
-| **PaymentFailures** | 3 or more failed payments in a city within 15 minutes | Check the provider's status page and the payments logs |
+| **PaymentFailures** | 3 or more failed payments in a city within 15 minutes, and at least 30% of the payments there (ordinary card declines at a rush don't fire it) | Check the provider's status page and the payments logs |
 | **ErrorSpike** | More than 5% of a service's requests return 5xx for 2 minutes | Grafana → *Service health* → logs panel → open the trace |
 | KpisNotUpdating | The KPI loop hasn't run for 5 minutes | Look for `kpi_refresh_failed` in core_api's logs |
 

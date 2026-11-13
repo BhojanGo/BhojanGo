@@ -28,4 +28,6 @@ RUN useradd --system --uid 10001 --no-create-home --home-dir /srv app && mkdir -
 USER app
 
 EXPOSE 8004
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
+# Keep idle connections 130 s (uvicorn's default is 5 s): longer than the load balancer's
+# idle timeout (our ALB: 120 s), so it never reuses a connection we just closed (pilot soak).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--timeout-keep-alive", "130"]

@@ -70,7 +70,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: ci-secrets test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
+ci: ci-secrets ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -107,6 +107,11 @@ apk:
 ci-secrets:
 	sh tools/git-hooks/no-jwt.sh --self-test
 	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --gitleaks-ignore-path /repo/.gitleaksignore --redact --no-banner
+
+# Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
+ci-observe:
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR)/infra/observe/prometheus:/p" -w /p --entrypoint promtool prom/prometheus:v3.2.1 check rules alerts.yml
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR)/infra/observe/prometheus:/p" -w /p --entrypoint promtool prom/prometheus:v3.2.1 test rules alerts.test.yml
 
 ci-docker:
 	for svc in core_api realtime worker; do docker build -q -f backend/$$svc/Dockerfile -t bhojango-$$svc:ci backend || exit 1; done

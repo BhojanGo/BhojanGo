@@ -5,6 +5,7 @@ so Grafana and the console always agree. Prometheus scrapes core_api's
 /metrics; the alert rules in infra/observe/prometheus/alerts.yml use:
 
 - bhojango_payment_failures_15m           payment failures in the last 15 minutes
+- bhojango_payment_attempts_15m           payments that finished (succeeded or failed) in the last 15 minutes
 - bhojango_orders_waiting_for_rider_5m    ready orders without a rider for more than 5 minutes
 - (error spikes come from the HTTP metrics every service already exposes)
 """
@@ -33,6 +34,9 @@ WAITING = Gauge("bhojango_orders_waiting_for_rider", "Ready (or almost) orders w
 WAITING_5M = Gauge("bhojango_orders_waiting_for_rider_5m", "Orders without a rider for more than 5 minutes", L)
 LATE = Gauge("bhojango_orders_late", "Orders more than 5 minutes past the promised time", L)
 PAY_FAIL = Gauge("bhojango_payment_failures_15m", "Payments that failed in the last 15 minutes", L)
+# The alert needs a rate, not a count: at a rush, ordinary card declines alone reach 3 in
+# 15 minutes (pilot dress rehearsal), so it fires on failures as a share of attempts.
+PAY_ATTEMPTS = Gauge("bhojango_payment_attempts_15m", "Payments that succeeded or failed in the last 15 minutes", L)
 REFRESHED = Gauge("bhojango_kpi_refreshed_timestamp_seconds", "When these KPIs were last worked out")
 
 
@@ -53,11 +57,14 @@ async def refresh(db: AsyncSession, now: datetime | None = None) -> int:
     orders = (await db.execute(select(Order).where(Order.created_at >= now - timedelta(hours=40)))).scalars().all()
     ids = [o.id for o in orders]
     refunds = {i: True for (i,) in (await db.execute(select(Refund.order_id).where(Refund.order_id.in_(ids))))} if ids else {}
-    failed = (await db.execute(select(Order.market_city).join(PaymentIntent, PaymentIntent.order_id == Order.id).where(
-        PaymentIntent.status == "failed", PaymentIntent.updated_at >= now - timedelta(minutes=15)))).all()
+    finished = (await db.execute(select(Order.market_city, PaymentIntent.status).join(PaymentIntent, PaymentIntent.order_id == Order.id).where(
+        PaymentIntent.status.in_(("failed", "succeeded")), PaymentIntent.updated_at >= now - timedelta(minutes=15)))).all()
     fails: dict[str, int] = defaultdict(int)
-    for (city,) in failed:
-        fails[city or ""] += 1
+    attempts: dict[str, int] = defaultdict(int)
+    for city, status in finished:
+        attempts[city or ""] += 1
+        if status == "failed":
+            fails[city or ""] += 1
     by_city: dict[str, list] = defaultdict(list)  # type: ignore[type-arg]
     for o in orders:
         by_city[o.market_city or ""].append(o)
@@ -80,6 +87,7 @@ async def refresh(db: AsyncSession, now: datetime | None = None) -> int:
                                          and (o.actual_ready_at or o.updated_at) and now - (o.actual_ready_at or o.updated_at) > RIDER_WAIT_ALERT))
         LATE.labels(**lab).set(t.late)
         PAY_FAIL.labels(**lab).set(fails.get(c.code, 0))
+        PAY_ATTEMPTS.labels(**lab).set(attempts.get(c.code, 0))
     REFRESHED.set(now.timestamp())
     return len(cities)
 

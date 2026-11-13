@@ -3,11 +3,19 @@
 groups:
   - name: bhojango
     rules:
+      # A share of attempts, not a count: at a dinner rush ordinary card declines
+      # (5-10 %) reach 3 in 15 minutes on their own; the soak's 8 % fired this for
+      # 35 minutes (its worst 15 minutes was 18 %). 3+ failures that are also 30 %+
+      # of attempts means checkout is broken.
       - alert: PaymentFailures
-        expr: max by (country, city) (bhojango_payment_failures_15m) >= 3
+        expr: >
+          (max by (country, city) (bhojango_payment_failures_15m)
+            / clamp_min(max by (country, city) (bhojango_payment_attempts_15m), 1) >= 0.3)
+          and on (country, city)
+          (max by (country, city) (bhojango_payment_failures_15m) >= 3)
         labels: { severity: critical }
         annotations:
-          summary: "{{ $value }} payments failed in {{ $labels.city }} in the last 15 minutes"
+          summary: "{{ $value | humanizePercentage }} of payments failed in {{ $labels.city }} in the last 15 minutes"
           description: "Check the payment provider's status and the payments logs; customers may be stuck at checkout."
 
       - alert: OrdersWithoutRider

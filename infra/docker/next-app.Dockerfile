@@ -57,4 +57,5 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/
 COPY --from=build --chown=node:node /repo .
 USER node
 EXPOSE 3000
-CMD ["sh", "-c", "cd \"$APP_DIR\" && exec /repo/node_modules/.bin/next start -p \"${PORT:-3000}\""]
+# Idle connections kept 130 s (Node's default is 5 s), longer than the load balancer's 120 s (pilot soak).
+CMD ["sh", "-c", "cd \"$APP_DIR\" && exec /repo/node_modules/.bin/next start -p \"${PORT:-3000}\" --keepAliveTimeout 130000"]
