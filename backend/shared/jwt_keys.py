@@ -1,9 +1,12 @@
 """RS256 keys for access and refresh tokens, and the JWKS that publishes them.
 
 Signing (core_api only): ``JWT_PRIVATE_KEY`` (PEM; from Secrets Manager in
-AWS). Outside production, when it is empty, a development key is created once
-at ``JWT_DEV_KEY_PATH`` and reused, so tokens survive restarts (compose keeps
-it on a volume). Production refuses to start without a configured key.
+AWS, Railway variables). Only in development and test, when it is empty, a key
+is generated on this machine at ``JWT_DEV_KEY_PATH`` and reused, so tokens
+survive restarts (compose keeps it on a volume). It is never committed or
+shared, and every other environment (staging, production, anything else)
+refuses to start without a configured key, so a dev key can't sign a token
+anywhere else.
 
 Verification (every deployable): the local signing key if this process has
 one, any ``JWT_PUBLIC_KEYS`` (PEMs, e.g. the previous key during rotation),
@@ -35,8 +38,15 @@ JWKS_CACHE_SECONDS = 600
 JWKS_MIN_REFETCH_SECONDS = 30
 
 
+DEV_KEY_ENVIRONMENTS = ("development", "test")
+
+
 class KeyConfigError(RuntimeError):
     pass
+
+
+def dev_key_allowed() -> bool:
+    return get_settings().APP_ENV in DEV_KEY_ENVIRONMENTS
 
 
 def _b64(n: int) -> str:
@@ -78,12 +88,12 @@ def _dev_key() -> RSAPrivateKey:
 
 @lru_cache
 def signing_key() -> tuple[RSAPrivateKey, str]:
-    """(private key, kid). Raises KeyConfigError in production without a key."""
+    """(private key, kid). Raises KeyConfigError outside development/test without a key."""
     s = get_settings()
     if s.JWT_PRIVATE_KEY:
         key = _load_private(s.JWT_PRIVATE_KEY)
-    elif s.is_production:
-        raise KeyConfigError("JWT_PRIVATE_KEY is required in production")
+    elif not dev_key_allowed():
+        raise KeyConfigError(f"JWT_PRIVATE_KEY is required in {s.APP_ENV} (dev keys are for development and test only)")
     else:
         key = _dev_key()
     return key, public_jwk(key.public_key())["kid"]
@@ -91,7 +101,7 @@ def signing_key() -> tuple[RSAPrivateKey, str]:
 
 def _has_signing_key() -> bool:
     s = get_settings()
-    return bool(s.JWT_PRIVATE_KEY) or (not s.is_production and not s.JWKS_URL)
+    return bool(s.JWT_PRIVATE_KEY) or (dev_key_allowed() and not s.JWKS_URL)
 
 
 @lru_cache

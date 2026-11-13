@@ -21,11 +21,14 @@ jobs:
 
       - name: Install gitleaks
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar xz
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz
           sudo mv gitleaks /usr/local/bin/
 
+      # Every commit (fetch-depth 0), the default rules plus bhojango-jwt;
+      # reviewed historical findings are in .gitleaksignore. --redact keeps
+      # anything it finds out of the job log.
       - name: Run gitleaks
-        run: gitleaks detect --source . --verbose --no-git --config .gitleaks.toml
+        run: gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner
 
   python-sast:
     name: Python SAST (Bandit)

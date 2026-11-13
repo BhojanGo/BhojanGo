@@ -1,8 +1,24 @@
+# gitleaks: the default rules plus our own. CI runs it on every push
+# (.github/workflows/security.yml); the pre-commit hook blocks the JWT rule's
+# pattern before a commit is made (tools/git-hooks/no-jwt.sh).
+
 [extend]
-# Use default gitleaks rules
+useDefault = true
+
+# A signed JSON Web Token: header.payload.signature, both JSON parts base64url
+# ("eyJ" is base64 for '{"'). Any token in a committed file is a mistake: test
+# runs, logs and k6 summaries must strip them. Not covered by the path
+# allowlist below on purpose: docs and seed files may hold placeholder
+# secrets, never tokens.
+[[rules]]
+id = "bhojango-jwt"
+description = "JSON Web Token in a committed file"
+regex = '''\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}'''
+keywords = ["eyj"]
 
 [allowlist]
-description = "Allow placeholder secrets in example and doc files"
+description = "Placeholder secrets in example and doc files (not JWTs: see bhojango-jwt)"
+regexTarget = "match"
 paths = [
   '''\.env\.example$''',
   '''README\.md$''',

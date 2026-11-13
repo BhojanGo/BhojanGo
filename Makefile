@@ -70,7 +70,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: test-backend test-js ci-migrations ci-docker ci-e2e ci-terraform
+ci: ci-secrets test-backend test-js ci-migrations ci-docker ci-e2e ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -93,6 +93,12 @@ ci-e2e:
 APP ?= customer
 apk:
 	docker run --rm -v "$(CURDIR):/src:ro" -v "$(CURDIR)/.apk:/out" -v bhojango-gradle:/root/.gradle 	  -v bhojango-pnpm-store:/pnpm-store reactnativecommunity/react-native-android:v22.0 sh /src/tools/android/build-apk.sh $(APP)
+
+# Secrets: the pre-commit JWT check's self-test, then gitleaks over every
+# commit (default rules + bhojango-jwt; reviewed history in .gitleaksignore).
+ci-secrets:
+	sh tools/git-hooks/no-jwt.sh --self-test
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --gitleaks-ignore-path /repo/.gitleaksignore --redact --no-banner
 
 ci-docker:
 	for svc in core_api realtime worker; do docker build -q -f backend/$$svc/Dockerfile -t bhojango-$$svc:ci backend || exit 1; done

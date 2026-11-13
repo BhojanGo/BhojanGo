@@ -104,6 +104,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 33. **A backup counts only after it has been restored onto a wiped disk and the app passes its end-to-end test on it.**
     Why: a dump file proves nothing. The drill deletes the volume, restores, checks every table's row count and runs G1 on the result, in two minutes, so it can run every quarter.
 
+34. **Prove a scanner can fail before trusting a clean result: plant a fake finding and check it's caught.**
+    Why: gitleaks reported "0 leaks" for weeks because our config's empty `[extend]` turned its default rules off; with them on, history had 55 findings (all dead tokens). The pre-commit hook and `make ci-secrets` now run a self-test first.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
