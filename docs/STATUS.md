@@ -56,7 +56,7 @@ mostly the accounts (task 4) and the domain (task 3). Two things that cost nothi
 | 17 | Order flow with payments | ✅ Done | #21 | Payment first, timeouts, outbox |
 | 18 | Payments and refunds | ⛔ Blocked on Srini | #22, #41 | Refund by item is done. "Stripe + Razorpay live in test mode" needs the two accounts (free test mode); the code runs against fakes with the providers' real flows |
 | 19 | Payouts | ✅ Done | #23, #27, #42 | Weekly only (#42) |
-| 20 | Dispatch and live tracking | ✅ Done | #24, #45 | Nearest rider, 30 s offer, re-offer; holds 10× pilot load (#45) |
+| 20 | Dispatch and live tracking | ✅ Done | #24, #45, #50 | Nearest rider, 30 s offer, re-offer; holds 10× pilot load (#45); waiting orders served oldest first (#50) |
 | 21 | Notifications | ✅ Done | #25, #38 | Push, SMS, email in en / hi / te (fakes). India DLT template registration comes with the MSG91 account (task 4) |
 
 ## Phase 2 · Apps
@@ -77,7 +77,7 @@ mostly the accounts (task 4) and the domain (task 3). Two things that cost nothi
 | # | Task | Status | PR | Notes |
 |---|---|---|---|---|
 | 30 | Automated tests | ✅ Done | #43 | Playwright and G1 on every PR. Maestro runs locally on emulators, not on GitHub |
-| 31 | Monitoring and alerts | ⛔ Blocked on Srini | #44 | Dashboards and alerts work locally (`make observe`); alerts reach the admin console and the logs. "Sentry" and "reach on-call phone" need a Sentry account and a paging channel |
+| 31 | Monitoring and alerts | ⛔ Blocked on Srini | #44, #50 | Dashboards and alerts work locally (`make observe`); alerts reach the admin console and the logs. "Sentry" and "reach on-call phone" need a Sentry account and a paging channel |
 | 32 | Load test | ✅ Done | #45 | 10× pilot peak, 0 failures, every p95 under 100 ms. Two-hour pilot dress rehearsal in #50 |
 | 33 | Security test | ⛔ Blocked on Srini | #46, #48 | The automated pass is done and every High has been fixed (#46). An outside pen test is paid |
 | 34 | Backup drill and runbook | ⛔ Blocked on Srini | #47 | Database restored in the drill. The on-call rota needs the team (task 5) |
@@ -89,7 +89,7 @@ mostly the accounts (task 4) and the domain (task 3). Two things that cost nothi
 | # | Task | Status | PR | Notes |
 |---|---|---|---|---|
 | 37 | Sign launch restaurants | ⬜ Not started | #37 | Self sign-up and the admin approval queue are ready (#37) |
-| 38 | Onboard riders | ⬜ Not started | #37 | Rider sign-up and the document checklist are ready. Background checks are a paid vendor |
+| 38 | Onboard riders | ⬜ Not started | #37 | Rider sign-up and the document checklist are ready. Background checks are a paid vendor. The dress rehearsal (#50) shows 8 riders can't carry a Boise rush: plan for the tracker's 20–30 |
 | 39 | Closed beta | ⬜ Not started | — | Needs staging or production, and the apps in the stores |
 | 40 | Paid pilot | ⬜ Not started | #44 | KPI dashboards are ready (#44) |
 | 41 | Go / no-go review | ⬜ Not started | — | Srini's decision, after task 40 |
