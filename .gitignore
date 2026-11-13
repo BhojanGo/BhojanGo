@@ -87,3 +87,6 @@ apps/*/ios/
 
 # k6 results (P24): the report keeps the one that matters in docs/load
 tools/load/out/
+
+# Database dumps (tools/backup): never committed
+backups/
