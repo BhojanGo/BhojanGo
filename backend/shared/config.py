@@ -200,6 +200,7 @@ class ProviderSettings(BaseSettings):
     # (LocalStack in `make dev`).
     STORAGE_PROVIDER: str = "local"  # local | s3
     UPLOADS_BUCKET: str = "bhojango-uploads"
+    S3_ADDRESSING_STYLE: str = "auto"  # auto | path | virtual (a Railway bucket's urlStyle)
     LOCAL_STORAGE_DIR: str = Field(default_factory=lambda: str(Path(tempfile.gettempdir()) / "bhojango-uploads"))
     ROAD_FACTOR: float = 1.3
     AVG_SPEED_KMH: float = 25.0
@@ -255,7 +256,18 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_ENDPOINT_URL: str = ""  # LocalStack URL in dev
+    AWS_ENDPOINT_URL: str = ""  # LocalStack URL in dev; a Railway bucket's endpoint on Railway
+
+    # Event bus behind the outbox (shared/bus.py): "aws" = SNS topics -> SQS queues
+    # (AWS, LocalStack); "redis" = one Redis stream with a consumer group per
+    # consumer (Railway, anywhere without SNS/SQS).
+    EVENT_BUS: str = "aws"
+    EVENT_BUS_REDIS_URL: str = ""  # default: REDIS_URL. Must be the same for every service
+    EVENT_BUS_STREAM: str = "bhojango:events"
+    EVENT_BUS_MAXLEN: int = 100_000  # approximate cap; consumers are seconds behind
+    EVENT_BUS_RETRY_IDLE_MS: int = 30_000  # unacknowledged this long -> delivered again
+    EVENT_BUS_MAX_DELIVERIES: int = 3  # then the dead-letter stream (<stream>:dlq), like the SQS redrive
+    EVENT_BUS_CONSUMER: str = ""  # consumer name in the group; default: the host name
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]
@@ -271,6 +283,13 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @field_validator("EVENT_BUS")
+    @classmethod
+    def validate_event_bus(cls, v: str) -> str:
+        if v not in ("aws", "redis"):
+            raise ValueError("EVENT_BUS must be aws or redis")
+        return v
 
     @field_validator("DATABASE_URL")
     @classmethod

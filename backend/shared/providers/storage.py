@@ -66,6 +66,11 @@ class S3Storage:
                         "aws_secret_access_key": s.AWS_SECRET_ACCESS_KEY or None}
         if s.AWS_ENDPOINT_URL:
             kwargs["endpoint_url"] = s.AWS_ENDPOINT_URL
+        style = s.providers.S3_ADDRESSING_STYLE
+        if style in ("path", "virtual"):  # S3-compatible buckets (Railway) say which they need
+            from botocore.config import Config
+
+            kwargs["config"] = Config(s3={"addressing_style": style})
         return boto3.client("s3", **kwargs)
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:

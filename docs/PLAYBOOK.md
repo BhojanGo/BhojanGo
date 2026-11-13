@@ -107,6 +107,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 34. **Prove a scanner can fail before trusting a clean result: plant a fake finding and check it's caught.**
     Why: gitleaks reported "0 leaks" for weeks because our config's empty `[extend]` turned its default rules off; with them on, history had 55 findings (all dead tokens). The pre-commit hook and `make ci-secrets` now run a self-test first.
 
+35. **Before a new host, run the app locally the way that host will run it, and make it part of CI.**
+    Why: Railway has no SNS/SQS and no PostGIS. Reading its docs didn't show that our event flow depended on SNS; a compose overlay shaped like Railway (`make ci-railway`) did, and it now keeps the Redis Streams path tested. Also check the host's current config format: Railway stops reading `railway.toml` on 2026-12-01.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
