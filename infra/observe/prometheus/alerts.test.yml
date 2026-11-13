@@ -1,0 +1,46 @@
+# promtool test rules alerts.test.yml   (make ci-observe)
+# PaymentFailures fires on a failure *rate*, not a count (pilot dress rehearsal):
+# the soak's dinner rush had up to 5 ordinary declines in 15 minutes out of
+# ~28 payments (18 %, its worst window) and the old count rule fired for 35 minutes.
+rule_files: [alerts.yml]
+evaluation_interval: 1m
+tests:
+  - name: ordinary declines at a rush do not page anyone
+    interval: 1m
+    input_series:
+      - series: 'bhojango_payment_failures_15m{country="US",city="US-ID-BOI"}'
+        values: "5x20"
+      - series: 'bhojango_payment_attempts_15m{country="US",city="US-ID-BOI"}'
+        values: "28x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PaymentFailures
+        exp_alerts: []
+
+  - name: checkout broken (most payments failing) fires
+    interval: 1m
+    input_series:
+      - series: 'bhojango_payment_failures_15m{country="US",city="US-ID-BOI"}'
+        values: "6x20"
+      - series: 'bhojango_payment_attempts_15m{country="US",city="US-ID-BOI"}'
+        values: "9x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PaymentFailures
+        exp_alerts:
+          - exp_labels: { severity: critical, country: US, city: US-ID-BOI }
+            exp_annotations:
+              summary: "66.67% of payments failed in US-ID-BOI in the last 15 minutes"
+              description: "Check the payment provider's status and the payments logs; customers may be stuck at checkout."
+
+  - name: two failures out of two is not yet an alert (fewer than 3)
+    interval: 1m
+    input_series:
+      - series: 'bhojango_payment_failures_15m{country="IN",city="IN-TG-HYD"}'
+        values: "2x20"
+      - series: 'bhojango_payment_attempts_15m{country="IN",city="IN-TG-HYD"}'
+        values: "2x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PaymentFailures
+        exp_alerts: []

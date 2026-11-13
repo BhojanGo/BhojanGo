@@ -14,6 +14,13 @@ Offers
   next nearest rider who hasn't declined it. With nobody free it is retried
   every DISPATCH_RETRY_SECONDS. An accept assigns the rider in core_api.
 
+Fairness (pilot dress rehearsal): orders waiting for a rider are served
+  oldest first. ``dispatch:waiting`` holds when each one started looking; the
+  moment a rider is free (online, a delivery done, an offer passed or timed
+  out) the oldest waiting orders are offered first, and retries run oldest
+  first. Before, each order retried on its own 15 s timer, so a newer order
+  often got the next free rider while an older one kept waiting.
+
 Tracking
   Customers (and the assigned rider, and admins for the city) subscribe to
   ``tracking:{order}``: rider assigned, location + ETA, status changes. The last
@@ -43,6 +50,8 @@ ONLINE = "riders:online"
 OFFER_EXPIRY = "offers:expiry"
 RETRY = "dispatch:retry"
 ACTIVE = "dispatch:active"
+WAITING = "dispatch:waiting"  # order -> when it started looking for a rider (oldest first)
+WAITING_SCAN = 50  # how many waiting orders a free rider is matched against
 SHADOW = "shadow:batch_suggestions"
 TRAIL_KEEP = 200
 DAY = 86400
@@ -119,6 +128,7 @@ async def go_online(rider: str, lat: float, lng: float) -> dict:
     if state.get("status") not in ("offered", "busy"):
         await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
     await update_location(rider, lat, lng)
+    await offer_waiting()
     return await rider_state(rider)
 
 
@@ -216,6 +226,7 @@ async def start_dispatch(order: str, info: dict | None = None) -> str | None:
     r = await get_redis()
     if not await r.sadd(ACTIVE, order):  # already dispatching (duplicate event)
         return None
+    await r.zadd(WAITING, {order: _now()}, nx=True)
     await _shadow_batching(info)
     await _publish(order_tracking_channel(order), "searching_rider", {"order_id": order})
     return await offer_next(order)
@@ -265,6 +276,30 @@ async def offer_next(order: str) -> str | None:
     return None
 
 
+async def offer_waiting() -> int:
+    """A rider is free: offer the oldest waiting orders first. Each order still
+    goes to its nearest free rider; this decides which orders go first.
+    Stops as soon as nobody is free. Returns how many offers were made."""
+    r = await get_redis()
+    made = 0
+    for order in await r.zrange(WAITING, 0, WAITING_SCAN - 1):
+        if not await _anyone_free(r):
+            break
+        if await r.zscore(OFFER_EXPIRY, order) is not None:
+            continue  # already offered to someone
+        if await offer_next(order):
+            await r.zrem(RETRY, order)
+            made += 1
+    return made
+
+
+async def _anyone_free(r) -> bool:  # type: ignore[no-untyped-def]
+    for rider in await r.smembers(ONLINE):
+        if await r.hget(state_key(rider), "status") == "available" and await r.exists(loc_key(rider)):
+            return True
+    return False
+
+
 def _trip_km(info: dict) -> float | None:
     """Pickup to drop-off, by the routing provider (road distance)."""
     if not info.get("pickup") or not info.get("dropoff"):
@@ -304,6 +339,7 @@ async def accept(rider: str, order: str) -> dict:
     await r.delete(offer_key(order), f"rider:{rider}:offer_lock")
     await r.srem(ACTIVE, order)
     await r.zrem(RETRY, order)
+    await r.zrem(WAITING, order)
     await r.hset(state_key(rider), mapping={"status": "busy", "order_id": order})
     await _engaged(rider, True)
     fix = await last_fix(rider)
@@ -327,7 +363,9 @@ async def decline(rider: str, order: str, reason: str = "passed") -> str | None:
     await _clear_offer(rider, order)
     logger.info("offer_declined", order_id=order, rider_id=rider, reason=reason)
     await _publish(rider_channel(rider), "offer_withdrawn", {"order_id": order, "reason": reason})
-    return await offer_next(order)
+    nxt = await offer_next(order)
+    await offer_waiting()  # the rider who passed is free again: the oldest waiting order first
+    return nxt
 
 
 async def _clear_offer(rider: str, order: str) -> None:
@@ -343,6 +381,7 @@ async def _finish(order: str) -> None:
     await r.srem(ACTIVE, order)
     await r.zrem(RETRY, order)
     await r.zrem(OFFER_EXPIRY, order)
+    await r.zrem(WAITING, order)
 
 
 async def tick(now: float | None = None) -> dict[str, int]:
@@ -359,7 +398,11 @@ async def tick(now: float | None = None) -> dict[str, int]:
             counts["expired"] += 1
         elif not offer:
             await r.zrem(OFFER_EXPIRY, order)
-    for order in await r.zrangebyscore(RETRY, 0, now):
+    due = await r.zrangebyscore(RETRY, 0, now)
+    if due:  # oldest waiting first, not in the order their retry timers came up
+        started = await r.zmscore(WAITING, due)
+        due = [o for _, o in sorted(zip([x if x is not None else now for x in started], due))]
+    for order in due:
         if await r.zrem(RETRY, order):
             await offer_next(order)
             counts["retried"] += 1
@@ -399,6 +442,7 @@ async def on_order_event(event: dict) -> None:
             if state.get("order_id") == order:
                 await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
                 await _engaged(rider, False)
+                await offer_waiting()
 
 
 # ── the dispatch map (P21) ───────────────────────────────────────────────────

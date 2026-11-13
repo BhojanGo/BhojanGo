@@ -43,7 +43,7 @@ services:
         condition: service_healthy
 
   core-api:
-    command: ["uvicorn", "core_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    command: ["uvicorn", "core_api.main:app", "--host", "0.0.0.0", "--port", "8001", "--timeout-keep-alive", "130"]
     environment:
       <<: *railway-env
     depends_on:

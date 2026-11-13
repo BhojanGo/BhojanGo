@@ -71,7 +71,7 @@ export default defineRailway((ctx, project) => {
       source: src("backend"),
       build: { builder: "DOCKERFILE", dockerfilePath: `${dir}/Dockerfile`,
                watchPatterns: [`backend/${dir}/**`, "backend/shared/**", "backend/pyproject.toml", "backend/uv.lock"] },
-      start: `uvicorn ${app} --host :: --port ${port}`,
+      start: `uvicorn ${app} --host :: --port ${port} --timeout-keep-alive 130`,
       healthcheck: "/health/ready",
       healthcheckTimeout: 120,
       ...opts,

@@ -79,6 +79,7 @@ async def test_kpis_for_prometheus(client: AsyncClient) -> None:  # noqa: F811
 
     assert g("bhojango_orders_waiting_for_rider_5m") >= 1
     assert g("bhojango_payment_failures_15m") >= 1
+    assert g("bhojango_payment_attempts_15m") >= g("bhojango_payment_failures_15m") + 1  # the paid one too
     assert g("bhojango_orders_live") >= 1 and g("bhojango_orders_today") >= 1
     assert REGISTRY.get_sample_value("bhojango_kpi_refreshed_timestamp_seconds") > 0
     from sqlalchemy import update
