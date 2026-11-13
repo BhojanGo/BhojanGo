@@ -102,10 +102,13 @@ APP ?= customer
 apk:
 	docker run --rm -v "$(CURDIR):/src:ro" -v "$(CURDIR)/.apk:/out" -v bhojango-gradle:/root/.gradle 	  -v bhojango-pnpm-store:/pnpm-store reactnativecommunity/react-native-android:v22.0 sh /src/tools/android/build-apk.sh $(APP)
 
-# Secrets: the pre-commit JWT check's self-test, then gitleaks over every
+# Scanners: canaries first (planted findings each scanner must catch: gitleaks,
+# semgrep), then gitleaks over every
 # commit (default rules + bhojango-jwt; reviewed history in .gitleaksignore).
 ci-secrets:
 	sh tools/git-hooks/no-jwt.sh --self-test
+	sh tools/security/scanner-canaries.sh gitleaks
+	sh tools/security/scanner-canaries.sh semgrep
 	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --gitleaks-ignore-path /repo/.gitleaksignore --redact --no-banner
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).

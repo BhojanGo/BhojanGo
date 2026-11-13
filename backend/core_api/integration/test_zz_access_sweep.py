@@ -521,3 +521,78 @@ async def test_wrong_role_or_someone_elses_resource_is_refused(client: AsyncClie
 
 def test_public_routes_are_deliberate() -> None:
     assert all(p.why for p in POLICY.values() if p.kind == "public")
+
+
+# ── canaries: the sweep must catch holes planted on purpose ──────────────────
+# A sweep that finds nothing proves nothing until it has caught one (PLAYBOOK
+# rule 34). Each canary adds a broken route to the app for one test, runs the
+# sweep's own check on it, and requires the check to fail.
+
+CANARY = "/api/v1/__canary/orders/{order_id}"
+
+
+def _plant(endpoint, policy: Policy | None):  # type: ignore[no-untyped-def]
+    from fastapi.routing import APIRoute
+
+    from core_api.main import app
+
+    route = APIRoute(CANARY, endpoint, methods=["GET"])
+    app.router.routes.append(route)
+    if policy:
+        POLICY[("GET", CANARY)] = policy
+    return route
+
+
+def _unplant(route) -> None:  # type: ignore[no-untyped-def]
+    from core_api.main import app
+
+    app.router.routes.remove(route)
+    POLICY.pop(("GET", CANARY), None)
+
+
+async def _order_for_anyone(order_id: uuid.UUID) -> dict:
+    """Hole 1: no sign-in at all."""
+    from core_api.modules.orders.models.order import Order
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        o = await db.get(Order, order_id)
+        return {"id": str(o.id), "total": float(o.total)} if o else {}
+
+
+def test_canary_a_route_without_a_policy_is_caught() -> None:
+    route = _plant(_order_for_anyone, None)
+    try:
+        assert ("GET", CANARY) in set(routes()) - set(POLICY), "the policy check missed a new route"
+    finally:
+        _unplant(route)
+
+
+async def test_canary_a_route_without_sign_in_is_caught(client: AsyncClient, ctx: Ctx) -> None:
+    route = _plant(_order_for_anyone, user("other_customer"))
+    try:
+        r = await call(client, ctx, "GET", CANARY, None)
+        assert r.status_code not in NO_TOKEN, "test_no_token_is_refused would have passed an open route"
+    finally:
+        _unplant(route)
+
+
+async def test_canary_a_missing_ownership_check_is_caught(client: AsyncClient, ctx: Ctx) -> None:
+    from typing import Annotated
+
+    from fastapi import Depends
+
+    from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
+
+    async def any_signed_in_user(order_id: uuid.UUID, user: Annotated[CurrentUser, Depends(get_current_user)]) -> dict:
+        """Hole 2: signed in, but nobody checks whose order it is."""
+        return await _order_for_anyone(order_id)
+
+    route = _plant(any_signed_in_user, user("other_customer"))
+    try:
+        assert (await call(client, ctx, "GET", CANARY, None)).status_code in NO_TOKEN  # sign-in is checked...
+        r = await call(client, ctx, "GET", CANARY, "other_customer")
+        assert r.status_code == 200 and r.json().get("id") == ctx.order, r.text  # ...ownership isn't
+        assert r.status_code not in REFUSED, "test_wrong_role_or_someone_elses_resource_is_refused would have passed"
+    finally:
+        _unplant(route)
