@@ -104,8 +104,8 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 33. **A backup counts only after it has been restored onto a wiped disk and the app passes its end-to-end test on it.**
     Why: a dump file proves nothing. The drill deletes the volume, restores, checks every table's row count and runs G1 on the result, in two minutes, so it can run every quarter.
 
-34. **Prove a scanner can fail before trusting a clean result: plant a fake finding and check it's caught.**
-    Why: gitleaks reported "0 leaks" for weeks because our config's empty `[extend]` turned its default rules off; with them on, history had 55 findings (all dead tokens). The pre-commit hook and `make ci-secrets` now run a self-test first.
+34. **Prove every scanner works by planting a fake finding in a test; a scan with no findings proves nothing until it has caught one.**
+    Why: gitleaks reported "0 leaks" for weeks because our config's empty `[extend]` turned its default rules off; with them on, history had 55 findings (all dead tokens). Canaries now run in `make ci` for gitleaks (a JWT and an AWS key, built at run time), semgrep (`pickle.loads`, `shell=True`) and the access-control sweep (an unpoliced route, an open route, a missing ownership check); turning the gitleaks defaults off again fails the build.
 
 35. **Before a new host, run the app locally the way that host will run it, and make it part of CI.**
     Why: Railway has no SNS/SQS and no PostGIS. Reading its docs didn't show that our event flow depended on SNS; a compose overlay shaped like Railway (`make ci-railway`) did, and it now keeps the Redis Streams path tested. Also check the host's current config format: Railway stops reading `railway.toml` on 2026-12-01.
