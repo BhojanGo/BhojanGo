@@ -13,6 +13,8 @@ export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bhojango}" MSYS_NO_PATHCONV
 P="$COMPOSE_PROJECT_NAME"
 NET="${P}_default"
 MINUTES="${SOAK_MINUTES:-120}"
+RIDERS="${SOAK_RIDERS:-8}"
+BATCHING="${SOAK_BATCHING:-off}"   # on: Boise has live batching for this run (task 43)
 ORDERS="${SOAK_ORDERS:-150}"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="$ROOT/tools/soak/out/$STAMP"
@@ -23,7 +25,7 @@ DB_URL="postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango"
 
 echo "== build the soak image (backend + its dependencies)"
 docker build -q -f "$ROOT/infra/docker/test.Dockerfile" --target migrations -t bhojango-soak "$ROOT" >/dev/null || exit 1
-OPTS="--rm --network $NET -e DATABASE_URL=$DB_URL -e PYTHONPATH=/repo/backend -v $ROOT/tools:/repo/tools:ro -v $OUT:/out -w /repo/backend"
+OPTS="--rm --network $NET -e SOAK_RIDERS=$RIDERS -e DATABASE_URL=$DB_URL -e PYTHONPATH=/repo/backend -v $ROOT/tools:/repo/tools:ro -v $OUT:/out -w /repo/backend"
 RUN="docker run $OPTS bhojango-soak"
 
 echo "== people (riders 4-8, customers 6-40) and opening hours around the clock"
@@ -36,16 +38,21 @@ async def go():
     await open_all_day(); await engine.dispose()
 asyncio.run(go())" || exit 1
 
+echo "== batching in Boise: $BATCHING"
+$RUN uv run --frozen python /repo/tools/soak/batching_switch.py "$BATCHING" || exit 1
+
 echo "== sampler (once a minute) -> samples.csv"
 sh "$ROOT/tools/soak/sample.sh" "$P" "$OUT/samples.csv" &
 SAMPLER=$!
 trap 'kill $SAMPLER 2>/dev/null' EXIT
 
-echo "== soak: $MINUTES minutes, $ORDERS orders (log: $OUT/soak.log)"
+echo "== soak: $MINUTES minutes, $ORDERS orders, $RIDERS riders, batching $BATCHING (log: $OUT/soak.log)"
+echo "riders=$RIDERS batching=$BATCHING" > "$OUT/settings"
 # Bounded: the window plus 30 minutes for stragglers and the write-up.
 timeout $(( (${MINUTES%.*} + 30) * 60 )) docker run $OPTS -e SOAK_MINUTES="$MINUTES" -e SOAK_ORDERS="$ORDERS" -e SOAK_OUT=/out/soak-result.json \
   bhojango-soak uv run --frozen python /repo/tools/soak/soak.py > "$OUT/soak.log" 2>&1
 echo "soak exit: $?"
+[ "$BATCHING" = "on" ] && $RUN uv run --frozen python /repo/tools/soak/batching_switch.py off
 kill $SAMPLER 2>/dev/null
 END_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "$END_ISO" > "$OUT/ended_at"

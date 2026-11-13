@@ -17,10 +17,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "seed"))
 import seed  # noqa: E402  (tools/seed/seed.py: the same upserts as `make seed`)
 from data import MARKETS  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
-RIDERS = ["Maya Patel", "Chris Walker", "Dana Kim", "Luis Ramirez", "Taylor Reed"]  # riders 4-8
-CUSTOMERS = 40
+# Riders 4 and up (onboarding finished, like the seed's): five named, then numbered.
+NAMES = ["Maya Patel", "Chris Walker", "Dana Kim", "Luis Ramirez", "Taylor Reed"]
+TOTAL_RIDERS = int(os.environ.get("SOAK_RIDERS", "8"))
+RIDERS = [NAMES[i] if i < len(NAMES) else f"Soak Rider {i + 4}" for i in range(max(0, TOTAL_RIDERS - 3))]
+CUSTOMERS = int(os.environ.get("SOAK_CUSTOMERS", "40"))
 
 
 async def main() -> None:
@@ -44,6 +48,9 @@ async def main() -> None:
                 "street": f"{100 + i} {street.split(' ', 1)[1]}, {area}", "city": m["city"], "state": m["state"],
                 "postal_code": postal, "country": m["country"],
                 "lat": lat + rnd.uniform(-0.006, 0.006), "lng": lng + rnd.uniform(-0.006, 0.006)})
+        # The kitchens say how long they take (the bots cook 4-9 minutes); the batch engine
+        # plans with the declared prep time, so it must be the real one.
+        await conn.execute(text("UPDATE restaurants SET avg_prep_minutes = 8 WHERE city = 'Boise'"))
     await engine.dispose()
     print(f"soak people: riders 1-{len(m['riders']) + len(RIDERS)}, customers 1-{CUSTOMERS} in Boise")
 
