@@ -327,25 +327,33 @@ def _money_sum(values: list) -> str | None:
 
 
 async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None:
-    """Offer several waiting orders to one rider as one offer (live batching).
+    """Offer several orders to one rider as one offer (live batching).
 
     ``orders`` are in drop-off order (the engine's route); the first is the lead:
-    the offer is stored under it. Refused (None) unless every order is still
-    waiting, not offered, in the same city, and that city has live batching on."""
+    the offer is stored under it. Every order must be unassigned, not on an
+    offer, in the same city, with live batching on there. At least one must be
+    looking for a rider already; the others may still be cooking at the same
+    kitchen ("early": the rider collects them together), and go back to
+    waiting for their own turn if the batch is turned down."""
     meta = meta or {}
     r = await get_redis()
     if len(orders) < 2 or len(set(orders)) != len(orders):
         return None
-    infos = []
+    infos, early = [], []
     for o in orders:
-        info = await order_info(o)
+        info = await order_info(o, max_age=10)
         if (not info or info.get("driver_id") or not info.get("pickup") or not info.get("batching_live")
-                or not await r.sismember(ACTIVE, o) or await r.zscore(OFFER_EXPIRY, o) is not None
-                or await r.exists(in_batch_offer_key(o))):
+                or await r.zscore(OFFER_EXPIRY, o) is not None or await r.exists(in_batch_offer_key(o))):
             return None
+        if not await r.sismember(ACTIVE, o):
+            if info.get("status") not in ("accepted", "preparing"):
+                return None
+            early.append(o)
         infos.append(info)
-    if len({i.get("market_city") for i in infos}) != 1:
+    if len(early) == len(orders) or len({i.get("market_city") for i in infos}) != 1:
         return None
+    if early and len({i.get("restaurant_id") for i in infos}) != 1:
+        return None  # an order still cooking can only join a pickup at its own kitchen
     lead, lead_info = orders[0], infos[0]
     declined: set = set()
     for o in orders:
@@ -355,6 +363,9 @@ async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None
     if not claimed:
         return None
     rider, dist_km = claimed
+    for o in early:  # now part of dispatch, without an offer of their own
+        await r.sadd(ACTIVE, o)
+        await r.zadd(WAITING, {o: _now()}, nx=True)
     expires = _now() + timeout
     fix = await last_fix(rider)
     stops = [{"order_id": i["order_id"], "code": i.get("code"), "restaurant_name": i.get("restaurant_name"),
@@ -372,7 +383,7 @@ async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None
              "items_count": sum(int(i.get("items_count") or 0) for i in infos),
              "drop_area": " · ".join(str(i.get("drop_area") or "drop-off") for i in infos),
              "trip_km": meta.get("total_distance_km") or sum(x["trip_km"] or 0 for x in stops),
-             "batch_minutes": meta.get("total_time_min")}
+             "batch_minutes": meta.get("total_time_min"), "early": early}
     await r.set(offer_key(lead), json.dumps(offer), ex=timeout + 5)
     for o in orders[1:]:
         await r.set(in_batch_offer_key(o), lead, ex=timeout + 5)
@@ -507,11 +518,26 @@ async def decline(rider: str, order: str, reason: str = "passed") -> str | None:
     await _clear_offer(rider, order)
     logger.info("offer_declined", order_id=order, rider_id=rider, reason=reason, batch=orders if len(orders) > 1 else None)
     await _publish(rider_channel(rider), "offer_withdrawn", {"order_id": order, "reason": reason})
+    await _release_early(offer)
     nxt = await offer_next(order)
     for o in orders[1:]:
-        await offer_next(o)
+        if o not in (offer.get("early") or []):
+            await offer_next(o)
     await offer_waiting()  # the rider who passed is free again: the oldest waiting order first
     return nxt
+
+
+async def _release_early(offer: dict) -> None:
+    """Orders that joined a batch offer while still cooking wait for their own turn again."""
+    r = await get_redis()
+    for o in offer.get("early") or []:
+        await r.srem(ACTIVE, o)
+        await r.zrem(WAITING, o)
+        await r.zrem(RETRY, o)
+        await r.delete(in_batch_offer_key(o))
+        info = await order_info(o, refresh=True)
+        if info and info.get("status") in DISPATCH_STATES and not info.get("driver_id"):
+            await start_dispatch(o, info)  # it became almost ready while the batch offer was open
 
 
 async def _clear_offer(rider: str, order: str) -> None:
@@ -573,7 +599,8 @@ async def on_order_event(event: dict) -> None:
         info = json.loads(await r.get(info_key(order)))
         info.update(status=status or info.get("status"), driver_id=p.get("driver_id") or info.get("driver_id"))
         await _save_info(info)
-    if kind == "order.status_changed" and status in DISPATCH_STATES and not p.get("driver_id"):
+    if (kind == "order.status_changed" and status in DISPATCH_STATES and not p.get("driver_id")
+            and not await r.exists(in_batch_offer_key(order))):
         await start_dispatch(order)
     if kind in ("order.status_changed", "order.cancelled", "driver.assigned"):
         await _publish(order_tracking_channel(order), "status_change", {"order_id": order, "status": status,
@@ -586,9 +613,10 @@ async def on_order_event(event: dict) -> None:
             await r.zrem(OFFER_EXPIRY, lead or order)
             await _clear_offer(offer["rider_id"], lead or order)
             await _publish(rider_channel(offer["rider_id"]), "offer_withdrawn", {"order_id": lead or order, "reason": "cancelled"})
+            await _release_early(offer)
             for o in [b["order_id"] for b in offer.get("batch") or []]:
                 await r.delete(in_batch_offer_key(o))
-                if o != order:
+                if o != order and o not in (offer.get("early") or []):
                     await r.zrem(HOLD, o)
                     await offer_next(o)
         await _finish(order)

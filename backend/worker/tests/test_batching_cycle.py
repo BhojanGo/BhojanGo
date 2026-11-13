@@ -51,3 +51,22 @@ def test_pool_entry_is_when_it_started_looking_for_a_rider() -> None:
     o = batching._pool_order(row)
     assert o.created_at == NOW - timedelta(minutes=2)          # not when it was ordered
     assert o.prep_ready_at == accepted + timedelta(minutes=12)  # the kitchen's estimate
+
+
+def test_live_pairs_need_one_order_already_looking_for_a_rider() -> None:
+    a = order("a", "bowl", BOWL, (43.6390, -116.2080))
+    b = order("b", "bowl", BOWL, (43.6400, -116.2060), ready_in=4)
+    assert batching.plan([a, b], NOW, dispatching=set())[1] == []       # both still cooking: nothing yet
+    assert batching.plan([a, b], NOW, dispatching={"a"})[1] != []      # a is almost ready: pair it with b
+
+
+def test_an_order_still_cooking_is_not_waiting_yet() -> None:
+    accepted = NOW - timedelta(minutes=3)
+    row = SimpleNamespace(
+        id="o2", status="preparing", restaurant_id="r1", restaurant_name="Boise Bowl Co.", market_city="US-ID-BOI",
+        pickup_lat=BOWL[0], pickup_lng=BOWL[1], delivery_lat=43.639, delivery_lng=-116.208,
+        status_history=[{"status": "accepted", "at": accepted.isoformat()}],
+        restaurant_accepted_at=accepted, estimated_prep_minutes=8, actual_ready_at=None, updated_at=NOW)
+    o = batching._pool_order(row, NOW)
+    assert o.created_at == NOW                                  # not waiting, so it never expires into a solo trip
+    assert o.prep_ready_at == accepted + timedelta(minutes=8)   # ready in 5 minutes

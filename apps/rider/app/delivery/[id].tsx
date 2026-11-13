@@ -44,10 +44,23 @@ export default function Delivery() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // The other bags of a batch: one may still be cooking. Pick up only when all are ready.
+  const [othersReady, setOthersReady] = useState(0);
+  const othersKey = others.join(",");
   useEffect(() => {
-    const t = setInterval(() => void reload(), 8000);
+    const check = async () => {
+      let n = 0;
+      for (const other of others) {
+        const o = await api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: other } } }).catch(() => null);
+        if (o?.data && ["ready", "picked_up", "delivered", "cancelled"].includes(o.data.status)) n += 1;
+      }
+      setOthersReady(n);
+    };
+    void check();
+    const t = setInterval(() => { void reload(); void check(); }, 8000);
     return () => clearInterval(t);
-  }, [reload]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload, othersKey]);
 
   if (!order) {
     return <SafeAreaView style={[ui.screen, styles.center]}>{error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator color={night.kesar} />}</SafeAreaView>;
@@ -137,6 +150,8 @@ export default function Delivery() {
   }
 
   const canComplete = proof === "pin" ? pin.length === 4 : !!photo?.key;
+  const allReady = order.status === "ready" && othersReady === others.length;
+  const readyCount = (order.status === "ready" ? 1 : 0) + othersReady;
   const toDrop = km(rider ?? pickup, drop);
   const toPickup = km(rider, pickup);
   const dDrop = toDrop == null ? "" : dist(toDrop, unit);
@@ -242,9 +257,10 @@ export default function Delivery() {
               <Text style={ui.ctaText}>{busy === "complete" ? "Completing…" : "Complete delivery"}</Text>
             </Pressable>
           ) : (
-            <Pressable accessibilityRole="button" disabled={order.status !== "ready" || !!busy} onPress={pickedUp}
-              style={[ui.cta, { opacity: order.status === "ready" && !busy ? 1 : 0.5 }]}>
-              <Text style={ui.ctaText}>{busy === "pickup" ? "…" : order.status === "ready" ? "Picked up" : "Waiting for the kitchen"}</Text>
+            <Pressable accessibilityRole="button" disabled={!allReady || !!busy} onPress={pickedUp}
+              style={[ui.cta, { opacity: allReady && !busy ? 1 : 0.5 }]}>
+              <Text style={ui.ctaText}>{busy === "pickup" ? "…" : allReady ? (others.length ? `Picked up all ${others.length + 1}` : "Picked up")
+                : others.length ? `Waiting for the kitchen · ${readyCount} of ${others.length + 1} ready` : "Waiting for the kitchen"}</Text>
             </Pressable>
           )}
         </View>
