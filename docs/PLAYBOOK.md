@@ -101,6 +101,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 32. **Images run as a non-root user; local volumes from older images get a one-shot chown step, not a root container.**
     Why: switching core-api to uid 10001 would have broken everyone's existing JWT-key volume. `keys-init` hands it over once.
 
+33. **A backup counts only after it has been restored onto a wiped disk and the app passes its end-to-end test on it.**
+    Why: a dump file proves nothing. The drill deletes the volume, restores, checks every table's row count and runs G1 on the result, in two minutes, so it can run every quarter.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
