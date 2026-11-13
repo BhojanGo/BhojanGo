@@ -355,3 +355,20 @@ async def test_role_assignment_list_is_scoped(client: AsyncClient, admins) -> No
     assert {"*", "US", "IN-TG-HYD"} <= all_scopes
     viewer = await as_(client, admins["viewer_us"])
     assert (await client.get("/api/v1/admin/role-assignments", headers=viewer)).status_code == 403
+
+
+@pytest.mark.parametrize("env", ["staging", "production", "preview"])
+def test_dev_key_only_in_development_and_test(monkeypatch, env) -> None:
+    """A machine-generated dev key never signs outside development/test."""
+    from shared import jwt_keys
+    from shared.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "APP_ENV", env)
+    monkeypatch.setattr(get_settings(), "JWT_PRIVATE_KEY", "")
+    jwt_keys.signing_key.cache_clear()
+    try:
+        with pytest.raises(jwt_keys.KeyConfigError):
+            jwt_keys.signing_key()
+        assert not jwt_keys._has_signing_key()
+    finally:
+        jwt_keys.signing_key.cache_clear()
