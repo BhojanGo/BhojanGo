@@ -3,8 +3,28 @@
 // and restaurant pages) read core_api from inside the network when
 // CORE_API_INTERNAL_URL is set (Docker), else the public URL.
 
+import { securityHeaders } from "@bhojango/ui/security-headers";
+
+const CORE = process.env.NEXT_PUBLIC_CORE_URL ?? "http://localhost:8001";
+const REALTIME = process.env.NEXT_PUBLIC_REALTIME_URL ?? "http://localhost:8004";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: securityHeaders({
+        connect: [CORE, REALTIME],
+        // kitchen photos (S3/CloudFront; LocalStack in make dev)
+        img: ["https:", ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:4566"])],
+        // the payment providers' checkout (Razorpay in India, Stripe in the US)
+        script: ["https://checkout.razorpay.com", "https://js.stripe.com"],
+        frame: ["https://api.razorpay.com", "https://checkout.razorpay.com", "https://js.stripe.com", "https://hooks.stripe.com"],
+        geolocation: true,
+      }),
+    }];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.amazonaws.com" },

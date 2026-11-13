@@ -184,11 +184,13 @@ jobs:
 
       - name: terraform plan
         if: steps.connected.outputs.ok == 'true'
+        env:
+          PLAN_ENV: ${{ matrix.environment }}
         run: |
           terraform init -input=false -backend-config=backend.hcl -backend-config="bucket=${STATE_BUCKET}"
           terraform plan -input=false -no-color -lock-timeout=5m | tee plan.txt
           {
-            echo "### Terraform plan: ${{ matrix.environment }}"
+            echo "### Terraform plan: ${PLAN_ENV}"
             echo '```'
             grep -E "^Plan:|^No changes" plan.txt || true
             echo '```'

@@ -113,6 +113,15 @@ services:
       retries: 20
 
   # ── Backend (3 deployables) ───────────────
+  # core-api runs as a non-root user (uid 10001); volumes made by older images are
+  # owned by root, so hand the dev JWT key volume over once before it starts.
+  keys-init:
+    profiles: ["backend", "all"]
+    image: busybox:1.37.0
+    command: ["sh", "-c", "chown -R 10001:10001 /srv/keys"]
+    volumes:
+      - jwt_keys:/srv/keys
+
   core-api:
     profiles: ["backend", "all"]
     build:
@@ -132,6 +141,8 @@ services:
       - ../../tools/seed:/srv/tools/seed:ro  # `make seed` runs it in this container
       - jwt_keys:/srv/keys
     depends_on:
+      keys-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:

@@ -28,10 +28,11 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
   ip_protocol       = "tcp"
 }
 
+# Security pass (trivy AVD-AWS-0104): the load balancer only talks to the services.
 resource "aws_vpc_security_group_egress_rule" "alb_all" {
-  security_group_id = aws_security_group.alb.id
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
+  security_group_id            = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.ecs.id
+  ip_protocol                  = "-1"
 }
 
 # ── ECS Tasks Security Group ────────────────

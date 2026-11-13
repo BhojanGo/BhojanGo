@@ -3,7 +3,8 @@
 #   docker build -f infra/docker/next-app.Dockerfile \
 #     --build-arg APP=@bhojango/web --build-arg APP_DIR=apps/web .
 # Node 24 LTS per ADR-011.
-ARG NODE_IMAGE=node:24-slim
+# Debian 13 (trixie), as the Python images: its zlib has the minizip fix (security pass).
+ARG NODE_IMAGE=node:24-trixie-slim
 
 FROM ${NODE_IMAGE} AS prune
 ARG APP
@@ -37,7 +38,13 @@ FROM ${NODE_IMAGE} AS run
 ARG APP_DIR
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 APP_DIR=${APP_DIR}
 WORKDIR /repo
-RUN corepack enable
-COPY --from=build /repo .
+# Security (trivy): Debian security fixes, and no npm at runtime (its bundled
+# undici and brace-expansion had HIGH CVEs; next is started directly).
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+# Security (trivy DS002): run as the image's unprivileged "node" user; it owns the
+# app so Next can write its cache (ISR). next is started directly (no pnpm at runtime).
+COPY --from=build --chown=node:node /repo .
+USER node
 EXPOSE 3000
-CMD ["sh", "-c", "cd \"$APP_DIR\" && exec pnpm exec next start -p \"${PORT:-3000}\""]
+CMD ["sh", "-c", "cd \"$APP_DIR\" && exec /repo/node_modules/.bin/next start -p \"${PORT:-3000}\""]

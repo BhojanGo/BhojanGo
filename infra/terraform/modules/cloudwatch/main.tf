@@ -120,7 +120,9 @@ resource "aws_cloudwatch_dashboard" "main" {
 # ── SNS Alert Topic ──────────────────────────
 resource "aws_sns_topic" "alerts" {
   name = "${var.name}-alerts"
-  tags = var.tags
+  # Security pass (trivy AVD-AWS-0095): encrypted with the AWS-managed SNS key (free).
+  kms_master_key_id = "alias/aws/sns"
+  tags              = var.tags
 }
 
 # ── Critical Alarms ──────────────────────────

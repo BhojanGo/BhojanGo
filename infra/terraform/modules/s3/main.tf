@@ -47,6 +47,17 @@ resource "aws_s3_bucket" "assets" {
   tags   = merge(var.tags, { Name = "${var.name}-assets" })
 }
 
+# Security pass (trivy AVD-AWS-0088): encrypted at rest with S3-managed keys (free;
+# a customer-managed KMS key would cost money, AVD-AWS-0132 accepted).
+resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
+  bucket = aws_s3_bucket.assets.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "assets" {
   bucket                  = aws_s3_bucket.assets.id
   block_public_acls       = true
@@ -120,6 +131,17 @@ resource "aws_cloudfront_distribution" "assets" {
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.name}-logs-${var.account_id}"
   tags   = merge(var.tags, { Name = "${var.name}-logs" })
+}
+
+# Security pass (trivy AVD-AWS-0088): encrypted at rest with S3-managed keys (free;
+# a customer-managed KMS key would cost money, AVD-AWS-0132 accepted).
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "logs" {
