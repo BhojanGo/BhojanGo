@@ -20,6 +20,16 @@ ARG APP_DIR
 # server-side proxy at the core_api container.
 ARG CORE_API_URL=http://core-api:8001
 ARG REALTIME_URL=http://realtime:8004
+# The browser's URLs, baked into the bundle at build time (the defaults are
+# local; Railway passes the public domains as build variables).
+ARG NEXT_PUBLIC_CORE_URL=http://localhost:8001
+ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:8004
+ARG NEXT_PUBLIC_WORKER_URL=http://localhost:8006
+ARG NEXT_PUBLIC_APP_URL=https://bhojango.com
+ENV NEXT_PUBLIC_CORE_URL=${NEXT_PUBLIC_CORE_URL} \
+    NEXT_PUBLIC_REALTIME_URL=${NEXT_PUBLIC_REALTIME_URL} \
+    NEXT_PUBLIC_WORKER_URL=${NEXT_PUBLIC_WORKER_URL} \
+    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV USER_SVC_URL=${CORE_API_URL} \
     REALTIME_SVC_URL=${REALTIME_URL} \
     RESTAURANT_SVC_URL=${CORE_API_URL} \

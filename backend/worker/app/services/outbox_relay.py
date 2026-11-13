@@ -1,7 +1,8 @@
 """Outbox relay (P11): publish committed outbox rows to SNS, oldest first.
 
 Rows are claimed with FOR UPDATE SKIP LOCKED, so several workers can run it.
-SNS fans out to the SQS queues (notifications, orders, delivery). A failed
+SNS fans out to the SQS queues (notifications, orders, delivery); with
+EVENT_BUS=redis it's one Redis stream instead (shared/bus.py). A failed
 publish is retried with the next batch; after MAX_ATTEMPTS it stops being
 picked so one bad row can't block the rest (it stays visible for ops).
 """
@@ -12,6 +13,7 @@ from datetime import UTC, datetime
 import structlog
 from sqlalchemy import select
 
+from shared import bus
 from shared.config import get_settings
 from shared.db import AsyncSessionLocal
 from shared.events import get_sns_client
@@ -37,6 +39,9 @@ def _topic_arn(event_type: str) -> str:
 
 
 def _publish(event: OutboxEvent) -> None:
+    if bus.is_redis():
+        bus.publish(event.envelope)
+        return
     arn = _topic_arn(event.event_type)
     if not arn:
         raise RuntimeError(f"No SNS topic configured for {event.event_type}")

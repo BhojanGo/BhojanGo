@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.v1 import notifications
+from shared import bus
 from shared.config import get_settings
 from shared.db import engine
 from app.services.outbox_relay import run_relay, stop_relay
@@ -27,7 +28,6 @@ _REQUIRED_PROD_SETTINGS = [
     "SENDGRID_API_KEY",
     "TWILIO_ACCOUNT_SID",
     "FIREBASE_PROJECT_ID",
-    "SQS_QUEUE_URL_NOTIFICATION",
 ]
 
 
@@ -35,6 +35,8 @@ def _validate_production_config() -> None:
     if settings.APP_ENV != "production":
         return
     missing = [name for name in _REQUIRED_PROD_SETTINGS if not getattr(settings.worker, name, "")]
+    if not bus.configured():
+        missing.append("SQS_QUEUE_URL_NOTIFICATION or EVENT_BUS=redis")
     if missing:
         raise RuntimeError(
             "notification-svc is misconfigured for production; missing required settings: "
@@ -94,8 +96,7 @@ async def health_check() -> dict:
         checks["database"] = "ok"
     except Exception:
         checks["database"] = "error"
-    sqs_ok = bool(settings.worker.SQS_QUEUE_URL_NOTIFICATION)
-    checks["sqs_configured"] = "ok" if sqs_ok else "not_configured"
+    checks["events_configured"] = "ok" if bus.configured() else "not_configured"
     return {
         "status": "healthy" if checks["database"] == "ok" else "degraded",
         "service": settings.SERVICE_NAME,
@@ -124,8 +125,7 @@ async def readiness() -> JSONResponse:
     except Exception as e:
         checks["database"] = f"error: {e}"
 
-    sqs_ok = bool(settings.worker.SQS_QUEUE_URL_NOTIFICATION)
-    checks["sqs_configured"] = "ok" if sqs_ok else "not_configured"
+    checks["events_configured"] = "ok" if bus.configured() else "not_configured"
 
     all_ok = all(v == "ok" for v in checks.values())
     return JSONResponse(

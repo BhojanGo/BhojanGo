@@ -58,6 +58,16 @@ async def send(
     """``template``/``params``: the DLT template key and variables (India SMS)."""
     payload = {"channel": channel, "to": to, "body": body, "subject": subject, "country": country,
                "template": template, "params": params or {}}
+    from shared import bus
+
+    if bus.is_redis():
+        try:
+            await asyncio.to_thread(bus.publish, build_event(EVENT_TYPE, payload, get_settings().SERVICE_NAME))
+            logger.info("notify_queued", channel=channel, to=to[-4:])
+            return True
+        except Exception as e:  # noqa: BLE001
+            logger.error("notify_queue_failed", channel=channel, error=str(e))
+            return False
     queue_url = get_settings().worker.SQS_QUEUE_URL_NOTIFICATION
     if not queue_url:
         return await deliver(payload)

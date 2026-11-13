@@ -6,6 +6,7 @@ from typing import Any
 import boto3
 import structlog
 
+from shared import bus
 from shared.config import get_settings
 from shared.db import AsyncSessionLocal
 from app.services.dispatcher import dispatch_event
@@ -42,9 +43,24 @@ async def process_message(message: dict[str, Any]) -> None:
             raise
 
 
+async def handle_event(event: dict[str, Any]) -> None:
+    """One event from the Redis bus (EVENT_BUS=redis): same handling as an SQS message."""
+    async with AsyncSessionLocal() as db:
+        try:
+            await dispatch_event(event, db)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
+
+
 async def poll_sqs() -> None:
-    """Continuously poll SQS for messages."""
+    """Continuously poll SQS for messages (or read the Redis bus)."""
     global _running
+    if bus.is_redis():
+        _running = True
+        await bus.consume("worker", handle_event, running=lambda: _running)
+        return
     if not settings.worker.SQS_QUEUE_URL_NOTIFICATION:
         logger.info("sqs_disabled_no_queue_url")
         return

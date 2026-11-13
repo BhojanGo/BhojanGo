@@ -70,7 +70,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: ci-secrets test-backend test-js ci-migrations ci-docker ci-e2e ci-terraform
+ci: ci-secrets test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -86,6 +86,14 @@ E2E_COMPOSE := $(COMPOSE) -p bhojango-g1 -f infra/docker/compose.yaml -f infra/d
 ci-e2e:
 	$(E2E_COMPOSE) --profile backend up -d --build --wait || { $(E2E_COMPOSE) --profile backend logs --tail 50; $(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
 	$(E2E_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(E2E_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(E2E_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
+
+# G1 again on the backend as .railway/railway.ts runs it: Railway's Postgres
+# image + PostGIS, no init script, migrations as a pre-deploy step, events on
+# Redis Streams instead of SNS/SQS (infra/railway/sim.compose.yaml).
+RW_COMPOSE := $(COMPOSE) -p bhojango-railway -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml -f infra/railway/sim.compose.yaml
+ci-railway:
+	$(RW_COMPOSE) --profile backend up -d --build --wait || { $(RW_COMPOSE) --profile backend logs --tail 50; $(RW_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
+	$(RW_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(RW_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(RW_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(RW_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
 
 # Android debug APK for an Expo app, built in Linux (Windows path limits and
 # OneDrive locks break React Native's CMake builds). Output: .apk/<app>-debug.apk

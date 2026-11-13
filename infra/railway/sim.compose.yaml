@@ -1,0 +1,59 @@
+# The backend the way .railway/railway.ts runs it, on Docker: `make ci-railway`
+# runs G1 (the Phase 1 gate) against it. Layered on compose.yaml + e2e.compose.yaml.
+# What's different from `make dev`, as on Railway:
+#   - Postgres is built from infra/railway/postgis.Dockerfile (Railway's image + PostGIS)
+#   - no SNS/SQS: events go through Redis Streams (EVENT_BUS=redis)
+#   - migrations run once before the services start (Railway's pre-deploy command),
+#     and the services start with the same commands as on Railway (uvicorn only)
+#   - Postgres gets no init script (Railway runs none): migrations create everything
+# LocalStack still runs, as the S3-compatible bucket only (Railway: a bucket);
+# the queue and topic settings are blanked so nothing uses SNS or SQS.
+x-railway-env: &railway-env
+  EVENT_BUS: redis
+  EVENT_BUS_REDIS_URL: redis://redis:6379/5
+  SQS_QUEUE_URL_NOTIFICATION: ""
+  SQS_QUEUE_URL_ORDERS: ""
+  SNS_TOPIC_ARN_ORDER: ""
+  SNS_TOPIC_ARN_PAYMENT: ""
+  SNS_TOPIC_ARN_USER: ""
+  SNS_TOPIC_ARN_DELIVERY: ""
+
+services:
+  postgres:
+    build:
+      context: ../railway  # paths resolve from infra/docker (the first compose file)
+      dockerfile: postgis.Dockerfile
+    image: bhojango-railway-postgis:sim
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes: !override
+      - postgres_data:/var/lib/postgresql/data
+
+  migrate:  # Railway: core-api's preDeploy "alembic upgrade head"
+    profiles: ["backend", "all"]
+    build:
+      context: ../../backend
+      dockerfile: core_api/Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  core-api:
+    command: ["uvicorn", "core_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      <<: *railway-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  realtime:
+    environment:
+      <<: *railway-env
+
+  worker:
+    environment:
+      <<: *railway-env

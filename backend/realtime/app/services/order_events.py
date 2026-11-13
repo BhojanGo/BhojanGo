@@ -8,6 +8,7 @@ import boto3
 import structlog
 
 from app.services import dispatch
+from shared import bus
 from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
@@ -28,6 +29,9 @@ def parse(body: str) -> dict:
 
 
 async def consume() -> None:
+    if bus.is_redis():  # the SNS subscriptions sent realtime every family but payment
+        await bus.consume("realtime", dispatch.on_order_event, skip_families={"payment"}, running=lambda: _running)
+        return
     url = get_settings().realtime.SQS_QUEUE_URL_ORDERS
     if not url:
         logger.info("order_events_disabled_no_queue")
