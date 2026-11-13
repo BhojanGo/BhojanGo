@@ -113,6 +113,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 36. **Before a pilot, run a long, mixed rehearsal with bots doing what people do, and measure fairness and alert noise, not only speed.**
     Why: the 5-minute k6 test passed with p95 under 100 ms, but two hours of a dinner rush showed orders waiting 52 minutes while newer ones got riders (dispatch wasn't oldest-first), connections dropped at uvicorn's 5 s keep-alive, and a payment alert that would page on every busy evening.
 
+37. **Report status against each task's "done when", not against the code.**
+    Why: mapping the 44 tracker tasks, several features were finished in code but their task still couldn't be shown done (payments "live in test mode", web pages "indexed", alerts "reach on-call phone"). Calling them done would have hidden what's waiting on accounts and money.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
