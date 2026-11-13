@@ -215,8 +215,9 @@ async def _pair(core, live: bool = True) -> list[str]:  # type: ignore[no-untype
     core.live = live
     second = str(uuid.uuid4())
     core.others.add(second)
-    for o in (ORDER, second):
+    for i, o in enumerate((ORDER, second)):
         await dispatch.start_dispatch(o)
+        await (await dispatch.get_redis()).zadd(dispatch.WAITING, {o: 1000.0 + i}, xx=True)  # ORDER is the older one
     return [ORDER, second]
 
 
@@ -303,6 +304,47 @@ async def test_cancelling_one_order_withdraws_the_batch_offer(r, core) -> None: 
     await dispatch.on_order_event({"event_type": "order.cancelled", "payload": {"order_id": orders[1], "status": "cancelled"}})
     offer = await dispatch.current_offer(RIDER_NEAR)
     assert offer and offer["order_id"] == ORDER and "batch" not in offer  # the other one, alone
+
+
+async def test_a_batch_can_take_an_order_still_cooking_at_the_same_kitchen(r, core) -> None:  # type: ignore[no-untyped-def]
+    """The pool includes orders still being cooked: one looking for a rider pairs with
+    one from the same kitchen that'll be ready soon. If the pair is turned down, the
+    cooking one goes back to waiting for its own turn (no offer while still cooking)."""
+    core.live = True
+    cooking = str(uuid.uuid4())
+    core.others.add(cooking)
+    statuses = {cooking: "preparing"}
+    real = core.dispatch_info
+
+    async def dispatch_info(order: str) -> dict:
+        return {**await real(order), "status": statuses.get(order, "almost_ready"), "restaurant_id": "spice-route"}
+
+    core.dispatch_info = dispatch_info
+    await dispatch.start_dispatch(ORDER)  # almost ready: held for a partner
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    assert await dispatch.offer_batch([ORDER, cooking]) == RIDER_NEAR
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    assert offer["early"] == [cooking] and await r.sismember(dispatch.ACTIVE, cooking)
+    # it reaches "almost ready" while on the batch offer: no separate dispatch starts
+    await dispatch.on_order_event({"event_type": "order.status_changed", "payload": {"order_id": cooking, "new_status": "almost_ready"}})
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == ORDER
+    statuses[cooking] = "preparing"
+    await dispatch.decline(RIDER_NEAR, ORDER, "passed")
+    assert not await r.sismember(dispatch.ACTIVE, cooking) and await r.zscore(dispatch.WAITING, cooking) is None
+
+
+async def test_two_orders_still_cooking_are_never_offered(r, core) -> None:  # type: ignore[no-untyped-def]
+    core.live = True
+    a, b = str(uuid.uuid4()), str(uuid.uuid4())
+    core.others.update([a, b])
+    real = core.dispatch_info
+
+    async def dispatch_info(order: str) -> dict:
+        return {**await real(order), "status": "preparing"}
+
+    core.dispatch_info = dispatch_info
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    assert await dispatch.offer_batch([a, b]) is None
 
 
 async def test_batches_endpoint_is_signed(r, core) -> None:  # type: ignore[no-untyped-def]

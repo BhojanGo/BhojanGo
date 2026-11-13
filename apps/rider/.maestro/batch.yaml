@@ -59,7 +59,7 @@ env:
     visible: "Ready for pickup.*"
     timeout: 30000
 - takeScreenshot: docs/screenshots/rider/19-batch-pickup
-- tapOn: "Picked up"
+- tapOn: "Picked up all 2"
 - extendedWaitUntil:
     visible: "Order 1 of 2 . Drop-off . step 2 of 2"
     timeout: 20000
