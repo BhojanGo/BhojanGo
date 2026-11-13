@@ -12,6 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /bin/uv
 
+# Security (trivy): take the base image's pending Debian security fixes.
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 WORKDIR /srv
 
 # Dependencies first so code changes don't invalidate the layer.
@@ -25,6 +27,10 @@ COPY alembic.ini alembic.ini
 COPY migrations migrations
 COPY worker/app/__init__.py worker/app/__init__.py
 COPY worker/app/models worker/app/models
+
+# Security (trivy DS002): run as an unprivileged user, not root.
+RUN useradd --system --uid 10001 --no-create-home --home-dir /srv app && mkdir -p /srv/keys && chown app:app /srv/keys
+USER app
 
 EXPOSE 8001
 CMD ["sh", "-c", "alembic upgrade head && uvicorn core_api.main:app --host 0.0.0.0 --port 8001"]

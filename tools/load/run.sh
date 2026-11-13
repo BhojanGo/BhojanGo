@@ -14,5 +14,7 @@ docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" -e DURATION="${DURAT
   -v "$ROOT/tools/load:/scripts" grafana/k6:0.57.0 \
   run --summary-export /scripts/out/summary.json --summary-trend-stats "avg,p(50),p(90),p(95),p(99),max" /scripts/pilot.js
 status=$?
+# The summary would include setup()'s data (the test accounts' tokens): drop it.
+python -c "import json,sys; p=sys.argv[1]; d=json.load(open(p)); d.pop('setup_data', None); json.dump(d, open(p, 'w'), indent=2)" "$ROOT/tools/load/out/summary.json"
 python "$ROOT/tools/mobile/hours.py" close >/dev/null
 exit $status

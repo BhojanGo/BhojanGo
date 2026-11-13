@@ -12,5 +12,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
 COPY package.json ./
+USER node
 EXPOSE 8007
 CMD ["node", "dist/main.js"]

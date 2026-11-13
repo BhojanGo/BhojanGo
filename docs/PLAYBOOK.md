@@ -95,6 +95,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 30. **Long-lived connections share resources per process, never one each.**
     Why: one Redis pub/sub connection per WebSocket ran out at 200 watchers and took every other Redis call down with it.
 
+31. **Run every scanner again after the fixes, and keep a written reason for each finding you accept.**
+    Why: the first trivy pass showed fixable CVEs inside npm, which ships in the Node base image but isn't used at runtime. After removing npm and moving to Debian 13, only unfixed base packages were left, and the report records why each accepted item stays.
+
+32. **Images run as a non-root user; local volumes from older images get a one-shot chown step, not a root container.**
+    Why: switching core-api to uid 10001 would have broken everyone's existing JWT-key volume. `keys-init` hands it over once.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

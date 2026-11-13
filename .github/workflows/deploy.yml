@@ -38,6 +38,9 @@ jobs:
     env:
       NAME: bhojango-${{ inputs.environment }}
       TAG: ${{ github.sha }}
+      # Inputs reach shell steps as environment variables, never pasted into the
+      # script (no shell injection from a crafted input; semgrep run-shell-injection).
+      DEPLOY_ENV: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +68,7 @@ jobs:
               --file "backend/${dir}/Dockerfile" \
               --platform linux/amd64 \
               --tag "${REGISTRY}/${NAME}/${svc}:${TAG}" \
-              --tag "${REGISTRY}/${NAME}/${svc}:${{ inputs.environment }}-latest" \
+              --tag "${REGISTRY}/${NAME}/${svc}:${DEPLOY_ENV}-latest" \
               --cache-from "type=gha,scope=${svc}" \
               --cache-to "type=gha,scope=${svc},mode=max" \
               --push
@@ -73,13 +76,13 @@ jobs:
           done
 
       - name: Migrate and roll out (ECS)
-        run: bash .github/scripts/deploy-ecs.sh "${{ inputs.environment }}" "$TAG"
+        run: bash .github/scripts/deploy-ecs.sh "$DEPLOY_ENV" "$TAG"
 
       - name: Summary
         if: always()
         run: |
           {
-            echo "### ${{ inputs.environment }} · \`${TAG::7}\`"
+            echo "### ${DEPLOY_ENV} · \`${TAG::7}\`"
             echo "Services: core-api, realtime, worker in cluster \`${NAME}-cluster\`."
             echo "Logs: CloudWatch \`/${NAME}/<service>\`."
           } >> "$GITHUB_STEP_SUMMARY"

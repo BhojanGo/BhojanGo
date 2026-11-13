@@ -20,7 +20,8 @@
       "types": "./bill.d.ts",
       "default": "./bill.js"
     },
-    "./tailwind-preset": "./tailwind-preset.js"
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./security-headers": "./security-headers.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --external react",
@@ -54,6 +55,7 @@
     "tokens.d.ts",
     "bill.js",
     "bill.d.ts",
-    "tailwind-preset.js"
+    "tailwind-preset.js",
+    "security-headers.js"
   ]
 }

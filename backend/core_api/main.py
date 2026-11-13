@@ -87,6 +87,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Security pass: nosniff, CORP, no framing, no referrer on every API response.
+from shared.middleware.security import SecurityHeadersMiddleware  # noqa: E402
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 # Outermost, so X-Request-ID echoes the caller's id (or a new one) on every route.
 app.add_middleware(CorrelationMiddleware)

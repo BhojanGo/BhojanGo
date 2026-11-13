@@ -39,6 +39,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Security pass: nosniff, CORP, no framing, no referrer on every API response.
+from shared.middleware.security import SecurityHeadersMiddleware  # noqa: E402
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
