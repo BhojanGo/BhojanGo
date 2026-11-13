@@ -460,6 +460,9 @@ RULES = [
     ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
     ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
+    # Task 43: live batching is a per-city switch, off; the engine runs in shadow everywhere.
+    ("business", "batching", None, "Batching (one rider, two orders)", "city", "IN-TG-HYD", {"live": False}),
+    ("business", "batching", None, "Batching (one rider, two orders)", "city", "US-ID-BOI", {"live": False}),
 ]
 
 

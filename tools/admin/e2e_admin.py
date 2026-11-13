@@ -232,6 +232,37 @@ with sync_playwright() as p:
     page.screenshot(path=f"{OUT}/07b-offer-paused.png", full_page=True)
     api.post(f"{CORE}/restaurants/{rest['id']}/offers/{offer['id']}/end", headers=partner_h)
 
+    # Batching (task 43): a per-city switch among the business rules, off by default.
+    def batching_rule():  # type: ignore[no-untyped-def]
+        page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=business", wait_until="networkidle")
+        page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("Batching")).first.click()
+        return page.get_by_role("region", name=re.compile("^Rule · Batching"))
+
+    def set_batching(live: bool) -> None:
+        rule = batching_rule()
+        rule.get_by_role("button", name="New version").click()
+        box = rule.get_by_label("Live")
+        box.check() if live else box.uncheck()
+        rule.get_by_role("button", name="Save").click()
+        cm_us = token("cm.us@example.com", PW)
+        for _ in range(30):  # saved and live at once: the published version has the new setting
+            rules = api.get(f"{CORE}/rules", headers=cm_us, params={"family": "business"}).json()
+            now = [r for r in rules if r["template"] == "batching" and r["market_scope"] == "US-ID-BOI"
+                   and r["status"] == "published" and not r.get("effective_to")]
+            if now and bool(now[0]["params"].get("live")) == live:
+                return
+            page.wait_for_timeout(500)
+        raise AssertionError(f"batching never became {'live' if live else 'off'}")
+
+    detail = batching_rule()
+    check("batching: a switch per city, off by default", lambda: expect(detail.get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000))
+    set_batching(True)
+    detail = batching_rule()
+    check("batching: turned on for Boise, live at once (no approval)", lambda: expect(detail.get_by_test_id("rule-words")).to_contain_text("Live:", timeout=15000))
+    page.screenshot(path=f"{OUT}/07d-batching-switch.png", full_page=True)
+    set_batching(False)  # leave it as the seed has it
+    check("batching: back off", lambda: expect(batching_rule().get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000))
+
     page.goto(f"{BASE}/markets/IN/IN-TG-HYD", wait_until="networkidle")
     check("markets: the city with its zones", lambda: expect(page.get_by_text(re.compile("Zones")).first).to_be_visible(timeout=15000))
     page.screenshot(path=f"{OUT}/08-markets-city.png")

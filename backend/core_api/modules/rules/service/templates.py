@@ -221,6 +221,14 @@ class DispatchOfferTimeout(_P):
     seconds: int = Field(ge=10, le=120)
 
 
+class Batching(_P):
+    """Task 43: one rider carries two orders from the same kitchen. The batch
+    engine always runs in shadow (it only logs what it would do); ``live`` lets
+    riders in this city be offered pairs. Off unless a city turns it on."""
+
+    live: bool = False
+
+
 class SupportRefundLimit(_P):
     """The most a support agent may refund on one order (P12); above it, a
     city ops, country manager or finance admin does it."""
@@ -316,6 +324,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "dispatch_offer_timeout": DispatchOfferTimeout,
         "support_refund_limit": SupportRefundLimit,
         "auto_refund_limit": AutoRefundLimit,
+        "batching": Batching,
     },
     "promotion": {
         "percent_off": PromoPercentOff,

@@ -26,10 +26,17 @@ Tracking
   ``tracking:{order}``: rider assigned, location + ETA, status changes. The last
   200 positions are kept for the map (``trail:{order}``, 24 h).
 
-Batching
-  Shadow mode only: when an order starts dispatch, nearby orders it could be
-  batched with are logged and counted (``shadow:batch_suggestions``); nothing
-  is batched.
+Batching (task 43)
+  The batch engine runs in the worker (app/batching/engine.py, a port of the
+  TypeScript engine) and posts what it finds to /internal/dispatch/batches.
+  Shadow mode (every city): suggestions are only stored
+  (``shadow:batch_suggestions``) and logged. Live, where the city's
+  ``business:batching`` rule says so (off by default): a new order is held for
+  BATCH_HOLD_SECONDS before it's offered alone, so the engine can pair it; a
+  pair is offered to one rider as one offer showing both drop-offs and the
+  total pay; accepting assigns both, and the rider stays busy until both are
+  delivered (``rider:{id}:state`` ``batch``: the orders left, in drop-off
+  order). A pass or a timeout sends both back to solo dispatch.
 """
 import json
 import time
@@ -41,7 +48,7 @@ import structlog
 from app.core.redis import get_redis, order_tracking_channel
 from app.services.core_api import CoreApiError, core_api
 from shared.config import get_settings
-from shared.providers.routing import get_routing_provider, haversine_km
+from shared.providers.routing import get_routing_provider, haversine_km  # noqa: F401  (riders.py uses dispatch.haversine_km)
 
 logger = structlog.get_logger(__name__)
 
@@ -51,6 +58,7 @@ OFFER_EXPIRY = "offers:expiry"
 RETRY = "dispatch:retry"
 ACTIVE = "dispatch:active"
 WAITING = "dispatch:waiting"  # order -> when it started looking for a rider (oldest first)
+HOLD = "dispatch:hold"  # order -> until when it waits for a batch partner (live batching cities)
 WAITING_SCAN = 50  # how many waiting orders a free rider is matched against
 SHADOW = "shadow:batch_suggestions"
 TRAIL_KEEP = 200
@@ -82,6 +90,11 @@ def declined_key(order: str) -> str:
     return f"dispatch:{order}:declined"
 
 
+def in_batch_offer_key(order: str) -> str:
+    """Set while the order is part of another order's (the lead's) batch offer."""
+    return f"dispatch:{order}:batch_offer"
+
+
 def rider_channel(rider: str) -> str:
     return f"rider:{rider}:events"
 
@@ -104,7 +117,15 @@ async def _publish(channel: str, kind: str, payload: dict) -> None:
 
 async def rider_state(rider: str) -> dict:
     r = await get_redis()
-    return await r.hgetall(state_key(rider)) or {"status": "offline"}
+    state = await r.hgetall(state_key(rider)) or {"status": "offline"}
+    if "batch" in state:  # the orders still to deliver on a batch, in drop-off order
+        state = {**state, "batch": [o for o in state["batch"].split(",") if o]}
+    return state
+
+
+async def batch_of(rider: str) -> list[str]:
+    raw = await (await get_redis()).hget(state_key(rider), "batch")
+    return [o for o in (raw or "").split(",") if o]
 
 
 async def _engaged(rider: str, on: bool) -> None:
@@ -227,22 +248,21 @@ async def start_dispatch(order: str, info: dict | None = None) -> str | None:
     if not await r.sadd(ACTIVE, order):  # already dispatching (duplicate event)
         return None
     await r.zadd(WAITING, {order: _now()}, nx=True)
-    await _shadow_batching(info)
     await _publish(order_tracking_channel(order), "searching_rider", {"order_id": order})
+    if info.get("batching_live"):  # give the batch engine a moment to find it a partner
+        until = _now() + _s().BATCH_HOLD_SECONDS
+        await r.zadd(HOLD, {order: until})
+        await r.zadd(RETRY, {order: until})
+        return None
     return await offer_next(order)
 
 
-async def offer_next(order: str) -> str | None:
-    """Offer the order to the nearest free rider who hasn't declined it."""
+async def _claim_rider(order: str, pickup: list, declined: set, timeout: int) -> tuple[str, float] | None:
+    """The nearest free rider within DISPATCH_RADIUS_KM who hasn't declined, claimed atomically."""
     r = await get_redis()
-    info = await order_info(order)
-    if not info or info.get("driver_id") or not await r.sismember(ACTIVE, order):
-        return None
-    lat, lng = info["pickup"]
-    declined = await r.smembers(declined_key(order))
+    lat, lng = pickup
     near = await r.geosearch(GEO, longitude=lng, latitude=lat, radius=_s().DISPATCH_RADIUS_KM, unit="km",
                              sort="ASC", count=25, withdist=True)
-    timeout = int(info.get("offer_timeout_seconds") or 30)
     for rider, dist_km in near:
         if rider in declined or not await r.sismember(ONLINE, rider):
             continue
@@ -251,10 +271,30 @@ async def offer_next(order: str) -> str | None:
         # Claim the rider atomically: only one order can offer to them at a time.
         if not await r.set(f"rider:{rider}:offer_lock", order, nx=True, ex=timeout + 5):
             continue
-        state = await r.hgetall(state_key(rider))
-        if state.get("status") != "available":
+        if await r.hget(state_key(rider), "status") != "available":
             await r.delete(f"rider:{rider}:offer_lock")
             continue
+        return rider, float(dist_km)
+    return None
+
+
+async def offer_next(order: str) -> str | None:
+    """Offer the order to the nearest free rider who hasn't declined it."""
+    r = await get_redis()
+    info = await order_info(order)
+    if not info or info.get("driver_id") or not await r.sismember(ACTIVE, order):
+        return None
+    if await r.exists(in_batch_offer_key(order)):
+        return None  # offered as part of a batch right now
+    held = await r.zscore(HOLD, order)
+    if held is not None and held > _now():
+        await r.zadd(RETRY, {order: held})  # waiting for a batch partner a little longer
+        return None
+    declined = await r.smembers(declined_key(order))
+    timeout = int(info.get("offer_timeout_seconds") or 30)
+    claimed = await _claim_rider(order, info["pickup"], declined, timeout)
+    if claimed:
+        rider, dist_km = claimed
         expires = _now() + timeout
         fix = await last_fix(rider)
         eta = eta_for(info, (fix["lat"], fix["lng"])) if fix else None
@@ -272,8 +312,86 @@ async def offer_next(order: str) -> str | None:
         logger.info("rider_offered", order_id=order, rider_id=rider, distance_km=round(float(dist_km), 2), timeout=timeout)
         return rider
     await r.zadd(RETRY, {order: _now() + _s().DISPATCH_RETRY_SECONDS})
-    logger.info("no_rider_available", order_id=order, nearby=len(near), declined=len(declined))
+    logger.info("no_rider_available", order_id=order, declined=len(declined))
     return None
+
+
+# ── batches (task 43) ─────────────────────────────────────────────────────────
+
+def _money_sum(values: list) -> str | None:
+    from decimal import Decimal
+
+    if any(v is None for v in values):
+        return None
+    return str(sum((Decimal(str(v)) for v in values), Decimal("0")))
+
+
+async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None:
+    """Offer several waiting orders to one rider as one offer (live batching).
+
+    ``orders`` are in drop-off order (the engine's route); the first is the lead:
+    the offer is stored under it. Refused (None) unless every order is still
+    waiting, not offered, in the same city, and that city has live batching on."""
+    meta = meta or {}
+    r = await get_redis()
+    if len(orders) < 2 or len(set(orders)) != len(orders):
+        return None
+    infos = []
+    for o in orders:
+        info = await order_info(o)
+        if (not info or info.get("driver_id") or not info.get("pickup") or not info.get("batching_live")
+                or not await r.sismember(ACTIVE, o) or await r.zscore(OFFER_EXPIRY, o) is not None
+                or await r.exists(in_batch_offer_key(o))):
+            return None
+        infos.append(info)
+    if len({i.get("market_city") for i in infos}) != 1:
+        return None
+    lead, lead_info = orders[0], infos[0]
+    declined: set = set()
+    for o in orders:
+        declined |= await r.smembers(declined_key(o))
+    timeout = int(lead_info.get("offer_timeout_seconds") or 30)
+    claimed = await _claim_rider(lead, lead_info["pickup"], declined, timeout)
+    if not claimed:
+        return None
+    rider, dist_km = claimed
+    expires = _now() + timeout
+    fix = await last_fix(rider)
+    stops = [{"order_id": i["order_id"], "code": i.get("code"), "restaurant_name": i.get("restaurant_name"),
+              "pickup": i.get("pickup"), "dropoff": i.get("dropoff"), "drop_area": i.get("drop_area"),
+              "rider_pay": i.get("rider_pay"), "tip": i.get("tip"), "bags": i.get("bags"),
+              "items_count": i.get("items_count"), "trip_km": _trip_km(i)} for i in infos]
+    offer = {"order_id": lead, "rider_id": rider, "expires_at": _iso(expires), "expires_in": timeout,
+             "distance_km": round(dist_km, 2), "restaurant_name": lead_info.get("restaurant_name"),
+             "pickup": lead_info["pickup"], "dropoff": lead_info.get("dropoff"),
+             "eta": eta_for(lead_info, (fix["lat"], fix["lng"])) if fix else None,
+             **{k: lead_info.get(k) for k in ("code", "currency", "ready_in_minutes", "distance_unit")},
+             # What the rider decides on: every drop-off and the total pay.
+             "batch": stops, "rider_pay": _money_sum([i.get("rider_pay") for i in infos]),
+             "tip": _money_sum([i.get("tip") or 0 for i in infos]), "bags": sum(int(i.get("bags") or 1) for i in infos),
+             "items_count": sum(int(i.get("items_count") or 0) for i in infos),
+             "drop_area": " · ".join(str(i.get("drop_area") or "drop-off") for i in infos),
+             "trip_km": meta.get("total_distance_km") or sum(x["trip_km"] or 0 for x in stops),
+             "batch_minutes": meta.get("total_time_min")}
+    await r.set(offer_key(lead), json.dumps(offer), ex=timeout + 5)
+    for o in orders[1:]:
+        await r.set(in_batch_offer_key(o), lead, ex=timeout + 5)
+    for o in orders:
+        await r.zrem(HOLD, o)
+        await r.zrem(RETRY, o)
+    await r.hset(state_key(rider), mapping={"status": "offered", "order_id": lead})
+    await r.zadd(OFFER_EXPIRY, {lead: expires})
+    await _publish(rider_channel(rider), "offer", offer)
+    logger.info("batch_offered", orders=orders, rider_id=rider, rider_pay=offer["rider_pay"], score=meta.get("score"))
+    return rider
+
+
+async def record_shadow(suggestion: dict) -> None:
+    """What the engine would have batched (every city; nothing is offered)."""
+    r = await get_redis()
+    await r.lpush(SHADOW, json.dumps({**suggestion, "mode": "shadow", "at": datetime.now(UTC).isoformat()}))
+    await r.ltrim(SHADOW, 0, 499)
+    logger.info("batch_shadow_suggestion", **{k: suggestion.get(k) for k in ("orders", "score", "savings_percent", "city")})
 
 
 async def offer_waiting() -> int:
@@ -334,20 +452,42 @@ async def accept(rider: str, order: str) -> dict:
     except CoreApiError as e:
         await _clear_offer(rider, order)
         await _finish(order)
+        for o in [b["order_id"] for b in offer.get("batch") or []][1:]:  # the rest go back to solo dispatch
+            await r.delete(in_batch_offer_key(o))
+            await offer_next(o)
         raise LookupError(e.args[0] if e.args else "The order is no longer available")
     await _save_info(info)
     await r.delete(offer_key(order), f"rider:{rider}:offer_lock")
-    await r.srem(ACTIVE, order)
-    await r.zrem(RETRY, order)
-    await r.zrem(WAITING, order)
-    await r.hset(state_key(rider), mapping={"status": "busy", "order_id": order})
+    carrying = [order]
+    for other in [b["order_id"] for b in offer.get("batch") or []][1:]:
+        await r.delete(in_batch_offer_key(other))
+        try:
+            other_info = await core_api.assign_rider(other, rider)
+        except CoreApiError as e:  # cancelled meanwhile: the rider just has one fewer
+            logger.warning("batch_order_not_assigned", order_id=other, rider_id=rider, error=str(e))
+            await _finish(other)
+            continue
+        await _save_info(other_info)
+        carrying.append(other)
+    for o in carrying:
+        await r.srem(ACTIVE, o)
+        await r.zrem(RETRY, o)
+        await r.zrem(WAITING, o)
+        await r.zrem(HOLD, o)
+    state = {"status": "busy", "order_id": order}
+    if len(carrying) > 1:
+        state["batch"] = ",".join(carrying)
+    await r.hset(state_key(rider), mapping=state)
     await _engaged(rider, True)
+    for o in carrying[1:]:
+        await _publish(order_tracking_channel(o), "rider_assigned", {"order_id": o, "rider_id": rider, "location": await last_fix(rider)})
     fix = await last_fix(rider)
     eta = eta_for(info, (fix["lat"], fix["lng"])) if fix else None
     await _publish(order_tracking_channel(order), "rider_assigned", {"order_id": order, "rider_id": rider, "eta": eta,
                                                                     "location": fix})
-    logger.info("rider_accepted", order_id=order, rider_id=rider)
-    return {"order_id": order, "status": "assigned", "eta": eta, "pickup": info.get("pickup"), "dropoff": info.get("dropoff")}
+    logger.info("rider_accepted", order_id=order, rider_id=rider, batch=carrying if len(carrying) > 1 else None)
+    return {"order_id": order, "status": "assigned", "eta": eta, "pickup": info.get("pickup"), "dropoff": info.get("dropoff"),
+            "batch": carrying if len(carrying) > 1 else None}
 
 
 async def decline(rider: str, order: str, reason: str = "passed") -> str | None:
@@ -358,12 +498,18 @@ async def decline(rider: str, order: str, reason: str = "passed") -> str | None:
     if not offer or offer["rider_id"] != rider:
         return None
     await r.zrem(OFFER_EXPIRY, order)
-    await r.sadd(declined_key(order), rider)
-    await r.expire(declined_key(order), DAY)
+    orders = [b["order_id"] for b in offer.get("batch") or []] or [order]
+    for o in orders:
+        await r.sadd(declined_key(o), rider)
+        await r.expire(declined_key(o), DAY)
+        await r.delete(in_batch_offer_key(o))
+        await r.zrem(HOLD, o)  # a batch that was turned down goes out alone now
     await _clear_offer(rider, order)
-    logger.info("offer_declined", order_id=order, rider_id=rider, reason=reason)
+    logger.info("offer_declined", order_id=order, rider_id=rider, reason=reason, batch=orders if len(orders) > 1 else None)
     await _publish(rider_channel(rider), "offer_withdrawn", {"order_id": order, "reason": reason})
     nxt = await offer_next(order)
+    for o in orders[1:]:
+        await offer_next(o)
     await offer_waiting()  # the rider who passed is free again: the oldest waiting order first
     return nxt
 
@@ -382,6 +528,7 @@ async def _finish(order: str) -> None:
     await r.zrem(RETRY, order)
     await r.zrem(OFFER_EXPIRY, order)
     await r.zrem(WAITING, order)
+    await r.zrem(HOLD, order)
 
 
 async def tick(now: float | None = None) -> dict[str, int]:
@@ -432,17 +579,32 @@ async def on_order_event(event: dict) -> None:
         await _publish(order_tracking_channel(order), "status_change", {"order_id": order, "status": status,
                                                                         "driver_id": p.get("driver_id")})
     if kind == "order.cancelled" or status in ("delivered", "cancelled"):
-        offer = await r.get(offer_key(order))
-        if offer:
-            await _clear_offer(json.loads(offer)["rider_id"], order)
+        lead = await r.get(in_batch_offer_key(order))
+        raw = await r.get(offer_key(lead or order))
+        if raw:  # it was on an open offer (alone or in a batch): withdraw it, the rest go out alone
+            offer = json.loads(raw)
+            await r.zrem(OFFER_EXPIRY, lead or order)
+            await _clear_offer(offer["rider_id"], lead or order)
+            await _publish(rider_channel(offer["rider_id"]), "offer_withdrawn", {"order_id": lead or order, "reason": "cancelled"})
+            for o in [b["order_id"] for b in offer.get("batch") or []]:
+                await r.delete(in_batch_offer_key(o))
+                if o != order:
+                    await r.zrem(HOLD, o)
+                    await offer_next(o)
         await _finish(order)
         rider = p.get("driver_id")
         if rider:
             state = await r.hgetall(state_key(rider))
-            if state.get("order_id") == order:
-                await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
-                await _engaged(rider, False)
-                await offer_waiting()
+            left = [o for o in (state.get("batch") or "").split(",") if o and o != order]
+            if state.get("order_id") == order or order in (state.get("batch") or "").split(","):
+                if left:  # on to the next drop-off of the batch
+                    nxt = state["order_id"] if state.get("order_id") in left else left[0]
+                    await r.hset(state_key(rider), mapping={"status": "busy", "order_id": nxt, "batch": ",".join(left)})
+                else:
+                    await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
+                    await r.hdel(state_key(rider), "batch")
+                    await _engaged(rider, False)
+                    await offer_waiting()
 
 
 # ── the dispatch map (P21) ───────────────────────────────────────────────────
@@ -505,27 +667,6 @@ async def open_sos(limit: int = 100) -> list[dict]:
 
 
 # ── shadow batching ───────────────────────────────────────────────────────────
-
-async def _shadow_batching(info: dict) -> None:
-    """Which waiting orders this one could share a rider with (logged only)."""
-    r = await get_redis()
-    me = info["order_id"]
-    for other in await r.smembers(ACTIVE):
-        if other == me:
-            continue
-        raw = await r.get(info_key(other))
-        o = json.loads(raw) if raw else None
-        if not o or not o.get("pickup") or not o.get("dropoff") or not info.get("dropoff"):
-            continue
-        pickup_km = haversine_km(tuple(info["pickup"]), tuple(o["pickup"]))  # type: ignore[arg-type]
-        drop_km = haversine_km(tuple(info["dropoff"]), tuple(o["dropoff"]))  # type: ignore[arg-type]
-        if pickup_km <= 1.0 and drop_km <= 2.0:
-            suggestion = {"orders": [me, other], "pickup_km": round(pickup_km, 2), "dropoff_km": round(drop_km, 2),
-                          "at": datetime.now(UTC).isoformat(), "mode": "shadow"}
-            await r.lpush(SHADOW, json.dumps(suggestion))
-            await r.ltrim(SHADOW, 0, 499)
-            logger.info("batch_shadow_suggestion", **suggestion)
-
 
 async def shadow_suggestions(limit: int = 50) -> list[dict]:
     r = await get_redis()

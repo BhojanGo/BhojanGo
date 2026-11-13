@@ -118,6 +118,9 @@ class RealtimeSettings(BaseSettings):
     # and only those whose last GPS fix is fresh (DRIVER_LOCATION_TTL).
     DISPATCH_RADIUS_KM: float = 6.0
     DISPATCH_RETRY_SECONDS: int = 15  # no rider free: try again after this
+    # Live batching (task 43): where a city has it on, a new order waits this long for
+    # the batch engine to pair it before it's offered alone.
+    BATCH_HOLD_SECONDS: int = 20
     SQS_QUEUE_URL_ORDERS: str = ""  # order events (order topic -> this queue)
 
     SNS_TOPIC_ARN_DELIVERY: str = ""
@@ -136,6 +139,11 @@ class WorkerSettings(BaseSettings):
     model_config = _ENV
 
     SQS_QUEUE_URL_NOTIFICATION: str = ""
+
+    # Batch engine (task 43, app/batching): how often it looks at the orders waiting
+    # for a rider, and where realtime takes its suggestions and live batches.
+    BATCH_CYCLE_SECONDS: float = 5
+    REALTIME_INTERNAL_URL: str = "http://localhost:8004"
 
     # Firebase FCM
     FIREBASE_PROJECT_ID: str = ""

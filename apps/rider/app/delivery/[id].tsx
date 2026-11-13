@@ -34,6 +34,10 @@ export default function Delivery() {
   const fixNow = useLive((s) => s.now?.location);
   const refreshLive = useLive((s) => s.refresh);
   const finish = useLive((s) => s.finish);
+  // Task 43: the orders still to drop on this batch (this one first, then the rest).
+  const batch = useLive((s) => s.now?.state.batch) ?? [];
+  const others = batch.filter((b) => b !== id);
+  const position = batch.length > 1 ? `Order ${batch.indexOf(id) + 1} of ${batch.length} · ` : "";
   const [proof, setProof] = useState<"photo" | "pin">("photo");
   const [photo, setPhoto] = useState<{ uri: string; key: string | null } | null>(null);
   const [pin, setPin] = useState("");
@@ -65,7 +69,7 @@ export default function Delivery() {
         <Text style={ui.h1}>{order.status === "delivered" ? "Delivered" : "This order was cancelled"}</Text>
         <Text style={ui.muted}>{order.status === "delivered" ? "Nice work. Your pay for it is in this week's earnings." : "You'll be paid for the time you spent on it."}</Text>
         <Pressable accessibilityRole="button" onPress={() => { finish(order.id); void refreshLive(); router.replace("/drive"); }} style={ui.cta}>
-          <Text style={ui.ctaText}>Back to driving</Text>
+          <Text style={ui.ctaText}>{others.length ? "Next drop-off" : "Back to driving"}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -76,6 +80,13 @@ export default function Delivery() {
     setMsg(null);
     try {
       unwrap(await api.core.PUT("/api/v1/orders/{order_id}/status", { params: { path: { order_id: order!.id } }, body: { status: "picked_up" } }));
+      // A batch is collected at one counter: the other bags come too.
+      for (const other of others) {
+        const o = await api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: other } } }).catch(() => null);
+        if (o?.data?.status === "ready") {
+          await api.core.PUT("/api/v1/orders/{order_id}/status", { params: { path: { order_id: other } }, body: { status: "picked_up" } }).catch(() => null);
+        }
+      }
       await reload();
     } catch (e) {
       setMsg(e instanceof ApiError ? e.message : "Couldn't update the order. Try again.");
@@ -133,7 +144,7 @@ export default function Delivery() {
     <View style={ui.screen}>
       <RouteMap rider={rider} pickup={picked ? null : pickup} dropoff={drop} height={picked ? 260 : 320} visible={picked ? 200 : 260} done={picked} />
       <SafeAreaView edges={["top"]} style={styles.top}>
-        <View style={ui.pill}><Text style={ui.pillText}>{picked ? "Drop-off · step 2 of 2" : "Pickup · step 1 of 2"}</Text></View>
+        <View style={ui.pill}><Text style={ui.pillText}>{position}{picked ? "Drop-off · step 2 of 2" : "Pickup · step 1 of 2"}</Text></View>
         <Pressable accessibilityRole="button" accessibilityLabel="SOS, get help now" onPress={() => router.push("/sos")} style={styles.sos}>
           <Text style={[textFont("800"), { color: night.sosText, fontSize: 14 }]}>SOS</Text>
         </Pressable>

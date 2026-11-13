@@ -1,0 +1,109 @@
+# Live batching (task 43): with Hyderabad's batching switched on, two orders from
+# Spice Route Kitchen to neighbouring homes come to us as one offer. Before
+# accepting we see both drop-offs and the total pay; we pick up both bags at the
+# counter, drop the first, and the app takes us straight to the second.
+# Needs the emulator's location near Spice Route Kitchen (tools/mobile/e2e.sh sets it).
+appId: com.bhojango.rider
+env:
+  PHONE: "9000000201"
+  INDIA: "true"
+---
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: cleanup
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "You're offline|Looking for deliveries"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
+- setLocation:
+    latitude: 17.4495
+    longitude: 78.3925
+- tapOn: "Go online"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 30000
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: setup
+# The batch engine pairs them within a few seconds (worker cycle 5 s, hold 20 s).
+- extendedWaitUntil:
+    visible: "2 DELIVERIES . ONE PICKUP"
+    timeout: 60000
+- assertVisible: "Guaranteed for both.*"
+- assertVisible: "Pickup of 2 orders.*"
+- assertVisible:
+    id: "offer-drop-1"
+- assertVisible:
+    id: "offer-drop-2"
+- assertVisible: "Drop-off 1 . near Jubilee Hills"
+- assertVisible: "Drop-off 2 . near Jubilee Hills"
+- assertVisible:
+    id: "offer-pay"
+- takeScreenshot: docs/screenshots/rider/18-batch-offer
+- tapOn: "Accept"
+- extendedWaitUntil:
+    visible: "Order 1 of 2 . Pickup . step 1 of 2"
+    timeout: 20000
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: ready
+- extendedWaitUntil:
+    visible: "Ready for pickup.*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/19-batch-pickup
+- tapOn: "Picked up"
+- extendedWaitUntil:
+    visible: "Order 1 of 2 . Drop-off . step 2 of 2"
+    timeout: 20000
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: pin
+- tapOn: "Hand over . PIN"
+- tapOn:
+    id: "pin"
+- inputText: ${output.pin}
+- hideKeyboard
+- tapOn: "Complete delivery"
+- extendedWaitUntil:
+    visible: "Delivered"
+    timeout: 20000
+- tapOn: "Next drop-off"
+# Both bags were collected at the counter: the second order is already on its drop-off step.
+- extendedWaitUntil:
+    visible: "Drop-off . step 2 of 2"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/20-batch-second-drop
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: pin
+- tapOn: "Hand over . PIN"
+- tapOn:
+    id: "pin"
+- inputText: ${output.pin}
+- hideKeyboard
+- tapOn: "Complete delivery"
+- extendedWaitUntil:
+    visible: "Delivered"
+    timeout: 20000
+- tapOn: "Back to driving"
+- extendedWaitUntil:
+    visible: "Looking for deliveries"
+    timeout: 20000
+- runScript:
+    file: scripts/batch.js
+    env:
+      STEP: cleanup
+- tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 20000

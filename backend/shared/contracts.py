@@ -34,3 +34,4 @@ class DispatchInfo(BaseModel):
     bags: int
     ready_in_minutes: int | None
     drop_area: str | None
+    batching_live: bool = False  # task 43: the city's business:batching rule says live

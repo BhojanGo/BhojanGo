@@ -38,6 +38,7 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
     rules = await RuleService(db).resolve(Context(country=city[:2] or None, region=city[:5] or None, city=city or None,
                                                   zone_id=str(order.zone_id) if order.zone_id else None))
     timeout = rules.get("business:dispatch_offer_timeout")
+    batching = rules.get("business:batching")
     from core_api.modules.catalog.models.restaurant import Restaurant
 
     rest = await db.get(Restaurant, order.restaurant_id)
@@ -50,6 +51,7 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
         "dropoff": [order.delivery_lat, order.delivery_lng] if order.delivery_lat is not None else None,
         "offer_timeout_seconds": int(timeout.params["seconds"]) if timeout else 30,
         "distance_unit": "mi" if city.startswith("US") else "km",
+        "batching_live": bool(batching and batching.params.get("live")),
     }
 
 

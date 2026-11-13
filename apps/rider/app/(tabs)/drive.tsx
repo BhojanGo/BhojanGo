@@ -146,7 +146,8 @@ function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
   const unit = offer.distance_unit ?? "km";
   const cur = offer.currency ?? (unit === "mi" ? "USD" : "INR");
   const tripKm = (offer.distance_km ?? 0) + (offer.trip_km ?? 0);
-  const minutes = offer.eta?.to_customer_minutes ?? null;
+  const batch = offer.batch && offer.batch.length > 1 ? offer.batch : null;
+  const minutes = batch ? (offer.batch_minutes != null ? Math.round(offer.batch_minutes) : null) : offer.eta?.to_customer_minutes ?? null;
   const pay = Number(offer.rider_pay ?? 0);
   const rate = minutes ? pay / (minutes / 60) : null;
   const bags = offer.bags ?? 1;
@@ -173,13 +174,13 @@ function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
   }
 
   return (
-    <View style={[ui.sheet, styles.offer]} accessibilityLabel="New delivery offer">
+    <View style={[ui.sheet, styles.offer, batch && { height: 540 }]} accessibilityLabel={batch ? `New offer: ${batch.length} deliveries` : "New delivery offer"}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
-          <Text style={[textFont("700"), { fontSize: 13, letterSpacing: 1.4, color: night.kesar }]}>NEW DELIVERY</Text>
+          <Text style={[textFont("700"), { fontSize: 13, letterSpacing: 1.4, color: night.kesar }]}>{batch ? `${batch.length} DELIVERIES · ONE PICKUP` : "NEW DELIVERY"}</Text>
           <Text testID="offer-pay" style={[displayFont("600"), styles.pay]}>{cash(pay, cur)}</Text>
           <Text style={[ui.muted, { fontSize: 14, marginTop: 8 }]}>
-            Guaranteed{Number(offer.tip ?? 0) > 0 ? ` · includes ${cash(offer.tip, cur)} tip` : ""}
+            {batch ? "Guaranteed for both" : "Guaranteed"}{Number(offer.tip ?? 0) > 0 ? ` · includes ${cash(offer.tip, cur)} ${batch ? "tips" : "tip"}` : ""}
           </Text>
         </View>
         <Ring left={left} total={total} />
@@ -195,10 +196,19 @@ function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
           <View style={{ flex: 1 }}>
             <Text style={[ui.bold, { fontSize: 16 }]}>{offer.restaurant_name}</Text>
             <Text style={ui.muted}>
-              Pickup · {dist(offer.distance_km, unit)} · {ready == null ? "being prepared" : ready <= 0 ? "ready now" : `ready in ${ready} min`} · {bags} {bags === 1 ? "bag" : "bags"}
+              Pickup{batch ? ` of ${batch.length} orders` : ""} · {dist(offer.distance_km, unit)} · {ready == null ? "being prepared" : ready <= 0 ? "ready now" : `ready in ${ready} min`} · {bags} {bags === 1 ? "bag" : "bags"}
             </Text>
           </View>
         </View>
+        {batch ? batch.map((b, i) => (
+          <View key={b.order_id} style={styles.stop} testID={`offer-drop-${i + 1}`}>
+            <View style={[styles.stopDot, { backgroundColor: night.text, borderRadius: 3 }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[ui.bold, { fontSize: 16 }]}>{`Drop-off ${i + 1} · ${b.drop_area ? `near ${b.drop_area}` : "address after pickup"}`}</Text>
+              <Text style={ui.muted}>{[b.code, b.trip_km != null ? `${dist(b.trip_km, unit)} from the kitchen` : null, b.rider_pay != null ? `${cash(b.rider_pay, cur)} pay` : null].filter(Boolean).join(" · ")}</Text>
+            </View>
+          </View>
+        )) : (
         <View style={styles.stop}>
           <View style={[styles.stopDot, { backgroundColor: night.text, borderRadius: 3 }]} />
           <View style={{ flex: 1 }}>
@@ -206,6 +216,7 @@ function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
             <Text style={ui.muted}>Drop-off · {dist(offer.trip_km, unit)} further · address after pickup</Text>
           </View>
         </View>
+        )}
       </View>
       {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14 }]}>{error}</Text> : null}
       <View style={{ flexDirection: "row", gap: 10, marginTop: "auto" }}>

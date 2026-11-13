@@ -1,0 +1,1215 @@
+{
+ "scores": [
+  {
+   "name": "pair-0",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a0",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63047,
+      -116.20281
+     ],
+     "readyIn": 0,
+     "ago": 1
+    },
+    {
+     "id": "b0",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62992,
+      -116.19593
+     ],
+     "readyIn": 0,
+     "ago": 1
+    }
+   ],
+   "score": 61,
+   "totalDistanceKm": 3.32,
+   "totalTimeMin": 17.96,
+   "maxDetourMin": 6.2,
+   "savingsPercent": 37.97,
+   "route": [
+    "pickup:a0",
+    "pickup:b0",
+    "delivery:a0",
+    "delivery:b0"
+   ]
+  },
+  {
+   "name": "pair-1",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a1",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.61661,
+      -116.19859
+     ],
+     "readyIn": 1,
+     "ago": 1
+    },
+    {
+     "id": "b1",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.59568,
+      -116.22719
+     ],
+     "readyIn": 3,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 15.91,
+   "totalTimeMin": 48.25,
+   "maxDetourMin": 28.4,
+   "savingsPercent": -128.62,
+   "route": [
+    "pickup:a1",
+    "pickup:b1",
+    "delivery:a1",
+    "delivery:b1"
+   ]
+  },
+  {
+   "name": "pair-2",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a2",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.58284,
+      -116.22405
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "b2",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.62677,
+      -116.21652
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 26.75,
+   "totalTimeMin": 74.21,
+   "maxDetourMin": 59.98,
+   "savingsPercent": -153.34,
+   "route": [
+    "pickup:a2",
+    "pickup:b2",
+    "delivery:a2",
+    "delivery:b2"
+   ]
+  },
+  {
+   "name": "pair-3",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a3",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.64284,
+      -116.2207
+     ],
+     "readyIn": 3,
+     "ago": 1
+    },
+    {
+     "id": "b3",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.62945,
+      -116.22133
+     ],
+     "readyIn": 2,
+     "ago": 1
+    }
+   ],
+   "score": 43,
+   "totalDistanceKm": 6.92,
+   "totalTimeMin": 26.6,
+   "maxDetourMin": 11.88,
+   "savingsPercent": 22.11,
+   "route": [
+    "pickup:a3",
+    "pickup:b3",
+    "delivery:a3",
+    "delivery:b3"
+   ]
+  },
+  {
+   "name": "pair-4",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a4",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.60337,
+      -116.19898
+     ],
+     "readyIn": 0,
+     "ago": 1
+    },
+    {
+     "id": "b4",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.64052,
+      -116.19275
+     ],
+     "readyIn": 5,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 12.41,
+   "totalTimeMin": 39.78,
+   "maxDetourMin": 24.69,
+   "savingsPercent": -101.26,
+   "route": [
+    "pickup:a4",
+    "pickup:b4",
+    "delivery:a4",
+    "delivery:b4"
+   ]
+  },
+  {
+   "name": "pair-5",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a5",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63674,
+      -116.21389
+     ],
+     "readyIn": 1,
+     "ago": 1
+    },
+    {
+     "id": "b5",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.61774,
+      -116.19912
+     ],
+     "readyIn": 1,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 4.64,
+   "totalTimeMin": 21.2,
+   "maxDetourMin": 6.31,
+   "savingsPercent": 8.36,
+   "route": [
+    "pickup:b5",
+    "delivery:b5",
+    "pickup:a5",
+    "delivery:a5"
+   ]
+  },
+  {
+   "name": "pair-6",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a6",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.60413,
+      -116.18566
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "b6",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.59954,
+      -116.18871
+     ],
+     "readyIn": 4,
+     "ago": 1
+    }
+   ],
+   "score": 57,
+   "totalDistanceKm": 3.36,
+   "totalTimeMin": 19.12,
+   "maxDetourMin": 7.03,
+   "savingsPercent": 39.09,
+   "route": [
+    "pickup:a6",
+    "pickup:b6",
+    "delivery:a6",
+    "delivery:b6"
+   ]
+  },
+  {
+   "name": "pair-7",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a7",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.57706,
+      -116.25097
+     ],
+     "readyIn": 3,
+     "ago": 1
+    },
+    {
+     "id": "b7",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.64023,
+      -116.20193
+     ],
+     "readyIn": 0,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 33.02,
+   "totalTimeMin": 89.24,
+   "maxDetourMin": 73.54,
+   "savingsPercent": -163.66,
+   "route": [
+    "pickup:a7",
+    "pickup:b7",
+    "delivery:a7",
+    "delivery:b7"
+   ]
+  },
+  {
+   "name": "pair-8",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a8",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.64725,
+      -116.19766
+     ],
+     "readyIn": 0,
+     "ago": 1
+    },
+    {
+     "id": "b8",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.62861,
+      -116.19331
+     ],
+     "readyIn": 3,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 13.76,
+   "totalTimeMin": 43.02,
+   "maxDetourMin": 31.7,
+   "savingsPercent": -66.45,
+   "route": [
+    "pickup:a8",
+    "pickup:b8",
+    "delivery:a8",
+    "delivery:b8"
+   ]
+  },
+  {
+   "name": "pair-9",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a9",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.59317,
+      -116.21091
+     ],
+     "readyIn": 1,
+     "ago": 1
+    },
+    {
+     "id": "b9",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.59841,
+      -116.19619
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 5.43,
+   "totalTimeMin": 26.66,
+   "maxDetourMin": 14.95,
+   "savingsPercent": 14.8,
+   "route": [
+    "pickup:a9",
+    "pickup:b9",
+    "delivery:a9",
+    "delivery:b9"
+   ]
+  },
+  {
+   "name": "pair-10",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a10",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62365,
+      -116.21083
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "b10",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.62871,
+      -116.20836
+     ],
+     "readyIn": 2,
+     "ago": 1
+    }
+   ],
+   "score": 49,
+   "totalDistanceKm": 4.48,
+   "totalTimeMin": 21.81,
+   "maxDetourMin": 7.89,
+   "savingsPercent": 32.12,
+   "route": [
+    "pickup:b10",
+    "pickup:a10",
+    "delivery:b10",
+    "delivery:a10"
+   ]
+  },
+  {
+   "name": "pair-11",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "a11",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.63442,
+      -116.19586
+     ],
+     "readyIn": 3,
+     "ago": 1
+    },
+    {
+     "id": "b11",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.57433,
+      -116.23505
+     ],
+     "readyIn": 5,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 24.07,
+   "totalTimeMin": 69.84,
+   "maxDetourMin": 46.41,
+   "savingsPercent": -114.19,
+   "route": [
+    "pickup:a11",
+    "pickup:b11",
+    "delivery:a11",
+    "delivery:b11"
+   ]
+  },
+  {
+   "name": "triple-0",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "t0a",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63039,
+      -116.20182
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t0b",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.62958,
+      -116.20692
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t0c",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63071,
+      -116.20256
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 53,
+   "totalDistanceKm": 5.98,
+   "totalTimeMin": 29.35,
+   "maxDetourMin": 18.26,
+   "savingsPercent": 28.79,
+   "route": [
+    "pickup:t0a",
+    "pickup:t0b",
+    "pickup:t0c",
+    "delivery:t0a",
+    "delivery:t0b",
+    "delivery:t0c"
+   ]
+  },
+  {
+   "name": "triple-1",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "t1a",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63211,
+      -116.19976
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t1b",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.63079,
+      -116.21012
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t1c",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62635,
+      -116.20577
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 42,
+   "totalDistanceKm": 7.15,
+   "totalTimeMin": 32.15,
+   "maxDetourMin": 19.93,
+   "savingsPercent": 18.09,
+   "route": [
+    "pickup:t1a",
+    "pickup:t1b",
+    "pickup:t1c",
+    "delivery:t1a",
+    "delivery:t1b",
+    "delivery:t1c"
+   ]
+  },
+  {
+   "name": "triple-2",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "t2a",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.6306,
+      -116.2005
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t2b",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.63146,
+      -116.21346
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t2c",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62892,
+      -116.20584
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 7.28,
+   "totalTimeMin": 32.46,
+   "maxDetourMin": 20.65,
+   "savingsPercent": 13.22,
+   "route": [
+    "pickup:t2a",
+    "pickup:t2b",
+    "pickup:t2c",
+    "delivery:t2a",
+    "delivery:t2b",
+    "delivery:t2c"
+   ]
+  },
+  {
+   "name": "triple-3",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "t3a",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63275,
+      -116.20437
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t3b",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.62745,
+      -116.2068
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "t3c",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63075,
+      -116.19939
+     ],
+     "readyIn": 6,
+     "ago": 1
+    }
+   ],
+   "score": 45,
+   "totalDistanceKm": 7.19,
+   "totalTimeMin": 32.25,
+   "maxDetourMin": 21.21,
+   "savingsPercent": 20.98,
+   "route": [
+    "pickup:t3a",
+    "pickup:t3b",
+    "pickup:t3c",
+    "delivery:t3a",
+    "delivery:t3b",
+    "delivery:t3c"
+   ]
+  },
+  {
+   "name": "solo",
+   "start": "hyd",
+   "orders": [
+    {
+     "id": "s1",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.46127,
+      78.38396
+     ],
+     "readyIn": 3,
+     "ago": 1
+    }
+   ],
+   "score": 35,
+   "totalDistanceKm": 2.42,
+   "totalTimeMin": 10.81,
+   "maxDetourMin": 0,
+   "savingsPercent": 0.11,
+   "route": [
+    "pickup:s1",
+    "delivery:s1"
+   ]
+  },
+  {
+   "name": "priority-pair",
+   "start": "hyd",
+   "orders": [
+    {
+     "id": "p1",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44935,
+      78.39294
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "p2",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44814,
+      78.39065
+     ],
+     "readyIn": 2,
+     "ago": 1,
+     "priority": "priority"
+    }
+   ],
+   "score": 0,
+   "totalDistanceKm": 0.63,
+   "totalTimeMin": 13.24,
+   "maxDetourMin": 7.32,
+   "savingsPercent": -0.68,
+   "route": [
+    "pickup:p1",
+    "pickup:p2",
+    "delivery:p2",
+    "delivery:p1"
+   ]
+  }
+ ],
+ "cycles": [
+  {
+   "name": "rush-boise",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "r0",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62413,
+      -116.20696
+     ],
+     "readyIn": 0,
+     "ago": 0
+    },
+    {
+     "id": "r1",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.61655,
+      -116.20899
+     ],
+     "readyIn": 1,
+     "ago": 1
+    },
+    {
+     "id": "r2",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.58616,
+      -116.22746
+     ],
+     "readyIn": 2,
+     "ago": 2
+    },
+    {
+     "id": "r3",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.63733,
+      -116.21236
+     ],
+     "readyIn": 3,
+     "ago": 3
+    },
+    {
+     "id": "r4",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.61184,
+      -116.20331
+     ],
+     "readyIn": 4,
+     "ago": 0
+    },
+    {
+     "id": "r5",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62458,
+      -116.20495
+     ],
+     "readyIn": 5,
+     "ago": 1
+    },
+    {
+     "id": "r6",
+     "rest": "basque",
+     "pickup": [
+      43.6142,
+      -116.199
+     ],
+     "drop": [
+      43.62107,
+      -116.20335
+     ],
+     "readyIn": 0,
+     "ago": 2
+    },
+    {
+     "id": "r7",
+     "rest": "tandoor",
+     "pickup": [
+      43.5905,
+      -116.233
+     ],
+     "drop": [
+      43.59239,
+      -116.24182
+     ],
+     "readyIn": 1,
+     "ago": 3
+    },
+    {
+     "id": "r8",
+     "rest": "pizza",
+     "pickup": [
+      43.632,
+      -116.211
+     ],
+     "drop": [
+      43.63951,
+      -116.20726
+     ],
+     "readyIn": 2,
+     "ago": 0
+    },
+    {
+     "id": "r9",
+     "rest": "spud",
+     "pickup": [
+      43.6145,
+      -116.2035
+     ],
+     "drop": [
+      43.61347,
+      -116.21002
+     ],
+     "readyIn": 3,
+     "ago": 1
+    }
+   ],
+   "expired": [],
+   "batches": [
+    {
+     "orders": [
+      "r0",
+      "r5"
+     ],
+     "score": 74
+    },
+    {
+     "orders": [
+      "r3",
+      "r8"
+     ],
+     "score": 70
+    },
+    {
+     "orders": [
+      "r2",
+      "r7"
+     ],
+     "score": 57
+    },
+    {
+     "orders": [
+      "r1",
+      "r6"
+     ],
+     "score": 39
+    }
+   ]
+  },
+  {
+   "name": "with-expired",
+   "start": "boise",
+   "orders": [
+    {
+     "id": "e1",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63277,
+      -116.20292
+     ],
+     "readyIn": 2,
+     "ago": 9
+    },
+    {
+     "id": "e2",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.62671,
+      -116.20125
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "e3",
+     "rest": "bowl",
+     "pickup": [
+      43.6295,
+      -116.2008
+     ],
+     "drop": [
+      43.63225,
+      -116.20216
+     ],
+     "readyIn": 3,
+     "ago": 1
+    }
+   ],
+   "expired": [
+    "e1"
+   ],
+   "batches": [
+    {
+     "orders": [
+      "e2",
+      "e3"
+     ],
+     "score": 55
+    },
+    {
+     "orders": [
+      "e1"
+     ],
+     "score": 35
+    }
+   ]
+  },
+  {
+   "name": "same-kitchen-hyd",
+   "start": "hyd",
+   "orders": [
+    {
+     "id": "h0",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44082,
+      78.39032
+     ],
+     "readyIn": 0,
+     "ago": 1
+    },
+    {
+     "id": "h1",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44243,
+      78.39886
+     ],
+     "readyIn": 1,
+     "ago": 1
+    },
+    {
+     "id": "h2",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44497,
+      78.39264
+     ],
+     "readyIn": 2,
+     "ago": 1
+    },
+    {
+     "id": "h3",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44969,
+      78.39748
+     ],
+     "readyIn": 3,
+     "ago": 1
+    },
+    {
+     "id": "h4",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.45162,
+      78.39862
+     ],
+     "readyIn": 4,
+     "ago": 1
+    },
+    {
+     "id": "h5",
+     "rest": "spice",
+     "pickup": [
+      17.4483,
+      78.3915
+     ],
+     "drop": [
+      17.44465,
+      78.3874
+     ],
+     "readyIn": 0,
+     "ago": 1
+    }
+   ],
+   "expired": [],
+   "batches": [
+    {
+     "orders": [
+      "h0",
+      "h2"
+     ],
+     "score": 50
+    },
+    {
+     "orders": [
+      "h3",
+      "h4"
+     ],
+     "score": 45
+    }
+   ]
+  }
+ ]
+}

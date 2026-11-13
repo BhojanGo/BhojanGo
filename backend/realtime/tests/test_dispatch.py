@@ -47,17 +47,18 @@ class FakeCore:
         self.assigned: list[tuple[str, str]] = []
         self.fail: CoreApiError | None = None
         self.others: set[str] = set()  # more orders at the same kitchen (fairness tests)
+        self.live = False  # the city's business:batching rule (task 43)
 
     async def dispatch_info(self, order: str) -> dict:
         if order != ORDER and order not in self.others:
             raise CoreApiError(404, "Order not found")
-        return info(order_id=order)
+        return info(order_id=order, batching_live=self.live)
 
     async def assign_rider(self, order: str, rider: str) -> dict:
         if self.fail:
             raise self.fail
         self.assigned.append((order, rider))
-        return info(driver_id=rider, status="almost_ready")
+        return info(order_id=order, driver_id=rider, status="almost_ready", batching_live=self.live)
 
 
 @pytest.fixture
@@ -199,13 +200,126 @@ async def test_status_event_starts_dispatch_once(r, core) -> None:  # type: igno
     assert await dispatch.current_offer(RIDER_MID) is None
 
 
-async def test_shadow_batching_only_suggests(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    other = info(order_id=str(uuid.uuid4()), dropoff=[17.4610, 78.3810])
-    await r.sadd(dispatch.ACTIVE, other["order_id"])
-    await r.set(dispatch.info_key(other["order_id"]), json.dumps(other))
-    await dispatch.start_dispatch(ORDER, info())
+async def test_shadow_suggestions_are_stored_not_offered(r, core) -> None:  # type: ignore[no-untyped-def]
+    await three_riders()
+    await dispatch.record_shadow({"orders": [ORDER, "o2"], "score": 61, "savings_percent": 38.0, "city": "IN-TG-HYD"})
     [s] = await dispatch.shadow_suggestions()
-    assert s["mode"] == "shadow" and set(s["orders"]) == {ORDER, other["order_id"]}
+    assert s["mode"] == "shadow" and s["orders"] == [ORDER, "o2"] and s["score"] == 61
+    assert await dispatch.current_offer(RIDER_NEAR) is None
+
+
+# ── live batching (task 43) ──────────────────────────────────────────────────
+
+async def _pair(core, live: bool = True) -> list[str]:  # type: ignore[no-untyped-def]
+    """Two waiting orders from Spice Route; nobody online yet."""
+    core.live = live
+    second = str(uuid.uuid4())
+    core.others.add(second)
+    for o in (ORDER, second):
+        await dispatch.start_dispatch(o)
+    return [ORDER, second]
+
+
+async def test_live_city_holds_a_new_order_for_a_partner(r, core) -> None:  # type: ignore[no-untyped-def]
+    core.live = True
+    await three_riders()
+    assert await dispatch.start_dispatch(ORDER) is None  # held, not offered alone yet
+    assert await dispatch.current_offer(RIDER_NEAR) is None
+    assert (await dispatch.tick(now=dispatch._now() + 5))["retried"] == 0
+    await r.zadd(dispatch.HOLD, {ORDER: dispatch._now() - 1}, xx=True)  # the hold runs out
+    await r.zadd(dispatch.RETRY, {ORDER: dispatch._now() - 1})
+    await dispatch.tick()
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == ORDER  # then it goes alone
+
+
+async def test_a_city_that_is_off_never_gets_a_batch_offer(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = await _pair(core, live=False)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)  # takes the oldest order alone
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == ORDER
+    await dispatch.go_online(RIDER_MID, 17.4610, 78.3960)
+    assert await dispatch.offer_batch(orders) is None
+
+
+async def test_batch_offer_shows_both_drop_offs_and_total_pay(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = await _pair(core)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    assert await dispatch.current_offer(RIDER_NEAR) is None  # both still held for batching
+    assert await dispatch.offer_batch(orders, {"total_distance_km": 4.2, "total_time_min": 21}) == RIDER_NEAR
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    assert offer["order_id"] == ORDER and [b["order_id"] for b in offer["batch"]] == orders
+    assert all(b["dropoff"] for b in offer["batch"])  # both drop-offs
+    pays = [b["rider_pay"] for b in offer["batch"]]
+    from decimal import Decimal
+    assert offer["rider_pay"] == (str(sum(Decimal(x) for x in pays)) if all(pays) else None)  # the total
+    assert offer["trip_km"] == 4.2 and offer["batch_minutes"] == 21
+    # the second order isn't offered to anyone else while the batch offer is open
+    await dispatch.go_online(RIDER_MID, 17.4610, 78.3960)
+    await r.zrem(dispatch.HOLD, orders[1])
+    assert await dispatch.offer_next(orders[1]) is None
+    assert await dispatch.offer_batch(orders) is None  # not twice
+
+
+async def test_accepting_a_batch_assigns_both_and_drops_them_in_order(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = await _pair(core)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.offer_batch(orders)
+    res = await dispatch.accept(RIDER_NEAR, ORDER)
+    assert res["batch"] == orders and core.assigned == [(o, RIDER_NEAR) for o in orders]
+    state = await dispatch.rider_state(RIDER_NEAR)
+    assert state["status"] == "busy" and state["order_id"] == ORDER and state["batch"] == orders
+    for o in orders:
+        assert await r.zscore(dispatch.WAITING, o) is None and not await r.sismember(dispatch.ACTIVE, o)
+    # GPS may name either order being carried
+    req = delivery.DriverLocationUpdateRequest(lat=17.45, lng=78.39, order_id=orders[1])
+    assert (await delivery.update_driver_location(req, user(RIDER_NEAR, "driver"))).order_id == ORDER
+    # first drop-off done: on to the second
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "delivered", "driver_id": RIDER_NEAR}})
+    state = await dispatch.rider_state(RIDER_NEAR)
+    assert state["status"] == "busy" and state["order_id"] == orders[1] and state["batch"] == [orders[1]]
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": orders[1], "new_status": "delivered", "driver_id": RIDER_NEAR}})
+    state = await dispatch.rider_state(RIDER_NEAR)
+    assert state["status"] == "available" and "batch" not in state
+
+
+async def test_a_passed_batch_goes_back_to_solo_dispatch(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = await _pair(core)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.offer_batch(orders)
+    await dispatch.go_online(RIDER_MID, 17.4610, 78.3960)
+    await dispatch.decline(RIDER_NEAR, ORDER, "passed")
+    for o in orders:
+        assert RIDER_NEAR in await r.smembers(dispatch.declined_key(o))
+        assert await r.zscore(dispatch.HOLD, o) is None and not await r.exists(dispatch.in_batch_offer_key(o))
+    offer = await dispatch.current_offer(RIDER_MID)  # the oldest goes to the other rider, alone
+    assert offer and offer["order_id"] == ORDER and "batch" not in offer
+
+
+async def test_cancelling_one_order_withdraws_the_batch_offer(r, core) -> None:  # type: ignore[no-untyped-def]
+    orders = await _pair(core)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.offer_batch(orders)
+    await dispatch.on_order_event({"event_type": "order.cancelled", "payload": {"order_id": orders[1], "status": "cancelled"}})
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    assert offer and offer["order_id"] == ORDER and "batch" not in offer  # the other one, alone
+
+
+async def test_batches_endpoint_is_signed(r, core) -> None:  # type: ignore[no-untyped-def]
+    from httpx import ASGITransport, AsyncClient
+
+    from app.main import app
+    from shared import internal_auth
+
+    body = json.dumps({"mode": "shadow", "city": "IN-TG-HYD", "batches": [{"orders": [ORDER, "o2"], "score": 50,
+                       "savings_percent": 30, "total_distance_km": 3, "total_time_min": 20, "max_detour_min": 1}]}).encode()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+        no = await c.post("/internal/dispatch/batches", content=body, headers={"content-type": "application/json"})
+        ok = await c.post("/internal/dispatch/batches", content=body, headers={
+            "content-type": "application/json", **internal_auth.sign("POST", "/internal/dispatch/batches", body)})
+    assert no.status_code == 401
+    assert ok.status_code == 200 and ok.json() == {"received": 1, "offered": 0}
+    assert (await dispatch.shadow_suggestions())[0]["orders"] == [ORDER, "o2"]
 
 
 # ── guards ────────────────────────────────────────────────────────────────────

@@ -86,6 +86,9 @@ export function describe(template: string, params: P, scope: string): string {
     }
     case "max_radius": return `Deliver up to ${n(p.distance)} ${dist} from the kitchen`;
     case "dispatch_offer_timeout": return `Riders have ${n(p.seconds)} seconds to accept an offer`;
+    case "batching": return p.live
+      ? "Live: riders can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
+      : "Off: the batch engine only suggests pairs in the background; riders get one order at a time";
     case "support_refund_limit": return `Support agents can refund up to ${m(p.max_per_order, cur)} per order`;
     case "auto_refund_limit": return `Customers' problem reports are refunded automatically up to ${m(p.max_per_order, cur)} per order`;
     case "percent_off": case "first_order": case "flat_off": case "free_delivery": case "referral": {
