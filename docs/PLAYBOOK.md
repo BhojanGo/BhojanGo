@@ -116,6 +116,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 37. **Report status against each task's "done when", not against the code.**
     Why: mapping the 44 tracker tasks, several features were finished in code but their task still couldn't be shown done (payments "live in test mode", web pages "indexed", alerts "reach on-call phone"). Calling them done would have hidden what's waiting on accounts and money.
 
+38. **When porting code, have the original produce reference outputs and require the port to match them exactly.**
+    Why: the batch engine's ported unit tests check shapes ("score > 0", "pickup before delivery"); a parity fixture made by the TypeScript engine itself (18 scorings, 3 cycles) pins exact scores, distances and routes, including JavaScript's rounding, which Python's `round()` does differently.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

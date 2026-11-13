@@ -10,6 +10,27 @@
 | **Status**        | Ready for Development                      |
 | **Reviewers**     | Backend Lead, DevOps Lead, Product Manager |
 
+> **How it's built now (task 43, November 2026).** The rest of this document is the original design for a separate
+> TypeScript service. What runs today:
+>
+> - **The engine** is a Python port in the worker: `backend/worker/app/batching/engine.py`. The TypeScript in
+>   `backend/worker/batch-engine` is kept only as the reference. Its tests are ported one for one, and
+>   `backend/worker/tests/fixtures/batch_parity.json` holds its own output for 18 scoring cases and 3 cycles, which
+>   the Python reproduces exactly (`tests/test_batching.py`).
+> - **The cycle** runs in the worker every 5 s (`app/services/batching.py`). It reads the orders waiting for a rider
+>   from Postgres and sends realtime two things:
+>   - shadow suggestions (default settings), stored for `GET /dispatch/shadow-batches` and logged;
+>   - live candidates: pairs from the same kitchen.
+> - **Live is a switch per city**: the business rule `batching` (`live`, off by default), under Pricing & Rules →
+>   Business. Where it's on:
+>   - realtime holds a new order for 20 s (`BATCH_HOLD_SECONDS`) so it can be paired;
+>   - it offers the pair to the nearest free rider as one offer, showing both drop-offs and the total pay;
+>   - accepting assigns both, and the rider app takes the rider to the second drop-off after the first;
+>   - a pass, a timeout or a cancellation sends the orders back to solo dispatch.
+> - **Not yet:** pairs from two kitchens and batches of three. The engine finds them in shadow, but riders aren't
+>   offered them. Each order keeps its own rider pay, so a batch pays the sum. The `rider_pay:batch_bonus` rule
+>   exists and isn't applied.
+
 ---
 
 ## Table of Contents

@@ -26,10 +26,24 @@ export interface Offer {
   drop_area?: string | null;
   distance_unit?: "km" | "mi";
   trip_km?: number | null;
+  /** Task 43: two orders from one kitchen, in drop-off order. rider_pay and tip are then the totals. */
+  batch?: BatchStop[] | null;
+  batch_minutes?: number | null;
+}
+
+export interface BatchStop {
+  order_id: string;
+  code?: string | null;
+  restaurant_name?: string | null;
+  dropoff: [number, number] | null;
+  drop_area?: string | null;
+  rider_pay?: string | null;
+  tip?: string | null;
+  trip_km?: number | null;
 }
 
 export interface RiderNow {
-  state: { status: "offline" | "available" | "offered" | "busy"; order_id?: string };
+  state: { status: "offline" | "available" | "offered" | "busy"; order_id?: string; batch?: string[] };
   offer: Offer | null;
   location: { lat: number; lng: number } | null;
 }

@@ -113,6 +113,7 @@ export default defineRailway((ctx, project) => {
     SERVICE_NAME: "worker",
     REDIS_URL: redisDb(0),
     DB_POOL_SIZE: "5",
+    REALTIME_INTERNAL_URL: "http://realtime.railway.internal:8004", // the batch engine (task 43)
   });
 
   // ── Web and admin (Next.js, infra/docker/next-app.Dockerfile) ──────────

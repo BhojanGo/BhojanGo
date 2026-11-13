@@ -13,6 +13,7 @@ from app.api.v1 import notifications
 from shared import bus
 from shared.config import get_settings
 from shared.db import engine
+from app.services import batching
 from app.services.outbox_relay import run_relay, stop_relay
 from app.services.sqs_consumer import poll_sqs, stop_polling
 
@@ -53,11 +54,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start SQS consumer and the outbox relay (P11) in the background
     _sqs_task = asyncio.create_task(poll_sqs())
     relay_task = None if settings.APP_ENV == "test" else asyncio.create_task(run_relay())
+    # Task 43: the batch engine (shadow everywhere; live where a city turns it on)
+    batch_task = None if settings.APP_ENV == "test" else asyncio.create_task(batching.run())
     logger.info("notification_svc_ready")
     yield
     stop_polling()
     stop_relay()
-    for task in (_sqs_task, relay_task):
+    batching.stop()
+    for task in (_sqs_task, relay_task, batch_task):
         if task:
             task.cancel()
     await engine.dispose()

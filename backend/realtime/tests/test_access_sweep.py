@@ -95,6 +95,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/dispatch/shadow-batches"): Policy("admin", NOT_ADMINS + ["viewer"]),
     ("GET", "/api/v1/dispatch/sos"): Policy("admin", NOT_ADMINS + ["viewer"]),
     ("GET", "/api/v1/dispatch/riders"): Policy("admin", NOT_ADMINS + ["ops_boi"]),
+    # the batch engine (worker) only: signed with INTERNAL_SERVICE_SECRET, no user token works
+    ("POST", "/internal/dispatch/batches"): Policy("user", ["customer", "rider", "ops_hyd"], {
+        "mode": "live", "city": "IN-TG-HYD", "batches": [{"orders": [ORDER, OTHER_ORDER], "score": 60, "savings_percent": 30,
+                                                          "total_distance_km": 3, "total_time_min": 20, "max_detour_min": 2}]}),
 }
 
 

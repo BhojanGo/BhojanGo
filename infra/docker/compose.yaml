@@ -187,6 +187,7 @@ services:
       SERVICE_NAME: notification-svc
       JWKS_URL: http://core-api:8001/.well-known/jwks.json
       DB_POOL_SIZE: "5"
+      REALTIME_INTERNAL_URL: http://realtime:8004  # the batch engine sends realtime its batches (task 43)
     ports:
       - "${WORKER_PORT:-8006}:8006"
     depends_on:

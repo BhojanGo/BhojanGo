@@ -35,7 +35,8 @@ async def update_driver_location(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Driver role required")
     state = await dispatch.rider_state(current_user.user_id)
     busy_with = state.get("order_id") if state.get("status") == "busy" else None
-    if data.order_id and data.order_id != busy_with:
+    carrying = set(state.get("batch") or []) | ({busy_with} if busy_with else set())
+    if data.order_id and data.order_id not in carrying:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You aren't delivering that order")
     fix = await dispatch.update_location(current_user.user_id, data.lat, data.lng,
                                          {"heading": data.heading, "speed": data.speed, "accuracy": data.accuracy})
