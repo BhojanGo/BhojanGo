@@ -48,16 +48,18 @@ class FakeCore:
         self.fail: CoreApiError | None = None
         self.others: set[str] = set()  # more orders at the same kitchen (fairness tests)
         self.live = False  # the city's business:batching rule (task 43)
+        self.batch_positions: dict[str, tuple] = {}
 
     async def dispatch_info(self, order: str) -> dict:
         if order != ORDER and order not in self.others:
             raise CoreApiError(404, "Order not found")
-        return info(order_id=order, batching_live=self.live)
+        return info(order_id=order, batching_live=self.live, rider_pay="60.00", rider_pay_batched="45.00")
 
-    async def assign_rider(self, order: str, rider: str) -> dict:
+    async def assign_rider(self, order: str, rider: str, batch_id: str | None = None, position: int | None = None) -> dict:
         if self.fail:
             raise self.fail
         self.assigned.append((order, rider))
+        self.batch_positions[order] = (batch_id, position)
         return info(order_id=order, driver_id=rider, status="almost_ready", batching_live=self.live)
 
 
@@ -535,3 +537,19 @@ async def test_a_pass_frees_the_rider_for_the_oldest_other_order(r, core) -> Non
     assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == new
     await dispatch.decline(RIDER_NEAR, new, "passed")
     assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == old
+
+
+async def test_second_drop_off_shows_the_batch_rate_and_is_recorded_as_second(r, core) -> None:  # type: ignore[no-untyped-def]
+    """Item 2: on the offer card the second drop-off pays the batch rate (no base, + the batch
+    bonus); the total is the first's full pay plus it; core_api records each order's place."""
+    orders = await _pair(core)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.offer_batch(orders)
+    offer = await dispatch.current_offer(RIDER_NEAR)
+    first, second = offer["batch"]
+    assert first["rider_pay"] == "60.00" and first["batch_rate"] is False
+    assert second["rider_pay"] == "45.00" and second["batch_rate"] is True
+    assert offer["rider_pay"] == "105.00"
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    (b1, p1), (b2, p2) = core.batch_positions[orders[0]], core.batch_positions[orders[1]]
+    assert b1 and b1 == b2 and (p1, p2) == (1, 2)

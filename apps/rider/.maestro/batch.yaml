@@ -42,8 +42,9 @@ env:
     id: "offer-drop-1"
 - assertVisible:
     id: "offer-drop-2"
-- assertVisible: "Drop-off 1 . near Jubilee Hills"
-- assertVisible: "Drop-off 2 . near Jubilee Hills"
+- assertVisible: "Drop-off 1"
+- assertVisible: "Drop-off 2 . batch rate"
+- assertVisible: "near Jubilee Hills.*"
 - assertVisible:
     id: "offer-pay"
 - takeScreenshot: docs/screenshots/rider/18-batch-offer

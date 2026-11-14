@@ -4,7 +4,7 @@ contribution report adds up (platform - payment fees - refunds = platform keeps)
 import os
 import uuid
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -55,7 +55,7 @@ async def test_payment_fees_in_the_split_by_method(client: AsyncClient) -> None:
     upi = await order_paid_with(client, cust, "upi")
     s_card, s_upi = await split_of(client, fin, card["id"]), await split_of(client, fin, upi["id"])
     total = Decimal(str(card["total"]))
-    assert Decimal(s_card["payment_fees"]) == (total * 2 / 100).quantize(Decimal("0.01"))  # Razorpay cards: 2%
+    assert Decimal(s_card["payment_fees"]) == (total * 2 / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)  # Razorpay cards: 2%
     assert Decimal(s_card["platform_keeps"]) == Decimal(s_card["platform"]) - Decimal(s_card["payment_fees"])
     assert s_card["detail"]["payment_fees"]["method"] == "card"
     assert Decimal(s_upi["payment_fees"]) == 0 and s_upi["platform_keeps"] == s_upi["platform"]  # UPI: free
@@ -88,7 +88,7 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
     assert t["keeps"] == t["platform"] - t["payment_fees"] - t["refunds"]
     # the platform line is the snapshot's: commission + customer fees - our offers - rider pay (tips excluded)
     assert t["platform"] == t["commission"] + t["customer_fees"] - t["platform_promos"] - t["rider_pay"]
-    assert Decimal(city["per_order"]["keeps"]) == (t["keeps"] / city["orders"]).quantize(Decimal("0.01"))
+    assert Decimal(city["per_order"]["keeps"]) == (t["keeps"] / city["orders"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     # the reconciliation shows payment fees too
     rec = (await client.get("/api/v1/finance/reconciliation", headers=fin, params={
         "country": "IN", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=1))})).json()

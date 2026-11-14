@@ -319,8 +319,10 @@ class OrderService:
         return await self._cancel(order, actor, data.reason, data.note)
 
     # ── dispatch (called by realtime over the internal API) ──────────────────
-    async def assign_rider(self, order_id: uuid.UUID, rider_id: uuid.UUID) -> Order:
-        """A rider accepted the offer. Idempotent for the same rider."""
+    async def assign_rider(self, order_id: uuid.UUID, rider_id: uuid.UUID, batch_id: uuid.UUID | None = None,
+                           batch_position: int | None = None) -> Order:
+        """A rider accepted the offer. Idempotent for the same rider. For a batch, the
+        order's place in it; a later drop-off records the city's batch bonus (item 2)."""
         order = await self._locked(order_id)
         if order is None:
             raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
@@ -331,6 +333,15 @@ class OrderService:
         if order.status not in ("accepted", "preparing", "almost_ready", "ready"):
             raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't assign a rider to a {order.status} order")
         order.driver_id, order.rider_assigned_at = rider_id, datetime.now(UTC)
+        if batch_id is not None and batch_position:
+            order.batch_id, order.batch_position = batch_id, batch_position
+            if batch_position >= 2:
+                from core_api.modules.rules.service.resolver import Context
+                from core_api.modules.rules.service.rules import RuleService
+
+                city = order.market_city or ""
+                bonus = (await RuleService(self.db).resolve(Context(country=city[:2], region=city[:5], city=city))).get("rider_pay:batch_bonus")
+                order.batch_bonus = Decimal(str(bonus.params["per_extra_order"])) if bonus else Decimal(0)
         await self.db.flush()
         from core_api.modules.identity.service.profile import user_profile
 

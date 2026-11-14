@@ -131,6 +131,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 42. **"Platform revenue" isn't what the platform keeps. Take payment fees off before calling an order profitable.**
     Why: a Boise card order showed $4.60 platform revenue, but Stripe took $1.47 of the charge. Each order's split now records its payment fee (the rule version is in `rules_used`), and Finance shows contribution per order after fees, rider pay, the offers we fund and refunds. Orders from before the rule exist are estimated from today's rule, and the page says how many.
 
+43. **Pay for the work the rider actually does: a batch's second drop-off isn't a second trip.**
+    Why: batching paid every order its full base, so a two-order batch cost the platform almost what two separate trips did. That undid most of the saving, and the rider earned two bases for one pickup. Now later drop-offs pay distance + waiting + a city batch bonus. The bonus is recorded on the order when the rider accepts, so a later rule change doesn't move pay already earned. The offer card shows the batch rate before the rider accepts.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

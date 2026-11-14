@@ -204,8 +204,9 @@ function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
           <View key={b.order_id} style={styles.stop} testID={`offer-drop-${i + 1}`}>
             <View style={[styles.stopDot, { backgroundColor: night.text, borderRadius: 3 }]} />
             <View style={{ flex: 1 }}>
-              <Text style={[ui.bold, { fontSize: 16 }]}>{`Drop-off ${i + 1} · ${b.drop_area ? `near ${b.drop_area}` : "address after pickup"}`}</Text>
-              <Text style={ui.muted}>{[b.code, b.trip_km != null ? `${dist(b.trip_km, unit)} from the kitchen` : null, b.rider_pay != null ? `${cash(b.rider_pay, cur)} pay` : null].filter(Boolean).join(" · ")}</Text>
+              <Text style={[ui.bold, { fontSize: 16 }]}>{`Drop-off ${i + 1}${b.batch_rate ? " · batch rate" : ""}`}</Text>
+              <Text style={ui.muted}>{[b.drop_area ? `near ${b.drop_area}` : "address after pickup", b.code, b.trip_km != null ? `${dist(b.trip_km, unit)} from the kitchen` : null,
+                b.rider_pay != null ? `${cash(b.rider_pay, cur)} pay` : null].filter(Boolean).join(" · ")}</Text>
             </View>
           </View>
         )) : (

@@ -35,3 +35,4 @@ class DispatchInfo(BaseModel):
     ready_in_minutes: int | None
     drop_area: str | None
     batching_live: bool = False  # task 43: the city's business:batching rule says live
+    rider_pay_batched: str | None = None  # item 2: this order's pay as a later drop-off of a batch

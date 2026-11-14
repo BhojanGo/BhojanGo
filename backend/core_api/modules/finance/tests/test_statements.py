@@ -89,3 +89,19 @@ def test_engaged_time_runs_from_accepting_the_offer_to_drop_off() -> None:
     assert summary["active_hours"] == "0.75"
     # floor 120 x 0.75 = 90 > 50.20 earned -> top-up 39.80
     assert summary["floor_top_up"] == "39.80"
+
+
+
+def test_a_later_drop_off_of_a_batch_pays_no_base_but_the_batch_bonus() -> None:
+    """Item 2: the second drop-off pays distance + waiting + the city's batch bonus (₹10), no base."""
+    from dataclasses import replace
+
+    first = replace(worked_example("o1", T, 40), batch_position=1)
+    second = replace(worked_example("o2", T, 40), batch_position=2, batch_bonus=Decimal("10"))
+    _, summary, lines = rider_statement([first, second], floor_per_hour=None)
+    assert lines[0]["base"] == "25.00" and "batch_bonus" not in lines[0]            # the first drop-off: as usual
+    assert lines[1]["base"] == "0.00" and lines[1]["batch_bonus"] == "10.00"       # the second: no base, the bonus
+    a, b = lines
+    assert (b["distance"], b["waiting"], b["tip"]) == (a["distance"], a["waiting"], a["tip"])  # the rest is unchanged
+    assert Decimal(b["total"]) == Decimal(a["total"]) - Decimal(a["base"]) + Decimal("10.00")
+    assert summary["base"] == str(Decimal(a["base"]) + Decimal("10.00"))  # the bonus counts as base pay

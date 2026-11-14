@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Float, DateTime, Integer, Numeric, String, Text, func
+from sqlalchemy import Float, DateTime, Integer, Numeric, SmallInteger, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -72,6 +72,11 @@ class Order(Base):
     # ── Pain-Point Layer: customer transparency timeline ──────────────────────
     # List of {"status": str, "at": iso8601} appended on every state transition.
     status_history: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # Batches (task 43, item 2): the place in the batch (1 = first drop-off) and, for later
+    # drop-offs, the batch bonus paid instead of the base.
+    batch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    batch_position: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    batch_bonus: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
     # Delivery
     delivery_address: Mapped[dict] = mapped_column(JSONB, nullable=False)

@@ -30,8 +30,11 @@ class CoreApi:
     async def dispatch_info(self, order_id: str) -> dict:
         return await self._call("GET", f"/api/v1/internal/orders/{order_id}/dispatch")
 
-    async def assign_rider(self, order_id: str, rider_id: str) -> dict:
-        return await self._call("POST", f"/api/v1/internal/orders/{order_id}/assign-rider", {"rider_id": rider_id})
+    async def assign_rider(self, order_id: str, rider_id: str, batch_id: str | None = None, position: int | None = None) -> dict:
+        body: dict = {"rider_id": rider_id}
+        if batch_id:
+            body |= {"batch_id": batch_id, "batch_position": position}
+        return await self._call("POST", f"/api/v1/internal/orders/{order_id}/assign-rider", body)
 
     async def rider_ready(self, rider_id: str) -> dict:
         """Has the rider finished onboarding (documents approved, background check cleared)?"""
