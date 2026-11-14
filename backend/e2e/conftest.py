@@ -20,8 +20,16 @@ import pytest
 CORE = os.environ.get("E2E_CORE_API", "")
 RT = os.environ.get("E2E_REALTIME", "http://localhost:8004")
 WK = os.environ.get("E2E_WORKER", "http://localhost:8006")
+# Empty E2E_MAILPIT: no mail catcher (hosted QA logs email); the email check
+# reads the notifications table instead.
 MAIL = os.environ.get("E2E_MAILPIT", "http://localhost:8025")
 PASSWORD, ADMIN_PASSWORD = "BhojanGo123", "BhojanGoAdmin1"
+# Hosted QA seeds random passwords (tools/seed: SEED_PASSWORDS=random); point
+# E2E_LOGINS_FILE at the logins file it wrote (outside the repo).
+LOGINS: dict[str, str] = {}
+if os.environ.get("E2E_LOGINS_FILE"):
+    with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as f:
+        LOGINS = {row[2]: row[3] for row in (line.rstrip("\n").split("\t") for line in f) if len(row) == 4}
 
 pytestmark = pytest.mark.skipif(not CORE, reason="needs a running stack (set E2E_CORE_API)")
 
@@ -30,6 +38,7 @@ class Api:
     """One person's HTTP session against core_api, realtime and worker."""
 
     def __init__(self, email: str, password: str = PASSWORD) -> None:
+        password = LOGINS.get(email, password)
         self.client = httpx.Client(timeout=30)
         for _ in range(30):
             r = self.client.post(f"{CORE}/api/v1/auth/login", json={"email": email, "password": password})

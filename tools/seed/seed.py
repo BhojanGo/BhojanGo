@@ -11,6 +11,7 @@ Run (needs the backend dependencies, e.g. inside the core-api container):
 import asyncio
 import json
 import os
+import secrets
 import sys
 import uuid
 from decimal import Decimal
@@ -273,7 +274,21 @@ ON CONFLICT (id) DO UPDATE SET
 """)
 
 
-async def upsert_user(conn, email, name, role, market, phone, password=PASSWORD) -> uuid.UUID:
+# Hosted test environments (QA on Railway) seed with SEED_PASSWORDS=random: every
+# account gets its own random password, written only to SEED_LOGINS_FILE (outside
+# the repo) and never printed. Locally and in CI the fixed ones stay.
+RANDOM_PASSWORDS = os.environ.get("SEED_PASSWORDS", "") == "random"
+_passwords: dict[str, str] = {}
+
+
+def password_for(email: str, admin: bool = False) -> str:
+    if RANDOM_PASSWORDS:
+        return _passwords.setdefault(email, secrets.token_urlsafe(15))
+    return ADMIN_PASSWORD if admin else PASSWORD
+
+
+async def upsert_user(conn, email, name, role, market, phone, password=None) -> uuid.UUID:
+    password = password or password_for(email)
     row = await conn.execute(UPSERT_USER, {
         "id": sid("user", email), "email": email, "phone": phone, "full_name": name,
         "hashed_password": pwd.hash(password), "role": role,
@@ -296,7 +311,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
 
             partner_email = f"partner.{k}@example.com"
             partner_id = await upsert_user(conn, partner_email, m["partner"], "restaurant_owner", m, f"{m['phone_prefix']}900")
-            logins.append((where, "partner (owns the restaurants)", partner_email, PASSWORD))
+            logins.append((where, "partner (owns the restaurants)", partner_email, password_for(partner_email)))
 
             for i, (name, street, area, postal, lat, lng) in enumerate(m["customers"], start=1):
                 email = f"customer{i}.{k}@example.com"
@@ -306,7 +321,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     "street": f"{street}, {area}", "city": m["city"], "state": m["state"],
                     "postal_code": postal, "country": m["country"], "lat": lat, "lng": lng,
                 })
-                logins.append((where, f"customer · {name}", email, PASSWORD))
+                logins.append((where, f"customer · {name}", email, password_for(email)))
 
             for i, name in enumerate(m["riders"], start=1):
                 email = f"rider{i}.{k}@example.com"
@@ -315,7 +330,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     await conn.execute(UPSERT_RIDER_DOC, {
                         "id": sid("rider_document", email, kind), "rider_id": rider_id, "kind": kind,
                         "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
-                logins.append((where, f"rider · {name}", email, PASSWORD))
+                logins.append((where, f"rider · {name}", email, password_for(email)))
 
             ap = m.get("applicant")
             if ap:
@@ -335,7 +350,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     "address": json.dumps({"street": ap["street"], "city": m["city"], "state": m["state"], "zip": ap["zip"],
                                            "country": m["country"], "lat": ap["lat"], "lng": ap["lng"], "landmark": ap["area"]}),
                 })
-                logins.append((where, f"partner applying · {ap['restaurant']}", email, PASSWORD))
+                logins.append((where, f"partner applying · {ap['restaurant']}", email, password_for(email)))
 
             for i, name in enumerate(m.get("new_riders", []), start=1):
                 email = f"new.rider{i}.{k}@example.com"
@@ -347,7 +362,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     INSERT INTO payout_accounts (id, payee_type, payee_id, provider, external_id, status, country, created_at)
                     VALUES (:id, 'rider', :r, 'fake', :ext, 'active', :c, now()) ON CONFLICT (id) DO NOTHING"""),
                     {"id": sid("payout_account", email), "r": rider_id, "ext": f"fake_acct_{rider_id.hex[:12]}", "c": m["country"]})
-                logins.append((where, f"rider signing up · {name}", email, PASSWORD))
+                logins.append((where, f"rider signing up · {name}", email, password_for(email)))
 
             for r in m["restaurants"]:
                 address = {
@@ -398,12 +413,12 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
             # users.role is the persona the current admin app checks; the scoped
             # permissions come from admin_role_assignments (shared/authz.py).
             persona = "super_admin" if any(r == "super_admin" for r, _ in roles) else "admin"
-            user_id = await upsert_user(conn, email, name, persona, market, None, ADMIN_PASSWORD)
+            user_id = await upsert_user(conn, email, name, persona, market, None, password_for(email, admin=True))
             for role, scope in roles:
                 await conn.execute(UPSERT_ADMIN_ROLE, {
                     "id": sid("admin_role", email, role, scope), "user_id": user_id, "role": role, "scope": scope,
                 })
-            logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, ADMIN_PASSWORD))
+            logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, password_for(email, admin=True)))
 
         await seed_rules(conn, sid("user", "admin@example.com"))
         await seed_hours_and_licences(conn, restaurant_ids)
@@ -428,6 +443,15 @@ def main() -> None:
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     logins = asyncio.run(seed(url))
+    if RANDOM_PASSWORDS:
+        out = os.environ.get("SEED_LOGINS_FILE")
+        if not out:
+            sys.exit("SEED_PASSWORDS=random needs SEED_LOGINS_FILE (a path outside the repo)")
+        rows = ["where\twho\temail\tpassword", *("\t".join(row) for row in logins)]
+        Path(out).write_text("\n".join(rows) + "\n", encoding="utf-8")
+        os.chmod(out, 0o600)
+        print(f"{len(logins)} test logins with random passwords written to {out} (passwords not printed).")
+        return
     print("\nTest logins (local/staging only):")
     width = max(len(e) for _, _, e, _ in logins)
     current = None
