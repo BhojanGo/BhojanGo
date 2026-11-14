@@ -162,6 +162,17 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
     return run
 
 
+async def preview_restaurant(db: AsyncSession, country: str, start: date, end: date, restaurant_id: uuid.UUID) -> dict:
+    """A restaurant's statement for a period as a payout run would make it, without making
+    one (runs can't overlap; this shows what the next run will pay, e.g. mid-week)."""
+    if end <= start:
+        raise FinanceError("The period must end after it starts")
+    orders = [o for o in await _orders_for_period(db, country, start, end) if o.restaurant_id == str(restaurant_id)]
+    total, summary, lines = S.restaurant_statement(orders)
+    return {"restaurant_id": str(restaurant_id), "period": {"start": start.isoformat(), "end": end.isoformat()},
+            "total": str(total), "summary": summary, "lines": lines}
+
+
 async def _city_of(db: AsyncSession, order_id: str) -> str | None:
     from core_api.modules.orders.service.lookup import order_market
 

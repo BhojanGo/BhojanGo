@@ -77,9 +77,23 @@ with sync_playwright() as p:
     api = p.request.new_context()
 
     # A paid order at Spice Route Kitchen, so there's something live.
+    _tokens: dict[str, dict] = {}
+
     def token(email: str, pw: str = "BhojanGo123") -> dict:
-        r = api.post(f"{CORE}/auth/login", data={"email": email, "password": pw})
-        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+        """Signed in once per run (sign-in is limited to 10 a minute; tokens last 15)."""
+        if email not in _tokens:
+            for _ in range(20):
+                r = api.post(f"{CORE}/auth/login", data={"email": email, "password": pw})
+                if r.status != 429:
+                    break
+                page_wait(6000)
+            _tokens[email] = {"Authorization": f"Bearer {r.json()['access_token']}"}
+        return _tokens[email]
+
+    def page_wait(ms: int) -> None:
+        import time
+
+        time.sleep(ms / 1000)
 
     cust = token("customer3.hyd@example.com")
     rest = next(r for r in api.get(f"{CORE}/restaurants?limit=50").json()["items"] if r["name"] == "Spice Route Kitchen")
@@ -180,7 +194,7 @@ with sync_playwright() as p:
     check("partners: rider documents by country", lambda: expect(page.get_by_text(re.compile("reviewed by country"))).to_be_visible())
 
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
-    page.get_by_role("region", name="Rules").get_by_role("button").first.click()
+    page.get_by_role("region", name="Rules").get_by_test_id("row-source").first.click()
     check("pricing & rules: a rule's settings, where it comes from, history", lambda: (
         expect(page.get_by_role("heading", name="History")).to_be_visible(timeout=15000),
         expect(page.get_by_role("button", name=re.compile("^Approvals"))).to_be_visible()))
@@ -273,7 +287,7 @@ with sync_playwright() as p:
     set_batching(False)  # leave it as the seed has it
     check("rule history: only the current version is Live, older ones say when they were replaced", lambda: (
         expect(batching_rule().get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000),
-        _ok(page.get_by_role("list", name="Versions").get_by_text("Live", exact=True).count() == 1)))
+        expect(page.get_by_role("list", name="Versions").get_by_text("Live", exact=True)).to_have_count(1, timeout=15000)))
 
     # Commissions (Pricing & Rules, commissions first): add a Boise override, Finance approves it,
     # an order and its payout use it; end it and the next order is back on the US rate; delete a draft.
@@ -352,30 +366,25 @@ with sync_playwright() as p:
 
     o1 = delivered_boise_order()
     got, want = commission_of(o1["id"])
-    check("commissions: an order uses the Boise override (12% of food)", lambda: _ok(got == want) or fail(f"{got} != {want}"))
+    check("commissions: an order uses the Boise override (12% of food)", lambda: _ok(got == want))
     today_d = date.today()
-    run = api.post(f"{CORE}/finance/payout-runs", headers=fin_us, data={"country": "US", "period_start": str(today_d), "period_end": str(today_d + timedelta(days=1))})
-    if run.status == 201:
-        st = next(s for s in api.get(f"{CORE}/finance/payout-runs/{run.json()['id']}", headers=fin_us).json()["statements"]
-                  if s["payee_type"] == "restaurant" and s["payee_id"] == boi_rest["id"])
-        full = api.get(f"{CORE}/finance/statements/{st['id']}", headers=fin_us).json()
-        line = next(ln for ln in full["lines"] if ln["order_id"] == o1["id"])
-        check("commissions: the payout uses it too", lambda: _ok(line["commission"] == f"-{want}") or fail(str(line)))
-    else:
-        print("note: a payout run already covers today; the statement uses the same snapshot", run.text(), flush=True)
+    prev = api.get(f"{CORE}/finance/payout-preview/restaurants/{boi_rest['id']}", headers=fin_us,
+                   params={"country": "US", "start": str(today_d - timedelta(days=1)), "end": str(today_d + timedelta(days=1))}).json()
+    line = next(ln for ln in prev["lines"] if ln["order_id"] == o1["id"])
+    check("commissions: the payout uses it too (the restaurant's statement line)", lambda: _ok(line["commission"] == f"-{want}"))
 
     page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
     page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("Boise launch rate")).first.click()
     live = page.get_by_role("region", name="Rule · Boise launch rate")
     check("commissions: a live rule has no Delete, only New version / End / Roll back", lambda: (
         expect(live.get_by_role("button", name="End now")).to_be_visible(timeout=15000),
-        _ok(live.get_by_role("button", name="Delete draft").count() == 0)))
+        expect(live.get_by_role("button", name="Delete draft")).to_have_count(0)))
     live.get_by_role("button", name="End now").click()
     check("commissions: ended; Boise is back on the US rate", lambda: expect(page.get_by_role("status")).to_contain_text("Ended now", timeout=15000))
     o2 = delivered_boise_order()
     got2, _ = commission_of(o2["id"])
     food2 = next(Decimal(ln["amount"]) for ln in api.get(f"{CORE}/pricing/orders/{o2['id']}/snapshot", headers=fin_us).json()["lines"] if ln["code"] == "food")
-    check("commissions: the next order uses the country rate again (20%, tier B)", lambda: _ok(got2 == str((food2 * Decimal("0.20")).quantize(Decimal("0.01")))) or fail(got2))
+    check("commissions: the next order uses the country rate again (20%, tier B)", lambda: _ok(got2 == str((food2 * Decimal("0.20")).quantize(Decimal("0.01")))))
 
     page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
     page.get_by_role("region", name="Rules").get_by_role("button", name="Add").click()

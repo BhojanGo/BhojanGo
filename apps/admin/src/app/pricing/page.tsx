@@ -339,6 +339,7 @@ function PricingPage() {
   const params = useSearchParams();
   const router = useRouter();
   const { data: me } = useAdminMe();
+  const qc = useQueryClient();
   const tab = params.get("tab") ?? "delivery_fee";
   const { country, region, city } = parseScope(scope);
   const [open, setOpen] = useState<string | null>(null);
@@ -397,9 +398,10 @@ function PricingPage() {
         </section>
         {adding ? (
           <AddRule family={tab} scope={scope} templates={catalogue.data ?? []} rules={rules.data ?? []} kitchens={kitchenList.data ?? []}
-            names={names} onDone={(id) => { setAdding(false); setOpen(id || null); }} />
+            names={names} onDone={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => { setAdding(false); setOpen(id || null); })} />
         ) : selected ? (
-          <RuleDetail key={selected.id} rule={selected} label={source(selected, scope, names, kitchens)} onChanged={(id) => setOpen(id ?? null)} />
+          <RuleDetail key={selected.id} rule={selected} label={source(selected, scope, names, kitchens)}
+            onChanged={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => setOpen(id ?? null))} />
         ) : <div className="rounded-2xl bg-white p-6 text-muted">Pick a rule to see its settings, history and approvals.</div>}
       </div>
     </ConsoleShell>

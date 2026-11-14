@@ -370,6 +370,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/payout-preview/restaurants/{restaurant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout Preview
+         * @description What a payout run for this period would pay the restaurant, line by line, without
+         *     making the run (the same statement code).
+         */
+        get: operations["payout_preview_api_v1_finance_payout_preview_restaurants__restaurant_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/payout-runs": {
         parameters: {
             query?: never;
@@ -6636,6 +6657,43 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     }[];
+                };
+            };
+        };
+    };
+    payout_preview_api_v1_finance_payout_preview_restaurants__restaurant_id__get: {
+        parameters: {
+            query: {
+                country: string;
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

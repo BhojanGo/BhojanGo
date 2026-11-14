@@ -9853,6 +9853,87 @@
         ]
       }
     },
+    "/api/v1/finance/payout-preview/restaurants/{restaurant_id}": {
+      "get": {
+        "description": "What a payout run for this period would pay the restaurant, line by line, without\nmaking the run (the same statement code).",
+        "operationId": "payout_preview_api_v1_finance_payout_preview_restaurants__restaurant_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Payout Preview Api V1 Finance Payout Preview Restaurants  Restaurant Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Payout Preview",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
     "/api/v1/finance/payout-runs": {
       "get": {
         "operationId": "list_runs_api_v1_finance_payout_runs_get",
