@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Photo credits match docs/design/photos/LICENSES.md
+        run: python3 tools/photos/credits.py --check
+
       - name: Build packages
         run: pnpm turbo build --filter='./packages/*'
 
