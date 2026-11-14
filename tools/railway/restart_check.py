@@ -21,6 +21,10 @@ CORE, RT, WEB, ADMIN, LOGINS = (a.rstrip("/") for a in sys.argv[1:6])
 RAILWAY = sys.argv[6:]
 PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) == 4}
 ORDER = ["postgres", "redis", "core-api", "realtime", "worker", "web", "admin"]
+# The order moves one step during each backend's restart; each event must reach the customer.
+# (Realtime keeps no backlog for a socket that's down with it; the app refetches on reconnect,
+# so its restart checks that the socket reconnects.)
+STEPS = {"postgres": "accepted", "redis": "preparing", "core-api": "almost_ready", "worker": "ready"}
 messages: list[tuple[float, str]] = []
 
 
@@ -106,18 +110,29 @@ async def main() -> int:
             # no stdin and --json: otherwise the CLI waits on the terminal and never returns
             out = subprocess.run([*RAILWAY, "restart", "--service", svc, "--yes", "--json"], capture_output=True,
                                  text=True, stdin=subprocess.DEVNULL, timeout=120)
-            row: dict = {"restart_cmd_ok": out.returncode == 0}
-            if svc == "worker":
-                # while the worker restarts, the kitchen accepts: the event waits in the outbox
+            row: dict = {"restart_cmd_ok": out.returncode == 0, "restart_error": out.stderr.strip()[-160:] or None}
+            step = STEPS.get(svc)
+            if step:
+                # During the restart the kitchen moves the order on (retrying while the API is down).
+                # The event goes outbox → worker's relay → Redis stream → realtime → this
+                # customer's tracking socket; it must arrive however the restart falls.
                 await asyncio.sleep(2)
-                t_evt = time.time()
-                r = await c.put(f"{CORE}/api/v1/orders/{oid}/status", headers=P, json={"status": "accepted"})
-                row["status_change"] = r.status_code
+                t_evt, accepted = time.time(), None
+                while time.time() - t_evt < 240:
+                    try:
+                        r = await c.put(f"{CORE}/api/v1/orders/{oid}/status", headers=P, json={"status": step})
+                        if r.status_code == 200:
+                            accepted = time.time()
+                            break
+                    except httpx.HTTPError:
+                        pass
+                    await asyncio.sleep(2)
+                row["status_change_after_s"] = round(accepted - t_evt, 1) if accepted else None
                 got = None
-                while time.time() - t_evt < 300 and got is None:
-                    got = next((t for t, m in messages if t >= t_evt and "accepted" in m), None)
+                while accepted and time.time() - t_evt < 300 and got is None:
+                    got = next((t for t, m in messages if t >= t_evt and f'"{step}"' in m), None)
                     await asyncio.sleep(1)
-                row["queued_event_delivered_after_s"] = round(got - t_evt, 1) if got else None
+                row["event_delivered_after_s"] = round(got - t_evt, 1) if got else None
             await asyncio.sleep(15)  # let the restart take the old container down
             row["healthy_after_s"] = round(await until_ok(c, health[svc]) + 15, 1)
             # nothing lost: the order, and the session (refresh rotates the pair)
@@ -127,15 +142,18 @@ async def main() -> int:
             row["session_refreshed"] = r.status_code == 200
             if r.status_code == 200:
                 tok.update(access=r.json()["access_token"], refresh=r.json()["refresh_token"])
+            # realtime: the worker's step comes after it, so that event arriving means the socket reconnected
             row["total_s"] = round(time.time() - t0, 1)
             results[svc] = row
             print(svc, json.dumps(row), flush=True)
         stop.set()
         await asyncio.gather(track, return_exceptions=True)
         final = (await c.get(f"{CORE}/api/v1/orders/{oid}", headers=H())).json()["status"]
-        await c.put(f"{CORE}/api/v1/orders/{oid}/status", headers=P, json={"status": "cancelled"})  # tidy up
+        ops = await login(c, "ops.hyd@example.com")  # tidy up: ops cancels it, as the e2e scripts do
+        await c.post(f"{CORE}/api/v1/orders/{oid}/cancel", headers={"Authorization": f"Bearer {ops['access_token']}"},
+                     json={"reason": "other", "note": "restart check"})
     ok = all(r["restart_cmd_ok"] and r["order_kept"] and r["session_refreshed"] for r in results.values()) \
-        and results["worker"].get("queued_event_delivered_after_s") is not None and final == "accepted"
+        and all(results[s].get("event_delivered_after_s") is not None for s in STEPS) and final == STEPS["worker"]
     print(json.dumps({"order": oid[:8], "final_status": final, "ws_messages": len(messages), "result": "PASS" if ok else "FAIL"}))
     return 0 if ok else 1
 

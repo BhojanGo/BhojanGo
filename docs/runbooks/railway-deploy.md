@@ -10,7 +10,7 @@ Everything is described as code in [`.railway/railway.ts`](../../.railway/railwa
 The AWS Terraform (`infra/terraform`, [aws-setup.md](aws-setup.md)) stays as the path to scale up later.
 
 This runbook was checked against Railway's docs and CLI 5.54.1 on 2026-11-14, while QA was built. Steps that differed
-from the first draft are marked **(corrected)**. Lessons 45–54 in the [PLAYBOOK](../PLAYBOOK.md) explain why.
+from the first draft are marked **(corrected)**. Lessons 45–55 in the [PLAYBOOK](../PLAYBOOK.md) explain why.
 
 ## What gets created
 
@@ -172,6 +172,35 @@ From a workstation, against the public URLs:
 - [`tools/railway/restart_check.py`](../../tools/railway/restart_check.py): restart every service and check nothing is
   lost;
 - `SCALE=0.1 tools/load/pilot.js`: a k6 smoke at 1× pilot peak.
+
+Notes:
+
+- **Maestro's partner flows need the tablet emulator** (`bhojango_tablet`); on a phone the kitchen app's forms run
+  off the screen.
+- **Maestro writes every `-e` value into its logs**, so `maestro-qa.sh` redacts the QA passwords afterwards
+  (`redact_logins.py`).
+- **The OTP limit is 3 a minute per client address**, now the real one. Don't run two UI suites from one machine at
+  once.
+
+### QA test results (2026-11-14)
+
+URLs: web https://web-qa-3fd3b3f8.up.railway.app, admin https://admin-qa-df130aa4.up.railway.app,
+API https://core-api-qa-03da2a58.up.railway.app (realtime https://realtime-qa-2a1e9d2e.up.railway.app).
+
+| Check | Result |
+|---|---|
+| `/health` and `/health/ready`, every service | 200 healthy: public for core-api and realtime, private for all three backends; web `/` and admin `/login` 200 |
+| Migrations | `alembic current` = `0024_order_batch_position (head)`; `alembic check`: no new operations |
+| G1, against the QA API | 2 passed (Hyderabad, Boise) |
+| Integration suites on QA's Postgres and Redis | 771 passed (API) + 7 (worker), with migrations up/down/up and the seed twice |
+| Playwright | web 34/34, admin 43/43 |
+| Live tracking WebSocket | connect 0.37 s; 5 positions; 150 s idle with no client pings, not dropped; next position 0.25 s after it was sent |
+| Maestro | customer 7/7, rider 6/6, partner 5/5 |
+| k6, 5 min at 1× pilot peak | 2,601 requests, 0 failed; p95 menu 88 ms, kitchens 85, quote 103, order 95, payment 73, rider ping 80, web home 140, WebSocket connect 247 ms. Local `make dev` at the same load: 35, 11, 74, 46, 26, 9, 35, 49 ms. The difference is the internet round trip and TLS; core-api's own p95 on Railway is 23 ms |
+| Security | HTTP → HTTPS (301) everywhere; HSTS, CSP, frame, nosniff, referrer and permissions headers. CORS allows only the QA web and admin origins. Errors are structured, with no stack traces. ZAP baseline: 0 FAIL (web 64 PASS / 4 WARN, admin 62 / 6, API 64 / 4). No TCP proxy on any service; `*.railway.internal` doesn't resolve publicly |
+| Restart each service | postgres, redis, core-api, realtime, worker, web, admin: healthy within about 15 s. The order was kept, the session refreshed (refresh tokens survived Redis's restart), and a status change made during each backend restart reached the customer's tracking socket |
+| Cold start (sleeping frontends) | web 2.9 s, admin 1.8 s for the first request; 0.2–0.3 s after that |
+| Cost | about $7 a month for the seven services (Railway metrics); the workspace limit is unchanged (see Cost control) |
 
 ## Every deploy after that
 

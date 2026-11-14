@@ -29,8 +29,14 @@ for app in $APPS; do
   METRO=$!
   end=$(( $(date +%s) + 180 ))
   until curl -s -m 3 localhost:8081/status | grep -q running || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
-  # Build the Android bundle now: with a cleared cache the first flow otherwise races it.
-  curl -s -o /dev/null -m 300 "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false"
+  # Open the app once so Metro builds the bundle it asks for (with a cleared cache the
+  # first flow otherwise races the build), then close it again.
+  case "$app" in customer) pkg=com.bhojango.app ;; *) pkg="com.bhojango.$app" ;; esac
+  adb -s "$DEVICE" shell monkey -p "$pkg" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+  end=$(( $(date +%s) + 240 ))
+  until grep -q "Android Bundled" "$OUT/metro-$app.log" || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
+  sleep 10
+  adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
   [ "$app" = rider ] && adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   flows="$(cd "$ROOT/apps/$app/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
   if [ -n "${ONLY:-}" ]; then  # ONLY="account batch": just these flows (of any app)
@@ -49,4 +55,6 @@ for app in $APPS; do
   for pid in $(netstat -ano 2>/dev/null | awk '/:8081 .*LISTENING/ {print $NF}' | sort -u); do taskkill //PID "$pid" //F >/dev/null 2>&1; done
 done
 sh "$ROOT/tools/mobile/env-profile.sh" local >/dev/null
+# Maestro writes every -e value into its run logs: take the passwords out again.
+python "$ROOT/tools/railway/redact_logins.py" "$E2E_LOGINS_FILE" "$HOME/.maestro/tests" "$OUT"
 exit $fail
