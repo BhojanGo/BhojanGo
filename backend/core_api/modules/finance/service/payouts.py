@@ -374,7 +374,11 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
         "money": {"captured": captured_total, "refunded": refunded_total, "net_collected": captured_total - refunded_total,
                   "delivered_gmv": S._minor_str(sum((Decimal(o.total) for o in delivered), Decimal(0))),
                   "tax_owed": S._minor_str(split_sum("tax")), "restaurant_payable": S._minor_str(split_sum("restaurant")),
-                  "rider_payable": S._minor_str(split_sum("rider")), "platform_revenue": S._minor_str(split_sum("platform"))},
+                  "rider_payable": S._minor_str(split_sum("rider")), "platform_revenue": S._minor_str(split_sum("platform")),
+                  # Item 1: what the payment providers keep, and the platform after them (orders priced
+                  # before fees were recorded count as 0 here; the contribution report estimates them).
+                  "payment_fees": S._minor_str(split_sum("payment_fees")),
+                  "platform_after_payment_fees": S._minor_str(split_sum("platform") - split_sum("payment_fees"))},
         "by_provider": by_provider, "refunds_not_settled": pending_refunds,
         "issues": issues,
     }

@@ -136,6 +136,19 @@ def taxable_amounts(q: "QuoteResult") -> dict[str, Decimal]:
     return {k: money(v) for k, v in out.items() if v > 0}
 
 
+def payment_fee(total: Decimal, method: str, params: dict | None, tax_calculated: bool = False) -> tuple[Decimal, dict[str, str]]:
+    """What the payment provider keeps of a charge (business rule ``payment_fees``):
+    percent + fixed for the method (``card`` for methods not listed), plus the tax
+    service's percent when a provider calculated the tax. Nothing for cash."""
+    if not params or method == "cash_on_delivery" or total <= 0:
+        return ZERO, {}
+    m = params["methods"].get(method) or params["methods"]["card"]
+    processing = money(total * D(m["percent"]) / 100 + D(m.get("fixed", 0)))
+    tax_service = money(total * D(params.get("tax_service_percent", 0)) / 100) if tax_calculated else ZERO
+    return money(processing + tax_service), {"method": method, "processing": str(processing), "tax_service": str(tax_service),
+                                             "percent": str(D(m["percent"])), "fixed": str(D(m.get("fixed", 0)))}
+
+
 def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     used: list[Candidate] = []
     lines: list[BillLine] = []

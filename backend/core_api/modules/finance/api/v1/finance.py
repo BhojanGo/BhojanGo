@@ -230,6 +230,22 @@ async def stripe_connect_webhook(request: Request, db: DB) -> dict:
     return {"received": True}
 
 
+@router.get("/contribution")
+async def contribution(
+    admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
+    scope: str = Query(pattern=r"^[A-Z]{2}(-[A-Z0-9]{1,3}(-[A-Z0-9]{2,5})?)?$"), start: date = Query(...), end: date = Query(...),
+) -> dict:
+    """Contribution per order, by city: what the platform keeps after payment fees, rider
+    pay (tips excluded), platform-funded offers and the refunds it pays."""
+    from core_api.modules.finance.service.contribution import contribution as build
+
+    admin.require("finance.view", scope)
+    try:
+        return await build(db, scope, start, end)
+    except FinanceError as e:
+        raise _bad(e)
+
+
 @router.get("/reconciliation", response_model=None)
 async def reconciliation(
     admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,

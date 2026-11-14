@@ -282,3 +282,25 @@ def test_commission_rate_most_specific_wins_and_ended_override_falls_back() -> N
     assert pct([country, flat]) == food * 20 / 100 + 1                         # neither: the country's, tier B
     ended = _at(kitchen, "restaurant", "r1", effective_to=datetime(2026, 11, 1, tzinfo=UTC))
     assert pct([country, city, ended, flat]) == food * 15 / 100 + 1            # an ended override falls back to the city
+
+# ── payment fees (item 1) ──────────────────────────────────────────────────────
+
+US_FEES = {"methods": {"card": {"percent": 2.9, "fixed": 0.30}, "wallet": {"percent": 2.9, "fixed": 0.30}}, "tax_service_percent": 0.5}
+IN_FEES = {"methods": {"card": {"percent": 2, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}},
+           "tax_service_percent": 0}
+
+
+@pytest.mark.parametrize(("total", "method", "params", "tax_calc", "fee"), [
+    ("30.00", "card", US_FEES, True, "1.32"),     # Stripe: 2.9% + $0.30 = 1.17, Stripe Tax 0.5% = 0.15
+    ("30.00", "card", US_FEES, False, "1.17"),    # no tax calculated by the provider: no tax-service fee
+    ("638.22", "upi", IN_FEES, False, "0.00"),    # Razorpay: UPI is free
+    ("638.22", "card", IN_FEES, False, "12.76"),  # 2% of cards
+    ("638.22", "wallet", IN_FEES, False, "12.76"),
+    ("638.22", "net_banking", IN_FEES, False, "12.76"),  # not listed: charged like a card
+    ("30.00", "cash_on_delivery", US_FEES, True, "0.00"),
+    ("30.00", "card", None, True, "0.00"),        # no rule: nothing
+])
+def test_payment_fee(total: str, method: str, params, tax_calc: bool, fee: str) -> None:  # type: ignore[no-untyped-def]
+    from core_api.modules.pricing.service.engine import payment_fee
+
+    assert payment_fee(Decimal(total), method, params, tax_calc)[0] == Decimal(fee)

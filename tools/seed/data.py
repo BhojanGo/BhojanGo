@@ -460,6 +460,13 @@ RULES = [
     ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
     ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
+    # What payment providers keep (item 1): Stripe in the US (2.9% + $0.30, Stripe Tax 0.5%),
+    # Razorpay in India (2% on cards, wallets and net banking; UPI free). Editable in admin.
+    ("business", "payment_fees", None, "Payment fees (Stripe)", "country", "US",
+     {"methods": {"card": {"percent": 2.9, "fixed": 0.30}, "wallet": {"percent": 2.9, "fixed": 0.30}}, "tax_service_percent": 0.5}),
+    ("business", "payment_fees", None, "Payment fees (Razorpay)", "country", "IN",
+     {"methods": {"card": {"percent": 2, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0},
+                  "net_banking": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}}, "tax_service_percent": 0}),
     # Task 43: live batching is a per-city switch, off; the engine runs in shadow everywhere.
     ("business", "batching", None, "Batching (one rider, two orders)", "city", "IN-TG-HYD", {"live": False}),
     ("business", "batching", None, "Batching (one rider, two orders)", "city", "US-ID-BOI", {"live": False}),

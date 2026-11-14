@@ -91,6 +91,12 @@ export function describe(template: string, params: P, scope: string): string {
       ? "Live: riders can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
       : "Off: the batch engine only suggests pairs in the background; riders get one order at a time";
     case "support_refund_limit": return `Support agents can refund up to ${m(p.max_per_order, cur)} per order`;
+    case "payment_fees": {
+      const methods = (p.methods ?? {}) as Record<string, { percent?: unknown; fixed?: unknown }>;
+      const name: Record<string, string> = { card: "Cards", wallet: "Wallets", upi: "UPI", net_banking: "Net banking" };
+      const each = Object.entries(methods).map(([k, v]) => `${name[k] ?? k} ${Number(v.percent) === 0 && !Number(v.fixed) ? "free" : `${n(v.percent)}%${Number(v.fixed) ? ` + ${m(v.fixed, cur)}` : ""}`}`);
+      return `The payment provider keeps: ${each.join(" · ")}${Number(p.tax_service_percent) ? ` · tax service ${n(p.tax_service_percent)}% where it calculates the tax` : ""}`;
+    }
     case "auto_refund_limit": return `Customers' problem reports are refunded automatically up to ${m(p.max_per_order, cur)} per order`;
     case "percent_off": case "first_order": case "flat_off": case "free_delivery": case "referral": {
       const what = template === "free_delivery" ? "Free delivery" : template === "flat_off" || template === "referral" ? `${m(p.amount, cur)} off`

@@ -21,6 +21,17 @@ interface Recon {
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
 }
 
+interface Contribution {
+  currency: string; fees_estimated: number;
+  cities: { city: string; orders: number; totals: Record<string, string>; per_order: Record<string, string | null> }[];
+  all: { orders: number; totals: Record<string, string>; per_order: Record<string, string | null> };
+}
+
+const CONTRIBUTION_ROWS: [string, string, number][] = [
+  ["commission", "Commission", 1], ["customer_fees", "Customer fees", 1], ["platform_promos", "Offers we fund", -1],
+  ["rider_pay", "Rider pay (tips excluded)", -1], ["payment_fees", "Payment fees", -1], ["refunds", "Refunds we pay", -1],
+];
+
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
 
 function lastWeek(): [string, string] {
@@ -51,6 +62,11 @@ function FinancePage() {
     queryKey: ["recon", target, start, end],
     queryFn: async () => (await adminApi.get<Recon>("/user/finance/reconciliation", { params: { country: target, start, end } })).data,
     enabled: can(me, "finance.view", target),
+  });
+  const contribution = useQuery({
+    queryKey: ["contribution", scope, target, start, end],
+    queryFn: async () => (await adminApi.get<Contribution>("/user/finance/contribution", { params: { scope: city ?? region ?? target, start, end } })).data,
+    enabled: can(me, "finance.view", city ?? region ?? target),
   });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   async function act(fn: () => Promise<unknown>, ok: string) {
@@ -117,12 +133,31 @@ function FinancePage() {
           </table>
         </section>
       ) : null}
+      {contribution.data ? (
+        <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
+          <h2 className="m-0 mb-1 text-lg font-extrabold">Contribution per order · {start} → {end}</h2>
+          <p className="mb-3 text-sm text-muted">What the platform keeps of an average delivered order, after payment fees, rider pay (tips are the rider&apos;s), the offers we fund and the refunds we pay.
+            {contribution.data.fees_estimated ? ` ${contribution.data.fees_estimated} older orders had no payment fee recorded; it's worked out from today's rule.` : ""}</p>
+          <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+            <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="py-2">Per order</th>
+              {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {c.orders} orders</th>)}</tr></thead>
+            <tbody className="divide-y divide-line tabular-nums">
+              {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
+                <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => <td key={c.city} className="text-right">{sign < 0 ? "−" : ""}{money(Number(c.per_order[k] ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+              ))}
+              <tr className="font-extrabold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.keeps ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+            </tbody>
+          </table></div>
+          {contribution.data.cities.length === 0 ? <p className="text-sm text-muted">No delivered orders in this period.</p> : null}
+        </section>
+      ) : null}
       {recon.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
           <h2 className="m-0 mb-3 text-lg font-extrabold">Reconciliation · {start} → {end}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
             {[["Captured", recon.data.money.captured], ["Refunded", recon.data.money.refunded], ["Kitchens are owed", recon.data.money.restaurant_payable], ["Riders are owed", recon.data.money.rider_payable],
-              ["Tax owed", recon.data.money.tax_owed], ["Platform revenue", recon.data.money.platform_revenue], ["Delivered GMV", recon.data.money.delivered_gmv], ["Net collected", recon.data.money.net_collected]]
+              ["Tax owed", recon.data.money.tax_owed], ["Platform revenue", recon.data.money.platform_revenue], ["Payment fees", recon.data.money.payment_fees],
+              ["Platform after payment fees", recon.data.money.platform_after_payment_fees], ["Delivered GMV", recon.data.money.delivered_gmv], ["Net collected", recon.data.money.net_collected]]
               .map(([l, v]) => <div key={l as string} className="rounded-xl bg-porcelain p-3"><div className="text-[12px] font-semibold text-muted">{l}</div><div className="text-lg font-extrabold tabular-nums">{money(Number(v ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}
           </div>
           <p className="mt-3 text-sm">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}

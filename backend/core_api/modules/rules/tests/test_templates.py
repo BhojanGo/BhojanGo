@@ -35,6 +35,7 @@ GOOD = {
     ("business", "batching"): {"live": False},
     ("business", "support_refund_limit"): {"max_per_order": 500},
     ("business", "auto_refund_limit"): {"max_per_order": 100},
+    ("business", "payment_fees"): {"methods": {"card": {"percent": 2.9, "fixed": 0.3}}, "tax_service_percent": 0.5},
     ("promotion", "percent_off"): {"percent": 10, "max_discount": 50, "funded_by": "platform"},
     ("promotion", "flat_off"): {"amount": 75, "funded_by": "restaurant", "min_subtotal": 299, "code": "SAVE75"},
     ("promotion", "free_delivery"): {"funded_by": "restaurant", "budget_cap": 5000},

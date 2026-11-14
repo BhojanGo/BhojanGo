@@ -168,6 +168,7 @@ class OrderService:
             loyalty_points_used=0,
             estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
+        await self._add_payment_fees(q, data.payment_method)
         try:
             await quotes.attach(q, order.id)
         except QuoteError as e:
@@ -176,6 +177,26 @@ class OrderService:
                          _event_payload(order, payment_due_at=order.payment_due_at.isoformat()), SOURCE)  # type: ignore[union-attr]
         logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id), quote_id=q["quote_id"])
         return order
+
+    async def _add_payment_fees(self, q: dict, method: str) -> None:
+        """Payment fees (item 1) go into the order's split once the method is known:
+        "Payment fees", and "platform keeps" = platform after them. Refunds come off
+        later, in finance's contribution report."""
+        from core_api.modules.pricing.service.engine import payment_fee
+        from core_api.modules.rules.service.resolver import Context
+        from core_api.modules.rules.service.rules import RuleService
+
+        ctx = q["context"]
+        rule = (await RuleService(self.db).resolve(Context(country=ctx.get("country"), region=ctx.get("region"),
+                                                           city=ctx.get("city")))).get("business:payment_fees")
+        tax_calculated = any((ln.get("detail") or {}).get("provider") for ln in q["lines"] if ln.get("code") == "tax")
+        fee, detail = payment_fee(Decimal(q["total"]), method, rule.params if rule else None, tax_calculated)
+        q["split"] = {**q["split"], "payment_fees": str(fee),
+                      "platform_keeps": str(Decimal(q["split"]["platform"]) - fee),
+                      "detail": {**q["split"].get("detail", {}), "payment_fees": detail}}
+        if rule:
+            q["rules_used"] = [*q["rules_used"], {"rule_id": str(rule.id), "rule_key": str(rule.rule_key), "version": rule.version,
+                                                 "slot": rule.slot, "scope_level": rule.scope_level, "scope_id": rule.scope_id}]
 
     # ── payment ──────────────────────────────────────────────────────────────
     async def on_payment_succeeded(self, order_id: uuid.UUID) -> None:
