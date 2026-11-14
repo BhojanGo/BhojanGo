@@ -119,6 +119,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 38. **When porting code, have the original produce reference outputs and require the port to match them exactly.**
     Why: the batch engine's ported unit tests check shapes ("score > 0", "pickup before delivery"); a parity fixture made by the TypeScript engine itself (18 scorings, 3 cycles) pins exact scores, distances and routes, including JavaScript's rounding, which Python's `round()` does differently.
 
+39. **When a test turns a feature on, measure that it did something before comparing results.**
+    Why: the first batching-on soak section looked like a clean comparison (delivery times, pay, errors), but it had offered 0 batches: the pairing window was 20 seconds, so two orders from one kitchen never overlapped. Counting batch offers caught it; the fix (#54) put cooking orders in the pool.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

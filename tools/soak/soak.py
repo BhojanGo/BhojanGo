@@ -37,8 +37,8 @@ MINUTES = float(os.environ.get("SOAK_MINUTES", "120"))
 ORDERS = int(os.environ.get("SOAK_ORDERS", "150"))
 OUT = os.environ.get("SOAK_OUT", "/out/soak-result.json")
 PASSWORD = "BhojanGo123"
-RIDERS = [f"rider{i}.boi@example.com" for i in range(1, 9)]
-CUSTOMERS = [f"customer{i}.boi@example.com" for i in range(1, 41)]
+RIDERS = [f"rider{i}.boi@example.com" for i in range(1, int(os.environ.get("SOAK_RIDERS", "8")) + 1)]
+CUSTOMERS = [f"customer{i}.boi@example.com" for i in range(1, int(os.environ.get("SOAK_CUSTOMERS", "40")) + 1)]
 
 # Behaviour mix (per order unless noted)
 P_DECLINE = 0.08        # first card declines
@@ -135,6 +135,9 @@ class OrderRun:
     delivered_at: str = ""
     minutes: float | None = None  # placed (paid) -> delivered, from the order's own timestamps
     ws_messages: int = 0
+    rider: str = ""                # who delivered it
+    rider_pay: float | None = None  # what the offer promised the rider for this order (incl. tip)
+    batched: bool = False          # carried with another order (task 43)
     timeline: list = field(default_factory=list)
 
 
@@ -146,6 +149,8 @@ class Stats:
     offers_seen: int = 0
     offers_passed: int = 0
     offers_accepted: int = 0
+    batch_offers_seen: int = 0
+    batches_accepted: int = 0
     location_pings: int = 0
 
 
@@ -154,6 +159,8 @@ runs: list[OrderRun] = []
 pins: dict[str, str] = {}            # order id -> PIN the customer reads out (riders ask the customer bot)
 customer_of: dict[str, "Person"] = {}  # order id -> customer
 done: dict[str, asyncio.Event] = {}  # order id -> set when it reaches an end state
+run_of: dict[str, "OrderRun"] = {}   # order id -> its run
+shifts: dict[str, list[float]] = {}  # rider -> [online at, offline at] (soak seconds)
 
 
 # ── Arrival schedule: a dinner rush ──────────────────────────────────────────
@@ -260,6 +267,7 @@ async def order_flow(run: OrderRun, cust: Person, kitchen: dict, partner: Person
     if r.status_code != 201:
         raise RuntimeError(f"order {r.status_code} {r.text[:120]}")
     oid = run.order_id = r.json()["id"]
+    run_of[oid] = run
     done[oid] = asyncio.Event()
     customer_of[oid] = cust
     run.timeline.append(("ordered", round(now())))
@@ -368,6 +376,7 @@ async def rider_bot(p: Person, home: tuple[float, float], stop: asyncio.Event) -
         return
     last_ping = 0.0
     seen: set[str] = set()
+    shifts[p.email] = [now(), now()]
 
     async def ping(order_id: str | None = None) -> None:
         nonlocal last_ping
@@ -396,6 +405,9 @@ async def rider_bot(p: Person, home: tuple[float, float], stop: asyncio.Event) -
         if oid and oid not in seen:
             seen.add(oid)
             stats.offers_seen += 1
+            batch = [b["order_id"] for b in offer.get("batch") or []]
+            if len(batch) > 1:
+                stats.batch_offers_seen += 1
             await asyncio.sleep(rnd.uniform(2, 12))  # reads the offer card
             if rnd.random() < P_PASS:
                 await p.rt("POST", f"/offers/{oid}/pass")
@@ -409,35 +421,52 @@ async def rider_bot(p: Person, home: tuple[float, float], stop: asyncio.Event) -
                 log("accept_failed", rider=p.email, order=oid, status=r.status_code)
                 continue
             stats.offers_accepted += 1
+            carrying = (r.json().get("batch") or [oid])
+            pays = {b["order_id"]: b.get("rider_pay") for b in offer.get("batch") or []} or {oid: offer.get("rider_pay")}
+            if len(carrying) > 1:
+                stats.batches_accepted += 1
+            for o in carrying:
+                run = run_of.get(o)
+                if run:
+                    run.rider, run.batched = p.email, len(carrying) > 1
+                    run.rider_pay = float(pays[o]) if pays.get(o) is not None else None
             try:
-                await deliver(p, oid, ride)
+                await deliver(p, carrying, ride)
             except Exception as e:  # noqa: BLE001
-                log("delivery_failed", rider=p.email, order=oid, error=str(e)[:200])
+                log("delivery_failed", rider=p.email, orders=carrying, error=str(e)[:200])
             continue
         await asyncio.sleep(2)
+    shifts[p.email][1] = now()
     await p.rt("POST", "/riders/me/offline")
 
 
-async def deliver(p: Person, oid: str, ride: Any) -> None:
-    await ride(oid, rnd.uniform(*LEG))  # to the kitchen
-    for _ in range(240):  # wait at the counter until it's ready
-        st = (await p.core("GET", f"/orders/{oid}")).json()["status"]
-        if st == "ready":
-            break
+async def deliver(p: Person, orders: list[str], ride: Any) -> None:
+    """One order, or a batch from one kitchen: pick everything up at the counter,
+    then each drop-off in the order realtime gave (the rider app does the same)."""
+    lead = orders[0]
+    await ride(lead, rnd.uniform(*LEG))  # to the kitchen
+    live = list(orders)
+    for o in orders:
+        for _ in range(240):  # wait at the counter until it's ready
+            st = (await p.core("GET", f"/orders/{o}")).json()["status"]
+            if st in ("ready", "cancelled"):
+                break
+            await ride(lead, 10)
         if st == "cancelled":
-            return
-        await ride(oid, 10)
-    r = await p.core("PUT", f"/orders/{oid}/status", json={"status": "picked_up"})
-    if r.status_code != 200:
-        raise RuntimeError(f"picked_up {r.status_code} {r.text[:120]}")
-    await ride(oid, rnd.uniform(*LEG))  # to the customer
-    for _ in range(30):
-        if pins.get(oid):
-            break
-        await asyncio.sleep(2)
-    r = await p.core("PUT", f"/orders/{oid}/status", json={"status": "delivered", "proof": {"method": "pin", "pin": pins.get(oid, "")}})
-    if r.status_code != 200:
-        raise RuntimeError(f"delivered {r.status_code} {r.text[:120]}")
+            live.remove(o)
+            continue
+        r = await p.core("PUT", f"/orders/{o}/status", json={"status": "picked_up"})
+        if r.status_code != 200:
+            raise RuntimeError(f"picked_up {r.status_code} {r.text[:120]}")
+    for i, o in enumerate(live):
+        await ride(o, rnd.uniform(*LEG) * (1 if i == 0 else 0.5))  # the next drop-off is close by
+        for _ in range(30):
+            if pins.get(o):
+                break
+            await asyncio.sleep(2)
+        r = await p.core("PUT", f"/orders/{o}/status", json={"status": "delivered", "proof": {"method": "pin", "pin": pins.get(o, "")}})
+        if r.status_code != 200:
+            raise RuntimeError(f"delivered {r.status_code} {r.text[:120]}")
 
 
 async def main() -> None:
@@ -480,6 +509,32 @@ async def main() -> None:
     write_result()
 
 
+def riders_summary(delivered: list[OrderRun]) -> dict:
+    """Utilisation and pay: orders per rider per hour online, and pay per order and per hour."""
+    hours = {r: max(1e-9, (b - a) / 3600) for r, (a, b) in shifts.items()}
+    total_h = sum(hours.values())
+    per = {r: sum(1 for x in delivered if x.rider == r) for r in shifts}
+    pay = [x.rider_pay for x in delivered if x.rider_pay is not None]
+    batched = [x for x in delivered if x.batched]
+    solo = [x for x in delivered if not x.batched]
+
+    def avg_pay(rs: list[OrderRun]) -> float | None:
+        v = [x.rider_pay for x in rs if x.rider_pay is not None]
+        return round(sum(v) / len(v), 2) if v else None
+
+    return {
+        "riders": len(shifts), "rider_hours": round(total_h, 2),
+        "orders_per_rider_hour": round(len(delivered) / total_h, 2) if total_h else None,
+        "orders_per_rider": {"min": min(per.values(), default=0), "median": statistics.median(per.values()) if per else 0,
+                             "max": max(per.values(), default=0)},
+        "pay_per_rider_hour": round(sum(pay) / total_h, 2) if total_h and pay else None,
+        "pay_per_order": avg_pay(delivered), "orders_batched": len(batched),
+        "pay_per_order_batched": avg_pay(batched), "pay_per_order_solo": avg_pay(solo),
+        "minutes_batched": statistics.median([x.minutes for x in batched if x.minutes is not None] or [0]) if batched else None,
+        "minutes_solo": statistics.median([x.minutes for x in solo if x.minutes is not None] or [0]) if solo else None,
+    }
+
+
 def write_result() -> None:
     delivered = [r for r in runs if r.outcome == "delivered"]
     paid = [r for r in runs if r.outcome not in ("payment_abandoned",) and r.order_id]
@@ -498,6 +553,7 @@ def write_result() -> None:
         "declined_first": sum(r.declined_first for r in runs), "retried_card": sum(r.retried_card for r in runs),
         "problems": {v: sum(1 for r in runs if r.problem == v) for v in {r.problem for r in runs if r.problem}},
         "stats": asdict(stats),
+        "riders": riders_summary(delivered),
         "failures": [{"n": r.n, "order": r.order_id, "outcome": r.outcome, "timeline": r.timeline}
                      for r in runs if r.outcome.startswith("failed") or r.outcome == "started"],
     }

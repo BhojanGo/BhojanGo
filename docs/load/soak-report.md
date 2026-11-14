@@ -1,5 +1,74 @@
 # Pilot dress rehearsal: a 2-hour Boise dinner rush
 
+## Re-run with 25 riders, and batching (2026-11-13/14)
+
+This is the same scenario as the first rehearsal below: 150 orders over 2 hours, with the same mix of card declines,
+cancellations, passes and problem reports. The only change is **25 riders** instead of 8, which is what the pilot plans
+(task 38). Afterwards, two 30-minute sections ran at the rush's rate (60 orders, 25 riders, the same random seed): one
+with Boise's live batching off and one with it on (task 43).
+
+### 2 hours, 25 riders: pass
+
+| | 8 riders (the first rehearsal's 60-minute re-run, after its fixes) | **25 riders** |
+|---|---|---|
+| Completion rate (paid, not cancelled by the customer) | 100% | **100%** (141 of 141) |
+| Delivery time, paid → delivered: median / p90 / max | 13.5 / 19.5 / 21.6 min | **10.4 / 12.2 / 13.5 min** |
+| Waiting for a rider: median / p90 / max | 3.7 / 8.9 / 10.5 min | **0.2 / 0.2 / 0.5 min** |
+| Later orders served first (overtakes) | 14 | **0** |
+| Rider utilisation | about 1.3 orders a minute in total, all riders busy at the peak | **2.83 orders per rider per hour** over 49.8 rider-hours. Each rider delivered 1–11 orders (median 5). At the peak, 17 of 25 were busy at once |
+| Rider pay (each order's offer pay, tip included) | | $7.82 per order, **$22.13 per rider-hour** online, idle time included |
+| Alerts | OrdersWithoutRider (right) | **none** |
+| Server errors, error lines in the logs | 0, 0 | **0, 0** |
+| Memory and connections | flat | flat: core-api +4%, realtime +3%, worker +2%. Postgres memory 120 → 159 MiB as its cache warms; Postgres and Redis connections unchanged |
+
+One WebSocket reconnect was refused: the customer bot reused an access token that had expired at its 15-minute
+mark. Realtime refused it correctly, and the next try, with a refreshed token, was accepted. The app refreshes before
+reconnecting.
+
+**For the pilot:** 25 riders carry this rush with room to spare, about a third of them free at the peak. At $22 per
+hour online, including idle time, riders' earnings depend on how many orders there are. Boise's hourly floor ($15
+per active hour) didn't come into play.
+
+### Batching on vs off (30 minutes at the rush's rate, 25 riders)
+
+The first batching-on section offered **0 batches in 60 orders**, and the cause was in our code, fixed in #54. With
+25 riders an order waits only the 20-second hold, so two orders from one kitchen almost never overlapped. Now, as in
+the engine's original design, an order that's almost ready can be paired with one from the same kitchen that's still
+cooking. These are the runs after that fix, with the kitchens' declared prep time (8 min) matching how long the bots
+cook:
+
+| | Batching off | **Batching on** |
+|---|---|---|
+| Orders delivered (paid, not cancelled) | 54 of 54 | **53 of 53** |
+| Orders that went in a pair | 0 | **32** (16 pairs; 18 pair offers, 2 passed) |
+| Rider trips | 54 | **37** (a third fewer) |
+| Orders per rider per hour | 3.13 | **3.32** |
+| Rider pay per order / per rider-hour | $8.31 / $26.04 | **$8.35 / $27.77** (+7% per hour) |
+| Delivery time: median / p90 / max | 10.5 / 12.4 / 13.6 min | **11.7 / 15.0 / 17.1 min** |
+| Paired vs single orders, median | | 12.4 vs 10.1 min |
+| Waiting for a rider: median / max | 0.2 / 0.7 min | 0.2 / 0.7 min |
+| Errors, alerts | 0, none | 0, none |
+
+**What it means**
+- **Riders and capacity.** Batching saves rider trips: a third fewer here, with the same riders. Each order keeps its
+  own pay, so riders earn about 7% more per hour.
+- **Customers.** They wait longer, about 1 minute at the median and 3–4 minutes at the tail. The second bag rides
+  along, and a paired order may wait at the counter for its partner (the engine keeps that wait within its 8-minute
+  detour limit).
+- **Overtakes.** The overtake count (73) is expected with batching. A pair's second order is assigned when the pair
+  is accepted, ahead of single orders that started looking earlier.
+- **Recommendation: launch the pilot with batching off.** 25 riders aren't short, so the trade costs customers time
+  for no gain. Switch it on for a city on nights when riders are short (fewer than planned, or a big rush): that's
+  when trips matter more than a minute. It's one checkbox in admin and needs no deploy. Whether batches should pay
+  less than two singles (the `batch_bonus` rule exists, unused) is a separate pay decision.
+
+*Bot assumption:* the second drop-off of a pair is half a normal ride leg away (the engine only pairs drop-offs
+within 3 km). Real times will vary.
+
+---
+
+# First rehearsal (8 riders)
+
 **Result: pass, with three fixes.**
 - **The run.** On 2026-11-13, `make dev` + `make observe` carried a simulated two-hour Boise dinner rush: 150 orders,
   5 kitchens, 8 riders.
