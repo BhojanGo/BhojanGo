@@ -166,6 +166,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 54. **Infrastructure as code removes what it doesn't know about.**
     Why: a temporary `qa-runner` service, created outside `.railway/railway.ts`, showed up in the next plan as "Delete service qa-runner". Applying a one-line variable change would have deleted the runner mid-test. Read every delete line in a plan; for a quick change while a temporary service exists, set the variable directly and apply after the service is gone.
 
+55. **A test runner's logs keep whatever you pass it.**
+    Why: the Maestro flows got the QA passwords as a `-e` argument, and Maestro wrote every `-e` value into its run logs and `commands.json`, 93 files under `~/.maestro/tests`. Nothing reached git or a server, but the copies existed. `tools/railway/maestro-qa.sh` now redacts them after every run, and a scan found none left. Before handing a secret to a tool, check where that tool writes its arguments.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
