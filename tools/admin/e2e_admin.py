@@ -17,8 +17,15 @@ from decimal import Decimal
 from playwright.sync_api import expect, sync_playwright
 
 OUT = os.environ.get("OUT", "/out")
-CORE = "http://core-api:8001/api/v1"
+CORE = (os.environ.get("QA_CORE") or "http://core-api:8001") + "/api/v1"
 PW = "BhojanGoAdmin1"
+
+# Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
+# and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).
+PASSWORDS: dict[str, str] = {}
+if os.environ.get("E2E_LOGINS_FILE"):
+    with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
+        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
 results: list[tuple[str, bool, str]] = []
 
 
@@ -69,8 +76,10 @@ def fail(msg: str):  # type: ignore[no-untyped-def]
     raise AssertionError(msg)
 
 
-forward(3001, ("admin", 3000))
-BASE = "http://localhost:3001"
+BASE = os.environ.get("QA_ADMIN", "")
+if not BASE:  # make dev: the console on localhost:3001, forwarded to the admin service
+    forward(3001, ("admin", 3000))
+    BASE = "http://localhost:3001"
 
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -83,7 +92,7 @@ with sync_playwright() as p:
         """Signed in once per run (sign-in is limited to 10 a minute; tokens last 15)."""
         if email not in _tokens:
             for _ in range(20):
-                r = api.post(f"{CORE}/auth/login", data={"email": email, "password": pw})
+                r = api.post(f"{CORE}/auth/login", data={"email": email, "password": PASSWORDS.get(email, pw)})
                 if r.status != 429:
                     break
                 page_wait(6000)
@@ -110,7 +119,7 @@ with sync_playwright() as p:
     def sign_in(page, email: str) -> None:  # type: ignore[no-untyped-def]
         page.goto(f"{BASE}/login", wait_until="networkidle")
         page.locator("input[type=email]").fill(email)
-        page.locator("input[type=password]").fill(PW)
+        page.locator("input[type=password]").fill(PASSWORDS.get(email, PW))
         page.get_by_role("button", name=re.compile("sign in", re.I)).click()
         page.wait_for_url("**/overview**", timeout=20000)
 
@@ -293,7 +302,7 @@ with sync_playwright() as p:
     # an order and its payout use it; end it and the next order is back on the US rate; delete a draft.
     boi_rest = next(r for r in api.get(f"{CORE}/restaurants?limit=50").json()["items"] if r["name"] == "Boise Bowl Co.")
     boi_menu = {i["name"]: i["id"] for c in api.get(f"{CORE}/restaurants/{boi_rest['id']}/menu").json()["categories"] for i in c["items"]}
-    RT = "http://realtime:8004/api/v1"
+    RT = (os.environ.get("QA_RT") or "http://realtime:8004") + "/api/v1"
 
     def delivered_boise_order() -> dict:
         """customer1.boi orders a bowl, pays; the kitchen cooks; rider1.boi takes the offer and delivers it."""

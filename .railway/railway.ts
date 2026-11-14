@@ -81,6 +81,10 @@ export default defineRailway((ctx, project) => {
     ...(prod ? { OTP_FIXED_CODE: "" } : {}),
     ROUTING_PROVIDER: "straight_line",
     LOG_FORMAT: "json",
+    // The client's address for rate limits (sign-in, OTP) and logs: Railway's edge puts it in
+    // X-Real-IP and overwrites one a client sends. The socket peer is Railway's proxy
+    // (100.64.x.x), and X-Forwarded-For ends in edge hops (shared/client_ip.py).
+    CLIENT_IP_HEADER: "X-Real-IP",
   };
 
   // Python services listen on 0.0.0.0. Not `::`: asyncio sets IPV6_V6ONLY on a
@@ -146,12 +150,13 @@ export default defineRailway((ctx, project) => {
   // ARGs), so they point at the public domains. Outside production the two
   // frontends sleep when idle (Railway "Serverless"); the backends don't: they
   // run timers (dispatch, outbox, sweeps) that must keep going.
-  const next = (name: string, pkg: string, dir: string, extra: Env) =>
+  // Health check: a page that answers 200 without signing in (admin's / redirects).
+  const next = (name: string, pkg: string, dir: string, healthcheck: string, extra: Env) =>
     service(name, {
       source: src(),
       build: { builder: "DOCKERFILE", dockerfilePath: "infra/docker/next-app.Dockerfile",
                watchPatterns: [`${dir}/**`, "packages/**", "pnpm-lock.yaml", "infra/docker/next-app.Dockerfile"] },
-      healthcheck: "/",
+      healthcheck,
       healthcheckTimeout: 120,
       deploy: { ...(prod ? {} : { sleepApplication: true }), ...cap(0.5, 0.5) },
       env: {
@@ -164,11 +169,11 @@ export default defineRailway((ctx, project) => {
       },
     });
 
-  const web = next("web", "@bhojango/web", "apps/web", {
+  const web = next("web", "@bhojango/web", "apps/web", "/", {
     CORE_API_INTERNAL_URL: "http://core-api.railway.internal:8001",
     NEXT_PUBLIC_APP_URL: prod ? preserve() : `https://\${{web.RAILWAY_PUBLIC_DOMAIN}}`, // production: the custom domain
   });
-  const admin = next("admin", "@bhojango/admin", "apps/admin", {});
+  const admin = next("admin", "@bhojango/admin", "apps/admin", "/login", {});
 
   return project("bhojango", {
     environments: ["QA", "staging", "production"],

@@ -5,8 +5,11 @@
 //                rider: us.
 //   STEP=check   after we pass, the same order is offered to rider2.
 //   STEP=cleanup ops cancels the order; rider2 goes offline.
-var API = "http://localhost:8001/api/v1";
-var RT = "http://localhost:8004/api/v1";
+// Hosted QA: maestro test -e QA_CORE=https://... -e QA_RT=https://... -e QA_PASSWORDS='{"email":"password"}'
+// (tools/railway/maestro-qa.sh); locally the defaults below.
+var QA_PW = (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS) ? JSON.parse(QA_PASSWORDS) : {};
+var API = (typeof QA_CORE !== "undefined" && QA_CORE ? QA_CORE : "http://localhost:8001") + "/api/v1";
+var RT = (typeof QA_RT !== "undefined" && QA_RT ? QA_RT : "http://localhost:8004") + "/api/v1";
 
 function call(method, url, token, body, extra) {
   var headers = { "Content-Type": "application/json" };
@@ -28,7 +31,7 @@ function must(r, what) {
 function login(email, password) {
   output.tokens = output.tokens || {};
   if (!output.tokens[email]) {
-    output.tokens[email] = must(call("POST", API + "/auth/login", null, { email: email, password: password || "BhojanGo123" }), "login " + email).access_token;
+    output.tokens[email] = must(call("POST", API + "/auth/login", null, { email: email, password: QA_PW[email] || password || "BhojanGo123" }), "login " + email).access_token;
   }
   return output.tokens[email];
 }

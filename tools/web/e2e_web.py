@@ -17,6 +17,17 @@ OUT = os.environ.get("OUT", "/out")
 FORWARD = {3000: ("web", 3000), 8001: ("core-api", 8001), 8004: ("realtime", 8004)}
 results: list[tuple[str, bool, str]] = []
 
+# Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
+# and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).
+PASSWORDS: dict[str, str] = {}
+if os.environ.get("E2E_LOGINS_FILE"):
+    with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
+        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
+QA_WEB, QA_CORE, QA_RT = os.environ.get("QA_WEB", ""), os.environ.get("QA_CORE", ""), os.environ.get("QA_RT", "")
+# The site's own address in canonical links and the sitemap (NEXT_PUBLIC_APP_URL):
+# bhojango.com locally and in production, the QA web domain on QA.
+SITE = QA_WEB or "https://bhojango.com"
+
 
 def forward(port: int, target: tuple[str, int]) -> None:
     srv = socket.socket()
@@ -65,7 +76,8 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
     """The rest of the world (kitchen, ops, rider) through the same APIs the apps use."""
     import urllib.request
 
-    req = urllib.request.Request(f"http://localhost:{host}/api/v1{path}", method=method,
+    root = (QA_RT if host == 8004 else QA_CORE) or f"http://localhost:{host}"
+    req = urllib.request.Request(f"{root}/api/v1{path}", method=method,
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})})
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -74,7 +86,7 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def login(email: str, password: str = "BhojanGo123") -> str:
-    return api("POST", "/auth/login", None, {"email": email, "password": password})["access_token"]
+    return api("POST", "/auth/login", None, {"email": email, "password": PASSWORDS.get(email, password)})["access_token"]
 
 
 def sub(token: str) -> str:
@@ -93,15 +105,16 @@ def no_sideways_scroll(page) -> None:  # type: ignore[no-untyped-def]
     assert w <= 392, f"page is {w}px wide at 390"
 
 
-for port, target in FORWARD.items():
-    forward(port, target)
+if not QA_WEB:  # make dev: forward localhost to the compose services
+    for port, target in FORWARD.items():
+        forward(port, target)
 
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = b.new_context(viewport={"width": 1280, "height": 900}, geolocation={"latitude": 17.4483, "longitude": 78.3915},
                         permissions=["geolocation"])
     page = ctx.new_page()
-    base = "http://localhost:3000"
+    base = QA_WEB or "http://localhost:3000"
 
     page.goto(base, wait_until="networkidle")
     check("home: promise, cities and kitchens", lambda: (
@@ -129,7 +142,7 @@ with sync_playwright() as p:
         expect(page).to_have_title("Food delivery in Hyderabad · BhojanGo"),
         expect(page.get_by_role("heading", name="Food delivery in Hyderabad")).to_be_visible(),
         json.loads(page.locator('script[type="application/ld+json"]').first.inner_text())["@type"] == "ItemList" or (_ for _ in ()).throw(AssertionError("no ItemList")),
-        expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", "https://bhojango.com/hyderabad")))
+        expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}/hyderabad")))
     shot(page, "02-city")
 
     page.get_by_role("link", name="Spice Route Kitchen").first.click()
@@ -243,7 +256,7 @@ with sync_playwright() as p:
 
     r = page.request.get(f"{base}/sitemap.xml")
     check("sitemap lists city and restaurant pages", lambda: (
-        "https://bhojango.com/boise" in r.text() and "/hyderabad/spice-route-kitchen-madhapur" in r.text()
+        f"{SITE}/boise" in r.text() and "/hyderabad/spice-route-kitchen-madhapur" in r.text()
         and "kesar-kitchen" not in r.text()) or (_ for _ in ()).throw(AssertionError(r.text()[:300])))
     rb = page.request.get(f"{base}/robots.txt").text()
     check("robots keeps checkout and orders out", lambda: ("Disallow: /checkout" in rb and "Disallow: /orders" in rb) or (_ for _ in ()).throw(AssertionError(rb)))

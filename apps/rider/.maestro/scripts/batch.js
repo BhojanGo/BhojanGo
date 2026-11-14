@@ -6,8 +6,11 @@
 //                 pair to us. output.first / output.second: the order ids.
 //   STEP=ready    the kitchen marks both ready; output.pin1 / output.pin2 for the drop-offs.
 //   STEP=cleanup  batching back off; anything left from an earlier run cancelled.
-var API = "http://localhost:8001/api/v1";
-var RT = "http://localhost:8004/api/v1";
+// Hosted QA: maestro test -e QA_CORE=https://... -e QA_RT=https://... -e QA_PASSWORDS='{"email":"password"}'
+// (tools/railway/maestro-qa.sh); locally the defaults below.
+var QA_PW = (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS) ? JSON.parse(QA_PASSWORDS) : {};
+var API = (typeof QA_CORE !== "undefined" && QA_CORE ? QA_CORE : "http://localhost:8001") + "/api/v1";
+var RT = (typeof QA_RT !== "undefined" && QA_RT ? QA_RT : "http://localhost:8004") + "/api/v1";
 
 function call(method, url, token, body, extra) {
   var headers = { "Content-Type": "application/json" };
@@ -31,7 +34,7 @@ function login(email, password) {
   // Sign-in is limited to 10 a minute: keep each token for the run (output lives across steps).
   var key = "tok_" + email.replace(/[^a-z0-9]/g, "_");
   if (output[key]) return output[key];
-  var r = call("POST", API + "/auth/login", null, { email: email, password: password || "BhojanGo123" });
+  var r = call("POST", API + "/auth/login", null, { email: email, password: QA_PW[email] || password || "BhojanGo123" });
   if (r.status !== 200) throw new Error("login " + email + " -> " + r.status);
   output[key] = r.body.access_token;
   return output[key];

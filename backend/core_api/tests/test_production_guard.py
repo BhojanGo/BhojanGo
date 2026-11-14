@@ -37,3 +37,10 @@ def test_production_needs_the_fixed_otp_cleared(monkeypatch) -> None:  # type: i
 def test_other_environments_keep_the_fakes(monkeypatch, env) -> None:  # type: ignore[no-untyped-def]
     s = make(monkeypatch, APP_ENV=env, RAILWAY_ENVIRONMENT_NAME="QA", PAYMENT_PROVIDER="fake")
     assert not s.production_named and s.providers.OTP_FIXED_CODE == "123456"
+
+
+@pytest.mark.parametrize(("given", "used"), [("virtual-host", "virtual"), ("virtual", "virtual"), ("path", "path"),
+                                             ("auto", "auto")])
+def test_railway_bucket_url_style_maps_to_boto(monkeypatch, given, used) -> None:  # type: ignore[no-untyped-def]
+    """`railway bucket credentials` gives urlStyle "virtual-host"; boto3 only knows "virtual"."""
+    assert make(monkeypatch, APP_ENV="qa", S3_ADDRESSING_STYLE=given).providers.S3_ADDRESSING_STYLE == used
