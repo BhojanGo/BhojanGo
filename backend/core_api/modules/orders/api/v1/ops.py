@@ -247,6 +247,21 @@ class OpsOrder(BaseModel):
     pickup: list[float] | None = None
 
 
+def search_terms(q: str) -> tuple[str, bool, bool]:
+    """How a search box entry is read: (term, by order code, by phone).
+
+    An order code is the first hex digits of its id (#A9D1F0), and some codes are
+    all digits (#418292), so a number of 6+ digits is tried both as the end of a
+    customer's phone and as a code. A leading # means a code only."""
+    raw = q.strip()
+    term = raw.lstrip("#").lower().replace("-", "")
+    if raw.startswith("#"):
+        return term, True, False
+    if term.isdigit() and len(term) >= 6:
+        return term, len(term) <= 32, True
+    return term, True, False
+
+
 @router.get("/orders", response_model=list[OpsOrder])
 async def orders(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*|[A-Z]{2}(-[A-Z0-9]{1,3}(-[A-Z0-9]{2,5})?)?)$"),
                  view: Literal["live", "attention", "today", "search"] = "live", q: str | None = Query(None, max_length=40),
@@ -265,14 +280,17 @@ async def orders(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*|[
     if view == "search":
         if not q:
             return []
-        term = q.strip().lstrip("#").lower().replace("-", "")
-        if term.isdigit() and len(term) >= 6:
-            users = [u for (u,) in (await db.execute(select(User.id).where(User.phone.like(f"%{term}")))).all()]
-            stmt = stmt.where(Order.customer_id.in_(users)) if users else stmt.where(Order.id == uuid.UUID(int=0))
-        else:
-            from sqlalchemy import String, cast, func
+        from sqlalchemy import String, cast, func, or_
 
-            stmt = stmt.where(func.replace(cast(Order.id, String), "-", "").like(f"{term}%"))
+        term, by_code, by_phone = search_terms(q)
+        match = []
+        if by_code:
+            match.append(func.replace(cast(Order.id, String), "-", "").like(f"{term}%"))
+        if by_phone:
+            users = [u for (u,) in (await db.execute(select(User.id).where(User.phone.like(f"%{term}")))).all()]
+            if users:
+                match.append(Order.customer_id.in_(users))
+        stmt = stmt.where(or_(*match)) if match else stmt.where(Order.id == uuid.UUID(int=0))
         stmt = stmt.order_by(Order.created_at.desc()).limit(limit)
     elif view == "today":
         stmt = stmt.where(Order.created_at >= now - timedelta(hours=24), Order.status != "pending_payment").order_by(Order.created_at.desc()).limit(limit)
