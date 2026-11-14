@@ -127,8 +127,11 @@ class RuleService:
     # ── drafts ───────────────────────────────────────────────────────────────
     async def create(self, actor: uuid.UUID, *, family: str, template: str, params: dict, scope_level: str,
                      scope_id: str, key: str | None = None, name: str | None = None, priority: int = 0,
-                     locked: bool = False, effective_from: datetime | None = None) -> Rule:
+                     locked: bool = False, effective_from: datetime | None = None,
+                     effective_to: datetime | None = None) -> Rule:
         clean = templates.validate_params(family, template, params)
+        if effective_to is not None and effective_to <= (effective_from or now()):
+            raise RuleError("The end date must be after the start")
         templates.check_key(key)
         if scope_level not in templates.ALLOWED_LEVELS[family]:
             allowed = ", ".join(sorted(templates.ALLOWED_LEVELS[family], key=templates.LEVELS.index))
@@ -138,7 +141,7 @@ class RuleService:
             rule_key=uuid.uuid4(), version=1, family=family, template=template, key=key,
             slot=templates.slot_for(family, template, key), name=name, params=clean,
             scope_level=scope_level, scope_id=scope_id, market_scope=market_scope, priority=priority,
-            locked=locked, status="draft", effective_from=effective_from or now(), created_by=actor,
+            locked=locked, status="draft", effective_from=effective_from or now(), effective_to=effective_to, created_by=actor,
         )
         self.db.add(r)
         await self.db.flush()
@@ -153,9 +156,11 @@ class RuleService:
         before = snapshot(r)
         if "params" in patch:
             r.params = templates.validate_params(r.family, r.template, patch.pop("params"))
-        for k in ("name", "priority", "locked", "effective_from"):
+        for k in ("name", "priority", "locked", "effective_from", "effective_to"):
             if k in patch:
                 setattr(r, k, patch[k])
+        if r.effective_to is not None and r.effective_to <= r.effective_from:
+            raise RuleError("The end date must be after the start")
         r.status = "draft"
         await self.db.flush()
         await audit.record(self.db, actor_id=actor, action="rule.edited", entity_type="rule",
@@ -195,11 +200,11 @@ class RuleService:
 
     # ── review and publish ───────────────────────────────────────────────────
     async def submit(self, actor: uuid.UUID, rule_id: uuid.UUID) -> Rule:
-        """Money rules wait for a second admin; business rules publish now."""
+        """Money rules (and batching) wait for a second admin; other business rules publish now."""
         r = await self.get(rule_id)
         if r.status != "draft":
             raise RuleError("Only a draft can be sent for review")
-        if r.family in templates.MONEY_FAMILIES:
+        if templates.needs_approval(r.family, r.template):
             r.status = "pending_approval"
             self.db.add(RuleApproval(rule_id=r.id, requested_by=actor))
             await self.db.flush()

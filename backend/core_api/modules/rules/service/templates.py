@@ -154,6 +154,14 @@ class CommissionByTier(_P):
         return self
 
 
+class CommissionPercent(_P):
+    """One percentage of the food subtotal, whatever the restaurant's tier
+    (typically a restaurant's or a city's own deal)."""
+
+    percent: Decimal = Field(ge=0, le=100)
+    base: Literal["food_subtotal"] = "food_subtotal"
+
+
 class CommissionFlat(_P):
     amount: Money = Field(ge=0, description="Per order, on top of the percentage")
 
@@ -279,6 +287,25 @@ class PromoReferral(_Promo):
 
 FAMILIES = ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "business", "promotion")
 MONEY_FAMILIES = frozenset(FAMILIES) - {"business"}
+# Business rules publish at once, except these: they change what riders are paid or
+# offered (batching: a second drop-off's pay), so a second admin approves them too.
+APPROVAL_TEMPLATES = frozenset({("business", "batching")})
+# The commission rate: whichever of these is most specific wins (restaurant > city >
+# country). A flat fee per order is added on top, in its own slot.
+COMMISSION_RATE_TEMPLATES = frozenset({"percent", "percent_by_tier"})
+
+
+def needs_approval(family: str, template: str) -> bool:
+    """Money rules (they change customer prices, rider pay or commission) need a second admin."""
+    return family in MONEY_FAMILIES or (family, template) in APPROVAL_TEMPLATES
+
+
+def commission_percent(template: str, params: dict, tier: str | None) -> Decimal:
+    """The commission percentage a rate rule gives a restaurant of this tier."""
+    if template == "percent":
+        return Decimal(str(params["percent"]))
+    tiers = params["tiers"]
+    return Decimal(str(tiers.get(tier or params["default_tier"], tiers[params["default_tier"]])))
 
 LEVELS = ("platform", "country", "region", "city", "zone", "restaurant")
 ALLOWED_LEVELS: dict[str, frozenset[str]] = {
@@ -306,7 +333,8 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "late_night_fee": LateNightFee,
     },
     "tax": {"rate_on_lines": TaxRateOnLines, "external": TaxExternal},
-    "commission": {"percent_by_tier": CommissionByTier, "flat_per_order": CommissionFlat, "payout_schedule": PayoutSchedule},
+    "commission": {"percent": CommissionPercent, "percent_by_tier": CommissionByTier, "flat_per_order": CommissionFlat,
+                   "payout_schedule": PayoutSchedule},
     "rider_pay": {
         "base_distance_wait": RiderBaseDistanceWait,
         "hourly_floor": RiderHourlyFloor,
@@ -358,6 +386,8 @@ def slot_for(family: str, template: str, key: str | None) -> str:
     if family == "promotion":
         # Every promotion is its own slot: several offers can be live at once.
         return f"promotion:{template}:{key or 'default'}"
+    if family == "commission" and template in COMMISSION_RATE_TEMPLATES:
+        return "commission:rate"  # one rate: the most specific rule replaces the others
     return f"{family}:{template}" + (f":{key}" if key else "")
 
 
@@ -372,7 +402,7 @@ def catalogue() -> list[dict]:
         {
             "family": family,
             "template": name,
-            "money": family in MONEY_FAMILIES,
+            "money": needs_approval(family, name),
             "allowed_levels": sorted(ALLOWED_LEVELS[family], key=LEVELS.index),
             "params_schema": model.model_json_schema(),
         }

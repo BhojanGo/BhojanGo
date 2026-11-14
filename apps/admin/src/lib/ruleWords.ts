@@ -67,6 +67,7 @@ export function describe(template: string, params: P, scope: string): string {
       return `${String(p.label ?? "Tax")}: ${n(p.rate_percent)}% on ${((p.target_lines as string[]) ?? []).map((l) => LINE_NAMES[l] ?? l).join(", ")}`
         + ` · collected by ${p.collected_by === "restaurant" ? "the kitchen" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`;
     case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo";
+    case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";
     case "flat_per_order": return `${m(p.amount, cur)} per order on top of the percentage`;
     case "payout_schedule": return `Paid ${p.frequency === "biweekly" ? "every two weeks" : "weekly"} on ${DAYS[String(p.day)] ?? p.day}, ${n(p.hold_days)} days after the week ends`;

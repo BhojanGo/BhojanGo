@@ -18,6 +18,7 @@ class RuleCreate(BaseModel):
     priority: int = 0
     locked: bool = Field(default=False, description="Can't be overridden below this level")
     effective_from: datetime | None = Field(default=None, description="Start; defaults to when it is published")
+    effective_to: datetime | None = Field(default=None, description="End (optional); after it, the inherited rule applies again")
 
 
 class RuleUpdate(BaseModel):
@@ -26,6 +27,7 @@ class RuleUpdate(BaseModel):
     priority: int | None = None
     locked: bool | None = None
     effective_from: datetime | None = None
+    effective_to: datetime | None = None
 
 
 class NewVersion(BaseModel):

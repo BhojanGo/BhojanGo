@@ -251,3 +251,34 @@ def test_external_tax_lines_from_the_provider() -> None:
     assert q.total == Decimal("25.00") + Decimal("1.99") + Decimal("1.25") + Decimal("1.69") + Decimal("3.00")
     assert q.split.tax == Decimal("1.69")
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform == q.total
+
+
+# ── commission precedence: restaurant > city > country (one rate slot) ─────────
+
+def _at(c: Candidate, level: str, sid: str, **kw) -> Candidate:  # type: ignore[no-untyped-def]
+    from dataclasses import replace
+
+    return replace(c, scope_level=level, scope_id=sid, **kw)
+
+
+def test_commission_rate_most_specific_wins_and_ended_override_falls_back() -> None:
+    from core_api.modules.rules.service.resolver import Context, resolve
+
+    country = _at(rule("commission", "percent_by_tier", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}), "country", "US")
+    city = _at(rule("commission", "percent", {"percent": 15}), "city", "US-ID-BOI")
+    kitchen = _at(rule("commission", "percent", {"percent": 12}), "restaurant", "r1")
+    flat = _at(rule("commission", "flat_per_order", {"amount": 1}), "country", "US")
+    ctx = Context(country="US", region="US-ID", city="US-ID-BOI", restaurant_id="r1")
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+
+    def pct(cands: list[Candidate]) -> Decimal:
+        picked = resolve(cands, ctx, at)
+        q = quote(rules={**hyderabad_rules(), **{s: c for s, c in picked.items() if s.startswith("commission")}})
+        return q.split.detail["commission"]
+
+    food = Decimal("560.00")
+    assert pct([country, city, kitchen, flat]) == food * 12 / 100 + 1          # the restaurant's own deal, plus the flat fee
+    assert pct([country, city, flat]) == food * 15 / 100 + 1                   # no restaurant deal: the city's
+    assert pct([country, flat]) == food * 20 / 100 + 1                         # neither: the country's, tier B
+    ended = _at(kitchen, "restaurant", "r1", effective_to=datetime(2026, 11, 1, tzinfo=UTC))
+    assert pct([country, city, ended, flat]) == food * 15 / 100 + 1            # an ended override falls back to the city

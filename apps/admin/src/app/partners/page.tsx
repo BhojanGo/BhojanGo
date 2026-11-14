@@ -33,6 +33,80 @@ function useCityNames(scope: string) {
     .map((c) => ({ code: c.code, name: c.name }));
 }
 
+interface Commission {
+  restaurant_id: string; name: string; city: string | null; country: string; tier: string | null; percent: string | null; flat_per_order: string | null;
+  rate_source: { rule_id: string; version: number; template: string; name: string | null; scope_level: string; scope_id: string; effective_to: string | null } | null;
+  pending_tier_change: { id: string; to: string; from: string | null; requested_by: string; note: string } | null;
+}
+
+const LEVEL_SOURCE: Record<string, string> = { restaurant: "this restaurant's own rule", city: "the city's rule", country: "the country's rule", region: "the state's rule" };
+
+/** A kitchen's commission (Pricing & Rules, commissions first): the rate it pays now, which
+ * rule sets it and until when, and its tier; a tier change waits for a second admin. */
+function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
+  const { data: me } = useAdminMe();
+  const qc = useQueryClient();
+  const c = useQuery({ queryKey: ["kitchen-commission", kitchen.id], queryFn: async () => (await adminApi.get<Commission>(`/user/rules/commission/restaurants/${kitchen.id}`)).data });
+  const [tier, setTier] = useState("A");
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!c.data) return <p className="text-sm text-muted">Loading commission…</p>;
+  const d = c.data;
+  const scope = d.city ?? d.country;
+  const cur = d.country === "US" ? "$" : "₹";
+  const src = d.rate_source;
+  async function run(fn: () => Promise<unknown>, ok: string) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await fn();
+      setMsg({ ok: true, text: ok });
+      setNote("");
+      await qc.invalidateQueries({ queryKey: ["kitchen-commission", kitchen.id] });
+    } catch (e) {
+      setMsg({ ok: false, text: apiMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+  const pending = d.pending_tier_change;
+  return (
+    <section className="space-y-3 rounded-2xl bg-white p-6" aria-label={`Commission · ${d.name}`}>
+      <h2 className="m-0 font-display text-2xl font-semibold">{d.name}</h2>
+      <p className="text-[15px]" data-testid="kitchen-commission">
+        Pays <b>{d.percent ?? "no"}%</b> of food{d.flat_per_order ? ` + ${cur}${Number(d.flat_per_order).toFixed(2)} per order` : ""}
+        {src ? <> · set by {LEVEL_SOURCE[src.scope_level] ?? src.scope_level}{src.name ? ` “${src.name}”` : ""} (v{src.version})</> : null}
+        {src?.effective_to ? <> · until {new Date(src.effective_to).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</> : null}
+      </p>
+      <p className="text-sm">Tier <b data-testid="kitchen-tier">{d.tier ?? "default"}</b>
+        {pending ? <> · <span className="text-kesar-ink">change to tier {pending.to} waiting for approval (“{pending.note}”)</span></> : null}</p>
+      {pending && can(me, "rules.approve", scope) && pending.requested_by !== me?.user_id ? (
+        <div className="flex gap-2">
+          <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/commission/tier-changes/${pending.id}/approve`, {}), `Tier changed to ${pending.to}.`)}
+            className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Approve tier {pending.to}</button>
+          <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/commission/tier-changes/${pending.id}/reject`, {}), "Tier change turned down.")}
+            className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili">Turn down</button>
+        </div>
+      ) : null}
+      {!pending && can(me, "rules.edit", scope) ? (
+        <div className="flex flex-wrap items-end gap-2 text-sm">
+          <label className="font-bold">Change tier to
+            <select aria-label="New tier" value={tier} onChange={(e) => setTier(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
+              {["A", "B", "C"].filter((t) => t !== d.tier).map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </label>
+          <input aria-label="Why (kept in the audit log)" placeholder="Why (kept in the audit log)" value={note} onChange={(e) => setNote(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4" />
+          <button type="button" disabled={busy || note.trim().length < 3}
+            onClick={() => void run(() => adminApi.post(`/user/rules/commission/restaurants/${kitchen.id}/tier`, { tier, note: note.trim() }), "Sent for approval: a second admin approves tier changes.")}
+            className="h-10 rounded-full border border-line-strong px-4 font-bold disabled:opacity-40">Ask for tier {tier}</button>
+        </div>
+      ) : null}
+      {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+    </section>
+  );
+}
+
 async function openFile(key: string) {
   const r = await adminApi.get("/user/uploads/view", { params: { key }, responseType: "blob" });
   window.open(URL.createObjectURL(r.data as Blob), "_blank", "noopener");
@@ -48,6 +122,8 @@ function Kitchens({ scope }: { scope: string }) {
     enabled: cities.length > 0,
   });
   const list = (data ?? []).filter((k) => !q || k.name.toLowerCase().includes(q.toLowerCase()));
+  const [open, setOpen] = useState<string | null>(null);
+  const opened = list.find((k) => k.id === open) ?? null;
   return (
     <section className="space-y-3">
       <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-80 rounded-full border border-line-strong bg-white px-4 text-sm" />
@@ -57,7 +133,7 @@ function Kitchens({ scope }: { scope: string }) {
           <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>FSSAI</th><th>Open</th></tr></thead>
           <tbody className="divide-y divide-line">
             {list.map((k) => (
-              <tr key={k.id}><td className="px-4 py-3 font-bold">{k.name}</td><td>{k.city}</td><td className="text-muted">{k.cuisine_types.join(", ")}</td>
+              <tr key={k.id} onClick={() => setOpen(k.id)} className={`cursor-pointer ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}><td className="px-4 py-3 font-bold"><button type="button" className="font-bold">{k.name}</button></td><td>{k.city}</td><td className="text-muted">{k.cuisine_types.join(", ")}</td>
                 <td>{k.rating ? `★ ${Number(k.rating).toFixed(1)}` : "—"}</td>
                 <td className="text-muted">{k.country === "IN" ? (k.fssai_expires_on ? `until ${k.fssai_expires_on}` : "missing") : "n/a"}</td>
                 <td>{k.is_open === false ? "Paused" : "Yes"}</td></tr>
@@ -65,6 +141,7 @@ function Kitchens({ scope }: { scope: string }) {
           </tbody>
         </table>
       </div>
+      {opened ? <KitchenCommission key={opened.id} kitchen={opened} /> : null}
     </section>
   );
 }

@@ -53,8 +53,12 @@ function batching(live) {
   if (!!rule.params.live !== live) {
     var v = call("POST", API + "/rules/" + rule.id + "/versions", cm, { params: { live: live } });
     if (v.status >= 300) throw new Error("batching rule " + v.status + " " + JSON.stringify(v.body));
-    var sub = call("POST", API + "/rules/" + v.body.id + "/submit", cm);  // business rules go live on submit
+    var sub = call("POST", API + "/rules/" + v.body.id + "/submit", cm);  // batching changes rider pay: maker-checker
     if (sub.status >= 300) throw new Error("batching submit " + sub.status + " " + JSON.stringify(sub.body));
+    if (sub.body.status === "pending_approval") {
+      var ok = call("POST", API + "/rules/" + v.body.id + "/approve", login("finance.in@example.com", "BhojanGoAdmin1"), { note: "e2e" });
+      if (ok.status >= 300) throw new Error("batching approve " + ok.status + " " + JSON.stringify(ok.body));
+    }
   }
 }
 
