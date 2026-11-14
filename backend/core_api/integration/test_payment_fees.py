@@ -79,9 +79,11 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
     r = await client.put(f"/api/v1/orders/{o['id']}/status", headers=rider, json={"status": "delivered", "proof": {"method": "pin", "pin": pin}})
     assert r.status_code == 200, r.text
 
+    # A period ends at local midnight on `end`: two days ahead covers "now" in every
+    # city, even when Hyderabad is already a day ahead of UTC (18:30-24:00 UTC).
     today = date.today()
     rep = (await client.get("/api/v1/finance/contribution", headers=fin, params={
-        "scope": "IN-TG-HYD", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=1))})).json()
+        "scope": "IN-TG-HYD", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=2))})).json()
     city = next(c for c in rep["cities"] if c["city"] == "IN-TG-HYD")
     t = {k: Decimal(v) for k, v in city["totals"].items()}
     assert city["orders"] >= 1 and t["payment_fees"] > 0
@@ -91,5 +93,5 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
     assert Decimal(city["per_order"]["keeps"]) == (t["keeps"] / city["orders"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     # the reconciliation shows payment fees too
     rec = (await client.get("/api/v1/finance/reconciliation", headers=fin, params={
-        "country": "IN", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=1))})).json()
+        "country": "IN", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=2))})).json()
     assert rec["money"]["payment_fees"] >= 0 and "platform_after_payment_fees" in rec["money"]

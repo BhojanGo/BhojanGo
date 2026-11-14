@@ -65,9 +65,11 @@ async def test_second_drop_off_pays_the_batch_rate(client: AsyncClient) -> None:
         assert (await move(client, rider, o["id"], "picked_up")).status_code == 200
         assert (await move(client, rider, o["id"], "delivered")).json()["status"] == "delivered"
 
+    # A period ends at local midnight on `end`: two days ahead covers "now" in every
+    # city, even when Hyderabad is already a day ahead of UTC (18:30-24:00 UTC).
     today = datetime.now(UTC).date()
     async with AsyncSessionLocal() as db:
-        orders = await _orders_for_period(db, "IN", today - timedelta(days=1), today + timedelta(days=1),
+        orders = await _orders_for_period(db, "IN", today - timedelta(days=1), today + timedelta(days=2),
                                           rider_id=uuid.UUID(user_id(rider)))
     _, _, lines = S.rider_statement(orders, floor_per_hour=None)
     by_id = {ln["order_id"]: ln for ln in lines}

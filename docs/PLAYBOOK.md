@@ -169,6 +169,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 55. **A test runner's logs keep whatever you pass it.**
     Why: the Maestro flows got the QA passwords as a `-e` argument, and Maestro wrote every `-e` value into its run logs and `commands.json`, 93 files under `~/.maestro/tests`. Nothing reached git or a server, but the copies existed. `tools/railway/maestro-qa.sh` now redacts them after every run, and a scan found none left. Before handing a secret to a tool, check where that tool writes its arguments.
 
+56. **A test's date window must be in the timezone the code uses, or wide enough for all of them.**
+    Why: two integration tests built "yesterday to tomorrow" from the UTC date, but periods end at local midnight in each city, so for five and a half hours a day (Hyderabad already on the next day) the order they had just delivered fell outside and `make ci` went red.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
