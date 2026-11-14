@@ -122,6 +122,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 39. **When a test turns a feature on, measure that it did something before comparing results.**
     Why: the first batching-on soak section looked like a clean comparison (delivery times, pay, errors), but it had offered 0 batches: the pairing window was 20 seconds, so two orders from one kitchen never overlapped. Counting batch offers caught it; the fix (#54) put cooking orders in the pool.
 
+40. **A status label must be true of the version it's on: "Live" only for the one running now.**
+    Why: rule history showed every published version as "Live", including ones replaced months ago, so an admin couldn't tell which commission was charging. Now an older version says "Replaced on <date>" or "Ended on <date>".
+
+41. **Report the runs on the main branch, not only the PR checks.**
+    Why: every PR check was green while the pipeline on `dev` failed 18 times (G1 on GitHub for 15 merges, a flaky order-code search, a Docker Hub outage). Reports now include the run link and per-job test counts for each merge commit (`tools/ci/evidence.sh`).
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

@@ -1660,24 +1660,6 @@
         "title": "CountryUpdate",
         "type": "object"
       },
-      "Decision": {
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          }
-        },
-        "title": "Decision",
-        "type": "object"
-      },
       "DeliveryCheckResponse": {
         "properties": {
           "currency": {
@@ -7201,6 +7183,19 @@
             "description": "Start; defaults to when it is published",
             "title": "Effective From"
           },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "End (optional); after it, the inherited rule applies again",
+            "title": "Effective To"
+          },
           "family": {
             "examples": [
               "customer_fee"
@@ -7497,6 +7492,18 @@
               }
             ],
             "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
           },
           "locked": {
             "anyOf": [
@@ -8176,6 +8183,31 @@
           "resolution"
         ],
         "title": "TicketOut",
+        "type": "object"
+      },
+      "TierIn": {
+        "properties": {
+          "note": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Note",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "note"
+        ],
+        "title": "TierIn",
         "type": "object"
       },
       "UserResponse": {
@@ -8987,6 +9019,42 @@
           "required"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "core_api__modules__rules__api__v1__commission__Decision": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "Decision",
+        "type": "object"
+      },
+      "core_api__modules__rules__schemas__Decision": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "Decision",
         "type": "object"
       }
     },
@@ -15775,6 +15843,301 @@
         ]
       }
     },
+    "/api/v1/rules/commission/preview/{rule_id}": {
+      "get": {
+        "description": "A commission draft against the last ``days`` days of delivered orders in its scope: each\norder's commission as priced (its snapshot) and as this draft would have priced it, and\nwhat that does to restaurant payouts. Nothing changes; it's for deciding.",
+        "operationId": "preview_api_v1_rules_commission_preview__rule_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "maximum": 31,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Preview Api V1 Rules Commission Preview  Rule Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Preview",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/commission/restaurants/{restaurant_id}": {
+      "get": {
+        "description": "What this restaurant pays now: the rate, which rule sets it (the restaurant's own,\nits city's or its country's), when that rule ends, its tier, and any tier change waiting.",
+        "operationId": "restaurant_commission_api_v1_rules_commission_restaurants__restaurant_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Restaurant Commission Api V1 Rules Commission Restaurants  Restaurant Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Restaurant Commission",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/commission/restaurants/{restaurant_id}/tier": {
+      "post": {
+        "description": "A tier changes the restaurant's commission (and tier-based delivery fees), so a second\nadmin approves it, like a money rule.",
+        "operationId": "request_tier_change_api_v1_rules_commission_restaurants__restaurant_id__tier_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TierIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Request Tier Change Api V1 Rules Commission Restaurants  Restaurant Id  Tier Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Request Tier Change",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/commission/tier-changes/{change_id}/approve": {
+      "post": {
+        "operationId": "approve_tier_change_api_v1_rules_commission_tier_changes__change_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/core_api__modules__rules__api__v1__commission__Decision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Approve Tier Change Api V1 Rules Commission Tier Changes  Change Id  Approve Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Approve Tier Change",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/commission/tier-changes/{change_id}/reject": {
+      "post": {
+        "operationId": "reject_tier_change_api_v1_rules_commission_tier_changes__change_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/core_api__modules__rules__api__v1__commission__Decision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reject Tier Change Api V1 Rules Commission Tier Changes  Change Id  Reject Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Reject Tier Change",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
     "/api/v1/rules/resolve": {
       "get": {
         "description": "The rule that applies in each slot for this place and time.",
@@ -16125,7 +16488,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Decision"
+                "$ref": "#/components/schemas/core_api__modules__rules__schemas__Decision"
               }
             }
           },
