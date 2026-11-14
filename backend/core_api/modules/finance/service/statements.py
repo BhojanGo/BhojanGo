@@ -10,6 +10,8 @@ Restaurant, per delivered order (from its pricing snapshot):
 
 Rider, per delivered order:
     base + per km/mi x distance + waiting pay, + tip
+  a later drop-off of a batch (item 2): no base; distance + waiting + the city's
+  batch bonus, + tip
   and for the period a top-up to the hourly floor:
     floor x active hours - (base + distance + waiting)   if positive
   Engaged time = from accepting the offer to drop-off (driving to the
@@ -45,6 +47,8 @@ class OrderForPayout:
     started_at: datetime | None  # when the rider accepted the offer (pickup for older orders)
     wait_minutes: Decimal = ZERO
     refund_lines: list[dict] = field(default_factory=list)  # refunded items (P12), each with "reason" and "fault"
+    batch_position: int | None = None  # item 2: 2+ = a later drop-off of a batch
+    batch_bonus: Decimal | None = None
 
 
 def restaurant_statement(orders: list[OrderForPayout]) -> tuple[Decimal, dict, list[dict]]:
@@ -99,14 +103,17 @@ def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None
     earned = {"base": ZERO, "distance": ZERO, "waiting": ZERO, "tips": ZERO}
     for o in orders:
         p = o.rider_rule or {}
-        base = m(D(p.get("base")))
+        later = bool(o.batch_position and o.batch_position >= 2)  # item 2: no base, the batch bonus instead
+        base = m(ZERO) if later else m(D(p.get("base")))
+        bonus = m(D(o.batch_bonus)) if later else m(ZERO)
         dist = m(D(p.get("per_unit")) * o.distance)
         wait = m(D(p.get("per_wait_minute")) * max(ZERO, o.wait_minutes - D(p.get("free_wait_minutes", 0))))
         tip = m(D(o.split.get("detail", {}).get("tip")))
         lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "base": str(base),
                       "distance": str(dist), "distance_units": str(o.distance), "waiting": str(wait), "tip": str(tip),
-                      "total": str(base + dist + wait + tip)})
-        earned["base"] += base
+                      **({"batch_bonus": str(bonus), "batch_position": o.batch_position} if later else {}),
+                      "total": str(base + bonus + dist + wait + tip)})
+        earned["base"] += base + bonus
         earned["distance"] += dist
         earned["waiting"] += wait
         earned["tips"] += tip

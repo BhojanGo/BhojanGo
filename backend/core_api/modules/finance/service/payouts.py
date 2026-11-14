@@ -102,6 +102,7 @@ async def _orders_for_period(db: AsyncSession, country: str, start: date, end: d
             rider_id=str(o.driver_id) if o.driver_id else None, lines=snap.lines, split=snap.split,
             distance=Decimal(str(snap.context.get("distance", 0))), rider_rule=rider_rule,
             started_at=o.rider_assigned_at or o.picked_up_at, refund_lines=refunds.get(o.id, []),
+            batch_position=o.batch_position, batch_bonus=o.batch_bonus,
         ))
     return out
 

@@ -4,7 +4,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.models.order import Order
@@ -27,6 +27,8 @@ async def signed(request: Request) -> None:
 
 class AssignRider(BaseModel):
     rider_id: uuid.UUID
+    batch_id: uuid.UUID | None = None  # set when the rider took several orders as one batch
+    batch_position: int | None = Field(default=None, ge=1, le=3)  # 1 = the first drop-off
 
 
 async def dispatch_info(db: AsyncSession, order: Order) -> dict:
@@ -38,11 +40,13 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
     rules = await RuleService(db).resolve(Context(country=city[:2] or None, region=city[:5] or None, city=city or None,
                                                   zone_id=str(order.zone_id) if order.zone_id else None))
     timeout = rules.get("business:dispatch_offer_timeout")
+    base_rule, bonus_rule = rules.get("rider_pay:base_distance_wait"), rules.get("rider_pay:batch_bonus")
     batching = rules.get("business:batching")
     from core_api.modules.catalog.models.restaurant import Restaurant
 
     rest = await db.get(Restaurant, order.restaurant_id)
-    return {**await offer_details(db, order),
+    offer = await offer_details(db, order)
+    return {**offer,
         "restaurant_owner_id": str(rest.owner_id) if rest and rest.owner_id else None,
         "order_id": str(order.id), "status": order.status, "customer_id": str(order.customer_id),
         "restaurant_id": str(order.restaurant_id), "restaurant_name": order.restaurant_name,
@@ -52,7 +56,20 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
         "offer_timeout_seconds": int(timeout.params["seconds"]) if timeout else 30,
         "distance_unit": "mi" if city.startswith("US") else "km",
         "batching_live": bool(batching and batching.params.get("live")),
+        **batch_rate(offer.get("rider_pay"), base_rule, bonus_rule),
     }
+
+
+def batch_rate(rider_pay: str | None, base_rule, bonus_rule) -> dict:  # type: ignore[no-untyped-def]
+    """Item 2: as a later drop-off of a batch, an order pays its rider pay without the base,
+    plus the city's batch bonus. The offer card shows it as "Drop-off 2 · batch rate"."""
+    from decimal import Decimal
+
+    if rider_pay is None:
+        return {"rider_pay_batched": None}
+    base = Decimal(str(base_rule.params.get("base", 0))) if base_rule else Decimal(0)
+    bonus = Decimal(str(bonus_rule.params.get("per_extra_order", 0))) if bonus_rule else Decimal(0)
+    return {"rider_pay_batched": str(max(Decimal(0), Decimal(rider_pay) - base) + bonus)}
 
 
 def drop_area(address: dict | None) -> str | None:
@@ -98,5 +115,5 @@ async def get_dispatch(order_id: uuid.UUID, db: DB) -> dict:
 
 @router.post("/{order_id}/assign-rider", dependencies=[Depends(signed)], response_model=DispatchInfo)
 async def assign_rider(order_id: uuid.UUID, data: AssignRider, db: DB) -> dict:
-    order = await OrderService(db).assign_rider(order_id, data.rider_id)
+    order = await OrderService(db).assign_rider(order_id, data.rider_id, data.batch_id, data.batch_position)
     return await dispatch_info(db, order)

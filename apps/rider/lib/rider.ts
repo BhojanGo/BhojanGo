@@ -38,6 +38,7 @@ export interface BatchStop {
   dropoff: [number, number] | null;
   drop_area?: string | null;
   rider_pay?: string | null;
+  batch_rate?: boolean; // a later drop-off: no base, distance + waiting + the batch bonus (item 2)
   tip?: string | null;
   trip_km?: number | null;
 }

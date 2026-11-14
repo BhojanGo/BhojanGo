@@ -59,6 +59,15 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
                 refund_lines[r.order_id] += [{**ln, "reason": r.reason, "fault": r.fault or "restaurant"}
                                              for ln in r.lines if ln.get("menu_item_id")]
     rules_now: dict[str, dict | None] = {}
+    # Item 2: a later drop-off of a batch pays no base but the batch bonus; the split was
+    # priced before the batch, so the base comes from the order's own rider pay rule.
+    from core_api.modules.rules.models import Rule
+
+    rider_slot = "rider_pay:base_distance_wait"
+    rider_rule_ids = {uuid.UUID(v["rule_id"]) for o, snap in rows if (o.batch_position or 0) >= 2
+                      for v in snap.rule_versions if v["slot"] == rider_slot}
+    rider_rules = ({str(r.id): r.params for r in (await db.execute(select(Rule).where(Rule.id.in_(rider_rule_ids)))).scalars()}
+                   if rider_rule_ids else {})
     by_city: dict[str, dict[str, Decimal]] = defaultdict(lambda: {k: Decimal(0) for k in FIELDS})
     counts: dict[str, int] = defaultdict(int)
     estimated = 0
@@ -87,7 +96,12 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         b["commission"] += S.D(detail.get("commission"))
         b["customer_fees"] += amt(*FEE_CODES)
         b["platform_promos"] += S.D(detail.get("platform_funded_offers"))
-        b["rider_pay"] += S.D(detail.get("rider_base"))
+        if (o.batch_position or 0) >= 2:
+            rp = next((rider_rules.get(v["rule_id"]) for v in snap.rule_versions if v["slot"] == rider_slot), None) or {}
+            platform += S.D(rp.get("base")) - S.D(o.batch_bonus)  # what the platform pays differs by base - bonus
+            b["rider_pay"] += S.D(detail.get("rider_base")) - S.D(rp.get("base")) + S.D(o.batch_bonus)
+        else:
+            b["rider_pay"] += S.D(detail.get("rider_base"))
         b["platform"] += platform
         b["payment_fees"] += fees
         b["refunds"] += platform_refunds

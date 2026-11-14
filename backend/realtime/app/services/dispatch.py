@@ -40,6 +40,7 @@ Batching (task 43)
 """
 import json
 import time
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -368,17 +369,19 @@ async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None
         await r.zadd(WAITING, {o: _now()}, nx=True)
     expires = _now() + timeout
     fix = await last_fix(rider)
+    # Item 2: the first drop-off pays as usual; later ones at the batch rate (no base, + the batch bonus).
     stops = [{"order_id": i["order_id"], "code": i.get("code"), "restaurant_name": i.get("restaurant_name"),
               "pickup": i.get("pickup"), "dropoff": i.get("dropoff"), "drop_area": i.get("drop_area"),
-              "rider_pay": i.get("rider_pay"), "tip": i.get("tip"), "bags": i.get("bags"),
-              "items_count": i.get("items_count"), "trip_km": _trip_km(i)} for i in infos]
+              "rider_pay": i.get("rider_pay") if n == 0 else (i.get("rider_pay_batched") or i.get("rider_pay")),
+              "batch_rate": n > 0, "tip": i.get("tip"), "bags": i.get("bags"),
+              "items_count": i.get("items_count"), "trip_km": _trip_km(i)} for n, i in enumerate(infos)]
     offer = {"order_id": lead, "rider_id": rider, "expires_at": _iso(expires), "expires_in": timeout,
              "distance_km": round(dist_km, 2), "restaurant_name": lead_info.get("restaurant_name"),
              "pickup": lead_info["pickup"], "dropoff": lead_info.get("dropoff"),
              "eta": eta_for(lead_info, (fix["lat"], fix["lng"])) if fix else None,
              **{k: lead_info.get(k) for k in ("code", "currency", "ready_in_minutes", "distance_unit")},
              # What the rider decides on: every drop-off and the total pay.
-             "batch": stops, "rider_pay": _money_sum([i.get("rider_pay") for i in infos]),
+             "batch": stops, "rider_pay": _money_sum([s["rider_pay"] for s in stops]),
              "tip": _money_sum([i.get("tip") or 0 for i in infos]), "bags": sum(int(i.get("bags") or 1) for i in infos),
              "items_count": sum(int(i.get("items_count") or 0) for i in infos),
              "drop_area": " · ".join(str(i.get("drop_area") or "drop-off") for i in infos),
@@ -458,8 +461,10 @@ async def accept(rider: str, order: str) -> dict:
         raise NotYourOffer("This offer has expired or went to another rider")
     if not await r.zrem(OFFER_EXPIRY, order):  # the timeout got there first
         raise LookupError("This offer has expired")
+    batch_ids = [b["order_id"] for b in offer.get("batch") or []]
+    batch_id = str(uuid.uuid4()) if len(batch_ids) > 1 else None
     try:
-        info = await core_api.assign_rider(order, rider)
+        info = await core_api.assign_rider(order, rider, batch_id, 1) if batch_id else await core_api.assign_rider(order, rider)
     except CoreApiError as e:
         await _clear_offer(rider, order)
         await _finish(order)
@@ -470,10 +475,10 @@ async def accept(rider: str, order: str) -> dict:
     await _save_info(info)
     await r.delete(offer_key(order), f"rider:{rider}:offer_lock")
     carrying = [order]
-    for other in [b["order_id"] for b in offer.get("batch") or []][1:]:
+    for position, other in enumerate(batch_ids[1:], start=2):
         await r.delete(in_batch_offer_key(other))
         try:
-            other_info = await core_api.assign_rider(other, rider)
+            other_info = await core_api.assign_rider(other, rider, batch_id, position)
         except CoreApiError as e:  # cancelled meanwhile: the rider just has one fewer
             logger.warning("batch_order_not_assigned", order_id=other, rider_id=rider, error=str(e))
             await _finish(other)

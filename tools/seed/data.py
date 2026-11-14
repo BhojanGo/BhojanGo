@@ -424,6 +424,7 @@ RULES = [
     ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "IN",
      {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "IN-TG-HYD", {"per_active_hour": 120}),
+    ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "IN-TG-HYD", {"per_extra_order": 10}),
     ("delivery_fee", "distance_slabs", None, "Hyderabad delivery fee", "city", "IN-TG-HYD",
      {"slabs": [{"up_to": 3, "fee": 25}, {"up_to": 6, "fee": 35}, {"up_to": 10, "fee": 50}]}),
     ("customer_fee", "service_fee", None, "Service fee", "city", "IN-TG-HYD", {"percent": 2, "min": 5, "max": 15}),
@@ -445,6 +446,8 @@ RULES = [
     ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "US",
      {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "US-ID-BOI", {"per_active_hour": 15}),
+    # Item 2: a later drop-off of a batch pays no base, but distance + waiting + this.
+    ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "US-ID-BOI", {"per_extra_order": 1.5}),
     ("delivery_fee", "distance_slabs", None, "Boise delivery fee", "city", "US-ID-BOI",
      {"slabs": [{"up_to": 2, "fee": "1.99"}, {"up_to": 4, "fee": "3.49"}, {"up_to": 6, "fee": "4.99"}]}),
     ("customer_fee", "service_fee", None, "Service fee", "city", "US-ID-BOI", {"percent": 5, "min": 1, "max": 5}),
