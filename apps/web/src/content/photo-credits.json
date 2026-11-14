@@ -1,0 +1,65 @@
+[
+  {
+    "slug": "cheeseburger",
+    "title": "Nau's Enfield Drug - Large Bacon Cheeseburger",
+    "source": "https://www.flickr.com/photos/42022505@N03/5007282483",
+    "creator": "BurgerAustin",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "haleem",
+    "title": "Haleem",
+    "source": "https://www.flickr.com/photos/87232391@N00/3481856374",
+    "creator": "Charles Haynes",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "mango-lassi",
+    "title": "Mango Lassi",
+    "source": "https://commons.wikimedia.org/wiki/File:Mango_Lassi_.jpg",
+    "creator": "Misaochan",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "changes": "Cropped, resized"
+  },
+  {
+    "slug": "north-indian-thali",
+    "title": "Delicious North Indian Thali",
+    "source": "https://commons.wikimedia.org/w/index.php?curid=40915532",
+    "creator": "LuckyRani2990",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "paneer-butter-masala",
+    "title": "Popular Indian dish, Paneer Butter Masala",
+    "source": "https://commons.wikimedia.org/w/index.php?curid=40916399",
+    "creator": "Akash128",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "vada",
+    "title": "Medu Vada with chutnies",
+    "source": "https://commons.wikimedia.org/w/index.php?curid=93299986",
+    "creator": "Ravi Talwar",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "veg-dum-biryani",
+    "title": "Vegetable Biryani",
+    "source": "https://www.flickr.com/photos/17983554@N00/5276421343",
+    "creator": "gagandeepsapra",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "changes": "Resized"
+  }
+]

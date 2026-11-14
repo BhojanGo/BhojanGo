@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const list = await cities();
   const pages: MetadataRoute.Sitemap = [
     { url: SITE, changeFrequency: "daily", priority: 1 },
-    ...["help", "terms", "privacy"].map((p) => ({ url: `${SITE}/${p}`, changeFrequency: "monthly" as const, priority: 0.3 })),
+    ...["help", "terms", "privacy", "credits"].map((p) => ({ url: `${SITE}/${p}`, changeFrequency: "monthly" as const, priority: 0.3 })),
   ];
   for (const c of list) {
     pages.push({ url: `${SITE}/${c.slug}`, changeFrequency: "daily", priority: 0.9 });

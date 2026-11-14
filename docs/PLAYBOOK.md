@@ -172,6 +172,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 56. **A test's date window must be in the timezone the code uses, or wide enough for all of them.**
     Why: two integration tests built "yesterday to tomorrow" from the UTC date, but periods end at local midnight in each city, so for five and a half hours a day (Hyderabad already on the next day) the order they had just delivered fell outside and `make ci` went red.
 
+57. **Fetch stock photos through keyless open APIs (Openverse, Wikimedia Commons), and expect their limits.**
+    Why: Unsplash and Pexels put their pages behind a bot check and their APIs need an account. Openverse allows 20 searches a minute and 200 a day anonymously and returns 504 on broad queries at 20 results a page (retry with 12). Commons serves only standard thumbnail widths (500 works, 640 returns 400) and rate-limits originals with a `Retry-After` of up to 600 s, so downloads must honour it.
+
+58. **Judge a photo at full frame, not from its thumbnail.**
+    Why: two of the library's picks looked clean at 320 px but at full size had a newspaper's print under the tray and part of a person at the edge. `tools/photos/ingest.py` builds the contact sheet only after each original has been looked at whole.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
