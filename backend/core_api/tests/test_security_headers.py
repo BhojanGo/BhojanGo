@@ -12,3 +12,4 @@ async def test_api_responses_carry_security_headers() -> None:
             assert r.headers["cross-origin-resource-policy"] == "same-site", path
             assert r.headers["x-frame-options"] == "DENY", path
             assert r.headers["referrer-policy"] == "no-referrer", path
+            assert r.headers["strict-transport-security"].startswith("max-age=31536000"), path

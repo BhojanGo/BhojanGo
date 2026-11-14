@@ -218,8 +218,15 @@ class ProviderSettings(BaseSettings):
     # (LocalStack in `make dev`).
     STORAGE_PROVIDER: str = "local"  # local | s3
     UPLOADS_BUCKET: str = "bhojango-uploads"
-    S3_ADDRESSING_STYLE: str = "auto"  # auto | path | virtual (a Railway bucket's urlStyle)
+    S3_ADDRESSING_STYLE: str = "auto"  # auto | path | virtual (a Railway bucket's urlStyle; "virtual-host" = virtual)
     LOCAL_STORAGE_DIR: str = Field(default_factory=lambda: str(Path(tempfile.gettempdir()) / "bhojango-uploads"))
+
+    @field_validator("S3_ADDRESSING_STYLE")
+    @classmethod
+    def normalize_addressing_style(cls, v: str) -> str:
+        """Railway's bucket credentials say urlStyle "virtual-host"; boto3 calls it "virtual"."""
+        v = v.strip().lower()
+        return "virtual" if v in ("virtual-host", "virtual-hosted", "virtual_host") else v
     ROAD_FACTOR: float = 1.3
     AVG_SPEED_KMH: float = 25.0
 
@@ -286,6 +293,10 @@ class Settings(BaseSettings):
     EVENT_BUS_RETRY_IDLE_MS: int = 30_000  # unacknowledged this long -> delivered again
     EVENT_BUS_MAX_DELIVERIES: int = 3  # then the dead-letter stream (<stream>:dlq), like the SQS redrive
     EVENT_BUS_CONSUMER: str = ""  # consumer name in the group; default: the host name
+
+    # The header a platform proxy puts the client's address in (Railway: X-Real-IP);
+    # empty = the socket's peer. Rate limits and request logs use it (shared/client_ip.py).
+    CLIENT_IP_HEADER: str = ""
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]

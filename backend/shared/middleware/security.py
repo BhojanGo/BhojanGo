@@ -11,6 +11,9 @@ HEADERS = [
     (b"cross-origin-resource-policy", b"same-site"),
     (b"x-frame-options", b"DENY"),
     (b"referrer-policy", b"no-referrer"),
+    # HTTPS only from now on (Railway QA, 2026-11-14: the edge adds none). Browsers
+    # ignore it over plain HTTP, so local http://localhost is unaffected.
+    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
 ]
 
 

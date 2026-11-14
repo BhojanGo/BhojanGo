@@ -15,7 +15,11 @@ appId: com.bhojango.partner
 - extendedWaitUntil:
     visible: "Store hours"
     timeout: 20000
-- assertVisible: "Offers you fund"
+# Below the store hours, which list any special hours first: scroll if they push it down.
+- scrollUntilVisible:
+    element: "Offers you fund"
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: docs/screenshots/partner/07-menu
 - tapOn: "Search items"
 - inputText: "Veg Dum"

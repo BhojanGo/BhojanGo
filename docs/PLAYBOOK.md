@@ -137,6 +137,35 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 44. **Before a simulation uses one of our words, check what it means in our product.**
     Why: the soak's first try paid 15% of Boise orders by "wallet", meaning Apple Pay. In BhojanGo, "wallet" is the customer's own balance, so the orders were refused for an insufficient balance. Hyderabad's soak also assumed Boise's layout, with every kitchen reaching every home and no dish needing a choice. Both runs were stopped and rerun, not reported.
 
+45. **Before setting a spending limit, find out what it covers.**
+    Why: the brief asked for a $20 hard limit on QA. Railway's limits belong to the whole workspace, not a project, and a hard limit takes *every* workload offline. Our workspace runs other live projects that already spend about $23 a month, so a $20 cap would have stopped them mid-month. QA got per-service CPU and memory caps and sleeping frontends instead; the workspace limit stays the user's decision.
+
+46. **`--host ::` doesn't mean "every address".**
+    Why: asyncio sets `IPV6_V6ONLY` on a socket bound to `::`, so uvicorn listened on IPv6 only. Railway's health check and edge connect over IPv4 and every QA backend failed its health check, with no request in the access log. Bind to what the platform's health check uses (`0.0.0.0` on Railway), and check for the probe's request in the access log before blaming the app.
+
+47. **Seal a secret only after you know how the tests will reach what it protects.**
+    Why: a sealed Railway variable can't be read back by anyone, and project tokens can't `railway ssh`. With Postgres and Redis kept private, nothing on a workstation could reach the QA database. Seeding, migration checks, G1 and the integration suite ran in a temporary service inside the environment (`qa-runner`), which gets the secrets through Railway references and never prints them.
+
+48. **Translate a platform's names at the boundary.**
+    Why: Railway's bucket credentials say `urlStyle: virtual-host`; boto3 only knows `virtual`, `path` or `auto`. Passing it through either crashes or quietly falls back to path-style, which Railway's new buckets don't serve. `S3_ADDRESSING_STYLE` is now normalized when settings load, with a test.
+
+49. **"Applied" isn't proof; a clean plan is.**
+    Why: `railway config apply` reported the bucket as applied, but it existed only at project level. The next plan still wanted to create it, and the QA environment had no bucket until an environment patch deployed it. A volume left without a region also made the next plan propose a destructive change. After every apply, plan again until it says nothing.
+
+50. **A config helper called "random" may not be random.**
+    Why: the Railway IaC SDK's `ctx.randomString()` is a SHA-256 of the environment name and a label, so anyone with the repo can recompute it. QA's secrets were generated locally and stored sealed through the API; nothing secret is in `.railway/railway.ts`.
+
+51. **On Windows, Python's `write_text` writes CRLF, and a shell script with CRLF fails in Linux.**
+    Why: patch scripts rewrote shell scripts with `\r\n`, and the QA runner died with `set: Illegal option -`. `.gitattributes` keeps commits LF, but the runner was staged from the working tree. The staging step now strips carriage returns from `*.sh`. Shell scripts are now edited with tools that keep LF.
+
+52. **A frontend that bakes in public URLs needs them before its first build, and a health check needs a page that answers 200 without signing in.**
+    Why: web's first QA build failed on `new URL("https://")`, because its own domain didn't exist yet. Admin's health check failed on `/`, which redirects to sign-in (307). Domains are now created right after the first apply, and admin's health check is `/login`. Tests that assumed the production site URL (`https://bhojango.com` in canonical links and the sitemap) now read it from the environment.
+53. **Behind a proxy, a rate limit keyed on "the client's address" is keyed on the proxy.**
+    Why: on Railway QA, core_api logged every request as coming from Railway's proxies (`100.64.x.x`). The sign-in limit (10 a minute) and the OTP limit (3 a minute) were shared by every user behind each proxy node. The partner app's Maestro sign-ins started failing with nobody else using QA, and real users would have locked each other out at launch. Trusting `X-Forwarded-For` didn't help: it ends in Railway edge hops. The client is in `X-Real-IP`, which Railway's edge sets and a client can't override, so the limiter and the request log now read the header named in `CLIENT_IP_HEADER`.
+
+54. **Infrastructure as code removes what it doesn't know about.**
+    Why: a temporary `qa-runner` service, created outside `.railway/railway.ts`, showed up in the next plan as "Delete service qa-runner". Applying a one-line variable change would have deleted the runner mid-test. Read every delete line in a plan; for a quick change while a temporary service exists, set the variable directly and apply after the service is gone.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

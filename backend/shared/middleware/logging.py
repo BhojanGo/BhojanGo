@@ -5,6 +5,8 @@ import structlog
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from shared.client_ip import client_ip
+
 logger = structlog.get_logger(__name__)
 
 
@@ -20,7 +22,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             request_id=request_id,
             method=request.method,
             path=request.url.path,
-            client_ip=request.client.host if request.client else "unknown",
+            client_ip=client_ip(request),
         )
 
         log.info("request_started")

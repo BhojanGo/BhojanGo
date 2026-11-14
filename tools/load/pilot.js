@@ -22,19 +22,32 @@ const WEB = __ENV.WEB || "http://web:3000";
 const WS = RT.replace(/^http/, "ws");
 const DUR = __ENV.DURATION || "5m";
 const JSON_H = { "Content-Type": "application/json" };
+// SCALE: 1 = 10× pilot peak (the default), 0.1 = 1× pilot peak (a smoke on a hosted QA).
+const SCALE = Number(__ENV.SCALE || "1");
+// Per second at SCALE 1 → per minute at this SCALE (k6 rates are whole numbers).
+const perMin = (perSecond) => Math.max(1, Math.round(perSecond * 60 * SCALE));
+const vus = (n) => Math.max(2, Math.ceil(n * SCALE));
+// Hosted QA seeds random passwords: LOGINS is the seed's tab-separated logins file.
+const PASSWORDS = {};
+if (__ENV.LOGINS) {
+  open(__ENV.LOGINS).split("\n").forEach((line) => {
+    const f = line.split("\t");
+    if (f.length === 4) PASSWORDS[f[2]] = f[3].trim();
+  });
+}
 
 const wsConnect = new Trend("ws_connect_ms", true);
 const wsMessages = new Counter("ws_messages");
 
 const SCENARIOS = {
-    web_pages: { executor: "constant-arrival-rate", rate: 3, timeUnit: "1s", duration: DUR, preAllocatedVUs: 10, maxVUs: 40, exec: "webPages" },
-    browse: { executor: "constant-arrival-rate", rate: 5, timeUnit: "1s", duration: DUR, preAllocatedVUs: 20, maxVUs: 60, exec: "browse" },
-    quote: { executor: "constant-arrival-rate", rate: 1, timeUnit: "1s", duration: DUR, preAllocatedVUs: 10, maxVUs: 30, exec: "quote" },
-    place_order: { executor: "constant-arrival-rate", rate: 10, timeUnit: "1m", duration: DUR, preAllocatedVUs: 5, maxVUs: 20, exec: "placeOrder" },
-    rider_pings: { executor: "constant-arrival-rate", rate: 60, timeUnit: "1s", duration: DUR, preAllocatedVUs: 40, maxVUs: 150, exec: "ping" },
+    web_pages: { executor: "constant-arrival-rate", rate: perMin(3), timeUnit: "1m", duration: DUR, preAllocatedVUs: vus(10), maxVUs: vus(40), exec: "webPages" },
+    browse: { executor: "constant-arrival-rate", rate: perMin(5), timeUnit: "1m", duration: DUR, preAllocatedVUs: vus(20), maxVUs: vus(60), exec: "browse" },
+    quote: { executor: "constant-arrival-rate", rate: perMin(1), timeUnit: "1m", duration: DUR, preAllocatedVUs: vus(10), maxVUs: vus(30), exec: "quote" },
+    place_order: { executor: "constant-arrival-rate", rate: perMin(10 / 60), timeUnit: "1m", duration: DUR, preAllocatedVUs: vus(5), maxVUs: vus(20), exec: "placeOrder" },
+    rider_pings: { executor: "constant-arrival-rate", rate: perMin(60), timeUnit: "1m", duration: DUR, preAllocatedVUs: vus(40), maxVUs: vus(150), exec: "ping" },
     // Customers open tracking over time, not all in the same second: 200 open sockets
     // within 30 s, then held for the run.
-    tracking: { executor: "ramping-vus", startVUs: 0, stages: [{ duration: "30s", target: 200 }, { duration: DUR, target: 200 }], exec: "track" },
+    tracking: { executor: "ramping-vus", startVUs: 0, stages: [{ duration: "30s", target: vus(200) }, { duration: DUR, target: vus(200) }], exec: "track" },
 };
 // ONLY=quote,browse runs just those scenarios (to measure one path on its own).
 const ONLY = (__ENV.ONLY || "").split(",").filter(Boolean);
@@ -60,7 +73,7 @@ export const options = {
 };
 
 function login(email, password) {
-  const r = http.post(`${API}/auth/login`, JSON.stringify({ email, password: password || "BhojanGo123" }), { headers: JSON_H });
+  const r = http.post(`${API}/auth/login`, JSON.stringify({ email, password: PASSWORDS[email] || password || "BhojanGo123" }), { headers: JSON_H });
   if (r.status !== 200) throw new Error(`login ${email}: ${r.status} ${r.body}`);
   return { Authorization: `Bearer ${r.json("access_token")}`, "Content-Type": "application/json" };
 }

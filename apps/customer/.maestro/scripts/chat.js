@@ -4,8 +4,11 @@
 //                rider3, and the rider says they're at the kitchen.
 //   STEP=check   the rider sees the customer's reply.
 //   STEP=finish  the rider says they're outside, then picks up and delivers.
-var API = "http://localhost:8001/api/v1";
-var RT = "http://localhost:8004/api/v1";
+// Hosted QA: maestro test -e QA_CORE=https://... -e QA_RT=https://... -e QA_PASSWORDS='{"email":"password"}'
+// (tools/railway/maestro-qa.sh); locally the defaults below.
+var QA_PW = (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS) ? JSON.parse(QA_PASSWORDS) : {};
+var API = (typeof QA_CORE !== "undefined" && QA_CORE ? QA_CORE : "http://localhost:8001") + "/api/v1";
+var RT = (typeof QA_RT !== "undefined" && QA_RT ? QA_RT : "http://localhost:8004") + "/api/v1";
 
 function call(method, url, token, body, extra) {
   var headers = { "Content-Type": "application/json" };
@@ -19,7 +22,7 @@ function call(method, url, token, body, extra) {
 }
 
 function login(email, password) {
-  var r = call("POST", API + "/auth/login", null, { email: email, password: password || "BhojanGo123" });
+  var r = call("POST", API + "/auth/login", null, { email: email, password: QA_PW[email] || password || "BhojanGo123" });
   if (r.status !== 200) throw new Error("login " + email + " -> " + r.status);
   return r.body.access_token;
 }

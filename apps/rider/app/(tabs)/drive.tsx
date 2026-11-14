@@ -33,9 +33,18 @@ export default function Drive() {
   const status = now?.state.status ?? "offline";
   const finished = useLive((s) => s.finished);
   const busyWith = status === "busy" && !finished.includes(now?.state.order_id ?? "") ? now?.state.order_id : undefined;
+  // Open the delivery only while this tab is on screen. After a batch's first drop-off the
+  // live state moves on to the next order at once; pushing it then covered the "Delivered"
+  // screen before the rider saw it (found on Railway QA, where the API isn't instant).
+  // The rider goes on with "Next drop-off", which brings this tab back.
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
   useEffect(() => {
-    if (busyWith) router.push({ pathname: "/delivery/[id]", params: { id: busyWith } });
-  }, [busyWith]);
+    if (busyWith && focused) router.push({ pathname: "/delivery/[id]", params: { id: busyWith } });
+  }, [busyWith, focused]);
   useEffect(() => {
     // Keep GPS going whenever the server thinks we're online (e.g. after a restart).
     if (status !== "offline") void startTracking();

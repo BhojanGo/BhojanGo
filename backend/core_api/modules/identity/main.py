@@ -5,10 +5,10 @@ metrics, health checks and the Redis/DB lifecycle now live in core_api/main.py
 and are shared by every module.
 """
 from fastapi import FastAPI
+from shared.client_ip import client_ip
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
 from core_api import errors
 from core_api.modules.identity.api.v1 import addresses, admin, auth, riders, signup, users
@@ -17,7 +17,7 @@ from shared import jwt_keys
 
 def register(app: FastAPI) -> None:
     # ── Rate limiting (auth endpoints use @limiter.limit) ─────────────────────
-    app.state.limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = Limiter(key_func=client_ip)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
     app.add_middleware(SlowAPIMiddleware)
 
