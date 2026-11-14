@@ -1,5 +1,14 @@
 [
   {
+    "slug": "butter-chicken",
+    "title": "Chicken makhani",
+    "source": "https://commons.wikimedia.org/wiki/File:Chicken_makhani.jpg",
+    "creator": "stu_spivack",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "changes": "Resized"
+  },
+  {
     "slug": "cheeseburger",
     "title": "Nau's Enfield Drug - Large Bacon Cheeseburger",
     "source": "https://www.flickr.com/photos/42022505@N03/5007282483",
@@ -9,12 +18,21 @@
     "changes": "Resized"
   },
   {
+    "slug": "dal-makhani",
+    "title": "Dal makhani",
+    "source": "https://commons.wikimedia.org/wiki/File:Dal_makhani.jpg",
+    "creator": "TarnishedPath",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "changes": "Resized"
+  },
+  {
     "slug": "haleem",
-    "title": "Haleem",
-    "source": "https://www.flickr.com/photos/87232391@N00/3481856374",
-    "creator": "Charles Haynes",
-    "license": "CC BY-SA 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "title": "Hallem",
+    "source": "https://commons.wikimedia.org/wiki/File:Hallem.jpg",
+    "creator": "Gmk1289",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "changes": "Resized"
   },
   {
