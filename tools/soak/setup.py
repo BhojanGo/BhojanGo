@@ -28,12 +28,13 @@ CUSTOMERS = int(os.environ.get("SOAK_CUSTOMERS", "40"))
 
 
 async def main() -> None:
-    m = next(x for x in MARKETS if x["key"] == "boi")
+    key = os.environ.get("SOAK_CITY", "boi")
+    m = next(x for x in MARKETS if x["key"] == key)
     rnd = random.Random(7)
     engine = create_async_engine(os.environ["DATABASE_URL"])
     async with engine.begin() as conn:
         for i, name in enumerate(RIDERS, start=len(m["riders"]) + 1):
-            email = f"rider{i}.boi@example.com"
+            email = f"rider{i}.{key}@example.com"
             rider_id = await seed.upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{i:02d}")
             for kind in ("licence", "insurance", "background_check"):
                 await conn.execute(seed.UPSERT_RIDER_DOC, {
@@ -41,7 +42,7 @@ async def main() -> None:
                     "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
         for i in range(len(m["customers"]) + 1, CUSTOMERS + 1):
             name, street, area, postal, lat, lng = rnd.choice(m["customers"])
-            email = f"customer{i}.boi@example.com"
+            email = f"customer{i}.{key}@example.com"
             user_id = await seed.upsert_user(conn, email, f"Soak Customer {i}", "customer", m, f"{m['phone_prefix']}3{i:02d}")
             await conn.execute(seed.UPSERT_ADDRESS, {
                 "id": seed.sid("address", email, "home"), "user_id": user_id,
@@ -50,9 +51,9 @@ async def main() -> None:
                 "lat": lat + rnd.uniform(-0.006, 0.006), "lng": lng + rnd.uniform(-0.006, 0.006)})
         # The kitchens say how long they take (the bots cook 4-9 minutes); the batch engine
         # plans with the declared prep time, so it must be the real one.
-        await conn.execute(text("UPDATE restaurants SET avg_prep_minutes = 8 WHERE city = 'Boise'"))
+        await conn.execute(text("UPDATE restaurants SET avg_prep_minutes = 8 WHERE city = :c"), {"c": m["city"]})
     await engine.dispose()
-    print(f"soak people: riders 1-{len(m['riders']) + len(RIDERS)}, customers 1-{CUSTOMERS} in Boise")
+    print(f"soak people: riders 1-{len(m['riders']) + len(RIDERS)}, customers 1-{CUSTOMERS} in {m['city']}")
 
 
 if __name__ == "__main__":

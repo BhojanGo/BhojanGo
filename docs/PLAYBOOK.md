@@ -134,6 +134,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 43. **Pay for the work the rider actually does: a batch's second drop-off isn't a second trip.**
     Why: batching paid every order its full base, so a two-order batch cost the platform almost what two separate trips did. That undid most of the saving, and the rider earned two bases for one pickup. Now later drop-offs pay distance + waiting + a city batch bonus. The bonus is recorded on the order when the rider accepts, so a later rule change doesn't move pay already earned. The offer card shows the batch rate before the rider accepts.
 
+44. **Before a simulation uses one of our words, check what it means in our product.**
+    Why: the soak's first try paid 15% of Boise orders by "wallet", meaning Apple Pay. In BhojanGo, "wallet" is the customer's own balance, so the orders were refused for an insufficient balance. Hyderabad's soak also assumed Boise's layout, with every kitchen reaching every home and no dish needing a choice. Both runs were stopped and rerun, not reported.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

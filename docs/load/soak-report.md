@@ -1,5 +1,74 @@
 # Pilot dress rehearsal: a 2-hour Boise dinner rush
 
+## Contribution per order, and batching with the batch rate (2026-11-14)
+
+Three 30-minute runs at the rush's rate (60 orders, 25 riders, the same random seed) after payment fees (#60) and
+batch rider pay (#61): Boise with batching off, Boise with batching on, and Hyderabad with batching off. Contribution
+per order is the Finance calculation (`GET /finance/contribution`) over exactly the orders each run delivered. The bots
+pay the way customers do. In Boise, every order is a card payment (Apple and Google Pay reach Stripe as cards). In
+Hyderabad, 65% pay by UPI, 25% by card and 10% by net banking.
+
+### Contribution per order: pass
+
+| Per delivered order | Boise, batching off | Boise, batching on | Hyderabad, batching off |
+|---|---|---|---|
+| Delivered orders | 57 | 57 | 55 |
+| Customer paid (GMV) | $35.67 | $37.82 | ₹327.09 |
+| Commission | $5.32 | $5.74 | ₹44.42 |
+| Customer fees (delivery, service, small order) | $4.31 | $4.51 | ₹37.27 |
+| Offers we fund | −$0.00 | −$0.00 | −₹25.98 |
+| Rider pay (tips are the rider's) | −$5.07 | −$4.67 | −₹44.98 |
+| Payment fees | −$1.51 | −$1.59 | −₹2.91 |
+| Refunds we pay | −$0.00 | −$0.02 | −₹0.12 |
+| **Platform keeps** | **$3.05** (8.6% of GMV) | **$3.97** (10.5%) | **₹7.69** (2.4%) |
+
+- **Boise.** Stripe takes about 4.2% of a $36 order: 2.9% + $0.30 for the card ($1.33), plus Stripe Tax's 0.5%
+  ($0.18). That's a third of what the platform made before fees ($4.56 → $3.05).
+- **Hyderabad.** UPI has no fee, so fees are under 1% of GMV. What makes the margin thin is the offers we fund
+  (₹25.98 an order, live seed promotions). Without them the platform would keep about ₹34 (10%).
+- These come from bots on seed prices. Commission, fees and pay are the real rules, but the basket mix and tips are
+  the bots'.
+
+### Batching on vs off, recomputed with the batch rate (Boise)
+
+The earlier table (below) paid every order of a batch in full. Now a pair's second drop-off pays no base: just
+distance, waiting and Boise's $1.50 batch bonus.
+
+| | Batching off | **Batching on (batch rate)** | Earlier: on, full pay (#54) |
+|---|---|---|---|
+| Orders delivered (paid, not cancelled) | 57 | **57** | 53 |
+| Orders that went in a pair | 0 | **34** (17 pairs; 21 pair offers, 4 passed) | 32 |
+| Rider trips | 57 | **40** (30% fewer) | 37 |
+| Orders per rider per hour | 3.71 | **3.51** | 3.32 |
+| Rider pay per order (tip included) | $7.96 | **$7.30**; paired $6.30, single $8.77 | $8.35 |
+| Rider pay per rider-hour online | $29.58 | **$25.59 (−13%)** | $27.77 (+7%) |
+| Delivery time: median / p90 / max | 10.1 / 12.0 / 12.8 min | **11.6 / 14.3 / 16.2 min** | 11.7 / 15.0 / 17.1 |
+| Paired vs single orders, median | | 12.7 vs 10.3 min | 12.4 vs 10.1 |
+| Waiting for a rider: median / max | 0.2 / 0.4 min | 0.2 / 0.7 min | 0.2 / 0.7 |
+| **Platform keeps per order** | **$3.05** | **$3.97 (+$0.92)** | |
+| Errors, alerts | 0, none | 0, none | 0, none |
+
+**What it means**
+- **The batch rate moves the saving from riders to the platform.** With full pay, batching meant riders earned 7%
+  more per hour and the platform saved nothing. With the batch rate, the platform keeps $0.92 more per order (30%
+  more). Riders earn 13% less per hour: one pickup and a short second leg now pay about $1.50 instead of a second base.
+- **Customers** still wait longer: about 1.5 minutes at the median and 2–3 minutes at the tail.
+- **Recommendation: still launch the pilot with batching off.** With 25 riders nobody is short, so batching costs
+  customers time and riders money for $0.92 an order. Switch it on for a city on nights when riders are short. Then
+  trips matter more, and riders do more orders an hour. The bonus is a city rule, so raising it is a rule change with
+  Finance's approval (it changes rider pay). It needs no deploy.
+
+### Run notes
+- Hyderabad: 5 of 60 quotes were refused with "We don't deliver here yet", and no order was placed. The bot gives its
+  customers homes jittered around the seed addresses, and these 5 landed outside every Hyderabad delivery zone. The
+  refusal is correct.
+- The bot now skips dishes that need a choice (a size or spice level) and orders from a kitchen that delivers to the
+  customer's home. Hyderabad's kitchens are up to 15 km apart, each with a 5 km radius. Boise is unaffected: it has no
+  such dishes, and every kitchen reaches every home.
+- Payment methods: "wallet" in BhojanGo is the customer's BhojanGo balance, not Apple Pay or Paytm, so the bots don't
+  use it. A first try that did had orders refused for an insufficient balance and was discarded.
+
+
 ## Re-run with 25 riders, and batching (2026-11-13/14)
 
 This is the same scenario as the first rehearsal below: 150 orders over 2 hours, with the same mix of card declines,

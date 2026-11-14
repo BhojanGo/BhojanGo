@@ -37,8 +37,16 @@ MINUTES = float(os.environ.get("SOAK_MINUTES", "120"))
 ORDERS = int(os.environ.get("SOAK_ORDERS", "150"))
 OUT = os.environ.get("SOAK_OUT", "/out/soak-result.json")
 PASSWORD = "BhojanGo123"
-RIDERS = [f"rider{i}.boi@example.com" for i in range(1, int(os.environ.get("SOAK_RIDERS", "8")) + 1)]
-CUSTOMERS = [f"customer{i}.boi@example.com" for i in range(1, int(os.environ.get("SOAK_CUSTOMERS", "40")) + 1)]
+# Which seeded city (tools/seed/data.py market keys): Boise (default) or Hyderabad.
+CITY_KEY = os.environ.get("SOAK_CITY", "boi")
+CITY = {"boi": {"name": "Boise", "state": "ID", "country": "US", "zip": "83702", "tips": ["0", "2", "3", "5"],
+                # US customers pay by card (Apple and Google Pay reach Stripe as cards)
+                "methods": [("card", 1.0)]},
+        "hyd": {"name": "Hyderabad", "state": "Telangana", "country": "IN", "zip": "500081", "tips": ["0", "10", "20", "30"],
+                # India: mostly UPI (no fee), then cards and net banking (2%). ("wallet" is the BhojanGo balance.)
+                "methods": [("upi", 0.65), ("card", 0.25), ("net_banking", 0.10)]}}[CITY_KEY]
+RIDERS = [f"rider{i}.{CITY_KEY}@example.com" for i in range(1, int(os.environ.get("SOAK_RIDERS", "8")) + 1)]
+CUSTOMERS = [f"customer{i}.{CITY_KEY}@example.com" for i in range(1, int(os.environ.get("SOAK_CUSTOMERS", "40")) + 1)]
 
 # Behaviour mix (per order unless noted)
 P_DECLINE = 0.08        # first card declines
@@ -138,6 +146,7 @@ class OrderRun:
     rider: str = ""                # who delivered it
     rider_pay: float | None = None  # what the offer promised the rider for this order (incl. tip)
     batched: bool = False          # carried with another order (task 43)
+    method: str = ""               # how the customer paid
     timeline: list = field(default_factory=list)
 
 
@@ -218,10 +227,41 @@ async def track(cust: Person, run: OrderRun, oid: str) -> None:
             await asyncio.sleep(3)
 
 
+HOMES: dict[str, tuple[float, float]] = {}  # customer -> home (lat, lng), read at the start
+
+
+def km(a: tuple[float, float], b: tuple[float, float]) -> float:
+    import math
+
+    dlat, dlng = math.radians(b[0] - a[0]), math.radians(b[1] - a[1])
+    h = math.sin(dlat / 2) ** 2 + math.cos(math.radians(a[0])) * math.cos(math.radians(b[0])) * math.sin(dlng / 2) ** 2
+    return 6371 * 2 * math.asin(math.sqrt(h))
+
+
+async def load_homes() -> None:
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.connect() as conn:
+        rows = await conn.execute(text("SELECT u.email, a.lat, a.lng FROM addresses a JOIN users u ON u.id = a.user_id "
+                                       "WHERE u.email = ANY(:e) AND a.lat IS NOT NULL"), {"e": CUSTOMERS})
+        for email, lat, lng in rows:
+            HOMES.setdefault(email, (float(lat), float(lng)))
+    await engine.dispose()
+
+
 async def place_and_follow(n: int, at: float, people: dict, kitchens: list[dict], http: httpx.AsyncClient) -> None:
     await asyncio.sleep(max(0.0, at - now()))
     kitchen = rnd.choices(kitchens, weights=[k["weight"] for k in kitchens])[0]
     email = rnd.choice(CUSTOMERS)
+    # Hyderabad's kitchens are 15 km apart with a 5 km radius: if this one doesn't deliver to the
+    # customer's home, they order from one that does (Boise: every kitchen reaches every home).
+    home = HOMES.get(email)
+    if home and km(home, (kitchen["lat"], kitchen["lng"])) > kitchen["radius_km"] * 0.95:
+        near = [k for k in kitchens if km(home, (k["lat"], k["lng"])) <= k["radius_km"] * 0.95]
+        if near:
+            kitchen = rnd.choices(near, weights=[k["weight"] for k in near])[0]
     cust = people.setdefault(email, Person(http, email))
     run = OrderRun(n=n, kitchen=kitchen["name"], customer=email)
     runs.append(run)
@@ -247,7 +287,9 @@ async def order_flow(run: OrderRun, cust: Person, kitchen: dict, partner: Person
     if not cust.access:
         await cust.login()
     addr = (await cust.core("GET", "/me/addresses")).json()[0]
-    tip = rnd.choice(["0", "2", "3", "5"])
+    tip = rnd.choice(CITY["tips"])
+    method = rnd.choices([m for m, _ in CITY["methods"]], weights=[w for _, w in CITY["methods"]])[0]
+    run.method = method
     for _ in range(4):  # a zone minimum above the kitchen's: add something, as the app asks
         r = await cust.core("POST", "/pricing/quote", json={"restaurant_id": kitchen["id"], "items": items,
                                                            "deliver_to": {"address_id": addr["id"]}, "tip": tip})
@@ -261,9 +303,9 @@ async def order_flow(run: OrderRun, cust: Person, kitchen: dict, partner: Person
         raise RuntimeError(f"quote {r.status_code} {r.text[:120]}")
     q = r.json()
     r = await cust.core("POST", "/orders", headers={"X-Idempotency-Key": str(uuid.uuid4())}, json={
-        "restaurant_id": kitchen["id"], "items": items, "payment_method": "card", "quote_token": q["token"],
-        "delivery_address": {"street": addr.get("street", ""), "city": "Boise", "state": "ID",
-                             "zip": addr.get("postal_code") or "83702", "country": "US"}})
+        "restaurant_id": kitchen["id"], "items": items, "payment_method": method, "quote_token": q["token"],
+        "delivery_address": {"street": addr.get("street", ""), "city": CITY["name"], "state": CITY["state"],
+                             "zip": addr.get("postal_code") or CITY["zip"], "country": CITY["country"]}})
     if r.status_code != 201:
         raise RuntimeError(f"order {r.status_code} {r.text[:120]}")
     oid = run.order_id = r.json()["id"]
@@ -275,7 +317,7 @@ async def order_flow(run: OrderRun, cust: Person, kitchen: dict, partner: Person
     # Pay. Some cards decline; half of those customers try another card.
     if rnd.random() < P_DECLINE:
         run.declined_first = True
-        await cust.core("POST", "/payments/initiate", json={"order_id": oid, "payment_method_type": "card",
+        await cust.core("POST", "/payments/initiate", json={"order_id": oid, "payment_method_type": method,
                                                             "payment_method_id": "pm_card_decline"})
         await asyncio.sleep(rnd.uniform(5, 20))
         if rnd.random() >= P_RETRY:
@@ -284,7 +326,7 @@ async def order_flow(run: OrderRun, cust: Person, kitchen: dict, partner: Person
             run.timeline.append((f"abandoned->{st}", round(now())))
             return
         run.retried_card = True
-    r = await cust.core("POST", "/payments/initiate", json={"order_id": oid, "payment_method_type": "card"})
+    r = await cust.core("POST", "/payments/initiate", json={"order_id": oid, "payment_method_type": method})
     if r.status_code not in (200, 201):
         raise RuntimeError(f"pay {r.status_code} {r.text[:120]}")
     st = await wait_status(cust, oid, {"placed"}, timeout=120)
@@ -472,25 +514,29 @@ async def deliver(p: Person, orders: list[str], ride: Any) -> None:
 async def main() -> None:
     limits = httpx.Limits(max_connections=200, max_keepalive_connections=50)
     async with httpx.AsyncClient(timeout=30, limits=limits) as http:
-        partner = Person(http, "partner.boi@example.com")
+        partner = Person(http, f"partner.{CITY_KEY}@example.com")
         await partner.login()
         people: dict = {"partner": partner}
-        # The five Boise kitchens and their menus.
+        # The city's five kitchens and their menus.
         lst = (await partner.core("GET", "/restaurants", params={"limit": 100})).json()["items"]
         kitchens = []
         for k in lst:
-            if k.get("city") != "Boise" or not k.get("is_active", True) or k.get("status") == "pending_approval":
+            if k.get("city") != CITY["name"] or not k.get("is_active", True) or k.get("status") == "pending_approval":
                 continue
             menu = (await partner.core("GET", f"/restaurants/{k['id']}/menu")).json()
+            # Dishes that need a choice (a size, a spice level) are left out: the bot doesn't choose.
             items = [{"id": i["id"], "price": float(i["price"])} for c in menu["categories"] for i in c["items"]
-                     if i.get("is_available", True)]
+                     if i.get("is_available", True) and not any((g.get("min_picks") or 0) > 0 for g in i.get("option_groups") or [])]
             kitchens.append({"id": k["id"], "name": k["name"], "min": float(k.get("minimum_order_amount") or 0),
-                             "lat": k["lat"], "lng": k["lng"], "items": items, "weight": 1.0})
+                             "lat": k["lat"], "lng": k["lng"], "items": items, "weight": 1.0,
+                             "radius_km": float(k.get("delivery_radius_km") or 5)})
         kitchens = [k for k in kitchens if k["items"]][:5]
         for k, w in zip(kitchens, [1.4, 1.0, 1.2, 1.1, 0.8]):
             k["weight"] = w
-        log("kitchens", names=[k["name"] for k in kitchens])
-        assert len(kitchens) == 5, f"expected 5 Boise kitchens, got {len(kitchens)}"
+        log("kitchens", names=[k["name"] for k in kitchens], items=[len(k["items"]) for k in kitchens])
+        await load_homes()
+        log("homes", customers=len(HOMES))
+        assert len(kitchens) == 5, f"expected 5 {CITY['name']} kitchens, got {len(kitchens)}"
 
         stop = asyncio.Event()
         riders = [asyncio.create_task(rider_bot(Person(http, e), (kitchens[i % 5]["lat"], kitchens[i % 5]["lng"]), stop))
