@@ -1,0 +1,8 @@
+{
+  "name": "bhojango-railway-iac",
+  "private": true,
+  "description": "Railway IaC SDK for .railway/railway.ts (railway config plan/apply). Not part of the pnpm workspace.",
+  "dependencies": {
+    "railway": "3.17.0"
+  }
+}

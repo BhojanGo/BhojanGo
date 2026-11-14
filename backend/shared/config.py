@@ -5,14 +5,24 @@ a section (``settings.payments.STRIPE_SECRET_KEY``). Every field keeps the
 environment variable name it had when each service had its own config.py, so
 existing .env files and deploy configs keep working unchanged.
 """
+import os
 import tempfile
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+# Environment names that mean real customers and real money. Checked against
+# APP_ENV and the hosting platform's own name for the environment (Railway sets
+# RAILWAY_ENVIRONMENT_NAME), so a mislabelled APP_ENV can't slip a fake through.
+PRODUCTION_NAMES = frozenset({"production", "prod"})
+
+
+class ProductionConfigError(RuntimeError):
+    """A local-only fake is configured in an environment named production."""
 
 
 class IdentitySettings(BaseSettings):
@@ -291,6 +301,29 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @property
+    def production_named(self) -> bool:
+        names = (self.APP_ENV, os.environ.get("RAILWAY_ENVIRONMENT_NAME", ""))
+        return any(n.strip().lower() in PRODUCTION_NAMES for n in names)
+
+    @model_validator(mode="after")
+    def refuse_fakes_in_production(self) -> "Settings":
+        """No service starts in an environment named production with the fake
+        payment or payout provider, or with the fixed OTP for seed phones."""
+        if not self.production_named:
+            return self
+        p = self.providers
+        problems = []
+        if p.PAYMENT_PROVIDER != "live":
+            problems.append(f"PAYMENT_PROVIDER={p.PAYMENT_PROVIDER!r} (must be 'live': 'auto' falls back to the fake without keys)")
+        if p.PAYOUT_PROVIDER == "fake":
+            problems.append("PAYOUT_PROVIDER='fake'")
+        if p.OTP_FIXED_CODE:
+            problems.append("OTP_FIXED_CODE is set (set it to an empty string)")
+        if problems:
+            raise ProductionConfigError("refusing to start in production: " + "; ".join(problems))
+        return self
 
     @field_validator("EVENT_BUS")
     @classmethod

@@ -129,6 +129,15 @@ def assert_messages_sent(order_id: str, customer: Api, partner_id: str, customer
     partner_rows = run(sql("SELECT channel, status FROM notifications WHERE user_id = :u AND type = 'partner_new_order' "
                            "AND data->>'order_id' = :o", u=partner_id, o=order_id))
     assert {(r["channel"], r["status"]) for r in partner_rows} >= {("in_app", "sent"), ("sms", "sent")}, partner_rows
+    if not MAIL:  # hosted QA: email goes to the log; the worker records each one it sent
+        def emailed() -> set[str]:
+            rows = run(sql("SELECT n.type FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = :e "
+                           "AND n.channel = 'email' AND n.status = 'sent' AND n.data->>'order_id' = :o",
+                           e=customer_email, o=order_id))
+            return {r["type"] for r in rows}
+
+        assert wait_for(lambda: {"order_placed", "order_delivered"} <= emailed()), emailed()
+        return
     import httpx
 
     def mails() -> list[str]:
