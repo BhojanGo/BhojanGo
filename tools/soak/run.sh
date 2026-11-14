@@ -14,7 +14,9 @@ P="$COMPOSE_PROJECT_NAME"
 NET="${P}_default"
 MINUTES="${SOAK_MINUTES:-120}"
 RIDERS="${SOAK_RIDERS:-8}"
-BATCHING="${SOAK_BATCHING:-off}"   # on: Boise has live batching for this run (task 43)
+BATCHING="${SOAK_BATCHING:-off}"   # on: the city has live batching for this run (task 43)
+CITYKEY="${SOAK_CITY:-boi}"          # boi (Boise) | hyd (Hyderabad)
+case "$CITYKEY" in hyd) CITYCODE=IN-TG-HYD ;; *) CITYCODE=US-ID-BOI ;; esac
 ORDERS="${SOAK_ORDERS:-150}"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="$ROOT/tools/soak/out/$STAMP"
@@ -25,7 +27,7 @@ DB_URL="postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango"
 
 echo "== build the soak image (backend + its dependencies)"
 docker build -q -f "$ROOT/infra/docker/test.Dockerfile" --target migrations -t bhojango-soak "$ROOT" >/dev/null || exit 1
-OPTS="--rm --network $NET -e SOAK_RIDERS=$RIDERS -e DATABASE_URL=$DB_URL -e PYTHONPATH=/repo/backend -v $ROOT/tools:/repo/tools:ro -v $OUT:/out -w /repo/backend"
+OPTS="--rm --network $NET -e SOAK_CITY=$CITYKEY -e SOAK_RIDERS=$RIDERS -e DATABASE_URL=$DB_URL -e PYTHONPATH=/repo/backend -v $ROOT/tools:/repo/tools:ro -v $OUT:/out -w /repo/backend"
 RUN="docker run $OPTS bhojango-soak"
 
 echo "== people (riders 4-8, customers 6-40) and opening hours around the clock"
@@ -38,8 +40,8 @@ async def go():
     await open_all_day(); await engine.dispose()
 asyncio.run(go())" || exit 1
 
-echo "== batching in Boise: $BATCHING"
-$RUN uv run --frozen python /repo/tools/soak/batching_switch.py "$BATCHING" || exit 1
+echo "== batching in $CITYCODE: $BATCHING"
+$RUN uv run --frozen python /repo/tools/soak/batching_switch.py "$BATCHING" "$CITYCODE" || exit 1
 
 echo "== sampler (once a minute) -> samples.csv"
 sh "$ROOT/tools/soak/sample.sh" "$P" "$OUT/samples.csv" &
@@ -47,12 +49,12 @@ SAMPLER=$!
 trap 'kill $SAMPLER 2>/dev/null' EXIT
 
 echo "== soak: $MINUTES minutes, $ORDERS orders, $RIDERS riders, batching $BATCHING (log: $OUT/soak.log)"
-echo "riders=$RIDERS batching=$BATCHING" > "$OUT/settings"
+echo "city=$CITYCODE riders=$RIDERS batching=$BATCHING" > "$OUT/settings"
 # Bounded: the window plus 30 minutes for stragglers and the write-up.
 timeout $(( (${MINUTES%.*} + 30) * 60 )) docker run $OPTS -e SOAK_MINUTES="$MINUTES" -e SOAK_ORDERS="$ORDERS" -e SOAK_OUT=/out/soak-result.json \
   bhojango-soak uv run --frozen python /repo/tools/soak/soak.py > "$OUT/soak.log" 2>&1
 echo "soak exit: $?"
-[ "$BATCHING" = "on" ] && $RUN uv run --frozen python /repo/tools/soak/batching_switch.py off
+[ "$BATCHING" = "on" ] && $RUN uv run --frozen python /repo/tools/soak/batching_switch.py off "$CITYCODE"
 kill $SAMPLER 2>/dev/null
 END_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "$END_ISO" > "$OUT/ended_at"
@@ -75,6 +77,20 @@ SELECT json_build_object('orders', count(*),
   'max_min', round((extract(epoch from max(a - d)) / 60)::numeric, 1),
   'overtakes', (SELECT count(*) FROM h x JOIN h y ON x.d < y.d AND x.a > y.a + interval '20 seconds'))
 FROM h" > "$OUT/rider-waits.json" 2>/dev/null || echo "{}" > "$OUT/rider-waits.json"
+
+echo "== contribution per order, for this run's delivered orders -> contribution.json"
+$RUN uv run --frozen python -c "
+import asyncio, json
+from datetime import date, timedelta
+from core_api.modules.finance.service.contribution import contribution
+from shared.db import AsyncSessionLocal, engine
+ids = [o['order_id'] for o in json.load(open('/out/soak-result.json'))['orders'] if o.get('outcome') == 'delivered']
+async def go():
+    async with AsyncSessionLocal() as db:
+        out = await contribution(db, '$CITYCODE', date.today() - timedelta(days=2), date.today() + timedelta(days=2), order_ids=ids)
+    await engine.dispose()
+    json.dump(out, open('/out/contribution.json', 'w'), indent=1)
+asyncio.run(go())" || echo "{}" > "$OUT/contribution.json"
 
 echo "== errors in the logs -> log-errors.txt"
 for svc in core-api realtime worker web admin postgres redis; do

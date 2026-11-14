@@ -91,6 +91,7 @@ def main(run_dir: str) -> None:
                                   "starts_at": a.get("starts_at"), "ends_at": a.get("ends_at")} for a in stored],
         "log_errors": {"lines": len(errors), "kinds": error_kinds(errors)},
         "rider_waits": json.loads((d / "rider-waits.json").read_text() or "{}") if (d / "rider-waits.json").exists() else {},
+        "contribution": json.loads((d / "contribution.json").read_text() or "{}") if (d / "contribution.json").exists() else {},
     }
     (d / "report.json").write_text(json.dumps(report, indent=1))
 
@@ -101,6 +102,9 @@ def main(run_dir: str) -> None:
     print(f"- Cards declined first: {s.get('declined_first')}, retried: {s.get('retried_card')}; problems: {s.get('problems')}")
     print(f"- Bots: {s.get('stats')}")
     print(f"- Riders (utilisation and pay): {s.get('riders')}")
+    c = (report["contribution"] or {}).get("all") or {}
+    if c:
+        print(f"- Contribution per order ({report['contribution'].get('currency')}, {c.get('orders')} delivered orders in the window): {c.get('per_order')}")
     print(f"- Waiting for a rider (minutes; overtakes = later orders served 20 s+ sooner): {report['rider_waits']}")
     print("\n| Series | warm avg | last avg | change | max |\n|---|---|---|---|---|")
     for k, g in report["growth"].items():

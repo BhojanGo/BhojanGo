@@ -12,12 +12,14 @@ import httpx
 CORE = os.environ.get("SOAK_CORE", "http://core-api:8001") + "/api/v1"
 ADMIN = ("cm.us@example.com", "BhojanGoAdmin1")  # USA country manager (makes the change)
 APPROVER = ("finance.us@example.com", "BhojanGoAdmin1")  # a second admin approves it
+ADMINS = {"US": (ADMIN, APPROVER), "IN": (("cm.in@example.com", "BhojanGoAdmin1"), ("finance.in@example.com", "BhojanGoAdmin1"))}
 
 
 def main(state: str, city: str = "US-ID-BOI") -> None:
     live = state == "on"
+    admin, approver = ADMINS[city[:2]]
     with httpx.Client(timeout=30) as c:
-        r = c.post(f"{CORE}/auth/login", json={"email": ADMIN[0], "password": ADMIN[1]})
+        r = c.post(f"{CORE}/auth/login", json={"email": admin[0], "password": admin[1]})
         r.raise_for_status()
         h = {"Authorization": f"Bearer {r.json()['access_token']}"}
         rules = c.get(f"{CORE}/rules", headers=h, params={"family": "business"}).json()
@@ -32,7 +34,7 @@ def main(state: str, city: str = "US-ID-BOI") -> None:
         r = c.post(f"{CORE}/rules/{vid}/submit", headers=h)  # batching changes rider pay: a second admin approves
         r.raise_for_status()
         if r.json()["status"] == "pending_approval":
-            fin = c.post(f"{CORE}/auth/login", json={"email": APPROVER[0], "password": APPROVER[1]})
+            fin = c.post(f"{CORE}/auth/login", json={"email": approver[0], "password": approver[1]})
             fin.raise_for_status()
             r = c.post(f"{CORE}/rules/{vid}/approve", headers={"Authorization": f"Bearer {fin.json()['access_token']}"},
                        json={"note": "soak run"})
