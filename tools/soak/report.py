@@ -100,6 +100,7 @@ def main(run_dir: str) -> None:
     print(f"- Delivery minutes (paid → delivered): {s.get('delivery_minutes')}")
     print(f"- Cards declined first: {s.get('declined_first')}, retried: {s.get('retried_card')}; problems: {s.get('problems')}")
     print(f"- Bots: {s.get('stats')}")
+    print(f"- Riders (utilisation and pay): {s.get('riders')}")
     print(f"- Waiting for a rider (minutes; overtakes = later orders served 20 s+ sooner): {report['rider_waits']}")
     print("\n| Series | warm avg | last avg | change | max |\n|---|---|---|---|---|")
     for k, g in report["growth"].items():
