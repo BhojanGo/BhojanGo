@@ -45,7 +45,7 @@ Approver = Annotated[AdminContext, Depends(require_permission("rules.approve"))]
 
 
 def out(r: Rule) -> RuleOut:
-    return RuleOut.model_validate(r).model_copy(update={"money": r.family in templates.MONEY_FAMILIES})
+    return RuleOut.model_validate(r).model_copy(update={"money": templates.needs_approval(r.family, r.template)})
 
 
 async def _run(coro):  # type: ignore[no-untyped-def]

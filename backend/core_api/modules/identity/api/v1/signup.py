@@ -126,10 +126,11 @@ async def kitchen_apply(data: KitchenApply, me: Me, db: DB) -> KitchenApplied:
     from core_api.modules.rules.service.rules import RuleService
 
     rules = await RuleService(db).resolve(Context(country=country.code, region=region.code, city=city.code))
-    tier = rules.get("commission:percent_by_tier")
-    if tier:
-        p = tier.params
-        r.commission_rate = Decimal(str(p["tiers"].get(p["default_tier"], 20))) / 100
+    rate = rules.get("commission:rate")
+    if rate:
+        from core_api.modules.rules.service.templates import commission_percent
+
+        r.commission_rate = commission_percent(rate.template, rate.params, None) / 100
     db.add(r)
     await db.flush()
     await db.refresh(user)

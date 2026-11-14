@@ -310,9 +310,11 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     # ── 8 split ──────────────────────────────────────────────────────────────
     restaurant_funded = -sum((bl.amount for bl in lines if bl.funded_by == "restaurant"), ZERO)
     commission = ZERO
-    ct = rules.get("commission:percent_by_tier")
+    ct = rules.get("commission:rate")  # the most specific of restaurant > city > country
     if ct:
-        pct = D(ct.params["tiers"].get(inp.restaurant_tier or ct.params["default_tier"], ct.params["tiers"][ct.params["default_tier"]]))
+        from core_api.modules.rules.service.templates import commission_percent
+
+        pct = commission_percent(ct.template, ct.params, inp.restaurant_tier)
         commission += money(food * pct / 100)
         used.append(ct)
     cf = rules.get("commission:flat_per_order")

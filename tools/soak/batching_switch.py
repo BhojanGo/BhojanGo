@@ -1,6 +1,6 @@
-"""Turn live batching on or off for a city, the way an admin does it in
-Pricing & Rules -> Business rules (a new version of the city's `batching` rule;
-business rules go live without a second approval).
+"""Turn live batching on or off for a city, the way admins do it in
+Pricing & Rules -> Business rules: a new version of the city's `batching` rule,
+submitted by the country manager and approved by Finance (it changes rider pay).
 
     python tools/soak/batching_switch.py on|off [US-ID-BOI]     # in the soak container
 """
@@ -10,7 +10,8 @@ import sys
 import httpx
 
 CORE = os.environ.get("SOAK_CORE", "http://core-api:8001") + "/api/v1"
-ADMIN = ("cm.us@example.com", "BhojanGoAdmin1")  # USA country manager
+ADMIN = ("cm.us@example.com", "BhojanGoAdmin1")  # USA country manager (makes the change)
+APPROVER = ("finance.us@example.com", "BhojanGoAdmin1")  # a second admin approves it
 
 
 def main(state: str, city: str = "US-ID-BOI") -> None:
@@ -27,8 +28,15 @@ def main(state: str, city: str = "US-ID-BOI") -> None:
             return
         r = c.post(f"{CORE}/rules/{rule['id']}/versions", headers=h, json={"params": {**rule["params"], "live": live}})
         r.raise_for_status()
-        r = c.post(f"{CORE}/rules/{r.json()['id']}/submit", headers=h)  # business rules go live on submit
+        vid = r.json()["id"]
+        r = c.post(f"{CORE}/rules/{vid}/submit", headers=h)  # batching changes rider pay: a second admin approves
         r.raise_for_status()
+        if r.json()["status"] == "pending_approval":
+            fin = c.post(f"{CORE}/auth/login", json={"email": APPROVER[0], "password": APPROVER[1]})
+            fin.raise_for_status()
+            r = c.post(f"{CORE}/rules/{vid}/approve", headers={"Authorization": f"Bearer {fin.json()['access_token']}"},
+                       json={"note": "soak run"})
+            r.raise_for_status()
         print(f"batching in {city}: {state} (rule version {r.json().get('version')}, {r.json().get('status')})")
 
 

@@ -11,6 +11,8 @@ import re
 import socket
 import threading
 import uuid
+from datetime import date, timedelta
+from decimal import Decimal
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -75,9 +77,23 @@ with sync_playwright() as p:
     api = p.request.new_context()
 
     # A paid order at Spice Route Kitchen, so there's something live.
+    _tokens: dict[str, dict] = {}
+
     def token(email: str, pw: str = "BhojanGo123") -> dict:
-        r = api.post(f"{CORE}/auth/login", data={"email": email, "password": pw})
-        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+        """Signed in once per run (sign-in is limited to 10 a minute; tokens last 15)."""
+        if email not in _tokens:
+            for _ in range(20):
+                r = api.post(f"{CORE}/auth/login", data={"email": email, "password": pw})
+                if r.status != 429:
+                    break
+                page_wait(6000)
+            _tokens[email] = {"Authorization": f"Bearer {r.json()['access_token']}"}
+        return _tokens[email]
+
+    def page_wait(ms: int) -> None:
+        import time
+
+        time.sleep(ms / 1000)
 
     cust = token("customer3.hyd@example.com")
     rest = next(r for r in api.get(f"{CORE}/restaurants?limit=50").json()["items"] if r["name"] == "Spice Route Kitchen")
@@ -178,7 +194,7 @@ with sync_playwright() as p:
     check("partners: rider documents by country", lambda: expect(page.get_by_text(re.compile("reviewed by country"))).to_be_visible())
 
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
-    page.get_by_role("region", name="Rules").get_by_role("button").first.click()
+    page.get_by_role("region", name="Rules").get_by_test_id("row-source").first.click()
     check("pricing & rules: a rule's settings, where it comes from, history", lambda: (
         expect(page.get_by_role("heading", name="History")).to_be_visible(timeout=15000),
         expect(page.get_by_role("button", name=re.compile("^Approvals"))).to_be_visible()))
@@ -232,36 +248,164 @@ with sync_playwright() as p:
     page.screenshot(path=f"{OUT}/07b-offer-paused.png", full_page=True)
     api.post(f"{CORE}/restaurants/{rest['id']}/offers/{offer['id']}/end", headers=partner_h)
 
-    # Batching (task 43): a per-city switch among the business rules, off by default.
+    # Batching (task 43): a per-city switch among the business rules, off by default. It changes
+    # rider pay, so it needs a second admin like money rules.
+    fin_us = token("finance.us@example.com", PW)
+
     def batching_rule():  # type: ignore[no-untyped-def]
         page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=business", wait_until="networkidle")
         page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("Batching")).first.click()
         return page.get_by_role("region", name=re.compile("^Rule · Batching"))
+
+    def live_batching_rule() -> dict | None:
+        rules = api.get(f"{CORE}/rules", headers=fin_us, params={"family": "business"}).json()
+        return next((r for r in rules if r["template"] == "batching" and r["market_scope"] == "US-ID-BOI"), None)
 
     def set_batching(live: bool) -> None:
         rule = batching_rule()
         rule.get_by_role("button", name="New version").click()
         box = rule.get_by_label("Live")
         box.check() if live else box.uncheck()
-        rule.get_by_role("button", name="Save").click()
-        cm_us = token("cm.us@example.com", PW)
-        for _ in range(30):  # saved and live at once: the published version has the new setting
-            rules = api.get(f"{CORE}/rules", headers=cm_us, params={"family": "business"}).json()
-            now = [r for r in rules if r["template"] == "batching" and r["market_scope"] == "US-ID-BOI"
-                   and r["status"] == "published" and not r.get("effective_to")]
-            if now and bool(now[0]["params"].get("live")) == live:
-                return
+        rule.get_by_role("button", name="Send for approval").click()
+        for _ in range(30):
+            r = live_batching_rule()
+            if r and r["status"] == "pending_approval":
+                break
             page.wait_for_timeout(500)
-        raise AssertionError(f"batching never became {'live' if live else 'off'}")
+        assert r and r["status"] == "pending_approval", f"batching didn't wait for approval: {r and r['status']}"
+        ok = api.post(f"{CORE}/rules/{r['id']}/approve", headers=fin_us, data={"note": "e2e"})
+        assert ok.status == 200, ok.text()
 
     detail = batching_rule()
     check("batching: a switch per city, off by default", lambda: expect(detail.get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000))
     set_batching(True)
     detail = batching_rule()
-    check("batching: turned on for Boise, live at once (no approval)", lambda: expect(detail.get_by_test_id("rule-words")).to_contain_text("Live:", timeout=15000))
+    check("batching: needs a second admin; approved by Finance, then live", lambda: (
+        expect(detail.get_by_test_id("rule-words")).to_contain_text("Live:", timeout=15000),
+        expect(detail.get_by_role("list", name="Versions").get_by_text(re.compile("^Replaced on ")).first).to_be_visible()))
     page.screenshot(path=f"{OUT}/07d-batching-switch.png", full_page=True)
     set_batching(False)  # leave it as the seed has it
-    check("batching: back off", lambda: expect(batching_rule().get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000))
+    check("rule history: only the current version is Live, older ones say when they were replaced", lambda: (
+        expect(batching_rule().get_by_test_id("rule-words")).to_contain_text("Off:", timeout=15000),
+        expect(page.get_by_role("list", name="Versions").get_by_text("Live", exact=True)).to_have_count(1, timeout=15000)))
+
+    # Commissions (Pricing & Rules, commissions first): add a Boise override, Finance approves it,
+    # an order and its payout use it; end it and the next order is back on the US rate; delete a draft.
+    boi_rest = next(r for r in api.get(f"{CORE}/restaurants?limit=50").json()["items"] if r["name"] == "Boise Bowl Co.")
+    boi_menu = {i["name"]: i["id"] for c in api.get(f"{CORE}/restaurants/{boi_rest['id']}/menu").json()["categories"] for i in c["items"]}
+    RT = "http://realtime:8004/api/v1"
+
+    def delivered_boise_order() -> dict:
+        """customer1.boi orders a bowl, pays; the kitchen cooks; rider1.boi takes the offer and delivers it."""
+        c, partner, rider = token("customer1.boi@example.com"), token("partner.boi@example.com"), token("rider1.boi@example.com")
+        cart = [{"menu_item_id": boi_menu["Teriyaki Chicken Bowl"], "quantity": 2}]
+        addr = api.get(f"{CORE}/me/addresses", headers=c).json()[0]
+        qq = api.post(f"{CORE}/pricing/quote", headers=c, data={"restaurant_id": boi_rest["id"], "items": cart, "deliver_to": {"address_id": addr["id"]}}).json()
+        o = api.post(f"{CORE}/orders", headers={**c, "X-Idempotency-Key": str(uuid.uuid4())}, data={
+            "restaurant_id": boi_rest["id"], "items": cart, "payment_method": "card", "quote_token": qq["token"],
+            "delivery_address": {"street": "1510 N 13th St", "city": "Boise", "state": "ID", "zip": "83702", "country": "US"}}).json()
+        pi = api.post(f"{CORE}/payments/initiate", headers=c, data={"order_id": o["id"], "payment_method_type": "card"}).json()
+        api.post(f"{CORE}/payments/fake/{pi['payment_intent_id']}/complete", headers=c, data={"outcome": "succeeded"})
+        api.post(f"{RT}/riders/me/online", headers=rider, data={"lat": 43.6299, "lng": -116.2008})
+        for st in ("accepted", "preparing", "almost_ready"):
+            api.put(f"{CORE}/orders/{o['id']}/status", headers=partner, data={"status": st})
+        for _ in range(60):
+            if ((api.get(f"{RT}/riders/me", headers=rider).json().get("offer") or {}).get("order_id")) == o["id"]:
+                break
+            page.wait_for_timeout(500)
+        assert api.post(f"{RT}/offers/{o['id']}/accept", headers=rider).status == 200
+        api.put(f"{CORE}/orders/{o['id']}/status", headers=partner, data={"status": "ready"})
+        api.put(f"{CORE}/orders/{o['id']}/status", headers=rider, data={"status": "picked_up"})
+        pin = api.get(f"{CORE}/orders/{o['id']}", headers=c).json()["pin"]
+        done = api.put(f"{CORE}/orders/{o['id']}/status", headers=rider, data={"status": "delivered", "proof": {"method": "pin", "pin": pin}})
+        assert done.status == 200, done.text()
+        api.post(f"{RT}/riders/me/offline", headers=rider)
+        return o
+
+    def commission_of(order_id: str) -> tuple[str, str]:
+        snap = api.get(f"{CORE}/pricing/orders/{order_id}/snapshot", headers=fin_us).json()
+        food = Decimal(snap["split"]["detail"].get("commission", "0"))
+        lines = {ln["code"]: Decimal(ln["amount"]) for ln in snap["lines"] if ln["code"] == "food"}
+        return str(food), str((lines["food"] * Decimal("0.12")).quantize(Decimal("0.01")))
+
+    page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
+    check("commissions: each row says where it comes from", lambda: expect(
+        page.get_by_role("region", name="Rules").get_by_test_id("row-source").filter(has_text="Inherited from United States · 20% (tier B)").first).to_be_visible(timeout=15000))
+    for r in api.get(f"{CORE}/rules", headers=fin_us, params={"family": "commission"}).json():  # left from an earlier run
+        if r["market_scope"] == "US-ID-BOI" and r["status"] in ("draft", "rejected"):
+            api.delete(f"{CORE}/rules/{r['id']}", headers=token("cm.us@example.com", PW))
+        elif r["market_scope"] == "US-ID-BOI" and r["status"] == "published" and not r.get("effective_to"):
+            api.post(f"{CORE}/rules/{r['id']}/end", headers=token("cm.us@example.com", PW), data={})
+    page.reload(wait_until="networkidle")
+    page.get_by_role("region", name="Rules").get_by_role("button", name="Add").click()
+    add = page.get_by_role("region", name="Add a rule")
+    add.get_by_label("Type").select_option("percent")
+    add.get_by_label("For").select_option("city")
+    add.get_by_label("Name").fill("Boise launch rate")
+    add.get_by_label("Percent", exact=True).fill("12")
+    add.get_by_role("button", name="Create draft").click()
+    draft = page.get_by_role("region", name="Rule · Boise launch rate")
+    check("commissions: a new Boise rule starts as a draft with a 7-day preview", lambda: (
+        expect(draft.get_by_text("Draft", exact=True).first).to_be_visible(timeout=15000),
+        expect(draft.get_by_role("region", name="Preview: the last 7 days").get_by_test_id("preview-summary")).to_be_visible(timeout=15000),
+        expect(draft.get_by_test_id("rule-source")).to_contain_text("Set for Boise · 12%")))
+    page.screenshot(path=f"{OUT}/07e-commission-draft-preview.png", full_page=True)
+    draft.get_by_role("button", name="Submit for approval").click()
+    check("commissions: submitted, waiting for a second admin", lambda: expect(draft.get_by_text("Waiting for approval").first).to_be_visible(timeout=15000))
+
+    fctx = b.new_context(viewport={"width": 1440, "height": 1000})
+    fpage = fctx.new_page()
+    sign_in(fpage, "finance.us@example.com")
+    fpage.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=approvals", wait_until="networkidle")
+    fpage.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("Boise launch rate")).first.click()
+    frule = fpage.get_by_role("region", name="Rule · Boise launch rate")
+    frule.get_by_label("Comment").fill("Matches the signed launch deal")
+    frule.get_by_role("button", name="Approve and schedule").click()
+    check("commissions: Finance approves it, it's live", lambda: expect(fpage.get_by_text("Nothing waiting for you.")).to_be_visible(timeout=15000))
+    fctx.close()
+
+    o1 = delivered_boise_order()
+    got, want = commission_of(o1["id"])
+    check("commissions: an order uses the Boise override (12% of food)", lambda: _ok(got == want))
+    today_d = date.today()
+    prev = api.get(f"{CORE}/finance/payout-preview/restaurants/{boi_rest['id']}", headers=fin_us,
+                   params={"country": "US", "start": str(today_d - timedelta(days=1)), "end": str(today_d + timedelta(days=1))}).json()
+    line = next(ln for ln in prev["lines"] if ln["order_id"] == o1["id"])
+    check("commissions: the payout uses it too (the restaurant's statement line)", lambda: _ok(line["commission"] == f"-{want}"))
+
+    page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
+    page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("Boise launch rate")).first.click()
+    live = page.get_by_role("region", name="Rule · Boise launch rate")
+    check("commissions: a live rule has no Delete, only New version / End / Roll back", lambda: (
+        expect(live.get_by_role("button", name="End now")).to_be_visible(timeout=15000),
+        expect(live.get_by_role("button", name="Delete draft")).to_have_count(0)))
+    live.get_by_role("button", name="End now").click()
+    check("commissions: ended; Boise is back on the US rate", lambda: expect(page.get_by_role("status")).to_contain_text("Ended now", timeout=15000))
+    o2 = delivered_boise_order()
+    got2, _ = commission_of(o2["id"])
+    food2 = next(Decimal(ln["amount"]) for ln in api.get(f"{CORE}/pricing/orders/{o2['id']}/snapshot", headers=fin_us).json()["lines"] if ln["code"] == "food")
+    check("commissions: the next order uses the country rate again (20%, tier B)", lambda: _ok(got2 == str((food2 * Decimal("0.20")).quantize(Decimal("0.01")))))
+
+    page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
+    page.get_by_role("region", name="Rules").get_by_role("button", name="Add").click()
+    add = page.get_by_role("region", name="Add a rule")
+    add.get_by_label("Type").select_option("percent")
+    add.get_by_label("Name").fill("Draft to delete")
+    add.get_by_label("Percent", exact=True).fill("13")
+    add.get_by_role("button", name="Create draft").click()
+    gone = page.get_by_role("region", name="Rule · Draft to delete")
+    gone.get_by_role("button", name="Delete draft").click()
+    check("commissions: a draft can be deleted", lambda: expect(page.get_by_role("region", name="Rules").get_by_text("Draft to delete")).to_have_count(0, timeout=15000))
+
+    # The restaurant's commission: rate, source, end date, tier (change approved by a second admin).
+    page.goto(f"{BASE}/partners?scope=US-ID-BOI&tab=kitchens", wait_until="networkidle")
+    page.get_by_role("button", name="Boise Bowl Co.").click()
+    kc = page.get_by_role("region", name="Commission · Boise Bowl Co.")
+    check("kitchen page: effective commission, where it comes from, tier", lambda: (
+        expect(kc.get_by_test_id("kitchen-commission")).to_contain_text("20%", timeout=15000),
+        expect(kc.get_by_test_id("kitchen-commission")).to_contain_text("country"),
+        expect(kc.get_by_test_id("kitchen-tier")).to_have_text("B")))
+    page.screenshot(path=f"{OUT}/06b-kitchen-commission.png", full_page=True)
 
     page.goto(f"{BASE}/markets/IN/IN-TG-HYD", wait_until="networkidle")
     check("markets: the city with its zones", lambda: expect(page.get_by_text(re.compile("Zones")).first).to_be_visible(timeout=15000))

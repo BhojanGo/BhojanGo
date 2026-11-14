@@ -77,7 +77,7 @@ async def test_every_seeded_rule_is_valid_and_hyderabad_resolves(client: AsyncCl
     assert got["customer_fee:service_fee"]["params"]["percent"] == "2"
     assert got["tax:rate_on_lines:gst_food"]["params"]["rate_percent"] == "5"
     assert got["tax:rate_on_lines:gst_fees"]["params"]["rate_percent"] == "18"
-    assert got["commission:percent_by_tier"]["scope_level"] == "country"
+    assert got["commission:rate"]["scope_level"] == "country"
     assert got["business:accept_timeout"]["scope_level"] == "platform"
     assert "promotion:percent_off:hyd_launch" in got
 

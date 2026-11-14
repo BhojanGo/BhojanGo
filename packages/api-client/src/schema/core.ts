@@ -370,6 +370,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/payout-preview/restaurants/{restaurant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout Preview
+         * @description What a payout run for this period would pay the restaurant, line by line, without
+         *     making the run (the same statement code).
+         */
+        get: operations["payout_preview_api_v1_finance_payout_preview_restaurants__restaurant_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/payout-runs": {
         parameters: {
             query?: never;
@@ -2234,6 +2255,104 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rules/commission/preview/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview
+         * @description A commission draft against the last ``days`` days of delivered orders in its scope: each
+         *     order's commission as priced (its snapshot) and as this draft would have priced it, and
+         *     what that does to restaurant payouts. Nothing changes; it's for deciding.
+         */
+        get: operations["preview_api_v1_rules_commission_preview__rule_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/commission/restaurants/{restaurant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Restaurant Commission
+         * @description What this restaurant pays now: the rate, which rule sets it (the restaurant's own,
+         *     its city's or its country's), when that rule ends, its tier, and any tier change waiting.
+         */
+        get: operations["restaurant_commission_api_v1_rules_commission_restaurants__restaurant_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/commission/restaurants/{restaurant_id}/tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Tier Change
+         * @description A tier changes the restaurant's commission (and tier-based delivery fees), so a second
+         *     admin approves it, like a money rule.
+         */
+        post: operations["request_tier_change_api_v1_rules_commission_restaurants__restaurant_id__tier_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/commission/tier-changes/{change_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Tier Change */
+        post: operations["approve_tier_change_api_v1_rules_commission_tier_changes__change_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/commission/tier-changes/{change_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Tier Change */
+        post: operations["reject_tier_change_api_v1_rules_commission_tier_changes__change_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rules/resolve": {
         parameters: {
             query?: never;
@@ -3295,11 +3414,6 @@ export interface components {
             tax_regime?: ("gst" | "us_sales_tax") | null;
             /** Timezone */
             timezone?: string | null;
-        };
-        /** Decision */
-        Decision: {
-            /** Note */
-            note?: string | null;
         };
         /** DeliveryCheckResponse */
         DeliveryCheckResponse: {
@@ -5300,6 +5414,11 @@ export interface components {
              */
             effective_from?: string | null;
             /**
+             * Effective To
+             * @description End (optional); after it, the inherited rule applies again
+             */
+            effective_to?: string | null;
+            /**
              * Family
              * @example customer_fee
              */
@@ -5421,6 +5540,8 @@ export interface components {
         RuleUpdate: {
             /** Effective From */
             effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
             /** Locked */
             locked?: boolean | null;
             /** Name */
@@ -5681,6 +5802,16 @@ export interface components {
             status: string;
             /** Topic */
             topic: string;
+        };
+        /** TierIn */
+        TierIn: {
+            /** Note */
+            note: string;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "A" | "B" | "C";
         };
         /** UserResponse */
         UserResponse: {
@@ -5956,6 +6087,16 @@ export interface components {
             status: "done" | "in_review" | "needed" | "waiting" | "rejected";
             /** Title */
             title: string;
+        };
+        /** Decision */
+        core_api__modules__rules__api__v1__commission__Decision: {
+            /** Note */
+            note?: string | null;
+        };
+        /** Decision */
+        core_api__modules__rules__schemas__Decision: {
+            /** Note */
+            note?: string | null;
         };
     };
     responses: never;
@@ -6516,6 +6657,43 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     }[];
+                };
+            };
+        };
+    };
+    payout_preview_api_v1_finance_payout_preview_restaurants__restaurant_id__get: {
+        parameters: {
+            query: {
+                country: string;
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -10056,6 +10234,185 @@ export interface operations {
             };
         };
     };
+    preview_api_v1_rules_commission_preview__rule_id__get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restaurant_commission_api_v1_rules_commission_restaurants__restaurant_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_tier_change_api_v1_rules_commission_restaurants__restaurant_id__tier_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TierIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_tier_change_api_v1_rules_commission_tier_changes__change_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["core_api__modules__rules__api__v1__commission__Decision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_tier_change_api_v1_rules_commission_tier_changes__change_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["core_api__modules__rules__api__v1__commission__Decision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     resolve_rules_api_v1_rules_resolve_get: {
         parameters: {
             query?: {
@@ -10222,7 +10579,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Decision"];
+                "application/json": components["schemas"]["core_api__modules__rules__schemas__Decision"];
             };
         };
         responses: {

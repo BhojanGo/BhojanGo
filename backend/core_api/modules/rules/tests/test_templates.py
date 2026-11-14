@@ -16,6 +16,7 @@ GOOD = {
     ("customer_fee", "late_night_fee"): {"window": {"start": "23:00", "end": "02:00"}, "amount": 20},
     ("tax", "rate_on_lines"): {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"]},
     ("tax", "external"): {"provider": "stripe_tax"},
+    ("commission", "percent"): {"percent": 12},
     ("commission", "percent_by_tier"): {"tiers": {"A": 18, "B": 15}, "default_tier": "B"},
     ("commission", "flat_per_order"): {"amount": 5},
     ("commission", "payout_schedule"): {"frequency": "weekly", "day": "mon"},

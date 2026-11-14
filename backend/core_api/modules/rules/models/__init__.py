@@ -73,4 +73,26 @@ class RuleApproval(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
-__all__ = ["Rule", "RuleApproval"]
+class TierChange(Base):
+    """A restaurant's tier (A/B/C) sets its commission and tier-based fees, so a change
+    is asked for by one admin and approved by another (like a money rule)."""
+
+    __tablename__ = "restaurant_tier_changes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    from_tier: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    to_tier: Mapped[str] = mapped_column(String(1), nullable=False)
+    note: Mapped[str] = mapped_column(Text, nullable=False)
+    scope: Mapped[str] = mapped_column(String(20), nullable=False)  # the restaurant's city code (who may approve)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, default="pending")  # pending | approved | rejected
+    requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+__all__ = ["Rule", "RuleApproval", "TierChange"]

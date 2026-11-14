@@ -80,6 +80,20 @@ async def create_run(data: RunCreate, admin: Annotated[AdminContext, Depends(req
     return run_out(run)
 
 
+@router.get("/payout-preview/restaurants/{restaurant_id}")
+async def payout_preview(
+    restaurant_id: uuid.UUID, admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
+    country: str = Query(pattern=r"^[A-Z]{2}$"), start: date = Query(...), end: date = Query(...),
+) -> dict:
+    """What a payout run for this period would pay the restaurant, line by line, without
+    making the run (the same statement code)."""
+    admin.require("finance.view", country)
+    try:
+        return await payouts.preview_restaurant(db, country, start, end, restaurant_id)
+    except FinanceError as e:
+        raise _bad(e)
+
+
 @router.get("/payout-runs")
 async def list_runs(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
                     country: str | None = None) -> list[dict]:

@@ -246,6 +246,15 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/rules/{rule_id}/pause"): admin("viewer", "ops_boi", "cm_us", "support_hyd", body=lambda c: {"reason": "Sweep"}),
     ("POST", "/api/v1/rules/{rule_id}/resume"): admin("viewer", "ops_boi", "cm_us", "support_hyd"),
     ("POST", "/api/v1/rules/{rule_id}/end"): admin("viewer", "ops_boi", "cm_us", body=lambda c: {}),
+    # Commissions in the console: a restaurant's rate, tier changes (maker-checker), a draft's preview
+    ("GET", "/api/v1/rules/commission/restaurants/{restaurant_id}"): admin("ops_boi", "cm_us", "finance_us"),
+    ("POST", "/api/v1/rules/commission/restaurants/{restaurant_id}/tier"): admin(
+        "viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us", body=lambda c: {"tier": "A", "note": "access sweep"}),
+    ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/approve"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
+    ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/reject"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
+    ("GET", "/api/v1/rules/commission/preview/{rule_id}"): admin("ops_boi", "cm_us", "finance_us"),
+    ("GET", "/api/v1/finance/payout-preview/restaurants/{restaurant_id}"): admin(
+        "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"country": "IN", "start": "2026-11-09", "end": "2026-11-16"}),
     ("GET", "/api/v1/markets"): admin(),
     ("POST", "/api/v1/markets/countries"): admin("cm_in", "viewer", body=lambda c: {
         "code": "GB", "name": "United Kingdom", "currency": "GBP", "locales": ["en-GB"], "timezone": "Europe/London",
@@ -321,7 +330,7 @@ class Ctx:
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
-                  "document_id": self.rider_doc, "ticket_id": self.ticket,
+                  "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": str(uuid.UUID(int=9)),
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
