@@ -169,3 +169,53 @@ async def test_new_rider_week_uses_their_countrys_city(client: AsyncClient) -> N
     _, h = await new_rider("US")
     w = (await client.get("/api/v1/finance/earnings/me", headers=h)).json()
     assert w["city"] == "US-ID-BOI" and w["summary"]["hourly_floor"] == "15" and w["summary"]["deliveries"] == 0
+
+
+async def test_today_counts_only_completed_deliveries(client: AsyncClient) -> None:
+    """The rider's "Today" (drive screen pill, earnings screen) is completed deliveries plus
+    tips, nothing else: an offer, an accepted order on its way, or a cancelled one never
+    moves it. (Offers live in realtime and never reach finance; this pins every state an
+    order passes through on core_api's side.)"""
+    from decimal import Decimal
+
+    cust = await login(client, "customer2.hyd@example.com")
+    partner = await login(client, "partner.hyd@example.com")
+    rider = await login(client, "rider2.hyd@example.com")
+    ops = await login(client, "ops.hyd@example.com", "BhojanGoAdmin1")
+
+    async def today() -> tuple[Decimal, int]:
+        w = (await client.get("/api/v1/finance/earnings/me", headers=rider)).json()
+        return Decimal(w["today"]["total"]), len(w["today"]["lines"])
+
+    before = await today()
+    # Cooking and offered: nothing assigned to the rider yet.
+    order = await new_order(client, cust)
+    await pay(client, cust, order)
+    for s in ("accepted", "preparing", "almost_ready"):
+        await move(client, partner, order["id"], s)
+    assert await today() == before
+    # Accepted (the offer became an assignment) and picked up: still not earned.
+    assert (await assign(client, order["id"], rider)).status_code == 200
+    assert await today() == before
+    await move(client, partner, order["id"], "ready")
+    await move(client, rider, order["id"], "picked_up")
+    assert await today() == before
+    # Delivered: today goes up by exactly that delivery's line (base + distance + wait + tip).
+    pin = (await client.get(f"/api/v1/orders/{order['id']}", headers=cust)).json()["pin"]
+    r = await client.put(f"/api/v1/orders/{order['id']}/status", headers=rider,
+                         json={"status": "delivered", "proof": {"method": "pin", "pin": pin}})
+    assert r.status_code == 200, r.text
+    after = await today()
+    w = (await client.get("/api/v1/finance/earnings/me", headers=rider)).json()
+    line = next(ln for ln in w["today"]["lines"] if ln["order_id"] == order["id"])
+    assert after == (before[0] + Decimal(line["total"]), before[1] + 1)
+    assert Decimal(line["total"]) == sum(Decimal(line[k]) for k in ("base", "distance", "waiting", "tip"))
+    # An order assigned and then cancelled never counts.
+    other = await new_order(client, cust)
+    await pay(client, cust, other)
+    for s in ("accepted", "preparing", "almost_ready"):
+        await move(client, partner, other["id"], s)
+    assert (await assign(client, other["id"], rider)).status_code == 200
+    r = await client.post(f"/api/v1/orders/{other['id']}/cancel", headers=ops, json={"reason": "other", "note": "test"})
+    assert r.status_code == 200, r.text
+    assert await today() == after
