@@ -29,7 +29,8 @@ FEE_CODES = ("delivery_fee", "service_fee", "small_order_fee", "surge", "late_ni
 FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "payment_fees", "refunds", "keeps")
 
 
-async def contribution(db: AsyncSession, scope: str, start: date, end: date) -> dict:
+async def contribution(db: AsyncSession, scope: str, start: date, end: date, order_ids: list[str] | None = None) -> dict:
+    """``order_ids``: only these orders (the soak reports exactly the orders it placed)."""
     from core_api.modules.finance.service.payouts import _country, _in_period
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import Refund
@@ -43,7 +44,8 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date) -> 
     rows = (await db.execute(
         select(Order, OrderPricingSnapshot).join(OrderPricingSnapshot, OrderPricingSnapshot.order_id == Order.id)
         .where(Order.status == "delivered", Order.market_city.like(f"{scope}%" if len(scope) > 2 else f"{scope}-%"),
-               await _in_period(db, country, start, end, Order.actual_delivery_time))
+               await _in_period(db, country, start, end, Order.actual_delivery_time),
+               *([Order.id.in_([uuid.UUID(i) for i in order_ids])] if order_ids is not None else []))
     )).all()
     ids = [o.id for o, _ in rows]
     refunded: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
