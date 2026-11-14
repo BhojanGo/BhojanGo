@@ -367,6 +367,16 @@ with sync_playwright() as p:
     o1 = delivered_boise_order()
     got, want = commission_of(o1["id"])
     check("commissions: an order uses the Boise override (12% of food)", lambda: _ok(got == want))
+    # Payment fees (item 1): a US card order pays Stripe 2.9% + $0.30 and Stripe Tax 0.5% of the total.
+    snap1 = api.get(f"{CORE}/pricing/orders/{o1['id']}/snapshot", headers=fin_us).json()
+    total1 = Decimal(snap1["total"])
+    fd = snap1["split"].get("detail", {}).get("payment_fees") or {}
+    taxed = any((ln.get("detail") or {}).get("provider") for ln in snap1["lines"] if ln["code"] == "tax")
+    fee_want = (total1 * Decimal("0.029") + Decimal("0.30")).quantize(Decimal("0.01")) + (
+        (total1 * Decimal("0.005")).quantize(Decimal("0.01")) if taxed else Decimal(0))
+    fee_got = Decimal(snap1["split"].get("payment_fees", "-1"))
+    check(f"payment fees: a US card order's split carries Stripe 2.9% + $0.30 (+0.5% Stripe Tax when it taxed) ({fee_got} = {fee_want})",
+          lambda: _ok(fee_got == fee_want and fd.get("method") == "card" and "platform_keeps" in snap1["split"]))
     today_d = date.today()
     prev = api.get(f"{CORE}/finance/payout-preview/restaurants/{boi_rest['id']}", headers=fin_us,
                    params={"country": "US", "start": str(today_d - timedelta(days=1)), "end": str(today_d + timedelta(days=1))}).json()
@@ -416,6 +426,12 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Payout runs")).to_be_visible(timeout=15000),
         expect(page.get_by_role("region", name="Reconciliation")).to_be_visible(timeout=20000)))
     page.screenshot(path=f"{OUT}/09-finance.png", full_page=True)
+    page.goto(f"{BASE}/finance?scope=US", wait_until="networkidle")
+    page.get_by_label("to").fill(str(date.today() + timedelta(days=1)))  # this run's orders are today's
+    check("finance: contribution per order, after payment fees", lambda: (
+        expect(page.get_by_role("region", name="Contribution per order")).to_contain_text("Payment fees", timeout=20000),
+        expect(page.get_by_test_id("platform-keeps")).to_contain_text("$", timeout=20000)))
+    page.get_by_role("region", name="Contribution per order").screenshot(path=f"{OUT}/09b-contribution.png")
 
     page.goto(f"{BASE}/settings", wait_until="networkidle")
     check("settings: your access and the admins", lambda: (

@@ -311,6 +311,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/contribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contribution
+         * @description Contribution per order, by city: what the platform keeps after payment fees, rider
+         *     pay (tips excluded), platform-funded offers and the refunds it pays.
+         */
+        get: operations["contribution_api_v1_finance_contribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/earnings/me": {
         parameters: {
             query?: never;
@@ -6569,6 +6590,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contribution_api_v1_finance_contribution_get: {
+        parameters: {
+            query: {
+                scope: string;
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

@@ -253,6 +253,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/approve"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
     ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/reject"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
     ("GET", "/api/v1/rules/commission/preview/{rule_id}"): admin("ops_boi", "cm_us", "finance_us"),
+    ("GET", "/api/v1/finance/contribution"): admin(
+        "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"scope": "IN-TG-HYD", "start": "2026-11-09", "end": "2026-11-16"}),
     ("GET", "/api/v1/finance/payout-preview/restaurants/{restaurant_id}"): admin(
         "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"country": "IN", "start": "2026-11-09", "end": "2026-11-16"}),
     ("GET", "/api/v1/markets"): admin(),

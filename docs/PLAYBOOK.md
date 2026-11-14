@@ -128,6 +128,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 41. **Report the runs on the main branch, not only the PR checks.**
     Why: every PR check was green while the pipeline on `dev` failed 18 times (G1 on GitHub for 15 merges, a flaky order-code search, a Docker Hub outage). Reports now include the run link and per-job test counts for each merge commit (`tools/ci/evidence.sh`).
 
+42. **"Platform revenue" isn't what the platform keeps. Take payment fees off before calling an order profitable.**
+    Why: a Boise card order showed $4.60 platform revenue, but Stripe took $1.47 of the charge. Each order's split now records its payment fee (the rule version is in `rules_used`), and Finance shows contribution per order after fees, rider pay, the offers we fund and refunds. Orders from before the rule exist are estimated from today's rule, and the page says how many.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

@@ -244,6 +244,27 @@ class SupportRefundLimit(_P):
     max_per_order: Money = Field(ge=0)
 
 
+class MethodFee(_P):
+    percent: Decimal = Field(ge=0, le=10, description="Of the amount charged")
+    fixed: Money = Field(default=Decimal(0), ge=0, description="Per charge")
+
+
+class PaymentFees(_P):
+    """What the payment provider keeps of each order (item 1): a percentage plus a fixed
+    amount per payment method, and the tax service where one calculates tax (US: Stripe Tax
+    0.5% of the order). Not a price: customers don't see it; it comes off what the platform
+    keeps. Methods not listed use ``card``."""
+
+    methods: dict[str, MethodFee] = Field(min_length=1)
+    tax_service_percent: Decimal = Field(default=Decimal(0), ge=0, le=5)
+
+    @model_validator(mode="after")
+    def card_listed(self) -> "PaymentFees":
+        if "card" not in self.methods:
+            raise ValueError("card must be listed (it's the fallback for methods not listed)")
+        return self
+
+
 class AutoRefundLimit(_P):
     """B5: a customer's problem report is refunded at once up to this much per
     order; above it, it goes to support as a ticket."""
@@ -352,6 +373,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "dispatch_offer_timeout": DispatchOfferTimeout,
         "support_refund_limit": SupportRefundLimit,
         "auto_refund_limit": AutoRefundLimit,
+        "payment_fees": PaymentFees,
         "batching": Batching,
     },
     "promotion": {
