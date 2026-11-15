@@ -338,6 +338,11 @@ with sync_playwright() as p:
         expect(page.get_by_text(re.compile(r"^A (real|typical) Hyderabad bill$"))).to_be_visible(),
         _assert(any(json.loads(s).get("@type") == "ItemList" for s in page.locator('script[type="application/ld+json"]').all_inner_texts()), "no ItemList"),
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
+    # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
+    check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
+        expect(page.get_by_text(re.compile(r"₹25 up to 3 km; ₹35 up to 6 km; ₹50 up to 10 km"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5, at most ₹15\)"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10, ₹20, ₹30"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
           expect(page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani")).to_have_count(0))
@@ -423,6 +428,11 @@ with sync_playwright() as p:
         expect(bill.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
     tips = page.get_by_role("radiogroup", name="Tip your rider").get_by_role("radio")
+    # The choices are India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
+    check("tip: choices from the tip_presets rule, its default preselected", lambda: (
+        _assert([re.sub(r"\D", "", tips.nth(i).inner_text()) for i in range(3)] == ["10", "20", "30"],
+                [tips.nth(i).inner_text() for i in range(tips.count())]),
+        expect(tips.nth(1)).to_have_attribute("aria-checked", "true")))
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
@@ -479,11 +489,42 @@ with sync_playwright() as p:
     pin = page.locator('[data-testid="delivery-pin"]:visible').inner_text()
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "picked_up"})
     check("tracking: picked up, live", lambda: expect(status).to_contain_text("has picked up your order", timeout=20000))
+    # The rider's GPS, as the rider app sends it: a rider marker on the real map
+    # (MapLibre + OpenFreeMap, OSM credited) between the kitchen and home, and it moves.
+    o = api("GET", f"/orders/{order_id}", rider)
+    a, z = (o["pickup_lat"], o["pickup_lng"]), (o["delivery_lat"], o["delivery_lng"])
+    fix = lambda f: api("POST", "/delivery/driver/location", rider, {  # noqa: E731
+        "lat": a[0] + (z[0] - a[0]) * f, "lng": a[1] + (z[1] - a[1]) * f, "order_id": order_id}, host=8004)
+    fix(0.3)
+    route_map = page.get_by_role("region", name="Map of your order's route")
+    marker = route_map.get_by_role("img", name=re.compile("your rider$"))
+    check("tracking map: kitchen, home and the rider's live position, OSM credited", lambda: (
+        expect(route_map.get_by_role("img", name=re.compile(r"\(pickup\)$"))).to_be_visible(timeout=20000),
+        expect(route_map.get_by_role("img", name="Your address (drop-off)")).to_be_visible(),
+        expect(marker).to_be_visible(timeout=20000),
+        expect(page.get_by_text("OpenStreetMap").first).to_be_visible()))
+    before_box = marker.bounding_box() if marker.count() else None
+    fix(0.7)
+    check("tracking map: the rider marker moves with the next GPS fix (no reload)", lambda: eventually(
+        lambda: _assert(before_box is not None and marker.bounding_box() is not None
+                        and abs(marker.bounding_box()["x"] - before_box["x"]) + abs(marker.bounding_box()["y"] - before_box["y"]) > 5,
+                        (before_box, marker.bounding_box()))))
+    shot(page, "13c-rider-on-map")
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "delivered", "proof": {"method": "pin", "pin": pin}})
     check("tracking: delivered, live (no reload), messages closed", lambda: (
         expect(status).to_contain_text("Delivered. Enjoy your meal.", timeout=20000),
         expect(page.get_by_role("button", name="Message")).to_have_count(0, timeout=10000)))
     shot(page, "14-delivered")
+    # Rate after delivery: 1-5 stars, saved, shown back.
+    rate = page.get_by_role("radiogroup", name="Your rating")
+    rate.get_by_role("radio", name="5 stars").click()
+    page.get_by_role("button", name="Send rating").click()
+    check("rating: rate the delivered order, saved and shown back", lambda: (
+        expect(page.get_by_text("Thanks for rating this order.")).to_be_visible(timeout=15000),
+        # still there after a reload (from GET /orders/{id}/rating, not the page's memory)
+        page.reload(wait_until="networkidle"),
+        expect(page.get_by_role("heading", name="Your rating")).to_be_visible(timeout=15000),
+        expect(page.get_by_text("5 stars").first).to_be_attached()))
     page.get_by_role("link", name=re.compile("Report a problem")).click()
     check("report a problem: the form opens for this order", lambda: (
         url_is(page, rf"/orders/{order_id}/report|/account/orders/{order_id}/report"),
