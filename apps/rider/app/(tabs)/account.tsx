@@ -1,5 +1,6 @@
-// Account: who you are, your documents, payouts, safety and sign-out.
-import { useCountry, useSession } from "@bhojango/mobile-core";
+// Account: who you are, your language (the country's, from Markets), documents,
+// payouts, safety and sign-out.
+import { LanguagePicker, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,24 +12,27 @@ import { displayFont, night, space, textFont, ui } from "../../lib/theme";
 export default function Account() {
   const user = useSession((s) => s.user);
   const signOut = useSession((s) => s.signOut);
+  const { t } = useI18n();
   const { countries } = useCountry();
   const countryName = countries.find((c) => c.code === user?.country)?.name ?? user?.country;
-  const rows: { icon: IconName; title: string; detail: string; href: Href }[] = [
-    { icon: "document", title: "Documents", detail: "Licence, insurance, background check", href: "/documents" },
-    { icon: "bank", title: "Payouts", detail: "Payout account and past weeks", href: "/payouts" },
-    { icon: "alert", title: "Safety", detail: "SOS and emergency numbers", href: "/sos" },
+  const rows: { key: string; icon: IconName; title: string; detail: string; href: Href }[] = [
+    { key: "documents", icon: "document", title: t("rider.account.documents"), detail: t("rider.account.documents_detail"), href: "/documents" },
+    { key: "payouts", icon: "bank", title: t("rider.account.payouts"), detail: t("rider.account.payouts_detail"), href: "/payouts" },
+    { key: "safety", icon: "alert", title: t("rider.account.safety"), detail: t("rider.account.safety_detail"), href: "/sos" },
   ];
   return (
     <SafeAreaView style={ui.screen} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4] }}>
-        <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>Account</Text>
+      <ScrollView testID="account-screen" contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: space[8] }}>
+        <Text testID="account-title" accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>
+          {t("rider.account.title")}
+        </Text>
         <View style={styles.card}>
           <Text style={[ui.h1, { fontSize: 26 }]}>{user?.full_name}</Text>
           <Text style={ui.muted}>{[user?.phone, countryName].filter(Boolean).join(" · ")}</Text>
         </View>
         <View style={[styles.card, { padding: 0 }]}>
           {rows.map((r, i) => (
-            <Pressable key={r.title} accessibilityRole="button" onPress={() => router.push(r.href)}
+            <Pressable key={r.key} testID={`account-${r.key}`} accessibilityRole="button" onPress={() => router.push(r.href)}
               style={[styles.row, i < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: night.raised }]}>
               <Icon name={r.icon} stroke={night.link} />
               <View style={{ flex: 1 }}>
@@ -39,9 +43,14 @@ export default function Account() {
             </Pressable>
           ))}
         </View>
-        <Pressable accessibilityRole="button" onPress={async () => { await stopTracking(); await signOut(); router.replace("/sign-in"); }} style={ui.outline}>
-          <Text style={[ui.bold, textFont("700")]}>Sign out</Text>
+        <View testID="language-section" style={[styles.card, { gap: space[3] }]}>
+          <Text accessibilityRole="header" style={[ui.bold, { fontSize: 16 }]}>{t("rider.account.language")}</Text>
+          <LanguagePicker tone="dark" />
+        </View>
+        <Pressable testID="sign-out" accessibilityRole="button" onPress={async () => { await stopTracking(); await signOut(); router.replace("/sign-in"); }} style={ui.outline}>
+          <Text style={[ui.bold, textFont("700")]}>{t("rider.account.sign_out")}</Text>
         </Pressable>
+        <Text style={[ui.muted, { textAlign: "center", fontSize: 13 }]}>{t("rider.account.sign_out_note")}</Text>
       </ScrollView>
     </SafeAreaView>
   );

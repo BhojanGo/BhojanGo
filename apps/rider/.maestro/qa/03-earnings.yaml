@@ -1,0 +1,35 @@
+# QA, read-only: this week's earnings (the demo rider's delivered demo orders),
+# then past weeks. Money in the country's currency and format (Markets).
+appId: com.bhojango.rider
+---
+- runFlow: common/sign-in-demo.yaml
+- tapOn:
+    id: "tab-earnings"
+- extendedWaitUntil:
+    visible:
+      id: "week-total"
+    timeout: 20000
+- assertVisible:
+    id: "earnings-title"
+- assertVisible:
+    id: "next-payout"
+- takeScreenshot: docs/screenshots/rider/qa/03-earnings
+- scrollUntilVisible:
+    element:
+      id: "floor-card"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: docs/screenshots/rider/qa/03-earnings-floor
+- tapOn:
+    id: "past-weeks"
+- extendedWaitUntil:
+    visible:
+      id: "payouts-screen"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/rider/qa/03-payouts
+- tapOn:
+    id: "back"
+- extendedWaitUntil:
+    visible:
+      id: "week-total"
+    timeout: 10000

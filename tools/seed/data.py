@@ -345,7 +345,8 @@ COUNTRIES = [
         "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"],
         "timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
         "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
-        "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"]},
+        "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
+                     "emergency_number": "112"},
         "regions": [
             {
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
@@ -383,7 +384,7 @@ COUNTRIES = [
         "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US", "es-US"],
         "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
-        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"]},
+        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "emergency_number": "911"},
         "regions": [
             {
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},

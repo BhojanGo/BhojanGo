@@ -4179,6 +4179,8 @@ export interface components {
             currency: string;
             /** Distance Unit */
             distance_unit: string;
+            /** Emergency Number */
+            emergency_number?: string | null;
             /** Live */
             live: number;
             /** Locales */

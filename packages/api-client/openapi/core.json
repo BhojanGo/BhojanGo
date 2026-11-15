@@ -2649,6 +2649,17 @@
             "title": "Distance Unit",
             "type": "string"
           },
+          "emergency_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Number"
+          },
           "live": {
             "title": "Live",
             "type": "integer"
