@@ -1,8 +1,13 @@
-// Restaurants near the drop point and their menus (cached for the session).
+// Kitchens for the drop point (GET /discover, as the website's personal home)
+// and their menus (cached for the session).
 import { api, unwrap, type CoreSchemas, type OptionGroup } from "@bhojango/mobile-core";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { create } from "zustand";
+
+import type { KitchenCard } from "./contract";
 
 export type Restaurant = CoreSchemas["PublicRestaurant"];
+export type Discover = CoreSchemas["Discover"];
 export type MenuItem = Omit<CoreSchemas["MenuItemResponse"], "option_groups"> & { option_groups: OptionGroup[] };
 export interface Menu {
   restaurant: Restaurant;
@@ -11,30 +16,48 @@ export interface Menu {
 
 const menus = new Map<string, Menu>();
 
-/** Distance in kilometres between two points (cards show it in the country's unit: useI18n().distance). */
-export function km(a: { lat: number; lng: number }, b: { lat: number | null; lng: number | null }): number | null {
-  if (b.lat == null || b.lng == null) return null;
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+interface DiscoverState {
+  key: string | null;
+  data: Discover | null;
+  loading: boolean;
+  error: boolean;
+  load: (at: { lat: number; lng: number }, force?: boolean) => Promise<void>;
 }
 
-export function useRestaurants(city: string | null | undefined) {
-  const [state, setState] = useState<{ items: Restaurant[]; loading: boolean; error: string | null }>({ items: [], loading: true, error: null });
+/** The last /discover answer (home and search share it; the kitchen page reads its card's offer). */
+export const useDiscoverStore = create<DiscoverState>()((set, get) => ({
+  key: null,
+  data: null,
+  loading: false,
+  error: false,
+  load: async ({ lat, lng }, force = false) => {
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (!force && get().key === key && (get().data || get().loading)) return;
+    set({ key, loading: true, error: false, ...(get().key === key ? {} : { data: null }) });
+    try {
+      const d = unwrap(await api.core.GET("/api/v1/discover", { params: { query: { lat, lng } } })) as Discover;
+      if (get().key === key) set({ data: d, loading: false });
+    } catch {
+      if (get().key === key) set({ loading: false, error: true });
+    }
+  },
+}));
+
+/** Kitchens, cuisines and offers for the drop point (null point: nothing yet). */
+export function useDiscover(point: { lat: number; lng: number } | null | undefined) {
+  const { data, loading, error, load } = useDiscoverStore();
+  const lat = point?.lat;
+  const lng = point?.lng;
   useEffect(() => {
-    if (!city) return;
-    let live = true;
-    api.core
-      .GET("/api/v1/restaurants", { params: { query: { city, limit: 50 } } })
-      .then((r) => live && setState({ items: (unwrap(r) as { items: Restaurant[] }).items, loading: false, error: null }))
-      .catch((e: Error) => live && setState({ items: [], loading: false, error: e.message }));
-    return () => {
-      live = false;
-    };
-  }, [city]);
-  return state;
+    if (lat != null && lng != null) void load({ lat, lng });
+  }, [lat, lng, load]);
+  const reload = useCallback(() => (lat != null && lng != null ? load({ lat, lng }, true) : Promise.resolve()), [lat, lng, load]);
+  return { data, kitchens: data?.restaurants ?? [], loading: loading || (!data && !error && lat != null), error, reload };
+}
+
+/** The kitchen's card from the last /discover (its offer, distance), if it was on it. */
+export function useKitchenCard(id: string | undefined): KitchenCard | null {
+  return useDiscoverStore((s) => s.data?.restaurants?.find((k) => k.id === id) ?? null);
 }
 
 export async function loadMenu(id: string): Promise<Menu> {
@@ -47,7 +70,8 @@ export async function loadMenu(id: string): Promise<Menu> {
   };
   const menu: Menu = {
     restaurant: m.restaurant,
-    categories: [...m.categories, ...(m.uncategorized_items.length ? [{ name: "More", items: m.uncategorized_items }] : [])],
+    // Dishes outside a section go last, under the website's "More" heading (kitchen.more).
+    categories: [...m.categories, ...(m.uncategorized_items.length ? [{ name: "", items: m.uncategorized_items }] : [])],
   };
   menus.set(id, menu);
   return menu;

@@ -1,41 +1,45 @@
-// Search kitchens and dishes near the drop point (matches names, cuisines and menu text).
-import { color, Input, space, textFont, Txt } from "@bhojango/mobile-core";
-import { router } from "expo-router";
-import { useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+// Search the kitchens that deliver to the drop point (names, cuisines, areas),
+// from the same /discover answer as home; the cuisine row filters too.
+import { color, Input, space, Txt, useI18n } from "@bhojango/mobile-core";
+import { useMemo, useState } from "react";
+import { FlatList, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useRestaurants } from "../../lib/restaurants";
+import { CuisineRow } from "../../components/HomeSections";
+import { KitchenCard } from "../../components/KitchenCard";
+import { cuisineTiles, ofCuisine } from "../../lib/contract";
+import { useDiscover } from "../../lib/restaurants";
 import { useWhere } from "../../lib/where";
 import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Search() {
+  const { t } = useI18n();
   const bottom = useTabBarSpace();
+  const point = useWhere((s) => s.point);
   const market = useWhere((s) => s.market);
-  const { items } = useRestaurants(market?.serviceable ? market.city_name : null);
+  const { data, kitchens } = useDiscover(market?.serviceable ? point : null);
   const [q, setQ] = useState("");
-  const needle = q.trim().toLowerCase();
-  const results = needle
-    ? items.filter((r) => [r.name, r.description, ...r.cuisine_types].join(" ").toLowerCase().includes(needle))
-    : items;
+  const [cuisine, setCuisine] = useState<string | null>(null);
+  const tiles = useMemo(() => cuisineTiles(data?.cuisines, kitchens), [data, kitchens]);
+  const needle = q.trim().toLocaleLowerCase();
+  const results = ofCuisine(kitchens, cuisine).filter(
+    (k) => !needle || [k.name, k.area ?? "", ...k.cuisine_types, ...k.tags].join(" ").toLocaleLowerCase().includes(needle),
+  );
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
       <View style={{ padding: space[5], gap: space[4] }}>
-        <Txt variant="h1" accessibilityRole="header">Search</Txt>
-        <Input shape="pill" placeholder="Dishes, kitchens, cravings" value={q} onChangeText={setQ} autoFocus accessibilityLabel="Search" />
+        <Txt variant="h1" accessibilityRole="header">{t("tabs.search")}</Txt>
+        <Input testID="search-input" shape="pill" placeholder={t("common.search_placeholder")} value={q} onChangeText={setQ} autoFocus
+          accessibilityLabel={t("common.search_label")} />
       </View>
       <FlatList
         data={results}
-        keyExtractor={(r) => r.id}
+        keyExtractor={(k) => k.id}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={<View style={{ marginTop: -space[8], marginBottom: space[4], marginHorizontal: -space[5] }}><CuisineRow tiles={tiles} selected={cuisine} onSelect={setCuisine} /></View>}
         contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
-        ListEmptyComponent={<Txt style={{ color: color.muted }}>Nothing matches “{q}” nearby.</Txt>}
-        renderItem={({ item }) => (
-          <Pressable accessibilityRole="button" onPress={() => router.push(`/restaurant/${item.id}`)}
-            style={{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 4 }}>
-            <Txt variant="title">{item.name}</Txt>
-            <Text style={[textFont("400"), { color: color.muted, fontSize: 14 }]}>{item.cuisine_types.join(" · ")}</Text>
-          </Pressable>
-        )}
+        ListEmptyComponent={<Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>}
+        renderItem={({ item }) => <KitchenCard k={item} currency={data?.currency} unit={data?.distance_unit} compact />}
       />
     </SafeAreaView>
   );

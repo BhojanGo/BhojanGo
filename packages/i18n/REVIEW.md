@@ -70,5 +70,21 @@ on 2026-11-15, needing the same native review:
 - `app.home.banner`, `app.out_of_area.cooking_in` ({cities} is a comma list of
   city names: Telugu/Tamil/Kannada/Bengali suffixes glued to the last name),
   `app.out_of_area.leave_number`.
+- Customer account area (round 4): `app.account.*` ("Keep my account" in the delete
+  confirmation), `app.orders.past`, `app.rating.change` / `app.rating.until` ({date}),
+  `app.payments.saved` / `offered` ({country}: Telugu, Tamil, Kannada and Bengali put
+  the name after a "·" instead of a suffix) / `offered_note`, `app.addresses.required`,
+  `app.report.add_photo` / `uploading`. `app.pay.apple_pay` / `google_pay` are brand
+  names, kept in English. Everything else in the account screens reuses the website's
+  `account.*`, `rating.*` and `bill.*` keys.
 - `rider.earnings.distance`, `partner.offer.amount_off` ({amount} is formatted
   money), `partner.offer.flat_off`.
+- Customer app discovery, kitchen and tracking (round 4, machine-translated
+  2026-11-15; the screens reuse the website's `home.*`, `offers.*`, `kitchen.*`,
+  `track.*`, `favourites.*` keys where the words are the same):
+  `app.home.*` (where you are, the greetings `hello` / `hello_name` / `ask` by part
+  of the day, `finding_kitchens` with {place} (an area name: suffix languages),
+  `cuisine_near` with {cuisine} (a cuisine name)), `app.search.no_match`,
+  `app.item.customise`, `app.bag.held` ({time} is m:ss), `app.out_of_area.*`
+  ({place}: suffixes in te/ta/kn/bn), `app.track.progress` / `step_*` (short labels
+  under the progress bar: keep them to one or two words) / `pin_a11y` (read aloud).

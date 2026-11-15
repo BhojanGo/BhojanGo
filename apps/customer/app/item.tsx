@@ -1,15 +1,17 @@
 // CustomerMenu.html: customise a dish (size cards, segmented choices, add-ons), then add to bag.
+// The dish's own photo on top when it has one; otherwise no photo frame at all.
 import { color, defaultPicks, radius, Segmented, space, textFont, Txt, useBag, useI18n, type OptionGroup, type Pick } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { FavouriteHeart } from "../components/Heart";
 import { Icon } from "../lib/icons";
-import { PlateHeader } from "../lib/plate";
+import { photo, Photo } from "../lib/plate";
 import { useMenu } from "../lib/restaurants";
 
 export default function Item() {
-  const { money } = useI18n();
+  const { t, money } = useI18n();
   const { restaurantId, itemId } = useLocalSearchParams<{ restaurantId: string; itemId: string }>();
   const { menu } = useMenu(restaurantId);
   const item = menu?.categories.flatMap((c) => c.items).find((i) => i.id === itemId);
@@ -20,6 +22,7 @@ export default function Item() {
   if (!menu || !item) return null;
   const chosen = picks ?? defaultPicks(groups);
   const currency = menu.restaurant.currency;
+  const pic = photo(item.image_url, 800);
 
   const isPicked = (g: OptionGroup, o: string) => chosen.some((p) => p.group === g.name && p.option === o);
   const toggle = (g: OptionGroup, o: string) => {
@@ -38,12 +41,15 @@ export default function Item() {
   const complete = groups.every((g) => chosen.filter((p) => p.group === g.name).length >= g.min_picks);
 
   return (
-    <View style={{ flex: 1, backgroundColor: color.plate }}>
-      <PlateHeader label={item.name} height={284} size={200} uri={item.image_url} />
-      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+    <View style={{ flex: 1, backgroundColor: pic ? color.plate : color.porcelain }}>
+      {pic ? <Photo uri={pic} label={item.name} style={{ height: 284 }} testID="item-photo" fallback={<View style={{ height: 284 }} />} /> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}>
         <Icon name="back" />
       </Pressable>
-      <View style={styles.sheet} accessibilityLabel={`Customise ${item.name}`}>
+      <View style={{ position: "absolute", right: 16, top: 16 }}>
+        <FavouriteHeart kind="item" id={item.id} name={item.name} size={44} testID="item-heart" />
+      </View>
+      <View testID="item" style={[styles.sheet, !pic && styles.sheetTop]} accessibilityLabel={t("app.item.customise", { name: item.name })}>
         <ScrollView contentContainerStyle={{ padding: space[5], paddingTop: space[6], gap: 20 }}>
           <View>
             <Text style={[textFont("600"), { fontSize: 13, color: color.muted }]}>{menu.restaurant.name}</Text>
@@ -55,7 +61,9 @@ export default function Item() {
               <View style={styles.legend}>
                 <Text style={[textFont("800"), { fontSize: 15 }]}>{g.name}</Text>
                 <Text style={[textFont("600"), { fontSize: 13, color: color.muted }]}>
-                  {g.max_picks === 1 ? (g.min_picks ? "Choose 1" : "Optional") : `Up to ${g.max_picks}`}
+                  {g.min_picks > 0
+                    ? (g.min_picks === g.max_picks ? t("kitchen.required_pick", { count: g.min_picks }) : t("kitchen.required_range", { min: g.min_picks, max: g.max_picks }))
+                    : t("kitchen.optional_upto", { count: g.max_picks })}
                 </Text>
               </View>
               {g.max_picks === 1 && g.options.every((o) => Number(o.price) === 0) && g.options.length <= 4 ? (
@@ -99,15 +107,16 @@ export default function Item() {
         </ScrollView>
         <View style={styles.footer}>
           <View style={styles.stepper}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Fewer" onPress={() => setQty((q) => Math.max(1, q - 1))} style={styles.step}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.less")} onPress={() => setQty((q) => Math.max(1, q - 1))} style={styles.step}>
               <Text style={[textFont("400"), { fontSize: 22 }]}>−</Text>
             </Pressable>
             <Text style={[textFont("800"), { width: 16, textAlign: "center" }]}>{qty}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="More" onPress={() => setQty((q) => Math.min(20, q + 1))} style={styles.step}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.more_qty")} onPress={() => setQty((q) => Math.min(20, q + 1))} style={styles.step}>
               <Text style={[textFont("400"), { fontSize: 22, color: color.peacock }]}>+</Text>
             </Pressable>
           </View>
           <Pressable
+            testID="add-to-bag"
             accessibilityRole="button"
             accessibilityState={{ disabled: !complete }}
             disabled={!complete}
@@ -119,9 +128,8 @@ export default function Item() {
             }}
             style={[styles.addBtn, !complete && { opacity: 0.5 }]}
           >
-            <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>Add to bag</Text>
             <Text style={[textFont("800"), { color: color.white, fontSize: 16, fontVariant: ["tabular-nums"] }]}>
-              {money(unit * qty, currency, { whole: true })}
+              {t("kitchen.add_to_bag", { price: money(unit * qty, currency, { whole: true }) })}
             </Text>
           </Pressable>
         </View>
@@ -136,6 +144,8 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   sheet: { position: "absolute", left: 0, right: 0, top: 256, bottom: 0, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, backgroundColor: color.white },
+  // No photo: the sheet starts under the back button (no empty frame above it).
+  sheetTop: { top: 72 },
   legend: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 },
   cards: { flexDirection: "row", gap: space[3] },
   card: { flex: 1, padding: 14, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.line, gap: 2 },
@@ -148,6 +158,6 @@ const styles = StyleSheet.create({
   step: { width: 48, height: 56, alignItems: "center", justifyContent: "center" },
   addBtn: {
     flex: 1, height: 56, borderRadius: radius.pill, backgroundColor: color.peacock, flexDirection: "row",
-    alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22,
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 22,
   },
 });

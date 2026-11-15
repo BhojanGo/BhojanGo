@@ -1,0 +1,66 @@
+# READ-ONLY (safe on QA): sign in as the demo customer, home shows kitchens and
+# the order on its way, open a kitchen, open a dish, add it to the bag (the bag
+# is on the phone), open the bag and the fair bill, and stop before paying.
+# Nothing is ordered or saved. tools/railway/maestro-qa.sh runs only flows tagged
+# qa-readonly against QA. PHONE: the demo seed's customer with an order on its
+# way (demo1, +91 90000 00301; set PHONE and COUNTRY for another city's demo).
+appId: com.bhojango.app
+tags:
+  - qa-readonly
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${PHONE || "9000000301"}
+- extendedWaitUntil:
+    visible:
+      id: "kitchens"
+    timeout: 60000
+- assertVisible:
+    id: "active-order"
+- takeScreenshot: docs/screenshots/customer/qa-01-home
+# The first kitchen on the list (open kitchens come first).
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-.*"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "kitchen-card-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "kitchen"
+    timeout: 30000
+- assertVisible:
+    id: "kitchen-rating"
+- takeScreenshot: docs/screenshots/customer/qa-02-kitchen
+- scrollUntilVisible:
+    element:
+      id: "dish-.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "dish-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "item"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/qa-03-dish
+- tapOn:
+    id: "add-to-bag"
+- extendedWaitUntil:
+    visible:
+      id: "view-bag"
+    timeout: 10000
+- tapOn:
+    id: "view-bag"
+- extendedWaitUntil:
+    visible:
+      id: "fair-bill"
+    timeout: 30000
+- assertVisible:
+    id: "pay"
+- takeScreenshot: docs/screenshots/customer/qa-04-bag
+# Stop here: never "Pay" on QA.
