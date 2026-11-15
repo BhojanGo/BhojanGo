@@ -7,7 +7,8 @@ the compose services, so CORS and the app's API URLs are exactly as in dev.
 Screenshots go to docs/screenshots/web.
 
 What it walks through (desktop 1440 unless noted), all on seed data:
-first visit (landing, directory, Notify me, country and language menus), the
+first visit (landing, directory, Notify me, the language pill and the location
+line with Change city), the
 address box -> personal home (offers, kitchen cards, filters), an address we
 don't serve yet, /cities and city pages, a kitchen page with the customise
 sheet and the bag, phone + OTP sign-in, checkout with the fair bill and a tip,
@@ -246,35 +247,102 @@ with sync_playwright() as p:
         expect(band.get_by_role("status")).to_have_text("Thanks. We'll email you the day we arrive.", timeout=15000),
         _assert(town.lower() in json.dumps(api("GET", "/markets/waitlist/demand", admin)).lower(), "not in /markets/waitlist/demand")))
 
-    # Country menu: the other country, then back.
-    page.get_by_role("button", name="Country: India").click()
-    menu = page.get_by_role("menu", name="Country")
-    check("country menu: every country from the directory, current one ticked", lambda: (
-        [expect(menu.get_by_role("menuitemradio", name=re.compile("^" + re.escape(k["name"])))).to_be_visible() for k in directory["countries"]],
-        expect(menu.get_by_role("menuitemradio", name=re.compile("^India"))).to_have_attribute("aria-checked", "true")))
-    menu.get_by_role("menuitemradio", name=re.compile("^United States")).click()
-    check("country menu: switching country changes the language list", lambda: (
-        expect(page.get_by_role("button", name="Country: United States")).to_be_visible(timeout=15000),
-        _assert(cookie(ctx, "bg_country") == "US", ctx.cookies())))
+    # ── Header (R6): no country selector; a globe + code language pill; where the
+    # visitor is shows on the page ("<city>, <CC> · Change city"), not in the header.
+    by_code = {c["code"]: c for c in cities}
+    hyd_city, boise_city = by_code["IN-TG-HYD"], by_code["US-ID-BOI"]
+    own_names = {"en": "English", "hi": "हिन्दी", "te": "తెలుగు", "ta": "தமிழ்", "kn": "ಕನ್ನಡ", "mr": "मराठी", "bn": "বাংলা", "es": "Español"}
+    langs_of = {k["code"]: [own_names[loc.split("-")[0]] for loc in k["locales"]] for k in directory["countries"]}
+    header = page.locator("header").first
+    pill = page.get_by_test_id("language-pill")
+    check("header: no country selector, no flags; the language pill says EN", lambda: (
+        expect(header.get_by_role("button", name=re.compile("^Country"))).to_have_count(0),
+        [expect(header.get_by_text(k["name"], exact=True)).to_have_count(0) for k in directory["countries"]],
+        _assert(not re.search("[\U0001F1E6-\U0001F1FF]", header.inner_text()), "a flag in the header"),
+        expect(pill).to_have_text("EN"),
+        expect(pill).to_have_accessible_name("Language: English")))
+
+    def choose_city(pg, city: dict) -> None:  # type: ignore[no-untyped-def]
+        """The location line's "Change city" -> /cities?choose=1 -> the city -> home."""
+        pg.get_by_test_id("location-line").get_by_role("link").click()
+        url_is(pg, r"/cities\?choose=1$")
+        pg.locator(f'main a[data-city="{city["code"]}"]').click()
+        expect(pg.get_by_test_id("location-line")).to_contain_text(city["name"], timeout=15000)
+
+    def split_matches_api(pg) -> None:  # type: ignore[no-untyped-def]
+        """Who gets your money: whole percentages adding to 100, from the engine's example quote for the city."""
+        card = pg.get_by_test_id("who-gets")
+        expect(card).to_be_visible()
+        shown = {li.get_attribute("data-payee"): int(li.get_attribute("data-percent") or "-1") for li in card.locator("li[data-payee]").all()}
+        _assert(sum(shown.values()) == 100 and min(shown.values()) >= 0, shown)
+        ex = api("GET", f"/pricing/example?city={card.get_attribute('data-city')}")
+        payee = {"food": "kitchen", "packaging": "kitchen", "tax": "tax", "tip": "rider"}
+        sums = {"kitchen": 0.0, "rider": 0.0, "tax": 0.0, "us": 0.0}
+        for ln in ex["lines"]:
+            who = ("kitchen" if ln.get("funded_by") == "restaurant" else "us") if ln["code"] == "promotion" else payee.get(ln["code"], "us")
+            sums[who] += float(ln["amount"])
+        amounts = [max(sums[k], 0.0) for k in ("kitchen", "rider", "tax", "us")]
+        exact = [a / sum(amounts) * 100 for a in amounts]
+        pct = [int(x) for x in exact]
+        for i in sorted(range(4), key=lambda i: (-(exact[i] - int(exact[i])), i))[:100 - sum(pct)]:
+            pct[i] += 1
+        # the page and the API each cache the example for an hour: compare when both show the same bill
+        if card.get_attribute("data-total") == ex["total"]:
+            _assert([shown[k] for k in ("kitchen", "rider", "tax", "us")] == pct, (shown, pct, ex["total"]))
+        for txt in card.locator("li[data-payee] b").all_inner_texts():
+            _assert(re.fullmatch(r"\d+\s?%", txt.strip()) is not None, txt)
+
+    choose_city(page, hyd_city)
+    check("location line: Hyderabad, IN · Change city (above the hero)", lambda: (
+        expect(page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change city"),
+        _assert(cookie(ctx, "bg_city") == "IN-TG-HYD", ctx.cookies()),
+        _assert(page.get_by_test_id("location-line").bounding_box()["y"] < page.get_by_role("heading", level=1).bounding_box()["y"],
+                "the location line is not above the hero")))
+    check("who gets your money: real percentages from the example quote, adding to 100", lambda: split_matches_api(page))
+    pill.click()
+    lang_menu = page.get_by_role("menu", name="Language")
+    check("language pill: a plain list of India's languages in their own scripts, Markets order", lambda: (
+        expect(lang_menu).to_be_visible(),
+        _assert(lang_menu.locator("span[lang]").all_inner_texts() == langs_of["IN"], lang_menu.locator("span[lang]").all_inner_texts()),
+        expect(page.get_by_role("dialog")).to_have_count(0)))
+    lang_menu.get_by_role("menuitemradio", name="తెలుగు").click()
+    check("language: Telugu switches the page", lambda: (
+        expect(page.locator("html")).to_have_attribute("lang", "te", timeout=15000),
+        expect(pill).to_have_text("TE"),
+        expect(page.get_by_role("heading", level=1)).not_to_have_text("Real food. Fair prices.")))
+    page.reload(wait_until="networkidle")
+    check("language: Telugu survives a reload", lambda: (
+        expect(page.locator("html")).to_have_attribute("lang", "te"),
+        expect(pill).to_have_text("TE"),
+        _assert(cookie(ctx, "bg_lang") == "te", ctx.cookies())))
+    choose_city(page, boise_city)
+    check("change city to Boise: Boise, US; dollars; Telugu isn't offered there, so English", lambda: (
+        expect(page.get_by_test_id("location-line")).to_have_text("Boise, US · Change city"),
+        expect(page.locator("html")).to_have_attribute("lang", "en"),
+        expect(pill).to_have_text("EN"),
+        expect(page.get_by_test_id("who-gets")).to_contain_text("$"),
+        expect(page.get_by_test_id("who-gets")).not_to_contain_text("₹"),
+        _assert(cookie(ctx, "bg_lang") is None, ctx.cookies())))
     check("landing: another country, its own hero photo", lambda: expect(page.get_by_test_id("landing-hero")).to_have_attribute(
         "src", re.compile("/food/" + re.escape(hero_of["US"]) + r"-\d+\.webp$"), timeout=15000))
-    page.get_by_role("button", name="Language").click()
-    check("language menu follows the country (US: English, Spanish)", lambda: (
-        expect(page.get_by_role("menu", name="Language").get_by_text("Language · United States")).to_be_visible(),
-        expect(page.get_by_role("menuitemradio", name=re.compile("^Español"))).to_be_visible()))
+    check("who gets your money in Boise: from Boise's example quote", lambda: split_matches_api(page))
+    pill.click()
+    check("language pill in the US: English and Español only", lambda: _assert(
+        page.get_by_role("menu", name="Language").locator("span[lang]").all_inner_texts() == langs_of["US"] == ["English", "Español"],
+        page.get_by_role("menu", name="Language").locator("span[lang]").all_inner_texts()))
     page.keyboard.press("Escape")
-    page.get_by_role("button", name="Country: United States").click()
-    page.get_by_role("menu", name="Country").get_by_role("menuitemradio", name=re.compile("^India")).click()
-    expect(page.get_by_role("button", name="Country: India")).to_be_visible(timeout=15000)
+    shot(page, "02a-landing-boise")
+    choose_city(page, hyd_city)
 
     # Language: Hindi changes the words, never a price; remembered after a reload.
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
     price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹\d+$")).first.inner_text()
     english_hero = "Real food. Fair prices."
-    page.get_by_role("button", name="Language").click()
+    pill.click()
     page.get_by_role("menuitemradio", name=re.compile("^हिन्दी")).click()
     check("language: Hindi changes the words, not the prices", lambda: (
         expect(page.locator("html")).to_have_attribute("lang", re.compile("^hi"), timeout=15000),
+        expect(pill).to_have_text("HI"),
         expect(page.get_by_role("link", name="Sign in")).to_have_count(0),
         expect(page.get_by_text(price, exact=True).first).to_be_visible()))
     page.reload(wait_until="networkidle")
@@ -284,7 +352,7 @@ with sync_playwright() as p:
     page.goto(base, wait_until="networkidle")
     check("language: the landing page in Hindi", lambda: expect(page.get_by_role("heading", level=1)).not_to_have_text(english_hero))
     shot(page, "02-landing-hindi")
-    page.locator("header button[aria-haspopup], header button[aria-expanded]").filter(has_text="हिन्दी").first.click()
+    pill.click()
     page.get_by_role("menuitemradio", name=re.compile("^English")).click()
     check("language: back to English", lambda: (
         expect(page.get_by_role("heading", name=english_hero, level=1)).to_be_visible(timeout=15000),
@@ -306,6 +374,8 @@ with sync_playwright() as p:
     check("personal home: the header carries the address, no marketing", lambda: (
         expect(page.get_by_role("button", name="Change address").first).to_contain_text("Madhapur"),
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0)))
+    check("personal home: the location line names the address's city", lambda: expect(
+        page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change city"))
     shot(page, "03-home-address")
     cards = feed.get_by_role("link")
 
@@ -831,6 +901,18 @@ with sync_playwright() as p:
     check("phone width /signin: no sideways scroll", lambda: no_sideways_scroll(anon_phone))
     anon_phone.goto(base, wait_until="networkidle")
     check("phone width landing: no sideways scroll", lambda: no_sideways_scroll(anon_phone))
+
+    def phone_pill_and_line() -> None:
+        expect(anon_phone.locator("header").first.get_by_test_id("language-pill")).to_have_text("EN")
+        expect(anon_phone.get_by_test_id("location-line")).to_contain_text("Change city")
+        anon_phone.get_by_test_id("language-pill").click()
+        menu = anon_phone.get_by_role("menu", name="Language")
+        expect(menu).to_be_visible()
+        expect(anon_phone.get_by_role("dialog")).to_have_count(0)  # a dropdown anchored to the pill, not a sheet
+        box = menu.bounding_box()
+        _assert(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 390 and box["height"] < 600, box)
+        anon_phone.keyboard.press("Escape")
+    check("phone width: the same language pill (a small dropdown) and the location line", phone_pill_and_line)
 
     # ── US: Boise in dollars, a US number ─────────────────────────────────────
     us_ctx = b.new_context(viewport={"width": 1440, "height": 900})
