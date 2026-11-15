@@ -3,6 +3,7 @@ import { Redirect, router, Tabs } from "expo-router";
 import { View } from "react-native";
 
 import { Icon, type IconName } from "../../lib/icons";
+import { useTabBarOffsets } from "../../lib/tabbar";
 
 // Labels are the website's tabs.* keys (packages/i18n), in the chosen language.
 const ITEMS: { key: "home" | "search" | "orders" | "account"; icon: IconName }[] = [
@@ -15,12 +16,14 @@ const ITEMS: { key: "home" | "search" | "orders" | "account"; icon: IconName }[]
 export default function TabsLayout() {
   const status = useSession((s) => s.status);
   const { t } = useI18n();
+  const { bar } = useTabBarOffsets();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
+      // The bar floats over the screens (each one leaves useTabBarSpace() at the end of its scroll).
       tabBar={({ state }) => (
-        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 24, alignItems: "center" }}>
+        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: bar, alignItems: "center" }}>
           <TabBar
             current={state.routes[state.index]?.name ?? "home"}
             onSelect={(key) => router.navigate(`/${key}` as "/home")}

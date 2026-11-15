@@ -16,7 +16,9 @@ import { Icon } from "../../lib/icons";
 import { useMyOrders } from "../../lib/orders";
 import { useDiscover } from "../../lib/restaurants";
 import { partOfDay, useWhere, type DropPoint } from "../../lib/where";
-import { useTabBarSpace } from "../../lib/tabbar";
+import { TabEnd, useTabBarOffsets, useTabBarSpace } from "../../lib/tabbar";
+
+const BAG_PILL = 48;
 
 export default function Home() {
   const user = useSession((s) => s.user);
@@ -46,7 +48,9 @@ export default function Home() {
 
   const first = (user?.full_name ?? "").trim().split(/\s+/)[0];
   const pod = partOfDay(market?.timezone);
-  const bottom = useTabBarSpace();
+  // The bag pill floats just above the tab bar: when it shows, the scroll leaves room for it too.
+  const bottom = useTabBarSpace(bagCount > 0 ? [BAG_PILL] : []);
+  const { above } = useTabBarOffsets();
   const where = point ? (point.label || t("app.home.current_location")) : status === "failed" ? t("app.home.choose_address") : t("app.home.finding_you");
 
   return (
@@ -97,25 +101,30 @@ export default function Home() {
         </View>
 
         {status === "failed" ? (
-          <View style={{ paddingHorizontal: space[5], gap: space[3] }}>
+          <View testID="home-last" style={{ paddingHorizontal: space[5], gap: space[3] }}>
             <Txt style={{ color: color.muted }}>{t("app.home.locate_failed")}</Txt>
             <Button title={t("app.home.choose_address")} variant="secondary" onPress={() => void saved().then(setPicking)} />
           </View>
         ) : status !== "ready" || loading ? (
           <Loading near={market?.zone_name ?? point?.label?.split("· ")[1] ?? (point?.label || null)} />
         ) : error && !kitchens.length ? (
-          <View style={{ paddingHorizontal: space[5], gap: space[3] }}>
+          <View testID="home-last" style={{ paddingHorizontal: space[5], gap: space[3] }}>
             <Txt style={{ color: color.muted }}>{t("common.error")}</Txt>
             <Button title={t("common.retry")} variant="secondary" onPress={() => void reload()} />
           </View>
         ) : (
           <View testID="kitchens" style={{ gap: space[4], paddingHorizontal: space[5] }}>
             {shown.length === 0 ? (
-              <Txt style={{ color: color.muted }}>{kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>
+              <View testID="home-last">
+                <Txt style={{ color: color.muted }}>{kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>
+              </View>
             ) : null}
-            {shown.map((k) => <KitchenCard key={k.id} k={k} currency={currency} unit={unit} />)}
+            {shown.map((k, i) => (i === shown.length - 1
+              ? <View key={k.id} testID="home-last"><KitchenCard k={k} currency={currency} unit={unit} /></View>
+              : <KitchenCard key={k.id} k={k} currency={currency} unit={unit} />))}
           </View>
         )}
+        <TabEnd tab="home" />
       </ScrollView>
       <Sheet visible={picking != null} onClose={() => setPicking(null)} title={t("checkout.deliver_to")}>
         {(picking ?? []).map((p) => (
@@ -127,7 +136,7 @@ export default function Home() {
         <Button title={t("app.home.use_location")} variant="secondary" block onPress={() => { setPicking(null); void goHere(); }} />
       </Sheet>
       {bagCount > 0 ? (
-        <Pressable testID="bag-pill" accessibilityRole="button" accessibilityLabel={t("common.bag_count", { count: bagCount })} onPress={() => router.push("/bag")} style={styles.bagPill}>
+        <Pressable testID="bag-pill" accessibilityRole="button" accessibilityLabel={t("common.bag_count", { count: bagCount })} onPress={() => router.push("/bag")} style={[styles.bagPill, { bottom: above }]}>
           <Icon name="bag" size={18} stroke={color.white} />
           <Text style={[textFont("800"), { color: color.white, fontSize: 15 }]}>{t("common.bag_count", { count: bagCount })}</Text>
         </Pressable>
@@ -141,7 +150,7 @@ function Loading({ near }: { near?: string | null }) {
   const { t } = useI18n();
   const label = near ? t("app.home.finding_kitchens", { place: near }) : t("app.home.finding_kitchens_here");
   return (
-    <View accessibilityLabel={label} style={{ paddingHorizontal: space[5], gap: space[3] }}>
+    <View testID="home-last" accessibilityLabel={label} style={{ paddingHorizontal: space[5], gap: space[3] }}>
       {[0, 1].map((i) => (
         <View key={i} style={{ backgroundColor: color.white, borderRadius: radius.card, overflow: "hidden" }}>
           <View style={{ height: 172, backgroundColor: color.divider }} />
@@ -181,7 +190,7 @@ const styles = StyleSheet.create({
   },
   pick: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, borderBottomWidth: 1, borderBottomColor: color.divider },
   bagPill: {
-    position: "absolute", right: space[5], bottom: 104, height: 48, paddingHorizontal: space[5], borderRadius: radius.pill,
+    position: "absolute", right: space[5], height: BAG_PILL, paddingHorizontal: space[5], borderRadius: radius.pill,
     backgroundColor: color.peacock, flexDirection: "row", alignItems: "center", gap: 8,
   },
 });

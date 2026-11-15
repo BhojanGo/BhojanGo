@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { isActive, itemsSummary, listOrders, orderCode, statusLabel, type Order } from "../../lib/account";
 import { LinkButton, ui } from "../../lib/account-ui";
-import { useTabBarSpace } from "../../lib/tabbar";
+import { TabEnd, useTabBarSpace } from "../../lib/tabbar";
 
 function OrderRow({ o, index }: { o: Order; index: number }) {
   const { t, money, date, time } = useI18n();
@@ -68,20 +68,25 @@ export default function Orders() {
         renderSectionHeader={({ section }) => (
           <Text testID={`orders-${section.key}`} accessibilityRole="header" style={[ui.eyebrow, { marginTop: space[2] }]}>{section.title}</Text>
         )}
-        renderItem={({ item, index }) => <OrderRow o={item} index={index} />}
+        renderItem={({ item, index, section }) => (
+          <View testID={section === sections[sections.length - 1] && index === section.data.length - 1 ? "orders-last" : undefined}>
+            <OrderRow o={item} index={index} />
+          </View>
+        )}
+        ListFooterComponent={<TabEnd tab="orders" />}
         ListEmptyComponent={
           error ? (
-            <View style={{ gap: 6 }}>
+            <View testID="orders-last" style={{ gap: 6 }}>
               <Text accessibilityRole="alert" style={ui.muted}>{t("account.orders.error")}</Text>
               <LinkButton title={t("common.retry")} onPress={load} />
             </View>
           ) : orders ? (
-            <View style={{ gap: 6 }}>
+            <View testID="orders-last" style={{ gap: 6 }}>
               <Text testID="no-orders" style={ui.muted}>{t("account.orders.empty")}</Text>
               <LinkButton title={t("account.orders.find_food")} onPress={() => router.navigate("/home")} />
             </View>
           ) : (
-            <Text style={ui.muted}>{t("account.loading")}</Text>
+            <Text testID="orders-last" style={ui.muted}>{t("account.loading")}</Text>
           )
         }
       />
