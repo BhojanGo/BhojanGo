@@ -204,7 +204,8 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const area = (rest?.address as { landmark?: string } | undefined)?.landmark;
   const count = lines.reduce((n, l) => n + l.quantity, 0);
   const arrive = rest
-    ? t("checkout.arrives", { from: f.time(new Date(now + rest.delivery_time_min * 60000).toISOString()), to: f.time(new Date(now + rest.delivery_time_max * 60000).toISOString()) })
+    // on the kitchen's city clock (where the order is cooked and delivered), not the device's
+    ? t("checkout.arrives", { from: f.zone(rest.time_zone).time(new Date(now + rest.delivery_time_min * 60000)), to: f.zone(rest.time_zone).time(new Date(now + rest.delivery_time_max * 60000)) })
     : null;
   const distance = q ? t(q.distance_unit === "mi" ? "common.mi" : "common.km", { n: q.distance }) : null;
   const placeLine = (a: Address) => [a.label, a.street].filter(Boolean).join(" · ");

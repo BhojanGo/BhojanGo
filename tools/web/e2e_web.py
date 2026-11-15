@@ -13,7 +13,8 @@ don't serve yet, /cities and city pages, a kitchen page with the customise
 sheet and the bag, phone + OTP sign-in, checkout with the fair bill and a tip,
 the fake payment provider, tracking to "delivered" (kitchen, ops and rider via
 their APIs), the account area (orders, receipt, PDF, order again, report a
-problem, addresses, a test card, notifications, data export, favourites), no
+problem, addresses, a test card, notifications, data export, favourites), the
+receipt seen from a browser in a US time zone (the order's city time, not the device's), no
 marketing when signed in, a US kitchen in dollars, SEO files and headers, and
 no sideways scroll at 390 px.
 """
@@ -24,6 +25,8 @@ import re
 import socket
 import sys
 import threading
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -649,6 +652,25 @@ with sync_playwright() as p:
         expect(page.get_by_role("complementary", name="Your order").get_by_text(re.compile(rf"1 × {DISH}"))).to_be_visible(timeout=20000)))
     page.goto(f"{base}/account/orders/{order_id}/report", wait_until="networkidle")
     check("report a problem from the account opens", lambda: expect(page.get_by_role("heading", name="Report a problem", level=1)).to_be_visible(timeout=15000))
+
+    # ── Time zones: a device in a US zone sees the order's city time ─────────────
+    # Same customer (the session copied over), the browser set to America/Boise. The receipt's
+    # "paid" time must be placed_at in the order's time_zone (from the API), not the device's clock.
+    tz_ctx = b.new_context(viewport={"width": 1440, "height": 900}, timezone_id="America/Boise", storage_state=ctx.storage_state())
+    tz_page = tz_ctx.new_page()
+    placed = api("GET", f"/orders/{order_id}", ops)
+
+    def clock(at: str, zone: str) -> re.Pattern[str]:
+        t = datetime.fromisoformat(at.replace("Z", "+00:00")).astimezone(ZoneInfo(zone))
+        return re.compile(rf"\b{t.hour % 12 or 12}:{t.minute:02d}\s?{'am' if t.hour < 12 else 'pm'}", re.I)
+
+    tz_page.goto(f"{base}/account/orders?order={order_id}", wait_until="networkidle")
+    check("time zones: a US-zone browser sees the receipt in the order's city time", lambda: (
+        _assert(tz_page.evaluate("Intl.DateTimeFormat().resolvedOptions().timeZone") == "America/Boise", "device zone not set"),
+        _assert(placed["time_zone"] == "Asia/Kolkata", placed.get("time_zone")),
+        expect(tz_page.get_by_test_id("receipt-time")).to_have_text(clock(placed["placed_at"], placed["time_zone"]), timeout=15000),
+        expect(tz_page.get_by_test_id("receipt-time")).not_to_have_text(clock(placed["placed_at"], "America/Boise"))))
+    tz_ctx.close()
 
     # ── Profile: address, test card, notifications, data export ───────────────
     page.goto(base + "/account/profile", wait_until="networkidle")

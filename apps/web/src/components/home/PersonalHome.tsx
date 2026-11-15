@@ -50,6 +50,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
       currency={currency}
       formatLocale={formatLocale}
       distanceUnit={d.distance_unit ?? country?.distance_unit ?? "km"}
+      timeZone={d.timezone ?? country?.timezone ?? null}
       cravings={cravings}
       offers={offerBlock}
     />

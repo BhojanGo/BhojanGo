@@ -126,7 +126,11 @@ async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, s
         Restaurant.slug == slug, Restaurant.status == "active", Restaurant.deleted_at.is_(None)))).scalars().first()
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    return PublicRestaurant.model_validate(r)
+    from core_api.modules.catalog.service.menu import restaurant_market
+
+    out = PublicRestaurant.model_validate(r)
+    out.time_zone = str((await restaurant_market(db, r))[1])
+    return out
 
 
 @router.get("/{restaurant_id}", response_model=PublicRestaurant)

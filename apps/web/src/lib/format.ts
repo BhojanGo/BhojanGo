@@ -20,17 +20,49 @@ export function number(n: number, formatLocale: string, digits = 1): string {
   return new Intl.NumberFormat(formatLocale, { maximumFractionDigits: digits }).format(n);
 }
 
-export function date(iso: string | Date, formatLocale: string, timeZone?: string, opts?: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat(formatLocale, { day: "numeric", month: "short", timeZone, ...opts }).format(new Date(iso));
+/**
+ * A day and month in a time zone: an order's city (its `time_zone`), else the country's.
+ * A calendar day from the API ("2026-11-14") is that day in every zone.
+ */
+export function date(iso: string | Date, formatLocale: string, timeZone?: string | null, opts?: Intl.DateTimeFormatOptions): string {
+  return format(iso, formatLocale, { day: "numeric", month: "short", ...opts }, timeZone);
 }
 
-export function time(iso: string | Date, formatLocale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(formatLocale, { hour: "numeric", minute: "2-digit", timeZone }).format(new Date(iso)).toLowerCase();
+/** "7:05 pm" in a time zone: an order's city (its `time_zone`), else the country's; never the visitor's device. */
+export function time(iso: string | Date, formatLocale: string, timeZone?: string | null): string {
+  return format(iso, formatLocale, { hour: "numeric", minute: "2-digit" }, timeZone).toLowerCase();
 }
 
-/** "morning" | "afternoon" | "evening" by the visitor's local hour (greeting). */
-export function partOfDay(d = new Date()): "morning" | "afternoon" | "evening" {
-  const h = d.getHours();
+function format(iso: string | Date, formatLocale: string, opts: Intl.DateTimeFormatOptions, timeZone?: string | null): string {
+  const day = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = day ? new Date(`${iso as string}T12:00:00Z`) : new Date(iso);
+  const zone = day ? "UTC" : timeZone || undefined;
+  try {
+    return new Intl.DateTimeFormat(formatLocale, { ...opts, timeZone: zone }).format(d);
+  } catch {
+    return new Intl.DateTimeFormat(formatLocale, opts).format(d); // an unknown zone name
+  }
+}
+
+/** The hour (0-23) in a time zone; the device's clock only when no zone is known. */
+export function hourIn(timeZone: string | null | undefined, d = new Date()): number {
+  if (timeZone) {
+    try {
+      // data-ok: parses the hour, so Latin digits whatever the language
+      return Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(d)) % 24;
+    } catch {
+      // an unknown zone name: the device's clock below
+    }
+  }
+  return d.getHours();
+}
+
+/**
+ * "morning" | "afternoon" | "evening" at the delivery address (greeting): the hour in
+ * its city's time zone (GET /discover's timezone), else its country's (Markets).
+ */
+export function partOfDay(timeZone: string | null | undefined, d = new Date()): "morning" | "afternoon" | "evening" {
+  const h = hourIn(timeZone, d);
   return h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
 }
 

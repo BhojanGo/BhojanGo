@@ -36,20 +36,28 @@ export function useT() {
   return useMemo(() => createTranslator(language, messages, fallback), [language, messages, fallback]);
 }
 
-/** Money, numbers and dates in the country's format. */
+/**
+ * Money, numbers and dates in the country's format. Dates and times are in a time
+ * zone, never the visitor's device's: `zone(order.time_zone)` for an order (its
+ * city's), `zone(kitchen.time_zone)` for a kitchen; plain `date`/`time` use the
+ * country's (a label only in a country with several zones).
+ */
 export function useFormat() {
   const { formatLocale, country } = useI18n();
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const inZone = (tz?: string | null) => ({
+      date: (iso: string | Date, opts?: Intl.DateTimeFormatOptions) => date(iso, formatLocale, tz || country?.timezone, opts),
+      time: (iso: string | Date) => time(iso, formatLocale, tz || country?.timezone),
+    });
+    return {
       money: (amount: number | string | null | undefined, currency?: string, opts?: { whole?: boolean }) =>
         money(amount, currency ?? country?.currency ?? "USD", formatLocale, opts),
       number: (n: number, digits?: number) => number(n, formatLocale, digits),
-      date: (iso: string, opts?: Intl.DateTimeFormatOptions) => date(iso, formatLocale, country?.timezone, opts),
-      time: (iso: string) => time(iso, formatLocale, country?.timezone),
+      ...inZone(null),
+      zone: inZone,
       formatLocale,
-    }),
-    [formatLocale, country],
-  );
+    };
+  }, [formatLocale, country]);
 }
 
 export function useLanguage() {

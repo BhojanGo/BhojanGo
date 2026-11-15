@@ -7618,6 +7618,17 @@
             "title": "Tags",
             "type": "array"
           },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -9126,6 +9137,17 @@
               }
             ],
             "title": "Tier"
+          },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
           },
           "updated_at": {
             "format": "date-time",

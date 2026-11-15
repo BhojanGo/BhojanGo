@@ -6040,6 +6040,8 @@ export interface components {
             status: string;
             /** Tags */
             tags: string[];
+            /** Time Zone */
+            time_zone?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -6643,6 +6645,8 @@ export interface components {
             tags: string[];
             /** Tier */
             tier?: string | null;
+            /** Time Zone */
+            time_zone?: string | null;
             /**
              * Updated At
              * Format: date-time

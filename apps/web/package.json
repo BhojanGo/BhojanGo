@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/*.test.ts\"",
     "clean": "rm -rf .next out"
   },
   "dependencies": {
