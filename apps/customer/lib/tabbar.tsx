@@ -26,5 +26,5 @@ export function useTabBarOffsets(): { bar: number; above: number } {
  * once the screen is scrolled to the end, which proves the last item is not covered.
  */
 export function TabEnd({ tab }: { tab: "home" | "search" | "orders" | "account" }) {
-  return <View testID={`${tab}-end`} collapsable={false} style={{ height: 4, alignSelf: "stretch" }} />;
+  return <View testID={`${tab}-end`} collapsable={false} style={{ height: 8, alignSelf: "stretch" }} />;
 }

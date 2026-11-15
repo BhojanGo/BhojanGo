@@ -81,11 +81,12 @@ tags:
 - assertVisible:
     id: "receipt-time"
     text: ".*\\d.*\\d{1,2}[:.]\\d{2}.*"
+- takeScreenshot: docs/screenshots/customer/qa/timezone-receipt
 - copyTextFrom:
     id: "receipt-title"
-- evalScript: ${console.log('receipt-title: ' + maestro.copiedText)}
+- evalScript: "${console.log('receipt-title = ' + maestro.copiedText)}"
 - copyTextFrom:
     id: "receipt-time"
-- evalScript: ${console.log('receipt-time: ' + maestro.copiedText)}
+- evalScript: "${console.log('receipt-time = ' + maestro.copiedText)}"
 - tapOn:
     id: "back"
