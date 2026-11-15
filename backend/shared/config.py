@@ -170,6 +170,10 @@ class WorkerSettings(BaseSettings):
     BATCH_CYCLE_SECONDS: float = 5
     REALTIME_INTERNAL_URL: str = "http://localhost:8004"
 
+    # The demo rider simulator (worker/app/demo_sim): make dev and QA only. Also needs
+    # APP_ENV local/development/dev/qa; refused wherever anything says production.
+    DEMO_RIDER_SIM: bool = False
+
     # Firebase FCM
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_PRIVATE_KEY_ID: str = ""
@@ -363,6 +367,8 @@ class Settings(BaseSettings):
             problems.append("OTP_FIXED_CODE is set (set it to an empty string)")
         if p.DELIVERY_PIN_FIXED:
             problems.append("DELIVERY_PIN_FIXED is set (set it to an empty string)")
+        if self.worker.DEMO_RIDER_SIM:
+            problems.append("DEMO_RIDER_SIM is on (the demo rider is for make dev and QA only)")
         if problems:
             raise ProductionConfigError("refusing to start in production: " + "; ".join(problems))
         return self

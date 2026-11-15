@@ -144,6 +144,9 @@ export default defineRailway((ctx, project) => {
     REDIS_URL: redisDb(0),
     DB_POOL_SIZE: "5",
     REALTIME_INTERNAL_URL: "http://realtime.railway.internal:8004", // the batch engine (task 43)
+    // QA only: the demo rider delivers the demo customers' orders through the normal APIs
+    // (worker/app/demo_sim). Never staging or production: production refuses to start with it.
+    ...(qa ? { DEMO_RIDER_SIM: "1" } : {}),
   }, { cpu: 0.5, memoryGiB: 0.5 });
 
   // ── Web and admin (Next.js, infra/docker/next-app.Dockerfile) ──────────
