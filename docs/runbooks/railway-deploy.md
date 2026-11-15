@@ -185,7 +185,7 @@ not a project token. So jobs that need the database run **inside** the environme
 
 | Job | What |
 |---|---|
-| `reset` | Rebuild QA's database from scratch: other sessions closed, the `public` schema dropped and recreated (PostGIS re-created by `infra/docker/db/init.sql`), migrations to head, Redis database 0 cleared (sessions, caches), then the base seed and the demo seed with random passwords; the logins go to the private bucket. **Refused unless `RAILWAY_ENVIRONMENT_NAME` is `QA` (any case) and `APP_ENV` is `qa`.** Everyone signs in again afterwards |
+| `reset` | Rebuild QA's database from scratch: other sessions closed, the `public` schema dropped and recreated (PostGIS re-created by `infra/docker/db/init.sql`), migrations to head, Redis databases 0 (sessions, caches) and 3 (realtime: riders, offers, tracking) cleared, then the base seed and the demo seed with random passwords; the logins go to the private bucket. **Refused unless `RAILWAY_ENVIRONMENT_NAME` is `QA` (any case) and `APP_ENV` is `qa`.** Everyone signs in again afterwards |
 | `seed` | The base seed (Hyderabad + Boise) with random passwords |
 | `demo` | The demo seed on top; its logins are added to the same bucket file |
 | `checks` | Read-only: each backend's `/health` (with its `environment`) over the private network; `alembic current`/`heads`/`check` against the QA database |
@@ -218,8 +218,14 @@ only, in `.railway/railway.ts`); `make dev` turns it on in compose. It runs only
 - **The order the demo seed writes** (already picked up) is finished the same way; its fixes reach the tracking page
   through `/delivery/{id}/eta` (its rider was never made busy by dispatch, so no live WebSocket position for that
   first one).
-- **Logs:** `demo_rider_sim` (on, off or refused, at start), `demo_order_placed`, `demo_rider_accepted`,
-  `demo_order_delivered`, and `demo_rider_sim_step_failed` with the reason.
+- **Logs:** `demo_rider_sim` (on, off or refused, at start), `demo_order_placed`, `demo_order_step` (each move
+  to a new step), `demo_rider_accepted`, `demo_order_delivered`, `demo_rider_sim_step_failed` with the reason;
+  `demo_order_tick` at debug level every 4 s.
+- **Watchdog:** an order on the same step for 15 minutes (45 for a ride) logs `demo_order_stalled`; the rider signs
+  in again and goes online again (realtime frees a rider left busy with an order that is over or gone:
+  `rider_freed_from_stale_order`) and the step is retried. Still stuck 15 minutes later, the kitchen (or the
+  customer, before payment) cancels it through the normal API (`demo_order_cancelled_stalled`) and the next order
+  starts; one nobody but an admin may cancel (ready, picked up) is left (`demo_order_given_up`).
 - **Don't** sign in as `rider.demo.<city>` in the rider app on QA while it runs; you'd be riding the same account.
 
 From a workstation, against a hosted environment that is neither QA nor production (staging, once it exists):

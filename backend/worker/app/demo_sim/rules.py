@@ -144,3 +144,44 @@ def should_create(open_orders: int, last_delivered: datetime | None, last_attemp
     if last_delivered and now - last_delivered < NEXT_ORDER_AFTER:
         return False
     return not (last_attempt and now - last_attempt < RETRY_CREATE_AFTER)
+
+
+# -- the watchdog ----------------------------------------------------------------
+# An order that stays on one step too long (the rider never got the offer, a sign-in
+# keeps failing, realtime lost track of the rider) is first recovered: the rider goes
+# online again (realtime frees a rider stuck on an order that is over), everyone signs
+# in afresh and the step is retried. If it is still stuck after another bound, it is
+# cancelled through the normal API (by the kitchen, or the customer before payment)
+# and the next order starts.
+STALL_AFTER = timedelta(minutes=15)
+RIDING_STALL_AFTER = timedelta(minutes=45)  # riding steps take as long as the ride
+RIDING = frozenset({"to_kitchen", "to_home"})
+
+
+@dataclass(frozen=True)
+class Watch:
+    step: str
+    since: datetime
+    recoveries: int = 0
+
+
+def watch(prev: Watch | None, step: str, now: datetime) -> tuple[Watch, str]:
+    """(the order's watch, verdict): "new" (it moved on to this step), "same",
+    "stalled" (recover now) or "give_up" (cancel it)."""
+    if prev is None or prev.step != step:
+        return Watch(step, now), "new"
+    if now - prev.since < (RIDING_STALL_AFTER if step in RIDING else STALL_AFTER):
+        return prev, "same"
+    if prev.recoveries == 0:
+        return Watch(step, now, 1), "stalled"
+    return Watch(step, now, prev.recoveries + 1), "give_up"
+
+
+def cancel_as(status: str) -> str | None:
+    """Who may cancel an order in this state through the normal API (state_machine.py):
+    the kitchen until it's ready, the customer before payment; nobody after (admin only)."""
+    if status in ("placed", "accepted", "preparing", "almost_ready"):
+        return "kitchen"
+    if status == "pending_payment":
+        return "customer"
+    return None

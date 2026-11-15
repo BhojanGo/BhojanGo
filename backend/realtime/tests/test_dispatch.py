@@ -53,7 +53,9 @@ class FakeCore:
     async def dispatch_info(self, order: str) -> dict:
         if order != ORDER and order not in self.others:
             raise CoreApiError(404, "Order not found")
-        return info(order_id=order, batching_live=self.live, rider_pay="60.00", rider_pay_batched="45.00")
+        # The rider it was assigned to, as core_api says once a rider accepted.
+        driver = next((rider for o, rider in reversed(self.assigned) if o == order), None)
+        return info(order_id=order, batching_live=self.live, rider_pay="60.00", rider_pay_batched="45.00", driver_id=driver)
 
     async def assign_rider(self, order: str, rider: str, batch_id: str | None = None, position: int | None = None) -> dict:
         if self.fail:
