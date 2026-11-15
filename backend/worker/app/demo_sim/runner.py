@@ -83,9 +83,11 @@ LAST_DELIVERED_SQL = text("""
 SELECT max(o.actual_delivery_time) FROM orders o JOIN users c ON c.id = o.customer_id
 WHERE c.email = :email AND o.status = 'delivered'
 """)
+# Cities that take orders (core_api markets rules.OPEN): a beta city (Boise) is one of them.
+OPEN_CITY_STATUSES = ("beta", "live")
 PAST_ORDERS_SQL = text("""
 SELECT o.id FROM orders o JOIN users c ON c.id = o.customer_id JOIN cities ci ON ci.code = o.market_city
-WHERE c.email = :email AND o.status = 'delivered' AND ci.status = 'live'
+WHERE c.email = :email AND o.status = 'delivered' AND ci.status IN ('beta', 'live')
 ORDER BY o.created_at DESC LIMIT 30
 """)
 
@@ -406,6 +408,10 @@ class City:
         home = next((a for a in addresses if a.get("is_default")), addresses[0] if addresses else None)
         if home is None or home.get("lat") is None:
             logger.warning("demo_order_skipped", city=self.key, reason="the demo customer has no address on the map")
+            return None
+        if not past:
+            logger.warning("demo_order_not_placed", city=self.key,
+                           reason="the demo customer has no delivered order in an open city to order again")
             return None
         seen: set[str] = set()
         for past_id in past:
