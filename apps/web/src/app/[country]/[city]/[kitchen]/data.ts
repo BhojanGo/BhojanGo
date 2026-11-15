@@ -3,7 +3,7 @@
 
 const CORE = process.env.CORE_API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_CORE_URL ?? "http://localhost:8001";
 
-/** "Hyderabad" -> "hyderabad", "New York" -> "new-york": lower-case, non-alphanumerics -> "-". */
+/** "Some City" -> "some-city": lower-case, non-alphanumerics -> "-" (the same rule as the API's city slugs). */
 export function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
