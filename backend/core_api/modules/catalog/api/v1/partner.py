@@ -50,6 +50,8 @@ class StateOut(BaseModel):
     today_orders: int
     today_sales: Decimal
     closes_at: str | None
+    # The kitchen's city time zone (IANA): paused_until, busy_until and its orders' times are shown in it.
+    time_zone: str | None = None
 
 
 async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
@@ -75,7 +77,7 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         busy_extra_minutes=busy_minutes(r, now), busy_until=r.busy_until if busy_minutes(r, now) else None,
         prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=Decimal(sales),
         # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).
-        closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None),
+        closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None), time_zone=a.timezone,
     )
 
 

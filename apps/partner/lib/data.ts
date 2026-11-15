@@ -1,6 +1,6 @@
 // The partner's restaurant and what the tablet shows: today's state, the
 // orders board (polled every 4 s), the menu, offers and the application.
-import { api, unwrap, urls, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, inZone, unwrap, urls, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -61,8 +61,8 @@ export function useFormat() {
     /** cash(250, order.currency): whole amounts lose ".00" (decimals 2 always shows cents). No currency: the country's. */
     cash: (v: string | number | null | undefined, currency?: string | null, decimals = 0) =>
       money(Number(v ?? 0), currency, { whole: decimals === 0 }),
-    /** "7:05 pm" in the country's clock. */
-    clock: (iso: string | null | undefined) => (iso ? time(iso) : ""),
+    /** "7:05 pm" in the country's clock, in a time zone: the order's (order.time_zone) or the kitchen's city (today.time_zone), never the tablet's. */
+    clock: (iso: string | null | undefined, zone?: string | null) => (iso ? time(iso, inZone(zone)) : ""),
     date,
   }), [money, time, date]);
 }

@@ -7193,6 +7193,8 @@ export interface components {
             restaurant_id: string;
             /** Status */
             status: string;
+            /** Time Zone */
+            time_zone?: string | null;
             /** Today Orders */
             today_orders: number;
             /** Today Sales */

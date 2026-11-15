@@ -10667,6 +10667,17 @@
             "title": "Status",
             "type": "string"
           },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
+          },
           "today_orders": {
             "title": "Today Orders",
             "type": "integer"

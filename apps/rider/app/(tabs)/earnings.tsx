@@ -1,6 +1,6 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
 // deliveries and the next payout. Money and dates by the country (Markets).
-import { useI18n } from "@bhojango/mobile-core";
+import { inZone, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -136,7 +136,7 @@ export default function Earnings() {
                 <Text style={[ui.bold, textFont("700")]}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
                 <Text style={[ui.muted, { fontSize: 12 }]}>
                   {[
-                    `${time(ln.delivered_at)} · ${t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
+                    `${time(ln.delivered_at, inZone(w.time_zone))} · ${t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
                     Number(ln.distance) > 0 ? `${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : null,
                     Number(ln.waiting) > 0 ? t("rider.earnings.wait", { amount: cash(ln.waiting, cur) }) : null,
                     Number(ln.tip) > 0 ? t("rider.earnings.tip", { amount: cash(ln.tip, cur) }) : null,
