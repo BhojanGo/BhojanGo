@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-Status = Literal["draft", "beta", "live", "paused"]
+Status = Literal["draft", "soon", "beta", "live", "paused"]
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -189,6 +189,7 @@ class CitySummary(CityOut):
     zone_count: int
     live_zone_count: int
     launch_checklist: dict[str, bool]
+    waitlist: int = 0  # "Notify me" sign-ups for this city (demand)
 
 
 class RegionSummary(RegionOut):
@@ -226,3 +227,26 @@ class LocateResult(BaseModel):
     currency: str | None = None
     status: Status | None = None
     timezone: str | None = Field(default=None, description="The city's own time zone")
+
+
+class DemandCity(BaseModel):
+    city_code: str
+    city_name: str
+    country: str
+    status: str
+    signups: int
+    with_consent: int
+    last_at: datetime | None
+
+
+class DemandText(BaseModel):
+    """Cities the visitor typed that aren't in Markets yet."""
+
+    text: str
+    signups: int
+    last_at: datetime | None
+
+
+class Demand(BaseModel):
+    cities: list[DemandCity]
+    suggested: list[DemandText]

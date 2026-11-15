@@ -341,7 +341,7 @@ ADMINS = [
 # them on the map in the admin console.
 COUNTRIES = [
     {
-        "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN"],
+        "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"],
         "timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
         "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"]},
@@ -370,16 +370,16 @@ COUNTRIES = [
             {
                 "code": "IN-AP", "name": "Andhra Pradesh", "status": "draft", "settings": {},
                 "cities": [
-                    {"code": "IN-AP-VSKP", "name": "Visakhapatnam", "status": "draft", "center": (17.6868, 83.2185),
+                    {"code": "IN-AP-VSKP", "name": "Visakhapatnam", "status": "soon", "center": (17.6868, 83.2185),
                      "service_hours": None, "settings": {}, "zones": []},
-                    {"code": "IN-AP-VJA", "name": "Vijayawada", "status": "draft", "center": (16.5062, 80.6480),
+                    {"code": "IN-AP-VJA", "name": "Vijayawada", "status": "soon", "center": (16.5062, 80.6480),
                      "service_hours": None, "settings": {}, "zones": []},
                 ],
             },
         ],
     },
     {
-        "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US"],
+        "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US", "es-US"],
         "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"]},
@@ -398,6 +398,9 @@ COUNTRIES = [
                             ("Boise State", (43.590, -116.215, 43.605, -116.185), "15", "live", "#7FB7BD"),
                         ],
                     },
+                    # Coming soon: listed on the website's directory and collects "Notify me" sign-ups.
+                    {"code": "US-ID-NMP", "name": "Nampa", "status": "soon", "center": (43.5407, -116.5635),
+                     "service_hours": None, "settings": {}, "zones": []},
                 ],
             },
         ],

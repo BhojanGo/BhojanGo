@@ -26,6 +26,7 @@ from core_api.modules.markets.schemas import (
     CountryOut,
     CountrySummary,
     CountryUpdate,
+    Demand,
     LocateResult,
     RegionCreate,
     RegionOut,
@@ -69,24 +70,6 @@ async def locate(db: DB, lat: float = Query(ge=-90, le=90), lng: float = Query(g
     return await MarketService(db).locate(lat, lng)
 
 
-class WaitlistIn(BaseModel):
-    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$", examples=["+12085550199"])
-    lat: float = Field(ge=-90, le=90)
-    lng: float = Field(ge=-180, le=180)
-
-
-@router.post("/waitlist", status_code=status.HTTP_202_ACCEPTED)
-async def join_waitlist(data: WaitlistIn, db: DB) -> dict:
-    """"Tell me when you launch" from the not-in-your-area screen. Signing up twice is fine."""
-    from sqlalchemy.dialects.postgresql import insert
-
-    from core_api.modules.markets.models import LaunchWaitlist
-
-    await db.execute(insert(LaunchWaitlist).values(id=uuid.uuid4(), phone=data.phone, lat=data.lat, lng=data.lng)
-                     .on_conflict_do_update(constraint="uq_launch_waitlist_phone", set_={"lat": data.lat, "lng": data.lng}))
-    return {"ok": True}
-
-
 # ── Overview ──────────────────────────────────────────────────────────────────
 
 class PublicCity(BaseModel):
@@ -117,6 +100,13 @@ async def public_cities(db: DB) -> list[PublicCity]:
     return [PublicCity(code=c.code, name=c.name, slug=c.name.lower().replace(" ", "-"), region=r.name, country=k.code,
                        currency=k.currency, lat=c.center_lat, lng=c.center_lng, restaurants=counts.get(c.name, 0))
             for c, r, k in rows]
+
+
+@router.get("/waitlist/demand", response_model=Demand)
+async def waitlist_demand(admin: Viewer, db: DB) -> Demand:
+    """"Notify me" sign-ups per city (coming-soon cities and unserved addresses), and
+    the cities visitors typed that Markets doesn't have yet."""
+    return await MarketService(db).demand(authz.scopes_with(admin.assignments, "markets.view"))
 
 
 @router.get("", response_model=list[CountrySummary])

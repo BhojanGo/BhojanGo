@@ -25,7 +25,7 @@ import {
 const ZoneMap = dynamic(() => import("@/components/markets/ZoneMap").then((m) => m.ZoneMap), { ssr: false });
 
 type LngLat = [number, number];
-const STATUSES: MarketStatus[] = ["draft", "beta", "live", "paused"];
+const STATUSES: MarketStatus[] = ["draft", "soon", "beta", "live", "paused"];
 const PALETTE = ["#0B5D66", "#5BA3AA", "#D4932A", "#2E7D86", "#7FB7BD", "#B5762A"];
 
 function zoneLine(z: Zone, currency: string): string {
