@@ -428,11 +428,11 @@ with sync_playwright() as p:
         expect(bill.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
     tips = page.get_by_role("radiogroup", name="Tip your rider").get_by_role("radio")
-    # The choices are India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
+    # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
     check("tip: choices from the tip_presets rule, its default preselected", lambda: (
-        _assert([re.sub(r"\D", "", tips.nth(i).inner_text()) for i in range(3)] == ["10", "20", "30"],
+        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10", "₹20", "₹30", "Other"],
                 [tips.nth(i).inner_text() for i in range(tips.count())]),
-        expect(tips.nth(1)).to_have_attribute("aria-checked", "true")))
+        expect(tips.nth(2)).to_have_attribute("aria-checked", "true")))
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
