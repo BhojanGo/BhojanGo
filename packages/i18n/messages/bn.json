@@ -154,8 +154,8 @@
     "greeting_afternoon_name": "শুভ দুপুর, {name}",
     "greeting_evening_name": "শুভ সন্ধ্যা, {name}",
     "kitchens_deliver": {
-      "one": "এখন {count}টি কিচেন {place}-এ ডেলিভারি করছে",
-      "other": "এখন {count}টি কিচেন {place}-এ ডেলিভারি করছে"
+      "one": "{count}টি কিচেন {place}-এ ডেলিভারি করে",
+      "other": "{count}টি কিচেন {place}-এ ডেলিভারি করে"
     },
     "filters": "কিচেন ফিল্টার করুন",
     "filter_open": "এখন খোলা",

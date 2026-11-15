@@ -279,6 +279,18 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0)))
     shot(page, "03-home-address")
     cards = feed.get_by_role("link")
+
+    def counts_agree() -> None:
+        # "N kitchens deliver to <address>", "See all N" and the cards are one list (/discover for the address).
+        said = page.get_by_text(re.compile(r"^\d+ kitchens? delivers? to Madhapur")).inner_text()
+        n = int(said.split()[0])
+        see_all = feed.get_by_role("button", name=re.compile(r"^See all \d+$"))
+        if see_all.count():
+            _assert(int(see_all.inner_text().split()[-1]) == n, f"{said!r} but {see_all.inner_text()!r}")
+            see_all.click()
+            expect(see_all).to_have_count(0)
+        expect(cards).to_have_count(n)
+    check("personal home: kitchens that deliver, See all and the cards are the same number", counts_agree)
     n_all = cards.count()
     chips = page.get_by_role("group", name="Filter kitchens")
     chips.get_by_role("button", name="Veg only").click()

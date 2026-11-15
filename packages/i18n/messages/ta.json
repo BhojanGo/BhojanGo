@@ -154,8 +154,8 @@
     "greeting_afternoon_name": "மதிய வணக்கம், {name}",
     "greeting_evening_name": "மாலை வணக்கம், {name}",
     "kitchens_deliver": {
-      "one": "இப்போது {count} கிச்சன் {place} க்கு டெலிவரி செய்கிறது",
-      "other": "இப்போது {count} கிச்சன்கள் {place} க்கு டெலிவரி செய்கின்றன"
+      "one": "{count} கிச்சன் {place} க்கு டெலிவரி செய்கிறது",
+      "other": "{count} கிச்சன்கள் {place} க்கு டெலிவரி செய்கின்றன"
     },
     "filters": "கிச்சன்களை வடிகட்டு",
     "filter_open": "இப்போது திறந்துள்ளவை",

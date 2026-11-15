@@ -154,8 +154,8 @@
     "greeting_afternoon_name": "నమస్కారం, {name}",
     "greeting_evening_name": "శుభ సాయంత్రం, {name}",
     "kitchens_deliver": {
-      "one": "ప్రస్తుతం {count} కిచెన్ {place}కు డెలివరీ చేస్తోంది",
-      "other": "ప్రస్తుతం {count} కిచెన్‌లు {place}కు డెలివరీ చేస్తున్నాయి"
+      "one": "{count} కిచెన్ {place}కు డెలివరీ చేస్తుంది",
+      "other": "{count} కిచెన్‌లు {place}కు డెలివరీ చేస్తాయి"
     },
     "filters": "కిచెన్‌లను ఫిల్టర్ చేయండి",
     "filter_open": "ఇప్పుడు తెరిచి ఉన్నవి",

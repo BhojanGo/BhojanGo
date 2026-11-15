@@ -4,6 +4,11 @@
 // chips over the kitchen grid, and "Order again". Kitchens, cuisines and
 // offers come from the server (/discover for the address); orders from the
 // signed-in customer's own list.
+//
+// Every count of kitchens on this page is a count of the one list from
+// /discover for the address (all of it, open or not; the filter chips narrow
+// what is shown): "N kitchens deliver to <address>", "See all N" (which shows
+// that same list here, not the city page's city-wide one) and the cards.
 import { ACTIVE_STATUSES, unwrap, type CoreSchemas, type OrderStatus } from "@bhojango/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -194,7 +199,6 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
 export function HomeFeed({
   kitchens,
   placeLabel,
-  cityPath,
   cityName,
   currency,
   formatLocale,
@@ -204,7 +208,6 @@ export function HomeFeed({
 }: {
   kitchens: Kitchen[];
   placeLabel: string;
-  cityPath: string;
   cityName: string;
   currency: string;
   formatLocale: string;
@@ -215,10 +218,10 @@ export function HomeFeed({
   const t = useT();
   const { orders, user, hydrated } = useMyOrders();
   const [on, setOn] = useState<Set<Filter>>(new Set());
+  const [all, setAll] = useState(false);
   const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, k.cover_url])), [kitchens]);
   const active = orders?.find((o) => ACTIVE_STATUSES.includes(o.status as OrderStatus)) ?? null;
   const shown = kitchens.filter((k) => [...on].every((f) => TEST[f](k)));
-  const openCount = kitchens.filter((k) => k.open_now).length;
   const pod = hydrated ? partOfDay() : null;
   const first = user?.full_name?.trim().split(/\s+/)[0];
   const greeting = !pod ? t("home.greeting") : first ? t(`home.greeting_${pod}_name`, { name: first }) : t(`home.greeting_${pod}`);
@@ -238,7 +241,7 @@ export function HomeFeed({
       <section aria-labelledby="greeting" className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 id="greeting" className="m-0 font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[40px] md:tracking-[-1px]">{greeting}</h1>
-          <p className="mt-[6px] text-[15px] text-[#4C5A5E] md:text-base">{t("home.kitchens_deliver", { count: openCount, place: placeLabel })}</p>
+          <p className="mt-[6px] text-[15px] text-[#4C5A5E] md:text-base">{t("home.kitchens_deliver", { count: kitchens.length, place: placeLabel })}</p>
         </div>
         <div role="group" aria-label={t("home.filters")} className="-mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
           {FILTERS.map((f) => {
@@ -270,15 +273,22 @@ export function HomeFeed({
             <h2 id="kitchens-near" className="m-0 font-display text-xl font-semibold tracking-[-0.5px] md:text-[26px]">{t("home.kitchens_near")}</h2>
             <p className="mt-1 hidden text-[15px] text-[#4C5A5E] md:block">{t("home.kitchens_near_note")}</p>
           </div>
-          {kitchens.length > SHOWN && (
-            <Link href={cityPath} className="shrink-0 font-bold">
-              {t("home.see_all", { count: kitchens.length })}
-            </Link>
+          {/* the rest of the same list, here (with the filters on: the rest of what they keep) */}
+          {!all && shown.length > SHOWN && (
+            <button
+              type="button"
+              aria-controls="kitchens-list"
+              aria-expanded={false}
+              onClick={() => setAll(true)}
+              className="shrink-0 font-bold text-[#0B5D66] hover:underline"
+            >
+              {t("home.see_all", { count: shown.length })}
+            </button>
           )}
         </div>
         {shown.length ? (
-          <div className="mt-3 grid gap-[18px] md:mt-5 md:grid-cols-2 md:gap-6 lg:grid-cols-4" aria-live="polite">
-            {shown.slice(0, SHOWN).map((k) => (
+          <div id="kitchens-list" className="mt-3 grid gap-[18px] md:mt-5 md:grid-cols-2 md:gap-6 lg:grid-cols-4" aria-live="polite">
+            {(all ? shown : shown.slice(0, SHOWN)).map((k) => (
               <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={distanceUnit} />
             ))}
           </div>

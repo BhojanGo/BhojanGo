@@ -154,8 +154,8 @@
     "greeting_afternoon_name": "Good afternoon, {name}",
     "greeting_evening_name": "Good evening, {name}",
     "kitchens_deliver": {
-      "one": "{count} kitchen delivers to {place} right now",
-      "other": "{count} kitchens deliver to {place} right now"
+      "one": "{count} kitchen delivers to {place}",
+      "other": "{count} kitchens deliver to {place}"
     },
     "filters": "Filter kitchens",
     "filter_open": "Open now",
