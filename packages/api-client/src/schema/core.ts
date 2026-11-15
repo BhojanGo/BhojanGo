@@ -855,6 +855,169 @@ export interface paths {
         delete: operations["delete_address_api_v1_me_addresses__address_id__delete"];
         options?: never;
         head?: never;
+        /**
+         * Update Address
+         * @description Change any field of one of your addresses.
+         */
+        patch: operations["update_address_api_v1_me_addresses__address_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/addresses/{address_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Default Address
+         * @description Make this your default address (the one checkout picks first).
+         */
+        post: operations["set_default_address_api_v1_me_addresses__address_id__default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export My Data
+         * @description Download everything we hold about you as JSON: profile, addresses,
+         *     orders with their bills, saved cards (masked), favourites, notification
+         *     preferences, support tickets, refunds and problems, reviews.
+         */
+        get: operations["export_my_data_api_v1_me_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/favourites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Favourites
+         * @description Your saved kitchens and dishes (ones no longer on BhojanGo aren't shown).
+         */
+        get: operations["list_favourites_api_v1_me_favourites_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/favourites/{kind}/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add Favourite
+         * @description Save a kitchen or a dish. Saving it again changes nothing.
+         */
+        put: operations["add_favourite_api_v1_me_favourites__kind___target_id__put"];
+        post?: never;
+        /** Remove Favourite */
+        delete: operations["remove_favourite_api_v1_me_favourites__kind___target_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Notification Preferences */
+        get: operations["get_notification_preferences_api_v1_me_notification_preferences_get"];
+        /** Set Notification Preferences */
+        put: operations["set_notification_preferences_api_v1_me_notification_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/payment-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Payment Methods
+         * @description Your saved cards (brand, last four, expiry; the token never leaves the server).
+         */
+        get: operations["list_payment_methods_api_v1_me_payment_methods_get"];
+        put?: never;
+        /**
+         * Add Payment Method
+         * @description Save a tokenised card. The first one becomes the default.
+         */
+        post: operations["add_payment_method_api_v1_me_payment_methods_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/payment-methods/{payment_method_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Payment Method */
+        delete: operations["delete_payment_method_api_v1_me_payment_methods__payment_method_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/payment-methods/{payment_method_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Default Payment Method */
+        post: operations["set_default_payment_method_api_v1_me_payment_methods__payment_method_id__default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -972,7 +1135,7 @@ export interface paths {
         };
         /**
          * List My Orders
-         * @description Get authenticated customer's order history.
+         * @description Get authenticated customer's order history, newest first, with optional filters.
          */
         get: operations["list_my_orders_api_v1_orders_get"];
         put?: never;
@@ -1148,6 +1311,49 @@ export interface paths {
          *     limit, support gets a ticket and gets back to them.
          */
         post: operations["report_problem_api_v1_orders__order_id__problems_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/receipt.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Receipt Pdf
+         * @description Your receipt for a paid order: a tax invoice in India (GST, FSSAI), a
+         *     receipt with sales tax in the US. Same lines as the fair bill.
+         */
+        get: operations["receipt_pdf_api_v1_orders__order_id__receipt_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reorder
+         * @description Order again: your past order's items at today's menu prices, ready for
+         *     the bag. Sold-out or removed items are listed in ``unavailable`` and left
+         *     out. Nothing is ordered: checkout quotes the bag as usual.
+         */
+        post: operations["reorder_api_v1_orders__order_id__reorder_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2669,9 +2875,11 @@ export interface paths {
          * Delete Me
          * @description Delete my account (GDPR / India DPDP / app store rules).
          *
-         *     Removes personal data (name, email, phone, social ids, addresses, admin
-         *     roles), ends every session at once and deactivates the account. Orders
-         *     keep the anonymous user id so restaurant and tax records stay intact.
+         *     Removes personal data (name, email, phone, social ids, addresses, saved
+         *     cards, favourites, notification preferences, admin roles), ends every
+         *     session at once and deactivates the account. Orders keep the anonymous
+         *     user id so restaurant and tax records stay intact, without the street,
+         *     map pin or notes (city, state, postal code and country stay for tax).
          */
         delete: operations["delete_me_api_v1_users_me_delete"];
         options?: never;
@@ -2879,6 +3087,13 @@ export interface components {
              * @default US
              */
             country?: string;
+            /** Delivery Notes */
+            delivery_notes?: string | null;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default?: boolean;
             /**
              * Label
              * @default Home
@@ -2926,11 +3141,18 @@ export interface components {
             city: string;
             /** Country */
             country: string;
+            /** Delivery Notes */
+            delivery_notes?: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default?: boolean;
             /** Label */
             label: string;
             /** Lat */
@@ -2965,6 +3187,32 @@ export interface components {
             street: string;
             /** Zip */
             zip: string;
+        };
+        /**
+         * AddressUpdate
+         * @description Any field; only the ones sent change. lat/lng/delivery_notes may be null.
+         */
+        AddressUpdate: {
+            /** City */
+            city?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Delivery Notes */
+            delivery_notes?: string | null;
+            /** Is Default */
+            is_default?: boolean | null;
+            /** Label */
+            label?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lng */
+            lng?: number | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** State */
+            state?: string | null;
+            /** Street */
+            street?: string | null;
         };
         /** AdminMeResponse */
         AdminMeResponse: {
@@ -3149,6 +3397,24 @@ export interface components {
             options?: components["schemas"]["OptionPick"][];
             /** Quantity */
             quantity: number;
+        };
+        /** Channels */
+        Channels: {
+            /** Email */
+            email: boolean;
+            /** Push */
+            push: boolean;
+            /** Sms */
+            sms: boolean;
+        };
+        /** ChannelsUpdate */
+        ChannelsUpdate: {
+            /** Email */
+            email?: boolean | null;
+            /** Push */
+            push?: boolean | null;
+            /** Sms */
+            sms?: boolean | null;
         };
         /** CityCreate */
         CityCreate: {
@@ -3515,6 +3781,86 @@ export interface components {
         FakeCompleteRequest: {
             /** Outcome */
             outcome?: ("succeeded" | "failed") | null;
+        };
+        /** FavouriteItem */
+        FavouriteItem: {
+            /** Available */
+            available: boolean;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image Url */
+            image_url: string | null;
+            /** Name */
+            name: string;
+            /** Price */
+            price: number;
+            restaurant: components["schemas"]["FavouriteItemRestaurant"];
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+        };
+        /** FavouriteItemRestaurant */
+        FavouriteItemRestaurant: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /** FavouriteRestaurant */
+        FavouriteRestaurant: {
+            /** City */
+            city: string;
+            /** Country */
+            country: string;
+            /** Cover Url */
+            cover_url: string | null;
+            /** Cuisine Types */
+            cuisine_types: string[];
+            /** Currency */
+            currency: string;
+            /** Delivery Fee */
+            delivery_fee: number;
+            /** Delivery Time Max */
+            delivery_time_max: number;
+            /** Delivery Time Min */
+            delivery_time_min: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Rating */
+            rating: number;
+            /** Review Count */
+            review_count: number;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Slug */
+            slug: string;
+        };
+        /** FavouritesOut */
+        FavouritesOut: {
+            /** Items */
+            items: components["schemas"]["FavouriteItem"][];
+            /** Restaurants */
+            restaurants: components["schemas"]["FavouriteRestaurant"][];
         };
         /**
          * FeeBreakdown
@@ -3957,6 +4303,25 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * NotificationPreferencesOut
+         * @description What we may send you, per kind of message and channel. Offers are off
+         *     until you turn them on.
+         */
+        NotificationPreferencesOut: {
+            account: components["schemas"]["Channels"];
+            offers: components["schemas"]["Channels"];
+            orders: components["schemas"]["Channels"];
+        };
+        /**
+         * NotificationPreferencesUpdate
+         * @description Only the switches you send change.
+         */
+        NotificationPreferencesUpdate: {
+            account?: components["schemas"]["ChannelsUpdate"] | null;
+            offers?: components["schemas"]["ChannelsUpdate"] | null;
+            orders?: components["schemas"]["ChannelsUpdate"] | null;
         };
         /** OfferIn */
         OfferIn: {
@@ -4432,6 +4797,8 @@ export interface components {
             items: {
                 [key: string]: unknown;
             }[];
+            /** Items Summary */
+            items_summary?: string | null;
             /** Loyalty Points Earned */
             loyalty_points_earned: number;
             /** Loyalty Points Used */
@@ -4475,6 +4842,8 @@ export interface components {
              * @default 0
              */
             restaurant_payout?: number;
+            /** Restaurant Slug */
+            restaurant_slug?: string | null;
             /** Rider */
             rider?: {
                 [key: string]: unknown;
@@ -4657,6 +5026,67 @@ export interface components {
             provider: "stripe" | "razorpay" | "wallet" | "fake";
             /** Razorpay Order Id */
             razorpay_order_id?: string | null;
+        };
+        /**
+         * PaymentMethodCreate
+         * @description A card the provider's own form tokenised. Send the token and the display
+         *     details the provider returned, never the card number.
+         */
+        PaymentMethodCreate: {
+            /**
+             * Brand
+             * @example visa
+             */
+            brand: string;
+            /** Exp Month */
+            exp_month: number;
+            /** Exp Year */
+            exp_year: number;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default?: boolean;
+            /**
+             * Last4
+             * @example 4242
+             */
+            last4: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "stripe" | "razorpay" | "fake";
+            /**
+             * Provider Token
+             * @example pm_1QaBcDeFgHiJkLmN
+             */
+            provider_token: string;
+        };
+        /** PaymentMethodOut */
+        PaymentMethodOut: {
+            /** Brand */
+            brand: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Exp Month */
+            exp_month: number;
+            /** Exp Year */
+            exp_year: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Default */
+            is_default: boolean;
+            /** Last4 */
+            last4: string;
+            /** Provider */
+            provider: string;
         };
         /** PaymentResponse */
         PaymentResponse: {
@@ -5040,12 +5470,68 @@ export interface components {
              * @default en-US
              * @enum {string}
              */
-            preferred_locale?: "en-US" | "en-IN" | "hi-IN" | "te-IN";
+            preferred_locale?: "en-IN" | "hi-IN" | "te-IN" | "ta-IN" | "kn-IN" | "mr-IN" | "bn-IN" | "en-US" | "es-US";
         };
         /** Rejection */
         Rejection: {
             /** Note */
             note: string;
+        };
+        /** ReorderItem */
+        ReorderItem: {
+            /**
+             * Available
+             * @default true
+             */
+            available?: boolean;
+            /**
+             * Menu Item Id
+             * Format: uuid
+             */
+            menu_item_id: string;
+            /** Name */
+            name: string;
+            /** Options */
+            options: components["schemas"]["ReorderOption"][];
+            /** Price */
+            price: number;
+            /** Quantity */
+            quantity: number;
+        };
+        /** ReorderOption */
+        ReorderOption: {
+            /** Group */
+            group: string;
+            /** Name */
+            name: string;
+            /** Option */
+            option: string;
+        };
+        /**
+         * ReorderResponse
+         * @description What "Order again" puts in the bag: ``items`` at today's prices. Nothing
+         *     is ordered; ``unavailable`` names what couldn't be added.
+         */
+        ReorderResponse: {
+            /** Items */
+            items: components["schemas"]["ReorderItem"][];
+            restaurant: components["schemas"]["ReorderRestaurant"];
+            /** Unavailable */
+            unavailable: string[];
+        };
+        /** ReorderRestaurant */
+        ReorderRestaurant: {
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
         };
         /**
          * ResetPasswordRequest
@@ -5891,7 +6377,7 @@ export interface components {
             /** Preferred Currency */
             preferred_currency?: ("USD" | "INR") | null;
             /** Preferred Locale */
-            preferred_locale?: ("en-US" | "en-IN" | "hi-IN" | "te-IN") | null;
+            preferred_locale?: ("en-IN" | "hi-IN" | "te-IN" | "ta-IN" | "kn-IN" | "mr-IN" | "bn-IN" | "en-US" | "es-US") | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -7596,6 +8082,338 @@ export interface operations {
             };
         };
     };
+    update_address_api_v1_me_addresses__address_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                address_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_address_api_v1_me_addresses__address_id__default_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                address_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_my_data_api_v1_me_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your data as a JSON file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_favourites_api_v1_me_favourites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavouritesOut"];
+                };
+            };
+        };
+    };
+    add_favourite_api_v1_me_favourites__kind___target_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "restaurant" | "item";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_favourite_api_v1_me_favourites__kind___target_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "restaurant" | "item";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notification_preferences_api_v1_me_notification_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesOut"];
+                };
+            };
+        };
+    };
+    set_notification_preferences_api_v1_me_notification_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferencesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payment_methods_api_v1_me_payment_methods_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodOut"][];
+                };
+            };
+        };
+    };
+    add_payment_method_api_v1_me_payment_methods_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentMethodCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_payment_method_api_v1_me_payment_methods__payment_method_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_method_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_payment_method_api_v1_me_payment_methods__payment_method_id__default_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_method_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_alerts_api_v1_ops_alerts_get: {
         parameters: {
             query?: {
@@ -7766,6 +8584,15 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
+                /** @description Kitchen or item name (any case) */
+                q?: string | null;
+                /** @description delivered | cancelled | active; repeatable */
+                status?: ("delivered" | "cancelled" | "active")[] | null;
+                /** @description Placed on or after this day (UTC) */
+                from?: string | null;
+                /** @description Placed on or before this day (UTC) */
+                to?: string | null;
+                restaurant_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -8087,6 +8914,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receipt_pdf_api_v1_orders__order_id__receipt_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The receipt (India: tax invoice) as a PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_api_v1_orders__order_id__reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReorderResponse"];
                 };
             };
             /** @description Validation Error */

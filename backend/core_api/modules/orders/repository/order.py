@@ -2,10 +2,16 @@ import math
 import uuid
 from datetime import datetime
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import and_, column, exists, func, literal, or_, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.models.order import Order
+
+
+def _escape_like(text: str) -> str:
+    r"""So a search for "50%" or "a_b" matches those characters (escape char: \)."""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class OrderRepository:
@@ -36,9 +42,29 @@ class OrderRepository:
         return await self.get_by_id(order_id)
 
     async def list_by_customer(
-        self, customer_id: uuid.UUID, page: int = 1, limit: int = 20
+        self, customer_id: uuid.UUID, page: int = 1, limit: int = 20, *, q: str | None = None,
+        statuses: set[str] | None = None, created_from: datetime | None = None, created_before: datetime | None = None,
+        restaurant_id: uuid.UUID | None = None,
     ) -> tuple[list[Order], int]:
-        where = Order.customer_id == customer_id
+        """The customer's orders, newest first. ``q`` matches the kitchen's name or
+        an item's name (any case); ``created_before`` is exclusive."""
+        conds = [Order.customer_id == customer_id]
+        if q:
+            pattern = "%" + _escape_like(q) + "%"
+            item = func.jsonb_array_elements(Order.items).table_valued(column("value", JSONB)).alias("item")
+            conds.append(or_(
+                Order.restaurant_name.ilike(pattern, escape="\\"),
+                exists(select(literal(1)).select_from(item).where(item.c.value["name"].astext.ilike(pattern, escape="\\"))),
+            ))
+        if statuses:
+            conds.append(Order.status.in_(statuses))
+        if created_from is not None:
+            conds.append(Order.created_at >= created_from)
+        if created_before is not None:
+            conds.append(Order.created_at < created_before)
+        if restaurant_id is not None:
+            conds.append(Order.restaurant_id == restaurant_id)
+        where = and_(*conds)
         total = (await self.session.execute(select(func.count(Order.id)).where(where))).scalar_one()
         result = await self.session.execute(
             select(Order).where(where).order_by(Order.created_at.desc()).offset((page - 1) * limit).limit(limit)

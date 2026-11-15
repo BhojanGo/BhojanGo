@@ -10,7 +10,9 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 UserRole = Literal["customer", "driver", "restaurant_owner", "admin", "super_admin"]
 Country = Literal["US", "IN"]
 Currency = Literal["USD", "INR"]
-Locale = Literal["en-US", "en-IN", "hi-IN", "te-IN"]
+# The web's languages; the worker's messages fall back to English for the ones
+# it doesn't have yet (worker/app/services/messages.py language_for).
+Locale = Literal["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN", "en-US", "es-US"]
 
 
 class UserBase(BaseModel):

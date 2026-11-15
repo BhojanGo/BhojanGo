@@ -6,6 +6,7 @@ moved to core_api/main.py.
 from fastapi import FastAPI
 
 from core_api import errors
+from core_api.modules.payments.api.v1.methods import router as methods_router
 from core_api.modules.payments.api.v1.payments import router as payments_router
 from core_api.modules.payments.api.v1.payments import wallet_router
 
@@ -17,3 +18,4 @@ def register(app: FastAPI) -> None:
 
     app.include_router(payments_router, prefix="/api/v1")
     app.include_router(wallet_router, prefix="/api/v1")
+    app.include_router(methods_router, prefix="/api/v1")

@@ -123,6 +123,21 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("DELETE", "/api/v1/users/me"): user(),
     ("GET", "/api/v1/me/addresses"): user(), ("POST", "/api/v1/me/addresses"): user(body=lambda c: {"street": "x", "city": "y"}),
     ("DELETE", "/api/v1/me/addresses/{address_id}"): user("other_customer"),
+    ("PATCH", "/api/v1/me/addresses/{address_id}"): user("other_customer", body=lambda c: {"label": "Sweep"}),
+    ("POST", "/api/v1/me/addresses/{address_id}/default"): user("other_customer"),
+    # the web's account area: your own cards, favourites, preferences and data
+    ("GET", "/api/v1/me/payment-methods"): user(),
+    ("POST", "/api/v1/me/payment-methods"): user(body=lambda c: {
+        "provider": "fake", "provider_token": f"pm_fake_{uuid.uuid4().hex[:12]}", "brand": "visa", "last4": "4242",
+        "exp_month": 12, "exp_year": date.today().year + 3}),
+    ("DELETE", "/api/v1/me/payment-methods/{payment_method_id}"): user("other_customer"),
+    ("POST", "/api/v1/me/payment-methods/{payment_method_id}/default"): user("other_customer"),
+    ("GET", "/api/v1/me/favourites"): user(),
+    ("PUT", "/api/v1/me/favourites/{kind}/{target_id}"): user(),
+    ("DELETE", "/api/v1/me/favourites/{kind}/{target_id}"): user(),
+    ("GET", "/api/v1/me/notification-preferences"): user(),
+    ("PUT", "/api/v1/me/notification-preferences"): user(body=lambda c: {"offers": {"email": False}}),
+    ("GET", "/api/v1/me/export"): user(),
     ("GET", "/api/v1/wallet/balance"): user(), ("GET", "/api/v1/wallet/transactions"): user(),
     ("POST", "/api/v1/wallet/topup"): user(body=lambda c: {"amount": 1, "currency": "INR", "payment_method_id": "pm_x"}),
     ("POST", "/api/v1/pricing/quote"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c),
@@ -149,6 +164,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
     ("GET", "/api/v1/orders/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("GET", "/api/v1/orders/{order_id}/breakdown"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
+    # order again and the receipt PDF: the order's customer only
+    ("POST", "/api/v1/orders/{order_id}/reorder"): user("other_customer", "partner", "rider", "ops_hyd"),
+    ("GET", "/api/v1/orders/{order_id}/receipt.pdf"): user("other_customer", "partner", "rider", "ops_hyd"),
     # report a problem (B5): the order's customer only
     ("POST", "/api/v1/orders/{order_id}/problems"): user("other_customer", "partner", "rider", "ops_hyd",
                                                         body=lambda c: {"items": [{"menu_item_id": c.item, "quantity": 1}], "reason": "quality"}),
@@ -325,6 +343,7 @@ class Ctx:
     customer_id: str = ""
     rider_id: str = ""
     ticket: str = ""
+    payment_method: str = ""
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
@@ -333,6 +352,7 @@ class Ctx:
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
                   "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": str(uuid.UUID(int=9)),
+                  "payment_method_id": self.payment_method, "kind": "restaurant", "target_id": self.spice,
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
@@ -425,6 +445,10 @@ async def _build() -> Ctx:
         c.customer_id, c.rider_id = tokens["customer"]["_id"], tokens["rider"]["_id"]
         r = await client.post("/api/v1/me/addresses", headers=h, json={"street": "Sweep", "city": "Hyderabad"})
         c.address = r.json()["id"]
+        r = await client.post("/api/v1/me/payment-methods", headers=h, json={
+            "provider": "fake", "provider_token": f"pm_fake_{uuid.uuid4().hex[:12]}", "brand": "visa", "last4": "4242",
+            "exp_month": 12, "exp_year": date.today().year + 3})
+        c.payment_method = r.json()["id"]
         r = await client.post("/api/v1/pricing/quote", headers=h, json={
             "restaurant_id": c.spice, "items": _items(c), "deliver_to": {"lat": 17.4483, "lng": 78.3915}})
         c.quote = r.json()["quote_id"]
