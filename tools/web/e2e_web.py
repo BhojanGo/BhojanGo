@@ -552,13 +552,21 @@ with sync_playwright() as p:
     def eta_after(km: float, key: str) -> None:
         north(km)
         def read() -> None:
+            # minutes and km left from the same render: read km, minutes, km again (one GPS fix
+            # updates both at once; a fix landing between two reads would pair old with new)
+            def km_left() -> float:
+                m = left_re.search(timeline.inner_text())
+                _assert(m is not None, timeline.inner_text())
+                return float(m.group(1))  # type: ignore[union-attr]
+            before = km_left()
             minutes = int(re.search(r"\d+", eta_box.inner_text()).group())  # type: ignore[union-attr]
-            m = left_re.search(timeline.inner_text())
-            _assert(m is not None, timeline.inner_text())
-            km_left = float(m.group(1))  # type: ignore[union-attr]
+            _assert(km_left() == before, "the ETA changed while reading it")
             # road distance (x1.3) from the rider to the door, as realtime worked it out
-            _assert(abs(km_left - km * 1.3) < 0.3, f"{km_left} km left for a rider {km} km away")
-            seen[key], seen[key + "_km"] = minutes, km_left
+            _assert(abs(before - km * 1.3) < 0.3, f"{before} km left for a rider {km} km away")
+            # the minutes are realtime's for the rider's last fix (GET /delivery/{id}/eta)
+            want = api("GET", f"/delivery/{order_id}/eta", rider, host=8004)["estimated_delivery_minutes"]
+            _assert(minutes == want, f"page says {minutes} min, realtime {want} min ({before} km left)")
+            seen[key], seen[key + "_km"] = minutes, before
         eventually(read)
     check("tracking: the ETA comes from the distance left and goes down as the rider gets closer", lambda: (
         eta_after(3, "far"), eta_after(1, "near"),

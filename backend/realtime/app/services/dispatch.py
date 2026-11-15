@@ -619,6 +619,21 @@ async def tick(now: float | None = None) -> dict[str, int]:
     return counts
 
 
+async def _republish_eta(order: str) -> None:
+    """A status change moves the ETA (picked up: no more kitchen leg or prep wait), so the
+    tracking page gets it now from the rider's last fix instead of at the next one: the
+    order event can reach us after the rider's latest fix (the bus is asynchronous)."""
+    r = await get_redis()
+    raw = await r.get(info_key(order))
+    info = json.loads(raw) if raw else None
+    if not info or not info.get("driver_id") or info.get("status") in ("delivered", "cancelled"):
+        return
+    fix = await last_fix(info["driver_id"])
+    eta = eta_for(info, (fix["lat"], fix["lng"])) if fix else None
+    if eta:
+        await _publish(order_tracking_channel(order), "eta_update", {"order_id": order, "status": info.get("status"), "eta": eta})
+
+
 # ── order events (from SQS) ───────────────────────────────────────────────────
 
 DISPATCH_STATES = ("almost_ready", "ready")
@@ -642,6 +657,7 @@ async def on_order_event(event: dict) -> None:
     if kind in ("order.status_changed", "order.cancelled", "driver.assigned"):
         await _publish(order_tracking_channel(order), "status_change", {"order_id": order, "status": status,
                                                                         "driver_id": p.get("driver_id")})
+        await _republish_eta(order)
     if kind == "order.cancelled" or status in ("delivered", "cancelled"):
         lead = await r.get(in_batch_offer_key(order))
         raw = await r.get(offer_key(lead or order))

@@ -606,3 +606,35 @@ async def test_a_gps_fix_refreshes_an_old_cached_order(r, core, monkeypatch) -> 
     await dispatch.update_location(RIDER_NEAR, 17.4500, 78.3920)
     await dispatch.update_location(RIDER_NEAR, 17.4501, 78.3921)
     assert calls == [ORDER]  # once when old, then from the cache
+
+
+async def test_status_event_after_the_fix_republishes_the_eta(r, core) -> None:  # type: ignore[no-untyped-def]
+    """The pickup event can reach realtime after the rider's latest GPS fix (the bus is
+    asynchronous). The ETA from that fix waited for the food; the event sends it again
+    from the same fix with the new status, without waiting for the next fix."""
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    await dispatch._save_info({**json.loads(await r.get(dispatch.info_key(ORDER))), "status": "almost_ready",
+                               "ready_in_minutes": 20, "ready_at": None})
+    pubsub = r.pubsub()
+    await pubsub.subscribe(f"tracking:{ORDER}")
+    await dispatch.update_location(RIDER_NEAR, *_north(CUSTOMER, 3))
+    [fix_msg] = await drain(pubsub)
+    assert fix_msg["type"] == "location_update" and fix_msg["payload"]["eta"]["to_customer_minutes"] >= 20
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "picked_up", "driver_id": RIDER_NEAR}})
+    msgs = await drain(pubsub)
+    assert [m["type"] for m in msgs] == ["status_change", "eta_update"]
+    eta = msgs[1]["payload"]["eta"]
+    assert msgs[1]["payload"]["status"] == "picked_up"
+    assert eta["to_customer_minutes"] == 9 and eta["distance_left"] == pytest.approx(3.9, abs=0.02)
+
+
+async def test_no_eta_republished_without_a_rider_fix_or_after_delivery(r, core) -> None:  # type: ignore[no-untyped-def]
+    await dispatch._save_info(info(status="ready", driver_id=RIDER_NEAR))
+    pubsub = r.pubsub()
+    await pubsub.subscribe(f"tracking:{ORDER}")
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "picked_up", "driver_id": RIDER_NEAR}})
+    assert [m["type"] for m in await drain(pubsub)] == ["status_change"]  # the rider has sent no GPS yet
