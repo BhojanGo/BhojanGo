@@ -1,6 +1,6 @@
 "use client";
 // The personal home's live parts (WebHome / MWebHome): the active order bar,
-// the greeting (visitor's local time; name only when signed in), the filter
+// the greeting (the delivery address's local time; name only when signed in), the filter
 // chips over the kitchen grid, and "Order again". Kitchens, cuisines and
 // offers come from the server (/discover for the address); orders from the
 // signed-in customer's own list.
@@ -100,7 +100,7 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
         {minutes != null && eta && minutes < 600 && (
           <span className="hidden text-right md:block">
             <b className="block font-display text-[26px] font-semibold">{t("home.order_minutes", { count: minutes })}</b>
-            <span className="text-[13px] text-[#A9B8BA]">{t("home.order_arriving", { time: f.time(eta) })}</span>
+            <span className="text-[13px] text-[#A9B8BA]">{t("home.order_arriving", { time: f.zone(order.time_zone).time(eta) })}</span>
           </span>
         )}
         <span className="text-sm font-extrabold text-[#E8A93C] md:flex md:h-12 md:items-center md:rounded-full md:bg-[#E8A93C] md:px-5 md:text-base md:text-[#111418]">
@@ -171,7 +171,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
                 <b className="block truncate text-sm md:text-base">{o.restaurant_name}</b>
                 <span className="mt-[2px] hidden truncate text-sm text-[#4C5A5E] md:block">{items}</span>
                 <span className="mt-[2px] block text-xs text-[#4C5A5E] md:text-[13px]">
-                  <span className="hidden md:inline">{f.date(o.created_at)} · </span>
+                  <span className="hidden md:inline">{f.zone(o.time_zone).date(o.created_at)} · </span>
                   {f.money(o.total, o.currency)}
                 </span>
                 <button type="button" onClick={() => void again(o)} disabled={busy !== null} className="text-[13px] font-extrabold text-[#0B5D66] disabled:opacity-60 md:hidden">
@@ -203,6 +203,7 @@ export function HomeFeed({
   currency,
   formatLocale,
   distanceUnit,
+  timeZone,
   cravings,
   offers,
 }: {
@@ -212,6 +213,8 @@ export function HomeFeed({
   currency: string;
   formatLocale: string;
   distanceUnit: string;
+  /** The delivery address's city time zone (GET /discover), else the country's (Markets): the greeting's clock. */
+  timeZone: string | null;
   cravings: React.ReactNode;
   offers: React.ReactNode;
 }) {
@@ -222,7 +225,7 @@ export function HomeFeed({
   const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, k.cover_url])), [kitchens]);
   const active = orders?.find((o) => ACTIVE_STATUSES.includes(o.status as OrderStatus)) ?? null;
   const shown = kitchens.filter((k) => [...on].every((f) => TEST[f](k)));
-  const pod = hydrated ? partOfDay() : null;
+  const pod = hydrated ? partOfDay(timeZone) : null; // the delivery address's clock, not the device's
   const first = user?.full_name?.trim().split(/\s+/)[0];
   const greeting = !pod ? t("home.greeting") : first ? t(`home.greeting_${pod}_name`, { name: first }) : t(`home.greeting_${pod}`);
 

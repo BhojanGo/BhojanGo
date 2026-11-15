@@ -5575,6 +5575,8 @@ export interface components {
             subtotal: number;
             /** Taxes */
             taxes: number;
+            /** Time Zone */
+            time_zone?: string | null;
             /** Tip */
             tip: number;
             /** Total */
@@ -6038,6 +6040,8 @@ export interface components {
             status: string;
             /** Tags */
             tags: string[];
+            /** Time Zone */
+            time_zone?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -6641,6 +6645,8 @@ export interface components {
             tags: string[];
             /** Tier */
             tier?: string | null;
+            /** Time Zone */
+            time_zone?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -7191,6 +7197,8 @@ export interface components {
             restaurant_id: string;
             /** Status */
             status: string;
+            /** Time Zone */
+            time_zone?: string | null;
             /** Today Orders */
             today_orders: number;
             /** Today Sales */

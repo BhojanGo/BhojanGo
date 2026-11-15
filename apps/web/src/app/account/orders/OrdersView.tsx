@@ -54,6 +54,7 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
   const kitchen = useKitchenBrief(o.restaurant_id);
   const summary = o.items_summary ?? (o.items as { name?: string; quantity?: number }[]).map((i) => (i.quantity && i.quantity > 1 ? `${i.quantity} × ${i.name}` : i.name)).join(", ");
   const at = o.placed_at ?? o.created_at;
+  const z = f.zone(o.time_zone); // the order's city clock, never the visitor's device
   return (
     <button
       type="button"
@@ -72,7 +73,7 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
         <span className="mt-[2px] block truncate text-[13px] text-[#4C5A5E]">{summary}</span>
         <span className="mt-[6px] flex items-center justify-between gap-2 text-[13px] text-[#4C5A5E]">
           <span className="min-w-0 truncate">
-            {f.date(at)}, {f.time(at)} · {orderCode(o.id)}
+            {z.date(at)}, {z.time(at)} · {orderCode(o.id)}
           </span>
           <StatusPill status={o.status} />
         </span>

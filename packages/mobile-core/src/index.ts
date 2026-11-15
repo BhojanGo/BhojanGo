@@ -23,7 +23,7 @@ export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";
 export { I18nProvider, LANGUAGES, useCountry, useI18n, useKnownCountry, useLocaleStore } from "./i18n";
 export type { CountryContext, I18n, Language, Translate } from "./i18n";
 export { convertDistance, countryForCurrency, deviceLocale, e164, findCity, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
-  liveCityNames, regionOf, resolveCountry } from "./locale";
+  hourIn, inZone, liveCityNames, regionOf, resolveCountry } from "./locale";
 export type { CountrySource, MarketCountry } from "./locale";
 export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";
 export type { AppEnv } from "./env";

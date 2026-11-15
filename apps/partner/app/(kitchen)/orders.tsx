@@ -103,7 +103,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const open = today && today.open_now && !today.paused;
   const closes = today?.closes_at ? clock(`2000-01-01T${today.closes_at}:00`) : null;
   const status = !today ? "…" : today.paused
-    ? today.paused_until ? tr("partner.orders.paused_till", { time: clock(today.paused_until) }) : tr("partner.orders.paused")
+    ? today.paused_until ? tr("partner.orders.paused_till", { time: clock(today.paused_until, today.time_zone) }) : tr("partner.orders.paused")
     : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open")) : today.reason ?? tr("partner.orders.closed");
   const title = (
     <View style={{ flex: 1, minWidth: 0 }}>
@@ -295,7 +295,7 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
       <View style={s.row}>
         <View>
           <Text style={[textFont("800"), { fontSize: 18 }]}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
-          <Text style={[t.muted, { marginTop: 2 }]}>{tr("partner.orders.delivery_paid", { time: clock(o.placed_at ?? o.created_at) })}</Text>
+          <Text style={[t.muted, { marginTop: 2 }]}>{tr("partner.orders.delivery_paid", { time: clock(o.placed_at ?? o.created_at, o.time_zone) })}</Text>
         </View>
         {left != null ? (
           <View style={{ alignItems: "flex-end" }} accessibilityLabel={tr("partner.orders.left_to_accept", { min: Math.floor(left / 60), sec: left % 60 })}>
@@ -390,7 +390,7 @@ function ReadyCard({ order: o }: { order: Order }) {
     <Card>
       <View style={s.row}>
         <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
-        <Text style={[textFont("700"), { fontSize: 13, color: color.peacockDeep }]}>{tr("partner.orders.ready_at", { time: clock(o.actual_ready_at) })}</Text>
+        <Text style={[textFont("700"), { fontSize: 13, color: color.peacockDeep }]}>{tr("partner.orders.ready_at", { time: clock(o.actual_ready_at, o.time_zone) })}</Text>
       </View>
       <Text style={[t.muted, { fontSize: 14 }]}>{[...items.map((i) => `${i.quantity ?? 1}× ${i.name}`), tr("partner.orders.bags", { count: bags })].join(" · ")}</Text>
       <View style={s.rider}>

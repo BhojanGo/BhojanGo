@@ -293,3 +293,13 @@ async def test_an_open_country_only_lists_languages_we_translate(client: AsyncCl
     assert r.status_code == 409 and "fr-US" in r.text, r.text
     us = next(c for c in (await client.get("/api/v1/markets", headers=sup)).json() if c["code"] == "US")
     assert us["locales"] == ["en-US", "es-US"]
+
+
+async def test_city_time_zones_inherit_from_region_then_country() -> None:
+    """Order times are shown in their city's zone: the city's own, else its state's, else its country's."""
+    from core_api.modules.markets.service.zones import city_time_zones
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        zones = await city_time_zones(db, ["IN-TG-HYD", "US-ID-BOI", "XX-NO-NE", None])
+    assert zones == {"IN-TG-HYD": "Asia/Kolkata", "US-ID-BOI": "America/Boise"}

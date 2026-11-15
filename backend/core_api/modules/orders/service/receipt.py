@@ -125,6 +125,8 @@ class Receipt:
     items: list[dict]
     lines: list[dict]
     payment_method: str = ""
+    # The order's city time zone (Markets); the date is printed in it.
+    time_zone: str | None = None
 
     @property
     def title(self) -> str:
@@ -186,7 +188,7 @@ def render(r: Receipt) -> bytes:
 
     text("BhojanGo", 18, "B", 9)
     text(r.title, 14, "B", 8)
-    tz = ZoneInfo(TIMEZONE.get(r.country, "UTC"))
+    tz = ZoneInfo(r.time_zone or TIMEZONE.get(r.country, "UTC"))
     text(f"{'Invoice' if r.country == 'IN' else 'Receipt'} number: {r.invoice_no}")
     text(f"Date: {r.issued_at.astimezone(tz):%d %b %Y}    Order: {r.order_code}")
     if r.payment_method:

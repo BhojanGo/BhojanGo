@@ -1,7 +1,7 @@
 // "Rate this order" after delivery (the website's RateOrder): 1-5 stars and an
 // optional comment -> POST /orders/{id}/rating. Once rated, "Your rating" is
 // shown, with a change button until the API's editable_until (7 days).
-import { Button, color, Input, textFont, useI18n } from "@bhojango/mobile-core";
+import { Button, color, inZone, Input, textFont, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -44,7 +44,7 @@ export function RateOrder({ order }: { order: Order }) {
         <Text style={ui.small}>{t("rating.thanks")}</Text>
         {editable ? (
           <>
-            <Text style={ui.small}>{t("app.rating.until", { date: date(rating.editable_until, { weekday: "short" }) })}</Text>
+            <Text style={ui.small}>{t("app.rating.until", { date: date(rating.editable_until, { weekday: "short", ...inZone(order.time_zone) }) })}</Text>
             <LinkButton testID="change-rating" title={t("app.rating.change")}
               onPress={() => { setStars(rating.stars); setComment(rating.comment ?? ""); setError(null); setEditing(true); }} />
           </>

@@ -52,6 +52,8 @@ export interface RiderNow {
 export interface Week {
   currency: string;
   city: string | null;
+  /** The rider's city time zone (IANA): delivery times are shown in it, never the phone's. */
+  time_zone?: string | null;
   period_start: string;
   period_end: string;
   payout_date: string;

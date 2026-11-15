@@ -153,6 +153,8 @@ class PublicRestaurant(BaseModel):
     is_active: bool
     fssai_number: str | None = None
     paused_reason: str | None = None
+    # The kitchen's city time zone (IANA), on GET /restaurants/by-slug: checkout's "arrives 7:05-7:20" is on its clock.
+    time_zone: str | None = None
     created_at: datetime
     updated_at: datetime
 

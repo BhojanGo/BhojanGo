@@ -153,6 +153,7 @@ export function Tracking({ id }: { id: string }) {
   const kitchen = order.restaurant_name;
   const stamp = (...states: string[]) => (order.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status))?.at ?? null;
   const arrivesAt = live.eta?.arrives_at ?? order.estimated_delivery_time;
+  const z = f.zone(order.time_zone); // the order's city clock, never the visitor's device
   // The live ETA comes from the distance left (each GPS fix); between fixes it counts down.
   // (`now` ticks once a second, so it can be just before etaAt: never count that as -1 minute)
   const minutes = live.eta
@@ -246,7 +247,7 @@ export function Tracking({ id }: { id: string }) {
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
           <span className="text-[15px] text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
           <b className="block font-display text-[56px] font-semibold leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
-          <p className="m-0 mt-2 text-base text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: f.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
+          <p className="m-0 mt-2 text-base text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">
               <span className="text-[13px] text-[#C9D3D4]">{t("track.pin_long")}</span>
@@ -268,7 +269,7 @@ export function Tracking({ id }: { id: string }) {
                     <span aria-hidden="true" className={`h-[14px] w-[14px] shrink-0 rounded-full ${done ? "bg-[#0B5D66]" : current ? "bg-[#E8A93C] shadow-[0_0_0_5px_#F6E7CC]" : "bg-[#C9D3D4]"}`} />
                     <b className={`flex-grow text-base ${done || current ? "" : "text-[#4C5A5E]"}`}>{s.label}</b>
                     <span className="text-sm text-[#4C5A5E]">
-                      {s.at ? f.time(s.at) : current && s.now ? t("track.now") : s.eta ? `~${f.time(s.eta)}` : ""}
+                      {s.at ? z.time(s.at) : current && s.now ? t("track.now") : s.eta ? `~${z.time(s.eta)}` : ""}
                     </span>
                   </li>
                 );

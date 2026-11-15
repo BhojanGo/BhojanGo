@@ -142,6 +142,9 @@ class OrderResponse(BaseModel):
     items: list[dict[str, Any]]
     status: str
     market_city: str | None = None
+    # The order's city time zone (IANA, Markets: the city's, else its region's, else its
+    # country's). Every time on the order (placed, ETA, receipt) is shown in it, never the device's.
+    time_zone: str | None = None
     payment_due_at: datetime | None = None
     accept_due_at: datetime | None = None
     placed_at: datetime | None = None

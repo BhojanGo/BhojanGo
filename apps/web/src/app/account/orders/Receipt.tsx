@@ -75,6 +75,7 @@ export function Receipt({ id }: { id: string }) {
   const bill = data.bill;
   const code = orderCode(order.id);
   const at = order.placed_at ?? order.created_at;
+  const z = f.zone(order.time_zone); // every time here is the order's city's, never the visitor's device
   const delivered = order.status === "delivered" && order.actual_delivery_time;
   const minutes = delivered ? Math.max(1, Math.round((new Date(order.actual_delivery_time as string).getTime() - new Date(at).getTime()) / 60000)) : 0;
   const active = isActive(order.status);
@@ -148,8 +149,8 @@ export function Receipt({ id }: { id: string }) {
           <h2 className="font-display text-[24px] font-semibold md:text-[26px]">{order.restaurant_name}</h2>
           <span className="text-sm">
             {delivered
-              ? t("account.receipt.delivered_line", { date: f.date(order.actual_delivery_time as string), time: f.time(order.actual_delivery_time as string), minutes, code })
-              : t("account.receipt.status_line", { status: t(`account.status.${order.status}`), date: f.date(at), time: f.time(at), code })}
+              ? t("account.receipt.delivered_line", { date: z.date(order.actual_delivery_time as string), time: z.time(order.actual_delivery_time as string), minutes, code })
+              : t("account.receipt.status_line", { status: t(`account.status.${order.status}`), date: z.date(at), time: z.time(at), code })}
           </span>
         </div>
       </div>
@@ -230,7 +231,7 @@ export function Receipt({ id }: { id: string }) {
             </>
           )}
           {!cancelled && order.placed_at && (
-            <p className="mt-[6px] text-[13px] text-[#4C5A5E]">{t("account.receipt.paid_with", { method: payLabel, date: f.date(order.placed_at), time: f.time(order.placed_at) })}</p>
+            <p data-testid="receipt-time" className="mt-[6px] text-[13px] text-[#4C5A5E]">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
           )}
         </div>
 

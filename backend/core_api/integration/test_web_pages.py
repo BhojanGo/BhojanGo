@@ -28,6 +28,7 @@ async def test_cities_and_slugs(client: AsyncClient) -> None:
     assert cities["boise"]["region"] == "Idaho" and cities["boise"]["restaurants"] >= 1
     r = await client.get("/api/v1/restaurants/by-slug/spice-route-kitchen-madhapur")
     assert r.status_code == 200 and r.json()["name"] == "Spice Route Kitchen"
+    assert r.json()["time_zone"] == "Asia/Kolkata"  # checkout's "arrives 7:05-7:20" is on the kitchen's clock
     # A kitchen still applying has no public page.
     assert (await client.get("/api/v1/restaurants/by-slug/kesar-kitchen-kondapur")).status_code == 404
 
