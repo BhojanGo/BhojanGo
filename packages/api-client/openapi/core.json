@@ -969,8 +969,7 @@
               "delivery_proof",
               "rider_document",
               "partner_document",
-              "problem_photo",
-              "menu_photo"
+              "problem_photo"
             ],
             "title": "Purpose",
             "type": "string"
@@ -2699,6 +2698,17 @@
           "distance_unit": {
             "title": "Distance Unit",
             "type": "string"
+          },
+          "emergency_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Number"
           },
           "hero_photo": {
             "description": "The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)",
@@ -7980,52 +7990,6 @@
         "title": "RatingDisplay",
         "type": "object"
       },
-      "RatingSummary": {
-        "description": "What the partner dashboard shows: the same \"New\" / stars as customers see\n(``rating_display`` from the kitchen's rating and review_count), the average and\ncount, how many gave each star (``distribution[0]`` = 1 star ... ``[4]`` = 5 stars,\nfrom the ratings rows) and the latest comments.",
-        "properties": {
-          "average": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average"
-          },
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
-          "distribution": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Distribution",
-            "type": "array"
-          },
-          "rating_display": {
-            "$ref": "#/components/schemas/RatingDisplay"
-          },
-          "recent": {
-            "items": {
-              "$ref": "#/components/schemas/RecentComment"
-            },
-            "title": "Recent",
-            "type": "array"
-          }
-        },
-        "required": [
-          "rating_display",
-          "average",
-          "count",
-          "distribution",
-          "recent"
-        ],
-        "title": "RatingSummary",
-        "type": "object"
-      },
       "RazorpayVerifyRequest": {
         "properties": {
           "razorpay_order_id": {
@@ -8047,31 +8011,6 @@
           "razorpay_signature"
         ],
         "title": "RazorpayVerifyRequest",
-        "type": "object"
-      },
-      "RecentComment": {
-        "description": "A customer's comment for the kitchen: stars, words and when. No names:\nthe kitchen sees what was said, not who said it.",
-        "properties": {
-          "comment": {
-            "title": "Comment",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "stars": {
-            "title": "Stars",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "stars",
-          "comment",
-          "created_at"
-        ],
-        "title": "RecentComment",
         "type": "object"
       },
       "RefreshTokenRequest": {
@@ -19342,55 +19281,6 @@
         ]
       }
     },
-    "/api/v1/restaurants/{restaurant_id}/ratings/summary": {
-      "get": {
-        "description": "The dashboard's ratings: \"New\" until 5 ratings (as customers see it), the\naverage and count, how many gave each star, and the latest comments (no names).",
-        "operationId": "rating_summary_api_v1_restaurants__restaurant_id__ratings_summary_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "restaurant_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Restaurant Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RatingSummary"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "summary": "Rating Summary",
-        "tags": [
-          "Partner tablet"
-        ]
-      }
-    },
     "/api/v1/restaurants/{restaurant_id}/reject": {
       "post": {
         "operationId": "reject_restaurant_api_v1_restaurants__restaurant_id__reject_post",
@@ -21094,7 +20984,7 @@
     },
     "/api/v1/uploads": {
       "post": {
-        "description": "A photo of the bags at the door, a rider's document, a partner's licence\n(photo or PDF), or a dish's photo for the menu. Returns the key to send with it.\nFiles are private, except menu photos: their response also has `public_path`\n(GET it on core_api, no sign-in), which the partner app saves as the item's image_url.",
+        "description": "A photo of the bags at the door, a rider's document, or a partner's licence\n(photo or PDF). Returns the key to send with it (files are private).",
         "operationId": "upload_api_v1_uploads_post",
         "requestBody": {
           "content": {
@@ -21136,58 +21026,6 @@
           }
         ],
         "summary": "Upload",
-        "tags": [
-          "Riders"
-        ]
-      }
-    },
-    "/api/v1/uploads/menu-photo/{owner}/{name}": {
-      "get": {
-        "description": "A dish's photo, for anyone (the menu shows it to customers). Only menu photos:\nevery other upload stays private (/uploads/view is for the admins who review them).",
-        "operationId": "menu_photo_api_v1_uploads_menu_photo__owner___name__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Owner",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "pattern": "^[0-9a-f-]{36}\\.(jpg|png|webp)$",
-              "title": "Name",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Menu Photo",
         "tags": [
           "Riders"
         ]

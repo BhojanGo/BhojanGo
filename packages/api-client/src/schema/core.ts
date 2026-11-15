@@ -2488,27 +2488,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/restaurants/{restaurant_id}/ratings/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Rating Summary
-         * @description The dashboard's ratings: "New" until 5 ratings (as customers see it), the
-         *     average and count, how many gave each star, and the latest comments (no names).
-         */
-        get: operations["rating_summary_api_v1_restaurants__restaurant_id__ratings_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/restaurants/{restaurant_id}/reject": {
         parameters: {
             query?: never;
@@ -3044,33 +3023,10 @@ export interface paths {
         put?: never;
         /**
          * Upload
-         * @description A photo of the bags at the door, a rider's document, a partner's licence
-         *     (photo or PDF), or a dish's photo for the menu. Returns the key to send with it.
-         *     Files are private, except menu photos: their response also has `public_path`
-         *     (GET it on core_api, no sign-in), which the partner app saves as the item's image_url.
+         * @description A photo of the bags at the door, a rider's document, or a partner's licence
+         *     (photo or PDF). Returns the key to send with it (files are private).
          */
         post: operations["upload_api_v1_uploads_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/uploads/menu-photo/{owner}/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Menu Photo
-         * @description A dish's photo, for anyone (the menu shows it to customers). Only menu photos:
-         *     every other upload stays private (/uploads/view is for the admins who review them).
-         */
-        get: operations["menu_photo_api_v1_uploads_menu_photo__owner___name__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3629,7 +3585,7 @@ export interface components {
              * Purpose
              * @enum {string}
              */
-            purpose: "delivery_proof" | "rider_document" | "partner_document" | "problem_photo" | "menu_photo";
+            purpose: "delivery_proof" | "rider_document" | "partner_document" | "problem_photo";
         };
         /** BusyIn */
         BusyIn: {
@@ -4242,6 +4198,8 @@ export interface components {
             currency: string;
             /** Distance Unit */
             distance_unit: string;
+            /** Emergency Number */
+            emergency_number?: string | null;
             /**
              * Hero Photo
              * @description The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)
@@ -6175,24 +6133,6 @@ export interface components {
             /** Stars */
             stars?: number | null;
         };
-        /**
-         * RatingSummary
-         * @description What the partner dashboard shows: the same "New" / stars as customers see
-         *     (``rating_display`` from the kitchen's rating and review_count), the average and
-         *     count, how many gave each star (``distribution[0]`` = 1 star ... ``[4]`` = 5 stars,
-         *     from the ratings rows) and the latest comments.
-         */
-        RatingSummary: {
-            /** Average */
-            average: number | null;
-            /** Count */
-            count: number;
-            /** Distribution */
-            distribution: number[];
-            rating_display: components["schemas"]["RatingDisplay"];
-            /** Recent */
-            recent: components["schemas"]["RecentComment"][];
-        };
         /** RazorpayVerifyRequest */
         RazorpayVerifyRequest: {
             /** Razorpay Order Id */
@@ -6201,22 +6141,6 @@ export interface components {
             razorpay_payment_id: string;
             /** Razorpay Signature */
             razorpay_signature: string;
-        };
-        /**
-         * RecentComment
-         * @description A customer's comment for the kitchen: stars, words and when. No names:
-         *     the kitchen sees what was said, not who said it.
-         */
-        RecentComment: {
-            /** Comment */
-            comment: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Stars */
-            stars: number;
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
@@ -12070,37 +11994,6 @@ export interface operations {
             };
         };
     };
-    rating_summary_api_v1_restaurants__restaurant_id__ratings_summary_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                restaurant_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RatingSummary"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     reject_restaurant_api_v1_restaurants__restaurant_id__reject_post: {
         parameters: {
             query?: never;
@@ -13094,38 +12987,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    menu_photo_api_v1_uploads_menu_photo__owner___name__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                owner: string;
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

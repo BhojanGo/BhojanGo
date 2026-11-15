@@ -78,9 +78,17 @@ class DirCountry(BaseModel):
     payment_methods: list[str]  # what checkout offers (Markets settings), e.g. upi, card, wallet
     hero_photo: str = Field(description="The landing page's hero: a photo library slug, served at "
                                         "/food/<slug>-<width>.webp (Markets setting hero_photo, else a default)")
+    emergency_number: str | None = None  # Markets settings: what the rider app's SOS screen calls (None: not set)
     live: int
     soon: int
     regions: list[DirRegion]
+
+
+def emergency_number(settings: dict | None) -> str | None:
+    """The country's emergency number (Markets settings ``emergency_number``), digits
+    only, or None when it isn't set: the rider app then says "your local emergency number"."""
+    raw = str((settings or {}).get("emergency_number") or "").strip()
+    return raw if raw.isdigit() and len(raw) <= 6 else None
 
 
 class Directory(BaseModel):
@@ -129,6 +137,7 @@ async def build_directory(db: AsyncSession) -> Directory:
                 payment_providers=list(country.payment_providers),
                 payment_methods=list((country.settings or {}).get("payment_methods") or ["card"]),
                 hero_photo=photos.hero_photo(country.settings),
+                emergency_number=emergency_number(country.settings),
                 live=0, soon=0, regions=[])
         r = regions.get(region.code)
         if r is None:
