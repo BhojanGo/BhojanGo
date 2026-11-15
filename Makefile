@@ -122,8 +122,10 @@ web-third-city:
 	sh tools/web/third_city.sh
 
 # Tests never write to QA or production: the shared guard's unit tests (tools/target_guard.py).
+# Demo data never goes near production: the demo seed's guard and its order-history plan (no database).
 ci-guard:
 	python tools/target_guard_test.py
+	python tools/seed/demo_test.py
 
 # Photo credits: apps/web/src/content/photo-credits.json matches docs/design/photos/LICENSES.md.
 ci-photos:
