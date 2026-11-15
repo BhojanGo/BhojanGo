@@ -553,3 +553,56 @@ async def test_second_drop_off_shows_the_batch_rate_and_is_recorded_as_second(r,
     await dispatch.accept(RIDER_NEAR, ORDER)
     (b1, p1), (b2, p2) = core.batch_positions[orders[0]], core.batch_positions[orders[1]]
     assert b1 and b1 == b2 and (p1, p2) == (1, 2)
+
+
+def _north(p: list, km: float) -> tuple[float, float]:
+    return (p[0] + km / 111.195, p[1])
+
+
+async def test_eta_after_pickup_never_falls_back_to_an_old_status(r, core) -> None:  # type: ignore[no-untyped-def]
+    """PR #86 e2e: after pickup the ETA stayed at the kitchen's prep time (10 min at 3 km and
+    at 1 km) because the cached order had gone back to an older status. Neither a core_api
+    read that started before pickup nor an older event redelivered by the bus may undo it."""
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "picked_up", "driver_id": RIDER_NEAR}})
+    # a late core_api read from before pickup (food "ready in 10 min"), then a redelivered older event
+    await dispatch._save_info(info(status="preparing", driver_id=RIDER_NEAR, ready_in_minutes=10))
+    await dispatch.on_order_event({"event_type": "order.status_changed",
+                                   "payload": {"order_id": ORDER, "new_status": "preparing", "driver_id": RIDER_NEAR}})
+    cached = await dispatch.order_info(ORDER)
+    assert cached is not None and cached["status"] == "picked_up" and cached["driver_id"] == RIDER_NEAR
+    assert dispatch.prep_left_minutes(cached) == 0
+    far, near = dispatch.eta_for(cached, _north(CUSTOMER, 3)), dispatch.eta_for(cached, _north(CUSTOMER, 1))
+    assert far is not None and near is not None
+    # rider -> home only: 3.9 km and 1.3 km of road at 25 km/h
+    assert (far["to_customer_minutes"], near["to_customer_minutes"]) == (9, 3)
+    assert far["distance_left"] == pytest.approx(3.9, abs=0.02) and near["distance_left"] == pytest.approx(1.3, abs=0.02)
+
+
+async def test_status_moves_forward_from_core_api_reads(r, core) -> None:  # type: ignore[no-untyped-def]
+    await dispatch._save_info(info(status="preparing", ready_in_minutes=10))
+    await dispatch._save_info(info(status="ready", ready_in_minutes=0))
+    cached = await dispatch.order_info(ORDER)
+    assert cached is not None and cached["status"] == "ready" and dispatch.prep_left_minutes(cached) == 0
+
+
+async def test_a_gps_fix_refreshes_an_old_cached_order(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    await three_riders()
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    stale = json.loads(await r.get(dispatch.info_key(ORDER)))
+    await r.set(dispatch.info_key(ORDER), json.dumps({**stale, "_at": 0}))  # cached long ago
+    calls: list[str] = []
+    real = core.dispatch_info
+
+    async def counted(order: str) -> dict:
+        calls.append(order)
+        return await real(order)
+
+    monkeypatch.setattr(core, "dispatch_info", counted)
+    await dispatch.update_location(RIDER_NEAR, 17.4500, 78.3920)
+    await dispatch.update_location(RIDER_NEAR, 17.4501, 78.3921)
+    assert calls == [ORDER]  # once when old, then from the cache
