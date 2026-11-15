@@ -6,6 +6,7 @@ import { ACTIVE_STATUSES, type CoreSchemas, type OrderStatus } from "@bhojango/a
 import { useEffect, useState } from "react";
 
 import { urls } from "@/lib/client";
+import { initials } from "@/lib/format";
 
 /** An order as the history lists it (GET /orders adds the kitchen's slug and a one-line summary). */
 export type Order = CoreSchemas["OrderResponse"] & { restaurant_slug?: string | null; items_summary?: string | null };
@@ -13,8 +14,15 @@ export type Order = CoreSchemas["OrderResponse"] & { restaurant_slug?: string | 
 export const isActive = (s: string) => ACTIVE_STATUSES.includes(s as OrderStatus);
 
 /** A photo from data, or a tinted block when there is none. */
-export function Thumb({ src, className }: { src: string | null; className: string }) {
-  if (!src) return <span aria-hidden="true" className={`block bg-[#EFF6F6] ${className}`} />;
+export function Thumb({ src, className, name }: { src: string | null; className: string; name?: string | null }) {
+  if (!src) {
+    // no photo of its own: the kitchen's initials, never an empty frame or another kitchen's photo
+    return (
+      <span aria-hidden="true" className={`flex items-center justify-center bg-[#DDEBEC] font-display text-[22px] font-semibold text-[#083F46] ${className}`}>
+        {initials(name)}
+      </span>
+    );
+  }
   // eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library, already optimised
   return <img src={src} alt="" loading="lazy" className={`block object-cover ${className}`} />;
 }

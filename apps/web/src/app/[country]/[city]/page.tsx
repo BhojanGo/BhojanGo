@@ -191,7 +191,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
                   t={t}
                   currency={currency}
                   formatLocale={formatLocale}
-                  fallbackPhoto={kitchens.find((k) => k.id === (o.restaurant?.id as string | undefined))?.cover_url ?? kitchens[i]?.cover_url ?? null}
+                  fallbackPhoto={kitchens.find((k) => k.id === (o.restaurant?.id as string | undefined))?.cover_url ?? null}
                 />
               ))}
             </div>
