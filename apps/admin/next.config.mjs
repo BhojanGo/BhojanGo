@@ -21,7 +21,9 @@ const nextConfig = {
   async headers() {
     // The console talks to the services through its own /api rewrites ('self');
     // the dispatch map draws OpenStreetMap tiles.
-    return [{ source: "/:path*", headers: securityHeaders({ img: ["https://tile.openstreetmap.org"] }) }];
+    // The admin console is never for search engines, in any environment (header as well as meta).
+    const noindex = { key: "X-Robots-Tag", value: "noindex, nofollow" };
+    return [{ source: "/:path*", headers: [noindex, ...securityHeaders({ img: ["https://tile.openstreetmap.org"] })] }];
   },
   async rewrites() {
     return [
