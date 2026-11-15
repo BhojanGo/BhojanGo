@@ -3,7 +3,6 @@ it out of production, which orders it may touch, and what it does next."""
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from app.demo_sim import path as P
 from app.demo_sim import rules as R
 
@@ -211,3 +210,15 @@ def test_it_reads_only_its_own_riders() -> None:
     assert "dispatch_pool = 'demo_sim'" in sql and "rider.sim.%@example.com" in sql
     assert "rider.demo" not in sql, "never the demo rider people test with"
     assert R.SIM_POOL == "demo_sim"
+
+
+def test_reorders_come_from_every_city_that_takes_orders() -> None:
+    """A beta city takes orders like a live one (Boise is beta): the demo customer's
+    past orders there are ones to order again, so a demo order is always on its way."""
+    from app.demo_sim import runner
+
+    from core_api.modules.markets.service.rules import OPEN
+
+    assert set(runner.OPEN_CITY_STATUSES) == set(OPEN)
+    sql = str(runner.PAST_ORDERS_SQL)
+    assert "ci.status IN (" + ", ".join(f"'{x}'" for x in sorted(OPEN)) + ")" in sql
