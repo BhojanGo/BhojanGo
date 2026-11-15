@@ -107,6 +107,8 @@ export function Tracking({ id }: { id: string }) {
           }
           case "status_change":
             return { ...s, at, status: (p.status as string) ?? s.status };
+          case "eta_update": // the ETA again after a status change (e.g. picked up), from the rider's last fix
+            return p.eta ? { ...s, at, eta: p.eta as Eta, etaAt: at } : s;
           default:
             return s;
         }
@@ -152,8 +154,9 @@ export function Tracking({ id }: { id: string }) {
   const stamp = (...states: string[]) => (order.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status))?.at ?? null;
   const arrivesAt = live.eta?.arrives_at ?? order.estimated_delivery_time;
   // The live ETA comes from the distance left (each GPS fix); between fixes it counts down.
+  // (`now` ticks once a second, so it can be just before etaAt: never count that as -1 minute)
   const minutes = live.eta
-    ? Math.max(1, live.eta.to_customer_minutes - Math.floor((now - (live.etaAt ?? now)) / 60000))
+    ? Math.max(1, live.eta.to_customer_minutes - Math.floor(Math.max(0, now - (live.etaAt ?? now)) / 60000))
     : arrivesAt ? Math.max(1, Math.round((Date.parse(arrivesAt) - now) / 60000)) : null;
   // "N km left": the same distance the ETA was worked out from, in the order's unit
   // (straight line to the door only until the first ETA arrives).

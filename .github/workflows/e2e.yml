@@ -26,6 +26,7 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: bhojango-e2e
       COMPOSE: docker compose -f infra/docker/compose.yaml
+      DEMO_RIDER_SIM: "0"  # the demo rider simulator stays off while tests run
     steps:
       - uses: actions/checkout@v4
 

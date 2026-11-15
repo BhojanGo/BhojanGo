@@ -7,7 +7,7 @@ LIVE = {"PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE":
 
 
 def make(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
-    for k in ("APP_ENV", "RAILWAY_ENVIRONMENT_NAME", *LIVE):
+    for k in ("APP_ENV", "RAILWAY_ENVIRONMENT_NAME", "DEMO_RIDER_SIM", *LIVE):
         monkeypatch.delenv(k, raising=False)
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -18,7 +18,7 @@ def make(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
                                    {"APP_ENV": "qa", "RAILWAY_ENVIRONMENT_NAME": "production"}])
 @pytest.mark.parametrize("bad", [{"PAYMENT_PROVIDER": "fake"}, {"PAYMENT_PROVIDER": "auto"},
                                  {"PAYOUT_PROVIDER": "fake"}, {"OTP_FIXED_CODE": "123456"},
-                                 {"DELIVERY_PIN_FIXED": "1234"}])
+                                 {"DELIVERY_PIN_FIXED": "1234"}, {"DEMO_RIDER_SIM": "1"}])
 def test_production_refuses_fakes(monkeypatch, names, bad) -> None:  # type: ignore[no-untyped-def]
     with pytest.raises(ProductionConfigError, match="refusing to start in production"):
         make(monkeypatch, **{**names, **LIVE, **bad})
