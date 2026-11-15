@@ -4036,6 +4036,10 @@ export interface components {
             locales: string[];
             /** Name */
             name: string;
+            /** Payment Methods */
+            payment_methods: string[];
+            /** Payment Providers */
+            payment_providers: string[];
             /** Phone Code */
             phone_code: string;
             /** Regions */
@@ -4044,6 +4048,8 @@ export interface components {
             slug: string;
             /** Soon */
             soon: number;
+            /** Tax Regime */
+            tax_regime: string;
             /** Timezone */
             timezone: string;
         };

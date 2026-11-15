@@ -71,6 +71,9 @@ class DirCountry(BaseModel):
     timezone: str
     distance_unit: str
     phone_code: str
+    tax_regime: str  # gst | us_sales_tax: a tax invoice or a receipt
+    payment_providers: list[str]
+    payment_methods: list[str]  # what checkout offers (Markets settings), e.g. upi, card, wallet
     live: int
     soon: int
     regions: list[DirRegion]
@@ -107,7 +110,10 @@ async def build_directory(db: AsyncSession) -> Directory:
             k = countries[country.code] = DirCountry(
                 code=country.code, slug=country.code.lower(), name=country.name, currency=country.currency,
                 locales=list(country.locales), timezone=country.timezone, distance_unit=country.distance_unit,
-                phone_code=country.phone_code, live=0, soon=0, regions=[])
+                phone_code=country.phone_code, tax_regime=country.tax_regime,
+                payment_providers=list(country.payment_providers),
+                payment_methods=list((country.settings or {}).get("payment_methods") or ["card"]),
+                live=0, soon=0, regions=[])
         r = regions.get(region.code)
         if r is None:
             r = regions[region.code] = DirRegion(code=region.code, name=region.name, cities=[])

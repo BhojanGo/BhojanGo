@@ -54,6 +54,7 @@ async def test_directory_lists_live_and_soon_cities_only(client: AsyncClient) ->
     assert "IN-TG-WGL" not in cities  # a draft city stays hidden
     india = next(k for k in d["countries"] if k["code"] == "IN")
     assert india["slug"] == "in" and india["currency"] == "INR" and "te-IN" in india["locales"]
+    assert india["tax_regime"] == "gst" and "upi" in india["payment_methods"]
     assert d["totals"]["live"] >= 2 and d["totals"]["soon"] >= 3 and d["totals"]["countries"] >= 2
 
 
