@@ -10,7 +10,9 @@ import { KitchenCard, OfferCard } from "@/components/Cards";
 import { FairBill } from "@/components/FairBill";
 import { Search } from "@/components/Icons";
 import { NotifyMe } from "@/components/NotifyMe";
+import { lowestFee, pricingOf, waitingOf } from "@/lib/contract";
 import { photo } from "@/lib/format";
+import { cityFaq } from "./faq";
 import { getContext } from "@/lib/prefs";
 import { cityPage, discover, exampleBill, SITE, type CityPage, type KitchenCard as Kitchen } from "@/lib/server";
 
@@ -63,9 +65,17 @@ function matches(k: Kitchen, cuisine: string, q: string): boolean {
 }
 
 async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) {
-  const { t, formatLocale } = await getContext();
-  const [d, bill] = await Promise.all([discover({ city: c.code }), exampleBill(c.code)]);
-  const kitchens = d?.restaurants ?? [];
+  const { t, formatLocale, place } = await getContext();
+  // With an address in this city, each kitchen's fee is the exact one to that address.
+  const here = place && place.served !== false && place.city_code === c.code ? place : null;
+  const [d, bill, near] = await Promise.all([discover({ city: c.code }), exampleBill(c.code), here ? discover({ lat: here.lat, lng: here.lng }) : Promise.resolve(null)]);
+  const exact = new Map((near?.restaurants ?? []).map((k) => [k.id, k]));
+  const kitchens = (d?.restaurants ?? []).map((k) => {
+    const e = exact.get(k.id);
+    return e ? { ...k, delivery_fee: e.delivery_fee, free_delivery: e.free_delivery, distance: e.distance, eta_min: e.eta_min, eta_max: e.eta_max, offer: e.offer ?? k.offer } : k;
+  });
+  const pricing = pricingOf(c);
+  const feeFrom = here ? null : lowestFee(pricing);
   const offers = d?.offers ?? [];
   const currency = d?.currency ?? bill?.currency ?? c.country.currency;
   const unit = d?.distance_unit ?? c.country.distance_unit;
@@ -131,7 +141,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
             <h2 id="kitchens-title" className="m-0 font-display text-2xl font-semibold tracking-[-0.5px] md:text-[28px]">
               {cuisine ? t("city.cuisine_kitchens", { cuisine, city: c.name }) : t("city.kitchens_title", { city: c.name })}
             </h2>
-            <form role="search" action={`${base}#kitchens`} className="flex h-12 w-full items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] focus-within:border-[#0B5D66] md:w-[360px]">
+            <form id="search" role="search" action={`${base}#kitchens`} className="flex h-12 scroll-mt-[140px] w-full items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] focus-within:border-[#0B5D66] md:w-[360px]">
               <Search size={18} color="#4C5A5E" />
               {cuisine && <input type="hidden" name="cuisine" value={cuisine} />}
               <label htmlFor="city-q" className="sr-only">{t("city.search_label")}</label>
@@ -157,7 +167,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
           {shown.length ? (
             <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {shown.map((k) => (
-                <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={unit} />
+                <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={unit} feeFrom={feeFrom} />
               ))}
             </div>
           ) : (
@@ -192,10 +202,10 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
           <div>
             <h2 id="plainly" className="m-0 font-display text-2xl font-semibold tracking-[-0.5px] md:text-[28px]">{t("city.plainly_title", { city: c.name })}</h2>
             <dl className="m-0 mt-2">
-              {(["cost", "tip", "tax"] as const).map((k) => (
-                <div key={k} className="border-b border-[#E2E7E8] py-5">
-                  <dt className="text-[17px] font-bold">{t(`city.faq_${k}_q`, { city: c.name })}</dt>
-                  <dd className="m-0 mt-[6px] text-[15px] leading-[1.5] text-[#4C5A5E]">{t(`city.faq_${k}_a`)}</dd>
+              {cityFaq(c, pricing, t, formatLocale).map((f) => (
+                <div key={f.q} className="border-b border-[#E2E7E8] py-5">
+                  <dt className="text-[17px] font-bold">{f.q}</dt>
+                  <dd className="m-0 mt-[6px] text-[15px] leading-[1.5] text-[#4C5A5E]">{f.a}</dd>
                 </div>
               ))}
             </dl>
@@ -227,7 +237,8 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
 }
 
 async function SoonCity({ c }: { c: CityPage }) {
-  const { t } = await getContext();
+  const { t, formatLocale } = await getContext();
+  const waiting = waitingOf(c);
   return (
     <>
       <section className="bg-[#111418]">
@@ -236,6 +247,12 @@ async function SoonCity({ c }: { c: CityPage }) {
             <Crumbs c={c} />
             <h1 className="mt-4 font-display text-[40px] font-semibold leading-none tracking-[-1.2px] md:text-[60px] md:tracking-[-1.8px]">{t("city.soon_title", { city: c.name })}</h1>
             <p className="mt-[14px] text-base text-[#DDE5E6] md:text-lg">{t("city.soon_body", { city: c.name })}</p>
+            {waiting > 0 && (
+              <p className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-[#1C3A3E] px-4 text-sm font-bold text-[#F2F5F5]">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#E8A93C]" />
+                {t("common.people_waiting", { count: waiting, n: new Intl.NumberFormat(formatLocale).format(waiting) })}
+              </p>
+            )}
           </div>
         </div>
       </section>

@@ -9,7 +9,8 @@ import { useId, useMemo, useState } from "react";
 
 import { Search } from "@/components/Icons";
 import { photo } from "@/lib/format";
-import { useT } from "@/lib/i18n";
+import { waitingOf } from "@/lib/contract";
+import { useFormat, useT } from "@/lib/i18n";
 import type { DirCity, DirCountry, Directory } from "@/lib/server";
 import { totalsLine } from "./places";
 
@@ -37,15 +38,23 @@ function useFiltered(dir: Directory, filter: Filter, q: string) {
   }, [dir, filter, q]);
 }
 
-function SearchField({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder: string; className: string }) {
+function SearchField({ value, onChange, placeholder, className, anchor }: { value: string; onChange: (v: string) => void; placeholder: string; className: string; anchor?: string }) {
   const id = useId();
   return (
-    <label htmlFor={id} className={`flex items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-[15px] focus-within:border-[#0B5D66] ${className}`}>
+    <label id={anchor} htmlFor={id} className={`flex scroll-mt-[120px] items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-[15px] focus-within:border-[#0B5D66] ${className}`}>
       <Search size={18} color="#4C5A5E" />
       <span className="sr-only">{placeholder}</span>
       <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
     </label>
   );
+}
+
+/** "12 people waiting" for a coming-soon city (nothing when 0 or unknown). */
+function Waiting({ c, className }: { c: DirCity; className?: string }) {
+  const t = useT();
+  const f = useFormat();
+  const n = waitingOf(c);
+  return n > 0 ? <span className={className}>{t("common.people_waiting", { count: n, n: f.number(n) })}</span> : null;
 }
 
 function CityChip({ c }: { c: DirCity }) {
@@ -58,6 +67,7 @@ function CityChip({ c }: { c: DirCity }) {
   ) : (
     <Link href={c.path} className="flex h-11 items-center gap-2 rounded-full border border-dashed border-[#C9D3D4] px-4 font-semibold text-[#4C5A5E] hover:text-[#111418]">
       {c.name} · {t("common.soon")}
+      <Waiting c={c} className="text-xs font-bold text-[#7A4F0E]" />
     </Link>
   );
 }
@@ -149,6 +159,7 @@ function CityCard({ c, region, cover }: { c: DirCity; region: string; cover: str
         <span className={`mt-1 block text-[13px] font-bold ${live ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
           {live ? t("cities.kitchens", { count: c.restaurants }) : t("common.coming_soon")}
         </span>
+        {!live && <Waiting c={c} className="block text-[13px] text-[#7A4F0E]" />}
       </span>
       {!live && (
         <span className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-[15px] font-extrabold text-[#111418]">
@@ -173,7 +184,7 @@ export function CitiesDirectory({ dir, covers }: { dir: Directory; covers: Recor
   return (
     <>
       <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center">
-        <SearchField value={q} onChange={setQ} placeholder={t("cities.search")} className="h-[52px] w-full md:w-[480px]" />
+        <SearchField anchor="search" value={q} onChange={setQ} placeholder={t("cities.search")} className="h-[52px] w-full md:w-[480px]" />
         <div role="group" aria-label={t("cities.countries")} className="flex gap-2 overflow-x-auto pb-1 md:gap-4 md:pb-0">
           {tabs.map((tab) => {
             const on = filter === tab.key;

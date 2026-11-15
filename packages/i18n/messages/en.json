@@ -41,7 +41,14 @@
     "save_kitchen": "Save {name}",
     "unsave_kitchen": "Remove {name} from favourites",
     "skip_to_content": "Skip to content",
-    "search_placeholder_near": "Search {a}, {b}, kitchens…"
+    "search_placeholder_near": "Search {a}, {b}, kitchens…",
+    "rating_label": "Rated {stars} out of 5 from {count} ratings",
+    "rating_short": "★{stars} ({count})",
+    "delivery_from": "from {fee} delivery",
+    "people_waiting": {
+      "one": "{n} person waiting",
+      "other": "{n} people waiting"
+    }
   },
   "header": {
     "where_we_deliver": "Where we deliver",
@@ -259,7 +266,24 @@
       "one": "Order from {count} local kitchen in {city}. Every fee shown before you pay, and who gets it.",
       "other": "Order from {count} local kitchens in {city}. Every fee shown before you pay, and who gets it."
     },
-    "meta_description_soon": "BhojanGo is coming to {city}. Get an email the day we open."
+    "meta_description_soon": "BhojanGo is coming to {city}. Get an email the day we open.",
+    "faq_flat": "Delivery is {fee} anywhere in {city}.",
+    "faq_bands": "Delivery is {bands}.",
+    "faq_band_upto": "{fee} up to {distance}",
+    "faq_band_beyond": "{fee} beyond {distance}",
+    "faq_service": "A service fee of {percent}% of the food is its own line.",
+    "faq_service_between": "A service fee of {percent}% of the food (at least {min}, at most {max}) is its own line.",
+    "faq_service_min": "A service fee of {percent}% of the food (at least {min}) is its own line.",
+    "faq_service_max": "A service fee of {percent}% of the food (at most {max}) is its own line.",
+    "faq_no_service": "There's no service fee.",
+    "faq_small_order": "Orders under {below} add a small-order fee of {fee}.",
+    "faq_cost_end": "Busy hours can add a fee. Every fee is its own line, shown before you pay.",
+    "faq_min_q": "Is there a minimum order?",
+    "faq_min_none": "There's no minimum order.",
+    "faq_min_one": "The minimum order is {amount}.",
+    "faq_min_zones": "The minimum order depends on the area: {list}.",
+    "faq_min_zone": "{zone} {amount}",
+    "faq_tip_presets": "Your rider, all of it. BhojanGo takes nothing from tips. Checkout suggests {amounts}, or you can enter any amount."
   },
   "kitchen": {
     "meta_title": "{name}, {city}: order online",
@@ -443,7 +467,11 @@
     "your_order": "Your order",
     "you_paid": "You paid",
     "report": "Something wrong with this order? Report a problem",
-    "map": "Map of your order's route"
+    "map": "Map of your order's route",
+    "map_kitchen": "{kitchen} (pickup)",
+    "map_home": "Your address (drop-off)",
+    "map_rider": "{rider}, your rider",
+    "map_failed": "The map can't load here. Your order is still being tracked."
   },
   "signin": {
     "title": "Sign in",
@@ -478,7 +506,10 @@
     "verify": "Verify and continue",
     "verifying": "Checking…",
     "code_failed": "That code didn't work. Check it and try again.",
-    "never_ask": "We'll never ask for this code on a call. BhojanGo staff don't need it."
+    "never_ask": "We'll never ask for this code on a call. BhojanGo staff don't need it.",
+    "or": "or",
+    "google_failed": "Google sign-in didn't work. Try again, or use your phone number.",
+    "signing_in": "Signing you in…"
   },
   "account": {
     "nav": {
@@ -746,5 +777,28 @@
     "apply_step2": "Sign in with your phone number and add your vehicle and documents.",
     "apply_step3": "We check them and switch you on. Then go online whenever you like.",
     "apply_note": "Riders apply in the app only; we never ask for a fee to join."
+  },
+  "tabs": {
+    "label": "Main",
+    "home": "Home",
+    "search": "Search",
+    "orders": "Orders",
+    "account": "Account"
+  },
+  "rating": {
+    "title": "Rate this order",
+    "sub": "How were the food and the delivery?",
+    "stars_label": "Your rating",
+    "stars": {
+      "one": "{count} star",
+      "other": "{count} stars"
+    },
+    "comment": "Anything to add? (optional)",
+    "comment_placeholder": "What was great, or what could be better",
+    "submit": "Send rating",
+    "saving": "Sending…",
+    "failed": "Couldn't save your rating. Please try again.",
+    "your_rating": "Your rating",
+    "thanks": "Thanks for rating this order."
   }
 }

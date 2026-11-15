@@ -83,6 +83,11 @@ export async function exampleBill(city: string, zone?: string | null): Promise<E
   return get<ExampleBill>(`/pricing/example?city=${encodeURIComponent(city)}${zone ? `&zone=${zone}` : ""}`, 3600);
 }
 
+/** Which social sign-ins are configured ({google: {client_id} | null, apple: null}); null on an older API. */
+export async function authProviders(): Promise<{ google?: { client_id: string } | null; apple?: { client_id: string } | null } | null> {
+  return get("/auth/providers", 300);
+}
+
 export const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://bhojango.com";
 /** Search engines index production only (APP_ENV=production); QA, staging and local are noindex. */
 export const INDEXABLE = process.env.APP_ENV === "production";

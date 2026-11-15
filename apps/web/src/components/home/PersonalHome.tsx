@@ -1,7 +1,8 @@
 // The personal home for an address we serve (WebHome / MWebHome): kitchens,
 // cuisines and offers for that address from /discover. No marketing here.
-import { CuisineTile, cuisinePhotos, OfferCard } from "@/components/Cards";
+import { CuisineTile, OfferCard } from "@/components/Cards";
 import { flatCities } from "@/components/discover/places";
+import { cuisineTiles } from "@/lib/contract";
 import { getContext, type Place } from "@/lib/prefs";
 import type { Discover } from "@/lib/server";
 import { HomeFeed } from "./HomeFeed";
@@ -13,8 +14,8 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
   const currency = d.currency ?? country?.currency ?? "USD";
   const city = flatCities(dir).find((c) => c.code === (place.city_code ?? (d.city?.code as string | undefined)));
   const cityPath = place.city_path ?? (d.city?.path as string | undefined) ?? city?.path ?? "/cities";
-  const photos = cuisinePhotos(kitchens);
-  const cuisines = (d.cuisines ?? []).map((c) => String(c.name)).slice(0, 8);
+  // Cuisines with 2+ kitchens, each with a photo of its own (never the same photo twice).
+  const cuisines = cuisineTiles(d);
   const cover = (o: (typeof offers)[number]) =>
     kitchens.find((k) => k.id === (o.restaurant?.id as string | undefined))?.cover_url ?? kitchens[0]?.cover_url ?? null;
 
@@ -22,8 +23,8 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
     <section aria-labelledby="craving">
       <h2 id="craving" className="sr-only m-0 font-display text-[26px] font-semibold tracking-[-0.5px] md:not-sr-only">{t("home.craving")}</h2>
       <div className="-mx-5 flex gap-[14px] overflow-x-auto px-5 py-1 md:mx-0 md:mt-5 md:grid md:grid-cols-8 md:gap-5 md:overflow-visible md:px-0">
-        {cuisines.map((name) => (
-          <CuisineTile key={name} name={name} image={photos[name] ?? null} href={`${cityPath}?cuisine=${encodeURIComponent(name)}`} />
+        {cuisines.map(({ name, photo }) => (
+          <CuisineTile key={name} name={name} image={photo} href={`${cityPath}?cuisine=${encodeURIComponent(name)}`} />
         ))}
       </div>
     </section>

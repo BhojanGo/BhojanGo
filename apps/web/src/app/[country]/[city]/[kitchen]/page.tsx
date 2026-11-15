@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { offerBadge, offerTitle } from "@/components/Cards";
+import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
 import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, menu, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
@@ -137,7 +137,11 @@ export default async function KitchenPage({ params }: { params: Params }) {
             <span className="block h-full w-full overflow-hidden rounded-[22px]"><Img src={logo} /></span>
           </span>
           <span className="min-w-0 flex-grow md:pb-[6px]">
-            <h1 className="m-0 font-display text-[28px] font-semibold leading-tight tracking-[-0.6px] md:text-[44px] md:tracking-[-1.2px]">{r.name}</h1>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="m-0 font-display text-[28px] font-semibold leading-tight tracking-[-0.6px] md:text-[44px] md:tracking-[-1.2px]">{r.name}</h1>
+              {/* "New" until 5 ratings, then the average and how many */}
+              <RatingBadge x={r} t={t} formatLocale={formatLocale} />
+            </span>
             <span className="hidden text-base text-[#4C5A5E] md:block">{metaDesktop}</span>
             <span className="block text-[15px] text-[#4C5A5E] md:hidden">{metaPhone}</span>
           </span>

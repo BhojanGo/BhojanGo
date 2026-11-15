@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { KitchenCard } from "@/components/Cards";
 import { api, authed, useBag, useHydrated, useSession, type Pick } from "@/lib/client";
+import { riderFirstName } from "@/lib/contract";
 import { partOfDay, photo } from "@/lib/format";
 import { useFormat, useT } from "@/lib/i18n";
 import type { KitchenCard as Kitchen } from "@/lib/server";
@@ -67,8 +68,10 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
   // The ETA in minutes is read in the browser only (the page is not cached with it).
   const [now] = useState(() => Date.now());
   const minutes = eta ? Math.max(1, Math.round((new Date(eta).getTime() - now) / 60000)) : null;
-  const rider = (order.rider?.name as string | undefined) ?? null;
-  const sub = [rider ? t("home.order_rider", { rider }) : null, order.pin ? t("home.order_pin", { pin: order.pin }) : null].filter(Boolean).join(" · ");
+  // The rider's first name and the door PIN come with the active order (GET /orders).
+  const rider = riderFirstName(order);
+  const pin = (order as { pin?: string | null }).pin ?? null;
+  const sub = [rider ? t("home.order_rider", { rider }) : null, pin ? t("home.order_pin", { pin }) : null].filter(Boolean).join(" · ");
   const img = photo(cover, 400);
   return (
     <section aria-label={t("home.active_order")} className="order-1">

@@ -12,7 +12,7 @@ import { useT } from "@/lib/i18n";
 
 type Country = { code: string; name: string; phone_code: string };
 
-export function PhoneForm({ countries, initial, next }: { countries: Country[]; initial: string | null; next: string }) {
+export function PhoneForm({ countries, initial, next, children }: { countries: Country[]; initial: string | null; next: string; children?: React.ReactNode }) {
   const t = useT();
   const router = useRouter();
   const sendCode = useSession((s) => s.sendCode);
@@ -79,6 +79,8 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
       <button type="submit" disabled={!ok || busy} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-[15px] font-extrabold text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
         {busy ? t("signin.sending") : t("signin.send_code")}
       </button>
+      {/* other ways in (e.g. Google), when set up */}
+      {children}
       <div className="mt-7 hidden rounded-2xl bg-[#F4F6F6] p-4 text-sm leading-[1.5] md:block">
         <b>{t("signin.partner_q")}</b> <span className="text-[#4C5A5E]">{t("signin.partner_note")}</span>{" "}
         <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/ride" className="font-bold">{t("signin.ride")}</Link>

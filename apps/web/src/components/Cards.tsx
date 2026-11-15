@@ -2,6 +2,7 @@
 // them is data from /discover; words come from the messages.
 import Link from "next/link";
 
+import { ratingOf } from "@/lib/contract";
 import { money, photo } from "@/lib/format";
 import type { KitchenCard as Kitchen, Offer } from "@/lib/server";
 import { FavouriteHeart } from "./FavouriteHeart";
@@ -54,7 +55,27 @@ function Img({ src, alt = "", className }: { src: string | null; alt?: string; c
   return <img src={src} alt={alt} loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenCard({ k, t, currency, formatLocale, distanceUnit }: { k: Kitchen; t: T; currency: string; formatLocale: string; distanceUnit: string }) {
+/** "New" until a kitchen has 5 ratings, then "★4.6 (23)" (rating_display, or the same rule over rating/review_count). */
+export function RatingBadge({ x, t, formatLocale }: { x: Parameters<typeof ratingOf>[0]; t: T; formatLocale: string }) {
+  const r = ratingOf(x);
+  if (r.new) return <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-xs font-extrabold text-[#083F46]">{t("common.new")}</span>;
+  const stars = new Intl.NumberFormat(formatLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(r.stars);
+  return (
+    <span className="shrink-0 text-sm font-extrabold" aria-label={t("common.rating_label", { stars, count: r.count })}>
+      <span aria-hidden="true">{t("common.rating_short", { stars, count: r.count })}</span>
+    </span>
+  );
+}
+
+export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFrom }: {
+  k: Kitchen;
+  t: T;
+  currency: string;
+  formatLocale: string;
+  distanceUnit: string;
+  /** No address yet: the city's lowest delivery fee ("from … delivery"). */
+  feeFrom?: number | null;
+}) {
   const fee = k.delivery_fee != null ? Number(k.delivery_fee) : null;
   const meta = [...k.cuisine_types.slice(0, 2), k.distance != null ? t(distanceUnit === "mi" ? "common.mi" : "common.km", { n: k.distance }) : k.area].filter(Boolean).join(" · ");
   return (
@@ -71,7 +92,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit }: { k:
         </div>
         <div className="mt-3 flex items-baseline justify-between gap-2">
           <b className="truncate text-[17px]">{k.name}</b>
-          {k.is_new && <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-xs font-extrabold text-[#083F46]">{t("common.new")}</span>}
+          <RatingBadge x={k} t={t} formatLocale={formatLocale} />
         </div>
         <div className="mt-1 truncate text-sm text-[#4C5A5E]">{meta}</div>
         <div className="mt-1 text-sm">
@@ -84,6 +105,12 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit }: { k:
               ) : (
                 t("common.delivery_fee", { fee: money(fee, currency, formatLocale, { whole: true }) })
               )}
+            </>
+          )}
+          {fee === null && feeFrom != null && (
+            <>
+              {" · "}
+              {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale, { whole: true }) })}
             </>
           )}
           {!k.open_now && k.opens_at && <span className="text-[#4C5A5E]"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
@@ -121,11 +148,4 @@ export function CuisineTile({ name, image, href }: { name: string; image: string
       <span className="mt-[6px] block text-[13px] font-bold md:mt-3 md:text-[15px]">{name}</span>
     </Link>
   );
-}
-
-/** A cuisine's picture is its first kitchen's cover (data, not a mapping in code). */
-export function cuisinePhotos(kitchens: Kitchen[]): Record<string, string | null> {
-  const out: Record<string, string | null> = {};
-  for (const k of kitchens) for (const c of k.cuisine_types) if (!(c in out) && k.cover_url) out[c] = k.cover_url;
-  return out;
 }
