@@ -471,6 +471,11 @@ with sync_playwright() as p:
         expect(cities_table.get_by_role("row", name=re.compile(r"^Testville .*Draft"))).to_be_visible(timeout=15000)))
     page.screenshot(path=f"{OUT}/08b-markets-country.png", full_page=True)
 
+    payouts = page.get_by_role("region", name="Payouts")
+    check("markets: the country's payout provider, from Markets", lambda: (
+        expect(payouts).to_contain_text("Razorpay Route", timeout=15000),
+        expect(payouts.get_by_label("Payout provider")).to_have_value("razorpay_route")))
+
     # Hero dish: the website's landing photo for the country, picked from the library
     # thumbnails and saved as the country's hero_photo setting (put back afterwards).
     admin_h = token("admin@example.com", PW)

@@ -19,6 +19,7 @@ export interface Country {
   phone_code: string;
   payment_providers: string[];
   tax_regime: string;
+  payout_provider: PayoutProviderName;
   settings: Record<string, unknown>;
   status: MarketStatus;
 }
@@ -132,6 +133,7 @@ export const CHECKLIST_LABELS: Record<string, string> = {
   zone_open: "A zone is open",
   service_hours_set: "Service hours set",
   pricing_set: "Delivery fee set",
+  payouts_set: "Payout provider set",
 };
 
 export function useAdminMe() {
@@ -191,6 +193,19 @@ export const TAX_REGIMES = [
 ] as const;
 export const PAYMENT_PROVIDERS = ["razorpay", "stripe"] as const;
 
+/** Who pays a country's kitchens and riders (backend countries.payout_provider). The
+ * fake moves no money: the API refuses it in production. None: the country can't open. */
+export type PayoutProviderName = "stripe_connect" | "razorpay_route" | "fake" | "none";
+export const PAYOUT_PROVIDERS: { value: PayoutProviderName; label: string }[] = [
+  { value: "stripe_connect", label: "Stripe Connect" },
+  { value: "razorpay_route", label: "Razorpay Route" },
+  { value: "fake", label: "Fake (test stacks only, never production)" },
+  { value: "none", label: "None yet (the country can't open)" },
+];
+export function payoutLabel(p: string): string {
+  return PAYOUT_PROVIDERS.find((x) => x.value === p)?.label ?? p;
+}
+
 export interface CountryCreate {
   code: string;
   name: string;
@@ -201,11 +216,13 @@ export interface CountryCreate {
   phone_code: string;
   payment_providers: string[];
   tax_regime: string;
+  payout_provider: PayoutProviderName;
 }
 
 export interface CountryUpdate {
   name?: string;
   status?: MarketStatus;
+  payout_provider?: PayoutProviderName;
   /** A value sets an override, null removes it (back to the default). */
   settings?: Record<string, unknown>;
 }

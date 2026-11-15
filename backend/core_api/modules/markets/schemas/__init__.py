@@ -7,6 +7,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 Status = Literal["draft", "soon", "beta", "live", "paused"]
+# Who pays restaurants and riders in a country. "fake" moves no money (never in
+# production); "none" means payouts aren't set up, so the country can't open.
+PayoutProviderName = Literal["stripe_connect", "razorpay_route", "fake", "none"]
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -34,6 +37,7 @@ class CountryCreate(BaseModel):
     phone_code: str = Field(pattern=r"^\+\d{1,4}$")
     payment_providers: list[str] = Field(min_length=1)
     tax_regime: Literal["gst", "us_sales_tax"]
+    payout_provider: PayoutProviderName = "none"
     settings: dict[str, Any] = {}
 
 
@@ -44,6 +48,7 @@ class CountryUpdate(BaseModel):
     distance_unit: Literal["km", "mi"] | None = None
     payment_providers: list[str] | None = None
     tax_regime: Literal["gst", "us_sales_tax"] | None = None
+    payout_provider: PayoutProviderName | None = None
     settings: dict[str, Any] | None = None
     status: Status | None = None
 
@@ -61,6 +66,7 @@ class CountryOut(BaseModel):
     phone_code: str
     payment_providers: list[str]
     tax_regime: str
+    payout_provider: PayoutProviderName
     settings: dict[str, Any]
     status: Status
 

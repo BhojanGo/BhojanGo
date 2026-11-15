@@ -37,10 +37,10 @@ def test_merge_and_reset_overrides() -> None:
         rules.check_overrides({"currency": "USD"})
 
 
-def checklist(country="live", region="live", hours=True, zones=(ZoneState("live"),), priced=True):
+def checklist(country="live", region="live", hours=True, zones=(ZoneState("live"),), priced=True, payouts="razorpay_route"):
     return rules.launch_checklist(country_status=country, region_status=region,
                                   service_hours={"open": "07:00", "close": "23:00"} if hours else None,
-                                  zones=list(zones), now=NOW, priced=priced)
+                                  zones=list(zones), now=NOW, priced=priced, payout_provider=payouts)
 
 
 def test_city_can_open_only_when_checklist_complete() -> None:
@@ -57,6 +57,26 @@ def test_city_can_open_only_when_checklist_complete() -> None:
     rules.check_city_status("soon", checklist(priced=False))
     with pytest.raises(MarketRuleError, match="no delivery fee"):
         rules.check_city_status("live", checklist(priced=False))
+    # Nobody to pay the kitchens and riders: announce, don't open.
+    assert checklist(payouts="none")["payouts_set"] is False and checklist(payouts="fake")["payouts_set"]
+    rules.check_city_status("soon", checklist(payouts="none"))
+    with pytest.raises(MarketRuleError, match="no payout provider"):
+        rules.check_city_status("beta", checklist(payouts="none"))
+
+
+def test_a_country_opens_only_with_a_payout_provider() -> None:
+    for provider in ("stripe_connect", "razorpay_route", "fake"):
+        rules.check_country_payouts("live", provider, production=False)
+    for status in ("draft", "soon", "paused"):
+        rules.check_country_payouts(status, "none", production=False)
+    for status in ("beta", "live"):
+        with pytest.raises(MarketRuleError, match="no payout provider"):
+            rules.check_country_payouts(status, "none", production=False)
+    # production: the real providers only, whatever the status
+    rules.check_country_payouts("live", "stripe_connect", production=True)
+    for status in ("draft", "live"):
+        with pytest.raises(MarketRuleError, match="fake payout provider"):
+            rules.check_country_payouts(status, "fake", production=True)
 
 
 def test_paused_zone_reopens_when_its_time_is_up() -> None:

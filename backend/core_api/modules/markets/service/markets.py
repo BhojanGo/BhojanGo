@@ -49,6 +49,12 @@ class Conflict(ValueError):
     pass
 
 
+def _production() -> bool:
+    from shared.config import get_settings
+
+    return get_settings().is_production
+
+
 def _visible(scopes: list[str], code: str) -> bool:
     return any(authz.covers(s, code) or authz.covers(code, s) for s in scopes)
 
@@ -99,6 +105,7 @@ class MarketService:
         checklist = rules.launch_checklist(
             country_status=country.status, region_status=region.status,
             service_hours=city.service_hours, zones=states, now=now, priced=priced,
+            payout_provider=country.payout_provider,
         )
         return CitySummary(
             **CityOut.model_validate(city).model_dump(),
@@ -150,6 +157,7 @@ class MarketService:
         if await self.repo.country(data.code):
             raise Conflict(f"Country {data.code} already exists")
         photos.check_settings(data.settings)
+        rules.check_country_payouts("draft", data.payout_provider, production=_production())
         c = await self.repo.add(Country(**data.model_dump(), status="draft"))
         return CountryOut.model_validate(c)
 
@@ -162,6 +170,9 @@ class MarketService:
             s = patch.pop("settings") or {}
             photos.check_settings(s)
             c.settings = rules.merge_settings(c.settings, s)
+        if "status" in patch or "payout_provider" in patch:
+            rules.check_country_payouts(patch.get("status", c.status), patch.get("payout_provider", c.payout_provider),
+                                        production=_production())
         for k, v in patch.items():
             setattr(c, k, v)
         await self.db.flush()
@@ -222,7 +233,7 @@ class MarketService:
             checklist = rules.launch_checklist(
                 country_status=country.status, region_status=region.status, service_hours=city.service_hours,
                 zones=[ZoneState(z.status, z.paused_until) for z in zones], now=datetime.now(UTC),
-                priced=await self.priced(country, region, city),
+                priced=await self.priced(country, region, city), payout_provider=country.payout_provider,
             )
             rules.check_city_status(patch["status"], checklist)
         await self.db.flush()
