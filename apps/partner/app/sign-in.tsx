@@ -29,7 +29,7 @@ export default function SignIn() {
       void chooseCountry(country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, "We couldn't send a code. Check the number and try again."));
+      setError(errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed")));
     } finally {
       setBusy(false);
     }
@@ -37,18 +37,18 @@ export default function SignIn() {
 
   return (
     <Split>
-      <Text accessibilityRole="header" style={t.big}>Sign in to your kitchen</Text>
-      <Text style={t.muted}>Use the phone number on your partner account. We&apos;ll text you a code.</Text>
-      <Text style={[t.label, { marginTop: 8 }]}>Mobile number</Text>
+      <Text testID="sign-in-title" accessibilityRole="header" style={t.big}>{tr("partner.sign_in.title")}</Text>
+      <Text style={t.muted}>{tr("partner.sign_in.sub")}</Text>
+      <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.sign_in.mobile")}</Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <PhoneCountryButton value={country} onChange={setPicked} />
-        <TextInput testID="phone" accessibilityLabel="Mobile number" value={number} onChangeText={setNumber} keyboardType="phone-pad"
+        <TextInput testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
           placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
           style={[textFont("600"), s.number]} />
       </View>
       {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
-      <Btn title="Send code" kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
-      <Text style={t.muted}>New to BhojanGo? Sign in with your kitchen&apos;s number and apply: it takes about ten minutes.</Text>
+      <Btn testID="send-code" title={tr("partner.sign_in.send")} kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
+      <Text style={t.muted}>{tr("partner.sign_in.new")}</Text>
     </Split>
   );
 }

@@ -1,7 +1,7 @@
 // Apply with a kitchen (B1): your name, the kitchen, where it is. The kitchen is
 // created pending approval and the partner application (FSSAI, GST and bank,
 // menu) follows. BhojanGo checks it and switches the kitchen on.
-import { api, ApiError, unwrap, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -16,6 +16,7 @@ export default function Join() {
   const adopt = useSession((s) => s.adopt);
   const signOut = useSession((s) => s.signOut);
   const load = useKitchen((s) => s.load);
+  const { t: tr } = useI18n();
   const [cities, setCities] = useState<City[]>([]);
   const [city, setCity] = useState<City | null>(null);
   const [f, setF] = useState({ full_name: "", kitchen_name: "", street: "", area: "", zip: "", cuisines: "" });
@@ -26,8 +27,8 @@ export default function Join() {
       const list = unwrap(r) as City[];
       setCities(list);
       setCity((c) => c ?? list[0] ?? null);
-    }).catch(() => setError("Can't load the cities right now."));
-  }, []);
+    }).catch(() => setError(tr("partner.join.cities_failed")));
+  }, [tr]);
   const set = (k: keyof typeof f) => (v: string) => setF((x) => ({ ...x, [k]: v }));
 
   async function apply() {
@@ -46,7 +47,7 @@ export default function Join() {
       await load();
       router.replace("/apply");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't send your application. Try again.");
+      setError(e instanceof ApiError ? e.message : tr("partner.join.failed"));
     } finally {
       setBusy(false);
     }
@@ -55,7 +56,7 @@ export default function Join() {
   const ok = f.full_name.trim().length > 2 && f.kitchen_name.trim().length > 1 && f.street.trim().length > 2 && f.area.trim().length > 1
     && f.zip.trim().length > 2 && f.cuisines.trim().length > 1 && !!city && !busy;
   const field = (k: keyof typeof f, label: string, hint: string, props: object = {}) => (
-    <View style={{ flex: 1, gap: 6 }}>
+    <View style={{ flex: 1, minWidth: 240, gap: 6 }}>
       <Text style={t.label}>{label}</Text>
       <TextInput testID={k} accessibilityLabel={label} value={f[k]} onChangeText={set(k)} placeholder={hint} placeholderTextColor={color.muted}
         style={[textFont("600"), s.input]} {...props} />
@@ -64,10 +65,10 @@ export default function Join() {
   return (
     <SafeAreaView edges={["left", "right", "top"]} style={{ flex: 1, backgroundColor: color.porcelain }}>
       <ScrollView contentContainerStyle={{ padding: 32, gap: 16, maxWidth: 900, alignSelf: "center", width: "100%" }}>
-        <Text accessibilityRole="header" style={t.big}>Apply with your kitchen</Text>
-        <Text style={t.muted}>Commission on food only, paid out weekly; you set your own prices and offers. Your terms show on the next screen. Next: your FSSAI licence, GST and bank.</Text>
-        <View style={s.row}>{field("full_name", "Your name", "Owner or manager")}{field("kitchen_name", "Kitchen name", "As customers will see it")}</View>
-        <Text style={t.label}>City</Text>
+        <Text accessibilityRole="header" style={t.big}>{tr("partner.join.title")}</Text>
+        <Text style={t.muted}>{tr("partner.join.sub")}</Text>
+        <View style={s.row}>{field("full_name", tr("partner.join.name"), tr("partner.join.name_hint"))}{field("kitchen_name", tr("partner.join.kitchen"), tr("partner.join.kitchen_hint"))}</View>
+        <Text style={t.label}>{tr("partner.join.city")}</Text>
         <View style={s.row}>
           {cities.map((c) => (
             <Pressable key={c.code} accessibilityRole="radio" accessibilityState={{ checked: city?.code === c.code }} accessibilityLabel={c.name}
@@ -76,12 +77,12 @@ export default function Join() {
             </Pressable>
           ))}
         </View>
-        <View style={s.row}>{field("street", "Street address", "Plot, building and road")}{field("area", "Area", "e.g. Banjara Hills")}</View>
-        <View style={s.row}>{field("zip", "PIN / ZIP code", "500034", { keyboardType: "number-pad" })}{field("cuisines", "Cuisines", "Separate with commas: Andhra, Thali")}</View>
+        <View style={s.row}>{field("street", tr("partner.join.street"), tr("partner.join.street_hint"))}{field("area", tr("partner.join.area"), tr("partner.join.area_hint"))}</View>
+        <View style={s.row}>{field("zip", tr("partner.join.zip"), tr("partner.join.zip_hint"), { keyboardType: "number-pad" })}{field("cuisines", tr("partner.join.cuisines"), tr("partner.join.cuisines_hint"))}</View>
         {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
         <View style={{ flexDirection: "row", gap: 12, justifyContent: "flex-end" }}>
-          <Btn title="Use another number" onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
-          <Btn title="Send application" kind="primary" height={56} busy={busy} disabled={!ok} onPress={apply} />
+          <Btn title={tr("partner.join.another_number")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
+          <Btn testID="send-application" title={tr("partner.join.send")} kind="primary" height={56} busy={busy} disabled={!ok} onPress={apply} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -89,7 +90,7 @@ export default function Join() {
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: "row", gap: 16 },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
   input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 17, backgroundColor: color.white },
-  city: { flex: 1, padding: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
+  city: { flex: 1, minWidth: 180, padding: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
 });

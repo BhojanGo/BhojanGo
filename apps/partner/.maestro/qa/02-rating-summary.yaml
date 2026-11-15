@@ -1,0 +1,32 @@
+# QA, read-only: the kitchen's rating on the dashboard ("★ 4.6 · 23 ratings", or
+# "New" until 5 ratings, as customers see it), then the summary: the average, the
+# bars by stars and the latest comments.
+appId: com.bhojango.partner
+---
+- runFlow: common/sign-in-demo.yaml
+- extendedWaitUntil:
+    visible:
+      id: "rating-chip"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/qa/02-rating-chip
+- tapOn:
+    id: "rating-chip"
+- extendedWaitUntil:
+    visible:
+      id: "rating-summary"
+    timeout: 10000
+- assertVisible:
+    id: "rating-average"
+- assertVisible:
+    id: "rating-distribution"
+- assertVisible:
+    id: "rating-bar-5"
+- assertVisible:
+    id: "rating-bar-1"
+- takeScreenshot: docs/screenshots/partner/qa/02-rating-summary
+- tapOn:
+    id: "rating-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "rating-summary"
+    timeout: 10000

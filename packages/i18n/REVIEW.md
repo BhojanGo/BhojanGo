@@ -88,3 +88,27 @@ on 2026-11-15, needing the same native review:
   `app.item.customise`, `app.bag.held` ({time} is m:ss), `app.out_of_area.*`
   ({place}: suffixes in te/ta/kn/bn), `app.track.progress` / `step_*` (short labels
   under the progress bar: keep them to one or two words) / `pin_a11y` (read aloud).
+
+## The partner app (round 4, B3: every `partner.*` key)
+
+Every word in apps/partner is now a `partner.*` key (285 new, machine-translated
+on 2026-11-15 into all seven languages; `partner.offer.*` was already there).
+Reviewers, look first at:
+
+- `partner.orders.*`: the tablet is read across a kitchen: the buttons must stay
+  short (`partner.orders.busy_short`, `pause_short` are used on phones and small
+  tablets); `partner.orders.minutes` "{min} min" and the column titles.
+- `partner.apply.steps.*`: the application steps are named by the app from the
+  step key; `*_gst` / `*_other` follow the country's tax regime (Markets
+  `tax_regime`: FSSAI licence and GST where it is "gst", a food permit and tax
+  elsewhere). `partner.apply.date_hint` "DD/MM/YYYY" is a format hint (Spanish: AAAA).
+- `partner.photo.*`: the dish photo screen and its preview; `partner.photo.preview_photo_note`
+  names the website's "Add" button (`common.add`) in each language.
+- `partner.ratings.*`: "New" (`common.new`) until 5 ratings, as on the website;
+  `partner.ratings.chip` "★ {stars} · {count} ratings" sits in the header: keep it short.
+  Plurals: `chip_new`, `new_until`, `from`, `bar`, `stars_label`.
+- `partner.offers.*_over` / `*_all`: an offer's description with an amount
+  ({amount}, {off} are formatted money) and a percent ({percent}).
+- `partner.help.sign_out_note`: signing out signs the account out on every device.
+- Plurals: `partner.orders.today_orders`, `partner.orders.bags`, `partner.payouts.orders`,
+  `partner.apply.steps.menu_detail` (one/other; Hindi, Bengali and Kannada use "one" for 0 too).

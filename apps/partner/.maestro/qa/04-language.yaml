@@ -1,0 +1,47 @@
+# QA, read-only: Help and settings shows the kitchen's country's languages (Markets
+# locales: India's seven); picking Hindi changes the words at once, English brings
+# them back. The language is kept on this tablet only. Never taps "Sign out" (it
+# signs the demo partner out on every device).
+appId: com.bhojango.partner
+---
+- runFlow: common/sign-in-demo.yaml
+- tapOn:
+    id: "rail-help"
+- extendedWaitUntil:
+    visible:
+      id: "help-screen"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "language-hi"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "language-en"
+- takeScreenshot: docs/screenshots/partner/qa/04-languages
+- tapOn:
+    id: "language-hi"
+- extendedWaitUntil:
+    visible: "मदद और सेटिंग"
+    timeout: 10000
+- assertVisible: "ऑर्डर"
+- assertNotVisible: "Help and settings"
+- takeScreenshot: docs/screenshots/partner/qa/04-hindi
+- tapOn:
+    id: "rail-orders"
+- extendedWaitUntil:
+    visible: "पिकअप के लिए तैयार"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/partner/qa/04-orders-hindi
+- tapOn:
+    id: "rail-help"
+- scrollUntilVisible:
+    element:
+      id: "language-en"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "language-en"
+- extendedWaitUntil:
+    visible: "Help and settings"
+    timeout: 10000

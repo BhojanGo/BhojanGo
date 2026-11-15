@@ -1,8 +1,8 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault).
-import { api, ApiError, unwrap } from "@bhojango/mobile-core";
+import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
 import { useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFormat, useKitchen, useLoad } from "../../lib/data";
@@ -12,7 +12,10 @@ type Statement = { id: string; payee_id: string; amount: number; currency: strin
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string } };
 type Account = { id: string; payee_id: string; provider: string; status: string };
 
-const STATUS: Record<string, string> = { paid: "Paid", pending: "On its way", no_account: "Waiting for your bank details", failed: "Didn't go through · we'll retry" };
+const STATUSES = ["paid", "pending", "no_account", "failed"];
+const statusLabel = (t: Translate, s: string) => (STATUSES.includes(s) ? t(`partner.payouts.status.${s}`) : s);
+// data-ok: payment provider brand names (Markets payment_providers values), not places or currencies.
+const PROVIDERS: Record<string, string> = { razorpay: "Razorpay", stripe: "Stripe" };
 
 function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
   const end = new Date(`${s.period_end}T12:00:00`);
@@ -22,6 +25,8 @@ function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
 
 export default function Payouts() {
   const { cash, date } = useFormat();
+  const { t: tr } = useI18n();
+  const { width } = useWindowDimensions();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -49,26 +54,29 @@ export default function Payouts() {
 
   const a = data.data?.account;
   return (
-    <SafeAreaView edges={["top", "right"]} style={{ flex: 1 }}>
-      <View style={s.header}><Text accessibilityRole="header" style={t.h1}>Payouts</Text></View>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 16, flexDirection: "row", alignItems: "flex-start" }}>
+    <SafeAreaView testID="payouts-screen" edges={["top", "right"]} style={{ flex: 1 }}>
+      <View style={s.header}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
+      <ScrollView contentContainerStyle={{ padding: width < 1000 ? 16 : 24, gap: 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
         <View style={[s.panel, { flex: 1 }]}>
-          <Text style={[textFont("800"), { fontSize: 17 }]}>Where we pay you</Text>
-          <Text style={t.body}>{a ? (a.status === "active" ? `Paid every Monday through ${a.provider === "razorpay" ? "Razorpay" : a.provider === "stripe" ? "Stripe" : "our payments partner"}.` : "Your bank details aren't confirmed yet.") : "Add your bank so weekly payouts can reach you."}</Text>
-          {!a || a.status !== "active" ? <Btn title={a ? "Continue set-up" : "Set up payouts"} kind="primary" busy={busy} onPress={setUp} /> : null}
+          <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.where")}</Text>
+          <Text style={t.body}>
+            {a ? (a.status === "active" ? tr("partner.payouts.paid_through", { provider: PROVIDERS[a.provider] ?? tr("partner.payouts.partner") })
+              : tr("partner.payouts.unconfirmed")) : tr("partner.payouts.add_bank")}
+          </Text>
+          {!a || a.status !== "active" ? <Btn title={a ? tr("partner.payouts.continue") : tr("partner.payouts.set_up")} kind="primary" busy={busy} onPress={setUp} /> : null}
           {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
         </View>
         <View style={[s.panel, { flex: 2 }]}>
-          <Text style={[textFont("800"), { fontSize: 17 }]}>Weekly statements</Text>
-          {data.data && data.data.statements.length === 0 ? <Text style={t.muted}>Your first statement shows here after the first Monday payout.</Text> : null}
+          <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.statements")}</Text>
+          {data.data && data.data.statements.length === 0 ? <Text style={t.muted}>{tr("partner.payouts.none_yet")}</Text> : null}
           {data.data?.statements.map((st) => (
             <View key={st.id} style={s.row}>
               <View style={{ flex: 1 }}>
                 <Text style={[textFont("700"), { fontSize: 15 }]}>{week(st, date)}</Text>
                 <Text style={t.muted}>
-                  {[st.summary.orders != null ? `${st.summary.orders} orders` : null,
-                    Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? `offers ${cash(st.summary.restaurant_funded_offers, st.currency)}` : null,
-                    STATUS[st.status] ?? st.status].filter(Boolean).join(" · ")}
+                  {[st.summary.orders != null ? tr("partner.payouts.orders", { count: st.summary.orders }) : null,
+                    Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? tr("partner.payouts.offers", { amount: cash(st.summary.restaurant_funded_offers, st.currency) }) : null,
+                    statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
               <Text style={[textFont("800"), { fontSize: 16 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
