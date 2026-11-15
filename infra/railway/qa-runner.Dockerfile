@@ -1,5 +1,5 @@
-# QA jobs inside Railway's private network: seeding, migration checks, G1 and
-# the integration suite (docs/runbooks/railway-deploy.md, "Test QA").
+# QA jobs inside Railway's private network: reset, seeding (base and demo data) and
+# read-only checks (docs/runbooks/railway-deploy.md, "The QA runner"). No tests: they never write to QA.
 # Not part of .railway/railway.ts: a temporary service, deployed with
 # `railway up` from a staged copy (tools/railway/qa-runner.sh) and deleted after.
 # Postgres and Redis stay private; the job reaches them as the services do.

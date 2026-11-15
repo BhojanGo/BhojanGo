@@ -104,6 +104,7 @@ async def health_check() -> dict:
     return {
         "status": "healthy" if checks["database"] == "ok" else "degraded",
         "service": settings.SERVICE_NAME,
+        "environment": settings.environment_name,  # tools/target_guard.py
         "version": settings.VERSION,
         "uptime_seconds": round(time.time() - _start_time, 1),
         "checks": checks,

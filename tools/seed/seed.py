@@ -29,8 +29,8 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
         sys.path.insert(1, str(_backend))
         break
 from data import (  # noqa: E402
-    ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, KITCHEN_PHOTOS, MARKETS, PASSWORD, RULES, TIERS, dish_photo,
-    photo_url,
+    ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, TIERS, covers, dish_photo,
+    menu_dishes, photo_url,
 )
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
@@ -367,6 +367,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     {"id": sid("payout_account", email), "r": rider_id, "ext": f"fake_acct_{rider_id.hex[:12]}", "c": m["country"]})
                 logins.append((where, f"rider signing up · {name}", email, password_for(email)))
 
+            cover = covers([(r["slug"], menu_dishes(r["menu"])) for r in m["restaurants"]])
             for r in m["restaurants"]:
                 address = {
                     "street": r["street"], "city": m["city"], "state": m["state"], "zip": r["zip"],
@@ -377,8 +378,8 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     "owner_id": partner_id, "description": r["description"], "cuisines": r["cuisines"],
                     "address": json.dumps(address), "lat": r["lat"], "lng": r["lng"],
                     "rating": r["rating"], "review_count": 0,
-                    "cover_url": photo_url(KITCHEN_PHOTOS.get(r["slug"]), 1600),
-                    "logo_url": photo_url(KITCHEN_PHOTOS.get(r["slug"]), 400),
+                    "cover_url": photo_url(cover[r["slug"]], 1600),
+                    "logo_url": photo_url(cover[r["slug"]], 400),
                     "eta_min": r["eta"][0], "eta_max": r["eta"][1],
                     "min_order": Decimal(r["min_order"]), "delivery_fee": Decimal(r["delivery_fee"]),
                     "currency": m["currency"], "country": m["country"], "city": m["city"],

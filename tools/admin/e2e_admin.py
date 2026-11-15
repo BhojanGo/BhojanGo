@@ -9,6 +9,7 @@ docs/screenshots/admin.
 import os
 import re
 import socket
+import sys
 import threading
 import uuid
 from datetime import date, timedelta
@@ -19,6 +20,12 @@ from playwright.sync_api import expect, sync_playwright
 OUT = os.environ.get("OUT", "/out")
 CORE = (os.environ.get("QA_CORE") or "http://core-api:8001") + "/api/v1"
 PW = "BhojanGoAdmin1"
+
+# Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(CORE)
 
 # Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
 # and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).

@@ -1,4 +1,5 @@
-"""Restart each QA service once and check nothing is lost: the order, the session
+"""Restart each service of a hosted environment once and check nothing is lost (it places an
+order, so tools/target_guard.py refuses QA and production): the order, the session
 (refresh tokens live in Redis), and events queued while the worker was down (the
 outbox relay runs in the worker; the customer's tracking WebSocket gets them).
 
@@ -19,6 +20,12 @@ import websockets
 
 CORE, RT, WEB, ADMIN, LOGINS = (a.rstrip("/") for a in sys.argv[1:6])
 RAILWAY = sys.argv[6:]
+
+# Tests never write to QA or production (tools/target_guard.py): this places an order.
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(CORE, RT)
 PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) == 4}
 ORDER = ["postgres", "redis", "core-api", "realtime", "worker", "web", "admin"]
 # The order moves one step during each backend's restart; each event must reach the customer.
