@@ -8,7 +8,7 @@
     "your_account": "Tu cuenta",
     "bag": "Carrito",
     "bag_count": "Carrito · {count}",
-    "search_placeholder": "Busca biryani, dosa, cocinas…",
+    "search_placeholder": "Busca platillos y cocinas…",
     "search_label": "Buscar platillos y cocinas",
     "loading": "Cargando…",
     "error": "Algo salió mal. Inténtalo de nuevo.",
@@ -40,7 +40,8 @@
     "non_veg": "No vegetariano",
     "save_kitchen": "Guardar {name}",
     "unsave_kitchen": "Quitar {name} de favoritos",
-    "skip_to_content": "Saltar al contenido"
+    "skip_to_content": "Saltar al contenido",
+    "search_placeholder_near": "Busca {a}, {b}, cocinas…"
   },
   "header": {
     "where_we_deliver": "Dónde entregamos",

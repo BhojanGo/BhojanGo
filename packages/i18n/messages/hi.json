@@ -8,7 +8,7 @@
     "your_account": "आपका अकाउंट",
     "bag": "बैग",
     "bag_count": "बैग · {count}",
-    "search_placeholder": "बिरयानी, डोसा, किचन खोजें…",
+    "search_placeholder": "व्यंजन और किचन खोजें…",
     "search_label": "डिश और किचन खोजें",
     "loading": "लोड हो रहा है…",
     "error": "कुछ गड़बड़ हो गई। फिर से कोशिश करें।",
@@ -40,7 +40,8 @@
     "non_veg": "नॉन-वेज",
     "save_kitchen": "{name} सेव करें",
     "unsave_kitchen": "{name} को फ़ेवरेट से हटाएं",
-    "skip_to_content": "मुख्य सामग्री पर जाएं"
+    "skip_to_content": "मुख्य सामग्री पर जाएं",
+    "search_placeholder_near": "{a}, {b}, किचन खोजें…"
   },
   "header": {
     "where_we_deliver": "हम कहां डिलीवर करते हैं",

@@ -5,6 +5,7 @@
 import Link from "next/link";
 
 import { getContext } from "@/lib/prefs";
+import { discover } from "@/lib/server";
 import { AccountButton, AddressPill, BagButton, CountryMenu, LanguageMenu, SearchBox } from "./HeaderParts";
 import { LogoMark } from "./Icons";
 
@@ -46,13 +47,17 @@ export async function SiteHeader() {
     );
   }
 
+  // "Search biryani, dosa, kitchens…" from what's actually near the address (data, not copy).
+  const near = place.served === false ? null : await discover({ lat: place.lat, lng: place.lng });
+  const top = ((near?.cuisines ?? []) as { name: string }[]).slice(0, 2).map((c) => c.name.toLowerCase());
+  const placeholder = top.length === 2 ? t("common.search_placeholder_near", { a: top[0]!, b: top[1]! }) : t("common.search_placeholder");
   return (
     <header className="sticky top-0 z-30 border-b border-[#E2E7E8] bg-white">
       {/* desktop */}
       <div className="mx-auto hidden h-[76px] max-w-[1440px] items-center gap-4 px-16 md:flex">
         {brand}
         <AddressPill label={place.label} country={place.country} />
-        <SearchBox cityPath={place.city_path ?? null} />
+        <SearchBox cityPath={place.city_path ?? null} placeholder={placeholder} />
         <LanguageMenu />
         <AccountButton />
         <BagButton />
@@ -68,7 +73,7 @@ export async function SiteHeader() {
           <AccountButton />
         </div>
         <div className="px-5 pb-3">
-          <SearchBox cityPath={place.city_path ?? null} compact />
+          <SearchBox cityPath={place.city_path ?? null} placeholder={placeholder} compact />
         </div>
       </div>
     </header>

@@ -61,7 +61,7 @@ function countryFromLocale(acceptLanguage: string, dir: Directory): DirCountry |
 export interface Context {
   directory: Directory;
   country: DirCountry | null; // decides currency, kitchens and the language list
-  countrySource: "address" | "chosen" | "ip" | "locale" | "none";
+  countrySource: "address" | "chosen" | "page" | "ip" | "locale" | "none";
   place: Place | null;
   language: string;
   languages: string[];
@@ -82,6 +82,8 @@ export const getContext = cache(async (): Promise<Context> => {
   for (const [source, candidate] of [
     ["address", byCode(place?.country)],
     ["chosen", byCode(jar.get(COOKIE.country)?.value)],
+    // a city or kitchen page (/{country}/...): its country, before IP or browser hints
+    ["page", byCode((hdrs.get("x-bg-path") ?? "").split("/")[1]?.length === 2 ? (hdrs.get("x-bg-path") ?? "").split("/")[1] : null)],
     ["ip", byCode(jar.get(COOKIE.hintCountry)?.value)],
     ["locale", countryFromLocale(acceptLanguage, dir)],
   ] as const) {

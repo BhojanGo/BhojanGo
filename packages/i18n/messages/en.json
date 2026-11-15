@@ -8,7 +8,7 @@
     "your_account": "Your account",
     "bag": "Bag",
     "bag_count": "Bag · {count}",
-    "search_placeholder": "Search biryani, dosa, kitchens…",
+    "search_placeholder": "Search dishes and kitchens…",
     "search_label": "Search dishes and kitchens",
     "loading": "Loading…",
     "error": "Something went wrong. Try again.",
@@ -40,7 +40,8 @@
     "non_veg": "Non-veg",
     "save_kitchen": "Save {name}",
     "unsave_kitchen": "Remove {name} from favourites",
-    "skip_to_content": "Skip to content"
+    "skip_to_content": "Skip to content",
+    "search_placeholder_near": "Search {a}, {b}, kitchens…"
   },
   "header": {
     "where_we_deliver": "Where we deliver",

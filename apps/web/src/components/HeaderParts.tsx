@@ -187,7 +187,7 @@ export function AddressPill({ label, country, mobile }: { label: string; country
   );
 }
 
-export function SearchBox({ cityPath, compact }: { cityPath: string | null; compact?: boolean }) {
+export function SearchBox({ cityPath, compact, placeholder }: { cityPath: string | null; compact?: boolean; placeholder?: string }) {
   const t = useT();
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -201,7 +201,7 @@ export function SearchBox({ cityPath, compact }: { cityPath: string | null; comp
       className={`flex h-12 flex-grow items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-[15px] text-[#4C5A5E] ${compact ? "" : "min-w-0"}`}
     >
       <Search color="#4C5A5E" />
-      <input aria-label={t("common.search_label")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
+      <input aria-label={t("common.search_label")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder ?? t("common.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
     </form>
   );
 }

@@ -8,7 +8,7 @@
     "your_account": "మీ ఖాతా",
     "bag": "బ్యాగ్",
     "bag_count": "బ్యాగ్ · {count}",
-    "search_placeholder": "బిర్యానీ, దోసె, కిచెన్‌లు వెతకండి…",
+    "search_placeholder": "వంటకాలు, కిచెన్‌లు వెతకండి…",
     "search_label": "వంటకాలు, కిచెన్‌లు వెతకండి",
     "loading": "లోడ్ అవుతోంది…",
     "error": "ఏదో పొరపాటు జరిగింది. మళ్లీ ప్రయత్నించండి.",
@@ -40,7 +40,8 @@
     "non_veg": "నాన్-వెజ్",
     "save_kitchen": "{name} సేవ్ చేయండి",
     "unsave_kitchen": "{name}ను ఇష్టమైనవాటి నుండి తీసివేయండి",
-    "skip_to_content": "కంటెంట్‌కు వెళ్లండి"
+    "skip_to_content": "కంటెంట్‌కు వెళ్లండి",
+    "search_placeholder_near": "{a}, {b}, కిచెన్‌లు వెతకండి…"
   },
   "header": {
     "where_we_deliver": "మేము ఎక్కడ డెలివరీ చేస్తాం",

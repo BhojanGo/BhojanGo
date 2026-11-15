@@ -8,7 +8,7 @@
     "your_account": "तुमचं अकाउंट",
     "bag": "बॅग",
     "bag_count": "बॅग · {count}",
-    "search_placeholder": "बिर्याणी, डोसा, किचन शोधा…",
+    "search_placeholder": "पदार्थ आणि किचन शोधा…",
     "search_label": "डिश आणि किचन शोधा",
     "loading": "लोड होत आहे…",
     "error": "काहीतरी चुकलं. पुन्हा प्रयत्न करा.",
@@ -40,7 +40,8 @@
     "non_veg": "नॉन-व्हेज",
     "save_kitchen": "{name} सेव्ह करा",
     "unsave_kitchen": "{name} आवडीतून काढा",
-    "skip_to_content": "मुख्य मजकुराकडे जा"
+    "skip_to_content": "मुख्य मजकुराकडे जा",
+    "search_placeholder_near": "{a}, {b}, किचन शोधा…"
   },
   "header": {
     "where_we_deliver": "आम्ही कुठे डिलिव्हरी करतो",
