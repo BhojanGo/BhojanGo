@@ -93,7 +93,9 @@ async def test_money_rule_needs_a_second_admin(client: AsyncClient, city: str) -
     rule = r.json()
     assert rule["status"] == "draft" and rule["money"] is True
 
-    assert "customer_fee:service_fee" not in await resolved(client, maker, ctx(city))  # drafts don't apply
+    # drafts don't apply (the country's default service fee may)
+    applied = (await resolved(client, maker, ctx(city))).get("customer_fee:service_fee")
+    assert applied is None or applied["rule_id"] != rule["id"]
     r = await client.post(f"/api/v1/rules/{rule['id']}/submit", headers=maker)
     assert r.json()["status"] == "pending_approval"
     queue = (await client.get("/api/v1/rules/approvals", headers=checker)).json()

@@ -131,6 +131,7 @@ export const CHECKLIST_LABELS: Record<string, string> = {
   zones_drawn: "Zones drawn",
   zone_open: "A zone is open",
   service_hours_set: "Service hours set",
+  pricing_set: "Delivery fee set",
 };
 
 export function useAdminMe() {
