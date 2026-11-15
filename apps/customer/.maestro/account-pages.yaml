@@ -1,0 +1,90 @@
+# Read-only (safe on QA): the account tab opens each of its pages and comes
+# back. Nothing is saved: no address, card, switch or deletion is touched.
+#   maestro test -e PHONE=<seed phone> apps/customer/.maestro/account-pages.yaml
+appId: com.bhojango.app
+---
+- runFlow: sign-in.yaml
+- tapOn: "Account"
+- extendedWaitUntil:
+    visible:
+      id: "account-profile"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/40-account
+
+# Addresses: the saved ones (or the empty note) and the add button; the form opens, nothing is saved.
+- tapOn:
+    id: "account-addresses"
+- extendedWaitUntil:
+    visible:
+      id: "add-address"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/41-addresses
+- tapOn:
+    id: "add-address"
+- extendedWaitUntil:
+    visible:
+      id: "pin-picker"
+    timeout: 10000
+- assertVisible:
+    id: "use-my-location"
+- tapOn:
+    id: "back"
+- tapOn:
+    id: "back"
+
+# Payment methods: saved cards (or none) and the ways to pay the country offers.
+- tapOn:
+    id: "account-payments"
+- extendedWaitUntil:
+    visible:
+      id: "saved-cards"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "offered-methods"
+    timeout: 10000
+- takeScreenshot: docs/screenshots/customer/42-payments
+- tapOn:
+    id: "back"
+
+# Notifications: the preferences load (no switch is flipped).
+- tapOn:
+    id: "account-notifications"
+- extendedWaitUntil:
+    visible:
+      id: "notify-orders-push"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/43-notifications
+- tapOn:
+    id: "back"
+
+# Privacy: both actions are there; the delete confirmation opens and is cancelled.
+- scrollUntilVisible:
+    element:
+      id: "account-privacy"
+- tapOn:
+    id: "account-privacy"
+- assertVisible:
+    id: "download-data"
+- tapOn:
+    id: "delete-account"
+- extendedWaitUntil:
+    visible:
+      id: "delete-body"
+    timeout: 5000
+- takeScreenshot: docs/screenshots/customer/44-privacy-confirm
+- tapOn:
+    id: "keep-account"
+- assertNotVisible:
+    id: "delete-body"
+- tapOn:
+    id: "back"
+
+# Favourites (the list screen): opens, then back.
+- tapOn:
+    id: "account-favourites"
+- back
+- extendedWaitUntil:
+    visible:
+      id: "account-profile"
+    timeout: 10000

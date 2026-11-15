@@ -1,49 +1,89 @@
-// Your orders: what's on its way first, then past orders.
-import { ACTIVE_STATUSES, api, color, space, StatusPill, textFont, Txt, unwrap, useI18n, type CoreSchemas, type OrderStatus } from "@bhojango/mobile-core";
+// Your orders (WebOrders): what's on its way first (tap to track), then past
+// orders (tap for the receipt: items, the fair bill, the PDF, rate, report).
+import { color, space, StatusPill, textFont, Txt, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { Pressable, RefreshControl, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { isActive, itemsSummary, listOrders, orderCode, statusLabel, type Order } from "../../lib/account";
+import { LinkButton, ui } from "../../lib/account-ui";
 import { useTabBarSpace } from "../../lib/tabbar";
 
-type Order = CoreSchemas["OrderResponse"];
+function OrderRow({ o, index }: { o: Order; index: number }) {
+  const { t, money, date, time } = useI18n();
+  const active = isActive(o.status);
+  const at = o.placed_at ?? o.created_at;
+  const status = statusLabel(t, o.status);
+  return (
+    <Pressable testID={active ? `active-order-${index}` : `past-order-${index}`} accessibilityRole="button"
+      accessibilityLabel={`${o.restaurant_name}, ${status}, ${money(o.total, o.currency)}`}
+      onPress={() => router.push(active ? `/order/${o.id}` : `/account/receipt/${o.id}`)}
+      style={({ pressed }) => [{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 6 }, active && { borderWidth: 1.5, borderColor: color.peacock }, pressed && { opacity: 0.85 }]}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space[2] }}>
+        <Txt variant="title" numberOfLines={1} style={{ flex: 1 }}>{o.restaurant_name}</Txt>
+        <Text style={[textFont("800"), { fontSize: 15, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(o.total, o.currency)}</Text>
+      </View>
+      <Text numberOfLines={1} style={ui.small}>{itemsSummary(o)}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <Text numberOfLines={1} style={[ui.small, { flex: 1 }]}>{t("app.orders.when", { date: date(at), time: time(at), code: orderCode(o.id) })}</Text>
+        <StatusPill status={o.status} label={status} />
+      </View>
+    </Pressable>
+  );
+}
 
 export default function Orders() {
-  const { money } = useI18n();
+  const { t } = useI18n();
   const bottom = useTabBarSpace();
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const load = useCallback(() => {
     setLoading(true);
-    api.core.GET("/api/v1/orders", { params: { query: { limit: 50 } } })
-      .then((r) => setOrders((unwrap(r) as { items: Order[] }).items))
+    listOrders()
+      .then((o) => { setOrders(o); setError(false); })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
   useFocusEffect(load);
 
-  const shown = (orders ?? []).filter((o) => o.status !== "pending_payment");
+  const all = orders ?? [];
+  const sections = [
+    { key: "active", title: t("account.orders.active"), data: all.filter((o) => isActive(o.status)) },
+    { key: "past", title: t("app.orders.past"), data: all.filter((o) => !isActive(o.status)) },
+  ].filter((s) => s.data.length);
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
-      <Txt variant="h1" accessibilityRole="header" style={{ padding: space[5] }}>Orders</Txt>
-      <FlatList
-        data={shown.sort((a, b) => Number(ACTIVE_STATUSES.includes(b.status as OrderStatus)) - Number(ACTIVE_STATUSES.includes(a.status as OrderStatus)))}
+    <SafeAreaView style={ui.screen} edges={["top"]}>
+      <Txt variant="h1" accessibilityRole="header" style={{ padding: space[5] }}>{t("account.orders.title")}</Txt>
+      <SectionList
+        testID="orders-list"
+        sections={sections}
         keyExtractor={(o) => o.id}
+        stickySectionHeadersEnabled={false}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
         contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
-        ListEmptyComponent={orders ? <Txt style={{ color: color.muted }}>No orders yet. Your first one will show up here.</Txt> : undefined}
-        renderItem={({ item: o }) => (
-          <Pressable accessibilityRole="button" accessibilityLabel={`${o.restaurant_name}, ${o.status}`} onPress={() => router.push(`/order/${o.id}`)}
-            style={{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 8 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Txt variant="title" style={{ flex: 1 }}>{o.restaurant_name}</Txt>
-              <Text style={[textFont("800"), { fontSize: 15, fontVariant: ["tabular-nums"] }]}>{money(o.total, o.currency)}</Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <StatusPill status={o.status} />
-              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{new Date(o.created_at).toLocaleString()}</Text>
-            </View>
-          </Pressable>
+        renderSectionHeader={({ section }) => (
+          <Text testID={`orders-${section.key}`} accessibilityRole="header" style={[ui.eyebrow, { marginTop: space[2] }]}>{section.title}</Text>
         )}
+        renderItem={({ item, index }) => <OrderRow o={item} index={index} />}
+        ListEmptyComponent={
+          error ? (
+            <View style={{ gap: 6 }}>
+              <Text accessibilityRole="alert" style={ui.muted}>{t("account.orders.error")}</Text>
+              <LinkButton title={t("common.retry")} onPress={load} />
+            </View>
+          ) : orders ? (
+            <View style={{ gap: 6 }}>
+              <Text testID="no-orders" style={ui.muted}>{t("account.orders.empty")}</Text>
+              <LinkButton title={t("account.orders.find_food")} onPress={() => router.navigate("/home")} />
+            </View>
+          ) : (
+            <Text style={ui.muted}>{t("account.loading")}</Text>
+          )
+        }
       />
     </SafeAreaView>
   );

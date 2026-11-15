@@ -806,6 +806,34 @@
     "thanks": "Gracias por calificar este pedido."
   },
   "app": {
+    "account": {
+      "title": "Cuenta",
+      "keep": "Conservar mi cuenta"
+    },
+    "orders": {
+      "past": "Pedidos anteriores",
+      "when": "{date}, {time} · {code}"
+    },
+    "rating": {
+      "change": "Cambiar tu calificación",
+      "until": "Puedes cambiarla hasta el {date}."
+    },
+    "payments": {
+      "saved": "Tarjetas guardadas",
+      "offered": "Formas de pago en {country}",
+      "offered_note": "Eliges una al pagar tu pedido."
+    },
+    "pay": {
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay"
+    },
+    "addresses": {
+      "required": "Escribe la calle y la ciudad."
+    },
+    "report": {
+      "add_photo": "Agregar una foto",
+      "uploading": "Subiendo…"
+    },
     "test_banner": "Sitio de prueba: cocinas de demostración, sin pedidos ni pagos reales",
     "units": {
       "km": "{value} km",

@@ -1,57 +1,80 @@
-// Account: who you are, sign out, delete your account (with a confirmation).
-import { Button, Card, color, errorMessage, Sheet, space, textFont, Txt, useSession } from "@bhojango/mobile-core";
+// Account (website parity, WebProfile): your details, then a page each for
+// addresses, payment methods, notifications, favourites, language and
+// country, and privacy (download your data, delete your account); sign out.
+import { Button, color, Input, LANGUAGES, Sheet, space, Txt, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { updateMe } from "../../lib/account";
+import { LinkButton, MenuRow, Row, Section, ui } from "../../lib/account-ui";
 import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Account() {
+  const { t, language } = useI18n();
+  const { country } = useCountry();
   const bottom = useTabBarSpace();
-  const { user, signOut, deleteAccount } = useSession();
-  const [confirm, setConfirm] = useState(false);
+  const user = useSession((s) => s.user);
+  const signOut = useSession((s) => s.signOut);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  async function remove() {
+  async function saveName() {
+    if (!name.trim()) return;
     setBusy(true);
-    setError(null);
+    setMsg(null);
     try {
-      await deleteAccount();
-      router.replace("/sign-in");
-    } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body));
+      await updateMe({ full_name: name.trim() });
+      setEditing(false);
+      setMsg({ ok: true, text: t("account.profile.saved") });
+    } catch {
+      setMsg({ ok: false, text: t("account.profile.save_failed") });
     } finally {
       setBusy(false);
     }
   }
 
+  const languageValue = [LANGUAGES[language].name, country?.name].filter(Boolean).join(" · ");
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: bottom }}>
-        <Txt variant="h1" accessibilityRole="header">Account</Txt>
-        <Card style={{ gap: 4 }}>
-          <Txt variant="title">{user?.full_name}</Txt>
-          <Text style={[textFont("400"), { color: color.muted }]}>{user?.phone ?? user?.email}</Text>
-        </Card>
-        <Button title="Sign out" variant="secondary" block onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
-        <View style={{ marginTop: space[8], gap: space[2] }}>
-          <Txt variant="label">Delete account</Txt>
-          <Txt variant="small" style={{ color: color.muted }}>
-            Removes your name, phone, email and addresses. Past orders are kept without your details.
-          </Txt>
-          <Button title="Delete my account" variant="danger" onPress={() => setConfirm(true)} />
-        </View>
+    <SafeAreaView style={ui.screen} edges={["top"]}>
+      <ScrollView testID="account-screen" contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: bottom }}>
+        <Txt variant="h1" accessibilityRole="header">{t("app.account.title")}</Txt>
+
+        <Section title={t("account.profile.details")} testID="account-profile">
+          <Row label={t("account.profile.name")} value={user?.full_name ?? ""}
+            action={<LinkButton testID="edit-name" title={t("common.edit")} onPress={() => { setName(user?.full_name ?? ""); setMsg(null); setEditing(true); }} />} />
+          <Row label={t("account.profile.mobile")} value={user?.phone ?? t("account.profile.not_set")}
+            note={user?.is_phone_verified ? t("account.profile.mobile_note") : t("account.profile.mobile_unverified")} />
+          <Row label={t("account.profile.email")} value={user?.email ?? t("account.profile.not_set")} note={t("account.profile.email_note")} last />
+          <Text style={ui.small}>{t("account.profile.read_only_note")}</Text>
+          {msg ? <Text accessibilityRole="alert" style={msg.ok ? ui.ok : ui.error}>{msg.text}</Text> : null}
+        </Section>
+
+        <Section style={{ paddingVertical: space[2] }}>
+          <MenuRow testID="account-addresses" icon="pin" label={t("account.nav.addresses")} href="/account/addresses" />
+          <MenuRow testID="account-payments" icon="bag" label={t("account.nav.payments")} href="/account/payments" />
+          <MenuRow testID="account-notifications" icon="message" label={t("account.nav.notifications")} href="/account/notifications" />
+          <MenuRow testID="account-favourites" icon="star" label={t("account.nav.favourites")} href="/favourites" />
+          <MenuRow testID="account-language" icon="map" label={t("account.profile.language_country")} value={languageValue} href="/account/language" />
+          <MenuRow testID="account-privacy" icon="alert" label={t("account.nav.privacy")} href="/account/privacy" last />
+        </Section>
+
+        <Button testID="sign-out" title={t("common.sign_out")} variant="secondary" block
+          onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
       </ScrollView>
-      <Sheet visible={confirm} onClose={() => setConfirm(false)} title="Delete your account?"
+
+      <Sheet visible={editing} onClose={() => setEditing(false)} title={t("account.profile.name_label")}
         footer={
           <View style={{ gap: space[2] }}>
-            <Button title="Yes, delete it" variant="danger" size="lg" block loading={busy} onPress={remove} />
-            <Button title="Keep my account" variant="secondary" block onPress={() => setConfirm(false)} />
+            <Button testID="save-name" title={t("common.save")} size="lg" block loading={busy} disabled={!name.trim()} onPress={saveName} />
+            <Button title={t("common.cancel")} variant="secondary" block onPress={() => setEditing(false)} />
           </View>
         }>
-        <Txt style={{ color: color.muted }}>You&apos;ll be signed out on every device. This can&apos;t be undone.</Txt>
-        {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+        <Input testID="name-input" label={t("account.profile.name")} value={name} onChangeText={setName} maxLength={100} autoComplete="name" autoFocus />
+        {msg && !msg.ok ? <Text style={[ui.error, { color: color.chili }]}>{msg.text}</Text> : null}
       </Sheet>
     </SafeAreaView>
   );

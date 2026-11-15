@@ -806,6 +806,34 @@
     "thanks": "इस ऑर्डर को रेट करने के लिए धन्यवाद।"
   },
   "app": {
+    "account": {
+      "title": "खाता",
+      "keep": "मेरा खाता रखें"
+    },
+    "orders": {
+      "past": "पिछले ऑर्डर",
+      "when": "{date}, {time} · {code}"
+    },
+    "rating": {
+      "change": "अपनी रेटिंग बदलें",
+      "until": "आप इसे {date} तक बदल सकते हैं।"
+    },
+    "payments": {
+      "saved": "सेव किए गए कार्ड",
+      "offered": "{country} में भुगतान के तरीके",
+      "offered_note": "चेकआउट पर भुगतान करते समय आप एक चुनते हैं।"
+    },
+    "pay": {
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay"
+    },
+    "addresses": {
+      "required": "गली और शहर दर्ज करें।"
+    },
+    "report": {
+      "add_photo": "फ़ोटो जोड़ें",
+      "uploading": "अपलोड हो रहा है…"
+    },
     "test_banner": "टेस्ट साइट: डेमो किचन, कोई असली ऑर्डर या भुगतान नहीं",
     "units": {
       "km": "{value} कि.मी.",

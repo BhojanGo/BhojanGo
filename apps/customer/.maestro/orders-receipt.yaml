@@ -1,0 +1,49 @@
+# Read-only (safe on QA): the orders tab lists past orders and one opens its
+# receipt (items, the fair bill), and the receipt opens the report-a-problem screen. Nothing is
+# tapped that writes: no rating, no report, no order again.
+#   maestro test -e PHONE=<seed phone with past orders> apps/customer/.maestro/orders-receipt.yaml
+appId: com.bhojango.app
+---
+- runFlow: sign-in.yaml
+- tapOn: "Orders"
+- extendedWaitUntil:
+    visible:
+      id: "past-order-0"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/47-orders
+- tapOn:
+    id: "past-order-0"
+- extendedWaitUntil:
+    visible:
+      id: "receipt-status"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/48-receipt
+# Report a problem is reachable from the receipt (opened, not sent; a cancelled order has none).
+- runFlow:
+    when:
+      visible:
+        id: "receipt-report"
+    commands:
+      - tapOn:
+          id: "receipt-report"
+      - extendedWaitUntil:
+          visible: "Which items?"
+          timeout: 20000
+      - back
+      - extendedWaitUntil:
+          visible:
+            id: "receipt-status"
+          timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "receipt-items"
+- scrollUntilVisible:
+    element:
+      id: "receipt-bill"
+- takeScreenshot: docs/screenshots/customer/49-receipt-bill
+- tapOn:
+    id: "back"
+- extendedWaitUntil:
+    visible:
+      id: "orders-list"
+    timeout: 10000
