@@ -1,85 +1,122 @@
-// The restaurant: its menu by category; tap a dish to customise it.
+// The kitchen: its own cover (or initials tile), "New" or its rating, the offer
+// and who pays, then the menu by section. A dish shows a photo only when it has
+// its own (image_url); otherwise a clean text row. Tap a dish to customise it.
 import { color, radius, space, textFont, Txt, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { FavouriteHeart } from "../../components/Heart";
+import { RatingBadge } from "../../components/KitchenCard";
+import { offerBadge } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
-import { PlateHeader } from "../../lib/plate";
-import { useMenu } from "../../lib/restaurants";
+import { KitchenCover, photo, Photo } from "../../lib/plate";
+import { useKitchenCard, useMenu, type MenuItem } from "../../lib/restaurants";
 
 export default function RestaurantScreen() {
-  const { money } = useI18n();
+  const { t, money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { menu, error } = useMenu(id);
+  const card = useKitchenCard(id);
   const bag = useBag();
   const inBag = bag.restaurantId === id ? bag.lines.reduce((n, l) => n + l.quantity, 0) : 0;
 
   if (!menu) {
     return (
       <SafeAreaView style={styles.center}>
-        {error ? <Txt>{error}</Txt> : <ActivityIndicator color={color.peacock} />}
+        {error ? <Txt>{t("kitchen.menu_unavailable")}</Txt> : <ActivityIndicator color={color.peacock} />}
       </SafeAreaView>
     );
   }
   const r = menu.restaurant;
+  const offer = card?.offer ?? null;
+  const open = r.is_open !== false;
+  const total = bag.lines.reduce((n, l) => n + l.unitPrice * l.quantity, 0);
   return (
-    <View style={{ flex: 1, backgroundColor: color.porcelain }}>
+    <View testID="kitchen" style={{ flex: 1, backgroundColor: color.porcelain }}>
       <SectionList
-        sections={menu.categories.map((c) => ({ title: c.name, data: c.items }))}
+        sections={menu.categories.map((c) => ({ title: c.name || t("kitchen.more"), data: c.items }))}
         keyExtractor={(i) => i.id}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={{ paddingBottom: 120 }}
         ListHeaderComponent={
           <View>
-            <PlateHeader label={r.name} height={220} size={170} />
+            <KitchenCover name={r.name} cover={r.cover_url} cuisine={r.cuisine_types[0]} height={220} width={1600} />
             <View style={styles.head}>
-              <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33 }}>{r.name}</Txt>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33, flex: 1 }}>{r.name}</Txt>
+                <RatingBadge x={r} testID="kitchen-rating" />
+              </View>
               <Text style={[textFont("400"), { color: color.muted, fontSize: 14 }]}>
-                {r.cuisine_types.join(" · ")} · {r.delivery_time_min}–{r.delivery_time_max} min
+                {[...r.cuisine_types.slice(0, 3), t("common.minutes", { min: r.delivery_time_min, max: r.delivery_time_max })].join(" · ")}
               </Text>
+              {offer ? (
+                <View testID="kitchen-offer" style={styles.offer}>
+                  <Text style={[textFont("800"), { fontSize: 13, color: color.kohl }]}>{offerBadge(offer, t, money, r.currency)}</Text>
+                </View>
+              ) : null}
+              {!open ? <Txt variant="small" style={{ color: color.chili }}>{t("kitchen.closed_note")}</Txt> : null}
               {r.description ? <Txt variant="small" style={{ color: color.muted }}>{r.description}</Txt> : null}
             </View>
           </View>
         }
         renderSectionHeader={({ section }) => (
-          <Txt variant="h2" style={{ paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[2] }}>{section.title}</Txt>
+          <Txt variant="h2" accessibilityRole="header" style={{ paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[2] }}>{section.title}</Txt>
         )}
-        renderItem={({ item }) => {
-          const off = !item.is_available || item.sold_out_today;
-          return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={item.name}
-              accessibilityState={{ disabled: off }}
-              disabled={off}
-              onPress={() => router.push({ pathname: "/item", params: { restaurantId: r.id, itemId: item.id } })}
-              style={[styles.item, off && { opacity: 0.5 }]}
-            >
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={[textFont("800"), { fontSize: 16, color: color.kohl }]}>{item.name}</Text>
-                {item.description ? (
-                  <Text numberOfLines={2} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{item.description}</Text>
-                ) : null}
-                <Text style={[textFont("700"), { fontSize: 15, color: color.kohl }]}>
-                  {off ? "Sold out today" : money(item.price, r.currency, { whole: true })}
-                </Text>
-              </View>
-              <View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>
-            </Pressable>
-          );
-        }}
+        renderItem={({ item }) => <DishRow item={item} restaurantId={r.id} currency={r.currency} />}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} style={[styles.round, { left: 16 }]}>
         <Icon name="back" />
       </Pressable>
+      <View style={{ position: "absolute", right: 16, top: 48 }}>
+        <FavouriteHeart kind="restaurant" id={r.id} name={r.name} size={44} testID="kitchen-heart" />
+      </View>
       {inBag > 0 ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
-          <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>View bag · {inBag} {inBag === 1 ? "item" : "items"}</Text>
+        <Pressable testID="view-bag" accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
+          <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>
+            {t("kitchen.view_bag")} · {t("kitchen.bar_summary", { count: inBag, total: money(total, r.currency, { whole: true }) })}
+          </Text>
           <Icon name="arrow" stroke={color.white} />
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantId: string; currency: string }) {
+  const { t, money } = useI18n();
+  const off = !item.is_available || !!item.sold_out_today;
+  // Only the dish's own photo, never a stand-in.
+  const pic = photo(item.image_url, 400);
+  return (
+    <Pressable
+      testID={`dish-${item.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={item.name}
+      accessibilityHint={off ? t("kitchen.sold_out_today") : t("kitchen.add_dish", { name: item.name })}
+      accessibilityState={{ disabled: off }}
+      disabled={off}
+      onPress={() => router.push({ pathname: "/item", params: { restaurantId, itemId: item.id } })}
+      style={[styles.item, off && { opacity: 0.5 }]}
+    >
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text style={[textFont("800"), { fontSize: 16, color: color.kohl }]}>{item.name}</Text>
+        <Text style={[textFont("700"), { fontSize: 15, color: color.kohl }]}>
+          {off ? t("kitchen.sold_out_today") : money(item.price, currency, { whole: true })}
+        </Text>
+        {item.description ? (
+          <Text numberOfLines={2} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{item.description}</Text>
+        ) : null}
+      </View>
+      {pic ? (
+        <View>
+          <Photo uri={pic} label={item.name} style={styles.dishPhoto} testID="photo-dish"
+            fallback={<View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>} />
+        </View>
+      ) : (
+        <View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>
+      )}
+    </Pressable>
   );
 }
 
@@ -89,13 +126,15 @@ const styles = StyleSheet.create({
     marginTop: -24, backgroundColor: color.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
     padding: space[5], gap: 6,
   },
+  offer: { alignSelf: "flex-start", marginTop: 4, borderRadius: radius.pill, backgroundColor: color.plate, paddingHorizontal: 12, paddingVertical: 6 },
   item: {
     marginHorizontal: space[5], marginBottom: space[3], padding: space[4], borderRadius: radius.card, backgroundColor: color.white,
     flexDirection: "row", gap: space[3], alignItems: "center",
   },
+  dishPhoto: { width: 104, height: 96, borderRadius: radius.card },
   add: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
-  back: {
-    position: "absolute", left: 16, top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
+  round: {
+    position: "absolute", top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",
   },
   bagBar: {

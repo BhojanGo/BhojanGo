@@ -16,7 +16,7 @@ export default function OutOfArea() {
   const { country, countries } = useCountry();
   const cities = liveCityNames(countries); // where we cook now (Markets)
   // The most specific place we know (a neighbourhood can be outside a served city's zones).
-  const place = point?.label?.split("· ")[1] || point?.city || "your area";
+  const place = point?.label?.split("· ")[1] || point?.label || point?.city || null;
   const [phone, setPhone] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function OutOfArea() {
       unwrap(await api.core.POST("/api/v1/markets/waitlist", { body: { phone: e164(phoneCode, phone), lat: point.lat, lng: point.lng } }));
       setDone(true);
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, "Check the number and try again."));
+      setError(errorMessage((e as { body?: unknown }).body, t("app.out_of_area.failed")));
     }
   }
 
@@ -38,26 +38,26 @@ export default function OutOfArea() {
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: space[5] }}>
         <Icon name="pin" size={20} stroke={color.peacock} />
-        <Text style={[textFont("700"), { fontSize: 15 }]}>{point?.label}</Text>
+        <Text style={[textFont("700"), { fontSize: 15 }]}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
       </View>
       <View style={{ flex: 1, padding: space[5], justifyContent: "center", gap: space[4] }}>
         <Icon name="map" size={56} stroke={color.peacock} />
         <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33 }}>
-          We&apos;re not in {place} yet
+          {place ? t("app.out_of_area.title", { place }) : t("app.out_of_area.title_here")}
         </Txt>
         <Txt style={{ color: color.muted }}>
           {cities.length ? `${t("app.out_of_area.cooking_in", { cities: cities.join(", ") })} ` : ""}{t("app.out_of_area.leave_number")}
         </Txt>
         {done ? (
-          <Txt variant="label" style={{ color: color.peacock }}>Thanks. We&apos;ll text you when we launch in {place}.</Txt>
+          <Txt variant="label" style={{ color: color.peacock }}>{place ? t("app.out_of_area.thanks", { place }) : t("app.out_of_area.thanks_here")}</Txt>
         ) : (
           <>
-            <Input label="Mobile number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={error ?? undefined} />
-            <Button title="Tell me when you launch" size="lg" block disabled={phone.replace(/\D/g, "").length < 8} onPress={join} />
+            <Input label={t("signin.mobile")} keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={error ?? undefined} />
+            <Button title={t("app.out_of_area.notify")} size="lg" block disabled={phone.replace(/\D/g, "").length < 8} onPress={join} />
           </>
         )}
         <Text style={[textFont("700"), { color: color.peacock, textAlign: "center", marginTop: space[4] }]} onPress={() => router.replace("/home")}>
-          Try another address
+          {t("home.try_another")}
         </Text>
       </View>
     </SafeAreaView>

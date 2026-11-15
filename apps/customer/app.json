@@ -46,6 +46,7 @@
       ],
       "expo-secure-store",
       "expo-font",
+      "@maplibre/maplibre-react-native",
       [
         "expo-image-picker",
         {

@@ -819,11 +819,61 @@
       "choose_country": "Choose your country"
     },
     "home": {
-      "banner": "Made to order by kitchens near you"
+      "banner": "Made to order by kitchens near you",
+      "current_location": "Current location",
+      "choose_address": "Choose an address",
+      "finding_you": "Finding you…",
+      "locate_failed": "We couldn't tell where you are. Choose an address or allow location.",
+      "use_location": "Use my current location",
+      "finding_kitchens": "Finding kitchens near {place}",
+      "finding_kitchens_here": "Finding kitchens near you",
+      "cuisine_near": "{cuisine} near you",
+      "all_kitchens": "All kitchens",
+      "hello": {
+        "morning": "Good morning.",
+        "afternoon": "Good afternoon.",
+        "evening": "Good evening.",
+        "night": "Late night."
+      },
+      "hello_name": {
+        "morning": "Good morning, {name}.",
+        "afternoon": "Good afternoon, {name}.",
+        "evening": "Good evening, {name}.",
+        "night": "Late night, {name}."
+      },
+      "ask": {
+        "morning": "What's for breakfast?",
+        "afternoon": "What's for lunch?",
+        "evening": "What's for dinner?",
+        "night": "Something to keep you going?"
+      }
     },
     "out_of_area": {
       "cooking_in": "BhojanGo is cooking in {cities}.",
-      "leave_number": "Leave your number and we'll text you the day we arrive."
+      "leave_number": "Leave your number and we'll text you the day we arrive.",
+      "title": "We're not in {place} yet",
+      "title_here": "We're not in your area yet",
+      "thanks": "Thanks. We'll text you when we launch in {place}.",
+      "thanks_here": "Thanks. We'll text you when we launch near you.",
+      "notify": "Tell me when you launch",
+      "failed": "Check the number and try again."
+    },
+    "search": {
+      "no_match": "Nothing matches “{q}” nearby."
+    },
+    "item": {
+      "customise": "Customise {name}"
+    },
+    "bag": {
+      "held": "Price held {time}"
+    },
+    "track": {
+      "progress": "Progress: {step}, step {n} of {total}",
+      "step_placed": "Placed",
+      "step_cooking": "Cooking",
+      "step_picked": "Picked up",
+      "step_home": "Home",
+      "pin_a11y": "Delivery PIN {pin}. Give it to your rider at the door."
     }
   },
   "rider": {

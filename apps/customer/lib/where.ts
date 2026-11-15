@@ -7,7 +7,7 @@ import { create } from "zustand";
 export type Locate = CoreSchemas["LocateResult"];
 
 export interface DropPoint {
-  label: string; // "Home · Madhapur"
+  label: string; // "Home · <area>" for a saved address; the area (or "") for where the phone is
   addressId: string | null;
   lat: number;
   lng: number;
@@ -41,8 +41,8 @@ async function here(): Promise<DropPoint> {
   const pos = await Location.getCurrentPositionAsync({});
   const geo = (await Location.reverseGeocodeAsync(pos.coords).catch(() => []))[0];
   return {
-    label: `Here · ${geo?.city || geo?.district || "current location"}`, addressId: null,
-    lat: pos.coords.latitude, lng: pos.coords.longitude, street: geo?.street || geo?.name || "Current location",
+    label: geo?.city || geo?.district || "", addressId: null,
+    lat: pos.coords.latitude, lng: pos.coords.longitude, street: geo?.street || geo?.name || "Current location", // sent with the order when the phone has no street
     city: geo?.city || "", state: geo?.region || "", zip: geo?.postalCode || "", country: geo?.isoCountryCode || "",
   };
 }
@@ -84,7 +84,6 @@ export const useWhere = create<WhereState>()((set, get) => ({
   },
 }));
 
-/** "Good morning", "Good afternoon" or "Good evening" for the local time. */
 /** The hour in the delivery city (its own time zone), else the phone's. */
 export function localHour(timeZone?: string | null, now = new Date()): number {
   if (timeZone) {
@@ -98,11 +97,13 @@ export function localHour(timeZone?: string | null, now = new Date()): number {
   return now.getHours();
 }
 
-/** "Good morning" … "Late night" and what to ask, by the city's local time. */
-export function greeting(timeZone?: string | null, now = new Date()): { hello: string; ask: string } {
+/** The part of the day in the delivery city (message keys app.home.hello_*, app.home.ask_*). */
+export type PartOfDay = "morning" | "afternoon" | "evening" | "night";
+
+export function partOfDay(timeZone?: string | null, now = new Date()): PartOfDay {
   const h = localHour(timeZone, now);
-  if (h >= 5 && h < 12) return { hello: "Good morning", ask: "What's for breakfast?" };
-  if (h >= 12 && h < 17) return { hello: "Good afternoon", ask: "What's for lunch?" };
-  if (h >= 17 && h < 22) return { hello: "Good evening", ask: "What's for dinner?" };
-  return { hello: "Late night", ask: "Something to keep you going?" };
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17 && h < 22) return "evening";
+  return "night";
 }

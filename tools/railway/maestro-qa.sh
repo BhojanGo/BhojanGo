@@ -5,7 +5,8 @@
 #   RAILWAY_TOKEN=<QA project token> E2E_LOGINS_FILE=/path/outside/the/repo/BhojanGo_QA_Logins.txt \
 #   tools/railway/maestro-qa.sh [customer|rider|partner ...]
 # Needs: the apps installed on emulator-5554 (make apk APP=...), Maestro, and the
-# QA restaurants open (demo seed hours). Refused while QA is protected (below). Passwords go to the
+# QA restaurants open (demo seed hours). QA is protected (tools/target_guard.py): only the
+# flows tagged qa-readonly run there (below). Passwords go to the
 # flows' scripts as QA_PASSWORDS (a local maestro argument; never printed).
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -16,11 +17,19 @@ mkdir -p "$OUT"
 sh "$ROOT/tools/mobile/env-profile.sh" qa || exit 1
 QA_CORE="$(sed -n 's/^EXPO_PUBLIC_CORE_URL=//p' "$ROOT/apps/customer/.env.local")"
 QA_RT="$(sed -n 's/^EXPO_PUBLIC_REALTIME_URL=//p' "$ROOT/apps/customer/.env.local")"
-# Tests never write to QA or production: the flows sign in, place orders and change
-# data, so tools/target_guard.py refuses a QA or production API (exit 3).
+# Tests never write to QA or production. Most flows place orders and change data, so
+# when tools/target_guard.py refuses the API (QA, exit 3) only the read-only flows run:
+# those tagged qa-readonly (they sign in with a seed phone and look; nothing is
+# ordered, saved or sent). Production is never a target here.
+READONLY=0
 if ! python "$ROOT/tools/target_guard.py" api "$QA_CORE" "$QA_RT"; then
-  sh "$ROOT/tools/mobile/env-profile.sh" local >/dev/null
-  exit 3
+  # Read-only flows only where the API itself says it is QA; anything else is refused.
+  if ! curl -s -m 10 "$QA_CORE/health" | python -c "import json, sys; sys.exit(0 if str(json.load(sys.stdin).get('environment', '')).lower() == 'qa' else 1)"; then
+    sh "$ROOT/tools/mobile/env-profile.sh" local >/dev/null
+    exit 3
+  fi
+  READONLY=1
+  echo "QA: read-only flows only (tags: qa-readonly)"
 fi
 QA_PASSWORDS="$(python -c "
 import json, sys
@@ -45,6 +54,9 @@ for app in $APPS; do
   adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
   [ "$app" = rider ] && adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   flows="$(cd "$ROOT/apps/$app/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
+  if [ "$READONLY" = 1 ]; then
+    flows="$(for f in $flows; do grep -Eq '^[[:space:]]*-[[:space:]]*qa-readonly[[:space:]]*$' "$ROOT/apps/$app/.maestro/$f.yaml" && echo "$f"; done)"
+  fi
   if [ -n "${ONLY:-}" ]; then  # ONLY="account batch": just these flows (of any app)
     flows="$(for f in $flows; do case " $ONLY " in *" $f "*) echo "$f";; esac; done)"
   fi

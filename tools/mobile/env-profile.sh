@@ -26,10 +26,13 @@ case "$PROFILE" in
   qa)
     CORE="https://$(domain core-api)"
     REALTIME="https://$(domain realtime)"
-    [ "$CORE" != "https://" ] && [ "$REALTIME" != "https://" ] || { echo "no public domain for core-api or realtime" >&2; exit 1; } ;;
+    WEB="https://$(domain web)"
+    [ "$CORE" != "https://" ] && [ "$REALTIME" != "https://" ] || { echo "no public domain for core-api or realtime" >&2; exit 1; }
+    [ "$WEB" != "https://" ] || WEB="" ;;
   local)
     CORE="http://localhost:8001"
-    REALTIME="http://localhost:8004" ;;
+    REALTIME="http://localhost:8004"
+    WEB="http://localhost:3000" ;;
   *) echo "unknown profile: $PROFILE (qa | local)" >&2; exit 1 ;;
 esac
 
@@ -40,6 +43,7 @@ EXPO_PUBLIC_APP_ENV=$PROFILE
 EXPO_PUBLIC_ENV=$PROFILE
 EXPO_PUBLIC_CORE_URL=$CORE
 EXPO_PUBLIC_REALTIME_URL=$REALTIME
+EXPO_PUBLIC_WEB_URL=$WEB
 EOF
 done
-echo "apps now use $PROFILE: core $CORE, realtime $REALTIME (restart Metro with -c)"
+echo "apps now use $PROFILE: core $CORE, realtime $REALTIME, web ${WEB:-none} (restart Metro with -c)"
