@@ -10,7 +10,7 @@ DEVICE_KIND="${1:?usage: stack-screens.sh <phone|tablet> <app> [app ...]}"
 shift
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEVICE="${DEVICE:-emulator-5554}"
-OUT="${OUT:-$ROOT/.screens}"
+OUT="${OUT:-$ROOT/stack-screens-out}"
 LOGS="$OUT/logs"
 mkdir -p "$LOGS"
 COMPOSE="docker compose -f $ROOT/infra/docker/compose.yaml"
@@ -70,6 +70,9 @@ EOF
     else
       echo "FAIL $name"; tail -30 "$LOGS/$name.log"; fail=1
       adb -s "$DEVICE" exec-out screencap -p > "$LOGS/$name-failed.png" 2>/dev/null
+      # Maestro's own debug output (screenshot at the failure, view hierarchy).
+      last="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
+      [ -n "$last" ] && cp -r "$last" "$LOGS/$name-maestro" 2>/dev/null
     fi
     curl -s -m 5 localhost:8011/__slow/off >/dev/null
   done

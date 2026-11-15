@@ -86,7 +86,7 @@ jobs:
       COMPOSE_PROJECT_NAME: bhojango
       COMPOSE: docker compose -f infra/docker/compose.yaml
       DEMO_RIDER_SIM: "0"  # nothing moves orders on its own while the flows run
-      OUT: ${{ github.workspace }}/.screens
+      OUT: ${{ github.workspace }}/stack-screens-out
     steps:
       - uses: actions/checkout@v4
 
@@ -156,7 +156,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-stack-screens-${{ matrix.device }}
-          path: .screens
+          path: stack-screens-out
           retention-days: 7
 
       - name: Service logs
