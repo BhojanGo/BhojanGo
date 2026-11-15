@@ -3,6 +3,8 @@
 # tapped that writes: no rating, no report, no order again.
 #   maestro test -e PHONE=<seed phone with past orders> apps/customer/.maestro/orders-receipt.yaml
 appId: com.bhojango.app
+tags:
+  - qa-readonly
 ---
 - runFlow: sign-in.yaml
 - tapOn: "Orders"

@@ -2,6 +2,8 @@
 # back. Nothing is saved: no address, card, switch or deletion is touched.
 #   maestro test -e PHONE=<seed phone> apps/customer/.maestro/account-pages.yaml
 appId: com.bhojango.app
+tags:
+  - qa-readonly
 ---
 - runFlow: sign-in.yaml
 - tapOn: "Account"
