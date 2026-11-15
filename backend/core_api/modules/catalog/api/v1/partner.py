@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user
 from core_api.modules.catalog.models.menu import MenuItem
 from core_api.modules.catalog.models.restaurant import Restaurant
-from core_api.modules.catalog.service import access
+from core_api.modules.catalog.service import access, ratings
 from core_api.modules.catalog.service.menu import busy_minutes, paused_by_kitchen
 from shared.db import get_db
 
@@ -99,6 +99,13 @@ async def mine(user: User, db: DB) -> list[MineOut]:
 async def today(restaurant_id: uuid.UUID, user: User, db: DB) -> StateOut:
     """The tablet's header: open or paused, busy, prep time, today's orders and sales."""
     return await _state(db, await access.manage(db, user, restaurant_id))
+
+
+@router.get("/{restaurant_id}/ratings/summary", response_model=ratings.RatingSummary)
+async def rating_summary(restaurant_id: uuid.UUID, user: User, db: DB) -> ratings.RatingSummary:
+    """The dashboard's ratings: "New" until 5 ratings (as customers see it), the
+    average and count, how many gave each star, and the latest comments (no names)."""
+    return await ratings.summary(db, await access.manage(db, user, restaurant_id, "partners.view"))
 
 
 @router.put("/{restaurant_id}/pause", response_model=StateOut)

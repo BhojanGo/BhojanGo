@@ -1,6 +1,6 @@
 // The partner's restaurant and what the tablet shows: today's state, the
 // orders board (polled every 4 s), the menu, offers and the application.
-import { api, unwrap, useI18n, useSession, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, unwrap, urls, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -9,6 +9,7 @@ export type Order = CoreSchemas["OrderResponse"];
 export type Today = CoreSchemas["StateOut"];
 export type Offer = CoreSchemas["OfferOut"];
 export type Application = CoreSchemas["ApplicationOut"];
+export type RatingSummary = CoreSchemas["RatingSummary"];
 
 export type Kitchen = CoreSchemas["MineOut"];
 
@@ -17,7 +18,10 @@ const CHOSEN = "partner_kitchen";
 interface KitchenStore {
   kitchens: Kitchen[] | null;
   kitchen: Kitchen | null;
+  /** The API's reason the kitchens didn't load; null when they did. */
   error: string | null;
+  /** Signed in, but the account has no kitchen (index shows partner.home.no_kitchen). */
+  none: boolean;
   load: () => Promise<Kitchen | null>;
   choose: (k: Kitchen) => Promise<void>;
 }
@@ -27,13 +31,13 @@ export const useKitchen = create<KitchenStore>()((set) => ({
   kitchens: null,
   kitchen: null,
   error: null,
+  none: false,
   load: async () => {
     try {
       const all = unwrap(await api.core.GET("/api/v1/restaurants/mine"));
       const saved = await SecureStore.getItemAsync(CHOSEN).catch(() => null);
       const k = all.find((x) => x.id === saved) ?? (all.length === 1 ? all[0] : null);
-      const me = useSession.getState().user;
-      set({ kitchens: all, kitchen: k ?? null, error: all.length ? null : `${me?.full_name ?? "This account"} has no restaurant yet.` });
+      set({ kitchens: all, kitchen: k ?? null, error: null, none: !all.length });
       return k ?? null;
     } catch (e) {
       set({ error: (e as Error).message });
@@ -117,6 +121,24 @@ export async function reject(orderId: string): Promise<Order> {
   return unwrap(await api.core.POST("/api/v1/orders/{order_id}/cancel", {
     params: { path: { order_id: orderId } }, body: { reason: "restaurant_cancelled", note: "Rejected on the tablet" },
   }));
+}
+
+/** The kitchen's ratings for the dashboard: "New" until 5, average, count, stars, latest comments. */
+export async function getRatingSummary(id: string): Promise<RatingSummary> {
+  return unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/ratings/summary", { params: { path: { restaurant_id: id } } }));
+}
+
+/**
+ * A dish photo's address the tablet can load. Absolute URLs (uploaded menu photos on
+ * core_api, S3) as they are; the website's photo library paths ("/food/...") need the
+ * website's address (EXPO_PUBLIC_WEB_URL), else null (the preview shows a stand-in).
+ */
+export function imageUri(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//.test(url)) return url;
+  if (url.startsWith("/api/")) return `${urls.core}${url}`;
+  const web = process.env.EXPO_PUBLIC_WEB_URL;
+  return web && url.startsWith("/") ? `${web.replace(/\/$/, "")}${url}` : null;
 }
 
 /** Minutes until the rider reaches the kitchen (realtime ETA), or null. */

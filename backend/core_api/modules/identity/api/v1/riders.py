@@ -10,7 +10,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Query, Request, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,18 +53,30 @@ def uploader(user: Annotated[CurrentUser, Depends(get_current_user)]) -> Current
 
 
 PURPOSES = {"delivery_proof": "driver", "rider_document": "driver", "partner_document": "restaurant_owner",
-            "problem_photo": "customer"}  # B5: a photo with a problem report
+            "problem_photo": "customer",  # B5: a photo with a problem report
+            "menu_photo": "restaurant_owner"}  # round 4: a dish's photo, public once uploaded (customers see it)
+PHOTOS_ONLY = ("delivery_proof", "problem_photo", "menu_photo")
+MENU_PHOTO_PATH = "/api/v1/uploads/menu-photo"
+
+
+def menu_photo_path(key: str) -> str:
+    """Where anyone can load a menu photo: "/api/v1/uploads/menu-photo/<owner>/<file>"."""
+    return f"{MENU_PHOTO_PATH}/{key.removeprefix('menu_photo/')}"
+
 
 
 @router.post("/uploads", status_code=status.HTTP_201_CREATED)
 async def upload(user: Annotated[CurrentUser, Depends(uploader)], file: Annotated[UploadFile, File()],
-                 purpose: Annotated[Literal["delivery_proof", "rider_document", "partner_document", "problem_photo"], Form()]) -> dict:
-    """A photo of the bags at the door, a rider's document, or a partner's licence
-    (photo or PDF). Returns the key to send with it (files are private)."""
+                 purpose: Annotated[Literal["delivery_proof", "rider_document", "partner_document", "problem_photo", "menu_photo"],
+                                    Form()]) -> dict:
+    """A photo of the bags at the door, a rider's document, a partner's licence
+    (photo or PDF), or a dish's photo for the menu. Returns the key to send with it.
+    Files are private, except menu photos: their response also has `public_path`
+    (GET it on core_api, no sign-in), which the partner app saves as the item's image_url."""
     if PURPOSES[purpose] != user.role:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "WRONG_PURPOSE", "message": "Not an upload you can make"})
     ctype = (file.content_type or "").split(";")[0]
-    if ctype not in TYPES or (purpose in ("delivery_proof", "problem_photo") and not ctype.startswith("image/")):
+    if ctype not in TYPES or (purpose in PHOTOS_ONLY and not ctype.startswith("image/")):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                             detail={"code": "FILE_TYPE", "message": "Send a JPEG, PNG or WebP photo (or a PDF for documents)"})
     data = await file.read(MAX_BYTES + 1)
@@ -74,7 +86,22 @@ async def upload(user: Annotated[CurrentUser, Depends(uploader)], file: Annotate
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail={"code": "FILE_TOO_LARGE", "message": "Files can be up to 5 MB"})
     key = f"{purpose}/{user.user_id}/{uuid.uuid4()}.{TYPES[ctype]}"
     await get_storage().put(key, data, ctype)
-    return {"key": key, "content_type": ctype, "size": len(data)}
+    out: dict = {"key": key, "content_type": ctype, "size": len(data)}
+    if purpose == "menu_photo":
+        out["public_path"] = menu_photo_path(key)
+    return out
+
+
+@router.get("/uploads/menu-photo/{owner}/{name}")  # = MENU_PHOTO_PATH under /api/v1
+async def menu_photo(owner: uuid.UUID, name: Annotated[str, Path(pattern=r"^[0-9a-f-]{36}\.(jpg|png|webp)$")]) -> Response:
+    """A dish's photo, for anyone (the menu shows it to customers). Only menu photos:
+    every other upload stays private (/uploads/view is for the admins who review them)."""
+    got = await get_storage().get(f"menu_photo/{owner}/{name}")
+    if got is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    data, ctype = got
+    # The name is a fresh uuid per upload: the bytes behind a URL never change.
+    return Response(content=data, media_type=ctype, headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 # ── onboarding ───────────────────────────────────────────────────────────────

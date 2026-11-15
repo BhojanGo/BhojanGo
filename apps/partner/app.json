@@ -12,7 +12,11 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "bundleIdentifier": "com.bhojango.partner"
+      "bundleIdentifier": "com.bhojango.partner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "BhojanGo Partner uses the camera to take photos of your dishes for your menu.",
+        "NSPhotoLibraryUsageDescription": "BhojanGo Partner lets you choose photos of your dishes for your menu."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,6 +25,7 @@
       },
       "package": "com.bhojango.partner",
       "permissions": [
+        "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "WAKE_LOCK"
@@ -33,6 +38,13 @@
     "plugins": [
       "expo-router",
       "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BhojanGo Partner lets you choose photos of your dishes for your menu.",
+          "cameraPermission": "BhojanGo Partner uses the camera to take photos of your dishes for your menu."
+        }
+      ],
       [
         "expo-notifications",
         {

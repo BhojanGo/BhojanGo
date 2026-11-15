@@ -111,6 +111,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
     ("POST", "/api/v1/markets/waitlist"): public("notify me: coming-soon cities and unserved addresses"),
     ("GET", "/api/v1/markets/directory"): public("where we deliver: countries, states, cities (web v2)"),
+    ("GET", "/api/v1/uploads/menu-photo/{owner}/{name}"): public("dish photos the menu shows customers (menu_photo uploads only)"),
     ("GET", "/api/v1/markets/cities/{country}/{slug}"): public("a city's public page (web v2)"),
     ("GET", "/api/v1/markets/areas"): public("the address box: find an area by name"),
     ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
@@ -232,6 +233,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     # partner tablet (P19)
     ("GET", "/api/v1/restaurants/mine"): user(),  # only ever your own
     ("GET", f"{R}/today"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("GET", f"{R}/ratings/summary"): user("customer", "rider", "other_partner", "ops_boi"),  # round 4: the dashboard's ratings
     ("PUT", f"{R}/pause"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"paused": False}),
     ("PUT", f"{R}/busy"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"extra_minutes": 0}),
     ("GET", f"{R}/offers"): user("customer", "rider", "other_partner", "ops_boi"),
