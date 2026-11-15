@@ -41,7 +41,7 @@ appId: com.bhojango.partner
 - takeScreenshot: docs/screenshots/partner/08-create-offer
 - tapOn: "Start offer"
 - extendedWaitUntil:
-    visible: "Live"
+    visible: "(?i)live"  # the status tag is a caption (uppercase) since round 6
     timeout: 15000
 - assertVisible: "All orders . you cover the delivery fee"
 - takeScreenshot: docs/screenshots/partner/09-menu-offer

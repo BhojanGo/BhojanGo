@@ -14,7 +14,7 @@ appId: com.bhojango.partner
 - assertVisible: "Open till.*"
 - runScript: scripts/customer.js
 - extendedWaitUntil:
-    visible: "to accept"
+    visible: "(?i)to accept"  # a caption (uppercase) since round 6
     timeout: 30000
 - assertVisible: "Note: Less oil, please"
 - assertVisible: ".*Priya"
