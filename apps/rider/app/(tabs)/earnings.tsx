@@ -143,7 +143,7 @@ export default function Earnings() {
                   ].filter(Boolean).join(" + ")}
                 </Text>
               </View>
-              <Text style={ui.bold}>{cash(ln.total, cur)}</Text>
+              <Text style={[ui.bold, num]}>{cash(ln.total, cur)}</Text>
             </View>
           ))}
         </View>

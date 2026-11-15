@@ -98,7 +98,7 @@ export default function Item() {
                     <Pressable key={o.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={o.name}
                       onPress={() => toggle(g, o.name)} style={styles.addon}>
                       <Text style={[type.body, { flex: 1 }]}>{o.name}</Text>
-                      <Text style={type.label}>+{money(o.price, currency, { whole: true })}</Text>
+                      <Text style={[type.label, num]}>+{money(o.price, currency, { whole: true })}</Text>
                       <View style={[styles.check, on && styles.checkOn]}>{on ? <Icon name="check" size={16} stroke={color.white} /> : null}</View>
                     </Pressable>
                   );

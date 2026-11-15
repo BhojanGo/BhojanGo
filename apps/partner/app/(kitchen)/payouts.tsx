@@ -1,7 +1,7 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
-import { api, ApiError, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -81,7 +81,7 @@ export default function Payouts() {
                     statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
-              <Text style={[type.label, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
+              <Text style={[type.label, num, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
             </View>
           ))}
         </View>

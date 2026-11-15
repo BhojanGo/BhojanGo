@@ -4,7 +4,7 @@
 // will (lib/dish.tsx), then save it as the item's image_url. On a phone (portrait,
 // lib/layout.ts) it is one column: the search under the title, each dish on two
 // lines (name, then price and stock), then the store hours and offers.
-import { api, ApiError, field, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -122,7 +122,7 @@ export default function MenuScreen() {
         {items.map((i, n) => {
           const inStock = i.is_available && !i.sold_out_today;
           const groups = (i.option_groups ?? []).map((g) => g.name.toLowerCase());
-          const price = <Text style={[type.label, { width: narrow ? undefined : 96, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
+          const price = <Text style={[type.label, num, { width: narrow ? undefined : 96, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
           const stock = (
             <Pressable accessibilityRole="switch" accessibilityState={{ checked: inStock }} accessibilityLabel={tr("partner.menu.in_stock_label", { name: i.name })}
               onPress={() => toggle(i)} style={{ width: narrow ? undefined : stacked ? 150 : 190, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>

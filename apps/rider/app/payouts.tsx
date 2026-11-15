@@ -101,7 +101,7 @@ export default function Payouts() {
                     statusLabel(t, s.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
-              <Text style={ui.bold}>{cash(s.amount / 100, s.currency)}</Text>
+              <Text style={[ui.bold, num]}>{cash(s.amount / 100, s.currency)}</Text>
             </View>
           ))}
         </ScrollView>
