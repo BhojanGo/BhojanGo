@@ -804,5 +804,38 @@
     "failed": "Couldn't save your rating. Please try again.",
     "your_rating": "Your rating",
     "thanks": "Thanks for rating this order."
+  },
+  "app": {
+    "test_banner": "Test site: demo kitchens, no real orders or payments",
+    "units": {
+      "km": "{value} km",
+      "mi": "{value} mi"
+    },
+    "bill": {
+      "kitchens_treat": "Kitchen's treat",
+      "on_us": "On us"
+    },
+    "phone": {
+      "country_code": "Country code, {country} {code}",
+      "choose_country": "Choose your country"
+    },
+    "home": {
+      "banner": "Made to order by kitchens near you"
+    },
+    "out_of_area": {
+      "cooking_in": "BhojanGo is cooking in {cities}.",
+      "leave_number": "Leave your number and we'll text you the day we arrive."
+    }
+  },
+  "rider": {
+    "earnings": {
+      "distance": "distance"
+    }
+  },
+  "partner": {
+    "offer": {
+      "amount_off": "{amount} off",
+      "flat_off": "Amount off"
+    }
   }
 }

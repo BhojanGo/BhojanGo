@@ -25,8 +25,9 @@ interface SessionState {
   accessToken: string | null;
   user: User | null;
   initialize: () => Promise<void>;
-  sendCode: (phone: string, country: "IN" | "US") => Promise<void>;
-  verifyCode: (phone: string, code: string, country: "IN" | "US") => Promise<void>;
+  /** country: the Markets country code of the phone number (useCountry). */
+  sendCode: (phone: string, country: string) => Promise<void>;
+  verifyCode: (phone: string, code: string, country: string) => Promise<void>;
   refresh: () => Promise<string | null>;
   loadUser: () => Promise<void>;
   signOut: () => Promise<void>;

@@ -10,10 +10,11 @@ import Svg, { Circle, Text as SvgText } from "react-native-svg";
 import { Checklist } from "../../lib/checklist";
 import { askForBackgroundLocation, askForLocation, hasBackgroundLocation, sendNow, startTracking, stopTracking } from "../../lib/location";
 import { RouteMap } from "../../lib/map";
-import { CITY_NAMES, cash, dist, useLive, useLiveRider, useOnboarding, useWeek, type Offer } from "../../lib/rider";
+import { useFormat, useLive, useLiveRider, useOnboarding, useWeek, type Offer } from "../../lib/rider";
 import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
 
 export default function Drive() {
+  const { cash, cityName } = useFormat();
   const onboarding = useOnboarding();
   const week = useWeek();
   const ready = onboarding.data?.ready ?? false;
@@ -59,7 +60,7 @@ export default function Drive() {
     );
   }
   const w = week.data;
-  const city = w?.city ? CITY_NAMES[w.city] ?? w.city : null;
+  const city = cityName(w?.city);
   const floor = w?.summary.hourly_floor && city ? `${city} has a ${cash(w.summary.hourly_floor, w.currency)} per active hour floor` : null;
   if (!ready) return <Checklist onboarding={onboarding.data} floor={floor} onRefresh={() => void onboarding.reload()} />;
 
@@ -148,12 +149,13 @@ export default function Drive() {
 }
 
 function OfferSheet({ offer, onDone }: { offer: Offer; onDone: () => void }) {
+  const { cash, dist, unitFor } = useFormat();
   const total = offer.expires_in || 30;
   const left = useSecondsLeft(offer.expires_at, total);
   const [busy, setBusy] = useState<"accept" | "pass" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const unit = offer.distance_unit ?? "km";
-  const cur = offer.currency ?? (unit === "mi" ? "USD" : "INR");
+  const cur = offer.currency ?? null; // null: the current country's currency
+  const unit = offer.distance_unit ?? unitFor(cur);
   const tripKm = (offer.distance_km ?? 0) + (offer.trip_km ?? 0);
   const batch = offer.batch && offer.batch.length > 1 ? offer.batch : null;
   const minutes = batch ? (offer.batch_minutes != null ? Math.round(offer.batch_minutes) : null) : offer.eta?.to_customer_minutes ?? null;

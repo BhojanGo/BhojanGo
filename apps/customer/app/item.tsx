@@ -1,5 +1,5 @@
 // CustomerMenu.html: customise a dish (size cards, segmented choices, add-ons), then add to bag.
-import { color, defaultPicks, money, radius, Segmented, space, textFont, Txt, useBag, type OptionGroup, type Pick } from "@bhojango/mobile-core";
+import { color, defaultPicks, radius, Segmented, space, textFont, Txt, useBag, useI18n, type OptionGroup, type Pick } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -9,6 +9,7 @@ import { PlateHeader } from "../lib/plate";
 import { useMenu } from "../lib/restaurants";
 
 export default function Item() {
+  const { money } = useI18n();
   const { restaurantId, itemId } = useLocalSearchParams<{ restaurantId: string; itemId: string }>();
   const { menu } = useMenu(restaurantId);
   const item = menu?.categories.flatMap((c) => c.items).find((i) => i.id === itemId);
@@ -74,7 +75,7 @@ export default function Item() {
                         onPress={() => toggle(g, o.name)} style={[styles.card, on && styles.cardOn]}>
                         <Text style={[textFont(on ? "800" : "700"), { fontSize: 15 }]}>{title}</Text>
                         <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>
-                          {sub ? `${sub[0]?.toUpperCase()}${sub.slice(1)} · ` : ""}{money(Number(item.price) + Number(o.price), currency, { decimals: 0 })}
+                          {sub ? `${sub[0]?.toUpperCase()}${sub.slice(1)} · ` : ""}{money(Number(item.price) + Number(o.price), currency, { whole: true })}
                         </Text>
                       </Pressable>
                     );
@@ -87,7 +88,7 @@ export default function Item() {
                     <Pressable key={o.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={o.name}
                       onPress={() => toggle(g, o.name)} style={styles.addon}>
                       <Text style={[textFont("400"), { fontSize: 15, flex: 1 }]}>{o.name}</Text>
-                      <Text style={[textFont("600"), { fontSize: 15 }]}>+{money(o.price, currency, { decimals: 0 })}</Text>
+                      <Text style={[textFont("600"), { fontSize: 15 }]}>+{money(o.price, currency, { whole: true })}</Text>
                       <View style={[styles.check, on && styles.checkOn]}>{on ? <Icon name="check" size={16} stroke={color.white} /> : null}</View>
                     </Pressable>
                   );
@@ -120,7 +121,7 @@ export default function Item() {
           >
             <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>Add to bag</Text>
             <Text style={[textFont("800"), { color: color.white, fontSize: 16, fontVariant: ["tabular-nums"] }]}>
-              {money(unit * qty, currency, { decimals: 0 })}
+              {money(unit * qty, currency, { whole: true })}
             </Text>
           </Pressable>
         </View>

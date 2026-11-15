@@ -6,7 +6,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Vi
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
-import { cash } from "../lib/rider";
+import { useFormat } from "../lib/rider";
 import { displayFont, night, space, textFont, ui } from "../lib/theme";
 
 interface Statement {
@@ -19,14 +19,14 @@ const STATUS: Record<string, string> = {
   paid: "Paid", pending: "On its way", no_account: "Waiting for your payout account", failed: "Didn't go through · we'll retry",
 };
 
-function period(s: Statement) {
+function period(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
   const end = new Date(`${s.period_end}T12:00:00`);
   end.setDate(end.getDate() - 1);
-  const a = new Date(`${s.period_start}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${a} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  return `${date(s.period_start)} – ${date(end)}`;
 }
 
 export default function Payouts() {
+  const { cash, date } = useFormat();
   const [data, setData] = useState<{ statements: Statement[]; accounts: Account[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function Payouts() {
           {data.statements.map((s) => (
             <View key={s.id} style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={[ui.bold, textFont("700")]}>{period(s)}</Text>
+                <Text style={[ui.bold, textFont("700")]}>{period(s, date)}</Text>
                 <Text style={[ui.muted, { fontSize: 12 }]}>
                   {s.summary.deliveries ?? 0} deliveries{Number(s.summary.floor_top_up ?? 0) > 0 ? ` · floor top-up ${cash(s.summary.floor_top_up, s.currency)}` : ""} · {STATUS[s.status] ?? s.status}
                 </Text>

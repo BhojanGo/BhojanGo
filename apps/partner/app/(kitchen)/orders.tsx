@@ -6,7 +6,7 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
-import { cash, clock, code, move, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
+import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
 import { Btn, Card, color, Count, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 
 const PREP = [15, 20, 25, 30];
@@ -85,6 +85,7 @@ export default function Orders() {
 }
 
 function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () => void; onPause: () => void }) {
+  const { cash, clock } = useFormat();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const cur = today?.currency ?? kitchen.currency;
   const open = today && today.open_now && !today.paused;
@@ -127,6 +128,7 @@ function name(o: Order) {
 }
 
 function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: boolean; defaultPrep: number; act: (fn: () => Promise<unknown>) => Promise<void> }) {
+  const { cash, clock } = useFormat();
   const now = useNow();
   const [prep, setPrep] = useState(() => PREP.reduce((a, b) => (Math.abs(b - defaultPrep) < Math.abs(a - defaultPrep) ? b : a)));
   const [busy, setBusy] = useState<string | null>(null);
@@ -215,6 +217,7 @@ function CookingCard({ order: o, act }: { order: Order; act: (fn: () => Promise<
 }
 
 function ReadyCard({ order: o }: { order: Order }) {
+  const { clock } = useFormat();
   const [eta, setEta] = useState<number | null>(null);
   useEffect(() => {
     if (!o.driver_id) return;

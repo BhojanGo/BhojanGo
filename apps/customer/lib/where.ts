@@ -89,6 +89,7 @@ export const useWhere = create<WhereState>()((set, get) => ({
 export function localHour(timeZone?: string | null, now = new Date()): number {
   if (timeZone) {
     try {
+      // data-ok: parses the hour, so Latin digits whatever the phone's language
       return Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now)) % 24;
     } catch {
       // no time-zone data on this phone: fall back to its clock

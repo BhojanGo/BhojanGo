@@ -1,5 +1,7 @@
 // CustomerOutOfArea.html: we don't deliver here yet; leave a number to hear when we do.
-import { api, Button, color, errorMessage, Input, space, textFont, Txt, unwrap } from "@bhojango/mobile-core";
+import {
+  api, Button, color, e164, errorMessage, Input, liveCityNames, space, textFont, Txt, unwrap, useCountry, useI18n,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -10,6 +12,9 @@ import { useWhere } from "../lib/where";
 
 export default function OutOfArea() {
   const point = useWhere((s) => s.point);
+  const { t } = useI18n();
+  const { country, countries } = useCountry();
+  const cities = liveCityNames(countries); // where we cook now (Markets)
   // The most specific place we know (a neighbourhood can be outside a served city's zones).
   const place = point?.label?.split("· ")[1] || point?.city || "your area";
   const [phone, setPhone] = useState("");
@@ -20,9 +25,9 @@ export default function OutOfArea() {
     if (!point) return;
     setError(null);
     try {
-      const digits = phone.replace(/\D/g, "");
-      const e164 = phone.trim().startsWith("+") ? `+${digits}` : point.country === "IN" ? `+91${digits}` : `+1${digits}`;
-      unwrap(await api.core.POST("/api/v1/markets/waitlist", { body: { phone: e164, lat: point.lat, lng: point.lng } }));
+      // The number in the address's country (its Markets phone code) unless typed with "+".
+      const phoneCode = countries.find((c) => c.code === point.country)?.phone_code ?? country?.phone_code ?? "+";
+      unwrap(await api.core.POST("/api/v1/markets/waitlist", { body: { phone: e164(phoneCode, phone), lat: point.lat, lng: point.lng } }));
       setDone(true);
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, "Check the number and try again."));
@@ -41,7 +46,7 @@ export default function OutOfArea() {
           We&apos;re not in {place} yet
         </Txt>
         <Txt style={{ color: color.muted }}>
-          BhojanGo is cooking in Boise and Hyderabad. Leave your number and we&apos;ll text you the day we arrive.
+          {cities.length ? `${t("app.out_of_area.cooking_in", { cities: cities.join(", ") })} ` : ""}{t("app.out_of_area.leave_number")}
         </Txt>
         {done ? (
           <Txt variant="label" style={{ color: color.peacock }}>Thanks. We&apos;ll text you when we launch in {place}.</Txt>

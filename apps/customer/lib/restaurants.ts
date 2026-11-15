@@ -11,7 +11,7 @@ export interface Menu {
 
 const menus = new Map<string, Menu>();
 
-/** Distance in km between two points (for "2.1 km" on cards). */
+/** Distance in kilometres between two points (cards show it in the country's unit: useI18n().distance). */
 export function km(a: { lat: number; lng: number }, b: { lat: number | null; lng: number | null }): number | null {
   if (b.lat == null || b.lng == null) return null;
   const R = 6371;

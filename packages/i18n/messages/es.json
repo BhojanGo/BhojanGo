@@ -804,5 +804,38 @@
     "failed": "No pudimos guardar tu calificación. Inténtalo de nuevo.",
     "your_rating": "Tu calificación",
     "thanks": "Gracias por calificar este pedido."
+  },
+  "app": {
+    "test_banner": "Sitio de prueba: cocinas de demostración, sin pedidos ni pagos reales",
+    "units": {
+      "km": "{value} km",
+      "mi": "{value} mi"
+    },
+    "bill": {
+      "kitchens_treat": "Invita la cocina",
+      "on_us": "Invitamos nosotros"
+    },
+    "phone": {
+      "country_code": "Código de país, {country} {code}",
+      "choose_country": "Elige tu país"
+    },
+    "home": {
+      "banner": "Hecho al momento por cocinas cerca de ti"
+    },
+    "out_of_area": {
+      "cooking_in": "BhojanGo cocina en {cities}.",
+      "leave_number": "Déjanos tu número y te escribiremos el día que lleguemos."
+    }
+  },
+  "rider": {
+    "earnings": {
+      "distance": "distancia"
+    }
+  },
+  "partner": {
+    "offer": {
+      "amount_off": "{amount} de descuento",
+      "flat_off": "Descuento fijo"
+    }
   }
 }

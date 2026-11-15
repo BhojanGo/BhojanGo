@@ -1,5 +1,5 @@
 // CustomerHome.html (+ CustomerLoading.html while kitchens load).
-import { Button, Card, color, Sheet, radius, space, textFont, Txt, useBag, useSession } from "@bhojango/mobile-core";
+import { Button, Card, color, Sheet, radius, space, textFont, Txt, useBag, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -13,6 +13,7 @@ import { useTabBarSpace } from "../../lib/tabbar";
 
 export default function Home() {
   const user = useSession((s) => s.user);
+  const { t, distance } = useI18n();
   const { point, market, status, locate, setPoint, goHere, saved } = useWhere();
   const [picking, setPicking] = useState<DropPoint[] | null>(null);
   const bagCount = useBag((s) => s.lines.reduce((n, l) => n + l.quantity, 0));
@@ -57,7 +58,7 @@ export default function Home() {
         <View style={styles.banner}>
           <Text style={[textFont("700"), styles.eyebrow]}>TONIGHT&apos;S TABLE</Text>
           <Txt variant="h2" style={{ color: color.white, fontSize: 26, lineHeight: 28, marginTop: 8, maxWidth: 200 }}>
-            {market?.city_name === "Boise" ? "Bowls and burgers, made to order" : "Hyderabadi classics, slow-cooked"}
+            {t("app.home.banner")}
           </Txt>
         </View>
 
@@ -87,7 +88,7 @@ export default function Home() {
                       <Text style={[textFont("400"), { fontSize: 14, color: color.muted }]}>
                         <Text style={[textFont("700"), { color: color.kohl }]}>★ {Number(r.rating ?? 0).toFixed(1)}</Text>
                         {" · "}{r.cuisine_types.slice(0, 1).join(", ")} · {r.delivery_time_min}–{r.delivery_time_max} min
-                        {d != null ? ` · ${d.toFixed(1)} km` : ""}
+                        {d != null ? ` · ${distance(d)}` : ""}
                       </Text>
                     </View>
                   </Card>

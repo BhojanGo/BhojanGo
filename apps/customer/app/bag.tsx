@@ -1,7 +1,7 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, Button, cartItems, color, errorMessage, FairBill, money, radius, Segmented, Sheet, space, textFont, Txt, unwrap, useBag,
-  type CoreSchemas,
+  api, Button, cartItems, color, errorMessage, FairBill, radius, Segmented, Sheet, space, textFont, Txt, unwrap, useBag,
+  useCountry, useI18n, type CoreSchemas,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -13,7 +13,6 @@ import { startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
 import { useWhere } from "../lib/where";
 
 type Quote = CoreSchemas["QuoteOut"];
-const TIPS = { INR: [0, 10, 20, 30], USD: [0, 2, 3, 5] } as const;
 
 export default function Bag() {
   const bag = useBag();
@@ -23,8 +22,10 @@ export default function Bag() {
   const [paying, setPaying] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const currency = market?.currency ?? "INR";
-  const method: "upi" | "card" = currency === "INR" ? "upi" : "card";
+  const { t, money } = useI18n();
+  const { country } = useCountry(); // the delivery address's country (Markets): currency, payment methods
+  const currency = market?.currency ?? country?.currency ?? "";
+  const method: "upi" | "card" = country?.payment_methods.includes("upi") ? "upi" : "card";
 
   // Re-price whenever the bag or the tip changes; the quote is what gets charged.
   const lines = bag.lines;
@@ -63,6 +64,8 @@ export default function Bag() {
     );
   }
 
+  // Tip choices are the city's (the quote's tip_presets), as on the website.
+  const tips = [0, ...new Set((quote?.tip_presets?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
 
   async function pay(outcome: PayOutcome) {
@@ -75,7 +78,7 @@ export default function Bag() {
         params: { header: { "X-Idempotency-Key": quote.quote_id } },
         body: {
           restaurant_id: bag.restaurantId!, items: cartItems(lines), payment_method: method, quote_token: quote.token,
-          delivery_address: { street: point.street, city: point.city, state: point.state, zip: point.zip || "000000", country: point.country || "IN" },
+          delivery_address: { street: point.street, city: point.city, state: point.state, zip: point.zip || "000000", country: point.country || country?.code || "" },
         },
       })) as { id: string };
       await startPayment(order.id, method, outcome);
@@ -120,19 +123,19 @@ export default function Bag() {
                 {l.quantity > 1 ? `${l.quantity} × ` : ""}{l.name}
                 {l.summary ? <Text style={{ color: color.muted }}> · {l.summary}</Text> : null}
               </Text>
-              <Text style={[textFont("400"), { fontSize: 14, fontVariant: ["tabular-nums"] }]}>{money(l.unitPrice * l.quantity, currency, { decimals: 0 })}</Text>
+              <Text style={[textFont("400"), { fontSize: 14, fontVariant: ["tabular-nums"] }]}>{money(l.unitPrice * l.quantity, currency, { whole: true })}</Text>
             </View>
           ))}
         </View>
         <View style={styles.card}>
           <Text style={[textFont("800"), { fontSize: 14 }]}>
-            Tip your rider <Text style={[textFont("500"), { color: color.muted }]}>· every {currency === "INR" ? "rupee" : "dollar"} goes to them</Text>
+            {t("checkout.tip_title")} <Text style={[textFont("500"), { color: color.muted }]}>· {t("checkout.tip_note")}</Text>
           </Text>
           <Segmented
-            label="Tip your rider"
+            label={t("checkout.tip_title")}
             value={String(bag.tip)}
             onChange={(v) => bag.setTip(Number(v))}
-            options={TIPS[currency === "USD" ? "USD" : "INR"].map((t) => ({ value: String(t), label: t === 0 ? "None" : money(t, currency, { decimals: 0 }) }))}
+            options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency, { whole: true }) }))}
           />
         </View>
         {quote ? <FairBill lines={quote.lines} currency={quote.currency} /> : error ? null : <ActivityIndicator color={color.peacock} />}

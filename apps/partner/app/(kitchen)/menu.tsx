@@ -1,11 +1,11 @@
 // PartnerMenu.html: items by category with "In stock / Sold out today", store
 // hours and prep time, and offers the kitchen funds (weekly cap).
-import { api, ApiError, unwrap } from "@bhojango/mobile-core";
+import { api, ApiError, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { cash, useKitchen, useLoad, type Offer } from "../../lib/data";
+import { useFormat, useKitchen, useLoad, type Offer } from "../../lib/data";
 import { Btn, color, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 
 type MenuItem = { id: string; name: string; description?: string | null; price: number | string; is_veg?: boolean;
@@ -35,6 +35,7 @@ function hourRows(h: Hours): { days: string; hours: string }[] {
 }
 
 export default function MenuScreen() {
+  const { cash, date } = useFormat();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const id = kitchen.id;
   const menu = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/menu", { params: { path: { restaurant_id: id } } })) as unknown as Menu, id);
@@ -140,7 +141,7 @@ export default function MenuScreen() {
             )) : null}
             {hours.data?.overrides.slice(0, 3).map((o) => (
               <View key={o.day} style={s.hoursRow}>
-                <Text style={[t.body, { flexShrink: 1 }]} numberOfLines={1}>{new Date(`${o.day}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {o.note ?? "Special hours"}</Text>
+                <Text style={[t.body, { flexShrink: 1 }]} numberOfLines={1}>{date(o.day)} · {o.note ?? "Special hours"}</Text>
                 <Text style={[t.body, textFont("600"), o.closed && { color: color.chili }]}>{o.closed ? "Closed" : `${ampm(o.opens!)} – ${ampm(o.closes!)}`}</Text>
               </View>
             ))}
@@ -160,7 +161,7 @@ export default function MenuScreen() {
                     <Text style={[textFont("800"), { fontSize: 15 }]}>{o.name}</Text>
                     <Text style={[textFont("800"), { fontSize: 12, color: o.live ? color.peacockDeep : tone.kesarInk }]}>{o.paused ? "Paused by BhojanGo" : o.live ? "Live" : "Cap reached"}</Text>
                   </View>
-                  <Text style={t.muted}>{describe(o, cur)}</Text>
+                  <Text style={t.muted}>{describe(o, cur, cash)}</Text>
                   {o.paused ? <Text style={[textFont("600"), { fontSize: 14, color: tone.kesarInk }]}>{o.paused_reason} Customers don&apos;t see it until we resume it; ask us from Help.</Text> : null}
                   <View style={s.track}><View style={[s.fill, { width: `${cap ? Math.min(100, (used / cap) * 100) : 0}%` }]} /></View>
                   <View style={s.hoursRow}>
@@ -184,7 +185,7 @@ export default function MenuScreen() {
   );
 }
 
-function describe(o: Offer, cur: string) {
+function describe(o: Offer, cur: string, cash: ReturnType<typeof useFormat>["cash"]) {
   const p = o.params as { percent?: string; amount?: string; min_subtotal?: string };
   const min = Number(p.min_subtotal ?? 0) > 0 ? ` over ${cash(p.min_subtotal, cur)}` : "";
   if (o.template === "free_delivery") return `All orders${min} · you cover the delivery fee`;
@@ -200,12 +201,13 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
   const [cap, setCap] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sym = currency === "INR" ? "₹" : "$";
+  const { cash } = useFormat();
+  const { t: tr } = useI18n(); // lib/ui's `t` is the text styles
   const ok = Number(cap) > 0 && (kind === "free_delivery" || Number(value) > 0);
   async function save() {
     setBusy(true);
     setError(null);
-    const name = kind === "free_delivery" ? "Free delivery" : kind === "percent_off" ? `${value}% off` : `${sym}${value} off`;
+    const name = kind === "free_delivery" ? "Free delivery" : kind === "percent_off" ? `${value}% off` : tr("partner.offer.amount_off", { amount: cash(value, currency) });
     try {
       await onCreate({ template: kind, name, weekly_cap: cap, ...(kind === "percent_off" ? { percent: value } : kind === "flat_off" ? { amount: value } : {}) });
       setValue("");
@@ -222,13 +224,13 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
         <View style={s.sheet} accessibilityLabel="Create offer">
           <Text style={t.h1}>Create an offer you fund</Text>
           <Segmented label="Offer" value={kind} onChange={setKind}
-            options={[{ value: "free_delivery", label: "Free delivery" }, { value: "percent_off", label: "% off" }, { value: "flat_off", label: `${sym} off` }]} />
+            options={[{ value: "free_delivery", label: "Free delivery" }, { value: "percent_off", label: "% off" }, { value: "flat_off", label: tr("partner.offer.flat_off") }]} />
           {kind !== "free_delivery" ? (
             <TextInput testID="offer-value" accessibilityLabel={kind === "percent_off" ? "Percent off" : "Amount off"} value={value} onChangeText={setValue}
-              keyboardType="numeric" placeholder={kind === "percent_off" ? "Percent off, e.g. 10" : `Amount off, e.g. ${sym}50`} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+              keyboardType="numeric" placeholder={kind === "percent_off" ? "Percent off, e.g. 10" : `Amount off, e.g. ${cash(50, currency)}`} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
           ) : null}
           <TextInput testID="offer-cap" accessibilityLabel="Weekly cap" value={cap} onChangeText={setCap} keyboardType="numeric"
-            placeholder={`Weekly cap, e.g. ${sym}5,000`} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+            placeholder={`Weekly cap, e.g. ${cash(5000, currency)}`} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
           <Text style={t.muted}>It starts now and stops each week when the cap is used; it starts again on Monday.</Text>
           {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
           <View style={{ flexDirection: "row", gap: 12 }}>

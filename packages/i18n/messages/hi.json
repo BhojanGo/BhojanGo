@@ -804,5 +804,38 @@
     "failed": "आपकी रेटिंग सेव नहीं हो सकी। कृपया फिर से कोशिश करें।",
     "your_rating": "आपकी रेटिंग",
     "thanks": "इस ऑर्डर को रेट करने के लिए धन्यवाद।"
+  },
+  "app": {
+    "test_banner": "टेस्ट साइट: डेमो किचन, कोई असली ऑर्डर या भुगतान नहीं",
+    "units": {
+      "km": "{value} कि.मी.",
+      "mi": "{value} मील"
+    },
+    "bill": {
+      "kitchens_treat": "किचन की ओर से",
+      "on_us": "हमारी ओर से"
+    },
+    "phone": {
+      "country_code": "देश कोड, {country} {code}",
+      "choose_country": "अपना देश चुनें"
+    },
+    "home": {
+      "banner": "आपके पास के किचन में ऑर्डर पर बना"
+    },
+    "out_of_area": {
+      "cooking_in": "BhojanGo {cities} में खाना बना रहा है।",
+      "leave_number": "अपना नंबर छोड़ें, जिस दिन हम आएँगे उस दिन हम आपको मैसेज करेंगे।"
+    }
+  },
+  "rider": {
+    "earnings": {
+      "distance": "दूरी"
+    }
+  },
+  "partner": {
+    "offer": {
+      "amount_off": "{amount} की छूट",
+      "flat_off": "राशि की छूट"
+    }
   }
 }
