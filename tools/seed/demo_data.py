@@ -815,8 +815,15 @@ BOI_KITCHENS = [
 
 # ── Cities ────────────────────────────────────────────────────────────────────
 # Zones the base seed doesn't have (south, west, north, east boxes, like data.py's).
+# Riders: "rider" is the city's demo rider for people (testing by hand, the rider app's
+# Maestro flows): the order history is theirs, so their earnings screen has months in
+# it, and the simulator never uses them. "sim_riders" are the demo rider simulator's
+# own (backend/worker/app/demo_sim): users.dispatch_pool SIM_POOL, so realtime offers
+# them the simulator's orders and nothing else, and offers those orders to nobody else.
+# Phones: the seed ranges, 250 for the demo rider, 261 and up for the simulator's.
 # Customers: (key, name, street, area, postal, lat, lng, delivery notes); the first
 # is "the" demo customer (favourites, saved card, the order on its way).
+SIM_POOL = "demo_sim"  # users.dispatch_pool of the simulator's riders (realtime: dispatch.same_pool)
 DEMO = {
     "hyd": {
         "city_code": "IN-TG-HYD",
@@ -828,6 +835,9 @@ DEMO = {
         "fssai_base": 13626010000200,
         "partner": ("partner.demo.hyd@example.com", "Hyderabad Demo Partner", "910"),
         "rider": ("rider.demo.hyd@example.com", "Venkat Rao", "250"),
+        "sim_riders": [("rider.sim.hyd.1@example.com", "Srikanth Goud", "261"),
+                       ("rider.sim.hyd.2@example.com", "Mahesh Yadav", "262"),
+                       ("rider.sim.hyd.3@example.com", "Naveen Chary", "263")],
         "customers": [
             ("demo1.hyd", "Ananya Desai", "Flat 504, Cyber Residency, Ayyappa Society Rd", "Hitech City", "500081",
              17.4560, 78.3870, "Gate 2; call when you're at the lift"),
@@ -852,6 +862,9 @@ DEMO = {
         "fssai_base": None,
         "partner": ("partner.demo.boi@example.com", "Boise Demo Partner", "910"),
         "rider": ("rider.demo.boi@example.com", "Casey Morgan", "250"),
+        "sim_riders": [("rider.sim.boi.1@example.com", "Tyler Brooks", "261"),
+                       ("rider.sim.boi.2@example.com", "Jenna Price", "262"),
+                       ("rider.sim.boi.3@example.com", "Diego Alvarez", "263")],
         "customers": [
             ("demo1.boi", "Hannah Mitchell", "1201 N 3rd St, Apt 4B", "Downtown", "83702", 43.6230, -116.1900,
              "Blue door at the back; ring 4B"),
@@ -904,7 +917,8 @@ PROMOTIONS = {
 # ── Order history ─────────────────────────────────────────────────────────────
 # (customer key, kitchen slug, days ago, local time, [(dish, quantity, {group: option})], review)
 # Priced by the real quote engine at that time; delivered by the city's demo rider.
-# review: (rating, comment) or None. ACTIVE: one order on its way per city, placed now.
+# review: (rating, comment) or None. ACTIVE: one order on its way per city, placed now,
+# carried by the simulator's first rider (active_rider), who finishes it.
 ORDERS = {
     "hyd": [
         ("demo1.hyd", "sarson-da-dhaba-kondapur", 3, "13:15",
@@ -950,6 +964,13 @@ ACTIVE = {
     "hyd": ("demo1.hyd", "royal-paneer-kitchen-kondapur", [("Paneer Butter Masala", 1, {"Size": "Full"}), ("Butter Naan", 3, {}), ("Jeera Rice", 1, {})]),
     "boi": ("demo1.boi", "riverside-burrito-co-east-end", [("California Burrito", 2, {}), ("Chips & Salsa", 1, {})]),
 }
+
+
+def active_rider(key: str) -> str:
+    """Who carries the order on its way (ACTIVE): the simulator's first rider, never the
+    demo rider people test with (the simulator finishes it with its own riders only)."""
+    return DEMO[key]["sim_riders"][0][0]
+
 
 # ── Neighbourhood regulars (the order history) ────────────────────────────────
 # Demo customers behind each kitchen's past orders and ratings. Each lives 1-3 km
