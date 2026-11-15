@@ -66,7 +66,8 @@
     "account_menu": "Menú de la cuenta",
     "orders": "Pedidos",
     "profile": "Perfil",
-    "favourites": "Favoritos"
+    "favourites": "Favoritos",
+    "language_pill": "Idioma: {language}"
   },
   "footer": {
     "where_we_deliver": "Dónde entregamos",
@@ -104,6 +105,7 @@
     "bhojango": "BhojanGo",
     "total": "Total",
     "who_gets": "Quién recibe tu dinero",
+    "example_in": "En un pedido de {total} en {city}",
     "line_food": "Comida",
     "line_packaging": "Empaque",
     "line_delivery_fee": "Envío",
@@ -222,7 +224,9 @@
     },
     "no_match": "Todavía no hay ninguna ciudad con ese nombre.",
     "suggest_link": "Dinos dónde estás.",
-    "not_listed": "¿No está en la lista? Dinos tu ciudad. Las ciudades más solicitadas abren primero."
+    "not_listed": "¿No está en la lista? Dinos tu ciudad. Las ciudades más solicitadas abren primero.",
+    "choose_title": "Elige tu ciudad",
+    "choose_note": "Los precios, las cocinas y los idiomas siguen la ciudad que elijas."
   },
   "city": {
     "breadcrumb": "Ruta de navegación",
@@ -1554,5 +1558,10 @@
       "amount_off": "{amount} de descuento",
       "flat_off": "Descuento fijo"
     }
+  },
+  "location": {
+    "label": "Tu ciudad",
+    "place": "{city}, {country}",
+    "change_city": "Cambiar ciudad"
   }
 }

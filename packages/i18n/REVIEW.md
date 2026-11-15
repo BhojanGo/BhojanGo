@@ -202,3 +202,11 @@ language that a live or beta country lists in Markets, or a backend text's
   2026-11-15): shown in the bag and at checkout when the bag is under the delivery
   area's minimum. {zone} is the area's name, {amount} is formatted by the country
   ("$15", "₹149"); check the word order around both in every language.
+
+## Header and home (round 6: language pill, location line, who gets your money)
+
+Machine-translated 2026-11-15: `header.language_pill` ("Language: {language}", the pill's
+spoken name), `location.label`, `location.place` ("{city}, {country}": the country is the
+2-letter code, kept as is), `location.change_city`, `cities.choose_title`, `cities.choose_note`,
+`bill.example_in` ("On a {total} order in {city}": Indian languages glue a case suffix to
+`{city}` and `{total}`; check with a city name ending in a consonant).
