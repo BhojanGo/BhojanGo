@@ -1,6 +1,6 @@
 // The sign-in frame: a Peacock panel on the left, the form on the right; on a
 // phone (portrait) the panel is a band across the top and the form below it.
-import { type, useI18n } from "@bhojango/mobile-core";
+import { LanguagePill, type, useI18n } from "@bhojango/mobile-core";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +20,8 @@ export function Split({ children }: { children: ReactNode }) {
         <SafeAreaView testID="split-band" edges={["top"]} style={s.band}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Mark size={32} />
-            <Text style={[type.label, { color: color.white }]}>{t("partner.brand")}</Text>
+            <Text style={[type.label, { color: color.white, flex: 1 }]}>{t("partner.brand")}</Text>
+            <LanguagePill />
           </View>
           <Text style={[type.h2, s.hero]}>{t("partner.split.hero")}</Text>
         </SafeAreaView>
@@ -37,7 +38,8 @@ export function Split({ children }: { children: ReactNode }) {
       <View style={[s.brand, compact && s.brandCompact]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Mark size={compact ? 36 : 44} />
-          <Text style={[compact ? type.label : type.h3, { color: color.white }]}>{t("partner.brand")}</Text>
+          <Text style={[compact ? type.label : type.h3, { color: color.white, flex: 1 }]}>{t("partner.brand")}</Text>
+          <LanguagePill />
         </View>
         <Text style={[compact ? type.h1 : type.display, s.hero]}>{t("partner.split.hero")}</Text>
         {compact ? null : (
