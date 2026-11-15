@@ -132,7 +132,15 @@ with sync_playwright() as p:
         expect(page).to_have_url(re.compile(r"/overview"), timeout=20000)
 
     page = b.new_page(viewport={"width": 1440, "height": 1000})
+    # Outside production (make dev, QA, staging) the console says it's a test site, on the
+    # login page and inside; production never does (packages/ui/environment.js, unit-tested there).
+    test_banner = "Test site: demo kitchens, no real orders or payments"
+    page.goto(f"{BASE}/login", wait_until="networkidle")
+    check("test-site banner: on the login page, a note (not an alert)", lambda: (
+        expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible(),
+        expect(page.get_by_role("alert").filter(has_text=test_banner)).to_have_count(0)))
     sign_in(page, "admin@example.com")
+    check("test-site banner: inside the console too", lambda: expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible())
     check("overview, all countries: each country in its own money, side by side, needs action", lambda: (
         expect(page.get_by_role("heading", name="All countries", exact=True)).to_be_visible(timeout=15000),
         expect(page.get_by_role("region", name="India")).to_be_visible(),
