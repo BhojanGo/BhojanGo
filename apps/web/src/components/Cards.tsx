@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { ratingOf } from "@/lib/contract";
-import { money, photo } from "@/lib/format";
+import { initials, money, photo } from "@/lib/format";
 import type { KitchenCard as Kitchen, Offer } from "@/lib/server";
 import { FavouriteHeart } from "./FavouriteHeart";
 
@@ -55,6 +55,17 @@ function Img({ src, alt = "", className }: { src: string | null; alt?: string; c
   return <img src={src} alt={alt} loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
+/** A kitchen with no photo of its own: its initials and first cuisine on the brand
+ * tint (never someone else's photo, never an empty frame). */
+function NameTile({ name, sub }: { name: string; sub: string | null }) {
+  return (
+    <span aria-hidden="true" className="flex h-full w-full flex-col items-center justify-center rounded-[20px] bg-[#DDEBEC] text-[#083F46]">
+      <span className="font-display text-[56px] font-semibold leading-none tracking-[-1px]">{initials(name)}</span>
+      {sub && <span className="mt-2 text-xs font-extrabold uppercase tracking-[0.8px] text-[#0B5D66]">{sub}</span>}
+    </span>
+  );
+}
+
 /** "New" until a kitchen has 5 ratings, then "★4.6 (23)" (rating_display, or the same rule over rating/review_count). */
 export function RatingBadge({ x, t, formatLocale }: { x: Parameters<typeof ratingOf>[0]; t: T; formatLocale: string }) {
   const r = ratingOf(x);
@@ -82,7 +93,11 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
     <div className="relative">
       <Link href={k.path} className="block text-[#111418] hover:text-[#111418]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[20px]">
-          <Img src={photo(k.cover_url, 800)} className="rounded-[20px]" />
+          {k.cover_url ? (
+            <Img src={photo(k.cover_url, 800)} className="rounded-[20px]" />
+          ) : (
+            <NameTile name={k.name} sub={k.cuisine_types[0] ?? null} />
+          )}
           {k.offer && (
             <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-xs font-extrabold text-white">
               {offerBadge(k.offer, t, currency, formatLocale)}
@@ -134,7 +149,7 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
         <span className="mt-1 text-sm text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
         <span className="mt-[10px] text-xs font-extrabold uppercase text-[#4C5A5E]">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
       </span>
-      <span className="hidden w-[170px] shrink-0 sm:block"><Img src={img} /></span>
+      {img && <span className="hidden w-[170px] shrink-0 sm:block"><Img src={img} /></span>}
     </Link>
   );
 }

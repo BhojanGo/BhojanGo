@@ -55,7 +55,7 @@ function KitchenFav({ k }: { k: FavKitchen }) {
     <div className="relative">
       <Link href={kitchenPath(k.country, k.city, k.slug)} className="block text-[#111418] hover:text-[#111418]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[20px]">
-          <Thumb src={photo(k.cover_url, 800)} className="h-full w-full rounded-[20px]" />
+          <Thumb src={photo(k.cover_url, 800)} name={k.name} className="h-full w-full rounded-[20px]" />
           {open != null && (
             <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-xs font-extrabold text-white">
               {open ? t("favourites.open_now") : t("favourites.closed_now")}
