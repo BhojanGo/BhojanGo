@@ -2,15 +2,18 @@
 //
 //   <I18nProvider>            in each app's root layout (around the Stack)
 //   const { t, money, distance, date, time } = useI18n();
-//   const { country, countries, chooseCountry, setAddressCountry } = useCountry();
-//   <LanguagePicker />        offers exactly the country's languages (Markets locales)
+//   const { country, countries, setAddressCountry } = useCountry();
+//   <LanguagePill />          the header's globe + "EN" pill: the country's languages (Markets locales)
+//   <LanguagePicker />        the same list as radio rows (account/settings screens)
 //
 // Messages are @bhojango/i18n's (the website's, plus "app", "rider" and "partner"
-// keys for the apps). The language is the person's choice when the country offers
-// it, else the phone's language when offered, else English (pickLanguage). Money,
-// numbers and dates follow the country's first Markets locale, never the language.
-// The choices (language, country) are kept on the device in SecureStore.
-import { createTranslator, formatLocale as countryLocale, LANGUAGES, languagesFor, pickLanguage,
+// keys for the apps). The language is the one remembered on this device when the
+// country offers it, else English (chooseLanguage). There is no country selector:
+// the country is detected (detectCountry: the delivery address's or the account's,
+// else the IP hint, else the phone's region). Money, numbers and dates follow the
+// country's first Markets locale, never the language. The language is kept on the
+// device in SecureStore.
+import { chooseLanguage, createTranslator, formatLocale as countryLocale, LANGUAGES, languageList, languagesFor,
   type Language, type Translate } from "@bhojango/i18n";
 import MESSAGES from "@bhojango/i18n/all-messages";
 import { unwrap } from "@bhojango/api-client";
@@ -25,7 +28,7 @@ import { loadScriptFonts } from "./ui/fonts";
 import { scriptFor, setTypeScript, type Script } from "./ui/type";
 
 const LANGUAGE_KEY = "bg.language";
-const COUNTRY_KEY = "bg.country";
+const COUNTRY_KEY = "bg.country"; // round 4's country choice: no longer used (cleared once at start)
 
 interface LocaleState {
   /** Stored choices are loaded (the provider renders its children from then on). */
@@ -34,7 +37,8 @@ interface LocaleState {
   countries: MarketCountry[];
   directoryError: boolean;
   addressCountry: string | null;
-  chosenCountry: string | null;
+  /** The country GET /markets/hint reads from this phone's IP (null when unknown or GeoIP is off). */
+  ipCountry: string | null;
   chosenLanguage: string | null;
   device: string | null;
   /** The script whose faces the type tokens use (the language's, once its Noto Sans faces are loaded). */
@@ -42,8 +46,8 @@ interface LocaleState {
   setScript: (script: Script) => void;
   init: () => Promise<void>;
   loadDirectory: () => Promise<void>;
+  loadHint: () => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
-  chooseCountry: (code: string | null) => Promise<void>;
   setAddressCountry: (code: string | null) => void;
 }
 
@@ -53,7 +57,7 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
   countries: [],
   directoryError: false,
   addressCountry: null,
-  chosenCountry: null,
+  ipCountry: null,
   chosenLanguage: null,
   device: deviceLocale(),
   script: "latin",
@@ -64,12 +68,20 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
 
   init: async () => {
     if (get().ready) return;
-    const [language, country] = await Promise.all([
-      SecureStore.getItemAsync(LANGUAGE_KEY).catch(() => null),
-      SecureStore.getItemAsync(COUNTRY_KEY).catch(() => null),
-    ]);
-    set({ ready: true, chosenLanguage: language, chosenCountry: country });
+    const language = await SecureStore.getItemAsync(LANGUAGE_KEY).catch(() => null);
+    set({ ready: true, chosenLanguage: language });
+    void SecureStore.deleteItemAsync(COUNTRY_KEY).catch(() => undefined);
     void get().loadDirectory();
+    void get().loadHint();
+  },
+
+  loadHint: async () => {
+    try {
+      const h = unwrap(await api.core.GET("/api/v1/markets/hint"));
+      set({ ipCountry: h.country ?? null });
+    } catch {
+      // a hint only: without it the phone's region (or the first live country) decides
+    }
   },
 
   loadDirectory: async () => {
@@ -84,12 +96,6 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
   setLanguage: async (language) => {
     set({ chosenLanguage: language });
     await SecureStore.setItemAsync(LANGUAGE_KEY, language).catch(() => undefined);
-  },
-
-  chooseCountry: async (code) => {
-    set({ chosenCountry: code });
-    if (code) await SecureStore.setItemAsync(COUNTRY_KEY, code).catch(() => undefined);
-    else await SecureStore.deleteItemAsync(COUNTRY_KEY).catch(() => undefined);
   },
 
   setAddressCountry: (code) => set({ addressCountry: code }),
@@ -123,7 +129,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 }
 
 export interface CountryContext {
-  /** The current country (Markets data), or null when unknown: ask with a country choice. */
+  /** The current country (Markets data): detected, else the first live one; null only until Markets loads. */
   country: MarketCountry | null;
   source: CountrySource;
   /** Every Markets country with live or coming-soon cities. */
@@ -132,25 +138,22 @@ export interface CountryContext {
   loading: boolean;
   error: boolean;
   reload: () => Promise<void>;
-  /** The person picked a country (kept on the device). */
-  chooseCountry: (code: string | null) => Promise<void>;
   /** The country known for sure: the delivery address's or the account's (strongest source; not stored). See useKnownCountry. */
   setAddressCountry: (code: string | null) => void;
 }
 
-/** The current country: address, then stored choice, then the phone's region, then the only one. */
+/** The current country: the address's (or account's), then the IP hint, then the phone's region, then the first live one. */
 export function useCountry(): CountryContext {
   const s = useLocaleStore();
   return useMemo(() => {
     const { country, source } = resolveCountry({
-      countries: s.countries, addressCountry: s.addressCountry, chosen: s.chosenCountry, deviceLocale: s.device,
+      countries: s.countries, addressCountry: s.addressCountry, ipCountry: s.ipCountry, deviceLocale: s.device,
     });
     return {
       country, source, countries: s.countries, loading: !s.countries.length && !s.directoryError, error: s.directoryError,
-      reload: s.loadDirectory, chooseCountry: s.chooseCountry, setAddressCountry: s.setAddressCountry,
+      reload: s.loadDirectory, setAddressCountry: s.setAddressCountry,
     };
-  }, [s.countries, s.addressCountry, s.chosenCountry, s.device, s.directoryError, s.loadDirectory, s.chooseCountry,
-      s.setAddressCountry]);
+  }, [s.countries, s.addressCountry, s.ipCountry, s.device, s.directoryError, s.loadDirectory, s.setAddressCountry]);
 }
 
 export interface I18n {
@@ -160,8 +163,10 @@ export interface I18n {
   language: Language;
   /** The script the type tokens draw in now ("devanagari" once its Noto Sans faces are loaded). */
   script: Script;
-  /** The languages the current country offers, in Markets' order (what LanguagePicker lists). */
+  /** The languages the current country offers, in Markets' order (what LanguagePill and LanguagePicker list). */
   languages: Language[];
+  /** The same with each language's own name (languageList): [{code: "te", name: "తెలుగు"}]. */
+  options: { code: Language; name: string }[];
   setLanguage: (language: Language) => Promise<void>;
   /** The country's first Markets locale; undefined (the phone's) until a country is known. */
   formatLocale: string | undefined;
@@ -181,18 +186,19 @@ export interface I18n {
 export function useI18n(): I18n {
   const { country, countries } = useCountry();
   const chosen = useLocaleStore((s) => s.chosenLanguage);
-  const device = useLocaleStore((s) => s.device);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
   // Screens re-render when the script's faces arrive (the `type` tokens read it at render).
   const script = useLocaleStore((s) => s.script);
   return useMemo(() => {
-    const locales = country?.locales ?? (chosen ? [chosen] : device ? [device] : null);
-    const language = pickLanguage({ chosen, acceptLanguage: device, locales });
-    const languages = languagesFor(country?.locales ?? [language]);
+    // Until Markets' countries load (a moment, or offline), the remembered language alone.
+    const locales = country?.locales ?? (chosen ? [chosen] : null);
+    const language = chooseLanguage(chosen, locales);
+    const languages = languagesFor(locales);
+    const options = languageList(locales);
     const loc = country ? countryLocale(country.locales) : undefined;
     const t = createTranslator(language, MESSAGES[language], MESSAGES.en);
     return {
-      t, language, languages, setLanguage, formatLocale: loc, script,
+      t, language, languages, options, setLanguage, formatLocale: loc, script,
       money: (amount, currency, opts) => {
         const cur = currency || country?.currency;
         if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
@@ -207,7 +213,7 @@ export function useI18n(): I18n {
       date: (iso, opts) => formatDate(iso, loc, opts),
       time: (iso, opts) => formatTime(iso, loc, opts),
     };
-  }, [country, countries, chosen, device, setLanguage, script]);
+  }, [country, countries, chosen, setLanguage, script]);
 }
 
 /**

@@ -7,12 +7,13 @@
 // the language: switching to Hindi never changes how a price reads.
 // No relative imports here: Node runs this file directly in the tests.
 import type { CoreSchemas } from "@bhojango/api-client";
+import { detectCountry, type CountrySource as I18nCountrySource } from "@bhojango/i18n";
 
 /** A country as Markets publishes it (code, name, currency, locales, distance_unit, phone_code, timezone, ...). */
 export type MarketCountry = CoreSchemas["DirCountry"];
 
-/** Where the current country came from (the strongest source wins, in this order). */
-export type CountrySource = "address" | "chosen" | "device" | "only" | "none";
+/** Where the current country came from (@bhojango/i18n detectCountry; the apps never use "chosen" or "page"). */
+export type CountrySource = I18nCountrySource;
 
 /** The region of a locale tag (language-REGION or language_REGION -> REGION); null for a bare language. */
 export function regionOf(locale: string | null | undefined): string | null {
@@ -21,28 +22,22 @@ export function regionOf(locale: string | null | undefined): string | null {
 }
 
 /**
- * The country to use: the delivery address's country when known (the customer app
- * sets it), else the person's stored choice, else the device locale's region when
- * Markets has that country, else the only country when there is just one, else none
- * (show a country choice).
+ * The country to use (there is no country selector), with the website's rules
+ * (@bhojango/i18n detectCountry): the delivery address's country (the customer's
+ * address; the rider's or partner's account), else the IP hint (GET
+ * /markets/hint), else the phone's locale region, else a country offering the
+ * phone's (non-English) language, else Markets' first; none until Markets loads.
  */
 export function resolveCountry(opts: {
   countries: readonly MarketCountry[];
   addressCountry?: string | null;
-  chosen?: string | null;
+  ipCountry?: string | null;
   deviceLocale?: string | null;
 }): { country: MarketCountry | null; source: CountrySource } {
   const { countries } = opts;
-  const find = (code: string | null | undefined) =>
-    code ? countries.find((c) => c.code.toUpperCase() === code.toUpperCase()) ?? null : null;
-  const fromAddress = find(opts.addressCountry);
-  if (fromAddress) return { country: fromAddress, source: "address" };
-  const chosen = find(opts.chosen);
-  if (chosen) return { country: chosen, source: "chosen" };
-  const device = find(regionOf(opts.deviceLocale));
-  if (device) return { country: device, source: "device" };
-  if (countries.length === 1) return { country: countries[0]!, source: "only" };
-  return { country: null, source: "none" };
+  const found = detectCountry({ address: opts.addressCountry, page: null, ip: opts.ipCountry, browser: opts.deviceLocale }, countries);
+  const country = found.code ? countries.find((c) => c.code === found.code) ?? null : null;
+  return country ? { country, source: found.source } : { country: null, source: "none" };
 }
 
 /** A Markets city by its code ("XX-RR-CCC") with its country, or null (hidden or unknown). */
