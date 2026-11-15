@@ -9,7 +9,26 @@ export declare const dark: {
 export declare const space: { 1: 4; 2: 8; 3: 12; 4: 16; 5: 20; 6: 24; 8: 32; 12: 48 };
 export declare const radius: { chip: 8; card: 16; sheet: 24; pill: 999 };
 export declare const touch: { min: 48; primary: 56; rider: 64 };
-export declare const font: { display: string; text: string };
+export declare const font: {
+  display: string;
+  text: string;
+  scripts: { devanagari: string; telugu: string; tamil: string; kannada: string; bengali: string };
+};
+export type TypeRole = "display" | "h1" | "h2" | "h3" | "body-lg" | "body" | "label" | "small" | "caption";
+export type TypeToken = {
+  desktop: number;
+  phone: number;
+  weight: "400" | "600" | "700";
+  family: "display" | "text";
+  /** unitless multiplier */
+  lineHeight: number;
+  /** em */
+  tracking: number;
+  uppercase?: true;
+};
+export declare const typeScale: Record<TypeRole, TypeToken>;
+/** Every allowed font size in px, largest first. */
+export declare const fontSizes: number[];
 type Type = { size: number; weight: "400" | "500" | "600" | "700" | "800"; tracking: number; family: "display" | "text" };
 export declare const type: Record<"hero" | "h1" | "h2" | "title" | "body" | "label" | "small" | "tag" | "eyebrow", Type>;
 export declare const shadow: { float: string; sheet: string; bar: string };

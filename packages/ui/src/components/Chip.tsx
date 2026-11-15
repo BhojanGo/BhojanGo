@@ -14,15 +14,15 @@ export function Chip({ selected, count, className, children, ...rest }: ChipProp
       type="button"
       aria-pressed={selected}
       className={cn(
-        "inline-flex h-10 items-center gap-2 rounded-chip border px-3 text-sm font-semibold",
-        selected ? "border-peacock bg-peacock-tint font-extrabold text-peacock-deep" : "border-line bg-white text-kohl hover:border-line-strong",
+        "inline-flex h-10 items-center gap-2 rounded-chip border px-3 text-label",
+        selected ? "border-peacock bg-peacock-tint font-bold text-peacock-deep" : "border-line bg-white text-kohl hover:border-line-strong",
         className,
       )}
       {...rest}
     >
       {children}
       {count != null && (
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-kesar px-1 text-[11px] font-extrabold text-kohl">{count}</span>
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-kesar px-1 text-caption text-kohl">{count}</span>
       )}
     </button>
   );
@@ -41,8 +41,8 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
           role="radio"
           aria-checked={o.value === value}
           onClick={() => onChange(o.value)}
-          className={cn("h-[42px] flex-1 rounded-pill text-[15px]",
-            o.value === value ? "bg-white font-extrabold text-kohl shadow-[0_1px_3px_rgba(17,20,24,0.12)]" : "font-semibold text-muted")}
+          className={cn("h-[42px] flex-1 rounded-pill text-label",
+            o.value === value ? "bg-white font-bold text-kohl shadow-[0_1px_3px_rgba(17,20,24,0.12)]" : "font-semibold text-muted")}
         >
           {o.label}
         </button>

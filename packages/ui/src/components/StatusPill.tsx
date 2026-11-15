@@ -24,7 +24,7 @@ const tones = {
 export function StatusPill({ status, label, className }: { status: string; label?: string; className?: string }) {
   const s = ORDER_STATUS[status] ?? { label: status, tone: "wait" as const };
   return (
-    <span className={cn("inline-flex h-7 items-center self-start rounded-pill px-3 text-xs font-bold", tones[s.tone], className)}>
+    <span className={cn("inline-flex h-7 items-center self-start rounded-pill px-3 text-caption", tones[s.tone], className)}>
       {label ?? s.label}
     </span>
   );

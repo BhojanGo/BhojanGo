@@ -18,7 +18,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
   const inputId = id ?? auto;
   return (
     <div className="flex flex-col gap-2">
-      {label && <label htmlFor={inputId} className="text-sm font-bold text-kohl">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-label text-kohl">{label}</label>}
       <div className={cn(
         "flex items-center gap-2.5 bg-white px-4",
         shape === "pill" ? "h-[54px] rounded-pill shadow-float" : "h-14 rounded-card border-[1.5px]",
@@ -30,12 +30,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? `${inputId}-note` : undefined}
-          className={cn("h-full flex-1 bg-transparent text-base text-kohl outline-none placeholder:text-muted", className)}
+          className={cn("h-full flex-1 bg-transparent text-body text-kohl outline-none placeholder:text-muted", className)}
           {...rest}
         />
       </div>
       {(error || hint) && (
-        <p id={`${inputId}-note`} className={cn("text-[13px]", error ? "font-semibold text-chili" : "text-muted")}>{error ?? hint}</p>
+        <p id={`${inputId}-note`} className={cn("text-small", error ? "font-semibold text-chili" : "text-muted")}>{error ?? hint}</p>
       )}
     </div>
   );

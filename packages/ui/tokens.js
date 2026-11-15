@@ -53,10 +53,40 @@ const radius = { chip: 8, card: 16, sheet: 24, pill: 999 };
 const touch = { min: 48, primary: 56, rider: 64 };
 
 const font = {
-  display: "Familjen Grotesk", // headings and big numbers, weight 600, tight tracking
-  text: "Hanken Grotesk", // everything else, 400–800, tabular figures for money
+  display: "Familjen Grotesk", // display, h1, h2 (weight 600)
+  text: "Hanken Grotesk", // everything else (400, 600, 700), tabular figures for money
+  // Indian scripts fall back to Noto Sans <script> (Marathi uses Devanagari).
+  scripts: {
+    devanagari: "Noto Sans Devanagari",
+    telugu: "Noto Sans Telugu",
+    tamil: "Noto Sans Tamil",
+    kannada: "Noto Sans Kannada",
+    bengali: "Noto Sans Bengali",
+  },
 };
 
+// The type scale (Round 6): the ONLY font sizes allowed on the web, admin and
+// the apps. px values; `phone` applies below 768 px on the web and always in the
+// apps. Weights: display, h1, h2, h3, label 600; body 400; caption 700.
+// caption is for uppercase labels and badges only; nothing readable under 14.
+// Web: Tailwind classes text-display ... text-caption (tailwind-preset.js).
+const typeScale = {
+  display: { desktop: 64, phone: 44, weight: "600", family: "display", lineHeight: 1.05, tracking: -0.02 },
+  h1: { desktop: 40, phone: 30, weight: "600", family: "display", lineHeight: 1.1, tracking: -0.015 },
+  h2: { desktop: 28, phone: 22, weight: "600", family: "display", lineHeight: 1.2, tracking: -0.01 },
+  h3: { desktop: 20, phone: 18, weight: "600", family: "text", lineHeight: 1.3, tracking: 0 },
+  "body-lg": { desktop: 18, phone: 17, weight: "400", family: "text", lineHeight: 1.5, tracking: 0 },
+  body: { desktop: 16, phone: 16, weight: "400", family: "text", lineHeight: 1.5, tracking: 0 },
+  label: { desktop: 15, phone: 15, weight: "600", family: "text", lineHeight: 1.4, tracking: 0 },
+  small: { desktop: 14, phone: 14, weight: "400", family: "text", lineHeight: 1.45, tracking: 0 },
+  caption: { desktop: 12, phone: 12, weight: "700", family: "text", lineHeight: 1.3, tracking: 0.06, uppercase: true },
+};
+
+/** Every allowed font size in px (what the page checks and the lint rule enforce). */
+const fontSizes = [...new Set(Object.values(typeScale).flatMap((t) => [t.desktop, t.phone]))].sort((a, b) => b - a);
+
+// Legacy app scale, still read by packages/mobile-core until it moves to typeScale.
+// Do not use on the web.
 const type = {
   hero: { size: 34, weight: "600", tracking: -1, family: "display" },
   h1: { size: 24, weight: "600", tracking: -0.5, family: "display" },
@@ -81,4 +111,4 @@ const layout = {
   web: { columns: 12, edge: 32, gap: 24, maxWidth: 1280, sideMenu: 248 },
 };
 
-module.exports = { color, dark, space, radius, touch, font, type, shadow, layout };
+module.exports = { color, dark, space, radius, touch, font, typeScale, fontSizes, type, shadow, layout };

@@ -25,11 +25,11 @@ export function Button({ variant = "primary", size = "md", block, loading, class
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-pill px-6 font-extrabold tabular-nums transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-pill px-6 tabular-nums transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peacock",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        size === "lg" ? "h-14 text-[17px]" : "h-12 text-[15px]",
-        variant === "rider" && "h-16 text-lg",
+        size === "lg" ? "h-14 text-label" : "h-12 text-label",
+        variant === "rider" && "h-16 text-h3",
         variants[variant],
         block && "w-full",
         className,
