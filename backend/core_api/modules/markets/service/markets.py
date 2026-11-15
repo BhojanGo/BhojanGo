@@ -77,7 +77,7 @@ class MarketService:
             for region in (r for r in regions if r.country_id == country.id and _visible(scopes, r.code)):
                 city_rows = [
                     self._city_summary(city, country, region, zones_by_city.get(city.id, []), now,
-                                       waiting.get(city.code, 0))
+                                       waiting.get(city.code, 0), await self.priced(country, region, city))
                     for city in cities
                     if city.region_id == region.id and _visible(scopes, city.code)
                 ]
@@ -85,12 +85,20 @@ class MarketService:
             out.append(CountrySummary(**CountryOut.model_validate(country).model_dump(), regions=regs))
         return out
 
+    async def priced(self, country: Country, region: Region, city: City) -> bool:
+        """Does a delivery fee rule apply in this city (its own or the country's)?"""
+        from core_api.modules.rules.service.resolver import Context
+        from core_api.modules.rules.service.rules import RuleService
+
+        resolved = await RuleService(self.db).resolve(Context(country=country.code, region=region.code, city=city.code))
+        return any(slot.startswith("delivery_fee") for slot in resolved)
+
     def _city_summary(self, city: City, country: Country, region: Region, zones: list[Zone], now: datetime,
-                      waitlist: int = 0) -> CitySummary:
+                      waitlist: int = 0, priced: bool = False) -> CitySummary:
         states = [ZoneState(z.status, z.paused_until) for z in zones]
         checklist = rules.launch_checklist(
             country_status=country.status, region_status=region.status,
-            service_hours=city.service_hours, zones=states, now=now,
+            service_hours=city.service_hours, zones=states, now=now, priced=priced,
         )
         return CitySummary(
             **CityOut.model_validate(city).model_dump(),
@@ -103,7 +111,8 @@ class MarketService:
     async def city_detail(self, code: str) -> CityDetail:
         city, region, country = await self._city_chain(code)
         zone_rows = await self.repo.zones_with_geo([city.id])
-        summary = self._city_summary(city, country, region, [z for z, _, _ in zone_rows], datetime.now(UTC))
+        summary = self._city_summary(city, country, region, [z for z, _, _ in zone_rows], datetime.now(UTC),
+                                     priced=await self.priced(country, region, city))
         return CityDetail(
             **summary.model_dump(),
             country=CountryOut.model_validate(country),
@@ -210,6 +219,7 @@ class MarketService:
             checklist = rules.launch_checklist(
                 country_status=country.status, region_status=region.status, service_hours=city.service_hours,
                 zones=[ZoneState(z.status, z.paused_until) for z in zones], now=datetime.now(UTC),
+                priced=await self.priced(country, region, city),
             )
             rules.check_city_status(patch["status"], checklist)
         await self.db.flush()

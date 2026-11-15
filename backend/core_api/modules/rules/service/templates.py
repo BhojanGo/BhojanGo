@@ -330,8 +330,10 @@ def commission_percent(template: str, params: dict, tier: str | None) -> Decimal
 
 LEVELS = ("platform", "country", "region", "city", "zone", "restaurant")
 ALLOWED_LEVELS: dict[str, frozenset[str]] = {
-    "delivery_fee": frozenset({"city", "zone", "restaurant"}),
-    "customer_fee": frozenset({"city", "zone", "restaurant"}),
+    # A country default that a new city inherits (a city launched in admin prices
+    # orders from day one); cities, zones and kitchens override it.
+    "delivery_fee": frozenset({"country", "city", "zone", "restaurant"}),
+    "customer_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "tax": frozenset({"country", "region", "city"}),
     "commission": frozenset({"country", "city", "restaurant"}),
     "rider_pay": frozenset({"country", "region", "city"}),

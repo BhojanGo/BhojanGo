@@ -40,7 +40,7 @@ def chain_open(*statuses: str) -> bool:
 
 
 def launch_checklist(*, country_status: str, region_status: str, service_hours: dict | None,
-                     zones: list[ZoneState], now: datetime) -> dict[str, bool]:
+                     zones: list[ZoneState], now: datetime, priced: bool) -> dict[str, bool]:
     """What a city needs before it can open (shown on the country page as "setup 2 of 5")."""
     return {
         "country_open": country_status in OPEN,
@@ -48,6 +48,9 @@ def launch_checklist(*, country_status: str, region_status: str, service_hours: 
         "zones_drawn": len(zones) > 0,
         "zone_open": any(z.is_open(now) for z in zones),
         "service_hours_set": bool(service_hours),
+        # a delivery fee applies (the city's own or the country's default): without
+        # one no order can be priced, and the website would list no kitchens
+        "pricing_set": priced,
     }
 
 
@@ -62,6 +65,7 @@ def check_city_status(new_status: str, checklist: dict[str, bool]) -> None:
             "zones_drawn": "no zones are drawn",
             "zone_open": "no zone is beta or live",
             "service_hours_set": "service hours are not set",
+            "pricing_set": "no delivery fee applies (add one in Pricing, for the city or the country)",
         }
         raise MarketRuleError("Can't open this city: " + "; ".join(words[m] for m in missing))
 

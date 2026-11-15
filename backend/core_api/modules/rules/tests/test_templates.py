@@ -104,5 +104,5 @@ def test_catalogue_lists_everything_with_schemas() -> None:
     cat = t.catalogue()
     assert len(cat) == len(GOOD)
     svc = next(c for c in cat if c["template"] == "service_fee")
-    assert svc["money"] is True and svc["allowed_levels"] == ["city", "zone", "restaurant"]
+    assert svc["money"] is True and svc["allowed_levels"] == ["country", "city", "zone", "restaurant"]
     assert set(svc["params_schema"]["properties"]) >= {"percent", "min", "max"}
