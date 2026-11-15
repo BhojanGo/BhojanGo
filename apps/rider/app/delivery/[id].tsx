@@ -1,6 +1,12 @@
 // The accepted delivery: step 1 pickup, step 2 drop-off (RiderDropoff.html)
 // with proof: a photo of the bags at the door, or the customer's PIN.
-import { api, ApiError, QuickChat, unwrap } from "@bhojango/mobile-core";
+//
+// The server's order is the truth: the kitchen marks it ready, and on QA the demo
+// simulator (or the same rider on another phone) may pick it up or deliver it.
+// The screen polls the order and the rider's live state, shows whatever step the
+// server is at, reloads after a refused action instead of insisting, and says so
+// plainly when the order is no longer this rider's.
+import { api, ApiError, QuickChat, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +18,6 @@ import { RouteMap } from "../../lib/map";
 import { useFormat, useLive, useOrder } from "../../lib/rider";
 import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
 import { uploadFile } from "../../lib/upload";
-
 
 function km(a: [number, number] | null, b: [number, number] | null): number | null {
   if (!a || !b) return null;
@@ -28,17 +33,19 @@ function navigate(to: [number, number] | null, label: string) {
   Linking.openURL(url).catch(() => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`));
 }
 
+const POLL_MS = 5000;
+
 export default function Delivery() {
   const { dist, unitFor } = useFormat();
+  const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: order, error, reload } = useOrder(id);
+  const { data: order, error, gone, reload } = useOrder(id);
   const fixNow = useLive((s) => s.now?.location);
   const refreshLive = useLive((s) => s.refresh);
   const finish = useLive((s) => s.finish);
   // Task 43: the orders still to drop on this batch (this one first, then the rest).
   const batch = useLive((s) => s.now?.state.batch) ?? [];
   const others = batch.filter((b) => b !== id);
-  const position = batch.length > 1 ? `Order ${batch.indexOf(id) + 1} of ${batch.length} · ` : "";
   const [proof, setProof] = useState<"photo" | "pin">("photo");
   const [photo, setPhoto] = useState<{ uri: string; key: string | null } | null>(null);
   const [pin, setPin] = useState("");
@@ -58,13 +65,42 @@ export default function Delivery() {
       setOthersReady(n);
     };
     void check();
-    const t = setInterval(() => { void reload(); void check(); }, 8000);
-    return () => clearInterval(t);
+    // The order moves on without this phone (the rider's position comes from the Drive tab's live poll).
+    const timer = setInterval(() => { void reload(); void check(); }, POLL_MS);
+    return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload, othersKey]);
 
+  const backToDriving = () => {
+    if (id) finish(id);
+    void refreshLive();
+    router.replace("/drive");
+  };
+
+  if (gone) {
+    return (
+      <SafeAreaView testID="delivery-gone" style={[ui.screen, { padding: space[5], gap: space[4], justifyContent: "center" }]}>
+        <Text style={ui.h1}>{t("rider.delivery.gone_title")}</Text>
+        <Text style={ui.muted}>{t("rider.delivery.gone_sub")}</Text>
+        <Pressable testID="back-to-driving" accessibilityRole="button" onPress={backToDriving} style={ui.cta}>
+          <Text style={ui.ctaText}>{t("rider.delivery.back_to_driving")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
   if (!order) {
-    return <SafeAreaView style={[ui.screen, styles.center]}>{error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator color={night.kesar} />}</SafeAreaView>;
+    return (
+      <SafeAreaView style={[ui.screen, styles.center]}>
+        {error ? (
+          <>
+            <Text style={ui.body}>{error}</Text>
+            <Pressable accessibilityRole="button" onPress={() => void reload()} style={ui.outline}>
+              <Text style={[ui.bold, textFont("700")]}>{t("common.retry")}</Text>
+            </Pressable>
+          </>
+        ) : <ActivityIndicator testID="delivery-loading" color={night.kesar} />}
+      </SafeAreaView>
+    );
   }
   const o = order;
   const pickup: [number, number] | null = o.pickup_lat != null && o.pickup_lng != null ? [o.pickup_lat, o.pickup_lng] : null;
@@ -75,18 +111,28 @@ export default function Delivery() {
   const picked = order.status === "picked_up";
   const items = (order.items ?? []) as { name?: string; quantity?: number }[];
   const addr = (order.delivery_address ?? {}) as Record<string, string | undefined>;
-  const name = (order.customer as { name?: string } | null)?.name ?? "Customer";
+  const name = (order.customer as { name?: string } | null)?.name ?? t("rider.delivery.customer");
+  const position = batch.length > 1 && batch.includes(order.id) ? t("rider.delivery.order_n", { n: batch.indexOf(order.id) + 1, total: batch.length }) : null;
 
   if (order.status === "delivered" || order.status === "cancelled") {
+    const delivered = order.status === "delivered";
     return (
-      <SafeAreaView style={[ui.screen, { padding: space[5], gap: space[4], justifyContent: "center" }]}>
-        <Text style={ui.h1}>{order.status === "delivered" ? "Delivered" : "This order was cancelled"}</Text>
-        <Text style={ui.muted}>{order.status === "delivered" ? "Nice work. Your pay for it is in this week's earnings." : "You'll be paid for the time you spent on it."}</Text>
-        <Pressable accessibilityRole="button" onPress={() => { finish(order.id); void refreshLive(); router.replace("/drive"); }} style={ui.cta}>
-          <Text style={ui.ctaText}>{others.length ? "Next drop-off" : "Back to driving"}</Text>
+      <SafeAreaView testID={delivered ? "delivery-delivered" : "delivery-cancelled"}
+        style={[ui.screen, { padding: space[5], gap: space[4], justifyContent: "center" }]}>
+        <Text style={ui.h1}>{delivered ? t("rider.delivery.delivered") : t("rider.delivery.cancelled_title")}</Text>
+        <Text style={ui.muted}>{delivered ? t("rider.delivery.delivered_sub") : t("rider.delivery.cancelled_sub")}</Text>
+        <Pressable testID="back-to-driving" accessibilityRole="button" onPress={backToDriving} style={ui.cta}>
+          <Text style={ui.ctaText}>{others.length ? t("rider.delivery.next_drop") : t("rider.delivery.back_to_driving")}</Text>
         </Pressable>
       </SafeAreaView>
     );
+  }
+
+  /** A refused step usually means the order moved on elsewhere: show the server's state. */
+  async function refused(e: unknown, fallback: string) {
+    setMsg(e instanceof ApiError ? e.message : fallback);
+    await reload();
+    void refreshLive();
   }
 
   async function pickedUp() {
@@ -103,7 +149,7 @@ export default function Delivery() {
       }
       await reload();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : "Couldn't update the order. Try again.");
+      await refused(e, t("rider.delivery.update_failed"));
     } finally {
       setBusy(null);
     }
@@ -113,7 +159,7 @@ export default function Delivery() {
     setMsg(null);
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      setMsg("Allow the camera to take a photo at the door, or use the PIN.");
+      setMsg(t("rider.delivery.camera_needed"));
       return;
     }
     const shot = await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: false });
@@ -126,7 +172,7 @@ export default function Delivery() {
       setPhoto({ uri: a.uri, key });
     } catch (e) {
       setPhoto(null);
-      setMsg((e as Error).message);
+      setMsg((e as Error).message || t("rider.upload.failed"));
     } finally {
       setBusy(null);
     }
@@ -143,8 +189,8 @@ export default function Delivery() {
       await refreshLive();
       await reload();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : "Couldn't complete the delivery. Try again.");
       if (proof === "pin") setPin("");
+      await refused(e, t("rider.delivery.complete_failed"));
     } finally {
       setBusy(null);
     }
@@ -156,13 +202,17 @@ export default function Delivery() {
   const toDrop = km(rider ?? pickup, drop);
   const toPickup = km(rider, pickup);
   const dDrop = toDrop == null ? "" : dist(toDrop, unit);
+  const count = items.reduce((n, i) => n + (i.quantity ?? 1), 0);
   return (
-    <View style={ui.screen}>
-      <RouteMap rider={rider} pickup={picked ? null : pickup} dropoff={drop} height={picked ? 260 : 320} visible={picked ? 200 : 260} done={picked} />
+    <View testID="delivery-screen" style={ui.screen}>
+      <RouteMap rider={rider} pickup={picked ? null : pickup} dropoff={drop} height={picked ? 260 : 320} visible={picked ? 200 : 260} done={picked}
+        label={t("rider.map.label")} />
       <SafeAreaView edges={["top"]} style={styles.top}>
-        <View style={ui.pill}><Text style={ui.pillText}>{position}{picked ? "Drop-off · step 2 of 2" : "Pickup · step 1 of 2"}</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="SOS, get help now" onPress={() => router.push("/sos")} style={styles.sos}>
-          <Text style={[textFont("800"), { color: night.sosText, fontSize: 14 }]}>SOS</Text>
+        <View testID={picked ? "step-dropoff" : "step-pickup"} style={ui.pill}>
+          <Text style={ui.pillText}>{[position, picked ? t("rider.delivery.step_drop") : t("rider.delivery.step_pickup")].filter(Boolean).join(" · ")}</Text>
+        </View>
+        <Pressable testID="sos-open" accessibilityRole="button" accessibilityLabel={t("rider.delivery.sos_label")} onPress={() => router.push("/sos")} style={styles.sos}>
+          <Text style={[textFont("800"), { color: night.sosText, fontSize: 14 }]}>{t("rider.delivery.sos")}</Text>
         </Pressable>
       </SafeAreaView>
 
@@ -171,51 +221,51 @@ export default function Delivery() {
           {picked ? (
             <>
               <View>
-                <Text style={[displayFont("600"), styles.name]}>{name}</Text>
+                <Text testID="delivery-name" style={[displayFont("600"), styles.name]}>{name}</Text>
                 <Text style={[ui.muted, { fontSize: 14, marginTop: 4 }]}>
-                  {[addr.street, dDrop, `order ${code}`].filter(Boolean).join(" · ")}
+                  {[addr.street, dDrop, t("rider.delivery.order_code", { code })].filter(Boolean).join(" · ")}
                 </Text>
               </View>
               {order.special_instructions ? (
                 <View style={styles.note}>
                   <Text style={[textFont("400"), { color: night.needed, fontSize: 14, lineHeight: 21 }]}>
-                    <Text style={textFont("800")}>Note. </Text>{order.special_instructions}
+                    <Text style={textFont("800")}>{t("rider.delivery.note")} </Text>{order.special_instructions}
                   </Text>
                 </View>
               ) : null}
-              <Pressable accessibilityRole="button" onPress={() => navigate(drop, name)} style={[ui.outline, { marginTop: 12 }]}>
+              <Pressable testID="navigate" accessibilityRole="button" onPress={() => navigate(drop, name)} style={[ui.outline, { marginTop: 12 }]}>
                 <Icon name="navigate" size={20} stroke={night.link} />
-                <Text style={[ui.bold, { ...textFont("700") }]}>Navigate</Text>
+                <Text style={[ui.bold, { ...textFont("700") }]}>{t("rider.delivery.navigate")}</Text>
               </Pressable>
               <ChatButton orderId={order.id} />
 
-              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>Proof of delivery</Text>
-              <View accessibilityRole="radiogroup" accessibilityLabel="Proof type" style={styles.seg}>
+              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>{t("rider.delivery.proof_title")}</Text>
+              <View accessibilityRole="radiogroup" accessibilityLabel={t("rider.delivery.proof_type")} style={styles.seg}>
                 {(["photo", "pin"] as const).map((k) => (
-                  <Pressable key={k} accessibilityRole="radio" accessibilityState={{ checked: proof === k }} onPress={() => { setProof(k); setMsg(null); }}
+                  <Pressable key={k} testID={`proof-${k}`} accessibilityRole="radio" accessibilityState={{ checked: proof === k }} onPress={() => { setProof(k); setMsg(null); }}
                     style={[styles.segBtn, proof === k && { backgroundColor: night.line }]}>
                     <Text style={[textFont(proof === k ? "800" : "600"), { fontSize: 14, color: proof === k ? night.text : night.muted }]}>
-                      {k === "photo" ? "Photo at door" : "Hand over · PIN"}
+                      {k === "photo" ? t("rider.delivery.photo_at_door") : t("rider.delivery.pin_handover")}
                     </Text>
                   </Pressable>
                 ))}
               </View>
               {proof === "photo" ? (
-                <Pressable accessibilityRole="button" onPress={takePhoto} style={styles.shot}>
+                <Pressable testID="take-photo" accessibilityRole="button" onPress={takePhoto} style={styles.shot}>
                   {photo ? (
                     <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                   ) : null}
                   {busy === "photo" ? <ActivityIndicator color={night.kesar} /> : photo ? null : (
                     <>
                       <Icon name="camera" size={28} stroke={night.link} />
-                      <Text style={[ui.bold, textFont("700")]}>Take photo of the bags at the door</Text>
+                      <Text style={[ui.bold, textFont("700")]}>{t("rider.delivery.take_photo")}</Text>
                     </>
                   )}
                 </Pressable>
               ) : (
                 <View style={{ marginTop: 12, gap: 8 }}>
-                  <Text style={ui.muted}>Ask {name.split(" ")[0]} for the 4-digit PIN on their tracking screen.</Text>
-                  <TextInput testID="pin" accessibilityLabel="Customer's PIN" value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, "").slice(0, 4))}
+                  <Text style={ui.muted}>{t("rider.delivery.ask_pin", { name: name.split(" ")[0] ?? name })}</Text>
+                  <TextInput testID="pin" accessibilityLabel={t("rider.delivery.pin_label")} value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, "").slice(0, 4))}
                     keyboardType="number-pad" maxLength={4} placeholder="• • • •" placeholderTextColor={night.muted}
                     style={[textFont("800"), styles.pin]} />
                 </View>
@@ -224,44 +274,49 @@ export default function Delivery() {
           ) : (
             <>
               <View>
-                <Text style={[displayFont("600"), styles.name]}>{order.restaurant_name}</Text>
+                <Text testID="delivery-name" style={[displayFont("600"), styles.name]}>{order.restaurant_name}</Text>
                 <Text style={[ui.muted, { fontSize: 14, marginTop: 4 }]}>
-                  {[toPickup != null ? dist(toPickup, unit) : null, `order ${code}`, `${items.reduce((n, i) => n + (i.quantity ?? 1), 0)} items`].filter(Boolean).join(" · ")}
+                  {[toPickup != null ? dist(toPickup, unit) : null, t("rider.delivery.order_code", { code }), t("rider.delivery.items", { count })]
+                    .filter(Boolean).join(" · ")}
                 </Text>
               </View>
-              <View style={[styles.note, { backgroundColor: order.status === "ready" ? night.info : night.noteBg }]}>
+              <View testID={order.status === "ready" ? "kitchen-ready" : "kitchen-preparing"}
+                style={[styles.note, { backgroundColor: order.status === "ready" ? night.info : night.noteBg }]}>
                 <Text style={[textFont("700"), { color: order.status === "ready" ? night.text : night.needed, fontSize: 14 }]}>
-                  {order.status === "ready" ? "Ready for pickup. Check the order code on the bag." : "The kitchen is still preparing it. We'll update this when it's ready."}
+                  {order.status === "ready" ? t("rider.delivery.ready_pickup") : t("rider.delivery.preparing")}
                 </Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={() => navigate(pickup, order.restaurant_name)} style={[ui.outline, { marginTop: 12 }]}>
+              <Pressable testID="navigate" accessibilityRole="button" onPress={() => navigate(pickup, order.restaurant_name)} style={[ui.outline, { marginTop: 12 }]}>
                 <Icon name="navigate" size={20} stroke={night.link} />
-                <Text style={[ui.bold, textFont("700")]}>Navigate</Text>
+                <Text style={[ui.bold, textFont("700")]}>{t("rider.delivery.navigate")}</Text>
               </Pressable>
               <ChatButton orderId={order.id} />
-              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>In the bag</Text>
+              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>{t("rider.delivery.in_bag")}</Text>
               {items.map((it, i) => (
                 <View key={i} style={styles.itemRow}>
                   <Text style={[ui.bold, { width: 32 }]}>{it.quantity ?? 1}×</Text>
                   <Text style={[ui.body, { flex: 1 }]}>{it.name}</Text>
                 </View>
               ))}
-              <Text style={[ui.muted, { marginTop: 8 }]}>Drop-off near {addr.area ?? addr.city ?? "the customer"}; the address shows after pickup.</Text>
+              <Text style={[ui.muted, { marginTop: 8 }]}>
+                {t("rider.delivery.drop_near", { area: addr.area ?? addr.city ?? t("rider.delivery.the_customer") })}
+              </Text>
             </>
           )}
-          {msg ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14, marginTop: 12 }]}>{msg}</Text> : null}
+          {msg ? <Text testID="delivery-message" style={[textFont("600"), { color: night.sosText, fontSize: 14, marginTop: 12 }]}>{msg}</Text> : null}
         </ScrollView>
         <View style={{ padding: 20, paddingTop: 8 }}>
           {picked ? (
-            <Pressable accessibilityRole="button" disabled={!canComplete || !!busy} onPress={complete}
+            <Pressable testID="complete" accessibilityRole="button" disabled={!canComplete || !!busy} onPress={complete}
               style={[ui.cta, { opacity: canComplete && !busy ? 1 : 0.5 }]}>
-              <Text style={ui.ctaText}>{busy === "complete" ? "Completing…" : "Complete delivery"}</Text>
+              <Text style={ui.ctaText}>{busy === "complete" ? t("rider.delivery.completing") : t("rider.delivery.complete")}</Text>
             </Pressable>
           ) : (
-            <Pressable accessibilityRole="button" disabled={!allReady || !!busy} onPress={pickedUp}
+            <Pressable testID="picked-up" accessibilityRole="button" disabled={!allReady || !!busy} onPress={pickedUp}
               style={[ui.cta, { opacity: allReady && !busy ? 1 : 0.5 }]}>
-              <Text style={ui.ctaText}>{busy === "pickup" ? "…" : allReady ? (others.length ? `Picked up all ${others.length + 1}` : "Picked up")
-                : others.length ? `Waiting for the kitchen · ${readyCount} of ${others.length + 1} ready` : "Waiting for the kitchen"}</Text>
+              <Text style={ui.ctaText}>{busy === "pickup" ? "…" : allReady
+                ? (others.length ? t("rider.delivery.picked_up_all", { count: others.length + 1 }) : t("rider.delivery.picked_up"))
+                : others.length ? t("rider.delivery.waiting_batch", { ready: readyCount, total: others.length + 1 }) : t("rider.delivery.waiting_kitchen")}</Text>
             </Pressable>
           )}
         </View>
@@ -272,19 +327,22 @@ export default function Delivery() {
 
 /** Quick messages with the customer (B2): presets and short text, no phone numbers. */
 function ChatButton({ orderId }: { orderId: string }) {
+  const { t } = useI18n();
   return (
-    <QuickChat orderId={orderId} tone="dark" render={(open, unread, who) => (
-      <Pressable testID="chat-open" accessibilityRole="button" onPress={open} style={[ui.outline, { marginTop: 12 }]}
-        accessibilityLabel={`Message ${who}${unread ? `, ${unread} new` : ""}`}>
-        <Icon name="message" size={20} stroke={night.link} />
-        <Text style={[ui.bold, textFont("700")]}>Message {who}{unread ? ` · ${unread} new` : ""}</Text>
-      </Pressable>
-    )} />
+    <QuickChat orderId={orderId} tone="dark" render={(open, unread, who) => {
+      const label = unread ? t("rider.delivery.message_new", { who, count: unread }) : t("rider.delivery.message", { who });
+      return (
+        <Pressable testID="chat-open" accessibilityRole="button" onPress={open} style={[ui.outline, { marginTop: 12 }]} accessibilityLabel={label}>
+          <Icon name="message" size={20} stroke={night.link} />
+          <Text style={[ui.bold, textFont("700")]}>{label}</Text>
+        </Pressable>
+      );
+    }} />
   );
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center" },
+  center: { alignItems: "center", justifyContent: "center", gap: space[3], padding: space[5] },
   top: { position: "absolute", left: 20, right: 20, top: 16, flexDirection: "row", justifyContent: "space-between" },
   sos: {
     height: 44, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1.5, borderColor: night.sosBorder,

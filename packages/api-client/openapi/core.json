@@ -2699,6 +2699,17 @@
             "title": "Distance Unit",
             "type": "string"
           },
+          "emergency_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Number"
+          },
           "hero_photo": {
             "description": "The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)",
             "title": "Hero Photo",

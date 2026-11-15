@@ -6,8 +6,10 @@ import { night } from "./theme";
 
 type Pt = [number, number] | null | undefined;
 
-export function RouteMap({ rider, pickup, dropoff, height, visible, done = false }: {
+export function RouteMap({ rider, pickup, dropoff, height, visible, done = false, label }: {
   rider: Pt; pickup: Pt; dropoff: Pt; height: number;
+  /** The accessibility label, in the rider's language (rider.map.label). */
+  label: string;
   /** How much of the map shows above the sheet: the route is fitted between the top pills and it. */
   visible?: number;
   /** After pickup: the leg to the restaurant is gone, the rider heads to the drop-off. */
@@ -27,7 +29,7 @@ export function RouteMap({ rider, pickup, dropoff, height, visible, done = false
   const curve = (p: [number, number], q: [number, number]) =>
     `M${p[0]} ${p[1]} C ${p[0] + (q[0] - p[0]) * 0.4} ${p[1] - 20}, ${q[0] - (q[0] - p[0]) * 0.4} ${q[1] + 20}, ${q[0]} ${q[1]}`;
   return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" accessibilityLabel="Route map">
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" accessibilityLabel={label}>
       <Rect width={W} height={H} fill={night.map} />
       <Path d={`M-10 ${H * 0.28} C 100 ${H * 0.22}, 220 ${H * 0.35}, 400 ${H * 0.25}`} stroke={night.road} strokeWidth={14} fill="none" />
       <Path d={`M-10 ${H * 0.65} C 140 ${H * 0.6}, 260 ${H * 0.75}, 400 ${H * 0.62}`} stroke={night.road} strokeWidth={14} fill="none" />

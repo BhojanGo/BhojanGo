@@ -5,7 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
-import "../lib/location"; // defines the background location task at start-up
+import { stopTracking } from "../lib/location"; // also defines the background location task at start-up
 import { night } from "../lib/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -23,6 +23,12 @@ export default function RootLayout() {
   useEffect(() => {
     void initialize();
   }, [initialize]);
+
+  // Signed out (here, or everywhere from another phone: the API then refuses this
+  // phone's token): this phone stops sharing its location.
+  useEffect(() => {
+    if (status === "signed-out") void stopTracking();
+  }, [status]);
 
   useEffect(() => {
     if (fontsReady && status !== "loading") void SplashScreen.hideAsync();

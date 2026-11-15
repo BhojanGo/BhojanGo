@@ -1,5 +1,5 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
-// deliveries and the next payout.
+// deliveries and the next payout. Money and dates by the country (Markets).
 import { useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -10,8 +10,6 @@ import { Icon } from "../../lib/icons";
 import { useFormat, useWeek, type Week } from "../../lib/rider";
 import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
 
-const DAY = ["M", "T", "W", "T", "F", "S", "S"];
-
 type DateFn = ReturnType<typeof useFormat>["date"];
 
 /** "Nov 10 – Nov 16" or "10 Nov – 16 Nov" (the country's order) for the week [start, end). */
@@ -21,20 +19,29 @@ function range(w: Week, date: DateFn) {
   return `${date(w.period_start)} – ${date(end)}`;
 }
 
+/** The day's initial ("M") in the country's locale. */
+function dayInitial(iso: string, date: DateFn) {
+  return date(iso, { weekday: "narrow", day: undefined, month: undefined });
+}
+
 export default function Earnings() {
   const { cash, cityName, date, time } = useFormat();
-  const { t } = useI18n();
+  const { t, number } = useI18n();
   const { data: w, error, reload } = useWeek();
   useFocusEffect(useCallback(() => void reload(), [reload]));
 
   if (!w) {
-    return <SafeAreaView style={[ui.screen, styles.center]}>{error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator color={night.kesar} />}</SafeAreaView>;
+    return (
+      <SafeAreaView style={[ui.screen, styles.center]}>
+        {error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator testID="earnings-loading" color={night.kesar} />}
+      </SafeAreaView>
+    );
   }
   const cur = w.currency;
   const s = w.summary;
   const todayIso = w.today.date; // in the city's time zone
   const max = Math.max(...w.days.map((d) => Number(d.total)), 1);
-  const city = cityName(w.city) ?? "your city";
+  const city = cityName(w.city) ?? t("rider.earnings.your_city");
   // A rate from a few minutes of work means nothing: wait for half an hour.
   const perHour = s.per_active_hour && Number(s.active_hours) >= 0.5 ? Number(s.per_active_hour) : null;
   const lines = [...w.today.lines].reverse(); // newest first
@@ -43,26 +50,39 @@ export default function Earnings() {
   const hours = Number(s.active_hours);
 
   return (
-    <SafeAreaView style={ui.screen} edges={["top"]}>
+    <SafeAreaView testID="earnings-screen" style={ui.screen} edges={["top"]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.head}>
-          <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22, letterSpacing: -0.3 }]}>Earnings</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Week of ${range(w, date)}. Past weeks`} onPress={() => router.push("/payouts")} style={styles.week}>
+          <Text testID="earnings-title" accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22, letterSpacing: -0.3 }]}>
+            {t("rider.earnings.title")}
+          </Text>
+          <Pressable testID="past-weeks" accessibilityRole="button" accessibilityLabel={t("rider.earnings.week_label", { range: range(w, date) })}
+            onPress={() => router.push("/payouts")} style={styles.week}>
             <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{range(w, date)}</Text>
             <Icon name="chevronDown" size={14} width={2.4} />
           </Pressable>
         </View>
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
-          <Text style={[ui.muted, { fontSize: 14 }]}>This week so far</Text>
+          <Text style={[ui.muted, { fontSize: 14 }]}>{t("rider.earnings.so_far")}</Text>
           <Text testID="week-total" style={[displayFont("600"), styles.big]}>{cash(w.total, cur)}</Text>
         </View>
         <View style={[ui.stats, styles.box, { borderRadius: 16, backgroundColor: night.surface, paddingVertical: 16 }]}>
-          <View style={ui.stat}><Text style={[ui.statValue, { fontSize: 18 }]}>{hours < 10 ? hours.toFixed(1) : Math.round(hours)} h</Text><Text style={ui.statLabel}>active</Text></View>
-          <View style={[ui.stat, styles.mid]}><Text style={[ui.statValue, { fontSize: 18 }]}>{s.deliveries}</Text><Text style={ui.statLabel}>deliveries</Text></View>
-          <View style={ui.stat}><Text style={[ui.statValue, { fontSize: 18 }]}>{cash(s.tips, cur, 0)}</Text><Text style={ui.statLabel}>tips</Text></View>
+          <View style={ui.stat}>
+            <Text style={[ui.statValue, { fontSize: 18 }]}>{t("rider.earnings.hours", { value: number(hours, hours < 10 ? 1 : 0) })}</Text>
+            <Text style={ui.statLabel}>{t("rider.earnings.active")}</Text>
+          </View>
+          <View style={[ui.stat, styles.mid]}>
+            <Text style={[ui.statValue, { fontSize: 18 }]}>{number(s.deliveries, 0)}</Text>
+            <Text style={ui.statLabel}>{t("rider.earnings.deliveries")}</Text>
+          </View>
+          <View style={ui.stat}>
+            <Text style={[ui.statValue, { fontSize: 18 }]}>{cash(s.tips, cur, 0)}</Text>
+            <Text style={ui.statLabel}>{t("rider.earnings.tips")}</Text>
+          </View>
         </View>
 
-        <View style={[styles.box, styles.chart]} accessibilityLabel={`Daily earnings: ${w.days.map((d, i) => `${DAY[i]} ${cash(d.total, cur, 0)}`).join(", ")}`}>
+        <View style={[styles.box, styles.chart]}
+          accessibilityLabel={t("rider.earnings.daily", { days: w.days.map((d) => `${date(d.date, { weekday: "short" })} ${cash(d.total, cur, 0)}`).join(", ") })}>
           <View style={styles.bars}>
             {w.days.map((d) => {
               const v = Number(d.total);
@@ -78,39 +98,49 @@ export default function Earnings() {
             })}
           </View>
           <View style={[styles.bars, { height: undefined, marginTop: 8 }]}>
-            {w.days.map((d, i) => (
-              <Text key={d.date} style={[textFont(d.date === todayIso ? "800" : "400"), styles.dayLabel, d.date === todayIso && { color: night.text }]}>{DAY[i]}</Text>
+            {w.days.map((d) => (
+              <Text key={d.date} style={[textFont(d.date === todayIso ? "800" : "400"), styles.dayLabel, d.date === todayIso && { color: night.text }]}>
+                {dayInitial(d.date, date)}
+              </Text>
             ))}
           </View>
         </View>
 
-        <View style={[styles.box, styles.floor]}>
+        <View testID="floor-card" style={[styles.box, styles.floor]}>
           <Icon name="shield" size={24} stroke={night.link} />
           <Text style={[ui.body, { flex: 1, fontSize: 14, lineHeight: 20 }]}>
             {floor == null ? (
-              <Text>Pay per active hour shows here once you&apos;ve delivered this week.</Text>
+              <Text>{t("rider.earnings.floor_none")}</Text>
             ) : perHour == null ? (
-              <Text><Text style={ui.bold}>{cash(floor, cur)} per active hour floor</Text> in {city}. Short weeks get topped up.</Text>
-            ) : topUp > 0 ? (
-              <Text><Text style={ui.bold}>{cash(perHour, cur)} per active hour</Text> — below {city}&apos;s {cash(floor, cur)} floor, so we add {cash(topUp, cur)}.</Text>
+              <Text>
+                <Text style={ui.bold}>{t("rider.earnings.floor_amount", { amount: cash(floor, cur) })}</Text>
+                {" "}{t("rider.earnings.floor_in", { city })}
+              </Text>
             ) : (
-              <Text><Text style={ui.bold}>{cash(perHour, cur)} per active hour</Text> — above {city}&apos;s {cash(floor, cur)} floor. Short weeks get topped up.</Text>
+              <Text>
+                <Text style={ui.bold}>{t("rider.earnings.per_hour", { amount: cash(perHour, cur) })}</Text>
+                {" "}{topUp > 0
+                  ? t("rider.earnings.below_floor", { city, floor: cash(floor, cur), top_up: cash(topUp, cur) })
+                  : t("rider.earnings.above_floor", { city, floor: cash(floor, cur) })}
+              </Text>
             )}
           </Text>
         </View>
 
         <View style={{ marginHorizontal: 20, marginTop: 24 }}>
-          <Text style={[ui.bold, { fontSize: 15, marginBottom: 8 }]}>Today</Text>
-          {lines.length === 0 ? <Text style={ui.muted}>No deliveries yet today.</Text> : null}
+          <Text style={[ui.bold, { fontSize: 15, marginBottom: 8 }]}>{t("rider.earnings.today")}</Text>
+          {lines.length === 0 ? <Text style={ui.muted}>{t("rider.earnings.none_today")}</Text> : null}
           {lines.map((ln, i) => (
             <View key={ln.order_id} style={[styles.line, i < lines.length - 1 && styles.lineBorder]}>
               <View style={{ flex: 1 }}>
                 <Text style={[ui.bold, textFont("700")]}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
                 <Text style={[ui.muted, { fontSize: 12 }]}>
-                  {time(ln.delivered_at)} · base {cash(ln.base, cur)}
-                  {Number(ln.distance) > 0 ? ` + ${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : ""}
-                  {Number(ln.waiting) > 0 ? ` + wait ${cash(ln.waiting, cur)}` : ""}
-                  {Number(ln.tip) > 0 ? ` + tip ${cash(ln.tip, cur)}` : ""}
+                  {[
+                    `${time(ln.delivered_at)} · ${t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
+                    Number(ln.distance) > 0 ? `${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : null,
+                    Number(ln.waiting) > 0 ? t("rider.earnings.wait", { amount: cash(ln.waiting, cur) }) : null,
+                    Number(ln.tip) > 0 ? t("rider.earnings.tip", { amount: cash(ln.tip, cur) }) : null,
+                  ].filter(Boolean).join(" + ")}
                 </Text>
               </View>
               <Text style={ui.bold}>{cash(ln.total, cur)}</Text>
@@ -119,10 +149,12 @@ export default function Earnings() {
         </View>
       </ScrollView>
       {/* B6: payouts are weekly only; there's no instant cash-out, so no button that suggests one. */}
-      <View style={styles.footer} accessibilityLabel="Payout">
+      <View style={styles.footer} accessibilityLabel={t("rider.earnings.payout_label")}>
         <View style={styles.payout}>
-          <Text style={[ui.bold, { fontSize: 15 }]}>Paid weekly · next payout {date(w.payout_date, { weekday: "short" })}</Text>
-          <Text style={[ui.muted, { fontSize: 13, textAlign: "center" }]}>Everything you earn this week goes to your bank together. There&apos;s no instant cash-out.</Text>
+          <Text testID="next-payout" style={[ui.bold, { fontSize: 15 }]}>
+            {t("rider.earnings.paid_weekly", { day: date(w.payout_date, { weekday: "short" }) })}
+          </Text>
+          <Text style={[ui.muted, { fontSize: 13, textAlign: "center" }]}>{t("rider.earnings.no_cashout")}</Text>
         </View>
       </View>
     </SafeAreaView>

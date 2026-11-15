@@ -1,6 +1,6 @@
 // The rider's state: onboarding, online/offer/busy (live over /ws/rider with a
 // poll as a safety net), the active delivery and the week's earnings.
-import { api, countryForCurrency, findCity, unwrap, useCountry, useI18n, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, ApiError, countryForCurrency, findCity, unwrap, useCountry, useI18n, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 
@@ -151,6 +151,8 @@ export function useLiveRider(enabled: boolean) {
 function useLoad<T>(load: () => Promise<T>, key = "") {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The HTTP status of the last failed load (403/404: not yours, or gone), else null. */
+  const [status, setStatus] = useState<number | null>(null);
   const live = useRef(true);
   const loader = useRef(load);
   useEffect(() => {
@@ -162,10 +164,14 @@ function useLoad<T>(load: () => Promise<T>, key = "") {
       if (live.current) {
         setData(v);
         setError(null);
+        setStatus(null);
       }
       return v;
     } catch (e) {
-      if (live.current) setError((e as Error).message);
+      if (live.current) {
+        setError((e as Error).message);
+        setStatus(e instanceof ApiError ? e.status : null);
+      }
       return null;
     }
     // `key` (e.g. the order id) decides when to load again.
@@ -178,7 +184,7 @@ function useLoad<T>(load: () => Promise<T>, key = "") {
       live.current = false;
     };
   }, [reload]);
-  return { data, error, reload, setData };
+  return { data, error, status, reload, setData };
 }
 
 export function useOnboarding() {
@@ -189,6 +195,13 @@ export function useWeek() {
   return useLoad(async () => unwrap(await api.core.GET("/api/v1/finance/earnings/me")) as unknown as Week);
 }
 
+/**
+ * The order this rider is delivering. Other places move it on too (the kitchen,
+ * the demo simulator on QA, the same rider signed in on another phone), so the
+ * screen polls it and shows whatever the server says. `gone`: the order isn't
+ * this rider's any more (reassigned or cancelled away: 403/404).
+ */
 export function useOrder(id: string | undefined) {
-  return useLoad(async () => (id ? (unwrap(await api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })) as Order) : null), id);
+  const load = useLoad(async () => (id ? (unwrap(await api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })) as Order) : null), id);
+  return { ...load, gone: load.status === 403 || load.status === 404 };
 }

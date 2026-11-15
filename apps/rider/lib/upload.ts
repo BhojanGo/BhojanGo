@@ -1,4 +1,6 @@
-// Upload a photo or document to core_api (POST /uploads, multipart).
+// Upload a photo or document to core_api (POST /uploads, multipart). A failure
+// throws an Error whose message is the API's reason, or "" (the screen then says
+// "rider.upload.failed" in the rider's language).
 import { useSession, urls } from "@bhojango/mobile-core";
 
 export async function uploadFile(uri: string, mime: string, purpose: "delivery_proof" | "rider_document"): Promise<string> {
@@ -15,7 +17,7 @@ export async function uploadFile(uri: string, mime: string, purpose: "delivery_p
   const body = (await res.json().catch(() => null)) as { key?: string; detail?: { message?: string } | string } | null;
   if (!res.ok || !body?.key) {
     const d = body?.detail;
-    throw new Error(typeof d === "string" ? d : d?.message ?? "The upload didn't go through. Try again.");
+    throw new Error(typeof d === "string" ? d : d?.message ?? "");
   }
   return body.key;
 }

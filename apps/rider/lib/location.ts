@@ -2,14 +2,32 @@
 // notification), so updates keep coming with the screen off or another app on
 // top; each fix goes to realtime, which offers nearby orders and shows the
 // customer where their rider is. Stops when the rider goes offline.
+//
+// Only the phone the rider went online on shares its GPS ("tracking here",
+// kept in SecureStore). The same rider signed in on a second phone, or the demo
+// rider on QA whose position the demo simulator sends, sees the server's state
+// without this phone's GPS fighting the other source; "Use this phone's
+// location" on the Drive tab takes over deliberately.
 import { api, useSession, urls } from "@bhojango/mobile-core";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 
 export const LOCATION_TASK = "bhojango-rider-location";
+const TRACKING_HERE = "rider_tracking_here";
 
 let watcher: Location.LocationSubscription | null = null;
+
+/** The words on Android's "you're online" notification, in the rider's language (set by the Drive tab). */
+let notice = { title: "BhojanGo", body: "" };
+export function setTrackingNotice(title: string, body: string) {
+  notice = { title, body };
+}
+
+/** Did the rider go online on this phone (so this phone shares its GPS)? */
+export async function trackingHere(): Promise<boolean> {
+  return (await SecureStore.getItemAsync(TRACKING_HERE).catch(() => null)) === "1";
+}
 
 async function send(lat: number, lng: number, extra: { heading?: number | null; speed?: number | null; accuracy?: number | null }) {
   // The task can run before the session store is hydrated (app in the background).
@@ -79,6 +97,7 @@ function firstFix(ms: number): Promise<Location.LocationObject | null> {
 }
 
 export async function startTracking(): Promise<void> {
+  await SecureStore.setItemAsync(TRACKING_HERE, "1").catch(() => undefined);
   const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
   if (bg?.status === "granted") {
     if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false))) {
@@ -89,8 +108,8 @@ export async function startTracking(): Promise<void> {
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
-          notificationTitle: "You're online",
-          notificationBody: "BhojanGo shares your location while you ride.",
+          notificationTitle: notice.title,
+          notificationBody: notice.body,
           notificationColor: "#E8A93C",
           killServiceOnDestroy: false,
         },
@@ -106,6 +125,7 @@ export async function startTracking(): Promise<void> {
 }
 
 export async function stopTracking(): Promise<void> {
+  await SecureStore.deleteItemAsync(TRACKING_HERE).catch(() => undefined);
   watcher?.remove();
   watcher = null;
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false)) {

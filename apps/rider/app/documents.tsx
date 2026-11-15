@@ -1,4 +1,5 @@
 // The onboarding checklist, from Account (after approval it shows everything done).
+import { useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
@@ -11,6 +12,7 @@ import { night, ui } from "../lib/theme";
 
 export default function Documents() {
   const { data, error, reload } = useOnboarding();
+  const { t } = useI18n();
   useFocusEffect(useCallback(() => void reload(), [reload]));
   if (!data) {
     return <SafeAreaView style={[ui.screen, { alignItems: "center", justifyContent: "center" }]}>{error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator color={night.kesar} />}</SafeAreaView>;
@@ -18,7 +20,7 @@ export default function Documents() {
   return (
     <View style={ui.screen}>
       <SafeAreaView edges={["top"]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={{ width: 44, height: 44, marginLeft: 8, alignItems: "center", justifyContent: "center" }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={{ width: 44, height: 44, marginLeft: 8, alignItems: "center", justifyContent: "center" }}>
           <Icon name="back" />
         </Pressable>
       </SafeAreaView>

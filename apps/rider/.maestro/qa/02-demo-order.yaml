@@ -1,0 +1,50 @@
+# QA, read-only: the demo order's screen, when the demo simulator has given the
+# demo rider one. It follows the server (pickup or drop-off step, the kitchen's
+# status, the rider's position from the simulator). Nothing is tapped that changes
+# the order: no "Picked up", no "Complete delivery", no photo, no PIN.
+appId: com.bhojango.rider
+---
+- runFlow: common/sign-in-demo.yaml
+- runFlow:
+    when:
+      visible:
+        id: "open-delivery"
+    commands:
+      - tapOn:
+          id: "open-delivery"
+      - extendedWaitUntil:
+          visible:
+            id: "delivery-screen|delivery-gone|delivery-delivered|delivery-cancelled"
+          timeout: 20000
+      - takeScreenshot: docs/screenshots/rider/qa/02-demo-order
+      - runFlow:
+          when:
+            visible:
+              id: "delivery-screen"
+          commands:
+            - assertVisible:
+                id: "step-pickup|step-dropoff"
+            - assertVisible:
+                id: "delivery-name"
+            - assertVisible:
+                id: "navigate"
+            - scrollUntilVisible:
+                element:
+                  id: "picked-up|complete"
+                direction: DOWN
+                timeout: 10000
+            - takeScreenshot: docs/screenshots/rider/qa/02-demo-order-actions
+      - back
+      - extendedWaitUntil:
+          visible:
+            id: "drive-panel"
+          timeout: 20000
+# No order right now: the Drive tab says so (looking for deliveries, or offline).
+- runFlow:
+    when:
+      notVisible:
+        id: "open-delivery"
+    commands:
+      - assertVisible:
+          id: "drive-title"
+      - takeScreenshot: docs/screenshots/rider/qa/02-no-order
