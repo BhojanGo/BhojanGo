@@ -42,14 +42,14 @@ export default function Partner() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-12">
       <div>
-        <p className="text-sm font-bold uppercase tracking-[1.2px] text-peacock">For kitchens</p>
-        <h1 className="font-display text-5xl font-semibold tracking-[-1.2px]">Cook for your neighbourhood</h1>
-        <p className="mt-3 text-lg text-muted">Commission on food only, paid weekly. You set your prices and your own offers. Customers see the whole bill, so they trust your prices.</p>
+        <p className="text-caption text-peacock">For kitchens</p>
+        <h1 className="text-display tracking-[-1.2px]">Cook for your neighbourhood</h1>
+        <p className="mt-3 text-body-lg text-muted">Commission on food only, paid weekly. You set your prices and your own offers. Customers see the whole bill, so they trust your prices.</p>
       </div>
       {!user ? (
         <div className="rounded-card bg-white p-6">
           <p className="mb-4">Sign in with your kitchen&apos;s phone number to apply.</p>
-          <Link href="/sign-in?next=/partner" className="inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-extrabold text-white">Sign in to apply</Link>
+          <Link href="/sign-in?next=/partner" className="inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-bold text-white">Sign in to apply</Link>
         </div>
       ) : user.role === "restaurant_owner" ? (
         app ? <Steps app={app} onSaved={reload} /> : <p className="text-muted">Loading your application…</p>
@@ -97,18 +97,18 @@ function ApplyForm({ onDone }: { onDone: () => Promise<void> }) {
   }
   return (
     <form onSubmit={submit} className="grid gap-4 rounded-card bg-white p-6 sm:grid-cols-2" aria-label="Apply with your kitchen">
-      <label className="text-sm font-bold">Your name<input required value={f.full_name} onChange={set("full_name")} className={input} /></label>
-      <label className="text-sm font-bold">Kitchen name<input required value={f.kitchen_name} onChange={set("kitchen_name")} className={input} /></label>
-      <label className="text-sm font-bold">City<select value={f.city_code} onChange={set("city_code")} className={input}>{cities.map((c) => <option key={c.code} value={c.code}>{c.name}, {c.region}</option>)}</select></label>
-      <label className="text-sm font-bold">Area<input required value={f.area} onChange={set("area")} placeholder="e.g. Banjara Hills" className={input} /></label>
-      <label className="text-sm font-bold sm:col-span-2">Street address<input required value={f.street} onChange={set("street")} className={input} /></label>
-      <label className="text-sm font-bold">PIN / ZIP code<input required value={f.zip} onChange={set("zip")} className={input} /></label>
-      <label className="text-sm font-bold">Cuisines<input required value={f.cuisines} onChange={set("cuisines")} placeholder="Andhra, Thali" className={input} /></label>
+      <label className="text-label">Your name<input required value={f.full_name} onChange={set("full_name")} className={input} /></label>
+      <label className="text-label">Kitchen name<input required value={f.kitchen_name} onChange={set("kitchen_name")} className={input} /></label>
+      <label className="text-label">City<select value={f.city_code} onChange={set("city_code")} className={input}>{cities.map((c) => <option key={c.code} value={c.code}>{c.name}, {c.region}</option>)}</select></label>
+      <label className="text-label">Area<input required value={f.area} onChange={set("area")} placeholder="e.g. Banjara Hills" className={input} /></label>
+      <label className="text-label sm:col-span-2">Street address<input required value={f.street} onChange={set("street")} className={input} /></label>
+      <label className="text-label">PIN / ZIP code<input required value={f.zip} onChange={set("zip")} className={input} /></label>
+      <label className="text-label">Cuisines<input required value={f.cuisines} onChange={set("cuisines")} placeholder="Andhra, Thali" className={input} /></label>
       <div className="flex items-center gap-3 sm:col-span-2">
         <Button type="button" variant="secondary" onClick={locate}>{pin ? "Pin set at your location" : "I'm at the kitchen: use my location"}</Button>
-        <span className="text-sm text-muted">{pin ? `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}` : "Otherwise we use the city centre and check the pin with you."}</span>
+        <span className="text-small text-muted">{pin ? `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}` : "Otherwise we use the city centre and check the pin with you."}</span>
       </div>
-      {error ? <p role="alert" className="text-sm font-semibold text-chili sm:col-span-2">{error}</p> : null}
+      {error ? <p role="alert" className="text-label text-chili sm:col-span-2">{error}</p> : null}
       <div className="sm:col-span-2"><Button type="submit" size="lg" loading={busy}>Send application</Button></div>
     </form>
   );
@@ -130,30 +130,30 @@ function Steps({ app, onSaved }: { app: Application; onSaved: () => Promise<void
   const rid = { params: { path: { restaurant_id: app.restaurant_id } } };
   return (
     <section className="space-y-4 rounded-card bg-white p-6" aria-label="Your application">
-      <h2 className="font-display text-2xl font-semibold">{app.name} · {app.done} of {app.total} done</h2>
+      <h2 className="text-h2">{app.name} · {app.done} of {app.total} done</h2>
       <ol className="space-y-2">
         {app.steps.map((s, i) => (
           <li key={s.key} className="flex items-center gap-3">
-            <span className={`flex h-7 w-7 items-center justify-center rounded-pill text-xs font-extrabold ${s.done ? "bg-peacock text-white" : "border-2 border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
-            <b className="w-44">{s.title}</b><span className="text-sm text-muted">{s.detail}</span>
+            <span className={`flex h-7 w-7 items-center justify-center rounded-pill text-caption ${s.done ? "bg-peacock text-white" : "border-2 border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
+            <b className="w-44">{s.title}</b><span className="text-small text-muted">{s.detail}</span>
           </li>
         ))}
       </ol>
       {app.current === "fssai" ? (
         <div className="grid gap-3 rounded-card bg-porcelain p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label className="text-sm font-bold">FSSAI licence number<input inputMode="numeric" value={fssai.number} onChange={(e) => setFssai({ ...fssai, number: e.target.value.replace(/\D/g, "").slice(0, 14) })} className={input} /></label>
-          <label className="text-sm font-bold">Valid until<input type="date" value={fssai.until} onChange={(e) => setFssai({ ...fssai, until: e.target.value })} className={input} /></label>
+          <label className="text-label">FSSAI licence number<input inputMode="numeric" value={fssai.number} onChange={(e) => setFssai({ ...fssai, number: e.target.value.replace(/\D/g, "").slice(0, 14) })} className={input} /></label>
+          <label className="text-label">Valid until<input type="date" value={fssai.until} onChange={(e) => setFssai({ ...fssai, until: e.target.value })} className={input} /></label>
           <Button disabled={fssai.number.length !== 14 || !fssai.until} onClick={() => void save(async () => unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/licence", { ...rid, body: { fssai_number: fssai.number, fssai_expires_on: fssai.until } })))}>Save licence</Button>
         </div>
       ) : null}
       {app.current === "gst_bank" ? (
         <div className="grid gap-3 rounded-card bg-porcelain p-4 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className="text-sm font-bold">GSTIN<input value={gstin} maxLength={15} onChange={(e) => setGstin(e.target.value.toUpperCase())} className={input} /></label>
+          <label className="text-label">GSTIN<input value={gstin} maxLength={15} onChange={(e) => setGstin(e.target.value.toUpperCase())} className={input} /></label>
           <Button disabled={gstin.length !== 15} onClick={() => void save(async () => unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/gst", { ...rid, body: { gstin } })))}>Save GSTIN</Button>
         </div>
       ) : null}
-      {msg ? <p role="alert" className="text-sm font-semibold text-chili">{msg}</p> : null}
-      <p className="text-sm text-muted">Upload the licence certificate, add your bank and your menu in the BhojanGo Partner app on your kitchen tablet. We check everything and switch you on.</p>
+      {msg ? <p role="alert" className="text-label text-chili">{msg}</p> : null}
+      <p className="text-small text-muted">Upload the licence certificate, add your bank and your menu in the BhojanGo Partner app on your kitchen tablet. We check everything and switch you on.</p>
     </section>
   );
 }

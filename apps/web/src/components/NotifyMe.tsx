@@ -62,14 +62,14 @@ export function NotifyMe({
 
   const done = state === "done";
   const dark = variant === "band";
-  const field = `h-12 min-w-0 rounded-full px-[18px] text-[15px] outline-none ${dark ? "bg-[#1E2A2D] text-white placeholder:text-[#A9B8BA]" : "border border-[#E2E7E8] bg-white text-[#111418] placeholder:text-[#4C5A5E]"}`;
+  const field = `h-12 min-w-0 rounded-full px-[18px] text-body outline-none ${dark ? "bg-[#1E2A2D] text-white placeholder:text-[#A9B8BA]" : "border border-[#E2E7E8] bg-white text-[#111418] placeholder:text-[#4C5A5E]"}`;
   return (
     <section
       id={source === "suggest_city" ? "suggest" : undefined}
       aria-label={t("notify.title")}
       className={dark ? "rounded-[20px] bg-[#111418] px-6 py-5 text-white md:flex md:items-center md:gap-4" : "rounded-[20px] border border-[#E2E7E8] bg-[#F4F6F6] p-6"}
     >
-      <p className={`m-0 font-bold ${dark ? "text-[17px] md:flex-grow" : "text-[17px]"}`}>
+      <p className={`m-0 text-h3 ${dark ? "md:flex-grow" : ""}`}>
         {title ?? (cityName ? t("notify.city_title", { city: cityName }) : t("notify.band_title"))}
       </p>
       {done ? (
@@ -83,15 +83,15 @@ export function NotifyMe({
               <input required aria-label={t("notify.city")} placeholder={t("notify.city")} value={city} onChange={(e) => setCity(e.target.value)} className={`${field} sm:w-[180px]`} />
             )}
             <input required type="email" aria-label={t("notify.email")} placeholder={t("notify.email")} value={email} onChange={(e) => setEmail(e.target.value)} className={`${field} sm:w-[240px]`} />
-            <button type="submit" disabled={state === "busy"} className="h-12 shrink-0 rounded-full bg-[#E8A93C] px-6 font-extrabold text-[#111418] disabled:opacity-60">
+            <button type="submit" disabled={state === "busy"} className="h-12 shrink-0 rounded-full bg-[#E8A93C] px-6 font-bold text-[#111418] disabled:opacity-60">
               {t("notify.button")}
             </button>
           </div>
-          <label className={`flex items-start gap-2 text-xs ${dark ? "text-[#A9B8BA]" : "text-[#4C5A5E]"}`}>
+          <label className={`flex items-start gap-2 text-small ${dark ? "text-[#A9B8BA]" : "text-[#4C5A5E]"}`}>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-[2px]" />
             {t("notify.consent")}
           </label>
-          {problem && <span role="alert" className={`text-sm ${dark ? "text-[#F2B8B5]" : "text-[#A3271F]"}`}>{problem}</span>}
+          {problem && <span role="alert" className={`text-small ${dark ? "text-[#F2B8B5]" : "text-[#A3271F]"}`}>{problem}</span>}
         </form>
       )}
     </section>

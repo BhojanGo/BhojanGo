@@ -21,7 +21,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
 
   const cravings = cuisines.length > 0 && (
     <section aria-labelledby="craving">
-      <h2 id="craving" className="sr-only m-0 font-display text-[26px] font-semibold tracking-[-0.5px] md:not-sr-only">{t("home.craving")}</h2>
+      <h2 id="craving" className="sr-only m-0 text-h2 tracking-[-0.5px] md:not-sr-only">{t("home.craving")}</h2>
       <div className="-mx-5 flex gap-[14px] overflow-x-auto px-5 py-1 md:mx-0 md:mt-5 md:grid md:grid-cols-8 md:gap-5 md:overflow-visible md:px-0">
         {cuisines.map(({ name, photo }) => (
           <CuisineTile key={name} name={name} image={photo} href={`${cityPath}?cuisine=${encodeURIComponent(name)}`} />
@@ -32,8 +32,8 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
 
   const offerBlock = offers.length > 0 && (
     <section aria-labelledby="offers-near">
-      <h2 id="offers-near" className="m-0 font-display text-xl font-semibold tracking-[-0.5px] md:text-[26px]">{t("offers.near_you")}</h2>
-      <p className="mt-1 text-[15px] text-[#4C5A5E]">{t("offers.who_pays")}</p>
+      <h2 id="offers-near" className="m-0 text-h2 tracking-[-0.5px]">{t("offers.near_you")}</h2>
+      <p className="mt-1 text-body text-[#4C5A5E]">{t("offers.who_pays")}</p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {offers.slice(0, 3).map((o, i) => (
           <OfferCard key={o.id} o={o} i={i} t={t} currency={currency} formatLocale={formatLocale} fallbackPhoto={cover(o)} />

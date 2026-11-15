@@ -72,11 +72,11 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
 
   return (
     <form onSubmit={check} noValidate>
-      <Link href={`/signin?next=${encodeURIComponent(next)}`} className="inline-flex items-center gap-[6px] text-[15px] font-extrabold">
+      <Link href={`/signin?next=${encodeURIComponent(next)}`} className="inline-flex items-center gap-[6px] text-label">
         <span aria-hidden="true">←</span> {t("signin.change_number")}
       </Link>
-      <h1 className="m-0 mt-4 font-display text-[30px] font-semibold tracking-[-0.8px] md:text-[40px] md:tracking-[-1px]">{t("signin.code_heading")}</h1>
-      <p className="m-0 mt-1 text-base text-[#4C5A5E]">
+      <h1 className="m-0 mt-4 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{t("signin.code_heading")}</h1>
+      <p className="m-0 mt-1 text-body text-[#4C5A5E]">
         {t("signin.sent_to")} <b className="text-[#111418]">{phone}</b>
       </p>
       <fieldset className="m-0 mt-7 border-0 p-0">
@@ -109,24 +109,24 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
                 e.preventDefault();
                 fill(i, e.clipboardData.getData("text"));
               }}
-              className="h-[60px] w-[48px] rounded-[14px] border-[1.5px] border-[#C9D3D4] text-center text-[28px] font-bold outline-none focus:border-2 focus:border-[#0B5D66] md:h-[70px] md:w-[62px]"
+              className="h-[60px] w-[48px] rounded-[14px] border-[1.5px] border-[#C9D3D4] text-center text-h2 outline-none focus:border-2 focus:border-[#0B5D66] md:h-[70px] md:w-[62px]"
             />
           ))}
         </div>
       </fieldset>
-      <p className="m-0 mt-4 text-sm text-[#4C5A5E]" aria-live="polite">
+      <p className="m-0 mt-4 text-small text-[#4C5A5E]" aria-live="polite">
         {t("signin.didnt_get")}{" "}
         {wait > 0 ? (
           <b className="text-[#111418]">{t("signin.resend_in", { time: `0:${String(wait).padStart(2, "0")}` })}</b>
         ) : (
-          <button type="button" onClick={() => void resend()} className="font-extrabold text-[#0B5D66]">{t("signin.resend")}</button>
+          <button type="button" onClick={() => void resend()} className="font-bold text-[#0B5D66]">{t("signin.resend")}</button>
         )}
       </p>
-      {error && <p role="alert" className="m-0 mt-3 text-sm font-semibold text-[#8C1D18]">{error}</p>}
-      <button type="submit" disabled={code.length !== 6 || busy} className="mt-6 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-[15px] font-extrabold text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
+      {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
+      <button type="submit" disabled={code.length !== 6 || busy} className="mt-6 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
         {busy ? t("signin.verifying") : t("signin.verify")}
       </button>
-      <p className="m-0 mt-5 rounded-2xl bg-[#EFF6F6] px-4 py-3 text-sm text-[#083F46]">{t("signin.never_ask")}</p>
+      <p className="m-0 mt-5 rounded-2xl bg-[#EFF6F6] px-4 py-3 text-small text-[#083F46]">{t("signin.never_ask")}</p>
     </form>
   );
 }

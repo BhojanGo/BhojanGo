@@ -60,8 +60,8 @@ function Img({ src, alt = "", className }: { src: string | null; alt?: string; c
 function NameTile({ name, sub }: { name: string; sub: string | null }) {
   return (
     <span aria-hidden="true" className="flex h-full w-full flex-col items-center justify-center rounded-[20px] bg-[#DDEBEC] text-[#083F46]">
-      <span className="font-display text-[56px] font-semibold leading-none tracking-[-1px]">{initials(name)}</span>
-      {sub && <span className="mt-2 text-xs font-extrabold uppercase tracking-[0.8px] text-[#0B5D66]">{sub}</span>}
+      <span className="text-display leading-none tracking-[-1px]">{initials(name)}</span>
+      {sub && <span className="mt-2 text-caption text-[#0B5D66]">{sub}</span>}
     </span>
   );
 }
@@ -69,10 +69,10 @@ function NameTile({ name, sub }: { name: string; sub: string | null }) {
 /** "New" until a kitchen has 5 ratings, then "★4.6 (23)" (rating_display, or the same rule over rating/review_count). */
 export function RatingBadge({ x, t, formatLocale }: { x: Parameters<typeof ratingOf>[0]; t: T; formatLocale: string }) {
   const r = ratingOf(x);
-  if (r.new) return <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-xs font-extrabold text-[#083F46]">{t("common.new")}</span>;
+  if (r.new) return <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-caption text-[#083F46]">{t("common.new")}</span>;
   const stars = new Intl.NumberFormat(formatLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(r.stars);
   return (
-    <span className="shrink-0 text-sm font-extrabold" aria-label={t("common.rating_label", { stars, count: r.count })}>
+    <span className="shrink-0 text-label" aria-label={t("common.rating_label", { stars, count: r.count })}>
       <span aria-hidden="true">{t("common.rating_short", { stars, count: r.count })}</span>
     </span>
   );
@@ -99,18 +99,18 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
             <NameTile name={k.name} sub={k.cuisine_types[0] ?? null} />
           )}
           {k.offer && (
-            <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-xs font-extrabold text-white">
+            <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-caption text-white">
               {offerBadge(k.offer, t, currency, formatLocale)}
             </span>
           )}
           {!k.open_now && <span className="absolute inset-0 bg-white/40" aria-hidden="true" />}
         </div>
         <div className="mt-3 flex items-baseline justify-between gap-2">
-          <b className="truncate text-[17px]">{k.name}</b>
+          <b className="truncate text-h3">{k.name}</b>
           <RatingBadge x={k} t={t} formatLocale={formatLocale} />
         </div>
-        <div className="mt-1 truncate text-sm text-[#4C5A5E]">{meta}</div>
-        <div className="mt-1 text-sm">
+        <div className="mt-1 truncate text-small text-[#4C5A5E]">{meta}</div>
+        <div className="mt-1 text-small tabular-nums">
           <b>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</b>
           {fee !== null && (
             <>
@@ -145,9 +145,9 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
   return (
     <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
       <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
-        <b className="font-display text-[22px] font-semibold tracking-[-0.4px]">{offerTitle(o, t, currency, formatLocale)}</b>
-        <span className="mt-1 text-sm text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
-        <span className="mt-[10px] text-xs font-extrabold uppercase text-[#4C5A5E]">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
+        <b className="text-h2 tracking-[-0.4px]">{offerTitle(o, t, currency, formatLocale)}</b>
+        <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
+        <span className="mt-[10px] text-caption text-[#4C5A5E]">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
       </span>
       {img && <span className="hidden w-[170px] shrink-0 sm:block"><Img src={img} /></span>}
     </Link>
@@ -160,7 +160,7 @@ export function CuisineTile({ name, image, href }: { name: string; image: string
       <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[150px]">
         <Img src={photo(image, 400)} className="rounded-full" />
       </span>
-      <span className="mt-[6px] block text-[13px] font-bold md:mt-3 md:text-[15px]">{name}</span>
+      <span className="mt-[6px] block text-label md:mt-3">{name}</span>
     </Link>
   );
 }

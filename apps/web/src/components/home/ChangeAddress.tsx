@@ -10,7 +10,7 @@ export function ChangeAddress({ country, children }: { country: string | null; c
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <p className="mt-4 text-[15px] text-[#4C5A5E]">
+      <p className="mt-4 text-body text-[#4C5A5E]">
         {t("home.wrong_address")}{" "}
         <button type="button" aria-expanded={open} aria-controls="change-address" onClick={() => setOpen((o) => !o)} className="font-bold text-[#0B5D66] hover:text-[#083F46]">
           {t("home.try_another")}

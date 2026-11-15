@@ -42,7 +42,7 @@ function Details({ user }: { user: User }) {
       <h2 id="details" className={h2}>{t("account.profile.details")}</h2>
       {editing ? (
         <form onSubmit={save} className="flex flex-wrap items-end gap-3 border-b border-[#EEF1F1] py-4">
-          <label className="min-w-[220px] flex-grow text-sm font-bold text-[#4C5A5E]">
+          <label className="min-w-[220px] flex-grow text-label text-[#4C5A5E]">
             {t("account.profile.name_label")}
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required autoFocus autoComplete="name" className={input} />
           </label>
@@ -63,8 +63,8 @@ function Details({ user }: { user: User }) {
       <Row label={t("account.profile.email")} note={t("account.profile.email_note")}>
         {user.email ?? t("account.profile.not_set")}
       </Row>
-      <p className="pt-3 text-[13px] text-[#4C5A5E]">{t("account.profile.read_only_note")}</p>
-      {msg && <p role="status" className="pt-2 text-sm font-semibold text-[#0B5D66]">{msg}</p>}
+      <p className="pt-3 text-small text-[#4C5A5E]">{t("account.profile.read_only_note")}</p>
+      {msg && <p role="status" className="pt-2 text-label text-[#0B5D66]">{msg}</p>}
     </section>
   );
 }
@@ -106,7 +106,7 @@ function LanguageCountry() {
               type="button"
               aria-pressed={l === language}
               onClick={() => void choose(l)}
-              className={`flex h-10 items-center rounded-full px-4 text-sm font-bold ${l === language ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
+              className={`flex h-10 items-center rounded-full px-4 text-label ${l === language ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
             >
               <span lang={l}>{name(l)}</span>
             </button>
@@ -158,15 +158,15 @@ function Notifications() {
       {prefs === "error" && <p className="mt-3 text-[#4C5A5E]">{t("account.notifications.unavailable")}</p>}
       {prefs && prefs !== "error" && (
         <div role="table" aria-labelledby="notifications-title" className="mt-3">
-          <div role="row" className="grid grid-cols-[1fr_repeat(3,56px)] text-center text-xs font-extrabold uppercase text-[#4C5A5E] md:grid-cols-[1fr_repeat(3,80px)]">
+          <div role="row" className="grid grid-cols-[1fr_repeat(3,56px)] text-center text-caption text-[#4C5A5E] md:grid-cols-[1fr_repeat(3,80px)]">
             <span role="columnheader" />
             {CHANNELS.map((c) => <span key={c} role="columnheader">{t(`account.notifications.${c}`)}</span>)}
           </div>
           {KINDS.map((k) => (
             <div key={k} role="row" className="grid grid-cols-[1fr_repeat(3,56px)] items-center border-b border-[#EEF1F1] py-[14px] md:grid-cols-[1fr_repeat(3,80px)]">
               <span role="rowheader">
-                <b className="text-[15px]">{t(`account.notifications.${k}`)}</b>
-                <span className="block text-[13px] text-[#4C5A5E]">{t(`account.notifications.${k}_note`)}</span>
+                <b className="text-label">{t(`account.notifications.${k}`)}</b>
+                <span className="block text-small text-[#4C5A5E]">{t(`account.notifications.${k}_note`)}</span>
               </span>
               {CHANNELS.map((c) => {
                 const on = prefs[k]?.[c] ?? false;
@@ -250,19 +250,19 @@ function Privacy() {
           {t("account.privacy.delete")}
         </button>
       </div>
-      <p className="mt-4 text-[13px] text-[#4C5A5E]">{t("account.privacy.note")}</p>
-      {problem && <p role="alert" className="mt-2 text-sm font-semibold text-[#8C1D18]">{problem}</p>}
+      <p className="mt-4 text-small text-[#4C5A5E]">{t("account.privacy.note")}</p>
+      {problem && <p role="alert" className="mt-2 text-label text-[#8C1D18]">{problem}</p>}
 
       {confirming && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(17,20,24,0.45)] p-4 md:items-center" onMouseDown={(e) => e.target === e.currentTarget && setConfirming(false)}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-body" className="w-full max-w-[480px] rounded-3xl bg-white p-6 shadow-[0_16px_40px_rgba(17,20,24,0.16)]">
-            <h3 id="delete-title" className="font-display text-[22px] font-semibold">{t("account.privacy.confirm_title")}</h3>
-            <p id="delete-body" className="mt-3 text-[15px] text-[#24383B]">{t("account.privacy.confirm_body")}</p>
+            <h3 id="delete-title" className="text-h2">{t("account.privacy.confirm_title")}</h3>
+            <p id="delete-body" className="mt-3 text-body text-[#24383B]">{t("account.privacy.confirm_body")}</p>
             <div className="mt-6 flex flex-wrap justify-end gap-[10px]">
               <button ref={cancelRef} type="button" onClick={() => setConfirming(false)} disabled={busy === "delete"} className={ghost}>
                 {t("common.cancel")}
               </button>
-              <button type="button" onClick={deleteAccount} disabled={busy === "delete"} className="flex h-11 items-center rounded-full bg-[#B3261E] px-5 font-extrabold text-white hover:bg-[#8C1D18] disabled:opacity-60">
+              <button type="button" onClick={deleteAccount} disabled={busy === "delete"} className="flex h-11 items-center rounded-full bg-[#B3261E] px-5 font-bold text-white hover:bg-[#8C1D18] disabled:opacity-60">
                 {busy === "delete" ? t("account.privacy.deleting") : t("account.privacy.confirm")}
               </button>
             </div>
@@ -279,7 +279,7 @@ export function ProfileView() {
   if (!user) return null; // the account frame sends you to sign in
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">{t("account.profile.title")}</h1>
+      <h1 className="text-h1 tracking-[-0.8px]">{t("account.profile.title")}</h1>
       <Details key={user.id} user={user} />
       <LanguageCountry />
       <Addresses />

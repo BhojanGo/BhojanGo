@@ -138,8 +138,8 @@ export function Tracking({ id }: { id: string }) {
   if (missing) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
-        <h1 className="font-display text-3xl font-semibold">{t("track.not_found")}</h1>
-        <Link href="/account/orders" className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-extrabold text-white hover:text-white">{t("track.your_orders")}</Link>
+        <h1 className="text-h1">{t("track.not_found")}</h1>
+        <Link href="/account/orders" className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:text-white">{t("track.your_orders")}</Link>
       </div>
     );
   }
@@ -212,7 +212,7 @@ export function Tracking({ id }: { id: string }) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111418" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
         </Link>
         {ago != null && !delivered && !cancelled && (
-          <span className="absolute left-5 top-5 z-10 hidden h-10 items-center rounded-full bg-white px-[14px] text-sm font-extrabold shadow-[0_2px_8px_rgba(17,20,24,0.12)] md:flex" aria-live="off">
+          <span className="absolute left-5 top-5 z-10 hidden h-10 items-center rounded-full bg-white px-[14px] text-label shadow-[0_2px_8px_rgba(17,20,24,0.12)] md:flex" aria-live="off">
             {t("track.live_ago", { s: ago })}
           </span>
         )}
@@ -223,13 +223,13 @@ export function Tracking({ id }: { id: string }) {
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">
             <span>
-              <span className="text-sm text-[#4C5A5E]">{t("track.arriving")}</span>
-              <b className="block font-display text-[40px] font-semibold leading-none tracking-[-1.2px]" data-testid="eta">{bigEta}</b>
+              <span className="text-small text-[#4C5A5E]">{t("track.arriving")}</span>
+              <b className="block text-h1 leading-none tracking-[-1.2px]" data-testid="eta">{bigEta}</b>
             </span>
             {pin && (
               <span className="text-right">
-                <span className="text-sm text-[#4C5A5E]">{t("track.pin_short")}</span>
-                <b className="block text-[28px] font-extrabold tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
+                <span className="text-small text-[#4C5A5E]">{t("track.pin_short")}</span>
+                <b className="block text-h2 tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
               </span>
             )}
           </div>
@@ -240,21 +240,21 @@ export function Tracking({ id }: { id: string }) {
               ))}
             </div>
           )}
-          <p className="m-0 mt-3 text-[15px] text-[#4C5A5E]">{[sub, stage === 3 ? leftText && t("track.away", { left: leftText }) : null].filter(Boolean).join(" · ")}</p>
+          <p className="m-0 mt-3 text-body text-[#4C5A5E]">{[sub, stage === 3 ? leftText && t("track.away", { left: leftText }) : null].filter(Boolean).join(" · ")}</p>
         </section>
 
         {/* desktop: the dark card */}
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
-          <span className="text-[15px] text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
-          <b className="block font-display text-[56px] font-semibold leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
-          <p className="m-0 mt-2 text-base text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
+          <span className="text-body text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
+          <b className="block text-display leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
+          <p className="m-0 mt-2 text-body text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">
-              <span className="text-[13px] text-[#C9D3D4]">{t("track.pin_long")}</span>
-              <b className="block text-[34px] font-extrabold tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
+              <span className="text-small text-[#C9D3D4]">{t("track.pin_long")}</span>
+              <b className="block text-h1 tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
             </div>
           )}
-          {live.searching && !rider && <p className="m-0 mt-3 text-sm text-[#C9D3D4]">{t("track.s_finding")}</p>}
+          {live.searching && !rider && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
         </section>
 
         {/* the steps */}
@@ -267,8 +267,8 @@ export function Tracking({ id }: { id: string }) {
                 return (
                   <li key={i} className="flex items-center gap-[14px]" aria-current={current ? "step" : undefined}>
                     <span aria-hidden="true" className={`h-[14px] w-[14px] shrink-0 rounded-full ${done ? "bg-[#0B5D66]" : current ? "bg-[#E8A93C] shadow-[0_0_0_5px_#F6E7CC]" : "bg-[#C9D3D4]"}`} />
-                    <b className={`flex-grow text-base ${done || current ? "" : "text-[#4C5A5E]"}`}>{s.label}</b>
-                    <span className="text-sm text-[#4C5A5E]">
+                    <b className={`flex-grow text-body ${done || current ? "" : "text-[#4C5A5E]"}`}>{s.label}</b>
+                    <span className="text-small text-[#4C5A5E]">
                       {s.at ? z.time(s.at) : current && s.now ? t("track.now") : s.eta ? `~${z.time(s.eta)}` : ""}
                     </span>
                   </li>
@@ -287,30 +287,30 @@ export function Tracking({ id }: { id: string }) {
         )}
 
         {/* the order */}
-        <section className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[24px] border border-[#E2E7E8] px-[22px] py-[18px] text-[15px]">
-          <span className="min-w-0 flex-grow">
+        <section className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[24px] border border-[#E2E7E8] px-[22px] py-[18px] text-body">
+          <span className="min-w-0 flex-grow tabular-nums">
             {kitchenPath ? <Link href={kitchenPath} className="font-bold text-[#111418]">{kitchen}</Link> : <b>{kitchen}</b>}
             {" · "}
             {t("kitchen.items", { count })} · {f.money(bill?.total ?? order.total, order.currency)}
           </span>
-          <a href="#receipt" className="font-extrabold">{t("track.receipt")}</a>
-          <Link href={`/account/orders/${id}/report`} className="font-extrabold">{t("track.help")}</Link>
+          <a href="#receipt" className="font-bold">{t("track.receipt")}</a>
+          <Link href={`/account/orders/${id}/report`} className="font-bold">{t("track.help")}</Link>
         </section>
 
         <section id="receipt" className="scroll-mt-28 rounded-[24px] border border-[#E2E7E8] p-[22px]" aria-labelledby="receipt-h">
-          <h2 id="receipt-h" className="m-0 font-display text-xl font-semibold">{t("track.your_order")}</h2>
-          <ul className="m-0 mt-3 flex list-none flex-col gap-1 p-0 text-[15px]">
+          <h2 id="receipt-h" className="m-0 text-h3">{t("track.your_order")}</h2>
+          <ul className="m-0 mt-3 flex list-none flex-col gap-1 p-0 text-body">
             {items.map((i, n) => (
               <li key={n}>{t("kitchen.line", { count: Number(i.quantity ?? 1), name: i.name ?? "" })}</li>
             ))}
           </ul>
           {bill && (
             <div className="mt-4 border-t border-[#E2E7E8] pt-4">
-              <div className="mb-2 text-[13px] font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
+              <div className="mb-2 text-caption text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
               <FairBill lines={bill.lines} total={bill.total ?? order.total} currency={bill.currency} formatLocale={f.formatLocale} t={t} totalLabel={t("track.you_paid")} compact />
             </div>
           )}
-          <Link href={`/account/orders/${id}/report`} className="mt-4 inline-block text-[15px] font-extrabold">{t("track.report")}</Link>
+          <Link href={`/account/orders/${id}/report`} className="mt-4 inline-block text-label">{t("track.report")}</Link>
         </section>
       </div>
     </div>
@@ -395,13 +395,13 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
   return (
     <section className="rounded-[24px] border border-[#E2E7E8] p-4 md:p-[22px]" aria-label={t("track.rider_card", { rider: name })}>
       <div className="flex items-center gap-[14px]">
-        <span aria-hidden="true" className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#E8A93C] text-xl font-extrabold text-[#111418]">{name.trim()[0]?.toUpperCase()}</span>
+        <span aria-hidden="true" className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#E8A93C] text-h3 text-[#111418]">{name.trim()[0]?.toUpperCase()}</span>
         <span className="min-w-0 flex-grow">
-          <b className="block text-lg">{name}</b>
-          <span className="text-sm text-[#4C5A5E]">{t("track.your_rider")}</span>
+          <b className="block text-h3">{name}</b>
+          <span className="text-small text-[#4C5A5E]">{t("track.your_rider")}</span>
         </span>
         {chat?.open && (
-          <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="h-11 shrink-0 rounded-full border-[1.5px] border-[#C9D3D4] px-[22px] font-extrabold hover:border-[#0B5D66]">
+          <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="h-11 shrink-0 rounded-full border-[1.5px] border-[#C9D3D4] px-[22px] font-bold hover:border-[#0B5D66]">
             {t("track.message")}
           </button>
         )}
@@ -411,10 +411,10 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
           {open && (
             <ol className="m-0 mt-4 flex max-h-64 list-none flex-col gap-2 overflow-y-auto p-0" aria-live="polite">
               {chat.messages.length === 0 ? (
-                <li className="text-sm text-[#4C5A5E]">{t("track.no_messages")}</li>
+                <li className="text-small text-[#4C5A5E]">{t("track.no_messages")}</li>
               ) : (
                 chat.messages.map((m) => (
-                  <li key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm font-semibold ${m.mine ? "self-end bg-[#0B5D66] text-white" : "self-start bg-[#F4F6F6]"}`}>
+                  <li key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 text-label ${m.mine ? "self-end bg-[#0B5D66] text-white" : "self-start bg-[#F4F6F6]"}`}>
                     <span className="sr-only">{m.mine ? t("track.you_said") : t("track.they_said", { name })}</span>
                     {m.text}
                   </li>
@@ -424,7 +424,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
           )}
           <div className="mt-4 flex flex-wrap gap-2">
             {chat.presets.map((p) => (
-              <button key={p.key} type="button" disabled={busy} onClick={() => void send({ preset: p.key })} className="h-11 rounded-full border-[1.5px] border-[#C9D3D4] px-[14px] text-[15px] font-bold hover:border-[#0B5D66] disabled:opacity-50">
+              <button key={p.key} type="button" disabled={busy} onClick={() => void send({ preset: p.key })} className="h-11 rounded-full border-[1.5px] border-[#C9D3D4] px-[14px] text-label hover:border-[#0B5D66] disabled:opacity-50">
                 {p.text}
               </button>
             ))}
@@ -433,11 +433,11 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
             <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send({ text: text.trim() }); }}>
               <label className="sr-only" htmlFor="chat-text">{t("track.write")}</label>
               <input id="chat-text" value={text} maxLength={140} onChange={(e) => setText(e.target.value)} placeholder={t("track.write")} className="h-11 min-w-0 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] px-4 outline-none focus:border-[#0B5D66]" />
-              <button type="submit" disabled={busy || !text.trim()} className="h-11 rounded-full bg-[#0B5D66] px-5 font-extrabold text-white disabled:opacity-50">{t("track.send")}</button>
+              <button type="submit" disabled={busy || !text.trim()} className="h-11 rounded-full bg-[#0B5D66] px-5 font-bold text-white disabled:opacity-50">{t("track.send")}</button>
             </form>
           )}
-          {error && <p role="alert" className="m-0 mt-2 text-sm font-semibold text-[#8C1D18]">{error}</p>}
-          <p className="m-0 mt-3 text-sm text-[#4C5A5E]">{t("track.private")}</p>
+          {error && <p role="alert" className="m-0 mt-2 text-label text-[#8C1D18]">{error}</p>}
+          <p className="m-0 mt-3 text-small text-[#4C5A5E]">{t("track.private")}</p>
         </>
       )}
     </section>

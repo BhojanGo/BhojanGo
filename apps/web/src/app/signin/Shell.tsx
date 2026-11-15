@@ -43,8 +43,8 @@ export async function Shell({ children }: { children: ReactNode }) {
           {[0, 1, 2, 3].map((i) => <Tile key={i} src={p[i]} />)}
         </div>
         <div className="absolute bottom-10 left-10 right-10 rounded-[24px] bg-[rgba(17,20,24,0.84)] p-7 text-[#F2F5F5]">
-          <div className="font-display text-[34px] font-semibold leading-[1.1] tracking-[-0.8px]">{t("common.tagline")}</div>
-          <ul className="m-0 mt-[14px] flex list-none flex-col gap-2 p-0 text-[15px] text-[#C9D3D4]">
+          <div className="text-h1 leading-[1.1] tracking-[-0.8px]">{t("common.tagline")}</div>
+          <ul className="m-0 mt-[14px] flex list-none flex-col gap-2 p-0 text-body text-[#C9D3D4]">
             {(["promise_fees", "promise_tip", "promise_refunds"] as const).map((k) => (
               <li key={k} className="flex items-center gap-2"><Check color="#8FD3D9" /> {t(`signin.${k}`)}</li>
             ))}
@@ -53,7 +53,7 @@ export async function Shell({ children }: { children: ReactNode }) {
       </div>
       <div className="flex flex-col px-5 pb-10 pt-6 md:px-[96px] md:py-10">
         <div className="flex max-w-[440px] flex-grow flex-col md:justify-center">{children}</div>
-        <p className="m-0 mt-8 text-[13px] text-[#4C5A5E]">
+        <p className="m-0 mt-8 text-small text-[#4C5A5E]">
           {t("signin.agree_before")} <Link href="/terms">{t("signin.terms")}</Link> {t("signin.agree_and")} <Link href="/privacy">{t("signin.privacy")}</Link>.
         </p>
       </div>

@@ -138,18 +138,18 @@ export default async function KitchenPage({ params }: { params: Params }) {
               {logo ? (
                 <Img src={logo} />
               ) : (
-                <span aria-hidden="true" className="flex h-full w-full items-center justify-center bg-[#DDEBEC] font-display text-[40px] font-semibold text-[#083F46]">{initials(r.name)}</span>
+                <span aria-hidden="true" className="flex h-full w-full items-center justify-center bg-[#DDEBEC] text-h1 text-[#083F46]">{initials(r.name)}</span>
               )}
             </span>
           </span>
           <span className="min-w-0 flex-grow md:pb-[6px]">
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="m-0 font-display text-[28px] font-semibold leading-tight tracking-[-0.6px] md:text-[44px] md:tracking-[-1.2px]">{r.name}</h1>
+              <h1 className="m-0 text-h1 leading-tight tracking-[-0.6px] md:tracking-[-1.2px]">{r.name}</h1>
               {/* "New" until 5 ratings, then the average and how many */}
               <RatingBadge x={r} t={t} formatLocale={formatLocale} />
             </span>
-            <span className="hidden text-base text-[#4C5A5E] md:block">{metaDesktop}</span>
-            <span className="block text-[15px] text-[#4C5A5E] md:hidden">{metaPhone}</span>
+            <span className="hidden text-body text-[#4C5A5E] md:block">{metaDesktop}</span>
+            <span className="block text-body text-[#4C5A5E] md:hidden">{metaPhone}</span>
           </span>
           <span className="hidden md:block md:pb-[10px]">
             <KitchenActions id={r.id} name={r.name} />
@@ -160,18 +160,18 @@ export default async function KitchenPage({ params }: { params: Params }) {
         <div className="mt-[22px] hidden overflow-hidden rounded-[18px] border border-[#E2E7E8] md:grid" style={{ gridTemplateColumns: `repeat(${boxes.length}, minmax(0, 1fr))` }}>
           {boxes.map((b, i) => (
             <div key={b.label} className={`px-[18px] py-[14px] ${i ? "border-l border-[#E2E7E8]" : ""}`}>
-              <span className="text-[13px] text-[#4C5A5E]">{b.label}</span>
-              <b className="mt-[2px] block truncate text-base">{b.value}</b>
+              <span className="text-small text-[#4C5A5E]">{b.label}</span>
+              <b className="mt-[2px] block truncate text-label">{b.value}</b>
             </div>
           ))}
         </div>
 
         {/* phone: chips */}
         <div className="mt-3 flex flex-wrap gap-2 md:hidden">
-          <span className="flex h-9 items-center rounded-[10px] bg-[#F4F6F6] px-3 text-sm font-bold">{eta}</span>
-          {feeChip && <span className="flex h-9 items-center rounded-[10px] bg-[#F4F6F6] px-3 text-sm">{feeChip}</span>}
-          {offer && <span className="flex h-9 items-center rounded-[10px] bg-[#F6E7CC] px-3 text-sm">{offerBadge(offer, t, currency, formatLocale)}</span>}
-          {closedNow && <span className="flex h-9 items-center rounded-[10px] bg-[#F1E3E1] px-3 text-sm font-bold">{hours.value}</span>}
+          <span className="flex h-9 items-center rounded-[10px] bg-[#F4F6F6] px-3 text-label">{eta}</span>
+          {feeChip && <span className="flex h-9 items-center rounded-[10px] bg-[#F4F6F6] px-3 text-small tabular-nums">{feeChip}</span>}
+          {offer && <span className="flex h-9 items-center rounded-[10px] bg-[#F6E7CC] px-3 text-small">{offerBadge(offer, t, currency, formatLocale)}</span>}
+          {closedNow && <span className="flex h-9 items-center rounded-[10px] bg-[#F1E3E1] px-3 text-label">{hours.value}</span>}
           <KitchenActions id={r.id} name={r.name} compact />
         </div>
       </section>

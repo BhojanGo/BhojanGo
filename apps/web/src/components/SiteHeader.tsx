@@ -16,7 +16,7 @@ export async function SiteHeader() {
   const brand = (
     <Link href="/" aria-label={t("common.home")} className="flex shrink-0 items-center gap-[10px] text-[#111418] hover:text-[#111418]">
       <LogoMark />
-      <span className="font-display text-[22px] font-bold tracking-[-0.4px]">{t("common.brand")}</span>
+      <span className="text-h2 tracking-[-0.4px]">{t("common.brand")}</span>
     </Link>
   );
 
@@ -27,9 +27,9 @@ export async function SiteHeader() {
           {brand}
           <span className="flex-grow" />
           <nav aria-label={t("header.where_we_deliver")} className="hidden items-center gap-5 lg:flex">
-            <Link href="/cities" className="text-[15px] font-bold text-[#111418]">{t("header.where_we_deliver")}</Link>
-            <Link href="/partner" className="text-[15px] font-bold text-[#111418]">{t("header.add_your_kitchen")}</Link>
-            <Link href="/ride" className="text-[15px] font-bold text-[#111418]">{t("header.ride_with_us")}</Link>
+            <Link href="/cities" className="text-label text-[#111418]">{t("header.where_we_deliver")}</Link>
+            <Link href="/partner" className="text-label text-[#111418]">{t("header.add_your_kitchen")}</Link>
+            <Link href="/ride" className="text-label text-[#111418]">{t("header.ride_with_us")}</Link>
           </nav>
           <div className="hidden md:block">
             <CountryMenu countries={countries} current={current} />

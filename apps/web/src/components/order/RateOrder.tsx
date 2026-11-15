@@ -53,13 +53,13 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
   if (rating) {
     return (
       <section className={box} aria-labelledby={titleId}>
-        <h2 id={titleId} className="m-0 text-[15px] font-extrabold">{t("rating.your_rating")}</h2>
+        <h2 id={titleId} className="m-0 text-label">{t("rating.your_rating")}</h2>
         <div className="mt-2 flex items-center gap-2">
           <Stars value={rating.stars} />
           <span className="sr-only">{t("rating.stars", { count: rating.stars })}</span>
         </div>
-        {rating.comment && <p className="m-0 mt-2 text-[15px] text-[#4C5A5E]">“{rating.comment}”</p>}
-        <p className="m-0 mt-2 text-sm text-[#4C5A5E]">{t("rating.thanks")}</p>
+        {rating.comment && <p className="m-0 mt-2 text-body text-[#4C5A5E]">“{rating.comment}”</p>}
+        <p className="m-0 mt-2 text-small text-[#4C5A5E]">{t("rating.thanks")}</p>
       </section>
     );
   }
@@ -83,8 +83,8 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
   const shown = hover || stars;
   return (
     <section className={box} aria-labelledby={titleId}>
-      <h2 id={titleId} className={compact ? "m-0 text-[15px] font-extrabold" : "m-0 font-display text-xl font-semibold"}>{t("rating.title")}</h2>
-      <p className="m-0 mt-1 text-sm text-[#4C5A5E]">{t("rating.sub")}</p>
+      <h2 id={titleId} className={compact ? "m-0 text-label" : "m-0 text-h3"}>{t("rating.title")}</h2>
+      <p className="m-0 mt-1 text-small text-[#4C5A5E]">{t("rating.sub")}</p>
       <form onSubmit={submit} className="mt-3">
         <div role="radiogroup" aria-label={t("rating.stars_label")} className="flex gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -104,7 +104,7 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
         </div>
         {stars > 0 && (
           <>
-            <label htmlFor={commentId} className="mt-3 block text-sm font-bold">{t("rating.comment")}</label>
+            <label htmlFor={commentId} className="mt-3 block text-label">{t("rating.comment")}</label>
             <textarea
               id={commentId}
               value={comment}
@@ -112,14 +112,14 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
               rows={3}
               onChange={(e) => setComment(e.target.value)}
               placeholder={t("rating.comment_placeholder")}
-              className="mt-1 w-full rounded-[14px] border-[1.5px] border-[#C9D3D4] bg-white p-3 text-[15px] outline-none focus:border-[#0B5D66]"
+              className="mt-1 w-full rounded-[14px] border-[1.5px] border-[#C9D3D4] bg-white p-3 text-body outline-none focus:border-[#0B5D66]"
             />
-            <button type="submit" disabled={busy} className="mt-3 h-11 rounded-full bg-[#0B5D66] px-5 font-extrabold text-white hover:bg-[#083F46] disabled:opacity-60">
+            <button type="submit" disabled={busy} className="mt-3 h-11 rounded-full bg-[#0B5D66] px-5 font-bold text-white hover:bg-[#083F46] disabled:opacity-60">
               {busy ? t("rating.saving") : t("rating.submit")}
             </button>
           </>
         )}
-        {error && <p role="alert" className="m-0 mt-2 text-sm font-semibold text-[#8C1D18]">{error}</p>}
+        {error && <p role="alert" className="m-0 mt-2 text-label text-[#8C1D18]">{error}</p>}
       </form>
     </section>
   );

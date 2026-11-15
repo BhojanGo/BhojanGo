@@ -46,7 +46,7 @@ export function StatusPill({ status }: { status: string }) {
     : status === "cancelled"
       ? "bg-[#FCE8E6] text-[#8C1D18]"
       : "bg-[#DDEBEC] text-[#083F46]";
-  return <span className={`inline-flex h-[26px] shrink-0 items-center whitespace-nowrap rounded-full px-[10px] text-xs font-extrabold ${cls}`}>{t(`account.status.${status}`)}</span>;
+  return <span className={`inline-flex h-[26px] shrink-0 items-center whitespace-nowrap rounded-full px-[10px] text-caption ${cls}`}>{t(`account.status.${status}`)}</span>;
 }
 
 function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick: () => void }) {
@@ -67,11 +67,11 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
       <Thumb src={photo(kitchen?.cover_url, 400)} name={o.restaurant_name} className="h-16 w-16 shrink-0 rounded-xl" />
       <span className="min-w-0 flex-grow">
         <span className="flex justify-between gap-2">
-          <b className="truncate text-[15px]">{o.restaurant_name}</b>
-          <b className="shrink-0 text-[15px] tabular-nums">{f.money(o.total, o.currency)}</b>
+          <b className="truncate text-label">{o.restaurant_name}</b>
+          <b className="shrink-0 text-label tabular-nums">{f.money(o.total, o.currency)}</b>
         </span>
-        <span className="mt-[2px] block truncate text-[13px] text-[#4C5A5E]">{summary}</span>
-        <span className="mt-[6px] flex items-center justify-between gap-2 text-[13px] text-[#4C5A5E]">
+        <span className="mt-[2px] block truncate text-small text-[#4C5A5E]">{summary}</span>
+        <span className="mt-[6px] flex items-center justify-between gap-2 text-small text-[#4C5A5E]">
           <span className="min-w-0 truncate">
             {z.date(at)}, {z.time(at)} · {orderCode(o.id)}
           </span>
@@ -141,10 +141,10 @@ export function OrdersView() {
     <div className="grid items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
       <div className={chosen ? "hidden lg:block" : ""}>
         <div className="flex items-baseline justify-between">
-          <h1 className="font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">{t("account.orders.title")}</h1>
-          {!loading && !list.error && <span className="text-sm text-[#4C5A5E]">{t("account.orders.count", { count: list.total })}</span>}
+          <h1 className="text-h1 tracking-[-0.8px]">{t("account.orders.title")}</h1>
+          {!loading && !list.error && <span className="text-small text-[#4C5A5E]">{t("account.orders.count", { count: list.total })}</span>}
         </div>
-        <label className="mt-4 flex h-11 items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 text-sm focus-within:border-[#0B5D66]">
+        <label className="mt-4 flex h-11 items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 text-small focus-within:border-[#0B5D66]">
           <Search size={16} color="#4C5A5E" />
           <span className="sr-only">{t("account.orders.search")}</span>
           <input
@@ -162,20 +162,20 @@ export function OrdersView() {
               type="button"
               aria-pressed={status === s}
               onClick={() => setStatus(s)}
-              className={`flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold ${status === s ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
+              className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${status === s ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
             >
               {t(`account.orders.${s}`)}
             </button>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap items-end gap-3 text-[13px] text-[#4C5A5E]">
+        <div className="mt-3 flex flex-wrap items-end gap-3 text-small text-[#4C5A5E]">
           <label className="flex flex-col gap-1 font-bold">
             {t("account.orders.from")}
-            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-10 rounded-xl border border-[#C9D3D4] px-3 text-sm font-normal text-[#111418]" />
+            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-10 rounded-xl border border-[#C9D3D4] px-3 text-small text-[#111418]" />
           </label>
           <label className="flex flex-col gap-1 font-bold">
             {t("account.orders.to")}
-            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-10 rounded-xl border border-[#C9D3D4] px-3 text-sm font-normal text-[#111418]" />
+            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-10 rounded-xl border border-[#C9D3D4] px-3 text-small text-[#111418]" />
           </label>
           {(from || to) && (
             <button type="button" onClick={() => { setFrom(""); setTo(""); }} className="h-10 font-bold text-[#0B5D66]">
@@ -213,7 +213,7 @@ export function OrdersView() {
 
       <div className={chosen ? "" : "hidden lg:block"}>
         {chosen && (
-          <button type="button" onClick={() => pick(null)} className="mb-3 text-sm font-bold text-[#0B5D66] lg:hidden">
+          <button type="button" onClick={() => pick(null)} className="mb-3 text-label text-[#0B5D66] lg:hidden">
             ← {t("account.orders.back")}
           </button>
         )}

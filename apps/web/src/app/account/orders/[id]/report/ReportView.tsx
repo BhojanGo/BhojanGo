@@ -76,12 +76,12 @@ export function ReportView({ id }: { id: string }) {
   if (done) {
     return (
       <section aria-labelledby="report-done" className="max-w-[640px] rounded-3xl border border-[#E2E7E8] p-6 md:p-7">
-        <h1 id="report-done" className="font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">
+        <h1 id="report-done" className="text-h1 tracking-[-0.8px]">
           {done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}
         </h1>
-        <p className="mt-3 text-lg">{done.message}</p>
-        {done.outcome === "ticket" && <p className="mt-2 text-[#4C5A5E]">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency, { whole: true }) })}</p>}
-        <Link href={back} className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-extrabold text-white hover:bg-[#083F46] hover:text-white">
+        <p className="mt-3 text-body-lg">{done.message}</p>
+        {done.outcome === "ticket" && <p className="mt-2 tabular-nums text-[#4C5A5E]">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency, { whole: true }) })}</p>}
+        <Link href={back} className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:bg-[#083F46] hover:text-white">
           {t("account.report.back_to_order")}
         </Link>
       </section>
@@ -94,14 +94,14 @@ export function ReportView({ id }: { id: string }) {
   return (
     <form onSubmit={send} aria-labelledby="report-title" className="max-w-[640px] space-y-5">
       <div>
-        <Link href={back} className="text-sm font-bold">← {t("account.report.back")}</Link>
-        <h1 id="report-title" className="mt-2 font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">{t("account.report.title")}</h1>
+        <Link href={back} className="text-label">← {t("account.report.back")}</Link>
+        <h1 id="report-title" className="mt-2 text-h1 tracking-[-0.8px]">{t("account.report.title")}</h1>
         {loaded?.order && <p className="text-[#4C5A5E]">{loaded.order.restaurant_name}</p>}
         {!loaded && <p role="status" className="text-[#4C5A5E]">{t("account.loading")}</p>}
         {loaded && !loaded.order && <p role="alert" className="text-[#4C5A5E]">{t("account.report.not_found")}</p>}
       </div>
       <fieldset className="space-y-3 rounded-3xl border border-[#E2E7E8] p-5 md:p-6">
-        <legend className="px-1 font-display text-[20px] font-semibold">{t("account.report.which_items")}</legend>
+        <legend className="px-1 text-h3">{t("account.report.which_items")}</legend>
         {items.map((i) => (
           <label key={i.menu_item_id} className="flex items-center gap-3">
             <span className="flex-1 font-semibold">
@@ -120,12 +120,12 @@ export function ReportView({ id }: { id: string }) {
         ))}
       </fieldset>
       <fieldset className="space-y-4 rounded-3xl border border-[#E2E7E8] p-5 md:p-6">
-        <legend className="px-1 font-display text-[20px] font-semibold">{t("account.report.what_wrong")}</legend>
+        <legend className="px-1 text-h3">{t("account.report.what_wrong")}</legend>
         <div className="flex flex-wrap gap-2">
           {REASONS.map((r) => (
             <label
               key={r}
-              className={`flex h-11 cursor-pointer items-center rounded-full px-4 text-sm font-bold focus-within:ring-2 focus-within:ring-[#0B5D66] ${
+              className={`flex h-11 cursor-pointer items-center rounded-full px-4 text-label focus-within:ring-2 focus-within:ring-[#0B5D66] ${
                 reason === r ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"
               }`}
             >
@@ -134,20 +134,20 @@ export function ReportView({ id }: { id: string }) {
             </label>
           ))}
         </div>
-        <label className="block text-sm font-bold">
+        <label className="block text-label">
           {t("account.report.more")}
           <input value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} className={field} />
         </label>
-        <label className="block text-sm font-bold">
+        <label className="block text-label">
           {t("account.report.photo")}
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm font-normal" />
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-small" />
         </label>
       </fieldset>
       {error && <p role="alert" className="font-semibold text-[#8C1D18]">{error}</p>}
       <button
         type="submit"
         disabled={busy || !chosen || !reason}
-        className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#0B5D66] px-7 font-extrabold text-white hover:bg-[#083F46] disabled:opacity-50 md:w-auto"
+        className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#0B5D66] px-7 font-bold text-white hover:bg-[#083F46] disabled:opacity-50 md:w-auto"
       >
         {busy ? t("account.report.sending") : t("account.report.send")}
       </button>

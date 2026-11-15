@@ -146,8 +146,8 @@ export function Receipt({ id }: { id: string }) {
         <Thumb src={photo(kitchen?.cover_url, 800)} name={order.restaurant_name} className="h-full w-full" />
         <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_30%,rgba(17,20,24,0.75)_100%)]" />
         <div className="absolute bottom-[18px] left-5 right-5 text-white md:left-6">
-          <h2 className="font-display text-[24px] font-semibold md:text-[26px]">{order.restaurant_name}</h2>
-          <span className="text-sm">
+          <h2 className="text-h2">{order.restaurant_name}</h2>
+          <span className="text-small">
             {delivered
               ? t("account.receipt.delivered_line", { date: z.date(order.actual_delivery_time as string), time: z.time(order.actual_delivery_time as string), minutes, code })
               : t("account.receipt.status_line", { status: t(`account.status.${order.status}`), date: z.date(at), time: z.time(at), code })}
@@ -158,12 +158,12 @@ export function Receipt({ id }: { id: string }) {
       <div className="p-5 md:p-6">
         <div className="flex flex-wrap gap-[10px]">
           {active && (
-            <Link href={`/orders/${order.id}/track`} className={`${btn} bg-[#0B5D66] font-extrabold text-white hover:bg-[#083F46] hover:text-white`}>
+            <Link href={`/orders/${order.id}/track`} className={`${btn} bg-[#0B5D66] font-bold text-white hover:bg-[#083F46] hover:text-white`}>
               {t("account.receipt.track")}
             </Link>
           )}
           {!active && (
-            <button type="button" onClick={orderAgain} disabled={busy !== null} className={`${btn} bg-[#0B5D66] font-extrabold text-white hover:bg-[#083F46] disabled:opacity-60`}>
+            <button type="button" onClick={orderAgain} disabled={busy !== null} className={`${btn} bg-[#0B5D66] font-bold text-white hover:bg-[#083F46] disabled:opacity-60`}>
               {busy === "again" ? t("account.receipt.adding") : t("account.receipt.order_again")}
             </button>
           )}
@@ -178,12 +178,12 @@ export function Receipt({ id }: { id: string }) {
             </button>
           )}
         </div>
-        {problem && <p role="alert" className="mt-3 text-sm font-semibold text-[#8C1D18]">{problem}</p>}
+        {problem && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{problem}</p>}
         {missing && (
-          <div role="status" className="mt-3 rounded-2xl bg-[#F6E7CC] p-4 text-sm text-[#7A4F0E]">
+          <div role="status" className="mt-3 rounded-2xl bg-[#F6E7CC] p-4 text-small text-[#7A4F0E]">
             {missing.added ? t("account.receipt.unavailable", { items: missing.names.join(", ") }) : t("account.receipt.none_available")}
             {missing.added && (
-              <Link href="/checkout" className="mt-2 block font-extrabold text-[#0B5D66]">
+              <Link href="/checkout" className="mt-2 block font-bold text-[#0B5D66]">
                 {t("account.receipt.continue_checkout")}
               </Link>
             )}
@@ -192,8 +192,8 @@ export function Receipt({ id }: { id: string }) {
 
         {order.status === "delivered" && <RateOrder key={order.id} orderId={order.id} order={order} compact />}
 
-        <h3 className="mt-6 text-[13px] font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{t("account.receipt.items")}</h3>
-        <ul className="mt-[10px] flex flex-col gap-2 text-[15px]">
+        <h3 className="mt-6 text-caption text-[#4C5A5E]">{t("account.receipt.items")}</h3>
+        <ul className="mt-[10px] flex flex-col gap-2 text-body">
           {items.map((i, n) => {
             const opts = (i.options ?? []).map((o) => (typeof o === "string" ? o : o.name ?? o.option)).filter(Boolean).join(", ");
             const line = i.total ?? (i.unit_price != null ? i.unit_price * (i.quantity ?? 1) : null);
@@ -209,7 +209,7 @@ export function Receipt({ id }: { id: string }) {
           })}
         </ul>
 
-        <h3 className="mt-6 text-[13px] font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{t("account.receipt.fair_bill")}</h3>
+        <h3 className="mt-6 text-caption text-[#4C5A5E]">{t("account.receipt.fair_bill")}</h3>
         <div className="mt-[10px]">
           {bill ? (
             <FairBill
@@ -223,20 +223,20 @@ export function Receipt({ id }: { id: string }) {
             />
           ) : (
             <>
-              <p className="text-sm text-[#4C5A5E]">{t("account.receipt.no_bill")}</p>
+              <p className="text-small text-[#4C5A5E]">{t("account.receipt.no_bill")}</p>
               <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
-                <b className="text-xl">{t("account.receipt.total")}</b>
-                <b className="text-xl tabular-nums">{f.money(order.total, order.currency)}</b>
+                <b className="text-h3">{t("account.receipt.total")}</b>
+                <b className="text-h3 tabular-nums">{f.money(order.total, order.currency)}</b>
               </div>
             </>
           )}
           {!cancelled && order.placed_at && (
-            <p data-testid="receipt-time" className="mt-[6px] text-[13px] text-[#4C5A5E]">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
+            <p data-testid="receipt-time" className="mt-[6px] text-small text-[#4C5A5E]">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
           )}
         </div>
 
         {(addr.street || addr.label) && (
-          <div className="mt-6 rounded-2xl bg-[#F4F6F6] p-4 text-sm">
+          <div className="mt-6 rounded-2xl bg-[#F4F6F6] p-4 text-small">
             <b className="block">{delivered ? t("account.receipt.delivered_to") : t("account.receipt.deliver_to")}</b>
             <span className="text-[#4C5A5E]">{[addr.label, addr.street, addr.city].filter(Boolean).join(" · ")}</span>
           </div>

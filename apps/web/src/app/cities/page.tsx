@@ -22,8 +22,8 @@ export default async function Cities() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-16 md:pb-[72px] md:pt-12">
-      <h1 className="m-0 font-display text-[36px] font-semibold tracking-[-1px] md:text-5xl md:tracking-[-1.4px]">{t("cities.title")}</h1>
-      <p className="mt-2 text-base text-[#4C5A5E] md:text-[17px]">{totalsLine(t, dir.totals)}</p>
+      <h1 className="m-0 text-h1 tracking-[-1px] md:tracking-[-1.4px]">{t("cities.title")}</h1>
+      <p className="mt-2 text-body-lg text-[#4C5A5E]">{totalsLine(t, dir.totals)}</p>
       <CitiesDirectory dir={dir} covers={covers} />
       <div className="mt-12">
         <NotifyMe source="suggest_city" title={t("cities.not_listed")} />
