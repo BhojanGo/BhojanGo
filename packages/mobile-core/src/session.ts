@@ -6,6 +6,8 @@ import { createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
+import { deviceLocale } from "./locale";
+
 const env = (k: string, fallback: string) => (process.env as Record<string, string | undefined>)[k] || fallback;
 
 // The emulator reaches the host's services through `adb reverse` (see README).
@@ -57,7 +59,11 @@ export const useSession = create<SessionState>()((set, get) => ({
   },
 
   sendCode: async (phone, country) => {
-    unwrap(await api.core.POST("/api/v1/auth/send-otp", { body: { phone, country } }));
+    // The app's language (the person's choice, else the phone's): the code's SMS is written in it
+    // when the country offers it (the API checks; i18n.tsx keeps the choice under this key).
+    const chosen = await SecureStore.getItemAsync("bg.language").catch(() => null);
+    const language = (chosen || deviceLocale() || "").split("-")[0]?.toLowerCase() || undefined;
+    unwrap(await api.core.POST("/api/v1/auth/send-otp", { body: { phone, country, language } }));
   },
 
   verifyCode: async (phone, code, country) => {

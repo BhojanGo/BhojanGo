@@ -903,6 +903,16 @@
       "step_picked": "Picked up",
       "step_home": "Home",
       "pin_a11y": "Delivery PIN {pin}. Give it to your rider at the door."
+    },
+    "chat": {
+      "title": "Message {name}",
+      "new": {
+        "one": "{count} new",
+        "other": "{count} new"
+      },
+      "note": "Your number stays private. Messages close once the order is delivered.",
+      "close": "Close messages",
+      "empty": "No messages yet. Tap a quick message or write a short note."
     }
   },
   "rider": {
