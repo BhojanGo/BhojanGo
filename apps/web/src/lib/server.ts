@@ -1,6 +1,6 @@
 // Server-side reads (web v2). Everything about places, kitchens, prices and
 // offers comes from core_api: no city, state, country, currency or price is
-// typed into a page (docs/design/web/WebDataRules.html; `pnpm check:templates`).
+// typed into a page (docs/design/web/WebDataRules.html; checked by tools/web/check_templates.py in make ci).
 
 import type { CoreSchemas } from "@bhojango/api-client";
 import { unstable_noStore as noStore } from "next/cache";

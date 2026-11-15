@@ -9,7 +9,7 @@ export default function Terms() {
     <Prose
       title="Terms of use"
       updated="November 2026"
-      intro="These terms apply when you order on BhojanGo in India or the United States."
+      intro="These terms apply whenever you order on BhojanGo."
       sections={[
         { id: "service", title: "1. What BhojanGo does", body: <p>BhojanGo connects you with independent kitchens and riders. The kitchen prepares your food and is responsible for it; the rider delivers it; we run the ordering, payment and support.</p> },
         { id: "account", title: "2. Your account", body: <p>You sign in with a phone number you control. Keep access to it: anyone who receives your code can use your account. You must be 18 or older to order.</p> },
@@ -24,7 +24,7 @@ export default function Terms() {
         { id: "delivery", title: "5. Delivery", body: <p>Arrival times are estimates. The rider confirms delivery with the PIN on your tracking page or a photo at your door.</p> },
         { id: "food", title: "6. Food and allergies", body: <p>Kitchens describe their dishes. If you have an allergy, contact the kitchen through support before ordering; we can&apos;t guarantee a kitchen is free of any ingredient.</p> },
         { id: "liability", title: "7. Liability", body: <p>Our liability for an order is limited to what you paid for it, except where the law doesn&apos;t allow that limit.</p> },
-        { id: "law", title: "8. Governing law", body: <p>Orders in India are governed by Indian law, including the Consumer Protection Act, 2019; orders in the United States by the law of the state where you receive them.</p> },
+        { id: "law", title: "8. Governing law", body: <p>An order is governed by the law of the country, and where it has its own, the state or province, where you receive it, including its consumer protection law.</p> },
         { id: "contact", title: "9. Contact", body: <p>Questions about these terms: legal@bhojango.com.</p> },
       ]}
     />

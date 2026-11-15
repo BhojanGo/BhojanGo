@@ -14,7 +14,7 @@ export const COOKIE = { address: "bg_addr", language: "bg_lang", hintCountry: "b
 
 /** The delivery address the visitor picked (an area point or a saved address). */
 export interface Place {
-  label: string; // "Madhapur, Hyderabad" or "Plot 12, Madhapur"
+  label: string; // "<area>, <city>" or the first line of a saved address
   lat: number;
   lng: number;
   country: string;
