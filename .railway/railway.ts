@@ -118,6 +118,7 @@ export default defineRailway((ctx, project) => {
   const coreApi = backend("core-api", "core_api", 8001, "core_api.main:app", {
     SERVICE_NAME: "core-api",
     REDIS_URL: redisDb(0),
+    GEOIP: "1", // build arg: fetch DB-IP's free City Lite for the website's "near you" hint
     JWKS_URL: "", // core_api signs; it publishes the JWKS itself
     JWT_PRIVATE_KEY: preserve(), // sealed; required outside development (docs/security/report.md)
     STORAGE_PROVIDER: "s3",

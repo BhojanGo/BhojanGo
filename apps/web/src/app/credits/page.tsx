@@ -32,6 +32,18 @@ export default function Credits() {
             </ul>
           ) : <p>Every photo we use is in the public domain.</p>,
         },
+        {
+          id: "data",
+          title: "Data",
+          body: (
+            <p>
+              <a href="https://db-ip.com" className="font-semibold text-peacock hover:underline" rel="noopener noreferrer">IP Geolocation by DB-IP</a>
+              {" ("}
+              <a href="https://creativecommons.org/licenses/by/4.0/" className="text-peacock hover:underline" rel="noopener noreferrer license">CC BY 4.0</a>
+              {"): the “near you” hint on the home page, never stored."}
+            </p>
+          ),
+        },
       ]}
     />
   );
