@@ -37,22 +37,26 @@ def test_merge_and_reset_overrides() -> None:
         rules.check_overrides({"currency": "USD"})
 
 
-def checklist(country="live", region="live", hours=True, zones=(ZoneState("live"),)):
+def checklist(country="live", region="live", hours=True, zones=(ZoneState("live"),), priced=True):
     return rules.launch_checklist(country_status=country, region_status=region,
                                   service_hours={"open": "07:00", "close": "23:00"} if hours else None,
-                                  zones=list(zones), now=NOW)
+                                  zones=list(zones), now=NOW, priced=priced)
 
 
 def test_city_can_open_only_when_checklist_complete() -> None:
     rules.check_city_status("live", checklist())
     rules.check_city_status("beta", checklist(region="beta"))
     for bad in (checklist(country="draft"), checklist(hours=False), checklist(zones=()),
-                checklist(zones=(ZoneState("draft"),))):
+                checklist(zones=(ZoneState("draft"),)), checklist(priced=False)):
         with pytest.raises(MarketRuleError):
             rules.check_city_status("live", bad)
     # Going back to draft or pausing is always allowed.
     rules.check_city_status("paused", checklist(zones=()))
     rules.check_city_status("draft", checklist(country="draft"))
+    # A city with no delivery fee can be announced, not opened (the website would list no kitchens).
+    rules.check_city_status("soon", checklist(priced=False))
+    with pytest.raises(MarketRuleError, match="no delivery fee"):
+        rules.check_city_status("live", checklist(priced=False))
 
 
 def test_paused_zone_reopens_when_its_time_is_up() -> None:
