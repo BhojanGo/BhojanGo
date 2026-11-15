@@ -34,6 +34,8 @@ translation in every file (mark it here) before CI passes.
 - `home.riders_body`, `ride.pay_floor_*`: the riders' hourly minimum ("floor").
 - `signin.agree_before` / `agree_and`: sentence fragments around the Terms and
   Privacy links; word order differs from English, check them assembled.
+- `common.test_site_banner`: the strip on every page outside production (QA, staging,
+  local); it must say plainly that kitchens are demos and nothing is really ordered or paid.
 - `checkout.card_ending`, `account.payments.ending`: "{brand} ending {last4}" word order.
 
 ## Per language

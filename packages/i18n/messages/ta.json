@@ -41,6 +41,7 @@
     "save_kitchen": "{name} ஐச் சேமி",
     "unsave_kitchen": "{name} ஐ விருப்பங்களிலிருந்து நீக்கு",
     "skip_to_content": "உள்ளடக்கத்துக்குச் செல்",
+    "test_site_banner": "சோதனைத் தளம்: டெமோ சமையலறைகள், உண்மையான ஆர்டர்களோ பணம் செலுத்துதல்களோ இல்லை",
     "search_placeholder_near": "{a}, {b}, கிச்சன்களைத் தேடுங்கள்…",
     "rating_label": "{count} மதிப்பீடுகளில் 5க்கு {stars}",
     "rating_short": "★{stars} ({count})",
