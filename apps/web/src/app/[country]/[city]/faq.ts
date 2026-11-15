@@ -1,5 +1,5 @@
 // "Delivery in {city}, plainly": the answers are built from the city's own
-// pricing (delivery bands, service fee, small-order fee, minimum order, tip
+// pricing (delivery fee rule, delivery radius, service fee, small-order fee, minimum order, tip
 // suggestions) when the API sends it; the general wording only when it doesn't.
 import type { CityPricing } from "@/lib/contract";
 import { money, number } from "@/lib/format";
@@ -16,18 +16,27 @@ export function cityFaq(c: CityPage, p: CityPricing | null, t: T, formatLocale: 
   const dist = (v: number | string) => t(p.distance_unit === "mi" ? "common.mi" : "common.km", { n: number(Number(v), formatLocale) });
   const out: { q: string; a: string }[] = [];
 
-  // What delivery costs: the bands, then the service and small-order fees.
-  const bands = [...p.delivery].sort((a, b) => (a.up_to == null ? 1 : b.up_to == null ? -1 : Number(a.up_to) - Number(b.up_to)));
+  // What delivery costs: the city's delivery fee rule, then the service and small-order fees.
   const cost: string[] = [];
-  if (bands.length === 1 && bands[0]!.up_to == null) {
-    cost.push(t("city.faq_flat", { fee: m(bands[0]!.fee), city }));
-  } else if (bands.length) {
-    const parts = bands.map((b, i) =>
-      b.up_to != null
-        ? t("city.faq_band_upto", { distance: dist(b.up_to), fee: m(b.fee) })
-        : t("city.faq_band_beyond", { distance: dist(bands[i - 1]?.up_to ?? 0), fee: m(b.fee) }),
-    );
+  const f = p.delivery_fee;
+  const unit = p.distance_unit === "mi" ? "mi" : "km";
+  if (f?.type === "flat" && f.amount != null) {
+    cost.push(t("city.faq_flat", { fee: m(f.amount), city }));
+  } else if (f?.type === "distance_slabs" && f.slabs?.length) {
+    const slabs = [...f.slabs].sort((a, b) => Number(a.up_to) - Number(b.up_to));
+    const parts = slabs.map((b) => t("city.faq_band_upto", { distance: dist(b.up_to), fee: m(b.fee) }));
+    const last = slabs[slabs.length - 1]!;
+    if (f.beyond_per_unit != null && Number(f.beyond_per_unit) > 0) {
+      parts.push(t("city.faq_band_beyond_per", { fee: m(f.beyond_per_unit), unit, distance: dist(last.up_to) }));
+    }
     cost.push(t("city.faq_bands", { bands: parts.join("; ") }));
+  } else if (f?.type === "free_above" && f.min_subtotal != null && f.otherwise != null) {
+    cost.push(t("city.faq_free_above", { min: m(f.min_subtotal), fee: m(f.otherwise) }));
+  } else if (p.delivery_from != null) {
+    cost.push(t("city.faq_from", { fee: m(p.delivery_from) }));
+  }
+  if (p.max_distance != null && Number(p.max_distance) > 0) {
+    cost.push(t("city.faq_max_distance", { distance: dist(p.max_distance) }));
   }
   const s = p.service_fee;
   if (s && Number(s.percent) > 0) {
@@ -46,22 +55,22 @@ export function cityFaq(c: CityPage, p: CityPricing | null, t: T, formatLocale: 
   } else {
     cost.push(t("city.faq_no_service"));
   }
-  if (p.small_order && Number(p.small_order.fee) > 0) {
-    cost.push(t("city.faq_small_order", { below: m(p.small_order.below), fee: m(p.small_order.fee) }));
+  if (p.small_order_fee && Number(p.small_order_fee.fee) > 0) {
+    cost.push(t("city.faq_small_order", { below: m(p.small_order_fee.below), fee: m(p.small_order_fee.fee) }));
   }
   cost.push(t("city.faq_cost_end"));
   out.push({ q: t("city.faq_cost_q", { city }), a: cost.join(" ") });
 
   // The minimum order (one for the city, or per area).
-  const mins = p.min_order.filter((x) => Number(x.amount) > 0);
-  const amounts = [...new Set(mins.map((x) => Number(x.amount)))];
+  const mins = (p.min_order ?? []).filter((x) => Number(x.min_order) > 0);
+  const amounts = [...new Set(mins.map((x) => Number(x.min_order)))];
   out.push({
     q: t("city.faq_min_q"),
     a: !mins.length
       ? t("city.faq_min_none")
       : amounts.length === 1 && (mins.length === 1 || mins.every((x) => !x.zone) || mins.length === c.zones.length)
         ? t("city.faq_min_one", { amount: m(amounts[0]) })
-        : t("city.faq_min_zones", { list: mins.map((x) => (x.zone ? t("city.faq_min_zone", { zone: x.zone, amount: m(x.amount) }) : m(x.amount))).join("; ") }),
+        : t("city.faq_min_zones", { list: mins.map((x) => (x.zone ? t("city.faq_min_zone", { zone: x.zone, amount: m(x.min_order) }) : m(x.min_order))).join("; ") }),
   });
 
   // Tips: all to the rider; the suggestions shown at checkout.

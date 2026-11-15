@@ -2,6 +2,7 @@
 // optional): ratings, per-cuisine photos, a city's pricing, waiting counts,
 // tip presets. Every helper falls back gracefully when a field is missing, so
 // the site works on an older API too. Safe on the server and in the browser.
+import type { CoreSchemas } from "@bhojango/api-client";
 import type { Discover, KitchenCard } from "./server";
 
 // ── ratings: "New" until 5 ratings, then "★4.6 (23)" ────────────────────────
@@ -65,30 +66,19 @@ export function cuisineTiles(d: Pick<Discover, "cuisines" | "restaurants"> | nul
 
 // ── a city's pricing (city page FAQ and "from … delivery") ───────────────────
 
-export interface CityPricing {
-  currency: string;
-  distance_unit: string;
-  delivery: { up_to: number | string | null; fee: number | string }[];
-  service_fee: { percent: number | string; min?: number | string | null; max?: number | string | null } | null;
-  small_order: { below: number | string; fee: number | string } | null;
-  min_order: { zone: string | null; amount: number | string }[];
-  tip_presets: TipPresets | null;
-}
-
-export interface TipPresets {
-  amounts: (number | string)[];
-  default_index?: number | null;
-}
+/** A city's prices from its live rules (GET /markets/public/cities/{country}/{slug}). */
+export type CityPricing = CoreSchemas["CityPricing"];
+export type TipPresets = CoreSchemas["TipPresetsOut"];
 
 export function pricingOf(c: unknown): CityPricing | null {
   const p = (c as { pricing?: CityPricing | null } | null)?.pricing;
-  return p && Array.isArray(p.delivery) ? p : null;
+  return p && typeof p === "object" && typeof p.currency === "string" ? p : null;
 }
 
-/** The lowest delivery fee in a city's bands (null when there are none). */
+/** The lowest delivery fee the city charges (null when there's no fee rule). */
 export function lowestFee(p: CityPricing | null): number | null {
-  const fees = (p?.delivery ?? []).map((b) => Number(b.fee)).filter((n) => Number.isFinite(n));
-  return fees.length ? Math.min(...fees) : null;
+  const n = p?.delivery_from == null ? NaN : Number(p.delivery_from);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** People waiting for a coming-soon city (0 when unknown). */

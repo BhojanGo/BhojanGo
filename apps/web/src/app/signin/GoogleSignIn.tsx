@@ -45,7 +45,7 @@ export function GoogleSignIn({ clientId, country, next, hasPlace }: { clientId: 
           const r = await fetch(`${urls.core}/api/v1/auth/social-login`, {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ provider: "google", id_token: credential, token: credential, ...(country === "IN" || country === "US" ? { country } : {}) }),
+            body: JSON.stringify({ provider: "google", token: credential, ...(country ? { country } : {}) }),
           });
           if (!r.ok) throw new Error(String(r.status));
           await adopt((await r.json()) as { access_token: string; refresh_token: string });
