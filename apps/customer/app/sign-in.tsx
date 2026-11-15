@@ -1,6 +1,6 @@
 // CustomerSignIn.html: phone number, a code by SMS, no password.
 import {
-  Button, color, e164, errorMessage, field, LogoMark, type MarketCountry, PhoneCountryButton, radius, space, Txt, type,
+  Button, color, e164, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius, space, Txt, type,
   useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -11,8 +11,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
   const { t } = useI18n();
-  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
-  const { country: current, countries, chooseCountry } = useCountry();
+  // The phone number's country code (not the site's country): Markets' countries, starting from the detected one (tap the box for the next).
+  const { country: current, countries } = useCountry();
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
@@ -27,7 +27,6 @@ export default function SignIn() {
     const phone = e164(country.phone_code, number);
     try {
       await sendCode(phone, country.code);
-      void chooseCountry(country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, "We couldn't send a code. Check the number and try again."));
@@ -41,7 +40,8 @@ export default function SignIn() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={styles.brand}>
           <LogoMark size={34} />
-          <Text style={[type.h2, styles.word]}>bhojango</Text>
+          <Text style={[type.h2, styles.word, { flex: 1 }]}>bhojango</Text>
+          <LanguagePill />
         </View>
         <View style={styles.hero}>
           <Txt variant="display">Real food.{"\n"}Fair prices.</Txt>
