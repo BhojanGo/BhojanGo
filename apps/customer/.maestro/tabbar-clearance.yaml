@@ -42,6 +42,7 @@ tags:
     element:
       id: "home-end"
     direction: DOWN
+    visibilityPercentage: 50
     timeout: 60000
 - repeat:
     times: 3
@@ -77,6 +78,7 @@ tags:
     element:
       id: "search-end"
     direction: DOWN
+    visibilityPercentage: 50
     timeout: 60000
 - repeat:
     times: 3
@@ -111,6 +113,7 @@ tags:
     element:
       id: "orders-end"
     direction: DOWN
+    visibilityPercentage: 50
     timeout: 90000
 - repeat:
     times: 3
@@ -141,6 +144,7 @@ tags:
     element:
       id: "account-end"
     direction: DOWN
+    visibilityPercentage: 50
     timeout: 30000
 - repeat:
     times: 3
