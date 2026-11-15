@@ -23,7 +23,14 @@ env:
     commands:
       - takeScreenshot: docs/screenshots/rider/qa/00-delivery-opened
       - back
+# The simulator may move the demo order on meanwhile (a new screen can open once more).
+- runFlow:
+    when:
+      visible:
+        id: "delivery-screen|delivery-gone|delivery-delivered|delivery-cancelled"
+    commands:
+      - back
 - extendedWaitUntil:
     visible:
-      id: "drive-panel|offer-sheet"
-    timeout: 20000
+      id: "drive-panel|offer-sheet|open-delivery|tab-earnings"
+    timeout: 40000

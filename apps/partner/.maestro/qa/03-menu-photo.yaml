@@ -21,12 +21,26 @@ appId: com.bhojango.partner
     id: "photo-preview"
 - assertVisible:
     id: "preview-with-photo|preview-text-only"
-- assertVisible:
-    id: "photo-choose"
+- takeScreenshot: docs/screenshots/partner/qa/03-dish-photo-preview
+# On a phone held sideways the photo screen scrolls: the buttons are further down.
+- scrollUntilVisible:
+    element:
+      id: "photo-choose"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "photo-save"
+    direction: DOWN
+    timeout: 15000
 - assertVisible:
     id: "photo-save"
     enabled: false
-- takeScreenshot: docs/screenshots/partner/qa/03-dish-photo-preview
+- scrollUntilVisible:
+    element:
+      id: "photo-cancel"
+    direction: UP
+    timeout: 15000
 - tapOn:
     id: "photo-cancel"
 - extendedWaitUntil:

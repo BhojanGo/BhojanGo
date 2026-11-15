@@ -53,16 +53,18 @@ for app in $APPS; do
   sleep 10
   adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
   [ "$app" = rider ] && adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
-  flows="$(cd "$ROOT/apps/$app/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
+  # Top-level flows, plus the read-only QA folder (.maestro/qa: every flow there is read-only).
+  flows="$(cd "$ROOT/apps/$app/.maestro" && { ls *.yaml; ls qa/*.yaml 2>/dev/null; } | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
   if [ "$READONLY" = 1 ]; then
-    flows="$(for f in $flows; do grep -Eq '^[[:space:]]*-[[:space:]]*qa-readonly[[:space:]]*$' "$ROOT/apps/$app/.maestro/$f.yaml" && echo "$f"; done)"
+    flows="$(for f in $flows; do case "$f" in qa/*) echo "$f"; continue;; esac
+      grep -Eq '^[[:space:]]*-[[:space:]]*qa-readonly[[:space:]]*$' "$ROOT/apps/$app/.maestro/$f.yaml" && echo "$f"; done)"
   fi
   if [ -n "${ONLY:-}" ]; then  # ONLY="account batch": just these flows (of any app)
     flows="$(for f in $flows; do case " $ONLY " in *" $f "*) echo "$f";; esac; done)"
   fi
   for f in $flows; do
     if maestro --device "$DEVICE" test -e QA_CORE="$QA_CORE" -e QA_RT="$QA_RT" -e QA_PASSWORDS="$QA_PASSWORDS" \
-         "$ROOT/apps/$app/.maestro/$f.yaml" > "$OUT/$app-$f.log" 2>&1; then
+         "$ROOT/apps/$app/.maestro/$f.yaml" > "$OUT/$app-$(echo "$f" | tr / -).log" 2>&1; then
       echo "PASS $app/$f"
     else
       echo "FAIL $app/$f (see $OUT/$app-$f.log)"; fail=1

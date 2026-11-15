@@ -27,9 +27,8 @@ tags:
     id: "eta"
 - assertVisible:
     id: "delivery-pin"
-# The rider's name comes with the order; the map's markers once the socket's snapshot is in.
-- extendedWaitUntil:
-    visible:
-      id: "rider-name"
-    timeout: 20000
+# The rider's name shows once a rider has the order (the demo order may still be cooking).
+- assertVisible:
+    id: "rider-name"
+    optional: true
 - takeScreenshot: docs/screenshots/customer/qa-05-tracking

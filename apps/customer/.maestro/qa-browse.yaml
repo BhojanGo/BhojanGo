@@ -12,13 +12,19 @@ tags:
     file: sign-in.yaml
     env:
       PHONE: ${PHONE || "9000000301"}
+# Home loads with the order on its way at the top; the kitchens are further down.
 - extendedWaitUntil:
     visible:
-      id: "kitchens"
+      id: "home"
     timeout: 60000
 - assertVisible:
     id: "active-order"
 - takeScreenshot: docs/screenshots/customer/qa-01-home
+- scrollUntilVisible:
+    element:
+      id: "kitchens"
+    direction: DOWN
+    timeout: 30000
 # The first kitchen on the list (open kitchens come first).
 - scrollUntilVisible:
     element:

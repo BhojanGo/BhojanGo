@@ -203,7 +203,7 @@ export default function MenuScreen() {
         <Text accessibilityRole="header" style={[t.h1, { flex: 1 }]} numberOfLines={1}>{tr("partner.menu.title")}</Text>
         <View style={[s.search, stacked && { width: 220 }]}>
           <Icon name="search" size={18} stroke={color.muted} />
-          <TextInput testID="menu-search" accessibilityLabel={tr("partner.menu.search")} placeholder={tr("partner.menu.search")} placeholderTextColor={color.muted}
+          <TextInput disableFullscreenUI testID="menu-search" accessibilityLabel={tr("partner.menu.search")} placeholder={tr("partner.menu.search")} placeholderTextColor={color.muted}
             value={q} onChangeText={setQ} style={[textFont("500"), { flex: 1, fontSize: 15 }]} />
         </View>
       </View>
@@ -393,12 +393,12 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
             options={[{ value: "free_delivery", label: tr("partner.offers.free_delivery") }, { value: "percent_off", label: tr("partner.offers.percent_off") },
               { value: "flat_off", label: tr("partner.offer.flat_off") }]} />
           {kind !== "free_delivery" ? (
-            <TextInput testID="offer-value" accessibilityLabel={kind === "percent_off" ? tr("partner.offers.percent_label") : tr("partner.offers.amount_label")}
+            <TextInput disableFullscreenUI testID="offer-value" accessibilityLabel={kind === "percent_off" ? tr("partner.offers.percent_label") : tr("partner.offers.amount_label")}
               value={value} onChangeText={setValue} keyboardType="numeric"
               placeholder={kind === "percent_off" ? tr("partner.offers.percent_hint") : tr("partner.offers.amount_hint", { amount: cash(50, currency) })}
               placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
           ) : null}
-          <TextInput testID="offer-cap" accessibilityLabel={tr("partner.offers.cap_label")} value={cap} onChangeText={setCap} keyboardType="numeric"
+          <TextInput disableFullscreenUI testID="offer-cap" accessibilityLabel={tr("partner.offers.cap_label")} value={cap} onChangeText={setCap} keyboardType="numeric"
             placeholder={tr("partner.offers.cap_hint", { amount: cash(5000, currency) })} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
           <Text style={t.muted}>{tr("partner.offers.cap_note")}</Text>
           {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}

@@ -203,13 +203,13 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
         <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
           <Text style={t.label}>{tr("partner.apply.licence_number")}</Text>
-          <TextInput testID="fssai-number" accessibilityLabel={tr("partner.apply.licence_number")} value={num} keyboardType="number-pad" maxLength={17}
+          <TextInput disableFullscreenUI testID="fssai-number" accessibilityLabel={tr("partner.apply.licence_number")} value={num} keyboardType="number-pad" maxLength={17}
             onChangeText={(v) => setNum(v.replace(/\D/g, "").slice(0, 14).replace(/(\d{4})(?=\d)/g, "$1 "))} style={[textFont("600"), s.input]} />
           <Text style={t.muted}>{tr("partner.apply.licence_number_hint")}</Text>
         </View>
         <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
           <Text style={t.label}>{tr("partner.apply.valid_until")}</Text>
-          <TextInput testID="fssai-until" accessibilityLabel={tr("partner.apply.valid_until")} value={until} onChangeText={setUntil} placeholder={tr("partner.apply.date_hint")}
+          <TextInput disableFullscreenUI testID="fssai-until" accessibilityLabel={tr("partner.apply.valid_until")} value={until} onChangeText={setUntil} placeholder={tr("partner.apply.date_hint")}
             placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
           <Text style={t.muted}>{tr("partner.apply.remind")}</Text>
         </View>
@@ -279,7 +279,7 @@ function GstBank({ app: a, onSaved }: { app: Application; onSaved: () => Promise
       <Text style={t.body}>{tr("partner.apply.gst_sub")}</Text>
       <Text style={t.label}>{tr("partner.apply.gstin")}</Text>
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <TextInput testID="gstin" accessibilityLabel={tr("partner.apply.gstin")} value={gstin} onChangeText={(v) => setGstin(v.toUpperCase())} autoCapitalize="characters" maxLength={15}
+        <TextInput disableFullscreenUI testID="gstin" accessibilityLabel={tr("partner.apply.gstin")} value={gstin} onChangeText={(v) => setGstin(v.toUpperCase())} autoCapitalize="characters" maxLength={15}
           placeholder="36AABCU9603R1ZM" placeholderTextColor={color.muted} style={[textFont("600"), s.input, { flex: 1 }]} />
         <Btn title={a.gstin ? tr("partner.apply.update") : tr("partner.apply.save_gstin")} height={56} busy={busy} disabled={gstin.length !== 15} onPress={saveGst} />
       </View>
