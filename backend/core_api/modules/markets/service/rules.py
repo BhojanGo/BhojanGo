@@ -2,6 +2,8 @@
 
 Status meanings (every level):
   draft   being set up; customers never see it
+  soon    announced: the website lists it as "coming soon" and collects sign-ups,
+          but nobody can order there yet
   beta    open to customers, flagged as beta (soft launch)
   live    open to customers
   paused  temporarily closed (e.g. heavy rain); comes back without new setup
@@ -14,6 +16,8 @@ from datetime import datetime
 from typing import Any
 
 OPEN = frozenset({"beta", "live"})
+# Shown to the public (the website's directory): open, or announced as coming soon.
+PUBLIC = OPEN | {"soon"}
 
 
 class MarketRuleError(ValueError):
@@ -49,7 +53,7 @@ def launch_checklist(*, country_status: str, region_status: str, service_hours: 
 
 def check_city_status(new_status: str, checklist: dict[str, bool]) -> None:
     if new_status not in OPEN:
-        return  # draft and paused are always allowed
+        return  # draft, soon and paused are always allowed
     missing = [k for k, ok in checklist.items() if not ok]
     if missing:
         words = {

@@ -19,6 +19,9 @@ from core_api.modules.markets.schemas import (
     CountryOut,
     CountrySummary,
     CountryUpdate,
+    Demand,
+    DemandCity,
+    DemandText,
     LocateResult,
     RegionCreate,
     RegionOut,
@@ -63,6 +66,7 @@ class MarketService:
         regions = await self.repo.regions()
         cities = await self.repo.cities()
         zones = await self.repo.zones_with_geo([c.id for c in cities])
+        waiting = await self.waitlist_counts()
         zones_by_city: dict[uuid.UUID, list[Zone]] = {}
         for z, _, _ in zones:
             zones_by_city.setdefault(z.city_id, []).append(z)
@@ -72,7 +76,8 @@ class MarketService:
             regs = []
             for region in (r for r in regions if r.country_id == country.id and _visible(scopes, r.code)):
                 city_rows = [
-                    self._city_summary(city, country, region, zones_by_city.get(city.id, []), now)
+                    self._city_summary(city, country, region, zones_by_city.get(city.id, []), now,
+                                       waiting.get(city.code, 0))
                     for city in cities
                     if city.region_id == region.id and _visible(scopes, city.code)
                 ]
@@ -80,7 +85,8 @@ class MarketService:
             out.append(CountrySummary(**CountryOut.model_validate(country).model_dump(), regions=regs))
         return out
 
-    def _city_summary(self, city: City, country: Country, region: Region, zones: list[Zone], now: datetime) -> CitySummary:
+    def _city_summary(self, city: City, country: Country, region: Region, zones: list[Zone], now: datetime,
+                      waitlist: int = 0) -> CitySummary:
         states = [ZoneState(z.status, z.paused_until) for z in zones]
         checklist = rules.launch_checklist(
             country_status=country.status, region_status=region.status,
@@ -91,6 +97,7 @@ class MarketService:
             zone_count=len(zones),
             live_zone_count=sum(1 for s in states if s.is_open(now)),
             launch_checklist=checklist,
+            waitlist=waitlist,
         )
 
     async def city_detail(self, code: str) -> CityDetail:
@@ -299,6 +306,47 @@ class MarketService:
         zone.status, zone.pause_reason, zone.paused_until = "live", None, None
         await self.db.flush()
         return await self.zone_out(zone_id)
+
+    # ── demand ("Notify me" sign-ups) ─────────────────────────────────────────
+    async def waitlist_counts(self) -> dict[str, int]:
+        from sqlalchemy import func, select
+
+        from core_api.modules.markets.models import LaunchWaitlist
+
+        rows = await self.db.execute(select(LaunchWaitlist.city_code, func.count()).where(
+            LaunchWaitlist.city_code.is_not(None)).group_by(LaunchWaitlist.city_code))
+        return {code: n for code, n in rows.all()}
+
+    async def demand(self, scopes: list[str]) -> Demand:
+        """Sign-ups per city the caller may see, busiest first, plus cities people
+        typed that Markets doesn't have (super admins and country admins only)."""
+        from sqlalchemy import func, select
+
+        from core_api.modules.markets.models import LaunchWaitlist
+
+        W = LaunchWaitlist
+        rows = (await self.db.execute(
+            select(W.city_code, func.count(), func.count(W.consent_at), func.max(W.created_at))
+            .where(W.city_code.is_not(None)).group_by(W.city_code))).all()
+        cities = {c.code: c for c in await self.repo.cities()}
+        countries = {k.id: k for k in await self.repo.countries()}
+        out = []
+        for code, n, consent, last in rows:
+            city = cities.get(code)
+            if city is None or not _visible(scopes, code):
+                continue
+            out.append(DemandCity(city_code=code, city_name=city.name, country=countries[city.country_id].code,
+                                  status=city.status, signups=n, with_consent=consent, last_at=last))
+        out.sort(key=lambda d: (-d.signups, d.city_name))
+        suggested: list[DemandText] = []
+        if any(len(s) <= 2 for s in scopes):  # "*" or a country
+            text = func.lower(func.trim(W.city_text))
+            for t, n, last in (await self.db.execute(
+                    select(text, func.count(), func.max(W.created_at))
+                    .where(W.city_code.is_(None), W.city_text.is_not(None)).group_by(text)
+                    .order_by(func.count().desc()).limit(50))).all():
+                suggested.append(DemandText(text=t, signups=n, last_at=last))
+        return Demand(cities=out, suggested=suggested)
 
     # ── locate (used by apps and the quote engine) ───────────────────────────
     async def locate(self, lat: float, lng: float) -> LocateResult:

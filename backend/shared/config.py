@@ -297,6 +297,8 @@ class Settings(BaseSettings):
     # The header a platform proxy puts the client's address in (Railway: X-Real-IP);
     # empty = the socket's peer. Rate limits and request logs use it (shared/client_ip.py).
     CLIENT_IP_HEADER: str = ""
+    # Optional IP-to-place database for the website's "near you" hint (shared/geoip.py).
+    GEOIP_DB_PATH: str = ""
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]

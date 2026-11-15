@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { adminApi } from "@/lib/api";
 
-export type MarketStatus = "draft" | "beta" | "live" | "paused";
+export type MarketStatus = "draft" | "soon" | "beta" | "live" | "paused";
 
 export interface Country {
   id: string;
@@ -53,6 +53,8 @@ export interface CitySummary extends City {
   zone_count: number;
   live_zone_count: number;
   launch_checklist: Record<string, boolean>;
+  /** "Notify me" sign-ups for this city (website). */
+  waitlist: number;
 }
 
 export interface RegionSummary extends Region {
@@ -154,7 +156,38 @@ export function useCity(code: string) {
   });
 }
 
+export interface Demand {
+  cities: { city_code: string; city_name: string; country: string; status: MarketStatus; signups: number; with_consent: number; last_at: string | null }[];
+  suggested: { text: string; signups: number; last_at: string | null }[];
+}
+
+export function useDemand() {
+  return useQuery({
+    queryKey: ["markets", "demand"],
+    queryFn: async () => (await adminApi.get<Demand>("/user/markets/waitlist/demand")).data,
+  });
+}
+
+/** Language names in their own script, for the country's language list. */
+export const LOCALE_NAMES: Record<string, string> = {
+  "en-IN": "English",
+  "en-US": "English",
+  "hi-IN": "हिन्दी",
+  "te-IN": "తెలుగు",
+  "ta-IN": "தமிழ்",
+  "kn-IN": "ಕನ್ನಡ",
+  "mr-IN": "मराठी",
+  "bn-IN": "বাংলা",
+  "es-US": "Español",
+};
+
 export const marketsApi = {
+  createRegion: (country: string, body: { code: string; name: string; timezone?: string | null }) =>
+    adminApi.post<Region>(`/user/markets/countries/${country}/regions`, body),
+  updateRegion: (code: string, body: { name?: string; status?: MarketStatus }) =>
+    adminApi.patch<Region>(`/user/markets/regions/${code}`, body),
+  createCity: (region: string, body: { code: string; name: string; center_lat: number; center_lng: number; timezone?: string | null }) =>
+    adminApi.post<City>(`/user/markets/regions/${region}/cities`, body),
   updateCity: (code: string, body: Partial<City> & { status?: MarketStatus }) =>
     adminApi.patch<City>(`/user/markets/cities/${code}`, body),
   createZone: (city: string, body: { name: string; polygon: GeoPolygon; min_order?: string | null; color?: string; status?: MarketStatus }) =>

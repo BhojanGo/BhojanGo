@@ -96,37 +96,90 @@ EXAMPLE_CARTS = {"IN": (Decimal("480"), Decimal("3.5"), Decimal("20")), "US": (D
 
 
 @router.get("/example")
-async def example_quote(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")) -> dict:
-    """An example bill for the web's home page, priced by the real engine with the
-    city's live rules (a typical cart, today at 8 pm local), cached for an hour. Public."""
+async def example_quote(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$"),
+                        zone: uuid.UUID | None = Query(default=None)) -> dict:
+    """An example bill for the website: a real recent order's bill in this zone (or
+    city), as the customer saw it; a new city with no orders yet gets a typical cart
+    from its own menus priced by the engine with live rules. Cached for an hour. Public."""
     import json
-    from datetime import UTC, datetime, time
 
-    from core_api.modules.pricing.schemas import SimCart, SimulateRequest
-    from core_api.modules.pricing.service.quotes import city_chain
     from shared.redis import get_redis
 
     r = await get_redis()
-    key = f"pricing:example:{city}"
+    key = f"pricing:example:{city}:{zone or ''}"
     cached = await r.get(key)
     if cached:
         return json.loads(cached)
+    body = await _real_bill(db, city, zone) or await _typical_bill(db, city)
+    await r.set(key, json.dumps(body), ex=3600)
+    return body
+
+
+async def _real_bill(db: AsyncSession, city: str, zone: uuid.UUID | None) -> dict | None:
+    """The newest bill of a paid order from the last 30 days (zone first, then city).
+    Only the bill lines: nothing about the customer or the kitchen."""
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    from core_api.modules.orders.models.order import Order
+    from core_api.modules.pricing.models import OrderPricingSnapshot
+    from core_api.modules.pricing.service.quotes import city_chain
+
     try:
-        c, _, country, tz = await city_chain(db, city)
+        c, _, country, _ = await city_chain(db, city)
     except QuoteError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
-    food, distance, tip = EXAMPLE_CARTS.get(country.code, EXAMPLE_CARTS["IN"])
-    local = datetime.combine(datetime.now(UTC).astimezone(tz).date(), time(20, 0))
+    since = datetime.now(UTC) - timedelta(days=30)
+    for where in ([Order.zone_id == zone] if zone else []) + [Order.market_city == city]:
+        snap = (await db.execute(
+            select(OrderPricingSnapshot).join(Order, Order.id == OrderPricingSnapshot.order_id)
+            .where(where, OrderPricingSnapshot.created_at >= since,
+                   Order.status.notin_(("pending_payment", "cancelled", "payment_failed")))
+            .order_by(OrderPricingSnapshot.created_at.desc()).limit(1))).scalar_one_or_none()
+        if snap is not None:
+            lines = [{**ln, "label": "Food" if ln.get("code") == "food" else ln.get("label")} for ln in snap.lines]
+            ctx = snap.context or {}
+            return {"city": city, "city_name": c.name, "currency": snap.currency, "lines": lines, "total": str(snap.total),
+                    "source": "order", "assumptions": {"distance": str(ctx.get("distance", "")),
+                                                       "distance_unit": country.distance_unit}}
+    return None
+
+
+async def _typical_bill(db: AsyncSession, city: str) -> dict:
+    """Two typical dishes from the city's own menus, 3 km (or mi) away, 8 pm local,
+    the country's default tip: priced by the engine with the city's live rules."""
+    from datetime import UTC, datetime, time
+    from statistics import median
+
+    from sqlalchemy import select
+
+    from core_api.modules.catalog.models.menu import MenuItem
+    from core_api.modules.catalog.models.restaurant import Restaurant
+    from core_api.modules.pricing.schemas import SimCart, SimulateRequest
+    from core_api.modules.pricing.service.quotes import city_chain
+    from core_api.modules.rules.service.resolver import Context
+    from core_api.modules.rules.service.rules import RuleService
+
     try:
-        out = await QuoteService(db).simulate(SimulateRequest(city=city, cart=SimCart(food_subtotal=food), distance=distance,
+        c, region, country, tz = await city_chain(db, city)
+    except QuoteError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
+    prices = (await db.execute(select(MenuItem.price).join(Restaurant, Restaurant.id == MenuItem.restaurant_id).where(
+        Restaurant.country == country.code, Restaurant.city.ilike(c.name), Restaurant.status == "active"))).scalars().all()
+    food = (Decimal(str(median(prices))) * 2).quantize(Decimal("1")) if prices else EXAMPLE_CARTS.get(country.code, EXAMPLE_CARTS["IN"])[0]
+    local = datetime.combine(datetime.now(UTC).astimezone(tz).date(), time(20, 0))
+    resolved = await RuleService(db).resolve(Context(country=country.code, region=region.code, city=c.code))
+    presets = next((x.params for s, x in resolved.items() if x.template == "tip_presets"), None)
+    tip = Decimal(str(presets["amounts"][presets.get("default_index", 0)])) if presets else Decimal("0")
+    try:
+        out = await QuoteService(db).simulate(SimulateRequest(city=city, cart=SimCart(food_subtotal=food), distance=Decimal("3"),
                                                                local_time=local, tip=tip, restaurant_tier="B"))
     except QuoteError as e:
         raise _unprocessable(e)
     if not out.live.ok:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOT_PRICED", "message": out.live.message})
     lines = [{**ln.model_dump(mode="json"), "label": "Food" if ln.code == "food" else ln.label} for ln in out.live.lines]
-    body = {"city": city, "city_name": c.name, "currency": out.currency, "lines": lines, "total": str(out.live.total),
-            "assumptions": {"food": str(food), "distance": str(distance), "distance_unit": country.distance_unit,
-                            "tip": str(tip), "local_time": local.isoformat()}}
-    await r.set(key, json.dumps(body), ex=3600)
-    return body
+    return {"city": city, "city_name": c.name, "currency": out.currency, "lines": lines, "total": str(out.live.total),
+            "source": "typical", "assumptions": {"food": str(food), "distance": "3", "distance_unit": country.distance_unit,
+                                                 "tip": str(tip), "local_time": local.isoformat()}}

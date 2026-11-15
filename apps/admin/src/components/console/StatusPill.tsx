@@ -5,9 +5,10 @@ const STYLES: Record<MarketStatus, string> = {
   beta: "bg-kesar-tint text-kesar-ink",
   paused: "bg-danger-tint text-danger-ink",
   draft: "bg-line-soft text-muted",
+  soon: "bg-[#EAF2FF] text-[#1F4E8C]",
 };
 
-const LABELS: Record<MarketStatus, string> = { live: "Live", beta: "Beta", paused: "Paused", draft: "Draft" };
+const LABELS: Record<MarketStatus, string> = { live: "Live", beta: "Beta", paused: "Paused", draft: "Draft", soon: "Coming soon" };
 
 export function StatusPill({ status }: { status: MarketStatus }) {
   return (
