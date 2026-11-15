@@ -17,7 +17,7 @@ export function Split({ children }: { children: ReactNode }) {
   if (narrow) {
     return (
       <SafeAreaView style={[s.screen, { flexDirection: "column" }]} edges={["left", "right", "bottom"]}>
-        <SafeAreaView edges={["top"]} style={s.band}>
+        <SafeAreaView testID="split-band" edges={["top"]} style={s.band}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Mark size={32} />
             <Text style={[textFont("800"), { color: color.white, fontSize: 15 }]}>{t("partner.brand")}</Text>

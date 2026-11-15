@@ -1,0 +1,178 @@
+# The phone layout, read-only (run from qa/05-phone-portrait.yaml, signed in as the
+# demo partner, on the orders list). Each tab: the list, then the first order's
+# detail if there is one, and back (the Back link, then the phone's back button).
+appId: com.bhojango.partner
+---
+# Orders: the header (name, rating chip, status, Busy and Pause) and the tabs.
+- assertVisible:
+    id: "kitchen-status"
+- assertVisible:
+    id: "column-new"
+- assertVisible:
+    id: "column-preparing"
+- assertVisible:
+    id: "column-ready"
+- assertVisible:
+    id: "rail-orders"
+- takeScreenshot: docs/screenshots/partner/qa/portrait-orders
+
+- tapOn:
+    id: "column-new"
+- runFlow:
+    when:
+      visible:
+        id: "order-row-0"
+    commands:
+      - tapOn:
+          id: "order-row-0"
+      - extendedWaitUntil:
+          visible:
+            id: "order-detail"
+          timeout: 10000
+      - takeScreenshot: docs/screenshots/partner/qa/portrait-order-detail-new
+      - tapOn:
+          id: "order-back"
+      - extendedWaitUntil:
+          visible:
+            id: "order-list"
+          timeout: 10000
+
+- tapOn:
+    id: "column-preparing"
+- takeScreenshot: docs/screenshots/partner/qa/portrait-orders-preparing
+- runFlow:
+    when:
+      visible:
+        id: "order-row-0"
+    commands:
+      - tapOn:
+          id: "order-row-0"
+      - extendedWaitUntil:
+          visible:
+            id: "order-detail"
+          timeout: 10000
+      - takeScreenshot: docs/screenshots/partner/qa/portrait-order-detail-preparing
+      - back
+      - extendedWaitUntil:
+          visible:
+            id: "order-list"
+          timeout: 10000
+
+- tapOn:
+    id: "column-ready"
+- takeScreenshot: docs/screenshots/partner/qa/portrait-orders-ready
+- runFlow:
+    when:
+      visible:
+        id: "order-row-0"
+    commands:
+      - tapOn:
+          id: "order-row-0"
+      - extendedWaitUntil:
+          visible:
+            id: "order-detail"
+          timeout: 10000
+      - takeScreenshot: docs/screenshots/partner/qa/portrait-order-detail-ready
+      - tapOn:
+          id: "order-back"
+      - extendedWaitUntil:
+          visible:
+            id: "order-list"
+          timeout: 10000
+- tapOn:
+    id: "column-new"
+
+# The rating summary from the header chip (when the kitchen's ratings have loaded).
+- runFlow:
+    when:
+      visible:
+        id: "rating-chip"
+    commands:
+      - tapOn:
+          id: "rating-chip"
+      - extendedWaitUntil:
+          visible:
+            id: "rating-summary"
+          timeout: 10000
+      - takeScreenshot: docs/screenshots/partner/qa/portrait-rating-summary
+      - tapOn:
+          id: "rating-close"
+      - extendedWaitUntil:
+          notVisible:
+            id: "rating-summary"
+          timeout: 10000
+
+# Menu: the dishes, a dish's photo screen with the customer preview (Cancel, never Save).
+- tapOn:
+    id: "rail-menu"
+- extendedWaitUntil:
+    visible:
+      id: "menu-item-0"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/qa/portrait-menu
+- tapOn:
+    id: "menu-item-0"
+- extendedWaitUntil:
+    visible:
+      id: "dish-photo"
+    timeout: 10000
+- assertVisible:
+    id: "photo-preview"
+- takeScreenshot: docs/screenshots/partner/qa/portrait-dish-photo
+- scrollUntilVisible:
+    element:
+      id: "photo-save"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "photo-save"
+    enabled: false
+- takeScreenshot: docs/screenshots/partner/qa/portrait-dish-photo-preview
+- scrollUntilVisible:
+    element:
+      id: "photo-cancel"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "photo-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-photo"
+    timeout: 10000
+
+# Store hours and prep time, then offers: below the dishes on a phone.
+- scrollUntilVisible:
+    element:
+      id: "hours-panel"
+    direction: DOWN
+    visibilityPercentage: 60
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/qa/portrait-hours
+- scrollUntilVisible:
+    element:
+      id: "offers-panel"
+    direction: DOWN
+    visibilityPercentage: 40
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/qa/portrait-offers
+
+# Payouts: the account, then the weekly statements.
+- tapOn:
+    id: "rail-payouts"
+- extendedWaitUntil:
+    visible:
+      id: "payout-statements"
+    timeout: 20000
+- assertVisible:
+    id: "payout-account"
+- takeScreenshot: docs/screenshots/partner/qa/portrait-payouts
+
+# Back to the orders list.
+- tapOn:
+    id: "rail-orders"
+- extendedWaitUntil:
+    visible:
+      id: "order-list"
+    timeout: 10000
