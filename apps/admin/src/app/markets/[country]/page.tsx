@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
+import { HeroDish } from "@/components/markets/HeroDish";
 import { StatusPill } from "@/components/console/StatusPill";
 import {
   CHECKLIST_LABELS,
@@ -107,6 +108,7 @@ function CountryView() {
           <AddCity country={country} />
           <DemandCard countryCode={country.code} />
           <SettingsCards country={country} />
+          <HeroDish country={country} />
         </>
       )}
     </ConsoleShell>

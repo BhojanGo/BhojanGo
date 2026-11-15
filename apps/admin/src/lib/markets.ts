@@ -203,7 +203,15 @@ export interface CountryCreate {
   tax_regime: string;
 }
 
+export interface CountryUpdate {
+  name?: string;
+  status?: MarketStatus;
+  /** A value sets an override, null removes it (back to the default). */
+  settings?: Record<string, unknown>;
+}
+
 export const marketsApi = {
+  updateCountry: (code: string, body: CountryUpdate) => adminApi.patch<Country>(`/user/markets/countries/${code}`, body),
   createCountry: (body: CountryCreate) => adminApi.post<Country>("/user/markets/countries", body),
   createRegion: (country: string, body: { code: string; name: string; timezone?: string | null }) =>
     adminApi.post<Region>(`/user/markets/countries/${country}/regions`, body),

@@ -20,7 +20,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone
-from core_api.modules.markets.service import rules
+from core_api.modules.markets.service import photos, rules
 from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
 
@@ -76,6 +76,8 @@ class DirCountry(BaseModel):
     tax_regime: str  # gst | us_sales_tax: a tax invoice or a receipt
     payment_providers: list[str]
     payment_methods: list[str]  # what checkout offers (Markets settings), e.g. upi, card, wallet
+    hero_photo: str = Field(description="The landing page's hero: a photo library slug, served at "
+                                        "/food/<slug>-<width>.webp (Markets setting hero_photo, else a default)")
     live: int
     soon: int
     regions: list[DirRegion]
@@ -84,6 +86,8 @@ class DirCountry(BaseModel):
 class Directory(BaseModel):
     countries: list[DirCountry]
     totals: dict[str, int]  # countries, live, soon, restaurants
+    hero_photo: str = Field(default=photos.DEFAULT_HERO,
+                            description="The hero for a visitor outside every listed country (a library slug)")
 
 
 async def _restaurant_counts(db: AsyncSession) -> dict[tuple[str, str], int]:
@@ -124,6 +128,7 @@ async def build_directory(db: AsyncSession) -> Directory:
                 phone_code=country.phone_code, tax_regime=country.tax_regime,
                 payment_providers=list(country.payment_providers),
                 payment_methods=list((country.settings or {}).get("payment_methods") or ["card"]),
+                hero_photo=photos.hero_photo(country.settings),
                 live=0, soon=0, regions=[])
         r = regions.get(region.code)
         if r is None:

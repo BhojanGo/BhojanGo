@@ -44,6 +44,11 @@ export function initials(name: string | null | undefined): string {
     .join("");
 }
 
+/** A photo from the website's food library by its slug (Markets' hero_photo), e.g. "/food/<slug>-800.webp". */
+export function libraryPhoto(slug: string | null | undefined, width: 400 | 800 | 1600 = 800): string | null {
+  return slug && /^[a-z0-9-]+$/.test(slug) ? `/food/${slug}-${width}.webp` : null;
+}
+
 /** A photo URL from data: absolute URLs pass through; "/food/..." is served by the website. */
 export function photo(url: string | null | undefined, width: 400 | 800 | 1600 = 800): string | null {
   if (!url) return null;
