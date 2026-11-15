@@ -202,31 +202,43 @@ demo order on its way in each demo city. On QA it is on through `DEMO_RIDER_SIM=
 only, in `.railway/railway.ts`); `make dev` turns it on in compose. It runs only when `APP_ENV` is `local`,
 `development`, `dev` or `qa`, and production refuses to start with the flag set.
 
+- **Whose riders:** its own. Each demo city has a pool of simulator riders, `rider.sim.<city>.1`-`3@example.com`
+  (seed phones ending 261-263), which only the demo seed creates (`users.dispatch_pool = 'demo_sim'`, migration
+  0028). Before the kitchen makes an order almost ready the simulator marks it in realtime (signed
+  `POST /internal/dispatch/pool-orders`), and realtime offers it only to pool riders, and never offers pool riders
+  anyone else's order (`dispatch.same_pool`). The demo rider people test with, `rider.demo.<city>` (phone ending
+  250, the rider app's Maestro login), is not in the pool: it never gets a simulator order, and it keeps the order
+  history (its earnings screen). Real riders have no pool, so for them nothing changes; in production nobody has
+  one and the internal endpoint refuses. Each order that needs a rider gets a pool rider who is free; if realtime
+  offers it to another pool rider first, that one takes it and the two swap.
 - **Whose orders:** only the demo seed's customers (`demo<N>.<city>@example.com`), and of those only the order the
   demo seed left on its way and the ones the simulator placed (Redis set `demo_sim:orders`). An order you place
   yourself with a demo account is left alone.
 - **How:** everything through the normal APIs, signed in like the apps (phone code; seed phones have the fixed code
   outside production). A few minutes after the last delivery, `demo1.<city>` orders a past order again from a kitchen
   that is open (reorder, quote, order, fake card payment); the kitchen's owner accepts, cooks and marks it almost
-  ready; the demo rider goes online about 1.5 km away, takes realtime's offer, rides to the kitchen and on to the door
+  ready; a free pool rider goes online about 1.5 km away, takes realtime's offer, rides to the kitchen and on to the door
   at 18-25 km/h along a path with a few turns (no routing service), a GPS fix every 4 s to
   `/delivery/driver/location`; the kitchen hands it over as the rider arrives; the rider picks it up and delivers it
   with the PIN from the customer's tracking screen, then goes offline. Tracking, ETA and the usual order
   notifications follow on their own, including "Almost there" (realtime, once per order when the rider carrying
   it is within `ALMOST_THERE_METERS`, default 400 m, of the door: an `almost_there` message on the order's
   tracking channel and a `driver.almost_there` event; the worker sends the customer an in-app and push message). Outside the kitchens' and the city's hours there is no order on its way.
-- **The order the demo seed writes** (already picked up) is finished the same way; its fixes reach the tracking page
+- **The order the demo seed writes** (already picked up, by the city's first pool rider) is finished the same way; its fixes reach the tracking page
   through `/delivery/{id}/eta` (its rider was never made busy by dispatch, so no live WebSocket position for that
   first one).
 - **Logs:** `demo_rider_sim` (on, off or refused, at start), `demo_order_placed`, `demo_order_step` (each move
-  to a new step), `demo_rider_accepted`, `demo_order_delivered`, `demo_rider_sim_step_failed` with the reason;
+  to a new step), `demo_rider_accepted`, `demo_order_delivered`, `demo_rider_sim_step_failed` with the reason,
+  `demo_riders_all_busy` (every pool rider is on an order: the next one waits, still cooking);
   `demo_order_tick` at debug level every 4 s.
 - **Watchdog:** an order on the same step for 15 minutes (45 for a ride) logs `demo_order_stalled`; the rider signs
   in again and goes online again (realtime frees a rider left busy with an order that is over or gone:
   `rider_freed_from_stale_order`) and the step is retried. Still stuck 15 minutes later, the kitchen (or the
   customer, before payment) cancels it through the normal API (`demo_order_cancelled_stalled`) and the next order
   starts; one nobody but an admin may cancel (ready, picked up) is left (`demo_order_given_up`).
-- **Don't** sign in as `rider.demo.<city>` in the rider app on QA while it runs; you'd be riding the same account.
+- **Don't** sign in as `rider.sim.<city>.<n>` in the rider app; the simulator rides those accounts. Sign in as
+  `rider.demo.<city>` to test by hand: it gets no simulator orders, so give it an order of your own (any customer,
+  including a demo customer: the simulator leaves orders it didn't place alone).
 
 From a workstation, against a hosted environment that is neither QA nor production (staging, once it exists):
 [`tools/railway/playwright-qa.sh`](../../tools/railway/playwright-qa.sh) (web and admin Playwright),
