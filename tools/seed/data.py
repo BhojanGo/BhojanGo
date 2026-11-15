@@ -506,3 +506,44 @@ FSSAI = {  # India: 14-digit licence numbers (placeholders) and expiry dates
     "hitech-thali-hitec-city": ("13626010000105", "2027-12-31"),
 }
 TIERS = {"spice-route-kitchen-madhapur": "B", "hitech-thali-hitec-city": "A", "boise-bowl-co-hyde-park": "B"}
+
+
+# ── Photos (web v2) ───────────────────────────────────────────────────────────
+# The food photo library (docs/design/photos/LICENSES.md), served by the website
+# from /food/<slug>-<width>.webp. A kitchen's cover and its dishes' pictures are
+# data like everything else: nothing in a page names a photo.
+KITCHEN_PHOTOS = {
+    "spice-route-kitchen-madhapur": "hyderabadi-chicken-biryani",
+    "curry-leaf-gachibowli": "idli-sambar",
+    "charminar-chai-house-old-city": "irani-chai",
+    "banjara-dosa-co-banjara-hills": "masala-dosa",
+    "hitech-thali-hitec-city": "south-indian-thali",
+    "kesar-kitchen-kondapur": "north-indian-thali",
+    "boise-bowl-co-hyde-park": "poke-bowl",
+    "basque-corner-kitchen-downtown": "bbq-ribs",
+    "treasure-valley-tandoor-bench": "tandoori-chicken",
+    "foothills-pizza-co-north-end": "margherita-pizza",
+    "spud-and-sage-downtown": "fries",
+}
+# A dish's picture: the first keyword its name contains (lower case).
+DISH_PHOTOS = [
+    ("veg dum biryani", "veg-dum-biryani"), ("biryani", "hyderabadi-chicken-biryani"),
+    ("paneer tikka", "paneer-butter-masala"), ("butter chicken", "butter-chicken"), ("dosa", "masala-dosa"),
+    ("idli", "idli-sambar"), ("filter coffee", "filter-coffee"), ("chai", "irani-chai"), ("samosa", "samosa"),
+    ("andhra meals", "south-indian-thali"), ("veg thali", "south-indian-thali"), ("thali", "north-indian-thali"),
+    ("naan", "naan-basket"), ("margherita", "margherita-pizza"), ("pepperoni", "pepperoni-pizza"),
+    ("caesar", "caesar-salad"), ("poke", "poke-bowl"), ("fries", "fries"), ("tandoori", "tandoori-chicken"),
+    ("chicken biryani", "hyderabadi-chicken-biryani"), ("gulab jamun", "gulab-jamun"), ("lassi", "mango-lassi"),
+    ("latte", "latte"), ("pancake", "pancakes"), ("taco", "tacos"), ("ramen", "ramen"), ("sushi", "sushi"),
+    ("burger", "cheeseburger"), ("ribs", "bbq-ribs"), ("haleem", "haleem"), ("dal makhani", "dal-makhani"),
+    ("chole", "chole-bhature"), ("pani puri", "pani-puri"), ("vada", "vada"),
+]
+
+
+def photo_url(slug: str | None, width: int = 800) -> str | None:
+    return f"/food/{slug}-{width}.webp" if slug else None
+
+
+def dish_photo(name: str) -> str | None:
+    n = name.lower()
+    return photo_url(next((p for k, p in DISH_PHOTOS if k in n), None))
