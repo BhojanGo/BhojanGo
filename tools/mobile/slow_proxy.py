@@ -28,7 +28,7 @@ release.set()
 class Proxy(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def log_message(self, fmt, *args):  # noqa: ANN001, ANN002
+    def log_message(self, fmt: str, *args: object) -> None:
         sys.stderr.write("proxy: " + (fmt % args) + "\n")
 
     def _control(self) -> bool:
