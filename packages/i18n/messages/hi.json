@@ -155,8 +155,8 @@
     "greeting_afternoon_name": "नमस्ते, {name}",
     "greeting_evening_name": "शुभ संध्या, {name}",
     "kitchens_deliver": {
-      "one": "अभी {count} किचन {place} में डिलीवर कर रहा है",
-      "other": "अभी {count} किचन {place} में डिलीवर कर रहे हैं"
+      "one": "{count} किचन {place} में डिलीवर करता है",
+      "other": "{count} किचन {place} में डिलीवर करते हैं"
     },
     "filters": "किचन फ़िल्टर करें",
     "filter_open": "अभी खुले",

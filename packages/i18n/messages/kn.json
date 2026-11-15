@@ -155,8 +155,8 @@
     "greeting_afternoon_name": "ಶುಭ ಮಧ್ಯಾಹ್ನ, {name}",
     "greeting_evening_name": "ಶುಭ ಸಂಜೆ, {name}",
     "kitchens_deliver": {
-      "one": "ಈಗ {count} ಕಿಚನ್ {place}ಗೆ ಡೆಲಿವರಿ ಮಾಡುತ್ತಿದೆ",
-      "other": "ಈಗ {count} ಕಿಚನ್‌ಗಳು {place}ಗೆ ಡೆಲಿವರಿ ಮಾಡುತ್ತಿವೆ"
+      "one": "{count} ಕಿಚನ್ {place}ಗೆ ಡೆಲಿವರಿ ಮಾಡುತ್ತದೆ",
+      "other": "{count} ಕಿಚನ್‌ಗಳು {place}ಗೆ ಡೆಲಿವರಿ ಮಾಡುತ್ತವೆ"
     },
     "filters": "ಕಿಚನ್‌ಗಳನ್ನು ಫಿಲ್ಟರ್ ಮಾಡಿ",
     "filter_open": "ಈಗ ತೆರೆದಿರುವವು",
