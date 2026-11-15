@@ -1,7 +1,7 @@
 // Apply with a kitchen (B1): your name, the kitchen, where it is. The kitchen is
 // created pending approval and the partner application (FSSAI, GST and bank,
 // menu) follows. BhojanGo checks it and switches the kitchen on.
-import { api, ApiError, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field as input, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen } from "../lib/data";
 import { useLayout } from "../lib/layout";
-import { Btn, color, radius, t, textFont } from "../lib/ui";
+import { Btn, color, radius, t } from "../lib/ui";
 
 type City = { code: string; name: string; region: string; country: string; lat: number; lng: number };
 
@@ -61,7 +61,7 @@ export default function Join() {
     <View style={{ flex: 1, minWidth: narrow ? 200 : 240, gap: 6 }}>
       <Text style={t.label}>{label}</Text>
       <TextInput disableFullscreenUI testID={k} accessibilityLabel={label} value={f[k]} onChangeText={set(k)} placeholder={hint} placeholderTextColor={color.muted}
-        style={[textFont("600"), s.input]} {...props} />
+        style={[input.bodyLg, s.input]} {...props} />
     </View>
   );
   return (
@@ -81,7 +81,7 @@ export default function Join() {
         </View>
         <View style={s.row}>{field("street", tr("partner.join.street"), tr("partner.join.street_hint"))}{field("area", tr("partner.join.area"), tr("partner.join.area_hint"))}</View>
         <View style={s.row}>{field("zip", tr("partner.join.zip"), tr("partner.join.zip_hint"), { keyboardType: "number-pad" })}{field("cuisines", tr("partner.join.cuisines"), tr("partner.join.cuisines_hint"))}</View>
-        {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+        {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
           <Btn title={tr("partner.join.another_number")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
           <Btn testID="send-application" title={tr("partner.join.send")} kind="primary" height={56} busy={busy} disabled={!ok} onPress={apply} />
@@ -93,6 +93,6 @@ export default function Join() {
 
 const s = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
-  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 17, backgroundColor: color.white },
+  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, backgroundColor: color.white },
   city: { flex: 1, minWidth: 180, padding: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
 });

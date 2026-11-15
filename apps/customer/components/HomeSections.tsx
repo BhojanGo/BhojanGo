@@ -1,6 +1,6 @@
 // The personal home's parts (the website's HomeFeed / PersonalHome): the
 // active-order bar, Order again, the cuisine row and the offers near you.
-import { color, displayFont, errorMessage, radius, space, textFont, Txt, useI18n } from "@bhojango/mobile-core";
+import { color, errorMessage, num, radius, space, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -41,10 +41,10 @@ export function ActiveOrderBar({ order, cover }: { order: Order; cover: string |
     >
       <Thumb name={order.restaurant_name} uri={cover} size={44} />
       <View style={{ flex: 1 }}>
-        <Text numberOfLines={2} style={[textFont("800"), { fontSize: 14, color: "#F2F5F5" }]}>{title}</Text>
-        {sub ? <Text testID="active-order-sub" numberOfLines={1} style={[textFont("400"), { fontSize: 12, color: "#A9B8BA", marginTop: 2 }]}>{sub}</Text> : null}
+        <Text numberOfLines={2} style={[type.label, { color: "#F2F5F5" }]}>{title}</Text>
+        {sub ? <Text testID="active-order-sub" numberOfLines={1} style={[type.small, { color: "#A9B8BA", marginTop: 2 }]}>{sub}</Text> : null}
       </View>
-      <Text style={[textFont("800"), { fontSize: 14, color: color.kesarBright }]}>{t("home.track")}</Text>
+      <Text style={[type.label, { color: color.kesarBright }]}>{t("home.track")}</Text>
     </Pressable>
   );
 }
@@ -74,15 +74,15 @@ export function OrderAgain({ orders, covers }: { orders: Order[]; covers: Record
     <View style={{ marginTop: space[8] }} testID="order-again">
       <View style={{ paddingHorizontal: space[5], flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
         <Txt variant="h2" accessibilityRole="header">{t("home.order_again")}</Txt>
-        <Text accessibilityRole="link" onPress={() => router.push("/orders")} style={[textFont("700"), { fontSize: 14, color: color.peacock }]}>{t("home.all_orders")}</Text>
+        <Text accessibilityRole="link" onPress={() => router.push("/orders")} style={[type.label, { color: color.peacock }]}>{t("home.all_orders")}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingTop: space[3] }}>
         {past.map((o) => (
           <View key={o.id} style={{ width: 250, flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: radius.card, backgroundColor: color.white, borderWidth: 1, borderColor: color.line }}>
             <Thumb name={o.restaurant_name} uri={covers[o.restaurant_id] ?? null} />
             <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={[textFont("800"), { fontSize: 14 }]}>{o.restaurant_name}</Text>
-              <Text style={[textFont("400"), { fontSize: 12, color: color.muted }]}>{money(o.total, o.currency)}</Text>
+              <Text numberOfLines={1} style={type.label}>{o.restaurant_name}</Text>
+              <Text style={[type.small, num, { color: color.muted }]}>{money(o.total, o.currency)}</Text>
               <Pressable
                 testID={`order-again-${o.id}`}
                 accessibilityRole="button"
@@ -91,7 +91,7 @@ export function OrderAgain({ orders, covers }: { orders: Order[]; covers: Record
                 onPress={() => void again(o)}
                 hitSlop={8}
               >
-                <Text style={[textFont("800"), { fontSize: 13, color: color.peacock, opacity: busy && busy !== o.id ? 0.5 : 1 }]}>
+                <Text style={[type.label, { color: color.peacock, opacity: busy && busy !== o.id ? 0.5 : 1 }]}>
                   {busy === o.id ? t("common.loading") : t("home.order_again_button")}
                 </Text>
               </Pressable>
@@ -99,7 +99,7 @@ export function OrderAgain({ orders, covers }: { orders: Order[]; covers: Record
           </View>
         ))}
       </ScrollView>
-      {problem ? <Text accessibilityRole="alert" style={[textFont("600"), { color: color.chili, fontSize: 13, paddingHorizontal: space[5], marginTop: 6 }]}>{problem}</Text> : null}
+      {problem ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili, paddingHorizontal: space[5], marginTop: 6 }]}>{problem}</Text> : null}
     </View>
   );
 }
@@ -119,9 +119,9 @@ export function CuisineRow({ tiles, selected, onSelect }: { tiles: CuisineTileDa
               accessibilityLabel={c.name} onPress={() => onSelect(on ? null : c.name)} style={{ width: 76, alignItems: "center" }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: on ? color.peacock : color.white, overflow: "hidden", backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}>
                 <Photo uri={photo(c.photo, 400)} style={{ width: 66, height: 66 }}
-                  fallback={<Text style={[displayFont("600"), { fontSize: 22, color: color.peacockDeep }]}>{initials(c.name)}</Text>} />
+                  fallback={<Text style={[type.h2, { color: color.peacockDeep }]}>{initials(c.name)}</Text>} />
               </View>
-              <Text numberOfLines={1} style={[textFont(on ? "800" : "700"), { fontSize: 13, marginTop: 6, color: on ? color.peacockDeep : color.kohl }]}>{c.name}</Text>
+              <Text numberOfLines={1} style={[type.label, { marginTop: 6, color: on ? color.peacockDeep : color.kohl }]}>{c.name}</Text>
             </Pressable>
           );
         })}
@@ -149,9 +149,9 @@ export function OfferRow({ offers, currency, covers }: { offers: Offer[]; curren
               onPress={() => kitchenId && router.push(`/restaurant/${kitchenId}`)}
               style={{ width: 280, height: 132, flexDirection: "row", borderRadius: radius.card, overflow: "hidden", backgroundColor: OFFER_TINTS[i % 3] }}>
               <View style={{ flex: 1, padding: space[4], justifyContent: "center" }}>
-                <Text numberOfLines={2} style={[displayFont("600"), { fontSize: 19, color: color.kohl }]}>{offerTitle(o, t, money, currency)}</Text>
-                <Text numberOfLines={2} style={[textFont("400"), { fontSize: 13, color: "#24383B", marginTop: 4 }]}>{offerSubtitle(o, t, money, currency)}</Text>
-                <Text style={[textFont("800"), { fontSize: 11, letterSpacing: 0.6, textTransform: "uppercase", color: color.muted, marginTop: 8 }]}>{offerPayer(o, t)}</Text>
+                <Text numberOfLines={2} style={[type.h3, { color: color.kohl }]}>{offerTitle(o, t, money, currency)}</Text>
+                <Text numberOfLines={2} style={[type.small, { color: "#24383B", marginTop: 4 }]}>{offerSubtitle(o, t, money, currency)}</Text>
+                <Text style={[type.caption, { color: color.muted, marginTop: 8 }]}>{offerPayer(o, t)}</Text>
               </View>
               {cover ? <Photo uri={photo(cover, 400)} style={{ width: 96, height: 132 }} /> : null}
             </Pressable>

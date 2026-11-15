@@ -41,7 +41,7 @@ export default function Account() {
   return (
     <SafeAreaView style={ui.screen} edges={["top"]}>
       <ScrollView testID="account-screen" contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: bottom }}>
-        <Txt variant="h1" accessibilityRole="header">{t("app.account.title")}</Txt>
+        <Txt variant="h2" accessibilityRole="header">{t("app.account.title")}</Txt>
 
         <Section title={t("account.profile.details")} testID="account-profile">
           <Row label={t("account.profile.name")} value={user?.full_name ?? ""}

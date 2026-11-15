@@ -2,8 +2,13 @@
 
 // Design system (P16): tokens, fonts and components; same tokens as @bhojango/ui on the web.
 export * from "./ui/components";
-export { useBrandFonts } from "./ui/fonts";
-export { color, dark, displayFont, elevation, FONT_FILES, radius, space, textFont, touch, typeStyle } from "./ui/theme";
+export { loadScriptFonts, useBrandFonts } from "./ui/fonts";
+export { color, dark, displayFont, elevation, radius, space, textFont, touch } from "./ui/theme";
+// Round 6: the type scale (the only font sizes), language-aware faces, tabular figures, the dev font audit.
+export { face, field, fontAuditEnabled, num, scriptFor, setAuditRoute, textStyles, type, TYPE_ROLES, TYPE_SCALE, TYPE_SIZES,
+  typeScript, typeStyleFor } from "./ui/type";
+export type { Script, TypeRole } from "./ui/type";
+export { FontAudit } from "./ui/font-audit";
 export { billTotal } from "@bhojango/ui/bill";
 // Round 5: the floating tab bar's geometry and the room every tab screen leaves for it.
 export { aboveTabBar, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance } from "./tabbar";

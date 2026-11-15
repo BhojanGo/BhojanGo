@@ -1,7 +1,7 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, Button, cartItems, color, errorMessage, FairBill, radius, Segmented, Sheet, space, textFont, Txt, unwrap, useBag,
-  useCountry, useI18n, type CoreSchemas,
+  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, radius, Segmented, Sheet, space,
+  textFont, Txt, type, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -58,7 +58,7 @@ export default function Bag() {
   if (lines.length === 0) {
     return (
       <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center", gap: space[4] }]}>
-        <Txt variant="h1">{t("checkout.empty_title")}</Txt>
+        <Txt variant="h2">{t("checkout.empty_title")}</Txt>
         <Button title={t("checkout.find_food")} onPress={() => router.replace("/home")} />
       </SafeAreaView>
     );
@@ -102,10 +102,10 @@ export default function Bag() {
         <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}>
           <Icon name="back" />
         </Pressable>
-        <Txt variant="h1" accessibilityRole="header" style={{ flex: 1 }}>{t("kitchen.your_bag")}</Txt>
+        <Txt variant="h2" accessibilityRole="header" style={{ flex: 1 }}>{t("kitchen.your_bag")}</Txt>
         {quote ? (
           <View style={styles.held} testID="price-held">
-            <Text style={[textFont("700"), { fontSize: 12, color: color.peacock }]}>
+            <Text style={[type.small, num, { color: color.peacock }]}>
               {t("app.bag.held", { time: `${Math.floor(held / 60)}:${String(held % 60).padStart(2, "0")}` })}
             </Text>
           </View>
@@ -114,22 +114,22 @@ export default function Bag() {
       <ScrollView testID="bag" contentContainerStyle={{ paddingHorizontal: space[5], paddingVertical: space[2], gap: space[3] }}>
         <View style={styles.card}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={[textFont("800"), { fontSize: 14, flex: 1 }]} numberOfLines={1}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
+            <Text style={[type.label, { flex: 1 }]} numberOfLines={1}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
           </View>
           <View style={styles.rule} />
           {lines.map((l) => (
             <View key={l.key} style={styles.line}>
-              <Text style={[textFont("400"), { fontSize: 14, flex: 1 }]}>
+              <Text style={[type.small, { flex: 1 }]}>
                 {l.quantity > 1 ? `${l.quantity} × ` : ""}{l.name}
                 {l.summary ? <Text style={{ color: color.muted }}> · {l.summary}</Text> : null}
               </Text>
-              <Text style={[textFont("400"), { fontSize: 14, fontVariant: ["tabular-nums"] }]}>{money(l.unitPrice * l.quantity, currency, { whole: true })}</Text>
+              <Text style={[type.small, num]}>{money(l.unitPrice * l.quantity, currency, { whole: true })}</Text>
             </View>
           ))}
         </View>
         <View style={styles.card}>
-          <Text style={[textFont("800"), { fontSize: 14 }]}>
-            {t("checkout.tip_title")} <Text style={[textFont("500"), { color: color.muted }]}>· {t("checkout.tip_note")}</Text>
+          <Text style={type.label}>
+            {t("checkout.tip_title")} <Text style={[textFont("400"), { color: color.muted }]}>· {t("checkout.tip_note")}</Text>
           </Text>
           <Segmented
             label={t("checkout.tip_title")}
@@ -139,12 +139,12 @@ export default function Bag() {
           />
         </View>
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View> : error ? null : <ActivityIndicator color={color.peacock} />}
-        {error ? <Text style={[textFont("600"), { color: color.chili, fontSize: 14 }]}>{error}</Text> : null}
+        {error ? <Text style={[type.label, { color: color.chili }]}>{error}</Text> : null}
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.method}>
-          <View style={styles.methodTag}><Text style={[textFont("800"), { fontSize: 11, textTransform: "uppercase" }]}>{t(`checkout.method_${method}`)}</Text></View>
-          <Text style={[textFont("400"), { fontSize: 14, flex: 1 }]}>
+          <View style={styles.methodTag}><Text style={type.caption}>{t(`checkout.method_${method}`)}</Text></View>
+          <Text style={[type.small, { flex: 1 }]}>
             <Text style={textFont("700")}>{t(`checkout.method_${method}`)}</Text>
             <Text style={{ color: color.muted }}> · {t(`checkout.method_${method}_sub`)}</Text>
           </Text>

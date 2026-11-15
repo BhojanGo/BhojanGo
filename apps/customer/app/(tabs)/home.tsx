@@ -2,7 +2,7 @@
 // website's personal home (HomeFeed): the order on its way, Order again, the
 // cuisine row, offers that say who pays, and the kitchens for the drop point
 // from GET /discover.
-import { Button, color, Sheet, radius, space, textFont, Txt, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, radius, Sheet, space, Txt, type, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -61,7 +61,7 @@ export default function Home() {
         <View style={styles.top}>
           <Pressable testID="where" accessibilityRole="button" accessibilityLabel={t("header.change_address")} onPress={() => void saved().then(setPicking)} style={styles.where}>
             <Icon name="pin" size={20} stroke={color.peacock} />
-            <Text numberOfLines={1} style={[textFont("700"), { fontSize: 15, color: color.kohl, flexShrink: 1 }]}>{where}</Text>
+            <Text numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
             <Icon name="chevron" size={16} />
           </Pressable>
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -69,7 +69,7 @@ export default function Home() {
               <HeartIcon on={false} size={20} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={t("common.your_account")} onPress={() => router.push("/account")} style={styles.avatar}>
-              <Text style={[textFont("700"), { fontSize: 14 }]}>{initials(user?.full_name)}</Text>
+              <Text style={type.label}>{initials(user?.full_name)}</Text>
             </Pressable>
           </View>
         </View>
@@ -77,15 +77,15 @@ export default function Home() {
         {active ? <ActiveOrderBar order={active} cover={covers[active.restaurant_id] ?? null} /> : null}
 
         <View style={{ paddingHorizontal: space[5], paddingTop: space[4] }}>
-          <Txt variant="hero" accessibilityRole="header">
+          <Txt variant="h1" accessibilityRole="header">
             {first ? t(`app.home.hello_name.${pod}`, { name: first }) : t(`app.home.hello.${pod}`)}
           </Txt>
-          <Txt variant="hero" style={{ color: color.muted }}>{t(`app.home.ask.${pod}`)}</Txt>
+          <Txt variant="h1" style={{ color: color.muted }}>{t(`app.home.ask.${pod}`)}</Txt>
         </View>
 
         <Pressable testID="home-search" accessibilityRole="search" accessibilityLabel={t("common.search_label")} onPress={() => router.push("/search")} style={styles.search}>
           <Icon name="search" size={20} stroke={color.muted} />
-          <Text style={[textFont("400"), { fontSize: 16, color: color.muted }]}>{t("common.search_placeholder")}</Text>
+          <Text style={[type.body, { color: color.muted }]}>{t("common.search_placeholder")}</Text>
         </Pressable>
 
         {orders ? <OrderAgain orders={orders} covers={covers} /> : null}
@@ -95,7 +95,7 @@ export default function Home() {
         <View style={styles.sectionHead}>
           <Txt variant="h2" accessibilityRole="header">{cuisine ? t("app.home.cuisine_near", { cuisine }) : t("home.kitchens_near")}</Txt>
           {cuisine ? (
-            <Text testID="clear-cuisine" accessibilityRole="button" onPress={() => setCuisine(null)} style={[textFont("700"), { fontSize: 14, color: color.peacock }]}>
+            <Text testID="clear-cuisine" accessibilityRole="button" onPress={() => setCuisine(null)} style={[type.label, { color: color.peacock }]}>
               {t("app.home.all_kitchens")}
             </Text>
           ) : null}
@@ -131,7 +131,7 @@ export default function Home() {
         {(picking ?? []).map((p) => (
           <Pressable key={p.addressId ?? p.label} accessibilityRole="button" onPress={() => { setPicking(null); void setPoint(p); }} style={styles.pick}>
             <Icon name="pin" size={20} stroke={color.peacock} />
-            <Text style={[textFont("600"), { fontSize: 15, flex: 1 }]}>{p.label || t("app.home.current_location")}</Text>
+            <Text style={[type.label, { flex: 1 }]}>{p.label || t("app.home.current_location")}</Text>
           </Pressable>
         ))}
         <Button title={t("app.home.use_location")} variant="secondary" block onPress={() => { setPicking(null); void goHere(); }} />
@@ -139,7 +139,7 @@ export default function Home() {
       {bagCount > 0 ? (
         <Pressable testID="bag-pill" accessibilityRole="button" accessibilityLabel={t("common.bag_count", { count: bagCount })} onPress={() => router.push("/bag")} style={[styles.bagPill, { bottom: above }]}>
           <Icon name="bag" size={18} stroke={color.white} />
-          <Text style={[textFont("800"), { color: color.white, fontSize: 15 }]}>{t("common.bag_count", { count: bagCount })}</Text>
+          <Text style={[type.label, { color: color.white }]}>{t("common.bag_count", { count: bagCount })}</Text>
         </Pressable>
       ) : null}
     </SafeAreaView>

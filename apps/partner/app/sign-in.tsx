@@ -1,11 +1,13 @@
 // Partners sign in with the kitchen's phone number and a code by SMS.
-import { e164, errorMessage, PhoneCountryButton, useCountry, useI18n, useSession, type MarketCountry } from "@bhojango/mobile-core";
+import {
+  e164, errorMessage, field, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Split } from "../lib/split";
-import { Btn, color, radius, t, textFont } from "../lib/ui";
+import { Btn, color, radius, t } from "../lib/ui";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
@@ -44,9 +46,9 @@ export default function SignIn() {
         <PhoneCountryButton value={country} onChange={setPicked} />
         <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
           placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
-          style={[textFont("600"), s.number]} />
+          style={[field.bodyLg, s.number]} />
       </View>
-      {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+      {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
       <Btn testID="send-code" title={tr("partner.sign_in.send")} kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
       <Text style={t.muted}>{tr("partner.sign_in.new")}</Text>
     </Split>
@@ -54,5 +56,5 @@ export default function SignIn() {
 }
 
 const s = StyleSheet.create({
-  number: { flex: 1, height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 18 },
+  number: { flex: 1, height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16 },
 });

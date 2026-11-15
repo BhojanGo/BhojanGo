@@ -1,8 +1,8 @@
 // The mobile component gallery (P16): every design-system component on a
 // phone, for design review. Open it at bhojango://gallery (not linked in the app).
 import {
-  Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill, TabBar,
-  TestBanner, Txt, useCountry, useI18n,
+  Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill,
+  TabBar, TestBanner, Txt, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -42,7 +42,7 @@ export default function Gallery() {
     <ScrollView style={{ backgroundColor: color.porcelain }} contentContainerStyle={{ padding: 20, gap: 32, paddingBottom: 64 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 32 }}>
         <LogoMark size={40} />
-        <Txt variant="h1">Design system</Txt>
+        <Txt variant="h2">Design system</Txt>
       </View>
 
       <View style={{ gap: 12 }}>
@@ -55,9 +55,9 @@ export default function Gallery() {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Txt variant="hero">Good evening, Srini.</Txt>
-        <Txt variant="hero" style={{ color: color.muted }}>What&apos;s for dinner?</Txt>
-        <Txt variant="eyebrow" style={{ color: color.muted }}>Tonight&apos;s table</Txt>
+        <Txt variant="h1">Good evening, Srini.</Txt>
+        <Txt variant="h1" style={{ color: color.muted }}>What&apos;s for dinner?</Txt>
+        <Txt variant="caption" style={{ color: color.muted }}>Tonight&apos;s table</Txt>
         <Txt>Slow-cooked basmati, saffron and fried onion, sealed and steamed for two hours.</Txt>
       </View>
 
@@ -78,7 +78,7 @@ export default function Gallery() {
         <Card padded={false}>
           <PlateImage label="Hyderabadi Dum Biryani" />
           <View style={{ padding: 16, gap: 4 }}>
-            <Txt variant="title">Spice Route Kitchen</Txt>
+            <Txt variant="h3">Spice Route Kitchen</Txt>
             <Txt variant="small" style={{ color: color.muted }}>4.6 · Hyderabadi · 25–30 min · {distance(2.1)}</Txt>
           </View>
         </Card>
@@ -103,7 +103,7 @@ export default function Gallery() {
       </View>
 
       <Card tone="dark" style={{ gap: 12 }}>
-        <Txt variant="title" style={{ color: dark.text }}>Rider (dark)</Txt>
+        <Txt variant="h3" style={{ color: dark.text }}>Rider (dark)</Txt>
         <Input dark label="Vehicle number" placeholder="TS 09 AB 7316" />
         <Button title="Go online" variant="rider" block />
       </Card>

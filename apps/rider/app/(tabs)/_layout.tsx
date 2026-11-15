@@ -1,11 +1,11 @@
-import { useI18n, useSession } from "@bhojango/mobile-core";
+import { type, useI18n, useSession } from "@bhojango/mobile-core";
 import { Redirect, router, Tabs, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon, type IconName } from "../../lib/icons";
 import { useLive } from "../../lib/rider";
-import { night, textFont } from "../../lib/theme";
+import { night } from "../../lib/theme";
 
 const TABS: { name: "drive" | "earnings" | "account"; icon: IconName }[] = [
   { name: "drive", icon: "drive" },
@@ -33,7 +33,7 @@ export default function TabsLayout() {
                 <Pressable key={t.name} testID={`tab-${t.name}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={title}
                   onPress={() => router.navigate(`/${t.name}` as Href)} style={styles.tab}>
                   <Icon name={t.icon} stroke={on ? night.kesar : night.muted} />
-                  <Text style={[textFont(on ? "800" : "600"), { fontSize: 12, color: on ? night.text : night.muted }]}>{title}</Text>
+                  <Text numberOfLines={1} style={[type.small, { color: on ? night.text : night.muted }]}>{title}</Text>
                 </Pressable>
               );
             })}

@@ -2,12 +2,12 @@
 // ("★ 4.6 · 23 ratings", or "New" until 5 ratings, as customers see it on the
 // website) that opens the summary: the average, how many gave each star, and the
 // latest comments (no customer names). GET /restaurants/{id}/ratings/summary.
-import { useI18n } from "@bhojango/mobile-core";
+import { num, type, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { getRatingSummary, type RatingSummary } from "./data";
-import { Btn, color, displayFont, radius, t, textFont, tone } from "./ui";
+import { Btn, color, radius, t, tone } from "./ui";
 
 const REFRESH_MS = 5 * 60_000; // ratings change slowly; the board polls orders, not this
 
@@ -53,7 +53,7 @@ export function RatingChip({ kitchenId }: { kitchenId: string }) {
     <>
       <Pressable testID="rating-chip" accessibilityRole="button" accessibilityLabel={label} onPress={() => setOpen(true)}
         style={({ pressed }) => [s.chip, pressed && { opacity: 0.85 }]}>
-        <Text style={[textFont("800"), { fontSize: 14, color: d.new ? color.kohl : tone.kesarInk }]} numberOfLines={1}>{label}</Text>
+        <Text style={[type.label, { color: d.new ? color.kohl : tone.kesarInk }]} numberOfLines={1}>{label}</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" supportedOrientations={["landscape", "portrait"]} onRequestClose={() => setOpen(false)}>
         <Pressable style={s.scrim} onPress={() => setOpen(false)}>
@@ -84,12 +84,12 @@ export function RatingSummaryCard({ summary, onClose }: { summary: RatingSummary
           <View style={{ width: wide ? 220 : undefined, gap: 6 }}>
             {d.new ? (
               <>
-                <Text testID="rating-average" style={[displayFont("600"), s.big]}>{tr("common.new")}</Text>
+                <Text testID="rating-average" style={[type.display, s.big]}>{tr("common.new")}</Text>
                 <Text style={t.muted}>{tr("partner.ratings.new_until", { count: summary.count })}</Text>
               </>
             ) : (
               <>
-                <Text testID="rating-average" style={[displayFont("600"), s.big]}>★ {number(d.stars ?? 0, 1)}</Text>
+                <Text testID="rating-average" style={[type.display, num, s.big]}>★ {number(d.stars ?? 0, 1)}</Text>
                 <Text style={t.muted}>{tr("partner.ratings.from", { count: summary.count })}</Text>
               </>
             )}
@@ -103,21 +103,21 @@ export function RatingSummaryCard({ summary, onClose }: { summary: RatingSummary
               return (
                 <View key={star} testID={`rating-bar-${star}`} style={s.barRow}
                   accessibilityLabel={tr("partner.ratings.bar", { stars: star, count: n })}>
-                  <Text style={[textFont("700"), { width: 36, fontSize: 14 }]}>{star} ★</Text>
+                  <Text style={[type.label, { width: 36 }]}>{star} ★</Text>
                   <View style={s.track}><View style={[s.fill, { width: `${(n / most) * 100}%` }]} /></View>
-                  <Text style={[textFont("600"), { width: 44, textAlign: "right", fontSize: 14, color: color.muted }]}>{number(n, 0)}</Text>
+                  <Text style={[type.label, { width: 44, textAlign: "right", color: color.muted }]}>{number(n, 0)}</Text>
                 </View>
               );
             })}
           </View>
         </View>
         <View style={{ gap: 8 }}>
-          <Text style={[textFont("800"), { fontSize: 16 }]}>{tr("partner.ratings.recent")}</Text>
+          <Text style={type.label}>{tr("partner.ratings.recent")}</Text>
           {summary.recent.length === 0 ? <Text style={t.muted}>{tr("partner.ratings.no_comments")}</Text> : null}
           {summary.recent.map((c, i) => (
             <View key={i} testID={`rating-comment-${i}`} style={s.comment}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-                <Text style={[textFont("800"), { fontSize: 14, color: tone.kesarInk }]}
+                <Text style={[type.label, { color: tone.kesarInk }]}
                   accessibilityLabel={tr("partner.ratings.stars_label", { count: c.stars })}>{"★".repeat(c.stars)}</Text>
                 <Text style={t.muted}>{date(c.created_at)}</Text>
               </View>
@@ -136,7 +136,7 @@ const s = StyleSheet.create({
     backgroundColor: color.white, justifyContent: "center", maxWidth: 220 },
   scrim: { flex: 1, backgroundColor: "rgba(17,20,24,0.4)", alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.sheet, padding: 28 },
-  big: { fontSize: 44, letterSpacing: -1, color: color.kohl },
+  big: { color: color.kohl },
   barRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   track: { flex: 1, height: 10, borderRadius: 5, backgroundColor: color.divider, overflow: "hidden" },
   fill: { height: 10, borderRadius: 5, backgroundColor: color.kesar },

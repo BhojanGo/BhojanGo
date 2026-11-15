@@ -1,7 +1,7 @@
 // Privacy and your data (WebProfile): download everything the account holds
 // (a JSON file through the share sheet), or delete the account after a clear
 // confirmation that says what goes and what stays.
-import { Button, color, Sheet, space, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, Sheet, space, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -65,7 +65,7 @@ export default function Privacy() {
               variant="danger" block loading={busy === "delete"} onPress={remove} />
           </View>
         }>
-        <Text testID="delete-body" style={[ui.muted, { fontSize: 15, lineHeight: 22, color: color.kohl }]}>{t("account.privacy.confirm_body")}</Text>
+        <Text testID="delete-body" style={[type.body, { color: color.kohl }]}>{t("account.privacy.confirm_body")}</Text>
       </Sheet>
     </SafeAreaView>
   );

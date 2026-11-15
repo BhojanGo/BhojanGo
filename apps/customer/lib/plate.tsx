@@ -2,7 +2,7 @@
 // tile (brand tint, initials, first cuisine); a dish's own photo, else no frame
 // at all (the row is clean text). Never another kitchen's photo, never an empty
 // frame: a photo that fails to load falls back the same way.
-import { color, displayFont, textFont } from "@bhojango/mobile-core";
+import { color, type } from "@bhojango/mobile-core";
 import { useState, type ReactNode } from "react";
 import { Image, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
@@ -56,9 +56,9 @@ export function NameTile({ name, sub, height, rounded = 0, size = "lg" }: {
       importantForAccessibility="no-hide-descendants"
       style={{ height, borderRadius: rounded, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}
     >
-      <Text style={[displayFont("600"), { fontSize: big ? 52 : 20, letterSpacing: big ? -1 : 0, color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
+      <Text style={[big ? type.display : type.h3, { color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
       {sub && big ? (
-        <Text numberOfLines={1} style={[textFont("800"), { marginTop: 6, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase", color: color.peacock }]}>{sub}</Text>
+        <Text numberOfLines={1} style={[type.caption, { marginTop: 6, color: color.peacock }]}>{sub}</Text>
       ) : null}
     </View>
   );
@@ -82,7 +82,7 @@ export function KitchenCover({ name, cover, cuisine, height, rounded = 0, width 
 export function Thumb({ name, uri, size = 52 }: { name: string; uri: string | null | undefined; size?: number }) {
   const tile = (
     <View style={{ width: size, height: size, borderRadius: 12, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}>
-      <Text style={[displayFont("600"), { fontSize: Math.round(size * 0.36), color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
+      <Text style={[size >= 72 ? type.h1 : size >= 48 ? type.h2 : type.h3, { color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
     </View>
   );
   return <Photo uri={photo(uri, 400)} label={name} style={{ width: size, height: size, borderRadius: 12 }} fallback={tile} />;

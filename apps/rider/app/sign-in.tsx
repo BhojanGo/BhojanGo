@@ -1,12 +1,14 @@
 // Riders sign in with their phone and a code by SMS (dark, like the rest of the app).
-import { e164, errorMessage, PhoneCountryButton, useCountry, useI18n, useSession, type MarketCountry } from "@bhojango/mobile-core";
+import {
+  e164, errorMessage, field, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RiderMark } from "../lib/icons";
-import { night, radius, space, textFont, ui } from "../lib/theme";
+import { night, radius, space, ui } from "../lib/theme";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
@@ -42,12 +44,12 @@ export default function SignIn() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.body}>
         <View style={styles.brand}>
           <RiderMark />
-          <Text style={[ui.bold, { fontSize: 15, ...textFont("700") }]}>{t("rider.brand")}</Text>
+          <Text style={ui.bold}>{t("rider.brand")}</Text>
         </View>
-        <Text accessibilityRole="header" style={[ui.h1, { marginTop: 48, fontSize: 40, lineHeight: 42 }]}>{t("rider.sign_in.hero")}</Text>
+        <Text accessibilityRole="header" style={[ui.display, { marginTop: 48 }]}>{t("rider.sign_in.hero")}</Text>
         <Text style={[ui.body, { color: night.muted, marginTop: space[3] }]}>{t("rider.sign_in.sub")}</Text>
         <View style={{ flex: 1 }} />
-        <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{t("rider.sign_in.mobile")}</Text>
+        <Text style={ui.bold}>{t("rider.sign_in.mobile")}</Text>
         <View style={styles.phone}>
           <PhoneCountryButton tone="dark" value={country} onChange={setPicked} style={styles.cc} />
           <TextInput
@@ -59,10 +61,10 @@ export default function SignIn() {
             placeholder={t("signin.mobile")}
             placeholderTextColor={night.muted}
             maxLength={14}
-            style={[textFont("600"), styles.number]}
+            style={[field.bodyLg, styles.number]}
           />
         </View>
-        {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 13 }]}>{error}</Text> : null}
+        {error ? <Text style={[type.small, { color: night.sosText }]}>{error}</Text> : null}
         <Pressable testID="send-code" accessibilityRole="button" accessibilityState={{ disabled: !ok }} disabled={!ok} onPress={send}
           style={[ui.cta, { opacity: ok ? 1 : 0.5 }]}>
           <Text style={ui.ctaText}>{busy ? t("rider.sign_in.sending") : t("rider.sign_in.send")}</Text>
@@ -83,6 +85,6 @@ const styles = StyleSheet.create({
   },
   number: {
     flex: 1, height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, paddingHorizontal: space[4],
-    fontSize: 18, letterSpacing: 0.5, color: night.text, backgroundColor: night.surface,
+    letterSpacing: 0.5, color: night.text, backgroundColor: night.surface,
   },
 });

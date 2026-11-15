@@ -1,7 +1,7 @@
 // "Rate this order" after delivery (the website's RateOrder): 1-5 stars and an
 // optional comment -> POST /orders/{id}/rating. Once rated, "Your rating" is
 // shown, with a change button until the API's editable_until (7 days).
-import { Button, color, inZone, Input, textFont, useI18n } from "@bhojango/mobile-core";
+import { Button, color, Input, inZone, type, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -40,7 +40,7 @@ export function RateOrder({ order }: { order: Order }) {
         <View accessible accessibilityLabel={t("rating.stars", { count: rating.stars })}>
           <Stars value={rating.stars} />
         </View>
-        {rating.comment ? <Text testID="your-rating-comment" style={[ui.muted, { fontSize: 15 }]}>“{rating.comment}”</Text> : null}
+        {rating.comment ? <Text testID="your-rating-comment" style={[type.body, { color: color.muted }]}>“{rating.comment}”</Text> : null}
         <Text style={ui.small}>{t("rating.thanks")}</Text>
         {editable ? (
           <>
@@ -86,7 +86,7 @@ export function RateOrder({ order }: { order: Order }) {
         </>
       ) : null}
       {editing ? <LinkButton title={t("common.cancel")} onPress={() => setEditing(false)} /> : null}
-      {error ? <Text accessibilityRole="alert" style={[textFont("600"), { fontSize: 14, color: color.chili }]}>{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={[type.label, { color: color.chili }]}>{error}</Text> : null}
     </Section>
   );
 }

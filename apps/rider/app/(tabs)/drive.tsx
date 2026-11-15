@@ -5,7 +5,7 @@
 // simulator on QA, the same rider on another phone), so this tab follows
 // /riders/me (WebSocket + a poll) and shares this phone's GPS only when the
 // rider went online here (lib/location.ts trackingHere).
-import { api, ApiError, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, num, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
@@ -17,7 +17,7 @@ import { askForBackgroundLocation, askForLocation, hasBackgroundLocation, sendNo
   trackingHere } from "../../lib/location";
 import { RouteMap } from "../../lib/map";
 import { useFormat, useLive, useLiveRider, useOnboarding, useWeek, type Offer } from "../../lib/rider";
-import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
+import { night, radius, space, ui } from "../../lib/theme";
 
 export default function Drive() {
   const { cash, cityName } = useFormat();
@@ -170,7 +170,7 @@ export default function Drive() {
         <OfferSheet key={now.offer.order_id} offer={now.offer} onDone={() => void refresh()} onAccepted={(id) => { opened.current = id; }} />
       ) : (
         <View testID="drive-panel" style={[ui.sheet, styles.panel]}>
-          <Text testID="drive-title" style={[ui.h1, { fontSize: 26 }]}>
+          <Text testID="drive-title" style={ui.h2}>
             {busyWith ? t("rider.drive.busy_title") : online ? t("rider.drive.looking_title") : t("rider.drive.offline_title")}
           </Text>
           <Text style={ui.muted}>{busyWith ? t("rider.drive.busy_sub") : online ? t("rider.drive.looking_sub") : t("rider.drive.offline_sub")}</Text>
@@ -181,22 +181,22 @@ export default function Drive() {
           ) : null}
           {online && here === false ? (
             <Pressable testID="use-this-phone" accessibilityRole="button" onPress={shareFromThisPhone} style={styles.bg}>
-              <Text style={[ui.body, { fontSize: 14, lineHeight: 20 }]}>
+              <Text style={ui.note}>
                 <Text style={ui.bold}>{t("rider.drive.elsewhere_title")}</Text> {t("rider.drive.elsewhere_sub")}
               </Text>
             </Pressable>
           ) : null}
           {online && here && !background ? (
             <Pressable accessibilityRole="button" onPress={async () => setBackground(await askForBackgroundLocation())} style={styles.bg}>
-              <Text style={[ui.body, { fontSize: 14, lineHeight: 20 }]}>
+              <Text style={ui.note}>
                 <Text style={ui.bold}>{t("rider.drive.background_title")}</Text> {t("rider.drive.background_sub")}
               </Text>
             </Pressable>
           ) : null}
-          {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14 }]}>{error}</Text> : null}
+          {error ? <Text style={[type.label, { color: night.sosText }]}>{error}</Text> : null}
           {busyWith ? null : online ? (
             <Pressable testID="go-offline" accessibilityRole="button" onPress={goOffline} disabled={busy} style={ui.outline}>
-              <Text style={[ui.bold, { fontSize: 16 }]}>{busy ? "…" : t("rider.drive.go_offline")}</Text>
+              <Text style={ui.bold}>{busy ? "…" : t("rider.drive.go_offline")}</Text>
             </Pressable>
           ) : (
             <Pressable testID="go-online" accessibilityRole="button" onPress={goOnline} disabled={busy} style={[ui.cta, busy && { opacity: 0.6 }]}>
@@ -255,11 +255,11 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
       accessibilityLabel={batch ? t("rider.offer.label_batch", { count: batch.length }) : t("rider.offer.label_single")}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
-          <Text style={[textFont("700"), { fontSize: 13, letterSpacing: 1.4, color: night.kesar }]}>
+          <Text style={[type.label, { letterSpacing: 1.4, color: night.kesar }]}>
             {batch ? t("rider.offer.batch_title", { count: batch.length }) : t("rider.offer.new_delivery")}
           </Text>
-          <Text testID="offer-pay" style={[displayFont("600"), styles.pay]}>{cash(pay, cur)}</Text>
-          <Text style={[ui.muted, { fontSize: 14, marginTop: 8 }]}>
+          <Text testID="offer-pay" style={[type.display, num, styles.pay]}>{cash(pay, cur)}</Text>
+          <Text style={[ui.muted, { marginTop: 8 }]}>
             {[batch ? t("rider.offer.guaranteed_all") : t("rider.offer.guaranteed"), tip].filter(Boolean).join(" · ")}
           </Text>
         </View>
@@ -280,7 +280,7 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
         <View style={styles.stop}>
           <View style={[styles.stopDot, { backgroundColor: night.kesar, borderRadius: radius.pill }]} />
           <View style={{ flex: 1 }}>
-            <Text style={[ui.bold, { fontSize: 16 }]}>{offer.restaurant_name}</Text>
+            <Text style={ui.bold}>{offer.restaurant_name}</Text>
             <Text style={ui.muted}>
               {[batch ? t("rider.offer.pickup_of", { count: batch.length }) : t("rider.offer.pickup"), dist(offer.distance_km, unit),
                 ready == null ? t("rider.offer.being_prepared") : ready <= 0 ? t("rider.offer.ready_now") : t("rider.offer.ready_in", { min: ready }),
@@ -292,7 +292,7 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
           <View key={b.order_id} style={styles.stop} testID={`offer-drop-${i + 1}`}>
             <View style={[styles.stopDot, { backgroundColor: night.text, borderRadius: 3 }]} />
             <View style={{ flex: 1 }}>
-              <Text style={[ui.bold, { fontSize: 16 }]}>
+              <Text style={ui.bold}>
                 {[t("rider.offer.drop_n", { n: i + 1 }), b.batch_rate ? t("rider.offer.batch_rate") : null].filter(Boolean).join(" · ")}
               </Text>
               <Text style={ui.muted}>{[b.drop_area ? t("rider.offer.near", { area: b.drop_area }) : t("rider.offer.address_after"), b.code,
@@ -304,7 +304,7 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
         <View style={styles.stop}>
           <View style={[styles.stopDot, { backgroundColor: night.text, borderRadius: 3 }]} />
           <View style={{ flex: 1 }}>
-            <Text style={[ui.bold, { fontSize: 16 }]}>{offer.drop_area ? t("rider.offer.near_title", { area: offer.drop_area }) : t("rider.offer.dropoff")}</Text>
+            <Text style={ui.bold}>{offer.drop_area ? t("rider.offer.near_title", { area: offer.drop_area }) : t("rider.offer.dropoff")}</Text>
             <Text style={ui.muted}>
               {[t("rider.offer.dropoff"), t("rider.offer.further", { distance: dist(offer.trip_km, unit) }), t("rider.offer.address_after")].join(" · ")}
             </Text>
@@ -312,10 +312,10 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
         </View>
         )}
       </View>
-      {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14 }]}>{error}</Text> : null}
+      {error ? <Text style={[type.label, { color: night.sosText }]}>{error}</Text> : null}
       <View style={{ flexDirection: "row", gap: 10, marginTop: "auto" }}>
         <Pressable testID="offer-pass" accessibilityRole="button" onPress={() => act("pass")} disabled={!!busy} style={styles.pass}>
-          <Text style={[ui.bold, { fontSize: 16, ...textFont("700") }]}>{busy === "pass" ? "…" : t("rider.offer.pass")}</Text>
+          <Text style={ui.bold}>{busy === "pass" ? "…" : t("rider.offer.pass")}</Text>
         </Pressable>
         <Pressable testID="offer-accept" accessibilityRole="button" onPress={() => act("accept")} disabled={!!busy || left <= 0} style={[ui.cta, { flex: 1 }]}>
           <Text style={ui.ctaText}>{busy === "accept" ? t("rider.offer.accepting") : t("rider.offer.accept")}</Text>
@@ -343,7 +343,7 @@ function Ring({ left, total }: { left: number; total: number }) {
       <Circle cx={34} cy={34} r={29} fill="none" stroke={night.line} strokeWidth={6} />
       <Circle cx={34} cy={34} r={29} fill="none" stroke={night.kesar} strokeWidth={6} strokeLinecap="round"
         strokeDasharray={`${(c * left) / total} ${c}`} transform="rotate(-90 34 34)" />
-      <SvgText x={34} y={40} textAnchor="middle" fontSize={18} fontWeight="800" fill={night.text}>{String(left)}</SvgText>
+      <SvgText x={34} y={40} textAnchor="middle" fontSize={type.h3.fontSize} fontFamily={type.h3.fontFamily} fill={night.text}>{String(left)}</SvgText>
     </Svg>
   );
 }
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   panel: { padding: 22, gap: space[3] },
   bg: { padding: 14, borderRadius: 16, backgroundColor: night.info, borderWidth: 1, borderColor: night.doneBg },
   offer: { height: 470, paddingTop: 26, paddingHorizontal: 22, paddingBottom: 22, gap: 18 },
-  pay: { color: night.text, fontSize: 64, letterSpacing: -2.5, lineHeight: 64, marginTop: 8, fontVariant: ["tabular-nums"] },
+  pay: { color: night.text, marginTop: 8 },
   statMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: night.divider },
   stop: { flexDirection: "row", gap: 14 },
   stopDot: { marginTop: 4, width: 12, height: 12 },

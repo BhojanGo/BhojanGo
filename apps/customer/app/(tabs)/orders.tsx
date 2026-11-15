@@ -1,6 +1,6 @@
 // Your orders (WebOrders): what's on its way first (tap to track), then past
 // orders (tap for the receipt: items, the fair bill, the PDF, rate, report).
-import { color, inZone, space, StatusPill, textFont, Txt, useI18n } from "@bhojango/mobile-core";
+import { color, inZone, num, space, StatusPill, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, SectionList, Text, View } from "react-native";
@@ -22,8 +22,8 @@ function OrderRow({ o, index }: { o: Order; index: number }) {
       onPress={() => router.push(active ? `/order/${o.id}` : `/account/receipt/${o.id}`)}
       style={({ pressed }) => [{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 6 }, active && { borderWidth: 1.5, borderColor: color.peacock }, pressed && { opacity: 0.85 }]}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space[2] }}>
-        <Txt variant="title" numberOfLines={1} style={{ flex: 1 }}>{o.restaurant_name}</Txt>
-        <Text style={[textFont("800"), { fontSize: 15, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(o.total, o.currency)}</Text>
+        <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>{o.restaurant_name}</Txt>
+        <Text style={[type.label, num, { color: color.kohl }]}>{money(o.total, o.currency)}</Text>
       </View>
       <Text numberOfLines={1} style={ui.small}>{itemsSummary(o)}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -58,7 +58,7 @@ export default function Orders() {
 
   return (
     <SafeAreaView style={ui.screen} edges={["top"]}>
-      <Txt variant="h1" accessibilityRole="header" style={{ padding: space[5] }}>{t("account.orders.title")}</Txt>
+      <Txt variant="h2" accessibilityRole="header" style={{ padding: space[5] }}>{t("account.orders.title")}</Txt>
       <SectionList
         testID="orders-list"
         sections={sections}

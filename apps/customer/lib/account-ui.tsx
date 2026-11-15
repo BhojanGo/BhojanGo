@@ -1,6 +1,6 @@
 // Building blocks the account screens share: the top bar with a back button,
 // section cards, labelled rows, menu rows, stars and a status line.
-import { color, radius, space, textFont, useI18n } from "@bhojango/mobile-core";
+import { color, radius, space, textStyles, type, useI18n } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
@@ -16,7 +16,7 @@ export function ScreenBar({ title, fallback = "/account", testID }: { title: str
         onPress={() => (router.canGoBack() ? router.back() : router.replace(fallback))} style={ui.back}>
         <Icon name="back" />
       </Pressable>
-      <Text testID={testID} accessibilityRole="header" numberOfLines={1} style={[textFont("800"), { flex: 1, fontSize: 18, color: color.kohl }]}>{title}</Text>
+      <Text testID={testID} accessibilityRole="header" numberOfLines={1} style={[type.h3, { flex: 1, color: color.kohl }]}>{title}</Text>
     </View>
   );
 }
@@ -38,8 +38,8 @@ export function Row({ label, value, note, action, last }: { label: string; value
   return (
     <View style={[ui.row, last && { borderBottomWidth: 0 }]}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[textFont("700"), { fontSize: 13, color: color.muted }]}>{label}</Text>
-        <Text style={[textFont("700"), { fontSize: 16, color: color.kohl }]}>{value}</Text>
+        <Text style={[type.label, { color: color.muted }]}>{label}</Text>
+        <Text style={[type.label, { color: color.kohl }]}>{value}</Text>
         {note ? <Text style={ui.small}>{note}</Text> : null}
       </View>
       {action}
@@ -56,7 +56,7 @@ export function MenuRow({ label, value, icon, href, testID, last }: {
       style={({ pressed }) => [ui.menu, last && { borderBottomWidth: 0 }, pressed && { opacity: 0.7 }]}>
       <View style={ui.menuIcon}><Icon name={icon} size={20} stroke={color.peacockDeep} /></View>
       <View style={{ flex: 1 }}>
-        <Text style={[textFont("700"), { fontSize: 16, color: color.kohl }]}>{label}</Text>
+        <Text style={[type.label, { color: color.kohl }]}>{label}</Text>
         {value ? <Text numberOfLines={1} style={ui.small}>{value}</Text> : null}
       </View>
       <Icon name="arrow" size={18} stroke={color.muted} />
@@ -68,7 +68,7 @@ export function MenuRow({ label, value, icon, href, testID, last }: {
 export function LinkButton({ title, onPress, danger, testID, disabled }: { title: string; onPress: () => void; danger?: boolean; testID?: string; disabled?: boolean }) {
   return (
     <Pressable testID={testID} accessibilityRole="button" hitSlop={8} onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1, minHeight: 32, justifyContent: "center" }}>
-      <Text style={[textFont("800"), { fontSize: 14, color: danger ? color.chili : color.peacock }]}>{title}</Text>
+      <Text style={[type.label, { color: danger ? color.chili : color.peacock }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -100,20 +100,21 @@ export function Status({ loading, error, onRetry }: { loading?: boolean; error?:
 type ViewKey = "screen" | "scroll" | "bar" | "back" | "card" | "row" | "menu" | "menuIcon";
 type TextKey = "h2" | "muted" | "small" | "error" | "ok" | "eyebrow";
 
-/** The account screens' shared styles. */
-export const ui: Record<ViewKey, ViewStyle> & Record<TextKey, TextStyle> = StyleSheet.create({
+/** The account screens' shared styles (text in the type scale, in the language's face). */
+export const ui: Readonly<Record<ViewKey, ViewStyle> & Record<TextKey, TextStyle>> = textStyles(StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.porcelain },
   scroll: { padding: space[5], gap: space[4], paddingBottom: space[8] * 2 },
   bar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: space[5], paddingVertical: space[3] },
   back: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.card, padding: space[4], gap: space[3] },
-  h2: { ...textFont("800"), fontSize: 17, color: color.kohl },
-  muted: { ...textFont("400"), fontSize: 14, lineHeight: 20, color: color.muted },
-  small: { ...textFont("400"), fontSize: 13, lineHeight: 18, color: color.muted },
-  error: { ...textFont("600"), fontSize: 14, color: color.chili },
-  ok: { ...textFont("700"), fontSize: 14, color: color.peacockDeep },
   row: { flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3], borderBottomWidth: 1, borderBottomColor: color.line },
   menu: { flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 60, paddingVertical: space[2], borderBottomWidth: 1, borderBottomColor: color.line },
   menuIcon: { width: 40, height: 40, borderRadius: radius.pill, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" },
-  eyebrow: { ...textFont("800"), fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: color.muted },
+}), {
+  h2: ["h3", { color: color.kohl }],
+  muted: ["small", { color: color.muted }],
+  small: ["small", { color: color.muted }],
+  error: ["small", { color: color.chili }],
+  ok: ["label", { color: color.peacockDeep }],
+  eyebrow: ["caption", { color: color.muted }],
 });

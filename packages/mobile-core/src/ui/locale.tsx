@@ -6,7 +6,8 @@ import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area
 import { appEnv, isTestEnvironment, type AppEnv } from "../env";
 import { LANGUAGES, useCountry, useI18n, type Language } from "../i18n";
 import type { MarketCountry } from "../locale";
-import { color, dark, radius, space, textFont } from "./theme";
+import { color, dark, radius, space } from "./theme";
+import { type } from "./type";
 
 /** "light" on the customer and partner apps' porcelain screens, "dark" on the rider app. */
 export type Tone = "light" | "dark";
@@ -25,8 +26,8 @@ function Choice({ label, sub, on, onPress, tone, testID }: {
     <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={onPress}
       style={({ pressed }) => [styles.row, { borderColor: on ? c.accent : c.line }, on && { backgroundColor: c.on }, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1 }}>
-        <Text style={[textFont(on ? "800" : "600"), { fontSize: 16, color: c.fg }]}>{label}</Text>
-        {sub ? <Text style={[textFont("400"), { fontSize: 13, color: c.muted }]}>{sub}</Text> : null}
+        <Text style={[type.label, { color: c.fg }]}>{label}</Text>
+        {sub ? <Text style={[type.small, { color: c.muted }]}>{sub}</Text> : null}
       </View>
       <View style={[styles.radio, { borderColor: on ? c.accent : c.muted }]}>
         {on ? <View style={[styles.dot, { backgroundColor: c.accent }]} /> : null}
@@ -54,7 +55,7 @@ export function LanguagePicker({ tone = "light", onChange, style }: {
         <Choice key={lang} testID={`language-${lang}`} label={LANGUAGES[lang].name} on={lang === language} tone={tone}
           onPress={() => void setLanguage(lang).then(() => onChange?.(lang))} />
       ))}
-      <Text style={[textFont("400"), { fontSize: 13, color: tones(tone).muted }]}>{t("header.language_note")}</Text>
+      <Text style={[type.small, { color: tones(tone).muted }]}>{t("header.language_note")}</Text>
     </View>
   );
 }
@@ -101,7 +102,7 @@ export function PhoneCountryButton({ value, onChange, tone = "light", style }: {
     <Pressable accessibilityRole="button" testID={`phone-country-${value?.code ?? "none"}`}
       accessibilityLabel={value ? t("app.phone.country_code", { country: value.name, code: value.phone_code }) : t("app.phone.choose_country")}
       onPress={next} style={[styles.cc, { borderColor: tone === "dark" ? dark.lineStrong : color.lineStrong }, style]}>
-      <Text style={[textFont("800"), { fontSize: 15, color: c.fg }]}>{value ? `${value.code} ${value.phone_code}` : "…"}</Text>
+      <Text style={[type.label, { color: c.fg }]}>{value ? `${value.code} ${value.phone_code}` : "…"}</Text>
     </Pressable>
   );
 }
@@ -111,7 +112,7 @@ export function TestBanner({ tone = "light" }: { tone?: Tone }) {
   const { t } = useI18n();
   return (
     <View accessibilityRole="summary" testID="test-banner" style={[styles.banner, tone === "dark" ? styles.bannerDark : styles.bannerLight]}>
-      <Text numberOfLines={2} style={[textFont("700"), styles.bannerText, { color: tone === "dark" ? color.kesarBright : color.kohl }]}>
+      <Text numberOfLines={2} style={[type.caption, styles.bannerText, { color: tone === "dark" ? color.kesarBright : color.kohl }]}>
         {t("app.test_banner")}
       </Text>
     </View>
@@ -150,5 +151,5 @@ const styles = StyleSheet.create({
   banner: { paddingHorizontal: space[4], paddingVertical: 6, alignItems: "center" },
   bannerLight: { backgroundColor: color.kesarBright },
   bannerDark: { backgroundColor: dark.raised },
-  bannerText: { fontSize: 12, textAlign: "center", letterSpacing: 0.2 },
+  bannerText: { textAlign: "center" },
 });

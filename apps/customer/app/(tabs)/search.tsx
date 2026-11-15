@@ -28,7 +28,7 @@ export default function Search() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
       <View style={{ padding: space[5], gap: space[4] }}>
-        <Txt variant="h1" accessibilityRole="header">{t("tabs.search")}</Txt>
+        <Txt variant="h2" accessibilityRole="header">{t("tabs.search")}</Txt>
         <Input testID="search-input" shape="pill" placeholder={t("common.search_placeholder")} value={q} onChangeText={setQ} autoFocus
           accessibilityLabel={t("common.search_label")} />
       </View>

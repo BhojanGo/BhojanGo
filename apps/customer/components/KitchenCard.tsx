@@ -1,7 +1,7 @@
 // A kitchen on home and search, as the website's KitchenCard: its own cover or
 // initials tile, the offer with who pays, the heart, "New" or "★4.6 (23)",
 // cuisines and distance, minutes and the delivery fee, closed until when.
-import { color, radius, space, textFont, Txt, useI18n, type I18n } from "@bhojango/mobile-core";
+import { color, type I18n, radius, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
@@ -16,13 +16,13 @@ export function RatingBadge({ x, testID }: { x: Parameters<typeof ratingOf>[0]; 
   if (r.new) {
     return (
       <View testID={testID ?? "rating-new"} style={{ borderRadius: 6, backgroundColor: color.peacockTint, paddingHorizontal: 8, paddingVertical: 3 }}>
-        <Text style={[textFont("800"), { fontSize: 12, color: color.peacockDeep }]}>{t("common.new")}</Text>
+        <Text style={[type.caption, { color: color.peacockDeep }]}>{t("common.new")}</Text>
       </View>
     );
   }
   const stars = number(r.stars, 1);
   return (
-    <Text testID={testID ?? "rating"} accessibilityLabel={t("common.rating_label", { stars, count: r.count })} style={[textFont("800"), { fontSize: 14, color: color.kohl }]}>
+    <Text testID={testID ?? "rating"} accessibilityLabel={t("common.rating_label", { stars, count: r.count })} style={[type.label, { color: color.kohl }]}>
       {t("common.rating_short", { stars, count: r.count })}
     </Text>
   );
@@ -56,23 +56,23 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
           <KitchenCover name={k.name} cover={k.cover_url} cuisine={k.cuisine_types[0]} height={height} />
           {k.offer ? (
             <View testID="offer-badge" style={{ position: "absolute", left: 12, top: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: color.kohl }}>
-              <Text style={[textFont("800"), { fontSize: 12, color: color.white }]}>{offerBadge(k.offer, t, money, currency)}</Text>
+              <Text style={[type.caption, { color: color.white }]}>{offerBadge(k.offer, t, money, currency)}</Text>
             </View>
           ) : null}
           {!k.open_now ? <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.4)" }} /> : null}
         </View>
         <View style={{ padding: space[4], gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <Txt variant="title" numberOfLines={1} style={{ flex: 1 }}>{k.name}</Txt>
+            <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>{k.name}</Txt>
             <RatingBadge x={k} />
           </View>
-          {meta ? <Text numberOfLines={1} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{meta}</Text> : null}
-          <Text style={[textFont("400"), { fontSize: 14, color: color.kohl }]}>
-            <Text style={textFont("800")}>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</Text>
+          {meta ? <Text numberOfLines={1} style={[type.small, { color: color.muted }]}>{meta}</Text> : null}
+          <Text style={[type.small, { color: color.kohl }]}>
+            <Text style={textFont("700")}>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</Text>
             {fee !== null ? " · " : ""}
             {fee !== null ? (
               k.free_delivery || fee === 0 ? (
-                <Text style={[textFont("800"), { color: color.peacock }]}>{t("common.free_delivery")}</Text>
+                <Text style={[textFont("700"), { color: color.peacock }]}>{t("common.free_delivery")}</Text>
               ) : (
                 t("common.delivery_fee", { fee: money(fee, currency, { whole: true }) })
               )

@@ -21,6 +21,8 @@ import { create } from "zustand";
 import { convertDistance, deviceLocale, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
   resolveCountry, type CountrySource, type MarketCountry } from "./locale";
 import { api } from "./session";
+import { loadScriptFonts } from "./ui/fonts";
+import { scriptFor, setTypeScript, type Script } from "./ui/type";
 
 const LANGUAGE_KEY = "bg.language";
 const COUNTRY_KEY = "bg.country";
@@ -35,6 +37,9 @@ interface LocaleState {
   chosenCountry: string | null;
   chosenLanguage: string | null;
   device: string | null;
+  /** The script whose faces the type tokens use (the language's, once its Noto Sans faces are loaded). */
+  script: Script;
+  setScript: (script: Script) => void;
   init: () => Promise<void>;
   loadDirectory: () => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
@@ -51,6 +56,11 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
   chosenCountry: null,
   chosenLanguage: null,
   device: deviceLocale(),
+  script: "latin",
+  setScript: (script) => {
+    setTypeScript(script); // before the re-render, so every `type` token read in it has the new face
+    set({ script });
+  },
 
   init: async () => {
     if (get().ready) return;
@@ -96,6 +106,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void init();
   }, [init]);
+  // The type tokens follow the language's script: Noto Sans for Devanagari, Telugu, ...
+  // (React Native draws a Text in one face). Until the faces load, the brand face.
+  const { language } = useI18n();
+  const setScript = useLocaleStore((s) => s.setScript);
+  const script = scriptFor(language);
+  useEffect(() => {
+    let live = true;
+    if (script === "latin") setScript("latin");
+    else void loadScriptFonts(script).then(() => live && setScript(script), () => live && setScript("latin"));
+    return () => {
+      live = false;
+    };
+  }, [script, setScript]);
   return ready ? <>{children}</> : null;
 }
 
@@ -135,6 +158,8 @@ export interface I18n {
   t: Translate;
   /** The language shown ("hi"). */
   language: Language;
+  /** The script the type tokens draw in now ("devanagari" once its Noto Sans faces are loaded). */
+  script: Script;
   /** The languages the current country offers, in Markets' order (what LanguagePicker lists). */
   languages: Language[];
   setLanguage: (language: Language) => Promise<void>;
@@ -158,6 +183,8 @@ export function useI18n(): I18n {
   const chosen = useLocaleStore((s) => s.chosenLanguage);
   const device = useLocaleStore((s) => s.device);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
+  // Screens re-render when the script's faces arrive (the `type` tokens read it at render).
+  const script = useLocaleStore((s) => s.script);
   return useMemo(() => {
     const locales = country?.locales ?? (chosen ? [chosen] : device ? [device] : null);
     const language = pickLanguage({ chosen, acceptLanguage: device, locales });
@@ -165,7 +192,7 @@ export function useI18n(): I18n {
     const loc = country ? countryLocale(country.locales) : undefined;
     const t = createTranslator(language, MESSAGES[language], MESSAGES.en);
     return {
-      t, language, languages, setLanguage, formatLocale: loc,
+      t, language, languages, setLanguage, formatLocale: loc, script,
       money: (amount, currency, opts) => {
         const cur = currency || country?.currency;
         if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
@@ -180,7 +207,7 @@ export function useI18n(): I18n {
       date: (iso, opts) => formatDate(iso, loc, opts),
       time: (iso, opts) => formatTime(iso, loc, opts),
     };
-  }, [country, countries, chosen, device, setLanguage]);
+  }, [country, countries, chosen, device, setLanguage, script]);
 }
 
 /**

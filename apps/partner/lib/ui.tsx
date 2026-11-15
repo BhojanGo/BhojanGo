@@ -1,6 +1,6 @@
 // The partner tablet's pieces, as drawn on PartnerOrders.html / PartnerMenu.html
 // (1194 × 834 landscape): the dark side rail, pills, cards, segmented choices.
-import { color, displayFont, radius, textFont } from "@bhojango/mobile-core";
+import { color, displayFont, radius, textFont, textStyles, type } from "@bhojango/mobile-core";
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -66,7 +66,7 @@ export function Btn({ title, onPress, kind = "outline", height = 48, disabled, b
       style={({ pressed }) => [s.btn, { height, backgroundColor: k.bg, borderColor: k.border ?? k.bg, borderWidth: k.border ? 1.5 : 0,
         opacity: disabled ? 0.45 : pressed ? 0.85 : 1 }, grow && { flexGrow: 1 }, style]}>
       {busy ? <ActivityIndicator color={k.fg} /> : null}
-      <Text style={[textFont(kind === "outline" ? "700" : "800"), { color: k.fg, fontSize: height >= 56 ? 17 : 14 }]}>{title}</Text>
+      <Text numberOfLines={1} style={[type.label, { color: k.fg, flexShrink: 1 }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -88,7 +88,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
         return (
           <Pressable key={String(o.value)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${label} ${o.label}`}
             onPress={() => onChange(o.value)} style={[s.segBtn, { height }, on && s.segOn]}>
-            <Text style={[textFont(on ? "800" : "600"), { fontSize: 15, color: on ? color.kohl : color.muted }]}>{o.label}</Text>
+            <Text style={[type.label, { color: on ? color.kohl : color.muted }]}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -98,7 +98,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
 
 export function Count({ n, bg, fg }: { n: number; bg: string; fg: string }) {
   return (
-    <View style={[s.count, { backgroundColor: bg }]}><Text style={[textFont("800"), { fontSize: 12, color: fg }]}>{n}</Text></View>
+    <View style={[s.count, { backgroundColor: bg }]}><Text style={[type.caption, { color: fg }]}>{n}</Text></View>
   );
 }
 
@@ -106,14 +106,15 @@ export function Card({ children, style, highlight }: { children: ReactNode; styl
   return <View style={[s.card, highlight && s.cardHi, style]}>{children}</View>;
 }
 
-export const t = StyleSheet.create({
-  h1: { ...displayFont("600"), fontSize: 24, letterSpacing: -0.4, color: color.kohl },
-  big: { ...displayFont("600"), fontSize: 34, letterSpacing: -0.8, color: color.kohl },
-  title: { ...textFont("800"), fontSize: 17, color: color.kohl },
-  body: { ...textFont("400"), fontSize: 15, color: color.kohl },
-  muted: { ...textFont("400"), fontSize: 13, color: color.muted },
-  label: { ...textFont("700"), fontSize: 13, color: color.kohl },
-}) as Record<"h1" | "big" | "title" | "body" | "muted" | "label", TextStyle>;
+/** The partner screens' text styles: the type scale (phone sizes, tablet too), in the language's face. */
+export const t: Readonly<Record<"h1" | "big" | "title" | "body" | "muted" | "label", TextStyle>> = textStyles({
+  h1: ["h2", { color: color.kohl }],
+  big: ["h1", { color: color.kohl }],
+  title: ["h3", { color: color.kohl }],
+  body: ["body", { color: color.kohl }],
+  muted: ["small", { color: color.muted }],
+  label: ["label", { color: color.kohl }],
+});
 
 const s = StyleSheet.create({
   btn: { borderRadius: radius.pill, paddingHorizontal: 20, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },

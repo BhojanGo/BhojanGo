@@ -8,25 +8,36 @@ import {
 } from "react-native";
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 
-import { useI18n } from "../i18n";
+import { useI18n, useLocaleStore } from "../i18n";
 import { TAB_BAR_HEIGHT } from "../tabbar";
-import { color, dark, elevation, radius, space, textFont, touch, typeStyle } from "./theme";
+import { color, dark, elevation, radius, space, textFont, touch } from "./theme";
+import { field, num, textStyles, type, type TypeRole } from "./type";
 
 // ── text ──────────────────────────────────────────────────────────────────────
 
-export function Txt({ variant = "body", style, children, ...rest }: {
-  variant?: Parameters<typeof typeStyle>[0];
+/**
+ * Text in a role of the type scale (./type.ts), in Kohl unless `style` says otherwise.
+ *   <T variant="h2" accessibilityRole="header">…</T>   <T variant="label" style={num}>{money(x)}</T>
+ * Never give it a fontSize: pick the role.
+ */
+export function T({ variant = "body", style, children, ...rest }: {
+  variant?: TypeRole;
   style?: StyleProp<TextStyle>;
   children: ReactNode;
   numberOfLines?: number;
-  accessibilityRole?: "header" | "text";
+  accessibilityRole?: "header" | "text" | "link";
+  testID?: string;
 }) {
+  useLocaleStore((s) => s.script); // re-render when the language's faces arrive
   return (
-    <Text style={[{ color: color.kohl }, typeStyle(variant), style]} {...rest}>
+    <Text style={[{ color: color.kohl }, type[variant], style]} {...rest}>
       {children}
     </Text>
   );
 }
+
+/** The same as T (its older name). */
+export const Txt = T;
 
 // ── buttons ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +68,7 @@ export function Button({ title, variant = "primary", size = "md", loading, disab
       {...rest}
     >
       {loading ? <ActivityIndicator color={v.fg} /> : null}
-      <Text style={[textFont("800"), { color: v.fg, fontSize: variant === "rider" ? 18 : size === "lg" ? 17 : 15 }]}>{title}</Text>
+      <Text numberOfLines={1} style={[variant === "rider" ? type.h3 : type.label, { color: v.fg, flexShrink: 1 }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -79,10 +90,10 @@ export function Chip({ label, selected, count, onPress }: { label: string; selec
       hitSlop={4}
       style={[styles.chip, selected ? { backgroundColor: color.peacockTint, borderColor: color.peacock } : null]}
     >
-      <Text style={[textFont(selected ? "800" : "600"), { fontSize: 14, color: selected ? color.peacockDeep : color.kohl }]}>{label}</Text>
+      <Text style={[type.label, { color: selected ? color.peacockDeep : color.kohl }]}>{label}</Text>
       {count != null ? (
         <View style={styles.count}>
-          <Text style={[textFont("800"), { fontSize: 11, color: color.kohl }]}>{count}</Text>
+          <Text style={[type.caption, num, { color: color.kohl }]}>{count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -107,7 +118,7 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
             onPress={() => onChange(o.value)}
             style={[styles.segment, on && { backgroundColor: color.white, ...elevation.float }]}
           >
-            <Text style={[textFont(on ? "800" : "600"), { fontSize: 15, color: on ? color.kohl : color.muted }]}>{o.label}</Text>
+            <Text style={[type.label, { color: on ? color.kohl : color.muted }]}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -175,22 +186,22 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
   return (
     <View accessibilityLabel={t("checkout.fair_bill")} style={[styles.card, { padding: space[4] }]}>
       <View style={styles.billHead}>
-        <Txt variant="title" style={{ fontSize: 18 }}>{t("checkout.fair_bill")}</Txt>
-        <Text style={[textFont("700"), { fontSize: 12, color: color.peacock }]}>{t("bill.who_gets")}</Text>
+        <T variant="h3">{t("checkout.fair_bill")}</T>
+        <Text style={[type.caption, { color: color.peacock }]}>{t("bill.who_gets")}</Text>
       </View>
       {rows.map((r, i) => (
         <View key={i} style={styles.billRow}>
-          <Text style={[textFont(r.accent ? "600" : "400"), styles.billLabel, r.accent && { color: color.peacock }]}>{r.label}</Text>
-          <Text style={[textFont("700"), styles.payee]}>{r.payee}</Text>
-          <Text style={[textFont(r.accent ? "600" : "400"), styles.billAmount, r.accent && { color: color.peacock }]}>
+          <Text style={[text.billLabel, r.accent && { color: color.peacock }]}>{r.label}</Text>
+          <Text style={text.payee}>{r.payee}</Text>
+          <Text style={[text.billAmount, r.accent && { color: color.peacock }]}>
             {r.struck ? <Text style={{ color: color.faint, textDecorationLine: "line-through" }}>{r.struck} </Text> : null}
             {r.struck ? <Text style={textFont("700")}>{r.amount}</Text> : r.amount}
           </Text>
         </View>
       ))}
       <View style={styles.billTotal}>
-        <Text style={[textFont("800"), { fontSize: 18, color: color.kohl }]}>{totalLabel ?? t("checkout.you_pay")}</Text>
-        <Text style={[textFont("800"), { fontSize: 18, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(billTotal(lines), currency)}</Text>
+        <Text style={[type.h3, { color: color.kohl }]}>{totalLabel ?? t("checkout.you_pay")}</Text>
+        <Text style={[type.h3, num, { color: color.kohl }]}>{money(billTotal(lines), currency)}</Text>
       </View>
     </View>
   );
@@ -246,7 +257,7 @@ export function StatusPill({ status, label }: { status: string; label?: string }
   const s = STATUS[status] ?? { label: status, bg: color.porcelain, fg: color.kohl };
   return (
     <View style={[styles.pill, { backgroundColor: s.bg, borderColor: s.border ?? s.bg }]}>
-      <Text style={[textFont("700"), { fontSize: 12, color: s.fg }]}>{label ?? s.label}</Text>
+      <Text style={[type.caption, { color: s.fg }]}>{label ?? s.label}</Text>
     </View>
   );
 }
@@ -262,12 +273,12 @@ export function Input({ label, hint, error, shape = "field", dark: onDark, ...re
 }) {
   return (
     <View style={{ gap: space[2] }}>
-      {label ? <Text style={[textFont("700"), { fontSize: 14, color: onDark ? dark.text : color.kohl }]}>{label}</Text> : null}
+      {label ? <Text style={[type.label, { color: onDark ? dark.text : color.kohl }]}>{label}</Text> : null}
       <TextInput disableFullscreenUI
         accessibilityLabel={label ?? rest.placeholder}
         placeholderTextColor={onDark ? dark.muted : color.muted}
         style={[
-          textFont("400"),
+          field.body,
           styles.input,
           shape === "pill" ? { borderRadius: radius.pill, height: 54, borderWidth: 0, ...elevation.float } : null,
           error ? { borderColor: color.chili } : null,
@@ -276,7 +287,7 @@ export function Input({ label, hint, error, shape = "field", dark: onDark, ...re
         {...rest}
       />
       {error || hint ? (
-        <Text style={[textFont(error ? "600" : "400"), { fontSize: 13, color: error ? color.chili : onDark ? dark.muted : color.muted }]}>
+        <Text style={[type.small, { color: error ? color.chili : onDark ? dark.muted : color.muted }]}>
           {error ?? hint}
         </Text>
       ) : null}
@@ -341,7 +352,7 @@ export function TabBar({ items, current, onSelect, testID = "tab-bar" }: {
             style={[styles.tab, on && styles.tabOn]}
           >
             {t.icon(on ? color.white : color.lineStrong)}
-            {on ? <Text style={[textFont("700"), { fontSize: 14, color: color.white }]}>{t.label}</Text> : null}
+            {on ? <Text numberOfLines={1} style={[type.label, { color: color.white }]}>{t.label}</Text> : null}
           </Pressable>
         );
       })}
@@ -364,6 +375,13 @@ export function LogoMark({ size = 40, tone = "teal" }: { size?: number; tone?: "
   );
 }
 
+// The fair bill's rows: label, who gets it (a caption), amount (tabular figures).
+const text = textStyles({
+  billLabel: ["small", { flex: 1, color: color.kohl }],
+  payee: ["caption", { color: color.muted }],
+  billAmount: ["small", { color: color.kohl, textAlign: "right", fontVariant: ["tabular-nums"] }],
+});
+
 const styles = StyleSheet.create({
   button: {
     minHeight: touch.min, borderRadius: radius.pill, borderWidth: 1.5, paddingHorizontal: space[6],
@@ -379,9 +397,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: color.white, borderRadius: radius.card, overflow: "hidden" },
   billHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 },
   billRow: { flexDirection: "row", alignItems: "baseline", gap: 10, paddingVertical: 4 },
-  billLabel: { flex: 1, fontSize: 14, color: color.kohl },
-  payee: { fontSize: 11, color: color.muted, textTransform: "uppercase" },
-  billAmount: { fontSize: 14, color: color.kohl, textAlign: "right", fontVariant: ["tabular-nums"] },
   billTotal: {
     marginTop: space[3], paddingTop: space[3], borderTopWidth: 1.5, borderStyle: "dashed", borderTopColor: color.lineStrong,
     flexDirection: "row", justifyContent: "space-between",
@@ -389,7 +404,7 @@ const styles = StyleSheet.create({
   pill: { height: 28, borderRadius: radius.pill, paddingHorizontal: space[3], borderWidth: 1, alignSelf: "flex-start", justifyContent: "center" },
   input: {
     height: touch.primary, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong,
-    backgroundColor: color.white, paddingHorizontal: space[4], fontSize: 16, color: color.kohl,
+    backgroundColor: color.white, paddingHorizontal: space[4], color: color.kohl,
   },
   scrim: { flex: 1, backgroundColor: "rgba(17, 20, 24, 0.4)" },
   sheet: {

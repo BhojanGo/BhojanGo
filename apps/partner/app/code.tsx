@@ -1,5 +1,5 @@
 // The 6-digit code. Only partner accounts get in.
-import { errorMessage, useI18n, useSession } from "@bhojango/mobile-core";
+import { errorMessage, num, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -52,13 +52,13 @@ export default function Code() {
     <Split>
       <Text accessibilityRole="header" style={t.big}>{tr("partner.code.title")}</Text>
       <Text style={t.muted}>
-        {tr("partner.code.sent_to")} <Text style={textFont("800")}>{phone}</Text> ·{" "}
+        {tr("partner.code.sent_to")} <Text style={textFont("700")}>{phone}</Text> ·{" "}
         <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>{tr("partner.code.edit")}</Text>
       </Text>
       <Pressable accessibilityLabel={tr("partner.code.label")} onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: narrow ? 8 : 10 }}>
         {Array.from({ length: 6 }, (_, i) => (
           <View key={i} style={[s.box, narrow && { width: 46, height: 58 }, i === code.length && { borderColor: color.peacock, borderWidth: 2 }]}>
-            <Text style={[textFont("800"), { fontSize: narrow ? 24 : 28 }]}>{code[i] ?? ""}</Text>
+            <Text style={[narrow ? type.h2 : type.h1, num]}>{code[i] ?? ""}</Text>
           </View>
         ))}
       </Pressable>
@@ -69,7 +69,7 @@ export default function Code() {
           setCode(d);
           if (d.length === 6) void submit(d);
         }} />
-      {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+      {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
       <Btn testID="verify" title={tr("partner.code.verify")} kind="primary" height={56} busy={busy} disabled={code.length !== 6} onPress={() => submit()} />
     </Split>
   );

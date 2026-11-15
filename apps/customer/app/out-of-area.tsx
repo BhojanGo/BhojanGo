@@ -1,6 +1,6 @@
 // CustomerOutOfArea.html: we don't deliver here yet; leave a number to hear when we do.
 import {
-  api, Button, color, e164, errorMessage, Input, liveCityNames, space, textFont, Txt, unwrap, useCountry, useI18n,
+  api, Button, color, e164, errorMessage, Input, liveCityNames, space, Txt, type, unwrap, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -38,11 +38,11 @@ export default function OutOfArea() {
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: space[5] }}>
         <Icon name="pin" size={20} stroke={color.peacock} />
-        <Text style={[textFont("700"), { fontSize: 15 }]}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
+        <Text style={type.label}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
       </View>
       <View style={{ flex: 1, padding: space[5], justifyContent: "center", gap: space[4] }}>
         <Icon name="map" size={56} stroke={color.peacock} />
-        <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33 }}>
+        <Txt variant="h1" accessibilityRole="header">
           {place ? t("app.out_of_area.title", { place }) : t("app.out_of_area.title_here")}
         </Txt>
         <Txt style={{ color: color.muted }}>
@@ -56,7 +56,7 @@ export default function OutOfArea() {
             <Button title={t("app.out_of_area.notify")} size="lg" block disabled={phone.replace(/\D/g, "").length < 8} onPress={join} />
           </>
         )}
-        <Text style={[textFont("700"), { color: color.peacock, textAlign: "center", marginTop: space[4] }]} onPress={() => router.replace("/home")}>
+        <Text style={[type.label, { color: color.peacock, textAlign: "center", marginTop: space[4] }]} onPress={() => router.replace("/home")}>
           {t("home.try_another")}
         </Text>
       </View>

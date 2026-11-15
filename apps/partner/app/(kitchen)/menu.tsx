@@ -4,7 +4,7 @@
 // will (lib/dish.tsx), then save it as the item's image_url. On a phone (portrait,
 // lib/layout.ts) it is one column: the search under the title, each dish on two
 // lines (name, then price and stock), then the store hours and offers.
-import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
+import { api, ApiError, field, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { imageUri, useFormat, useKitchen, useLoad, type Offer } from "../../lib/data";
 import { DishPreview } from "../../lib/dish";
 import { useLayout } from "../../lib/layout";
-import { Btn, color, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
+import { Btn, color, Icon, radius, Segmented, t, tone } from "../../lib/ui";
 import { menuPhotoUrl, uploadFile } from "../../lib/upload";
 
 type MenuItem = { id: string; name: string; description?: string | null; price: number | string; is_veg?: boolean;
@@ -105,16 +105,16 @@ export default function MenuScreen() {
           return (
             <Pressable key={c.name} testID={`category-${ci}`} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => { setQ(""); setCat(c.name); }}
               style={[s.chip, on && { backgroundColor: color.kohl, borderColor: color.kohl }]}>
-              <Text style={[textFont("700"), { fontSize: 14, color: on ? color.white : color.kohl }]}>{c.name} · {c.items.length}</Text>
+              <Text style={[type.label, { color: on ? color.white : color.kohl }]}>{c.name} · {c.items.length}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
       {narrow ? null : (
         <View style={s.th}>
-          <Text style={[s.thText, { flex: 1 }]}>{tr("partner.menu.item")}</Text>
-          <Text style={[s.thText, { width: 96 }]}>{tr("partner.menu.price")}</Text>
-          <Text style={[s.thText, { width: stacked ? 150 : 190 }]}>{tr("partner.menu.available")}</Text>
+          <Text style={[type.caption, s.thText, { flex: 1 }]}>{tr("partner.menu.item")}</Text>
+          <Text style={[type.caption, s.thText, { width: 96 }]}>{tr("partner.menu.price")}</Text>
+          <Text style={[type.caption, s.thText, { width: stacked ? 150 : 190 }]}>{tr("partner.menu.available")}</Text>
         </View>
       )}
       <ScrollView nestedScrollEnabled contentContainerStyle={{ paddingBottom: 12 }}>
@@ -122,12 +122,12 @@ export default function MenuScreen() {
         {items.map((i, n) => {
           const inStock = i.is_available && !i.sold_out_today;
           const groups = (i.option_groups ?? []).map((g) => g.name.toLowerCase());
-          const price = <Text style={[textFont("700"), { width: narrow ? undefined : 96, fontSize: 15, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
+          const price = <Text style={[type.label, num, { width: narrow ? undefined : 96, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
           const stock = (
             <Pressable accessibilityRole="switch" accessibilityState={{ checked: inStock }} accessibilityLabel={tr("partner.menu.in_stock_label", { name: i.name })}
               onPress={() => toggle(i)} style={{ width: narrow ? undefined : stacked ? 150 : 190, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
               <View style={[s.switch, inStock && { backgroundColor: color.peacock }]}><View style={[s.knob, inStock && { left: 22 }]} /></View>
-              <Text style={[textFont("600"), { fontSize: 14, color: inStock ? color.kohl : color.muted, flexShrink: 1 }]}>
+              <Text style={[type.label, { color: inStock ? color.kohl : color.muted, flexShrink: 1 }]}>
                 {inStock ? tr("partner.menu.in_stock") : tr("partner.menu.sold_out")}
               </Text>
             </Pressable>
@@ -140,13 +140,13 @@ export default function MenuScreen() {
                   pressed && { opacity: 0.7 }]}>
                 <View style={[s.veg, { borderColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]}><View style={[s.vegDot, { backgroundColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[textFont("700"), { fontSize: 15 }]}>{i.name}</Text>
+                  <Text style={type.label}>{i.name}</Text>
                   <Text style={t.muted} numberOfLines={1}>
                     {i.sold_out_today ? tr("partner.menu.back_tomorrow") : groups.length ? groups.join(", ") : i.description || (i.is_veg ? tr("common.veg") : "")}
                   </Text>
                 </View>
                 <View style={[s.photoTag, i.image_url ? s.photoTagOn : null]}>
-                  <Text style={[textFont("700"), { fontSize: 12, color: i.image_url ? color.peacockDeep : color.muted }]}>
+                  <Text style={[type.caption, { color: i.image_url ? color.peacockDeep : color.muted }]}>
                     {i.image_url ? tr("partner.photo.has_photo") : tr("partner.photo.add_photo")}
                   </Text>
                 </View>
@@ -167,14 +167,14 @@ export default function MenuScreen() {
   const storePanels = (
     <>
       <View testID="hours-panel" style={[s.panel, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.menu.hours")}>
-        <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.menu.hours")}</Text>
+        <Text style={type.h3}>{tr("partner.menu.hours")}</Text>
         {hours.data ? hourRows(hours.data, day, hm, tr("partner.menu.closed")).map((r) => (
-          <View key={r.days} style={s.hoursRow}><Text style={t.body}>{r.days}</Text><Text style={[t.body, textFont("600"), { flexShrink: 1, textAlign: "right" }]}>{r.hours}</Text></View>
+          <View key={r.days} style={s.hoursRow}><Text style={t.body}>{r.days}</Text><Text style={[t.label, { flexShrink: 1, textAlign: "right" }]}>{r.hours}</Text></View>
         )) : null}
         {hours.data?.overrides.slice(0, 3).map((o) => (
           <View key={o.day} style={s.hoursRow}>
             <Text style={[t.body, { flexShrink: 1 }]} numberOfLines={1}>{date(o.day)} · {o.note ?? tr("partner.menu.special_hours")}</Text>
-            <Text style={[t.body, textFont("600"), o.closed && { color: color.chili }]}>{o.closed ? tr("partner.menu.closed") : `${hm(o.opens!)} – ${hm(o.closes!)}`}</Text>
+            <Text style={[t.label, o.closed && { color: color.chili }]}>{o.closed ? tr("partner.menu.closed") : `${hm(o.opens!)} – ${hm(o.closes!)}`}</Text>
           </View>
         ))}
         <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.menu.prep")}</Text>
@@ -183,26 +183,26 @@ export default function MenuScreen() {
       </View>
 
       <View testID="offers-panel" style={[s.panel, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.offers.title")}>
-        <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.offers.title")}</Text>
+        <Text style={type.h3}>{tr("partner.offers.title")}</Text>
         {(offers.data ?? []).length === 0 ? <Text style={t.muted}>{tr("partner.offers.none")}</Text> : null}
         {(offers.data ?? []).map((o) => {
           const cap = Number(o.weekly_cap ?? 0), used = Number(o.used_this_week);
           return (
             <Pressable key={o.id} onLongPress={() => endOffer(o)} accessibilityHint={tr("partner.offers.long_press")} style={s.offer}>
               <View style={s.hoursRow}>
-                <Text style={[textFont("800"), { fontSize: 15, flexShrink: 1 }]}>{o.name}</Text>
-                <Text style={[textFont("800"), { fontSize: 12, color: o.live ? color.peacockDeep : tone.kesarInk }]}>
+                <Text style={[type.label, { flexShrink: 1 }]}>{o.name}</Text>
+                <Text style={[type.caption, { color: o.live ? color.peacockDeep : tone.kesarInk }]}>
                   {o.paused ? tr("partner.offers.paused") : o.live ? tr("partner.offers.live") : tr("partner.offers.cap_reached")}
                 </Text>
               </View>
               <Text style={t.muted}>{describe(o, cur, cash, tr)}</Text>
-              {o.paused ? <Text style={[textFont("600"), { fontSize: 14, color: tone.kesarInk }]}>{o.paused_reason} {tr("partner.offers.paused_note")}</Text> : null}
+              {o.paused ? <Text style={[type.label, { color: tone.kesarInk }]}>{o.paused_reason} {tr("partner.offers.paused_note")}</Text> : null}
               <View style={s.track}><View style={[s.fill, { width: `${cap ? Math.min(100, (used / cap) * 100) : 0}%` }]} /></View>
               <View style={s.hoursRow}>
                 <Text style={t.muted}>{tr("partner.offers.used", { amount: cash(used, cur) })}</Text>
                 <Text style={t.muted}>{tr("partner.offers.cap", { amount: cash(cap, cur) })}</Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={() => endOffer(o)}><Text style={[textFont("700"), { fontSize: 13, color: tone.reject }]}>{tr("partner.offers.end")}</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => endOffer(o)}><Text style={[type.label, { color: tone.reject }]}>{tr("partner.offers.end")}</Text></Pressable>
             </Pressable>
           );
         })}
@@ -218,7 +218,7 @@ export default function MenuScreen() {
         <View style={[s.search, stacked && { width: 220 }, narrow && { width: "100%" }]}>
           <Icon name="search" size={18} stroke={color.muted} />
           <TextInput disableFullscreenUI testID="menu-search" accessibilityLabel={tr("partner.menu.search")} placeholder={tr("partner.menu.search")} placeholderTextColor={color.muted}
-            value={q} onChangeText={setQ} style={[textFont("500"), { flex: 1, fontSize: 15 }]} />
+            value={q} onChangeText={setQ} style={[type.body, { flex: 1 }]} />
         </View>
       </View>
       {stacked ? (
@@ -345,7 +345,7 @@ function DishPhoto({ item, currency, kitchenId, onClose, onSaved }: {
                 <Text style={t.muted}>{shown || elsewhere ? tr("partner.photo.preview_photo_note") : tr("partner.photo.preview_text_note")}</Text>
               </View>
             </View>
-            {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
+            {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
             <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
               <Btn testID="photo-save" title={next === null ? tr("partner.photo.save_removed") : tr("partner.photo.save")} kind="primary" height={56}
                 busy={busy === "save"} disabled={!changed || !!busy} onPress={save} />
@@ -411,12 +411,12 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
             <TextInput disableFullscreenUI testID="offer-value" accessibilityLabel={kind === "percent_off" ? tr("partner.offers.percent_label") : tr("partner.offers.amount_label")}
               value={value} onChangeText={setValue} keyboardType="numeric"
               placeholder={kind === "percent_off" ? tr("partner.offers.percent_hint") : tr("partner.offers.amount_hint", { amount: cash(50, currency) })}
-              placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+              placeholderTextColor={color.muted} style={[field.bodyLg, s.input]} />
           ) : null}
           <TextInput disableFullscreenUI testID="offer-cap" accessibilityLabel={tr("partner.offers.cap_label")} value={cap} onChangeText={setCap} keyboardType="numeric"
-            placeholder={tr("partner.offers.cap_hint", { amount: cash(5000, currency) })} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+            placeholder={tr("partner.offers.cap_hint", { amount: cash(5000, currency) })} placeholderTextColor={color.muted} style={[field.bodyLg, s.input]} />
           <Text style={t.muted}>{tr("partner.offers.cap_note")}</Text>
-          {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+          {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
           <View style={{ flexDirection: "row", gap: 12 }}>
             <Btn title={tr("common.cancel")} onPress={onClose} />
             <Btn testID="offer-start" title={tr("partner.offers.start")} kind="primary" grow busy={busy} disabled={!ok} onPress={save} />
@@ -436,7 +436,7 @@ const s = StyleSheet.create({
   panelNarrow: { padding: 14 },
   chip: { height: 44, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, justifyContent: "center" },
   th: { flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: color.line },
-  thText: { ...textFont("700"), fontSize: 12, color: color.muted, textTransform: "uppercase", letterSpacing: 0.6 },
+  thText: { color: color.muted },
   tr: { flexDirection: "row", alignItems: "center", minHeight: 64, borderBottomWidth: 1, borderBottomColor: color.divider },
   trNarrow: { flexDirection: "column", alignItems: "stretch", paddingBottom: 6 },
   veg: { width: 16, height: 16, borderWidth: 1.5, borderRadius: 3, alignItems: "center", justifyContent: "center" },
@@ -455,5 +455,5 @@ const s = StyleSheet.create({
   photoFrame: { width: "100%", aspectRatio: 14 / 13, maxHeight: 280, borderRadius: radius.card, overflow: "hidden", backgroundColor: color.porcelain,
     borderWidth: 1.5, borderStyle: "dashed", borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
   previewCard: { borderRadius: radius.card, borderWidth: 1, borderColor: color.line, paddingHorizontal: 20, paddingBottom: 8, backgroundColor: color.white },
-  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 17 },
+  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16 },
 });

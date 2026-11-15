@@ -1,5 +1,5 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
-import { Button, color, errorMessage, radius, Sheet, space, textFont, Txt, useI18n } from "@bhojango/mobile-core";
+import { Button, color, errorMessage, num, radius, Sheet, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -46,7 +46,7 @@ export default function PaymentFailed() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.sheet}>
         <View style={styles.icon}><Icon name="alert" size={28} stroke={color.chili} /></View>
-        <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 28 }}>Payment didn&apos;t go through</Txt>
+        <Txt variant="h1" accessibilityRole="header">Payment didn&apos;t go through</Txt>
         <Txt style={{ color: color.muted }}>
           {method === "upi" ? "Your UPI app declined the request." : "Your bank declined the payment."}{" "}
           <Text style={[textFont("700"), { color: color.kohl }]}>
@@ -54,12 +54,12 @@ export default function PaymentFailed() {
           </Text>
         </Txt>
         <View style={styles.held}>
-          <Text style={[textFont("400"), { fontSize: 14 }]}>Your price is still held</Text>
-          <Text style={[textFont("800"), { fontSize: 14, fontVariant: ["tabular-nums"] }]}>
+          <Text style={type.small}>Your price is still held</Text>
+          <Text style={[type.label, num]}>
             {total} · {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} left
           </Text>
         </View>
-        {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+        {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
         {left > 0 && status?.can_retry !== false ? (
           <View style={{ gap: space[2] }}>
             <Button title={method === "upi" ? "Try UPI again" : "Try the card again"} size="lg" block loading={busy} onPress={() => setSheet(method)} />
@@ -68,7 +68,7 @@ export default function PaymentFailed() {
         ) : (
           <Button title="Back to your bag" size="lg" block onPress={() => router.replace("/bag")} />
         )}
-        <Text style={[textFont("700"), { color: color.peacock, textAlign: "center", marginTop: space[2] }]}>Chat with support</Text>
+        <Text style={[type.label, { color: color.peacock, textAlign: "center", marginTop: space[2] }]}>Chat with support</Text>
       </View>
       <Sheet visible={sheet != null} onClose={() => setSheet(null)} title={sheet === "card" ? "Pay with card" : "Pay with UPI"}
         footer={

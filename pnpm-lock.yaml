@@ -134,6 +134,21 @@ importers:
       '@expo-google-fonts/hanken-grotesk':
         specifier: ^0.4.3
         version: 0.4.3
+      '@expo-google-fonts/noto-sans-bengali':
+        specifier: ^0.4.4
+        version: 0.4.4
+      '@expo-google-fonts/noto-sans-devanagari':
+        specifier: ^0.4.2
+        version: 0.4.2
+      '@expo-google-fonts/noto-sans-kannada':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-tamil':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-telugu':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/metro-runtime':
         specifier: ~58.0.17
         version: 58.0.17(@expo/log-box@58.0.15)(expo@58.0.24)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.88.1(@babel/core@7.29.13))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -246,6 +261,21 @@ importers:
       '@expo-google-fonts/hanken-grotesk':
         specifier: ^0.4.3
         version: 0.4.3
+      '@expo-google-fonts/noto-sans-bengali':
+        specifier: ^0.4.4
+        version: 0.4.4
+      '@expo-google-fonts/noto-sans-devanagari':
+        specifier: ^0.4.2
+        version: 0.4.2
+      '@expo-google-fonts/noto-sans-kannada':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-tamil':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-telugu':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/metro-runtime':
         specifier: ~58.0.17
         version: 58.0.17(@expo/log-box@58.0.15)(expo@58.0.24)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.88.1(@babel/core@7.29.13))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -352,6 +382,21 @@ importers:
       '@expo-google-fonts/hanken-grotesk':
         specifier: ^0.4.3
         version: 0.4.3
+      '@expo-google-fonts/noto-sans-bengali':
+        specifier: ^0.4.4
+        version: 0.4.4
+      '@expo-google-fonts/noto-sans-devanagari':
+        specifier: ^0.4.2
+        version: 0.4.2
+      '@expo-google-fonts/noto-sans-kannada':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-tamil':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-telugu':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/metro-runtime':
         specifier: ~58.0.17
         version: 58.0.17(@expo/log-box@58.0.15)(expo@58.0.24)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.88.1(@babel/core@7.29.13))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -574,6 +619,21 @@ importers:
       '@expo-google-fonts/hanken-grotesk':
         specifier: ^0.4.3
         version: 0.4.3
+      '@expo-google-fonts/noto-sans-bengali':
+        specifier: ^0.4.4
+        version: 0.4.4
+      '@expo-google-fonts/noto-sans-devanagari':
+        specifier: ^0.4.2
+        version: 0.4.2
+      '@expo-google-fonts/noto-sans-kannada':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-tamil':
+        specifier: ^0.4.3
+        version: 0.4.3
+      '@expo-google-fonts/noto-sans-telugu':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@types/node':
         specifier: ^20.14.0
         version: 20.19.39
@@ -1252,6 +1312,21 @@ packages:
 
   '@expo-google-fonts/hanken-grotesk@0.4.3':
     resolution: {integrity: sha512-TZn/Ux+nCxEjG/zAenCFbEhOAPxSXN3lo2YU2jHcPsNBPFeicm8feQStL81igJuAwJLCn62VvEOdTtmVEBDl0g==}
+
+  '@expo-google-fonts/noto-sans-bengali@0.4.4':
+    resolution: {integrity: sha512-Ya58tLTEdP4P5EF3ZXTM829/g57mbfW8OrD16MMZr2sC3nIKItl/3J9tZlk1nrtqfFGzIgxb+zt/hLjAaTAQgQ==}
+
+  '@expo-google-fonts/noto-sans-devanagari@0.4.2':
+    resolution: {integrity: sha512-tYN501LDwk9bVc4HlHjAG2l2du08rvjexMdf3bO6u4idUk4mI1QxdnCaOfBq+U27RHM33CR5PmYfXcgEHXrovg==}
+
+  '@expo-google-fonts/noto-sans-kannada@0.4.3':
+    resolution: {integrity: sha512-nFDeSKVlpCJpd4x4E+W5WwfJVJ5fGN5pa/szOvE9GotDEYTPuhd8SzKYsQ4F2PVbzXRT21jMXxJ70tKPvItuGA==}
+
+  '@expo-google-fonts/noto-sans-tamil@0.4.3':
+    resolution: {integrity: sha512-1TBkwJ8gJPnt1UIC+um987hYb/QmRDATGKbtwDW6dajISxr8b7+EVjwMESMJaQxfNS8VWE4IBT2jYmpBGw4D+w==}
+
+  '@expo-google-fonts/noto-sans-telugu@0.4.2':
+    resolution: {integrity: sha512-t5wZI1/2u69ugVr2v9P4Qqt9BHHwDQ/26+1p9MLrwf1lNSW64Mw16AIRzGWIOcRMd0drYWeZzZO1DqoFts3KiA==}
 
   '@expo/cli@58.1.20':
     resolution: {integrity: sha512-VXXcqGuXBngzItcP97ERWON3aHJOeAwDxuRlkxgbYfW9m9DpGHM6umGgjOPWWy14xSArUvwGZpg+D5Ms+hnnkg==}
@@ -6992,6 +7067,16 @@ snapshots:
 
   '@expo-google-fonts/hanken-grotesk@0.4.3': {}
 
+  '@expo-google-fonts/noto-sans-bengali@0.4.4': {}
+
+  '@expo-google-fonts/noto-sans-devanagari@0.4.2': {}
+
+  '@expo-google-fonts/noto-sans-kannada@0.4.3': {}
+
+  '@expo-google-fonts/noto-sans-tamil@0.4.3': {}
+
+  '@expo-google-fonts/noto-sans-telugu@0.4.2': {}
+
   '@expo/cli@58.1.20(@expo/dom-webview@58.0.2)(@expo/metro-runtime@58.0.17)(expo-constants@58.0.16)(expo-font@58.0.12(expo@58.0.24)(react-native@0.88.1(@babel/core@7.29.13)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.88.1(@babel/core@7.29.13))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(expo-router@58.0.31)(expo@58.0.24)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.13)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.88.1(@babel/core@7.29.13))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)':
     dependencies:
       2g: 1.0.1(typescript@6.0.3)
@@ -9812,7 +9897,7 @@ snapshots:
       '@next/eslint-plugin-next': 16.4.6(eslint@9.39.5(jiti@1.21.7))
       eslint: 9.39.5(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@1.21.7))
@@ -9833,7 +9918,7 @@ snapshots:
       eslint: 9.39.5(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@7.2.0(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5(jiti@1.21.7))
@@ -9855,21 +9940,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7)):
-    dependencies:
-      '@nolyfill/is-core-module': 1.0.39
-      debug: 4.4.3(supports-color@10.2.2)
-      eslint: 9.39.5(jiti@1.21.7)
-      get-tsconfig: 4.13.7
-      is-bun-module: 2.0.0
-      stable-hash: 0.0.5
-      tinyglobby: 0.2.15
-      unrs-resolver: 1.11.1
-    optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
-    transitivePeerDependencies:
-      - supports-color
-
   eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
@@ -9881,7 +9951,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
@@ -10057,33 +10127,6 @@ snapshots:
       tsconfig-paths: 3.15.0
     optionalDependencies:
       '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@6.0.3)
-    transitivePeerDependencies:
-      - eslint-import-resolver-typescript
-      - eslint-import-resolver-webpack
-      - supports-color
-
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7)):
-    dependencies:
-      '@rtsao/scc': 1.1.0
-      array-includes: 3.1.9
-      array.prototype.findlastindex: 1.2.6
-      array.prototype.flat: 1.3.3
-      array.prototype.flatmap: 1.3.3
-      debug: 3.2.7
-      doctrine: 2.1.0
-      eslint: 9.39.5(jiti@1.21.7)
-      eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@6.0.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
-      hasown: 2.0.2
-      is-core-module: 2.16.1
-      is-glob: 4.0.3
-      minimatch: 3.1.5
-      object.fromentries: 2.0.8
-      object.groupby: 1.0.3
-      object.values: 1.2.1
-      semver: 6.3.1
-      string.prototype.trimend: 1.0.9
-      tsconfig-paths: 3.15.0
     transitivePeerDependencies:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack

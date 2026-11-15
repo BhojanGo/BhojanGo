@@ -2,7 +2,7 @@
 // The emergency number is the rider's country's (Markets settings
 // `emergency_number`, in GET /markets/directory); a country without one gets
 // "your local emergency number" and no call button rather than a guess.
-import { api, ApiError, unwrap, useCountry, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, type, unwrap, useCountry, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { currentFix } from "../lib/location";
-import { night, radius, space, textFont, ui } from "../lib/theme";
+import { night, radius, space, ui } from "../lib/theme";
 
 export default function Sos() {
   const { t } = useI18n();
@@ -46,7 +46,7 @@ export default function Sos() {
       {emergency ? (
         <Pressable testID="sos-call" accessibilityRole="button" onPress={() => Linking.openURL(`tel:${emergency}`)} style={styles.call}>
           <Icon name="phone" stroke={night.text} />
-          <Text style={[textFont("800"), { color: night.text, fontSize: 19 }]}>{t("rider.sos.call", { number: emergency })}</Text>
+          <Text style={[type.h3, { color: night.text }]}>{t("rider.sos.call", { number: emergency })}</Text>
         </Pressable>
       ) : null}
       {sent ? (
@@ -59,10 +59,10 @@ export default function Sos() {
       ) : (
         <Pressable testID="sos-alert" accessibilityRole="button" onPress={alertTeam} disabled={busy} style={[ui.outline, { height: 64, borderColor: night.sosBorder }]}>
           <Icon name="alert" stroke={night.sosText} />
-          <Text style={[textFont("800"), { color: night.sosText, fontSize: 17 }]}>{busy ? t("rider.sos.sending") : t("rider.sos.alert")}</Text>
+          <Text style={[type.h3, { color: night.sosText }]}>{busy ? t("rider.sos.sending") : t("rider.sos.alert")}</Text>
         </Pressable>
       )}
-      {msg ? <Text style={[textFont("600"), { color: night.sosText }]}>{msg}</Text> : null}
+      {msg ? <Text style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
     </SafeAreaView>
   );
 }

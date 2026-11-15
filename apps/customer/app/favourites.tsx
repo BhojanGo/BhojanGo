@@ -1,6 +1,6 @@
 // Favourites (GET /me/favourites): saved kitchens and dishes, as on the website's
 // account favourites. Reached from home (the heart) and from Account (link to /favourites).
-import { Button, color, radius, space, textFont, Txt, useI18n } from "@bhojango/mobile-core";
+import { Button, color, num, radius, space, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -29,7 +29,7 @@ export default function FavouritesScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} style={styles.back}>
           <Icon name="back" />
         </Pressable>
-        <Txt variant="h1" accessibilityRole="header">{t("favourites.title")}</Txt>
+        <Txt variant="h2" accessibilityRole="header">{t("favourites.title")}</Txt>
       </View>
       <ScrollView contentContainerStyle={{ padding: space[5], paddingTop: space[2], gap: space[3], paddingBottom: space[12] }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => void load(true)} />}>
@@ -54,10 +54,10 @@ export default function FavouritesScreen() {
               <KitchenCover name={k.name} cover={k.cover_url} cuisine={k.cuisine_types[0]} height={120} width={800} />
               <View style={{ padding: space[4], gap: 4 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Txt variant="title" numberOfLines={1} style={{ flex: 1 }}>{k.name}</Txt>
+                  <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>{k.name}</Txt>
                   <RatingBadge x={k} />
                 </View>
-                <Text numberOfLines={1} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>
+                <Text numberOfLines={1} style={[type.small, { color: color.muted }]}>
                   {[...k.cuisine_types.slice(0, 2), t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })].join(" · ")}
                 </Text>
               </View>
@@ -77,9 +77,9 @@ export default function FavouritesScreen() {
               style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12, opacity: d.available ? 1 : 0.5 }}>
               {d.image_url ? <Thumb name={d.name} uri={d.image_url} size={56} /> : null}
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={[textFont("800"), { fontSize: 15 }]}>{d.name}</Text>
-                <Text numberOfLines={1} style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{d.restaurant.name}</Text>
-                <Text style={[textFont("700"), { fontSize: 14 }]}>{d.available ? money(d.price, d.currency, { whole: true }) : t("favourites.sold_out")}</Text>
+                <Text numberOfLines={1} style={type.label}>{d.name}</Text>
+                <Text numberOfLines={1} style={[type.small, { color: color.muted }]}>{d.restaurant.name}</Text>
+                <Text style={[type.label, num]}>{d.available ? money(d.price, d.currency, { whole: true }) : t("favourites.sold_out")}</Text>
               </View>
             </Pressable>
             <FavouriteHeart kind="item" id={d.id} name={d.name} size={36} />
