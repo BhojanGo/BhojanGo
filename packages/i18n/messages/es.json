@@ -820,11 +820,61 @@
       "choose_country": "Elige tu país"
     },
     "home": {
-      "banner": "Hecho al momento por cocinas cerca de ti"
+      "banner": "Hecho al momento por cocinas cerca de ti",
+      "current_location": "Ubicación actual",
+      "choose_address": "Elige una dirección",
+      "finding_you": "Buscando dónde estás…",
+      "locate_failed": "No pudimos saber dónde estás. Elige una dirección o permite la ubicación.",
+      "use_location": "Usar mi ubicación actual",
+      "finding_kitchens": "Buscando cocinas cerca de {place}",
+      "finding_kitchens_here": "Buscando cocinas cerca de ti",
+      "cuisine_near": "{cuisine} cerca de ti",
+      "all_kitchens": "Todas las cocinas",
+      "hello": {
+        "morning": "Buenos días.",
+        "afternoon": "Buenas tardes.",
+        "evening": "Buenas noches.",
+        "night": "Ya es tarde."
+      },
+      "hello_name": {
+        "morning": "Buenos días, {name}.",
+        "afternoon": "Buenas tardes, {name}.",
+        "evening": "Buenas noches, {name}.",
+        "night": "Ya es tarde, {name}."
+      },
+      "ask": {
+        "morning": "¿Qué hay de desayuno?",
+        "afternoon": "¿Qué hay de comida?",
+        "evening": "¿Qué hay de cena?",
+        "night": "¿Algo para seguir?"
+      }
     },
     "out_of_area": {
       "cooking_in": "BhojanGo cocina en {cities}.",
-      "leave_number": "Déjanos tu número y te escribiremos el día que lleguemos."
+      "leave_number": "Déjanos tu número y te escribiremos el día que lleguemos.",
+      "title": "Aún no estamos en {place}",
+      "title_here": "Aún no estamos en tu zona",
+      "thanks": "Gracias. Te enviaremos un mensaje cuando lleguemos a {place}.",
+      "thanks_here": "Gracias. Te enviaremos un mensaje cuando lleguemos cerca de ti.",
+      "notify": "Avísame cuando lleguen",
+      "failed": "Revisa el número e inténtalo de nuevo."
+    },
+    "search": {
+      "no_match": "Nada coincide con “{q}” cerca."
+    },
+    "item": {
+      "customise": "Personaliza {name}"
+    },
+    "bag": {
+      "held": "Precio fijo {time}"
+    },
+    "track": {
+      "progress": "Progreso: {step}, paso {n} de {total}",
+      "step_placed": "Pedido",
+      "step_cooking": "Cocinando",
+      "step_picked": "Recogido",
+      "step_home": "En casa",
+      "pin_a11y": "PIN de entrega {pin}. Dáselo a tu repartidor en la puerta."
     }
   },
   "rider": {

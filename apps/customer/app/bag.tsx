@@ -58,8 +58,8 @@ export default function Bag() {
   if (lines.length === 0) {
     return (
       <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center", gap: space[4] }]}>
-        <Txt variant="h1">Your bag is empty</Txt>
-        <Button title="Find something to eat" onPress={() => router.replace("/home")} />
+        <Txt variant="h1">{t("checkout.empty_title")}</Txt>
+        <Button title={t("checkout.find_food")} onPress={() => router.replace("/home")} />
       </SafeAreaView>
     );
   }
@@ -99,22 +99,22 @@ export default function Bag() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.top}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}>
           <Icon name="back" />
         </Pressable>
-        <Txt variant="h1" accessibilityRole="header" style={{ flex: 1 }}>Your bag</Txt>
+        <Txt variant="h1" accessibilityRole="header" style={{ flex: 1 }}>{t("kitchen.your_bag")}</Txt>
         {quote ? (
-          <View style={styles.held}>
+          <View style={styles.held} testID="price-held">
             <Text style={[textFont("700"), { fontSize: 12, color: color.peacock }]}>
-              Price held {Math.floor(held / 60)}:{String(held % 60).padStart(2, "0")}
+              {t("app.bag.held", { time: `${Math.floor(held / 60)}:${String(held % 60).padStart(2, "0")}` })}
             </Text>
           </View>
         ) : null}
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space[5], paddingVertical: space[2], gap: space[3] }}>
+      <ScrollView testID="bag" contentContainerStyle={{ paddingHorizontal: space[5], paddingVertical: space[2], gap: space[3] }}>
         <View style={styles.card}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={[textFont("800"), { fontSize: 14, flex: 1 }]} numberOfLines={1}>{point?.label ?? ""}</Text>
+            <Text style={[textFont("800"), { fontSize: 14, flex: 1 }]} numberOfLines={1}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
           </View>
           <View style={styles.rule} />
           {lines.map((l) => (
@@ -138,19 +138,20 @@ export default function Bag() {
             options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency, { whole: true }) }))}
           />
         </View>
-        {quote ? <FairBill lines={quote.lines} currency={quote.currency} /> : error ? null : <ActivityIndicator color={color.peacock} />}
+        {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View> : error ? null : <ActivityIndicator color={color.peacock} />}
         {error ? <Text style={[textFont("600"), { color: color.chili, fontSize: 14 }]}>{error}</Text> : null}
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.method}>
-          <View style={styles.methodTag}><Text style={[textFont("800"), { fontSize: 11 }]}>{method === "upi" ? "UPI" : "CARD"}</Text></View>
+          <View style={styles.methodTag}><Text style={[textFont("800"), { fontSize: 11, textTransform: "uppercase" }]}>{t(`checkout.method_${method}`)}</Text></View>
           <Text style={[textFont("400"), { fontSize: 14, flex: 1 }]}>
-            <Text style={textFont("700")}>{method === "upi" ? "UPI" : "Card"}</Text>
-            <Text style={{ color: color.muted }}> · {method === "upi" ? "pay in your UPI app" : "Apple Pay, Google Pay or card"}</Text>
+            <Text style={textFont("700")}>{t(`checkout.method_${method}`)}</Text>
+            <Text style={{ color: color.muted }}> · {t(`checkout.method_${method}_sub`)}</Text>
           </Text>
         </View>
         <Button
-          title={quote ? `Pay ${money(quote.total, quote.currency)}` : "Pay"}
+          testID="pay"
+          title={quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay")}
           size="lg"
           block
           loading={paying}
@@ -158,16 +159,14 @@ export default function Bag() {
           onPress={() => setSheet(true)}
         />
       </View>
-      <Sheet visible={sheet} onClose={() => setSheet(false)} title={method === "upi" ? "Pay with UPI" : "Pay with card"}
+      <Sheet visible={sheet} onClose={() => setSheet(false)} title={t("checkout.test_title")}
         footer={
           <View style={{ gap: space[2] }}>
-            <Button title={`Approve ${quote ? money(quote.total, quote.currency) : ""}`} size="lg" block onPress={() => pay("approve")} />
-            <Button title="Decline" variant="secondary" block onPress={() => pay("decline")} />
+            <Button testID="pay-approve" title={t("checkout.test_approve", { amount: quote ? money(quote.total, quote.currency) : "" })} size="lg" block onPress={() => pay("approve")} />
+            <Button testID="pay-decline" title={t("checkout.test_decline")} variant="secondary" block onPress={() => pay("decline")} />
           </View>
         }>
-        <Txt variant="small" style={{ color: color.muted }}>
-          Test payments: nothing is charged. Approve or decline as your {method === "upi" ? "UPI app" : "bank"} would.
-        </Txt>
+        <Txt variant="small" style={{ color: color.muted }}>{t("checkout.test_body")}</Txt>
       </Sheet>
     </SafeAreaView>
   );

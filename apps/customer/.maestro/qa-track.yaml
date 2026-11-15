@@ -1,0 +1,35 @@
+# READ-ONLY (safe on QA): sign in as the demo customer and open the demo order
+# that is on its way from home's active-order bar: the live map (kitchen, home,
+# rider), the minutes, the rider and the door PIN. Nothing is changed (the map
+# and the tracking socket only read). PHONE: the demo seed's customer with an
+# order on its way (demo1, +91 90000 00301).
+appId: com.bhojango.app
+tags:
+  - qa-readonly
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${PHONE || "9000000301"}
+- extendedWaitUntil:
+    visible:
+      id: "active-order"
+    timeout: 60000
+- tapOn:
+    id: "active-order"
+- extendedWaitUntil:
+    visible:
+      id: "tracking"
+    timeout: 30000
+- assertVisible:
+    id: "track-map"
+- assertVisible:
+    id: "eta"
+- assertVisible:
+    id: "delivery-pin"
+# The rider's name comes with the order; the map's markers once the socket's snapshot is in.
+- extendedWaitUntil:
+    visible:
+      id: "rider-name"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/qa-05-tracking
