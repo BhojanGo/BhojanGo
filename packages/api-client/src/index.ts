@@ -54,6 +54,30 @@ export function errorMessage(body: unknown, fallback = "Something went wrong. Pl
   return fallback;
 }
 
+/**
+ * Why POST /pricing/quote refused a bag (its 422 detail). `code` MIN_ORDER: the bag
+ * is under the zone's minimum; `zone`, `amount` and `currency` are there for the
+ * client to word it in its language and format the amount with its own formatter
+ * (`message` is the English text). `tip_presets`: the city's tip buttons, sent once
+ * the rules are known, so a refused bag still shows them.
+ */
+export interface QuoteRefusal {
+  code: string;
+  message: string;
+  zone?: string | null;
+  amount?: string | null;
+  currency?: string | null;
+  tip_presets?: CoreSchemas["TipPresetsOut"] | null;
+}
+
+/** The refusal in an error body from POST /pricing/quote, or null. */
+export function quoteRefusal(body: unknown): QuoteRefusal | null {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (!detail || typeof detail !== "object" || Array.isArray(detail)) return null;
+  const d = detail as Partial<QuoteRefusal>;
+  return typeof d.code === "string" ? { ...d, code: d.code, message: String(d.message ?? "") } : null;
+}
+
 /** Throw ApiError for a failed openapi-fetch result; return its data otherwise. */
 export function unwrap<T>(result: { data?: T; error?: unknown; response: Response }): T {
   if (result.error !== undefined || !result.response.ok) {

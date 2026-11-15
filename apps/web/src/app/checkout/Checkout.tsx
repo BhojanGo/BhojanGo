@@ -155,10 +155,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const q = quote.quote;
   const money = (n: number | string, whole = false) => f.money(n, bag.restaurant?.currency ?? q?.currency, { whole });
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
-  // Tip choices are the city's, from the quote (kept while the next quote loads); none set: "Other" only.
+  // Tip choices are the city's, from the quote, or from a refusal that knows them (a bag
+  // under the minimum); kept while the next quote loads. None set: "Other" only.
   const [tipCfg, setTipCfg] = useState<TipPresets | null>(null);
   const [tipTouched, setTipTouched] = useState(false);
-  const fromQuote = q ? tipPresetsOf(q) : undefined;
+  const refused = quote.refusal;
+  const fromQuote = q ? tipPresetsOf(q) : refused && "tip_presets" in refused ? tipPresetsOf(refused) : undefined;
   if (fromQuote !== undefined && JSON.stringify(fromQuote) !== JSON.stringify(tipCfg)) setTipCfg(fromQuote);
   const presets = useMemo(() => [...new Set((tipCfg?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))], [tipCfg]);
   const setTip = bag.setTip;

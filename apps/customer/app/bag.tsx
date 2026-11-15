@@ -1,7 +1,7 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, radius, Segmented, Sheet, space,
-  textFont, Txt, type, unwrap, useBag, useCountry, useI18n,
+  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, quoteRefusal, radius, Segmented, Sheet, space,
+  textFont, Txt, type, type QuoteRefusal, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -19,6 +19,10 @@ export default function Bag() {
   const { point, market } = useWhere();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<QuoteRefusal | null>(null);
+  // The city's tip buttons: from the quote, or from a refusal that knows them (a bag
+  // under the minimum still tips by the city's tip_presets rule); kept while re-pricing.
+  const [presets, setPresets] = useState<CoreSchemas["TipPresetsOut"] | null>(null);
   const [paying, setPaying] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -41,10 +45,21 @@ export default function Bag() {
       })
       .then((r) => {
         if (!live) return;
-        setQuote(unwrap(r));
+        const q = unwrap(r);
+        setQuote(q);
+        setPresets(q.tip_presets ?? null);
         setError(null);
+        setRefusal(null);
       })
-      .catch((e) => live && (setQuote(null), setError(errorMessage((e as { body?: unknown }).body))));
+      .catch((e) => {
+        if (!live) return;
+        const body = (e as { body?: unknown }).body;
+        const why = quoteRefusal(body);
+        setQuote(null);
+        setError(errorMessage(body));
+        setRefusal(why);
+        if (why && "tip_presets" in why) setPresets(why.tip_presets ?? null);
+      });
     return () => {
       live = false;
     };
@@ -64,8 +79,13 @@ export default function Bag() {
     );
   }
 
-  // Tip choices are the city's (the quote's tip_presets), as on the website.
-  const tips = [0, ...new Set((quote?.tip_presets?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
+  // Tip choices are the city's (its tip_presets rule), as on the website.
+  const tips = [0, ...new Set((presets?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
+  // Under the minimum: worded in the app's language, the amount in the country's format (no ".00").
+  const shownError =
+    refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
+      ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency, { whole: true }) })
+      : error;
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
 
   async function pay(outcome: PayOutcome) {
@@ -139,7 +159,7 @@ export default function Bag() {
           />
         </View>
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View> : error ? null : <ActivityIndicator color={color.peacock} />}
-        {error ? <Text style={[type.label, { color: color.chili }]}>{error}</Text> : null}
+        {shownError ? <Text style={[type.label, { color: color.chili }]}>{shownError}</Text> : null}
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.method}>
