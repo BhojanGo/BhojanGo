@@ -1,10 +1,13 @@
 "use client";
 // The live map on the tracking page: MapLibre GL with OpenFreeMap's free
 // vector tiles (no key, no account; © OpenStreetMap contributors shown on the
-// map). Markers for the kitchen (pickup), home (drop-off) and the rider; the
-// route so far (the rider's trail from the tracking socket) and the way still
-// to go. The rider marker moves on every location_update. Loaded in the
-// browser only (next/dynamic, ssr: false).
+// map). Markers for the kitchen (pickup), home (drop-off) and the rider; a
+// solid line where the rider has actually been (the trail from the tracking
+// socket: the "connected" snapshot, then each location_update) and a dashed
+// line from the rider to where they're heading next (the kitchen before
+// pickup, home after). No predicted kitchen-to-home route: only real movement.
+// The rider marker moves on every location_update. Loaded in the browser only
+// (next/dynamic, ssr: false).
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import * as maplibregl from "maplibre-gl";
@@ -51,15 +54,15 @@ export default function LiveMap({
   dropoff,
   rider,
   trail,
-  finished,
+  heading,
   labels,
 }: {
   pickup: Pt | null;
   dropoff: Pt | null;
   rider: Pt | null;
   trail: Pt[];
-  /** Delivered or cancelled: the route travelled only, nothing ahead. */
-  finished?: boolean;
+  /** Where the rider goes next: the kitchen before pickup, home after; null when it's over (the trail only). */
+  heading: "kitchen" | "home" | null;
   labels: { map: string; kitchen: string; home: string; rider: string; failed: string };
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -95,8 +98,8 @@ export default function LiveMap({
     m.on("load", () => {
       m.addSource("done", { type: "geojson", data: line([]) });
       m.addSource("ahead", { type: "geojson", data: line([]) });
-      m.addLayer({ id: "done", type: "line", source: "done", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#8FB3B7", "line-width": 6 } });
-      m.addLayer({ id: "ahead", type: "line", source: "ahead", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0B5D66", "line-width": 5, "line-dasharray": [1, 2] } });
+      m.addLayer({ id: "done", type: "line", source: "done", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0B5D66", "line-width": 5 } });
+      m.addLayer({ id: "ahead", type: "line", source: "ahead", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0B5D66", "line-width": 4, "line-opacity": 0.75, "line-dasharray": [1, 2] } });
       setReady(true);
     });
     map.current = m;
@@ -129,10 +132,13 @@ export default function LiveMap({
     place("home", dropoff, labels.home);
     place("rider", rider, labels.rider);
 
-    const done = pickup ? [pickup, ...trail] : trail;
+    // Where the rider has been, up to where they are now.
+    const last = trail[trail.length - 1];
+    const done = rider && (!last || last[0] !== rider[0] || last[1] !== rider[1]) ? [...trail, rider] : trail;
     (m.getSource("done") as GeoJSONSource | undefined)?.setData(line(done.length > 1 ? done : []));
-    const from = rider ?? pickup;
-    (m.getSource("ahead") as GeoJSONSource | undefined)?.setData(line(from && dropoff && !finished ? [from, dropoff] : []));
+    // From the rider to the next stop only.
+    const to = heading === "kitchen" ? pickup : heading === "home" ? dropoff : null;
+    (m.getSource("ahead") as GeoJSONSource | undefined)?.setData(line(rider && to ? [rider, to] : []));
 
     // Fit everything in view when the places change (not on every rider step, so panning isn't undone).
     const pts = [pickup, dropoff, rider, ...trail].filter(Boolean) as Pt[];
@@ -146,11 +152,12 @@ export default function LiveMap({
     } else if (rider && !m.getBounds().contains(ll(rider) as LngLatLike)) {
       m.fitBounds(bounds, { padding: pad, maxZoom: 16 });
     }
-  }, [ready, pickup, dropoff, rider, trail, finished, labels.kitchen, labels.home, labels.rider]);
+  }, [ready, pickup, dropoff, rider, trail, heading, labels.kitchen, labels.home, labels.rider]);
 
   return (
     <div className="relative h-full w-full bg-[#E9EEEE]">
-      <div ref={box} className="h-full w-full" role="region" aria-label={labels.map} />
+      {/* data-*: what the lines show, for the e2e (the lines themselves are drawn on a canvas) */}
+      <div ref={box} className="h-full w-full" role="region" aria-label={labels.map} data-heading={heading ?? ""} data-trail={trail.length} />
       {failed && <p className="absolute inset-x-0 top-1/2 m-0 -translate-y-1/2 px-6 text-center text-sm text-[#4C5A5E]">{labels.failed}</p>}
     </div>
   );

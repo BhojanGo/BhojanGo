@@ -20,8 +20,9 @@ import { slugify } from "../../../[country]/[city]/[kitchen]/data";
 
 type Order = CoreSchemas["OrderResponse"];
 type Pt = [number, number];
-interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string }
-interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; at: number | null }
+/** From realtime (dispatch.eta_for): minutes from the distance the rider still has to go, and that distance in the order's unit. */
+interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string; distance_left?: number; distance_unit?: string }
+interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; etaAt: number | null; searching: boolean; at: number | null }
 interface Bill { lines: BillLine[]; currency: string; total?: string }
 
 // WebGL map: browser only, and only on this page (it is a large script).
@@ -48,7 +49,7 @@ export function Tracking({ id }: { id: string }) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [missing, setMissing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false, at: null });
+  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, etaAt: null, searching: false, at: null });
 
   useEffect(() => {
     if (ready && !user) router.replace(`/signin?next=${encodeURIComponent(`/orders/${id}/track`)}`);
@@ -91,16 +92,18 @@ export function Tracking({ id }: { id: string }) {
               dropoff: (p.dropoff as Pt) ?? null,
               rider: loc ? [loc.lat, loc.lng] : null,
               eta: (p.eta as Eta) ?? null,
+              etaAt: p.eta ? at : null,
               trail: ((p.trail as [number, number, string][]) ?? []).map((x) => [x[0], x[1]] as Pt),
             };
           }
           case "searching_rider":
             return { ...s, at, searching: true };
           case "rider_assigned":
-            return { ...s, at, searching: false, eta: (p.eta as Eta) ?? s.eta };
+            return p.eta ? { ...s, at, searching: false, eta: p.eta as Eta, etaAt: at } : { ...s, at, searching: false };
           case "location_update": {
             const pt: Pt = [Number(p.lat), Number(p.lng)];
-            return { ...s, at, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
+            const fresh = p.eta ? { eta: p.eta as Eta, etaAt: at } : {};
+            return { ...s, at, rider: pt, trail: [...s.trail, pt].slice(-200), ...fresh };
           }
           case "status_change":
             return { ...s, at, status: (p.status as string) ?? s.status };
@@ -148,10 +151,17 @@ export function Tracking({ id }: { id: string }) {
   const kitchen = order.restaurant_name;
   const stamp = (...states: string[]) => (order.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status))?.at ?? null;
   const arrivesAt = live.eta?.arrives_at ?? order.estimated_delivery_time;
-  const minutes = live.eta ? live.eta.to_customer_minutes : arrivesAt ? Math.max(1, Math.round((Date.parse(arrivesAt) - now) / 60000)) : null;
-  const unit = country?.distance_unit ?? "km";
-  const left = live.rider && live.dropoff ? kmBetween(live.rider, live.dropoff) : null;
-  const leftText = left != null ? t(unit === "mi" ? "common.mi" : "common.km", { n: f.number(unit === "mi" ? left * 0.621371 : left) }) : null;
+  // The live ETA comes from the distance left (each GPS fix); between fixes it counts down.
+  const minutes = live.eta
+    ? Math.max(1, live.eta.to_customer_minutes - Math.floor((now - (live.etaAt ?? now)) / 60000))
+    : arrivesAt ? Math.max(1, Math.round((Date.parse(arrivesAt) - now) / 60000)) : null;
+  // "N km left": the same distance the ETA was worked out from, in the order's unit
+  // (straight line to the door only until the first ETA arrives).
+  const unit = live.eta?.distance_unit ?? country?.distance_unit ?? "km";
+  const left = live.eta?.distance_left != null
+    ? live.eta.distance_left
+    : live.rider && live.dropoff ? (unit === "mi" ? kmBetween(live.rider, live.dropoff) * 0.621371 : kmBetween(live.rider, live.dropoff)) : null;
+  const leftText = left != null ? t(unit === "mi" ? "common.mi" : "common.km", { n: f.number(left) }) : null;
   const items = (order.items as { name?: string; quantity?: number }[]).filter((i) => i.name);
   const count = (order.items as { quantity?: number }[]).reduce((n, i) => n + Number(i.quantity ?? 1), 0);
   const ago = live.at ? Math.max(0, Math.round((now - live.at) / 1000)) : null;
@@ -191,7 +201,7 @@ export function Tracking({ id }: { id: string }) {
           dropoff={live.dropoff}
           rider={delivered || cancelled ? null : live.rider}
           trail={live.trail}
-          finished={delivered || cancelled}
+          heading={delivered || cancelled ? null : status === "picked_up" ? "home" : "kitchen"}
           labels={{ map: t("track.map"), kitchen: t("track.map_kitchen", { kitchen }), home: t("track.map_home"), rider: rider ? t("track.map_rider", { rider }) : t("track.your_rider"), failed: t("track.map_failed") }}
         />
         <Link href="/account/orders" aria-label={t("track.back")} className="absolute left-4 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,20,24,0.18)] md:hidden">

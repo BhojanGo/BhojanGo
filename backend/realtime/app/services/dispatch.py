@@ -48,6 +48,7 @@ import structlog
 
 from app.core.redis import get_redis, order_tracking_channel
 from app.services.core_api import CoreApiError, core_api
+from app.services.eta import distance_left_eta
 from shared.config import get_settings
 from shared.providers.routing import get_routing_provider, haversine_km  # noqa: F401  (riders.py uses dispatch.haversine_km)
 
@@ -219,25 +220,34 @@ async def order_info(order: str, refresh: bool = False, max_age: float | None = 
 
 async def _save_info(info: dict) -> None:
     r = await get_redis()
+    if info.get("ready_in_minutes") is not None and info.get("ready_at") is None:
+        # core_api says "ready in N minutes" as of now; keep it as a time, so the ETA's prep
+        # wait shrinks as time passes (the cached copy is re-saved on every order event).
+        info = {**info, "ready_at": _now() + float(info["ready_in_minutes"]) * 60}
     await r.set(info_key(info["order_id"]), json.dumps({**info, "_at": time.time()}), ex=DAY)
 
 
+def prep_left_minutes(info: dict) -> float:
+    """Minutes until the kitchen has the food ready (0 once it's ready or picked up, or unknown)."""
+    if info.get("status") in ("ready", "picked_up", "delivered"):
+        return 0.0
+    if info.get("ready_at") is not None:
+        return max(0.0, (float(info["ready_at"]) - _now()) / 60)
+    if info.get("ready_in_minutes") is not None:
+        return max(0.0, float(info["ready_in_minutes"]))
+    return 0.0
+
+
 def eta_for(info: dict, rider_at: tuple[float, float] | None) -> dict | None:
-    """Minutes to pickup and to drop-off from the rider's position (routing provider)."""
+    """The live ETA from the distance left (app/services/eta.py): rider -> home after
+    pickup; rider -> kitchen (or the prep time left, if longer) -> home before it.
+    Also the distance left, in the order's unit, for "N km left"."""
     if not info or not info.get("dropoff") or rider_at is None:
         return None
-    routing = get_routing_provider()
-    pickup = tuple(info["pickup"]) if info.get("pickup") else None
-    dropoff = tuple(info["dropoff"])
-    picked = info.get("status") in ("picked_up", "delivered")
-    if picked or pickup is None:
-        to_customer = routing.leg(rider_at, dropoff).minutes  # type: ignore[arg-type]
-        return {"to_pickup_minutes": 0, "to_customer_minutes": max(1, round(to_customer)),
-                "arrives_at": _iso(_now() + to_customer * 60)}
-    to_pickup = routing.leg(rider_at, pickup).minutes  # type: ignore[arg-type]
-    to_customer = to_pickup + routing.leg(pickup, dropoff).minutes  # type: ignore[arg-type]
-    return {"to_pickup_minutes": max(1, round(to_pickup)), "to_customer_minutes": max(1, round(to_customer)),
-            "arrives_at": _iso(_now() + to_customer * 60)}
+    return distance_left_eta(
+        rider_at, tuple(info["pickup"]) if info.get("pickup") else None, tuple(info["dropoff"]),  # type: ignore[arg-type]
+        picked_up=info.get("status") in ("picked_up", "delivered"), prep_left_minutes=prep_left_minutes(info),
+        distance_unit=info.get("distance_unit") or "km", now=_now(), routing=get_routing_provider())
 
 
 async def start_dispatch(order: str, info: dict | None = None) -> str | None:
