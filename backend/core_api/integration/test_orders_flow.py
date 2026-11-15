@@ -141,6 +141,7 @@ async def test_happy_path(client: AsyncClient) -> None:
     cust = await login(client, "customer1.hyd@example.com")
     order = await new_order(client, cust)
     assert order["status"] == "pending_payment" and order["market_city"] == "IN-TG-HYD"
+    assert order["time_zone"] == "Asia/Kolkata"  # every time on the order is shown in the city's zone
     due = datetime.fromisoformat(order["payment_due_at"])
     assert timedelta(minutes=9) < due - datetime.now(UTC) <= timedelta(minutes=10)
 
@@ -152,7 +153,9 @@ async def test_happy_path(client: AsyncClient) -> None:
     assert intent["amount"] == int(Decimal(str(order["total"])) * 100) and intent["provider"] == "fake"
 
     o = await get(client, cust, order["id"])
-    assert o["status"] == "placed" and o["placed_at"] and o["accept_due_at"]
+    assert o["status"] == "placed" and o["placed_at"] and o["accept_due_at"] and o["time_zone"] == "Asia/Kolkata"
+    mine = (await client.get("/api/v1/orders", headers=cust)).json()["items"]
+    assert next(x for x in mine if x["id"] == order["id"])["time_zone"] == "Asia/Kolkata"
     assert timedelta(seconds=170) < datetime.fromisoformat(o["accept_due_at"]) - datetime.now(UTC) <= timedelta(seconds=180)
 
     partner = await login(client, "partner.hyd@example.com")
@@ -162,6 +165,7 @@ async def test_happy_path(client: AsyncClient) -> None:
     for s in ("accepted", "preparing", "almost_ready", "ready"):
         r = await move(client, partner, order["id"], s)
         assert r.status_code == 200 and r.json()["status"] == s, r.text
+        assert r.json()["time_zone"] == "Asia/Kolkata"
 
     rider, rider2 = await login(client, "rider1.hyd@example.com"), await login(client, "rider2.hyd@example.com")
     assert (await move(client, partner, order["id"], "picked_up")).status_code == 403
@@ -178,7 +182,7 @@ async def test_happy_path(client: AsyncClient) -> None:
     assert r.status_code == 200 and r.json()["driver_id"] == user_id(rider)
     assert (await move(client, rider2, order["id"], "delivered")).status_code == 404  # not their order
     r = await move(client, rider, order["id"], "delivered")
-    assert r.json()["status"] == "delivered" and r.json()["actual_delivery_time"]
+    assert r.json()["status"] == "delivered" and r.json()["actual_delivery_time"] and r.json()["time_zone"] == "Asia/Kolkata"
 
     assert await outbox_types(order["id"]) == [
         "order.created", "payment.succeeded", "order.placed",

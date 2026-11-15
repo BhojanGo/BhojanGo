@@ -182,6 +182,7 @@ async def test_week_so_far_for_a_rider(client: AsyncClient) -> None:
     assert set(w["summary"]) >= {"deliveries", "tips", "active_hours", "hourly_floor", "floor_top_up", "total"}
     assert w["summary"]["deliveries"] >= 1  # the test above delivered one this week
     assert w["city"] == "IN-TG-HYD" and w["summary"]["hourly_floor"] == "120"
+    assert w["time_zone"] == "Asia/Kolkata"  # delivered_at shown on the city's clock
     line = next(ln for d in [w["today"]] for ln in d["lines"])
     assert line["restaurant_name"] == "Spice Route Kitchen" and line["drop_area"] == "Hyderabad"
 

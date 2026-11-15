@@ -52,7 +52,7 @@ async def create_order(
     order = await OrderService(db).create_order(data, current_user.id)
 
     # Store for idempotency
-    response = OrderResponse.model_validate(order)
+    response = (await _with_zones(db, [OrderResponse.model_validate(order)]))[0]
     await store_idempotency(redis, "order", idempotency_key, response.model_dump())
     return response
 
@@ -105,12 +105,22 @@ async def list_my_orders(
                 out.pin = o.delivery_pin
         items.append(out)
     return OrderListResponse(
-        items=items,
+        items=await _with_zones(db, items),
         total=total,
         page=page,
         limit=limit,
         total_pages=math.ceil(total / limit) if total else 0,
     )
+
+
+async def _with_zones(db: AsyncSession, outs: list[OrderResponse]) -> list[OrderResponse]:
+    """Each order's city time zone (``time_zone``), one query for the whole list."""
+    from core_api.modules.markets.service.zones import city_time_zones
+
+    zones = await city_time_zones(db, {o.market_city for o in outs})
+    for o in outs:
+        o.time_zone = zones.get(o.market_city or "")
+    return outs
 
 
 async def _first_names(db: AsyncSession, user_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
@@ -139,7 +149,7 @@ async def list_restaurant_orders(
     repo = OrderRepository(db)
     orders, total = await repo.list_by_restaurant(restaurant_id, page=page, limit=limit)
     return OrderListResponse(
-        items=[await _as_kitchen_sees_it(db, o) for o in orders],
+        items=await _with_zones(db, [await _as_kitchen_sees_it(db, o) for o in orders]),
         total=total,
         page=page,
         limit=limit,
@@ -173,7 +183,7 @@ async def get_driver_active_order(
     order = await repo.get_driver_active_order(current_user.id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active order")
-    return await _as_rider_sees_it(db, order, OrderResponse.model_validate(order))
+    return (await _with_zones(db, [await _as_rider_sees_it(db, order, OrderResponse.model_validate(order))]))[0]
 
 
 async def _as_kitchen_sees_it(db: AsyncSession, order) -> OrderResponse:  # type: ignore[no-untyped-def]
@@ -229,7 +239,7 @@ async def get_order(
         rider = await db.get(User, order.driver_id)
         if rider is not None:
             out.rider = {"id": str(rider.id), "first_name": (rider.full_name or "").split(" ")[0]}
-    return out
+    return (await _with_zones(db, [out]))[0]
 
 
 @router.get("/{order_id}/breakdown", response_model=FeeBreakdown)
@@ -292,7 +302,7 @@ async def update_order_status(
     """Move an order on: the restaurant accepts and prepares, the rider picks up
     and delivers (each only on their own orders; see service/state_machine.py)."""
     updated = await OrderService(db).update_status(order_id, data, current_user)
-    return OrderResponse.model_validate(updated)
+    return (await _with_zones(db, [OrderResponse.model_validate(updated)]))[0]
 
 
 @router.post("/{order_id}/cancel", response_model=OrderResponse)
@@ -304,7 +314,7 @@ async def cancel_order(
 ) -> OrderResponse:
     """Cancel: refunded in full if it was paid."""
     updated = await OrderService(db).cancel_order(order_id, data, current_user)
-    return OrderResponse.model_validate(updated)
+    return (await _with_zones(db, [OrderResponse.model_validate(updated)]))[0]
 
 
 async def _own_order(db: AsyncSession, user: CurrentUser, order_id: uuid.UUID):  # type: ignore[no-untyped-def]
@@ -391,6 +401,7 @@ async def receipt_pdf(
     receipt with sales tax in the US. Same lines as the fair bill."""
     from core_api.modules.catalog.service.lookup import restaurant_brief
     from core_api.modules.identity.service.profile import user_profile
+    from core_api.modules.markets.service.zones import city_time_zones
     from core_api.modules.orders.service import receipt as rcpt
     from core_api.modules.orders.service.state_machine import PAID_STATES
     from core_api.modules.pricing.service.lookup import order_bills
@@ -411,6 +422,7 @@ async def receipt_pdf(
         kitchen=await restaurant_brief(db, order.restaurant_id) or {"name": order.restaurant_name},
         customer_name=(profile or {}).get("name") or "Customer", delivery_address=order.delivery_address or {},
         items=order.items or [], lines=lines, payment_method=order.payment_method,
+        time_zone=(await city_time_zones(db, [order.market_city])).get(order.market_city or ""),
     )
     from starlette.concurrency import run_in_threadpool
 

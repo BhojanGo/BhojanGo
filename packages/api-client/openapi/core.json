@@ -6398,6 +6398,17 @@
             "title": "Taxes",
             "type": "number"
           },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
+          },
           "tip": {
             "title": "Tip",
             "type": "number"

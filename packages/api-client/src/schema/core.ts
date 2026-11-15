@@ -5575,6 +5575,8 @@ export interface components {
             subtotal: number;
             /** Taxes */
             taxes: number;
+            /** Time Zone */
+            time_zone?: string | null;
             /** Tip */
             tip: number;
             /** Total */

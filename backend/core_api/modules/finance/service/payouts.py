@@ -306,7 +306,7 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
         days.append({"date": d.isoformat(), "deliveries": len(day_lines),
                      "total": str(S.m(sum((Decimal(ln["total"]) for ln in day_lines), Decimal(0))))})
     today_lines = [ln for ln in lines if datetime.fromisoformat(ln["delivered_at"]).astimezone(tz).date() == today]
-    return {"currency": c.currency, "city": city, "period_start": start.isoformat(), "period_end": end.isoformat(),
+    return {"currency": c.currency, "city": city, "time_zone": tz.key, "period_start": start.isoformat(), "period_end": end.isoformat(),
             "payout_date": end.isoformat(), "total": str(total), "summary": summary, "days": days,
             "today": {"date": today.isoformat(), "total": str(S.m(sum((Decimal(ln["total"]) for ln in today_lines), Decimal(0)))),
                       "lines": today_lines}}

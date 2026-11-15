@@ -118,3 +118,15 @@ def test_names_print_in_their_own_script_with_the_rupee_sign() -> None:
 def test_us_receipt_uses_the_dollar_sign() -> None:
     text = pdf_text(R.render(receipt("US")))
     assert "$31.42" in text and "USD 31.42" not in text
+
+
+def test_the_date_is_the_orders_city_day() -> None:
+    """Paid at 01:30 UTC on 15 Nov: still 14 Nov in a US city, already 15 Nov in India."""
+    r = receipt("US")
+    r.issued_at = datetime(2026, 11, 15, 1, 30, tzinfo=UTC)
+    r.time_zone = "America/Boise"
+    assert "Date: 14 Nov 2026" in pdf_text(R.render(r))
+    r = receipt("IN")
+    r.issued_at = datetime(2026, 11, 14, 20, 0, tzinfo=UTC)
+    r.time_zone = "Asia/Kolkata"
+    assert "Date: 15 Nov 2026" in pdf_text(R.render(r))
