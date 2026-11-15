@@ -11,6 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CheckoutPage() {
-  const { place } = await getContext();
-  return <Checkout place={place} />;
+  const { place, directory } = await getContext();
+  // Each country's ways to pay come from Markets (country settings), not from code.
+  const methods = Object.fromEntries(directory.countries.map((c) => [c.code, c.payment_methods]));
+  return <Checkout place={place} countryMethods={methods} />;
 }

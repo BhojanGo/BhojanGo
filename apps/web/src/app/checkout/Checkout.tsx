@@ -46,7 +46,17 @@ interface SavedMethod {
 type Method = { key: string; type: PayType; token: string | null; title: string; sub: string };
 
 // How people pay in each country (the gateway's own list decides inside its sheet).
-const METHODS_BY_COUNTRY: Record<string, PayType[]> = { IN: ["upi", "card", "net_banking"], US: ["card"] };
+// Markets' payment methods -> the web's payment flows: wallets in a card sheet (Apple
+// Pay, Google Pay) go through the card flow; methods the web can't take yet are left out.
+const FLOW: Record<string, PayType> = { card: "card", apple_pay: "card", google_pay: "card", upi: "upi", net_banking: "net_banking" };
+function flowsFor(methods: string[] | undefined): PayType[] {
+  const out: PayType[] = [];
+  for (const m of methods ?? ["card"]) {
+    const f = FLOW[m];
+    if (f && !out.includes(f)) out.push(f);
+  }
+  return out.length ? out : ["card"];
+}
 
 /** Tip choices from the bill itself: about 5, 10 and 15% of the food, rounded to a tidy step. */
 function tipPresets(subtotal: number): number[] {
@@ -78,7 +88,7 @@ function Radio({ on }: { on: boolean }) {
   );
 }
 
-export function Checkout({ place }: { place: Place | null }) {
+export function Checkout({ place, countryMethods }: { place: Place | null; countryMethods: Record<string, string[]> }) {
   const t = useT();
   const f = useFormat();
   const router = useRouter();
@@ -157,11 +167,11 @@ export function Checkout({ place }: { place: Place | null }) {
         sub: m.exp_month && m.exp_year ? t("checkout.expires", { date: `${String(m.exp_month).padStart(2, "0")}/${String(m.exp_year).slice(-2)}` }) : upi ? t("checkout.method_upi_sub") : "",
       };
     });
-    for (const type of METHODS_BY_COUNTRY[rest?.country ?? ""] ?? ["card"]) {
+    for (const type of flowsFor(countryMethods[rest?.country ?? ""])) {
       out.push({ key: `new:${type}`, type, token: null, title: t(`checkout.method_${type}`), sub: t(`checkout.method_${type}_sub`) });
     }
     return out;
-  }, [saved, rest?.country, t]);
+  }, [saved, rest?.country, t, countryMethods]);
   const defaultMethod = saved.find((m) => m.is_default) ? `saved:${saved.find((m) => m.is_default)!.id}` : methods[0]?.key;
   const chosen = methods.find((m) => m.key === (method ?? defaultMethod)) ?? methods[0];
 
