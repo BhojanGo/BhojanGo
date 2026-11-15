@@ -48,7 +48,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
     setBusy(true);
     setError(null);
     try {
-      await verify(phone, code, country as "IN" | "US");
+      await verify(phone, code, country);
       await placeFromDefaultAddress(hasPlace);
       router.replace(next);
       router.refresh();
@@ -63,7 +63,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
   async function resend() {
     setError(null);
     try {
-      await sendCode(phone, country as "IN" | "US");
+      await sendCode(phone, country);
       setSentAt(Date.now());
     } catch (err) {
       setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));

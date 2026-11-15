@@ -1888,6 +1888,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/admin/kitchens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Kitchens For Admins
+         * @description Admin: live kitchens (paused ones too) with the full record — licence expiry,
+         *     commission terms — cut to the cities the admin may view partners in. The
+         *     public list leaves those fields out (PublicRestaurant).
+         */
+        get: operations["list_kitchens_for_admins_api_v1_restaurants_admin_kitchens_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/admin/pending": {
         parameters: {
             query?: never;
@@ -3350,9 +3372,9 @@ export interface components {
             city: string;
             /**
              * Country
-             * @enum {string}
+             * @example IN
              */
-            country: "US" | "IN";
+            country: string;
             /** Landmark */
             landmark?: string | null;
             /** Lat */
@@ -5519,9 +5541,9 @@ export interface components {
         OtpSendRequest: {
             /**
              * Country
-             * @enum {string}
+             * @example IN
              */
-            country: "US" | "IN";
+            country: string;
             /** Phone */
             phone: string;
         };
@@ -5597,9 +5619,9 @@ export interface components {
              */
             amount?: number | null;
             /** Country */
-            country?: ("US" | "IN") | null;
+            country?: string | null;
             /** Currency */
-            currency?: ("USD" | "INR") | null;
+            currency?: string | null;
             /**
              * Order Id
              * Format: uuid
@@ -5625,9 +5647,9 @@ export interface components {
             client_secret?: string | null;
             /**
              * Currency
-             * @enum {string}
+             * @example INR
              */
-            currency: "USD" | "INR";
+            currency: string;
             /** Payment Intent Id */
             payment_intent_id: string;
             /**
@@ -5746,9 +5768,9 @@ export interface components {
         PhoneSignInRequest: {
             /**
              * Country
-             * @enum {string}
+             * @example IN
              */
-            country: "US" | "IN";
+            country: string;
             /** Full Name */
             full_name?: string | null;
             /** Otp */
@@ -5845,6 +5867,111 @@ export interface components {
             restaurants: number;
             /** Slug */
             slug: string;
+        };
+        /**
+         * PublicRestaurant
+         * @description A restaurant as customers and the public see it (browse, search, the
+         *     restaurant page, the menu). Never the commission or payout terms, the
+         *     owner, tax registration or licence documents: those are in
+         *     RestaurantResponse, for the owner and admins only. The FSSAI licence
+         *     number stays: Indian law requires showing it to customers.
+         *     integration/test_public_contract.py fails if a public route grows one.
+         */
+        PublicRestaurant: {
+            /** Address */
+            address: {
+                [key: string]: unknown;
+            };
+            /**
+             * Avg Prep Minutes
+             * @default 20
+             */
+            avg_prep_minutes?: number;
+            /** City */
+            city: string;
+            /** Closes At */
+            closes_at: string | null;
+            /** Country */
+            country: string;
+            /** Cover Url */
+            cover_url: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Cuisine Types */
+            cuisine_types: string[];
+            /** Currency */
+            currency: string;
+            /** Delivery Fee */
+            delivery_fee: number;
+            /**
+             * Delivery Radius Km
+             * @default 5
+             */
+            delivery_radius_km?: number;
+            /** Delivery Time Max */
+            delivery_time_max: number;
+            /** Delivery Time Min */
+            delivery_time_min: number;
+            /** Description */
+            description: string;
+            /** Fssai Number */
+            fssai_number?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Open */
+            is_open: boolean;
+            /** Lat */
+            lat: number | null;
+            /** Lng */
+            lng: number | null;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Minimum Order Amount */
+            minimum_order_amount: number;
+            /** Name */
+            name: string;
+            /** Opens At */
+            opens_at: string | null;
+            /** Paused Reason */
+            paused_reason?: string | null;
+            /** Rating */
+            rating: number;
+            /** @description Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}. */
+            readonly rating_display: components["schemas"]["RatingDisplay"];
+            /** Review Count */
+            review_count: number;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PublicRestaurantList */
+        PublicRestaurantList: {
+            /** Items */
+            items: components["schemas"]["PublicRestaurant"][];
+            /** Limit */
+            limit: number;
+            /** Page */
+            page: number;
+            /** Total */
+            total: number;
+            /** Total Pages */
+            total_pages: number;
         };
         /** PublicZone */
         PublicZone: {
@@ -6082,9 +6209,9 @@ export interface components {
         RegisterRequest: {
             /**
              * Country
-             * @enum {string}
+             * @example IN
              */
-            country: "US" | "IN";
+            country: string;
             /**
              * Email
              * Format: email
@@ -6099,9 +6226,9 @@ export interface components {
             /**
              * Preferred Currency
              * @default USD
-             * @enum {string}
+             * @example INR
              */
-            preferred_currency?: "USD" | "INR";
+            preferred_currency?: string;
             /**
              * Preferred Locale
              * @default en-US
@@ -6227,16 +6354,16 @@ export interface components {
             closes_at?: string | null;
             /**
              * Country
-             * @enum {string}
+             * @example IN
              */
-            country: "US" | "IN";
+            country: string;
             /** Cuisine Types */
             cuisine_types: string[];
             /**
              * Currency
-             * @enum {string}
+             * @example INR
              */
-            currency: "USD" | "INR";
+            currency: string;
             /** Delivery Fee */
             delivery_fee: number | string;
             /** Delivery Time Max */
@@ -6261,7 +6388,10 @@ export interface components {
              */
             tags?: string[];
         };
-        /** RestaurantListResponse */
+        /**
+         * RestaurantListResponse
+         * @description Admins' list (full restaurants).
+         */
         RestaurantListResponse: {
             /** Items */
             items: components["schemas"]["RestaurantResponse"][];
@@ -6278,11 +6408,15 @@ export interface components {
         RestaurantMenuResponse: {
             /** Categories */
             categories: components["schemas"]["MenuCategoryResponse"][];
-            restaurant: components["schemas"]["RestaurantResponse"];
+            restaurant: components["schemas"]["PublicRestaurant"];
             /** Uncategorized Items */
             uncategorized_items: components["schemas"]["MenuItemResponse"][];
         };
-        /** RestaurantResponse */
+        /**
+         * RestaurantResponse
+         * @description The full restaurant, for its owner and admins (create, update, pricing,
+         *     approve, the admin lists): adds the commission terms, owner and licence expiry.
+         */
         RestaurantResponse: {
             /** Address */
             address: {
@@ -6877,9 +7011,9 @@ export interface components {
             /**
              * Country
              * @default US
-             * @enum {string}
+             * @example IN
              */
-            country?: "US" | "IN";
+            country?: string;
             /**
              * Provider
              * @enum {string}
@@ -7052,7 +7186,7 @@ export interface components {
             /** Phone */
             phone?: string | null;
             /** Preferred Currency */
-            preferred_currency?: ("USD" | "INR") | null;
+            preferred_currency?: string | null;
             /** Preferred Locale */
             preferred_locale?: ("en-IN" | "hi-IN" | "te-IN" | "ta-IN" | "kn-IN" | "mr-IN" | "bn-IN" | "en-US" | "es-US") | null;
         };
@@ -7128,9 +7262,9 @@ export interface components {
             amount: number;
             /**
              * Currency
-             * @enum {string}
+             * @example INR
              */
-            currency: "USD" | "INR";
+            currency: string;
             /** Payment Method Id */
             payment_method_id: string;
         };
@@ -10513,7 +10647,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RestaurantListResponse"];
+                    "application/json": components["schemas"]["PublicRestaurantList"];
                 };
             };
             /** @description Validation Error */
@@ -10547,6 +10681,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RestaurantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_kitchens_for_admins_api_v1_restaurants_admin_kitchens_get: {
+        parameters: {
+            query?: {
+                city?: string | null;
+                country?: string | null;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestaurantListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10642,7 +10810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RestaurantResponse"];
+                    "application/json": components["schemas"]["PublicRestaurant"];
                 };
             };
             /** @description Validation Error */
@@ -10723,7 +10891,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RestaurantListResponse"];
+                    "application/json": components["schemas"]["PublicRestaurantList"];
                 };
             };
             /** @description Validation Error */
@@ -10754,7 +10922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RestaurantResponse"];
+                    "application/json": components["schemas"]["PublicRestaurant"];
                 };
             };
             /** @description Validation Error */

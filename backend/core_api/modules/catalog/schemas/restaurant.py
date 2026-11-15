@@ -2,15 +2,17 @@ import re
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
 
 
-Country = Literal["US", "IN"]
-Currency = Literal["USD", "INR"]
+# From Markets, not a list here: catalog's create checks the country is open and the
+# currency is the country's (markets.service.countries).
+Country = Annotated[str, Field(pattern=r"^[A-Z]{2}$", examples=["IN"])]
+Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$", examples=["INR"])]
 RestaurantStatus = Literal["active", "inactive", "pending_approval", "suspended"]
 PricingModel = Literal["percentage_commission", "flat_fee_per_order", "monthly_subscription"]
 
@@ -105,13 +107,19 @@ class DeliveryCheckResponse(BaseModel):
     currency: str
 
 
-class RestaurantResponse(BaseModel):
+class PublicRestaurant(BaseModel):
+    """A restaurant as customers and the public see it (browse, search, the
+    restaurant page, the menu). Never the commission or payout terms, the
+    owner, tax registration or licence documents: those are in
+    RestaurantResponse, for the owner and admins only. The FSSAI licence
+    number stays: Indian law requires showing it to customers.
+    integration/test_public_contract.py fails if a public route grows one."""
+
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
     name: str
     slug: str
-    owner_id: uuid.UUID
     description: str
     cuisine_types: list[str]
     logo_url: str | None
@@ -135,11 +143,6 @@ class RestaurantResponse(BaseModel):
     delivery_time_max: int
     minimum_order_amount: float
     delivery_fee: float
-    # Pain-point layer
-    pricing_model: str = "percentage_commission"
-    commission_rate: float = 0.0
-    flat_fee_per_order: float = 0.0
-    monthly_subscription_fee: float = 0.0
     delivery_radius_km: float = 5.0
     avg_prep_minutes: int = 20
     currency: str
@@ -148,12 +151,24 @@ class RestaurantResponse(BaseModel):
     tags: list[str]
     status: str
     is_active: bool
-    tier: str | None = None
     fssai_number: str | None = None
-    fssai_expires_on: date | None = None
     paused_reason: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class RestaurantResponse(PublicRestaurant):
+    """The full restaurant, for its owner and admins (create, update, pricing,
+    approve, the admin lists): adds the commission terms, owner and licence expiry."""
+
+    owner_id: uuid.UUID
+    # Pain-point layer
+    pricing_model: str = "percentage_commission"
+    commission_rate: float = 0.0
+    flat_fee_per_order: float = 0.0
+    monthly_subscription_fee: float = 0.0
+    tier: str | None = None
+    fssai_expires_on: date | None = None
 
 
 class MenuItemCreateRequest(BaseModel):
@@ -225,7 +240,7 @@ class MenuCategoryResponse(BaseModel):
 
 
 class RestaurantMenuResponse(BaseModel):
-    restaurant: RestaurantResponse
+    restaurant: PublicRestaurant
     categories: list[MenuCategoryResponse]
     uncategorized_items: list[MenuItemResponse]
 
@@ -254,7 +269,17 @@ class ReviewResponse(BaseModel):
     created_at: datetime
 
 
+class PublicRestaurantList(BaseModel):
+    items: list[PublicRestaurant]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+
 class RestaurantListResponse(BaseModel):
+    """Admins' list (full restaurants)."""
+
     items: list[RestaurantResponse]
     total: int
     page: int

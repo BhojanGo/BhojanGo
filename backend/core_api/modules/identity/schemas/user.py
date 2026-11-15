@@ -1,15 +1,18 @@
 import re
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # ── Enums as Literals ─────────────────────────────────────────────────────────
 UserRole = Literal["customer", "driver", "restaurant_owner", "admin", "super_admin"]
-Country = Literal["US", "IN"]
-Currency = Literal["USD", "INR"]
+# Countries and currencies are rows in Markets (the countries table), not a list
+# here: the shape is checked by these patterns, and whether we operate there by
+# markets.service.countries (sign-up: exists and isn't draft; phone: its code).
+Country = Annotated[str, Field(pattern=r"^[A-Z]{2}$", examples=["IN"])]
+Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$", examples=["INR"])]
 # The web's languages; the worker's messages fall back to English for the ones
 # it doesn't have yet (worker/app/services/messages.py language_for).
 Locale = Literal["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN", "en-US", "es-US"]

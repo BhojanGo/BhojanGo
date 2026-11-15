@@ -42,6 +42,12 @@ DISHES = [("Finger Steak Basket", "14.00", "Mains"), ("Huckleberry Salmon", "21.
           ("Huckleberry Shake", "7.50", "Drinks")]
 WAIT_S = 180  # the website caches Markets reads (Next revalidate 60 s, /discover 60 s in Redis)
 
+# Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api("http://core-api:8001")
+
 results: list[tuple[str, bool, str]] = []
 state: dict = {}
 

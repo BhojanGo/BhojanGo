@@ -1,12 +1,23 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { StatusPill } from "@/components/console/StatusPill";
-import { type CountrySummary, useAdminMe, useMarkets } from "@/lib/markets";
+import {
+  apiError,
+  can,
+  type CountryCreate,
+  type CountrySummary,
+  marketsApi,
+  PAYMENT_PROVIDERS,
+  TAX_REGIMES,
+  useAdminMe,
+  useMarkets,
+} from "@/lib/markets";
 
 const TAX: Record<string, string> = { gst: "GST", us_sales_tax: "Stripe Tax" };
 
@@ -20,6 +31,148 @@ function stateLine(cities: CountrySummary["regions"][number]["cities"]) {
   const open = cities.filter((c) => c.status === "live" || c.status === "beta");
   if (!open.length) return `${cities.length} ${cities.length === 1 ? "city" : "cities"} in setup`;
   return cities.map((c) => `${c.name} ${c.status}`).join(", ");
+}
+
+const EMPTY = { code: "", name: "", currency: "", locales: "", timezone: "", distance_unit: "km", phone_code: "+", payment_providers: [] as string[], tax_regime: "gst" };
+
+/** Super admins add a country (a draft); then its states, cities and zones, and it
+ * opens from its own page. Sign-up, phone codes and kitchens' currency follow it
+ * (backend markets/service/countries.py), so a new country needs no code change. */
+function NewCountry() {
+  const { data: me } = useAdminMe();
+  const qc = useQueryClient();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState(EMPTY);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!can(me, "markets.edit", "*")) return null;
+
+  async function submit() {
+    setBusy(true);
+    setProblem(null);
+    const body: CountryCreate = {
+      code: f.code.trim().toUpperCase(),
+      name: f.name.trim(),
+      currency: f.currency.trim().toUpperCase(),
+      locales: f.locales.split(",").map((l) => l.trim()).filter(Boolean),
+      timezone: f.timezone.trim(),
+      distance_unit: f.distance_unit === "mi" ? "mi" : "km",
+      phone_code: f.phone_code.trim(),
+      payment_providers: f.payment_providers,
+      tax_regime: f.tax_regime,
+    };
+    try {
+      await marketsApi.createCountry(body);
+      await qc.invalidateQueries({ queryKey: ["markets"] });
+      setOpen(false);
+      setF(EMPTY);
+      router.push(`/markets/${body.code}`);
+    } catch (e) {
+      setProblem(apiError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field = "mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl";
+  const toggle = (p: string) =>
+    setF({ ...f, payment_providers: f.payment_providers.includes(p) ? f.payment_providers.filter((x) => x !== p) : [...f.payment_providers, p] });
+  return (
+    <section aria-label="Add a country" className="rounded-2xl border border-line bg-white p-6">
+      <div className="flex items-center gap-3">
+        <h2 className="m-0 flex-1 text-[17px] font-extrabold">Add a country</h2>
+        {!open && (
+          <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-full bg-peacock px-4 text-sm font-bold text-white">
+            New country
+          </button>
+        )}
+      </div>
+      <p className="mt-1 text-[13px] text-muted">
+        A new country starts as a draft: nobody can sign up or open a kitchen there yet. Add its states, cities and zones, then
+        open it. Its currency, phone code and tax regime apply to every state and city in it.
+      </p>
+      {open && (
+        <form
+          className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <label className="text-[13px] text-muted">
+            Country code (ISO, 2 letters)
+            <input required pattern="[A-Za-z]{2}" maxLength={2} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Name
+            <input required minLength={2} maxLength={100} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Currency (ISO, 3 letters)
+            <input required pattern="[A-Za-z]{3}" maxLength={3} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value.toUpperCase() })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Languages (comma separated, e.g. en-GB, cy-GB)
+            <input required value={f.locales} onChange={(e) => setF({ ...f, locales: e.target.value })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Time zone (IANA, e.g. Europe/London)
+            <input required value={f.timezone} onChange={(e) => setF({ ...f, timezone: e.target.value })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Distance
+            <select value={f.distance_unit} onChange={(e) => setF({ ...f, distance_unit: e.target.value })} className={field}>
+              <option value="km">Kilometres</option>
+              <option value="mi">Miles</option>
+            </select>
+          </label>
+          <label className="text-[13px] text-muted">
+            Phone code
+            <input required pattern="\+[0-9]{1,4}" maxLength={5} value={f.phone_code} onChange={(e) => setF({ ...f, phone_code: e.target.value })} className={field} />
+          </label>
+          <label className="text-[13px] text-muted">
+            Tax regime
+            <select value={f.tax_regime} onChange={(e) => setF({ ...f, tax_regime: e.target.value })} className={field}>
+              {TAX_REGIMES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="text-[13px] text-muted">
+            <legend>Payment providers</legend>
+            <div className="mt-2 flex gap-4">
+              {PAYMENT_PROVIDERS.map((p) => (
+                <label key={p} className="flex items-center gap-2 text-sm text-kohl">
+                  <input type="checkbox" checked={f.payment_providers.includes(p)} onChange={() => toggle(p)} />
+                  {p[0].toUpperCase() + p.slice(1)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              disabled={busy || f.payment_providers.length === 0}
+              className="h-10 rounded-full bg-peacock px-5 text-sm font-bold text-white disabled:opacity-50"
+            >
+              Create country
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full px-3 text-sm font-semibold text-muted">
+              Cancel
+            </button>
+          </div>
+          {problem && (
+            <p role="alert" className="col-span-full rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">
+              {problem}
+            </p>
+          )}
+        </form>
+      )}
+    </section>
+  );
 }
 
 /** All countries overview (design board: AdminHome). Super admins only; others land on their country. */
@@ -50,6 +203,8 @@ export default function AllCountriesPage() {
 
       {error ? <p role="alert" className="rounded-xl bg-danger-tint p-4 text-danger-ink">Couldn&apos;t load markets.</p> : null}
       {isLoading ? <p className="text-muted">Loading markets…</p> : null}
+
+      <NewCountry />
 
       <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
         {markets?.map((c) => {

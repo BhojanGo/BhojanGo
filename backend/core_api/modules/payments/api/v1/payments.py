@@ -406,7 +406,10 @@ async def get_wallet_balance(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> WalletBalanceResponse:
     wallet_repo = WalletRepository(db)
-    wallet = await wallet_repo.get_or_create(current_user.id, currency="INR" if current_user.country == "IN" else "USD")
+    from core_api.modules.markets.service import countries
+
+    country = await countries.lookup(db, current_user.country)
+    wallet = await wallet_repo.get_or_create(current_user.id, currency=country.currency if country else "USD")
     return WalletBalanceResponse.model_validate(wallet)
 
 

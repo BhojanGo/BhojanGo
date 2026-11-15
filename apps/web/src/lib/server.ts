@@ -13,7 +13,7 @@ export type CityPage = CoreSchemas["CityPage"];
 export type Discover = CoreSchemas["Discover"];
 export type KitchenCard = CoreSchemas["Card"];
 export type Offer = CoreSchemas["Offer"];
-export type Restaurant = CoreSchemas["RestaurantResponse"];
+export type Restaurant = CoreSchemas["PublicRestaurant"];
 export type MenuItem = CoreSchemas["MenuItemResponse"];
 export interface Menu {
   restaurant: Restaurant;

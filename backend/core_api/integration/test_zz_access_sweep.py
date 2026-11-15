@@ -216,6 +216,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── restaurants: their owner or admins for the city ──────────────────────
     ("POST", "/api/v1/restaurants"): user("customer", "rider", body=lambda c: RESTAURANT),
     ("GET", "/api/v1/restaurants/admin/pending"): admin(),
+    ("GET", "/api/v1/restaurants/admin/kitchens"): admin(),  # the full record (commission, licence expiry)
     ("POST", "/api/v1/restaurants/licences/check"): admin("ops_boi"),
     ("PUT", R): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"description": "sweep"}),
     ("POST", f"{R}/approve"): admin("partner", "viewer", "ops_boi"),

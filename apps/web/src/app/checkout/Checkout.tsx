@@ -20,7 +20,7 @@ import type { Place } from "@/lib/prefs";
 import { slugify } from "../[country]/[city]/[kitchen]/data";
 import { completeFake, mountStripe, payWithRazorpay, waitForPayment, type PayType } from "./pay";
 
-type Restaurant = CoreSchemas["RestaurantResponse"];
+type Restaurant = CoreSchemas["PublicRestaurant"];
 interface Address {
   id: string;
   label?: string | null;

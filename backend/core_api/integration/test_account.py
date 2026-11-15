@@ -138,12 +138,12 @@ async def test_receipt_pdf_is_a_tax_invoice_in_india(client: AsyncClient) -> Non
     text = pdf_text(r.content)
     bill = (await client.get(f"/api/v1/pricing/orders/{order['id']}/bill", headers=h)).json()
     for want in ("Tax invoice", number, R.money(order["total"], "INR"), "Spice Route Kitchen", "FSSAI", "Ravi Kumar",
-                 "Flat 302", "Veg Dum Biryani", *[R.latin1(ln["label"]) for ln in bill["lines"]]):
+                 "Flat 302", "Veg Dum Biryani", *[ln["label"] for ln in bill["lines"]]):
         assert want in text, want
     taxes = [ln for ln in bill["lines"] if ln["code"] == "tax" and (ln.get("detail") or {}).get("rate_percent")]
     assert taxes  # GST, each with its rate
     for ln in taxes:
-        assert f"{R.latin1(ln['label'])} @ {R._pct(ln['detail']['rate_percent'])}" in text
+        assert f"{ln['label']} @ {R._pct(ln['detail']['rate_percent'])}" in text
 
     other = await sign_up(client)
     assert (await client.get(url, headers=other)).status_code == 404

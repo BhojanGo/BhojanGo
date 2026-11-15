@@ -33,7 +33,7 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
     setError(null);
     const phone = `${country.phone_code}${digits}`;
     try {
-      await sendCode(phone, country.code as "IN" | "US");
+      await sendCode(phone, country.code);
       router.push(`/signin/code?${new URLSearchParams({ phone, country: country.code, next })}`);
     } catch (err) {
       setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));

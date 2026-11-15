@@ -12,6 +12,7 @@
 //   tracking      200 WebSockets open at once (realtime)
 // Every request is named; the thresholds fail the run if any p95 is over 500 ms.
 import { check, sleep } from "k6";
+import exec from "k6/execution";
 import http from "k6/http";
 import ws from "k6/ws";
 import { Counter, Trend } from "k6/metrics";
@@ -22,7 +23,7 @@ const WEB = __ENV.WEB || "http://web:3000";
 const WS = RT.replace(/^http/, "ws");
 const DUR = __ENV.DURATION || "5m";
 const JSON_H = { "Content-Type": "application/json" };
-// SCALE: 1 = 10× pilot peak (the default), 0.1 = 1× pilot peak (a smoke on a hosted QA).
+// SCALE: 1 = 10× pilot peak (the default), 0.1 = 1× pilot peak (a smoke on a hosted environment).
 const SCALE = Number(__ENV.SCALE || "1");
 // Per second at SCALE 1 → per minute at this SCALE (k6 rates are whole numbers).
 const perMin = (perSecond) => Math.max(1, Math.round(perSecond * 60 * SCALE));
@@ -93,7 +94,23 @@ function quoteFor(h, d) {
     { headers: h, tags: { name: "quote" } });
 }
 
+// Tests never write to QA or production (the rule in tools/target_guard.py): this
+// places orders, so it stops when the API's /health reports qa or production, or
+// a hosted API doesn't say which environment it is.
+const PROTECTED = ["qa", "production", "prod"];
+function refuseQaAndProduction() {
+  const base = API.replace(/\/api\/v1\/?$/, "");
+  const r = http.get(`${base}/health`);
+  const env = String((r.status === 200 && r.json("environment")) || "").trim().toLowerCase();
+  const host = base.replace(/^https?:\/\//, "").split(/[:/]/)[0];
+  const local = host === "localhost" || host === "127.0.0.1" || !host.includes(".");
+  if (r.status !== 200 || PROTECTED.includes(env) || (!env && !local)) {
+    exec.test.abort(`REFUSED (tools/target_guard.py rule): ${base} reports environment '${env}' (HTTP ${r.status}); tests never write to QA or production`);
+  }
+}
+
 export function setup() {
+  refuseQaAndProduction();
   // Sign-in is rate limited (10 a minute): sign in once here and share the tokens.
   const customers = [1, 2, 3, 4, 5].map((i) => login(`customer${i}.hyd@example.com`));
   const riders = [1, 2, 3].map((i) => login(`rider${i}.hyd@example.com`));

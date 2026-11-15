@@ -2,7 +2,7 @@
 import { api, unwrap, type CoreSchemas, type OptionGroup } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 
-export type Restaurant = CoreSchemas["RestaurantResponse"];
+export type Restaurant = CoreSchemas["PublicRestaurant"];
 export type MenuItem = Omit<CoreSchemas["MenuItemResponse"], "option_groups"> & { option_groups: OptionGroup[] };
 export interface Menu {
   restaurant: Restaurant;

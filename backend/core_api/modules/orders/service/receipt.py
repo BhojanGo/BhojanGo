@@ -5,15 +5,17 @@ one) and every GST line with its rate. US: a "Receipt" with the same bill and
 the sales tax. The bill lines are the order's pricing snapshot, the same ones
 GET /pricing/orders/{id}/bill shows, so the PDF never disagrees with the app.
 
-The PDF uses the built-in Helvetica (no font files in the image), which has no
-₹ and no Indic scripts: amounts read "INR 617.39", and text outside Latin-1 is
-transliterated where possible (é stays, "Café" is fine) or shown as "?".
+Fonts: Noto Sans (Latin, ₹, $) with Noto Sans Devanagari, Telugu, Tamil,
+Kannada and Bengali as fallbacks, embedded from ../fonts (SIL Open Font
+License, ../fonts/OFL.txt; from github.com/notofonts). Text is shaped with
+HarfBuzz (uharfbuzz), so a customer or kitchen named "శ్రీనివాస్" or "प्रिया"
+prints in its own script, and amounts read "₹617.39" / "$31.42".
 """
-import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 TIMEZONE = {"IN": "Asia/Kolkata", "US": "UTC"}
@@ -22,9 +24,9 @@ WHO_COLLECTS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
 
 
 def country_of(market_city: str | None, currency: str) -> str:
-    """IN or US: from the order's city code (IN-TG-HYD), else its currency."""
-    if market_city and market_city[:2] in ("IN", "US"):
-        return market_city[:2]
+    """The country from the order's city code (IN-TG-HYD); old orders without one: from the currency."""
+    if market_city and len(market_city) >= 2 and market_city[:2].isalpha():
+        return market_city[:2].upper()
     return "IN" if currency == "INR" else "US"
 
 
@@ -35,8 +37,15 @@ def invoice_number(order_id: uuid.UUID, created_at: datetime, country: str) -> s
     return f"BG-{country}-{local:%Y%m}-{order_id.hex[:8].upper()}"
 
 
+FONTS_DIR = Path(__file__).resolve().parent.parent / "fonts"
+BASE_FONT = "NotoSans"
+# Scripts after Latin, in the order fpdf2 tries them for a character Noto Sans lacks.
+FALLBACK_FONTS = ("NotoSansDevanagari", "NotoSansTelugu", "NotoSansTamil", "NotoSansKannada", "NotoSansBengali")
+SYMBOLS = {"INR": "₹", "USD": "$", "EUR": "€", "GBP": "£"}
+
+
 def money(amount: Decimal | float | str, currency: str) -> str:
-    """INR 1,24,050.00 (Indian grouping) or USD 1,240.50."""
+    """₹1,24,050.00 (Indian grouping) or $1,240.50; a currency without a symbol here: "AED 12.00"."""
     value = Decimal(str(amount)).quantize(Decimal("0.01"))
     sign = "-" if value < 0 else ""
     whole, cents = f"{abs(value):.2f}".split(".")
@@ -49,20 +58,8 @@ def money(amount: Decimal | float | str, currency: str) -> str:
         whole = ",".join(([head] if head else []) + groups + [tail])
     else:
         whole = f"{int(whole):,}"
-    return f"{currency} {sign}{whole}.{cents}"
-
-
-def latin1(text: object) -> str:
-    """What Helvetica can draw: accents kept, other scripts transliterated or "?"."""
-    s = str(text or "")
-    out = []
-    for ch in s:
-        if ord(ch) < 256:
-            out.append(ch)
-            continue
-        base = unicodedata.normalize("NFKD", ch).encode("latin-1", "ignore").decode("latin-1")
-        out.append(base or ("-" if unicodedata.category(ch) == "Pd" else "?"))
-    return "".join(out)
+    symbol = SYMBOLS.get(currency)
+    return f"{sign}{symbol}{whole}.{cents}" if symbol else f"{currency} {sign}{whole}.{cents}"
 
 
 def _pct(rate: str | None) -> str:
@@ -140,12 +137,22 @@ def _address_lines(a: dict) -> list[str]:
     return [x for x in (street, place, a.get("country")) if x]
 
 
+def _fonts(pdf) -> None:  # type: ignore[no-untyped-def]
+    """Noto Sans and the Indic Noto fonts, regular and bold, shaped by HarfBuzz."""
+    for family in (BASE_FONT, *FALLBACK_FONTS):
+        pdf.add_font(family, "", FONTS_DIR / f"{family}-Regular.ttf")
+        pdf.add_font(family, "B", FONTS_DIR / f"{family}-Bold.ttf")
+    pdf.set_fallback_fonts(list(FALLBACK_FONTS), exact_match=False)
+    pdf.set_text_shaping(True)
+
+
 def render(r: Receipt) -> bytes:
     from fpdf import FPDF
     from fpdf.enums import XPos, YPos
 
     pdf = FPDF(format="A4" if r.country == "IN" else "Letter")
-    pdf.set_title(latin1(f"{r.title} {r.invoice_no}"))
+    _fonts(pdf)
+    pdf.set_title(f"{r.title} {r.invoice_no}")
     pdf.set_author("BhojanGo")
     pdf.set_creation_date(r.issued_at)
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -153,17 +160,23 @@ def render(r: Receipt) -> bytes:
     width = pdf.w - pdf.l_margin - pdf.r_margin
     nl = {"new_x": XPos.LMARGIN, "new_y": YPos.NEXT}
 
+    def font(style: str, size: float) -> None:
+        # Always (re)select: a line set with a fallback font is wrapped in q/Q, which
+        # restores the PDF's font without fpdf2 noticing; re-selecting writes Tf again.
+        pdf.font_family = ""
+        pdf.set_font(BASE_FONT, style, size)
+
     def text(s: str, size: float = 10, style: str = "", h: float = 5, align: str = "L") -> None:
-        pdf.set_font("Helvetica", style, size)
-        pdf.multi_cell(width, h, latin1(s), align=align, **nl)  # type: ignore[arg-type]
+        font(style, size)
+        pdf.multi_cell(width, h, s, align=align, **nl)  # type: ignore[arg-type]
 
     def row(label: str, amount: str, style: str = "", size: float = 10) -> None:
-        pdf.set_font("Helvetica", style, size)
+        font(style, size)
         y = pdf.get_y()
-        pdf.multi_cell(width - 45, 6, latin1(label), new_x=XPos.RIGHT, new_y=YPos.TOP)
+        pdf.multi_cell(width - 45, 6, label, new_x=XPos.RIGHT, new_y=YPos.TOP)
         bottom = pdf.get_y()
         pdf.set_xy(pdf.l_margin + width - 45, y)
-        pdf.cell(45, 6, latin1(amount), align="R", **nl)  # type: ignore[arg-type]
+        pdf.cell(45, 6, amount, align="R", **nl)  # type: ignore[arg-type]
         pdf.set_y(max(bottom, y + 6, pdf.get_y()))
 
     def rule() -> None:

@@ -72,13 +72,13 @@ export default defineRailway((ctx, project) => {
     JWKS_URL: "http://core-api.railway.internal:8001/.well-known/jwks.json",
     CORS_ORIGINS: prod ? preserve() : origins, // production: the custom domains
     // Providers: local fakes until each account exists (docs/11_Integration_Setup_Guide.md).
-    // Production refuses to start with a fake or the fixed OTP (shared/config.py).
+    // Production refuses to start with a fake, the fixed OTP or the fixed delivery PIN (shared/config.py).
     PAYMENT_PROVIDER: prod ? "live" : "fake",
     PAYOUT_PROVIDER: prod ? "live" : "fake",
     SMS_PROVIDER: prod ? "live" : "log",
     PUSH_PROVIDER: prod ? "live" : "log",
     EMAIL_PROVIDER: prod ? "sendgrid" : "log",
-    ...(prod ? { OTP_FIXED_CODE: "" } : {}),
+    ...(prod ? { OTP_FIXED_CODE: "", DELIVERY_PIN_FIXED: "" } : {}),
     ROUTING_PROVIDER: "straight_line",
     LOG_FORMAT: "json",
     // The client's address for rate limits (sign-in, OTP) and logs: Railway's edge puts it in
