@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { KitchenCard } from "@/components/Cards";
+import { AddressPill } from "@/components/HeaderParts";
 import { api, authed, useBag, useHydrated, useSession, type Pick } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
 import { partOfDay, photo } from "@/lib/format";
@@ -199,6 +200,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
 export function HomeFeed({
   kitchens,
   placeLabel,
+  placeCountry,
   cityName,
   currency,
   formatLocale,
@@ -209,6 +211,8 @@ export function HomeFeed({
 }: {
   kitchens: Kitchen[];
   placeLabel: string;
+  /** The delivery address's country (ISO code), for the address search. */
+  placeCountry?: string | null;
   cityName: string;
   currency: string;
   formatLocale: string;
@@ -244,7 +248,11 @@ export function HomeFeed({
       <section aria-labelledby="greeting" className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 id="greeting" className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{greeting}</h1>
-          <p className="mt-[6px] text-body text-[#4C5A5E]">{t("home.kitchens_deliver", { count: kitchens.length, place: placeLabel })}</p>
+          <p className="mt-[6px] text-body text-[#4C5A5E]">
+            {t("home.kitchens_deliver", { count: kitchens.length, place: "\u0000" }).split("\u0000").map((part, i) => (
+              <span key={i}>{i > 0 && <AddressPill inline label={placeLabel} country={placeCountry ?? null} />}{part}</span>
+            ))}
+          </p>
         </div>
         <div role="group" aria-label={t("home.filters")} className="-mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
           {FILTERS.map((f) => {

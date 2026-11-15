@@ -2,13 +2,14 @@
 // small globe + code pill. Where the visitor is shows on the home page itself
 // (the location line), not here. Two shapes:
 // - no address yet (WebLanding): links, language pill, sign in;
-// - an address (WebHome and inside the app): address, search, language pill, account, bag.
-// On a phone (MWeb*): "Deliver to" + the same pill + account, search on its own row.
+// - an address (WebHome and inside the app): search, language pill, account, bag. The
+//   address itself is on the page (the home's "N kitchens deliver to <address>" opens it).
+// On a phone (MWeb*): the same pill + account, search on its own row.
 import Link from "next/link";
 
 import { getContext } from "@/lib/prefs";
 import { discover } from "@/lib/server";
-import { AccountButton, AddressPill, BagButton, LanguageMenu, SearchBox } from "./HeaderParts";
+import { AccountButton, BagButton, LanguageMenu, SearchBox } from "./HeaderParts";
 import { LogoMark } from "./Icons";
 
 export async function SiteHeader() {
@@ -47,7 +48,6 @@ export async function SiteHeader() {
       {/* desktop */}
       <div className="mx-auto hidden h-[76px] max-w-[1440px] items-center gap-4 px-16 md:flex">
         {brand}
-        <AddressPill label={place.label} country={place.country} />
         <SearchBox cityPath={place.city_path ?? null} placeholder={placeholder} />
         <LanguageMenu />
         <AccountButton />
@@ -59,7 +59,7 @@ export async function SiteHeader() {
           <Link href="/" aria-label={t("common.home")} className="shrink-0">
             <LogoMark />
           </Link>
-          <AddressPill label={place.label} country={place.country} mobile />
+          <span className="flex-grow" />
           <LanguageMenu />
           <AccountButton />
         </div>

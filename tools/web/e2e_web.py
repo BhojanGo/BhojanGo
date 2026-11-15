@@ -371,8 +371,9 @@ with sync_playwright() as p:
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹\d+ delivery|Free delivery")),
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
-    check("personal home: the header carries the address, no marketing", lambda: (
-        expect(page.get_by_role("button", name="Change address").first).to_contain_text("Madhapur"),
+    check("personal home: the address is on the page, not in the header; no marketing", lambda: (
+        expect(page.get_by_test_id("change-address")).to_contain_text("Madhapur"),
+        expect(page.locator("header").get_by_role("button", name="Change address")).to_have_count(0),
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0)))
     check("personal home: the location line names the address's city", lambda: expect(
         page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change city"))
