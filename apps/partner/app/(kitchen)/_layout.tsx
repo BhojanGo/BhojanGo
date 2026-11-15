@@ -1,4 +1,5 @@
 // The kitchen shell (PartnerOrders.html): the dark rail on the left, the screen on the right.
+// On a phone (portrait, lib/layout.ts) the rail becomes a tab bar along the bottom.
 import { useI18n, useSession } from "@bhojango/mobile-core";
 import { Redirect, router, Slot, usePathname, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useBoard, useBoardLoop, NEW } from "../../lib/board";
 import { useKitchen } from "../../lib/data";
+import { useLayout } from "../../lib/layout";
 import { Icon, Mark, textFont, tone, type IconName } from "../../lib/ui";
 
 type RailItem = { href: string; key: "orders" | "menu" | "payouts" | "help"; icon: IconName };
@@ -21,6 +23,7 @@ export default function KitchenLayout() {
   const kitchen = useKitchen((s) => s.kitchen);
   const path = usePathname();
   const { t } = useI18n();
+  const { narrow } = useLayout();
   useBoardLoop(kitchen?.status === "active" ? kitchen.id : undefined);
   const waiting = useBoard((s) => s.orders.filter((o) => NEW.includes(o.status)).length);
 
@@ -33,7 +36,7 @@ export default function KitchenLayout() {
     const title = t(`partner.rail.${r.key}`);
     return (
       <Pressable key={r.href} testID={`rail-${r.key}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={title}
-        onPress={() => router.replace(r.href as Href)} style={[s.item, on && { backgroundColor: tone.railOn }, extra]}>
+        onPress={() => router.replace(r.href as Href)} style={[s.item, narrow && s.tab, on && { backgroundColor: tone.railOn }, extra]}>
         <Icon name={r.icon} stroke={on ? tone.white : tone.railText} />
         <Text style={[textFont(on ? "800" : "600"), { fontSize: 12, color: on ? tone.white : tone.railText, textAlign: "center" }]} numberOfLines={1}>{title}</Text>
         {r.href === "/orders" && waiting > 0 && !on ? <View style={s.dot} /> : null}
@@ -41,13 +44,27 @@ export default function KitchenLayout() {
     );
   };
 
+  const help: RailItem = { href: "/help", key: "help", icon: "help" };
+  if (narrow) {
+    return (
+      <View style={[s.screen, { flexDirection: "column" }]}>
+        <View style={{ flex: 1 }}>
+          <Slot />
+        </View>
+        <SafeAreaView edges={["left", "right", "bottom"]} style={s.bar}>
+          {[...RAIL, help].map((r) => item(r))}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={s.screen}>
       <SafeAreaView edges={["left", "top", "bottom"]} style={s.rail}>
         <View style={{ marginBottom: 12 }}><Mark size={40} /></View>
         {RAIL.map((r) => item(r))}
         <View style={{ flex: 1 }} />
-        {item({ href: "/help", key: "help", icon: "help" })}
+        {item(help)}
       </SafeAreaView>
       <View style={{ flex: 1 }}>
         <Slot />
@@ -60,5 +77,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, flexDirection: "row", backgroundColor: tone.porcelain },
   rail: { width: 88, backgroundColor: tone.rail, alignItems: "center", paddingVertical: 20, gap: 8 },
   item: { width: 72, height: 64, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 4 },
+  bar: { flexDirection: "row", backgroundColor: tone.rail, paddingHorizontal: 8, paddingTop: 6, paddingBottom: 6, gap: 4 },
+  tab: { flex: 1, width: undefined, height: 56 },
   dot: { position: "absolute", top: 8, right: 14, width: 10, height: 10, borderRadius: 5, backgroundColor: tone.chili },
 });

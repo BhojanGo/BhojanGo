@@ -8,6 +8,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen } from "../lib/data";
+import { useLayout } from "../lib/layout";
 import { Btn, color, radius, t, textFont } from "../lib/ui";
 
 type City = { code: string; name: string; region: string; country: string; lat: number; lng: number };
@@ -17,6 +18,7 @@ export default function Join() {
   const signOut = useSession((s) => s.signOut);
   const load = useKitchen((s) => s.load);
   const { t: tr } = useI18n();
+  const { narrow } = useLayout();
   const [cities, setCities] = useState<City[]>([]);
   const [city, setCity] = useState<City | null>(null);
   const [f, setF] = useState({ full_name: "", kitchen_name: "", street: "", area: "", zip: "", cuisines: "" });
@@ -56,7 +58,7 @@ export default function Join() {
   const ok = f.full_name.trim().length > 2 && f.kitchen_name.trim().length > 1 && f.street.trim().length > 2 && f.area.trim().length > 1
     && f.zip.trim().length > 2 && f.cuisines.trim().length > 1 && !!city && !busy;
   const field = (k: keyof typeof f, label: string, hint: string, props: object = {}) => (
-    <View style={{ flex: 1, minWidth: 240, gap: 6 }}>
+    <View style={{ flex: 1, minWidth: narrow ? 200 : 240, gap: 6 }}>
       <Text style={t.label}>{label}</Text>
       <TextInput disableFullscreenUI testID={k} accessibilityLabel={label} value={f[k]} onChangeText={set(k)} placeholder={hint} placeholderTextColor={color.muted}
         style={[textFont("600"), s.input]} {...props} />
@@ -64,7 +66,7 @@ export default function Join() {
   );
   return (
     <SafeAreaView edges={["left", "right", "top"]} style={{ flex: 1, backgroundColor: color.porcelain }}>
-      <ScrollView contentContainerStyle={{ padding: 32, gap: 16, maxWidth: 900, alignSelf: "center", width: "100%" }}>
+      <ScrollView contentContainerStyle={{ padding: narrow ? 20 : 32, gap: 16, maxWidth: 900, alignSelf: "center", width: "100%" }}>
         <Text accessibilityRole="header" style={t.big}>{tr("partner.join.title")}</Text>
         <Text style={t.muted}>{tr("partner.join.sub")}</Text>
         <View style={s.row}>{field("full_name", tr("partner.join.name"), tr("partner.join.name_hint"))}{field("kitchen_name", tr("partner.join.kitchen"), tr("partner.join.kitchen_hint"))}</View>
@@ -80,7 +82,7 @@ export default function Join() {
         <View style={s.row}>{field("street", tr("partner.join.street"), tr("partner.join.street_hint"))}{field("area", tr("partner.join.area"), tr("partner.join.area_hint"))}</View>
         <View style={s.row}>{field("zip", tr("partner.join.zip"), tr("partner.join.zip_hint"), { keyboardType: "number-pad" })}{field("cuisines", tr("partner.join.cuisines"), tr("partner.join.cuisines_hint"))}</View>
         {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
-        <View style={{ flexDirection: "row", gap: 12, justifyContent: "flex-end" }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
           <Btn title={tr("partner.join.another_number")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
           <Btn testID="send-application" title={tr("partner.join.send")} kind="primary" height={56} busy={busy} disabled={!ok} onPress={apply} />
         </View>
