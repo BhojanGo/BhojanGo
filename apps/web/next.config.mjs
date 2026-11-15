@@ -12,9 +12,11 @@ const REALTIME = process.env.NEXT_PUBLIC_REALTIME_URL ?? "http://localhost:8004"
 const nextConfig = {
   poweredByHeader: false,
   async headers() {
+    // Outside production, a header keeps search engines out too (not only robots.txt).
+    const noindex = process.env.APP_ENV === "production" ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
     return [{
       source: "/:path*",
-      headers: securityHeaders({
+      headers: [...noindex, ...securityHeaders({
         connect: [CORE, REALTIME],
         // kitchen photos (S3/CloudFront; LocalStack in make dev)
         img: ["https:", ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:4566"])],
@@ -22,7 +24,7 @@ const nextConfig = {
         script: ["https://checkout.razorpay.com", "https://js.stripe.com"],
         frame: ["https://api.razorpay.com", "https://checkout.razorpay.com", "https://js.stripe.com", "https://hooks.stripe.com"],
         geolocation: true,
-      }),
+      })],
     }];
   },
   images: {
@@ -35,8 +37,10 @@ const nextConfig = {
     // Old URLs from before P20.
     return [
       { source: "/restaurants", destination: "/", permanent: true },
-      { source: "/login", destination: "/sign-in", permanent: true },
-      { source: "/signup", destination: "/sign-in", permanent: true },
+      { source: "/login", destination: "/signin", permanent: true },
+      { source: "/signup", destination: "/signin", permanent: true },
+      { source: "/sign-in", destination: "/signin", permanent: true },
+      { source: "/orders", destination: "/account/orders", permanent: true },
       { source: "/cart", destination: "/checkout", permanent: true },
     ];
   },

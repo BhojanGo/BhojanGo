@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web · Home — first visit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66;text-decoration:none}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 2480px; box-sizing: border-box; background: #FFFFFF; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+  <header style="position: relative; height: 76px; box-sizing: border-box; padding: 0 64px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #E2E7E8">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; color: #111418" aria-label="BhojanGo home">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>
+      <span style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.4px">BhojanGo</span>
+    </a>
+    <span style="flex-grow: 1"></span>
+    <a href="#" style="font-size: 15px; font-weight: 700; color: #111418">Where we deliver</a>
+    <a href="#" style="font-size: 15px; font-weight: 700; color: #111418">Add your kitchen</a>
+    <a href="#" style="font-size: 15px; font-weight: 700; color: #111418">Ride with us</a>
+    <button aria-label="Country: United States" style="font: inherit; height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid #E2E7E8; background: #FFFFFF; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #111418; flex-shrink: 0"><span style="font-size: 11px; font-weight: 800; background: #111418; color: #FFFFFF; border-radius: 5px; padding: 2px 5px">US</span>United States<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><button aria-label="Language" aria-expanded="true" style="font: inherit; height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid #0B5D66; background: #EFF6F6; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #111418; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>English<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><button style="font: inherit; height: 44px; padding: 0 20px; border-radius: 999px; border: 1.5px solid #C9D3D4; background: #FFFFFF; font-weight: 700; font-size: 15px; color: #111418">Sign in</button>
+  <div role="menu" style="position: absolute; top: 68px; right: 150px; width: 260px; z-index: 5; padding: 8px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E7E8; box-shadow: 0 16px 40px rgba(17,20,24,0.16); font-size: 15px"><div style="padding: 8px 14px 6px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #4C5A5E">Language · United States</div><div style="height: 44px; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; background: #EFF6F6; font-weight: 800; color: #083F46"><span>English</span><span style="font-size: 13px; color: #4C5A5E">✓</span></div><div style="height: 44px; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; color: #111418"><span>Español</span><span style="font-size: 13px; color: #4C5A5E"></span></div><div style="margin-top: 6px; padding: 10px 14px 4px; border-top: 1px solid #EEF1F1; font-size: 12px; color: #4C5A5E">Country is separate: prices and kitchens follow your address.</div></div>
+  </header>
+
+  <!-- Hero: address first, no city names in the template -->
+  <section style="padding: 72px 64px 80px; display: grid; grid-template-columns: 1fr 560px; gap: 56px; align-items: center; background: linear-gradient(180deg, #EFF6F6 0%, #FFFFFF 100%)">
+    <div>
+      <h1 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 80px; line-height: 0.98; letter-spacing: -2.8px">Real food.<br>Fair prices.</h1>
+      <p style="margin: 22px 0 0; font-size: 20px; line-height: 1.5; color: #4C5A5E; max-width: 560px">Food from local kitchens, with every fee shown before you pay, and exactly who gets it.</p>
+
+      <form style="margin-top: 36px; max-width: 660px; height: 72px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(17,20,24,0.06), 0 12px 32px rgba(11,93,102,0.14); border: 1px solid #DDEBEC; display: flex; align-items: center; padding: 0 8px 0 26px; box-sizing: border-box; gap: 12px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5D66" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+        <span style="flex-grow: 1; font-size: 17px; color: #4C5A5E">Enter your delivery address</span>
+        <button type="button" style="font: inherit; height: 56px; padding: 0 30px; border-radius: 999px; border: 0; background: #0B5D66; color: #FFFFFF; font-weight: 800; font-size: 16px">Find food</button>
+      </form>
+
+      <!-- Geo hint: from IP lookup, shown only when the guess falls inside a live zone -->
+      <div style="margin-top: 16px; max-width: 660px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E7E8; font-size: 14px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B5D66" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+        <span style="flex-grow: 1"><b>Looks like you're near Meridian, Idaho.</b> <span style="color: #4C5A5E">We deliver there.</span></span>
+        <a href="#" style="font-weight: 800">Use my location</a>
+      </div>
+    </div>
+
+    <div style="position: relative; height: 520px">
+      <div style="position: absolute; right: 0; top: 0; width: 480px; height: 480px; border-radius: 48px; background: #F6E7CC; overflow: hidden"><img src="food/south-indian-thali-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 48px; "></div>
+      <div style="position: absolute; left: 0; bottom: 0; width: 300px; box-sizing: border-box; padding: 20px; border-radius: 24px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(17,20,24,0.06), 0 24px 48px rgba(17,20,24,0.14)">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #0B5D66">Who gets your money</div>
+        <div style="margin-top: 14px; display: flex; height: 14px; border-radius: 999px; overflow: hidden">
+          <span style="width: 75%; background: #0B5D66"></span><span style="width: 9%; background: #E8A93C"></span><span style="width: 6%; background: #A9B8BA"></span><span style="width: 10%; background: #111418"></span>
+        </div>
+        <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 13px">
+          <span><b style="color: #0B5D66">■</b> Kitchen</span><span><b style="color: #E8A93C">■</b> Rider + tip</span>
+          <span><b style="color: #A9B8BA">■</b> Tax</span><span><b>■</b> BhojanGo</span>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: #4C5A5E">Your real bill shows exact amounts, line by line, before you pay.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section style="padding: 0 64px">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+      <div style="padding: 28px; border-radius: 24px; background: #F4F6F6"><div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 40px; font-weight: 600; color: #0B5D66; letter-spacing: -1px">1</div><b style="display: block; margin-top: 8px; font-size: 18px">Tell us where</b><div style="margin-top: 6px; font-size: 15px; line-height: 1.5; color: #4C5A5E">We show the kitchens that deliver to you, with times and fees for your address.</div></div>
+      <div style="padding: 28px; border-radius: 24px; background: #F4F6F6"><div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 40px; font-weight: 600; color: #0B5D66; letter-spacing: -1px">2</div><b style="display: block; margin-top: 8px; font-size: 18px">See the whole bill</b><div style="margin-top: 6px; font-size: 15px; line-height: 1.5; color: #4C5A5E">Food, delivery, service, tax and tip, each with who gets it. Nothing added at the end.</div></div>
+      <div style="padding: 28px; border-radius: 24px; background: #F4F6F6"><div style="font-family: 'Familjen Grotesk', sans-serif; font-size: 40px; font-weight: 600; color: #0B5D66; letter-spacing: -1px">3</div><b style="display: block; margin-top: 8px; font-size: 18px">Track it to your door</b><div style="margin-top: 6px; font-size: 15px; line-height: 1.5; color: #4C5A5E">Live map, a delivery PIN, and a rider who is paid fairly for every trip.</div></div>
+    </div>
+  </section>
+
+
+  <!-- Food you can order: categories come from the catalog of live cities -->
+  <section style="padding: 72px 64px 0">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 36px; letter-spacing: -0.8px">What's cooking near you</h2>
+      <span style="font-size: 15px; color: #4C5A5E">Enter your address to see kitchens and prices for your street</span>
+    </div>
+    <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 16px"><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/pepperoni-pizza-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Pizza</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/hyderabadi-chicken-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Biryani</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/cheeseburger-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Burgers</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/masala-dosa-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Dosa</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/sushi-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Sushi</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/tacos-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Tacos</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/paneer-butter-masala-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Curries</span></a><a href="#" style="position: relative; display: block; aspect-ratio: 1; border-radius: 20px; overflow: hidden; color: #FFFFFF"><img src="food/latte-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; inset: auto 0 0 0; padding: 40px 14px 12px; background: linear-gradient(180deg, rgba(17,20,24,0) 0%, rgba(17,20,24,0.72) 100%); font-weight: 800; font-size: 16px">Coffee</span></a></div>
+  </section>
+  <!-- Where we deliver: generated from Markets -->
+  <section style="padding: 80px 64px 0">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <div>
+        <h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 36px; letter-spacing: -0.8px">Where we deliver</h2>
+        <div style="margin-top: 6px; font-size: 16px; color: #4C5A5E">2 countries · 2 cities live · 3 coming soon</div>
+      </div>
+      <div style="width: 360px; height: 48px; border-radius: 999px; background: #F4F6F6; border: 1px solid #E2E7E8; display: flex; align-items: center; gap: 10px; padding: 0 18px; box-sizing: border-box; color: #4C5A5E; font-size: 15px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>Find your city
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; gap: 8px; border-bottom: 1px solid #E2E7E8">
+      <span style="height: 44px; padding: 0 16px; display: flex; align-items: center; font-weight: 800; border-bottom: 2.5px solid #0B5D66; color: #083F46">All countries</span>
+      <span style="height: 44px; padding: 0 16px; display: flex; align-items: center; font-weight: 700; color: #4C5A5E">India <span style="margin-left: 6px; font-size: 12px; background: #F4F6F6; border-radius: 6px; padding: 2px 6px">3</span></span>
+      <span style="height: 44px; padding: 0 16px; display: flex; align-items: center; font-weight: 700; color: #4C5A5E">United States <span style="margin-left: 6px; font-size: 12px; background: #F4F6F6; border-radius: 6px; padding: 2px 6px">2</span></span>
+    </div>
+
+    <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+      <div style="padding: 24px; border-radius: 24px; border: 1px solid #E2E7E8">
+        <div style="font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #4C5A5E">India</div>
+        <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: #4C5A5E">Telangana</div>
+        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+          <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; background: #EFF6F6; border: 1px solid #DDEBEC; display: flex; align-items: center; gap: 8px; font-weight: 700; color: #083F46"><span style="width: 8px; height: 8px; border-radius: 999px; background: #0B5D66"></span>Hyderabad</a>
+        </div>
+        <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: #4C5A5E">Andhra Pradesh</div>
+        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+          <span style="height: 44px; padding: 0 16px; border-radius: 999px; border: 1px dashed #C9D3D4; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #4C5A5E">Visakhapatnam · soon</span>
+          <span style="height: 44px; padding: 0 16px; border-radius: 999px; border: 1px dashed #C9D3D4; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #4C5A5E">Vijayawada · soon</span>
+        </div>
+      </div>
+      <div style="padding: 24px; border-radius: 24px; border: 1px solid #E2E7E8">
+        <div style="font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #4C5A5E">United States</div>
+        <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: #4C5A5E">Idaho</div>
+        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px">
+          <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; background: #EFF6F6; border: 1px solid #DDEBEC; display: flex; align-items: center; gap: 8px; font-weight: 700; color: #083F46"><span style="width: 8px; height: 8px; border-radius: 999px; background: #0B5D66"></span>Boise</a>
+          <span style="height: 44px; padding: 0 16px; border-radius: 999px; border: 1px dashed #C9D3D4; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #4C5A5E">Nampa · soon</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-radius: 20px; background: #111418; color: #F2F5F5">
+      <b style="font-size: 17px; flex-grow: 1">Don't see your city? Tell us, and we'll email you the day we arrive.</b>
+      <span style="width: 280px; height: 48px; border-radius: 999px; background: #1B2C2F; display: flex; align-items: center; padding: 0 18px; box-sizing: border-box; color: #A9B8BA; font-size: 15px">Your city and email</span>
+      <span style="height: 48px; padding: 0 22px; border-radius: 999px; background: #E8A93C; color: #111418; display: flex; align-items: center; font-weight: 800">Notify me</span>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  <section style="padding: 80px 64px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+    <div style="border-radius: 28px; background: #EFF6F6; padding: 40px">
+      <div style="font-size: 13px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #0B5D66">For kitchens</div>
+      <h3 style="margin: 10px 0 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 32px; letter-spacing: -0.8px">Cook with BhojanGo</h3>
+      <p style="margin: 12px 0 0; font-size: 16px; line-height: 1.5; color: #4C5A5E; max-width: 440px">Commission on food only, weekly payouts, your prices and your offers.</p>
+      <a href="#" style="margin-top: 20px; display: inline-flex; height: 52px; padding: 0 24px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; align-items: center; font-weight: 800">Add your kitchen</a>
+    </div>
+    <div style="border-radius: 28px; background: #0C1416; color: #F2F5F5; padding: 40px">
+      <div style="font-size: 13px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #E8A93C">For riders</div>
+      <h3 style="margin: 10px 0 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 32px; letter-spacing: -0.8px">Ride with BhojanGo</h3>
+      <p style="margin: 12px 0 0; font-size: 16px; line-height: 1.5; color: #A9B8BA; max-width: 440px">See the full pay before you accept. An hourly floor. Tips are 100% yours.</p>
+      <a href="#" style="margin-top: 20px; display: inline-flex; height: 52px; padding: 0 24px; border-radius: 999px; background: #E8A93C; color: #111418; align-items: center; font-weight: 800">Start riding</a>
+    </div>
+  </section>
+
+  <footer style="margin-top: 80px; background: #F4F6F6; padding: 48px 64px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; font-size: 15px">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg><b style="font-family: 'Familjen Grotesk', sans-serif; font-size: 20px">BhojanGo</b></div>
+      <div style="margin-top: 12px; color: #4C5A5E; line-height: 1.5">Real food. Fair prices.</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Where we deliver</b><a href="#">All cities</a><a href="#">Suggest your city</a></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Work with us</b><a href="#">Add your kitchen</a><a href="#">Ride with BhojanGo</a></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Help</b><a href="#">Help centre</a><a href="#">Terms</a><a href="#">Privacy</a></div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2480}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web · Home — signed in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5D66;text-decoration:none}a:hover{color:#083F46}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 2200px; box-sizing: border-box; background: #FFFFFF; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<header style="position: relative; height: 76px; box-sizing: border-box; padding: 0 64px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E2E7E8; background: #FFFFFF">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; color: #111418; flex-shrink: 0" aria-label="BhojanGo home">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>
+      <span style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.4px">BhojanGo</span>
+    </a>
+    <button style="font: inherit; height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #E2E7E8; background: #F4F6F6; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #111418; flex-shrink: 0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B5D66" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+      Madhapur, Hyderabad
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </button>
+    <div style="flex-grow: 1; height: 48px; border-radius: 999px; background: #F4F6F6; border: 1px solid #E2E7E8; display: flex; align-items: center; gap: 10px; padding: 0 18px; box-sizing: border-box; color: #4C5A5E; font-size: 15px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      Search biryani, dosa, kitchens…
+    </div>
+    <button aria-label="Language" aria-expanded="false" style="font: inherit; height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid #E2E7E8; background: #FFFFFF; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #111418; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>English<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+    <span aria-label="Your account" style="width: 44px; height: 44px; border-radius: 999px; background: #DDEBEC; color: #083F46; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">S</span>
+    <button style="font: inherit; height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #111418; color: #FFFFFF; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-shrink: 0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>
+      Bag · 2
+    </button>
+  </header><section style="padding: 24px 64px 0">
+  <a href="#" style="display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-radius: 20px; background: #111418; color: #F2F5F5">
+    <span style="width: 56px; height: 56px; border-radius: 14px; overflow: hidden; flex-shrink: 0"><img src="food/hyderabadi-chicken-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 14px; "></span>
+    <span style="flex-grow: 1">
+      <b style="display: block; font-size: 17px">Your order from Spice Route Kitchen is on the way</b>
+      <span style="font-size: 14px; color: #A9B8BA">Rider Ravi is 1.2 km away · Delivery PIN 4821</span>
+    </span>
+    <span style="text-align: right"><b style="display: block; font-family: 'Familjen Grotesk', sans-serif; font-size: 26px; font-weight: 600">18 min</b><span style="font-size: 13px; color: #A9B8BA">arriving 8:42 pm</span></span>
+    <span style="height: 48px; padding: 0 20px; border-radius: 999px; background: #E8A93C; color: #111418; display: flex; align-items: center; font-weight: 800">Track order</span>
+  </a>
+  <div style="margin-top: 10px; display: flex; height: 6px; border-radius: 999px; background: #E2E7E8; overflow: hidden"><span style="width: 72%; background: #0B5D66"></span></div>
+</section><section style="padding: 32px 64px 0; display: flex; align-items: flex-end; justify-content: space-between">
+  <div>
+    <h1 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 40px; letter-spacing: -1px">Good evening, Srini</h1>
+    <div style="margin-top: 6px; font-size: 16px; color: #4C5A5E">42 kitchens deliver to Plot 12, Madhapur right now</div>
+  </div>
+  <div style="display: flex; gap: 8px"><span style="height: 40px; padding: 0 16px; border-radius: 999px; background: #111418; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 700">Open now</span><span style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #C9D3D4; display: flex; align-items: center; font-size: 14px; font-weight: 700">Under 30 min</span><span style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #C9D3D4; display: flex; align-items: center; font-size: 14px; font-weight: 700">Offers</span><span style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #C9D3D4; display: flex; align-items: center; font-size: 14px; font-weight: 700">Veg only</span><span style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #C9D3D4; display: flex; align-items: center; font-size: 14px; font-weight: 700">Free delivery</span></div>
+</section><section style="padding: 40px 64px 0">
+  <div style="display: flex; justify-content: space-between; align-items: baseline"><div><h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 26px; letter-spacing: -0.5px">Order again</h2></div><a href="#" style="font-weight: 700">All orders</a></div>
+  <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+    <div style="display: flex; gap: 16px; padding: 16px; border-radius: 20px; border: 1px solid #E2E7E8; align-items: center">
+  <span style="width: 88px; height: 88px; border-radius: 14px; overflow: hidden; flex-shrink: 0"><img src="food/hyderabadi-chicken-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 14px; "></span>
+  <span style="flex-grow: 1; min-width: 0"><b style="display: block; font-size: 16px">Spice Route Kitchen</b><span style="display: block; margin-top: 2px; font-size: 14px; color: #4C5A5E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Chicken dum biryani, extra raita, paneer tikka</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #4C5A5E">Last Friday · ₹543.93</span></span>
+  <span style="height: 44px; padding: 0 18px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; display: flex; align-items: center; font-weight: 800; font-size: 14px; flex-shrink: 0">Order again</span>
+</div>
+    <div style="display: flex; gap: 16px; padding: 16px; border-radius: 20px; border: 1px solid #E2E7E8; align-items: center">
+  <span style="width: 88px; height: 88px; border-radius: 14px; overflow: hidden; flex-shrink: 0"><img src="food/masala-dosa-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 14px; "></span>
+  <span style="flex-grow: 1; min-width: 0"><b style="display: block; font-size: 16px">Curry Leaf</b><span style="display: block; margin-top: 2px; font-size: 14px; color: #4C5A5E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">2 masala dosa, filter coffee</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #4C5A5E">12 Nov · ₹325.56</span></span>
+  <span style="height: 44px; padding: 0 18px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; display: flex; align-items: center; font-weight: 800; font-size: 14px; flex-shrink: 0">Order again</span>
+</div>
+    <div style="display: flex; gap: 16px; padding: 16px; border-radius: 20px; border: 1px solid #E2E7E8; align-items: center">
+  <span style="width: 88px; height: 88px; border-radius: 14px; overflow: hidden; flex-shrink: 0"><img src="food/irani-chai-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 14px; "></span>
+  <span style="flex-grow: 1; min-width: 0"><b style="display: block; font-size: 16px">Charminar Chai House</b><span style="display: block; margin-top: 2px; font-size: 14px; color: #4C5A5E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">2 Irani chai, Osmania biscuits</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #4C5A5E">9 Nov · ₹128.00</span></span>
+  <span style="height: 44px; padding: 0 18px; border-radius: 999px; background: #0B5D66; color: #FFFFFF; display: flex; align-items: center; font-weight: 800; font-size: 14px; flex-shrink: 0">Order again</span>
+</div>
+  </div>
+</section><section style="padding: 48px 64px 0">
+  <div><h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 26px; letter-spacing: -0.5px">What are you craving?</h2></div>
+  <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 20px"><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/veg-dum-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Biryani</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/masala-dosa-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Dosa</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/south-indian-thali-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Thali</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/irani-chai-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Chai</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/margherita-pizza-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Pizza</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/gulab-jamun-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Sweets</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/tandoori-chicken-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Tandoor</div></a><a href="#" style="color: #111418; text-align: center"><div style="aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 5px #E2E7E8"><img src="food/samosa-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 999px; "></div><div style="margin-top: 12px; font-weight: 700; font-size: 15px">Snacks</div></a></div>
+</section><section style="padding: 48px 64px 0">
+  <div><h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 26px; letter-spacing: -0.5px">Offers near you</h2><div style="margin-top: 4px; font-size: 15px; color: #4C5A5E">Every offer says who pays for it.</div></div>
+  <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+    <a href="#" style="display: flex; border-radius: 20px; overflow: hidden; background: #F6E7CC; color: #111418; height: 150px">
+  <span style="flex-grow: 1; padding: 20px 20px 20px 24px; display: flex; flex-direction: column; justify-content: center"><b style="font-family: 'Familjen Grotesk', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.4px">10% off, up to ₹50</b><span style="margin-top: 4px; font-size: 14px; color: #24383B">On your next 3 orders</span><span style="margin-top: 10px; font-size: 12px; font-weight: 800; color: #4C5A5E">BHOJANGO PAYS</span></span>
+  <span style="width: 170px; flex-shrink: 0"><img src="food/veg-dum-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; "></span>
+</a>
+    <a href="#" style="display: flex; border-radius: 20px; overflow: hidden; background: #DDEBEC; color: #111418; height: 150px">
+  <span style="flex-grow: 1; padding: 20px 20px 20px 24px; display: flex; flex-direction: column; justify-content: center"><b style="font-family: 'Familjen Grotesk', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.4px">Free delivery</b><span style="margin-top: 4px; font-size: 14px; color: #24383B">Charminar Chai House, orders over ₹149</span><span style="margin-top: 10px; font-size: 12px; font-weight: 800; color: #4C5A5E">KITCHEN PAYS</span></span>
+  <span style="width: 170px; flex-shrink: 0"><img src="food/irani-chai-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; "></span>
+</a>
+    <a href="#" style="display: flex; border-radius: 20px; overflow: hidden; background: #F1E3E1; color: #111418; height: 150px">
+  <span style="flex-grow: 1; padding: 20px 20px 20px 24px; display: flex; flex-direction: column; justify-content: center"><b style="font-family: 'Familjen Grotesk', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.4px">Free gulab jamun</b><span style="margin-top: 4px; font-size: 14px; color: #24383B">Hitech Thali, with any thali</span><span style="margin-top: 10px; font-size: 12px; font-weight: 800; color: #4C5A5E">KITCHEN PAYS</span></span>
+  <span style="width: 170px; flex-shrink: 0"><img src="food/gulab-jamun-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; "></span>
+</a>
+  </div>
+</section><section style="padding: 48px 64px 0">
+  <div style="display: flex; justify-content: space-between; align-items: baseline"><div><h2 style="margin: 0; font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 26px; letter-spacing: -0.5px">Kitchens near you</h2><div style="margin-top: 4px; font-size: 15px; color: #4C5A5E">Prices are set by each kitchen. Delivery fee shown on every card.</div></div><a href="#" style="font-weight: 700">See all 42</a></div>
+  <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px">
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/hyderabadi-chicken-biryani-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; left: 12px; top: 12px; height: 28px; padding: 0 10px; border-radius: 999px; background: #111418; color: #FFFFFF; font-size: 12px; font-weight: 800; display: flex; align-items: center">10% off · we pay</span><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#B3261E" stroke="#B3261E" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Spice Route Kitchen</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Hyderabadi · Biryani · 1.2 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>25–30 min</b> · ₹25 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/vada-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#B3261E" stroke="#B3261E" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Curry Leaf</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Kerala · South Indian · 2.4 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>30–40 min</b> · ₹25 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/irani-chai-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; left: 12px; top: 12px; height: 28px; padding: 0 10px; border-radius: 999px; background: #111418; color: #FFFFFF; font-size: 12px; font-weight: 800; display: flex; align-items: center">Free delivery · kitchen pays</span><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Charminar Chai House</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Irani café · Snacks · 0.9 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>20–30 min</b> · <span style="color: #0B5D66; font-weight: 700">Free delivery</span></div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/north-indian-thali-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Hitech Thali</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Andhra · Thali · 3.1 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>30–40 min</b> · ₹35 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/tandoori-chicken-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Tandoor Nights</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">North Indian · Grill · 2.8 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>35–45 min</b> · ₹35 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/samosa-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Chaat Corner</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Street food · Snacks · 1.6 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>20–25 min</b> · ₹25 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/paneer-butter-masala-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Punjab Rasoi</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Punjabi · Curries · 3.4 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>35–45 min</b> · ₹35 delivery</div>
+</a>
+    <a href="#" style="color: #111418">
+  <div style="position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden"><img src="food/margherita-pizza-800.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px; "><span style="position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#111418" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></span></div>
+  <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: baseline"><b style="font-size: 17px">Forno 21</b><span style="font-size: 12px; font-weight: 800; color: #083F46; background: #DDEBEC; border-radius: 6px; padding: 3px 8px">New</span></div>
+  <div style="margin-top: 4px; font-size: 14px; color: #4C5A5E">Italian · Pizza · 2.2 km</div>
+  <div style="margin-top: 4px; font-size: 14px"><b>30–35 min</b> · ₹25 delivery</div>
+</a>
+  </div>
+</section><div style="height: 72px"></div><footer style="margin-top: 72px; background: #F4F6F6; padding: 48px 64px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; font-size: 15px">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5.5v24" stroke="#0B5D66" stroke-width="5" stroke-linecap="round" fill="none"></path><circle cx="20.5" cy="25" r="8.5" fill="none" stroke="#0B5D66" stroke-width="5"></circle><path d="M18.5 13.5c-1.6-1.8 1.6-3.4 0-5.6M24.5 13.5c-1.6-1.8 1.6-3.4 0-5.6" stroke="#D4932A" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg><b style="font-family: 'Familjen Grotesk', sans-serif; font-size: 20px">BhojanGo</b></div>
+      <div style="margin-top: 12px; color: #4C5A5E; line-height: 1.5">Real food. Fair prices.</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Where we deliver</b><a href="#">All cities</a><a href="#">Suggest your city</a></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Work with us</b><a href="#">Add your kitchen</a><a href="#">Ride with BhojanGo</a></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><b>Help</b><a href="#">Help centre</a><a href="#">Your orders</a><a href="#">Terms</a><a href="#">Privacy</a></div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

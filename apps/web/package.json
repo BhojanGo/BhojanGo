@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@bhojango/api-client": "workspace:^",
+    "@bhojango/i18n": "workspace:*",
     "@bhojango/ui": "workspace:*",
     "next": "16.4.6",
     "react": "19.3.0",
