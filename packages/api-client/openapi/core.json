@@ -2467,6 +2467,20 @@
             "title": "Name",
             "type": "string"
           },
+          "payment_methods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Payment Methods",
+            "type": "array"
+          },
+          "payment_providers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Payment Providers",
+            "type": "array"
+          },
           "phone_code": {
             "title": "Phone Code",
             "type": "string"
@@ -2486,6 +2500,10 @@
             "title": "Soon",
             "type": "integer"
           },
+          "tax_regime": {
+            "title": "Tax Regime",
+            "type": "string"
+          },
           "timezone": {
             "title": "Timezone",
             "type": "string"
@@ -2500,6 +2518,9 @@
           "timezone",
           "distance_unit",
           "phone_code",
+          "tax_regime",
+          "payment_providers",
+          "payment_methods",
           "live",
           "soon",
           "regions"
