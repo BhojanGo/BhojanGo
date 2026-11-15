@@ -15,6 +15,7 @@ type Kind = "restaurant" | "item";
 interface Favs {
   loaded: string | null; // the user id it was loaded for
   ids: Set<string>; // "restaurant:<id>" | "item:<id>"
+  touched: Map<string, boolean>; // taps while the list was loading: they win over the loaded list
   load: (userId: string) => Promise<void>;
   toggle: (kind: Kind, id: string) => Promise<void>;
 }
@@ -22,12 +23,18 @@ interface Favs {
 export const useFavourites = create<Favs>((set, get) => ({
   loaded: null,
   ids: new Set(),
+  touched: new Map(),
   load: async (userId) => {
     if (get().loaded === userId) return;
-    set({ loaded: userId });
+    set({ loaded: userId, touched: new Map() });
     try {
       const f = await authed<{ restaurants: { id: string }[]; items: { id: string }[] }>("GET", "/api/v1/me/favourites");
-      set({ ids: new Set([...f.restaurants.map((r) => `restaurant:${r.id}`), ...f.items.map((i) => `item:${i.id}`)]) });
+      const ids = new Set([...f.restaurants.map((r) => `restaurant:${r.id}`), ...f.items.map((i) => `item:${i.id}`)]);
+      for (const [key, on] of get().touched) {
+        if (on) ids.add(key);
+        else ids.delete(key);
+      }
+      set({ ids, touched: new Map() });
     } catch {
       set({ loaded: null });
     }
@@ -38,7 +45,7 @@ export const useFavourites = create<Favs>((set, get) => ({
     const next = new Set(get().ids);
     if (on) next.delete(key);
     else next.add(key);
-    set({ ids: next }); // optimistic
+    set({ ids: next, touched: new Map(get().touched).set(key, !on) }); // optimistic
     try {
       await authed(on ? "DELETE" : "PUT", `/api/v1/me/favourites/${kind}/${id}`);
     } catch {

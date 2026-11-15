@@ -19,7 +19,7 @@ export function ChangeAddress({ country, children }: { country: string | null; c
       </p>
       {open && (
         <div id="change-address" className="mt-4 max-w-[600px]">
-          <AddressBox size="sheet" country={country} autoFocus />
+          <AddressBox size="sheet" country={country} autoFocus onPicked={() => setOpen(false)} />
         </div>
       )}
     </div>

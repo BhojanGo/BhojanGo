@@ -32,12 +32,20 @@ export function offerBadge(o: Offer, t: T, currency: string, formatLocale: strin
 }
 
 export function offerSubtitle(o: Offer, t: T, currency: string, formatLocale: string): string {
-  const min = o.min_subtotal ? money(o.min_subtotal, currency, formatLocale, { whole: true }) : null;
+  // "0" (or no minimum) means every order qualifies: no "Orders over 0".
+  const min = o.min_subtotal && Number(o.min_subtotal) > 0 ? money(o.min_subtotal, currency, formatLocale, { whole: true }) : null;
   const kitchen = o.restaurant?.name as string | undefined;
   if (kitchen && min) return t("offers.kitchen_orders_over", { kitchen, amount: min });
   if (kitchen) return t("offers.kitchen_any", { kitchen });
   if (min) return t("offers.orders_over", { amount: min });
   return t("offers.every_order");
+}
+
+/** "06:30" of an ISO time with its offset, i.e. the kitchen's own clock, whatever the viewer's (or server's) zone. */
+function wallTime(iso: string, formatLocale: string): string {
+  const m = /T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))).toLocaleTimeString(formatLocale, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
 }
 
 function Img({ src, alt = "", className }: { src: string | null; alt?: string; className?: string }) {
@@ -78,7 +86,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit }: { k:
               )}
             </>
           )}
-          {!k.open_now && k.opens_at && <span className="text-[#4C5A5E]"> · {t("common.closed_opens", { time: new Date(k.opens_at).toLocaleTimeString(formatLocale, { hour: "numeric", minute: "2-digit" }) })}</span>}
+          {!k.open_now && k.opens_at && <span className="text-[#4C5A5E]"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">

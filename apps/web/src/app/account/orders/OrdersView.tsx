@@ -154,7 +154,7 @@ export function OrdersView() {
             className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]"
           />
         </label>
-        <div role="group" aria-label={t("account.orders.filters")} className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
+        <div role="group" aria-label={t("account.orders.filters")} className="mt-3 flex gap-2 overflow-x-auto">
           {FILTERS.map((s) => (
             <button
               key={s}

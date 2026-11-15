@@ -54,7 +54,7 @@ export function usePickPlace() {
 }
 
 /** "Use my location": the browser's position, only when the visitor asks. */
-export function useMyLocation(onProblem: (m: string | null) => void) {
+export function useMyLocation(onProblem: (m: string | null) => void, onPicked?: () => void) {
   const t = useT();
   const pick = usePickPlace();
   const [busy, setBusy] = useState(false);
@@ -65,6 +65,7 @@ export function useMyLocation(onProblem: (m: string | null) => void) {
       async (pos) => {
         try {
           pick(await placeFromPoint(pos.coords.latitude, pos.coords.longitude));
+          onPicked?.();
         } catch {
           onProblem(t("common.error"));
         } finally {
@@ -81,14 +82,25 @@ export function useMyLocation(onProblem: (m: string | null) => void) {
   return { run, busy };
 }
 
-export function AddressBox({ size = "hero", country, autoFocus }: { size?: "hero" | "sheet"; country?: string | null; autoFocus?: boolean }) {
+export function AddressBox({
+  size = "hero",
+  country,
+  autoFocus,
+  onPicked,
+}: {
+  size?: "hero" | "sheet";
+  country?: string | null;
+  autoFocus?: boolean;
+  /** Called once a place is chosen (a sheet or dialog closes itself). */
+  onPicked?: () => void;
+}) {
   const t = useT();
   const pick = usePickPlace();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Area[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [active, setActive] = useState(0);
-  const locate = useMyLocation(setProblem);
+  const locate = useMyLocation(setProblem, onPicked);
   const listId = useId();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -109,8 +121,11 @@ export function AddressBox({ size = "hero", country, autoFocus }: { size?: "hero
     }, 200);
   }, [q, country, t]);
 
-  const choose = (a: Area) =>
+  const choose = (a: Area) => {
     pick({ label: a.label, lat: a.lat, lng: a.lng, country: a.country, city_code: a.city_code, city_path: a.city_path, zone: a.served ? a.area : null, served: a.served });
+    setQ("");
+    onPicked?.();
+  };
 
   const hero = size === "hero";
   const shown = q.trim().length >= 2 ? hits : [];

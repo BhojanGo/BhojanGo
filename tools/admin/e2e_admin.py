@@ -121,7 +121,8 @@ with sync_playwright() as p:
         page.locator("input[type=email]").fill(email)
         page.locator("input[type=password]").fill(PASSWORDS.get(email, PW))
         page.get_by_role("button", name=re.compile("sign in", re.I)).click()
-        page.wait_for_url("**/overview**", timeout=20000)
+        # A client-side navigation never fires "load": wait on the URL itself.
+        expect(page).to_have_url(re.compile(r"/overview"), timeout=20000)
 
     page = b.new_page(viewport={"width": 1440, "height": 1000})
     sign_in(page, "admin@example.com")
@@ -429,6 +430,39 @@ with sync_playwright() as p:
     page.goto(f"{BASE}/markets/IN/IN-TG-HYD", wait_until="networkidle")
     check("markets: the city with its zones", lambda: expect(page.get_by_text(re.compile("Zones")).first).to_be_visible(timeout=15000))
     page.screenshot(path=f"{OUT}/08-markets-city.png")
+
+    # Markets for the website: a coming-soon city, its "Notify me" sign-ups (one sent
+    # here like the website does), the demand card, and "Add a city".
+    soon = next(c for k in api.get(f"{CORE}/markets/directory").json()["countries"] if k["code"] == "IN"
+                for r in k["regions"] for c in r["cities"] if c["status"] == "soon")
+    api.post(f"{CORE}/markets/waitlist", data={"email": f"admin-e2e-{uuid.uuid4().hex[:8]}@example.com", "consent": True,
+                                                "source": "soon_city", "city_code": soon["code"]})
+    page.goto(f"{BASE}/markets/IN", wait_until="networkidle")
+    cities_table = page.get_by_role("region", name="States and cities")
+    soon_row = cities_table.get_by_role("row", name=re.compile("^" + re.escape(soon["name"]) + " "))
+    check("markets: a coming-soon city with its Notify me sign-ups", lambda: (
+        expect(cities_table.get_by_role("cell", name="Notify me", exact=True)).to_be_visible(timeout=15000),
+        expect(soon_row.get_by_role("cell", name="Coming soon")).to_be_visible(),
+        expect(soon_row.get_by_role("cell").last).to_have_text(re.compile(r"^[1-9]\d*$"))))
+    demand = page.get_by_role("region", name="Notify me demand")
+    check("markets: the demand card counts sign-ups per city", lambda: (
+        expect(demand.get_by_role("row", name=re.compile("^" + re.escape(soon["name"]) + r" [1-9]"))).to_be_visible(timeout=15000)))
+    add = page.get_by_role("region", name="Add a city")
+    add.get_by_role("button", name="New city").click()
+    add.locator("select").first.select_option(label="Telangana")  # the State list
+    add.get_by_label("City name").fill("Testville")
+    check("add a city: the code is made from the state and the name", lambda: expect(add.get_by_label("City code")).to_have_value("IN-TG-TST"))
+    # One E2E city, created on the first run only (cities aren't deleted): a draft, so the website never shows it.
+    in_markets = api.get(f"{CORE}/markets/cities/IN-TG-TST", headers=token("admin@example.com", PW)).status == 200
+    if in_markets:
+        add.get_by_role("button", name="Cancel").click()
+    else:
+        add.get_by_label("Centre latitude").fill("17.95")
+        add.get_by_label("Centre longitude").fill("79.10")
+        add.get_by_role("button", name="Create city").click()
+    check("add a city: a new city starts as a draft in its state", lambda: (
+        expect(cities_table.get_by_role("row", name=re.compile(r"^Testville .*Draft"))).to_be_visible(timeout=15000)))
+    page.screenshot(path=f"{OUT}/08b-markets-country.png", full_page=True)
 
     page.goto(f"{BASE}/finance?scope=IN", wait_until="networkidle")
     check("finance: payout runs and reconciliation", lambda: (

@@ -164,6 +164,8 @@ export async function authed<T = unknown>(method: string, path: string, body?: u
     const d = (detail as { detail?: unknown }).detail;
     throw new Error(typeof d === "string" ? d : (d as { message?: string })?.message ?? `HTTP ${r.status}`);
   }
+  // 204 No Content (saving a favourite, a default address...) may still say "json": no body to read.
+  if (r.status === 204 || r.headers.get("content-length") === "0") return undefined as T;
   const type = r.headers.get("content-type") ?? "";
   return (type.includes("json") ? await r.json() : await r.blob()) as T;
 }

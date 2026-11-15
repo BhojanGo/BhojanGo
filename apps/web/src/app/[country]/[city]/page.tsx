@@ -78,9 +78,17 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
   const base = pathOf(c);
   const zones = c.zones;
   const chip = "inline-flex h-11 items-center rounded-full border px-[18px] font-bold";
+  // Every kitchen in the city, for search engines (the name comes from the page's title).
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: t("city.title", { city: c.name }),
+    itemListElement: kitchens.map((k, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}${k.path ?? `${base}/${k.slug}`}`, name: k.name })),
+  };
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="relative overflow-hidden bg-[#111418]">
         {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
         {cover && <img src={cover} alt="" className="absolute inset-0 block h-full w-full object-cover" />}

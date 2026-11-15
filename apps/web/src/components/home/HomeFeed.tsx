@@ -78,10 +78,16 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
           {img && <img src={img} alt="" className="block h-full w-full object-cover" />}
         </span>
         <span className="min-w-0 flex-grow">
-          <b className="block truncate text-sm md:text-[17px]">
+          <b className="line-clamp-2 block text-sm md:line-clamp-none md:truncate md:text-[17px]">
             {t(onWay ? "home.order_on_way" : "home.order_preparing", { kitchen: order.restaurant_name })}
           </b>
-          {sub && <span className="block truncate text-xs text-[#A9B8BA] md:text-sm">{sub}</span>}
+          {/* phone: the minutes go here (the big ETA block is desktop only) */}
+          {(sub || (minutes != null && minutes < 600)) && (
+            <span className="block truncate text-xs text-[#A9B8BA] md:text-sm">
+              <span className="md:hidden">{[minutes != null && minutes < 600 ? t("home.order_minutes", { count: minutes }) : null, sub].filter(Boolean).join(" · ")}</span>
+              <span className="hidden md:inline">{sub}</span>
+            </span>
+          )}
         </span>
         {minutes != null && eta && minutes < 600 && (
           <span className="hidden text-right md:block">

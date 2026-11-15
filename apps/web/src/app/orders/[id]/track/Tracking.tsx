@@ -218,12 +218,12 @@ export function Tracking({ id }: { id: string }) {
         {/* desktop: the dark card */}
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
           <span className="text-[15px] text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
-          <b className="block font-display text-[56px] font-semibold leading-[1.05] tracking-[-1.6px]">{bigEta}</b>
+          <b className="block font-display text-[56px] font-semibold leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
           <p className="m-0 mt-2 text-base text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: f.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">
               <span className="text-[13px] text-[#C9D3D4]">{t("track.pin_long")}</span>
-              <b className="block text-[34px] font-extrabold tracking-[0.3em]">{pin}</b>
+              <b className="block text-[34px] font-extrabold tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
             </div>
           )}
           {live.searching && !rider && <p className="m-0 mt-3 text-sm text-[#C9D3D4]">{t("track.s_finding")}</p>}

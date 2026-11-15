@@ -158,7 +158,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
           <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
           <tbody className="divide-y divide-line">
             {states.map((s) => [
-              <tr key={s.code} className="bg-porcelain/60"><td className="py-3 font-extrabold"><Link href={`/overview?scope=${s.code}`}>{s.name}</Link> <span className="font-normal text-muted">· {s.cities.length} cities</span></td>
+              <tr key={s.code} className="bg-porcelain/60"><td className="py-3 font-extrabold"><Link href={`/overview?scope=${s.code}`}>{s.name}</Link> <span className="font-normal text-muted">· {s.cities.length} {s.cities.length === 1 ? "city" : "cities"}</span></td>
                 <td className="text-muted">{s.cities.filter((x) => x.status === "live").length} live · {s.cities.filter((x) => x.status === "draft").length} draft</td>
                 <td>{s.cities.reduce((n, x) => n + x.totals.kitchens, 0)}</td><td>{s.totals.today}</td><td>{pct(s.totals.on_time_pct)}</td><td>{s.totals.live}</td></tr>,
               ...s.cities.filter((x) => !city || x.code === city).map((x) => (

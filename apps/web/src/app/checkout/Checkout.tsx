@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { km } from "@/components/discover/places";
 import { FairBill } from "@/components/FairBill";
 import { Check, Clock, Close, Pin } from "@/components/Icons";
 import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQuote";
@@ -44,6 +45,8 @@ interface SavedMethod {
   type?: string | null;
 }
 type Method = { key: string; type: PayType; token: string | null; title: string; sub: string };
+
+const NEAR_KM = 1.5; // a saved address this close to the area picked in the header is "there"
 
 // How people pay in each country (the gateway's own list decides inside its sheet).
 // Markets' payment methods -> the web's payment flows: wallets in a card sheet (Apple
@@ -139,9 +142,14 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   }, []);
 
   // Where: the chosen one, else the address in the header, else the default saved one.
+  // An area picked in the header with a saved address in it (within NEAR_KM) means
+  // that saved address: it has the flat and street the rider needs.
   const list = addresses ?? [];
   const placeIsSaved = !!place?.address_id && list.some((a) => a.id === place.address_id);
-  const fallback = place?.address_id && placeIsSaved ? place.address_id : place ? "place" : (list.find((a) => a.is_default) ?? list[0])?.id ?? null;
+  const savedNear = place && !place.address_id
+    ? [...list].sort((a, b) => Number(!!b.is_default) - Number(!!a.is_default)).find((a) => a.lat != null && a.lng != null && km(place, { lat: a.lat, lng: a.lng }) <= NEAR_KM)
+    : undefined;
+  const fallback = place?.address_id && placeIsSaved ? place.address_id : savedNear ? savedNear.id : place ? "place" : (list.find((a) => a.is_default) ?? list[0])?.id ?? null;
   const picked = choice ?? fallback;
   const address = picked && picked !== "place" ? list.find((a) => a.id === picked) ?? null : null;
   const usingPlace = picked === "place" && !!place;

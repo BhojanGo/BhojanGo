@@ -33,7 +33,13 @@ export async function SiteHeader() {
           <div className="hidden md:block">
             <CountryMenu countries={countries} current={current} />
           </div>
-          <LanguageMenu />
+          {/* a phone has room for the language code only (390 px: brand, language, sign in) */}
+          <div className="md:hidden">
+            <LanguageMenu compact />
+          </div>
+          <div className="hidden md:block">
+            <LanguageMenu />
+          </div>
           <AccountButton />
         </div>
       </header>
@@ -54,6 +60,9 @@ export async function SiteHeader() {
       {/* phone */}
       <div className="md:hidden">
         <div className="flex items-center gap-[10px] px-5 pb-3 pt-[10px]">
+          <Link href="/" aria-label={t("common.home")} className="shrink-0">
+            <LogoMark />
+          </Link>
           <AddressPill label={place.label} country={place.country} mobile />
           <LanguageMenu compact />
           <AccountButton />

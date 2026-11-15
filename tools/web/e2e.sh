@@ -1,8 +1,8 @@
 #!/bin/sh
 # Playwright run of the customer web against `make dev` (P20).
 #   tools/web/e2e.sh
-# Opens Hyderabad around the clock for the run (tools/mobile/hours.py), resets
-# OTP send counters, and runs tools/web/e2e_web.py in the Playwright image on
+# Opens Hyderabad and Boise around the clock for the run (tools/mobile/hours.py),
+# resets OTP send counters and the discover cache, and runs tools/web/e2e_web.py in the Playwright image on
 # the compose network. Screenshots land in docs/screenshots/web.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))"
@@ -10,7 +10,10 @@ export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bhojango}" MSYS_NO_PATHCONV
 COMPOSE="docker compose -f $ROOT/infra/docker/compose.yaml"
 mkdir -p "$ROOT/docs/screenshots/web"
 python "$ROOT/tools/mobile/hours.py" open >/dev/null
-$COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_attempts:*' | xargs -r redis-cli -n 0 del" >/dev/null
+# OTP send counters, and /discover's short cache (it may still hold "closed").
+for pattern in 'otp_attempts:*' 'discover:*'; do
+  $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern '$pattern' | xargs -r redis-cli -n 0 del" >/dev/null
+done
 docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
   -v "$ROOT/tools/web:/t:ro" -v "$ROOT/docs/screenshots/web:/out" \
   mcr.microsoft.com/playwright/python:v1.49.0-jammy \

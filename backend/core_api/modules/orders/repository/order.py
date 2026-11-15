@@ -1,8 +1,9 @@
 import math
+import re
 import uuid
 from datetime import datetime
 
-from sqlalchemy import and_, column, exists, func, literal, or_, select, update
+from sqlalchemy import String, and_, cast, column, exists, func, literal, or_, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,16 +47,21 @@ class OrderRepository:
         statuses: set[str] | None = None, created_from: datetime | None = None, created_before: datetime | None = None,
         restaurant_id: uuid.UUID | None = None,
     ) -> tuple[list[Order], int]:
-        """The customer's orders, newest first. ``q`` matches the kitchen's name or
-        an item's name (any case); ``created_before`` is exclusive."""
+        """The customer's orders, newest first. ``q`` matches the kitchen's name, an
+        item's name (any case) or the order code (#A9D1F0: the first hex digits of
+        the id, "#" optional); ``created_before`` is exclusive."""
         conds = [Order.customer_id == customer_id]
         if q:
             pattern = "%" + _escape_like(q) + "%"
             item = func.jsonb_array_elements(Order.items).table_valued(column("value", JSONB)).alias("item")
-            conds.append(or_(
+            match = [
                 Order.restaurant_name.ilike(pattern, escape="\\"),
                 exists(select(literal(1)).select_from(item).where(item.c.value["name"].astext.ilike(pattern, escape="\\"))),
-            ))
+            ]
+            code = q.strip().removeprefix("#").lower()
+            if re.fullmatch(r"[0-9a-f]{4,32}", code):
+                match.append(func.replace(cast(Order.id, String), "-", "").like(f"{code}%"))
+            conds.append(or_(*match))
         if statuses:
             conds.append(Order.status.in_(statuses))
         if created_from is not None:

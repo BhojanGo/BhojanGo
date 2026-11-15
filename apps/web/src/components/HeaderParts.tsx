@@ -100,6 +100,7 @@ export function AccountButton() {
   const router = useRouter();
   const path = usePathname();
   if (!hydrated || !user) {
+    if (path.startsWith("/signin")) return null; // already on the sign-in page
     return (
       <Link
         href={`/signin?next=${encodeURIComponent(path)}`}
@@ -178,7 +179,7 @@ export function AddressPill({ label, country, mobile }: { label: string; country
               <h2 className="m-0 flex-grow font-display text-[22px] font-semibold">{t("header.change_address")}</h2>
               <button type="button" aria-label={t("common.close")} onClick={() => setOpen(false)}><Close color="#4C5A5E" /></button>
             </div>
-            <AddressBox size="sheet" country={country} autoFocus />
+            <AddressBox size="sheet" country={country} autoFocus onPicked={() => setOpen(false)} />
           </div>
         </div>
       )}
