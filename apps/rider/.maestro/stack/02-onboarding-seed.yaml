@@ -1,0 +1,15 @@
+# RiderOnboarding.html as on the board: a rider part-way through (seed: the Boise rider
+# still signing up), 3 of 5, insurance needed now. Throwaway stack only
+# (.github/workflows/app-screens.yml).
+appId: com.bhojango.rider
+---
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: "2085550291"
+- extendedWaitUntil:
+    visible: "Almost ready to ride.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-onboarding

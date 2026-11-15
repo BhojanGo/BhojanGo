@@ -84,6 +84,8 @@ apps/*/ios/
 
 # Android debug builds (make apk)
 .apk/
+# tools/mobile/stack-screens.sh output (.github/workflows/app-screens.yml)
+stack-screens-out/
 
 # k6 results (P24): the report keeps the one that matters in docs/load
 tools/load/out/

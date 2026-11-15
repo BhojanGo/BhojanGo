@@ -1,0 +1,42 @@
+# CustomerPaymentFailed.html: the fake payment provider declines (the "Decline" button
+# of the local checkout sheet sends payment method fake_decline). Writes an order and
+# a failed payment, so throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.app
+---
+- runFlow: common/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "kitchens"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-spice-route-kitchen-madhapur"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- tapOn:
+    id: "kitchen-card-spice-route-kitchen-madhapur"
+- extendedWaitUntil:
+    visible: "Chicken Dum Biryani"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Paneer Tikka"
+- tapOn: "Paneer Tikka"
+- tapOn:
+    id: "add-to-bag"
+- tapOn:
+    text: "View bag.*"
+- extendedWaitUntil:
+    visible:
+      id: "fair-bill"
+    timeout: 30000
+- tapOn:
+    id: "pay"
+- tapOn:
+    id: "pay-decline"
+- extendedWaitUntil:
+    visible: "Payment didn't go through"
+    timeout: 45000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-payment-failed

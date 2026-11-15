@@ -1,0 +1,18 @@
+# CustomerOutOfArea.html: a brand-new customer whose saved address is outside every
+# delivery zone (scripts/new_customer_away.js makes both through the API), so home sends
+# them to "We're not in ... yet". Creates an account, so throwaway stack only
+# (.github/workflows/app-screens.yml).
+appId: com.bhojango.app
+---
+- runScript: scripts/new_customer_away.js
+- runFlow:
+    file: common/sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+- extendedWaitUntil:
+    visible:
+      text: "We.re not in .* yet"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-out-of-area

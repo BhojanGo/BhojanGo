@@ -2,7 +2,8 @@
 
     python tools/mobile/screens_compose.py <raw dir> <boards dir> <out dir>
 
-<raw dir> holds the read-only QA Maestro flows' screenshots, one folder per app and
+<raw dir> holds the Maestro flows' screenshots (read-only on QA; stack-* ones from the
+throwaway stack, .github/workflows/app-screens.yml), one folder per app and
 device (customer-phone, rider-phone, partner-phone, partner-tablet), as Maestro
 writes them (`takeScreenshot`). <boards dir> holds the design boards rendered to
 r_<Board>.png (docs/design/screens/*.html). For every screenshot this writes a
@@ -27,6 +28,13 @@ PAIRS = {
     "RiderEarnings": ("rider-phone", "03-earnings"),
     "PartnerOrders": ("partner-tablet", "02-rating-chip"),  # the orders board, with the rating chip in its header
     "PartnerMenu": ("partner-tablet", "03-menu"),
+    # States QA can't show (they write data): taken on a throwaway stack on GitHub Actions
+    # (.github/workflows/app-screens.yml, flows in apps/<app>/.maestro/stack/), named stack-*.
+    "CustomerLoading": ("customer-phone", "stack-loading"),
+    "CustomerOutOfArea": ("customer-phone", "stack-out-of-area"),
+    "CustomerPaymentFailed": ("customer-phone", "stack-payment-failed"),
+    "RiderOnboarding": ("rider-phone", "stack-onboarding"),
+    "PartnerOnboarding": ("partner-tablet", "stack-onboarding"),
 }
 HEIGHT = 1200
 
@@ -65,7 +73,8 @@ def main() -> None:
         canvas = Image.new("RGB", (left.width + gap + right.width, HEIGHT + head), "white")
         d = ImageDraw.Draw(canvas)
         d.text((6, 10), f"Design: {board}", fill="#111418", font=font(20))
-        d.text((left.width + gap + 6, 10), f"App on QA: {key[0]} / {key[1]}", fill="#111418", font=font(20))
+        where = "App on a throwaway stack" if key[1].startswith("stack-") else "App on QA"
+        d.text((left.width + gap + 6, 10), f"{where}: {key[0]} / {key[1]}", fill="#111418", font=font(20))
         canvas.paste(left, (0, head))
         canvas.paste(right, (left.width + gap, head))
         canvas.save(out / f"{board}.jpg", quality=82, optimize=True)

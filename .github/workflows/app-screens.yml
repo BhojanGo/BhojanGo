@@ -1,0 +1,168 @@
+name: App screens (throwaway stack)
+
+# The app states QA can't show because reaching them writes data (a failed payment,
+# new accounts, a held request): CustomerLoading, CustomerOutOfArea,
+# CustomerPaymentFailed, RiderOnboarding, PartnerOnboarding. Each run brings up its
+# own stack the way the Playwright job does (Docker Compose, seed and demo seed),
+# installs the debug APKs on an Android emulator (JavaScript from Metro on the runner),
+# runs the Maestro flows under apps/<app>/.maestro/stack/ (tools/mobile/stack-screens.sh)
+# and keeps the screenshots as an artifact for 7 days. Nothing here touches QA: those
+# flows aren't tagged qa-readonly, and tools/railway/maestro-qa.sh never runs stack/.
+# The repo is public, so the minutes are free. Run it from the Actions tab, or push to
+# a screens/* branch.
+
+on:
+  push:
+    branches: ["screens/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-screens-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK (${{ matrix.app }}, x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, rider, partner]
+    env:
+      APP: ${{ matrix.app }}
+      IMAGE: reactnativecommunity/react-native-android:v22.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # A debug APK only changes with native code: its dependencies and app config.
+      - name: Cached APK
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .apk/${{ matrix.app }}-debug.apk
+          key: apk-${{ matrix.app }}-x86_64-${{ hashFiles('pnpm-lock.yaml', 'tools/android/build-apk.sh', format('apps/{0}/package.json', matrix.app), format('apps/{0}/app.json', matrix.app), format('apps/{0}/app.config.js', matrix.app)) }}
+
+      - name: Free disk space
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+
+      - name: Build the debug APK (tools/android/build-apk.sh)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .apk
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src:ro" \
+            -v "$GITHUB_WORKSPACE/.apk:/out" \
+            -e ARCH=x86_64 \
+            "$IMAGE" sh /src/tools/android/build-apk.sh "$APP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.app }}
+          path: .apk/${{ matrix.app }}-debug.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  screens:
+    name: Screens (${{ matrix.device }})
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: phone
+            profile: pixel_6
+            apps: customer rider
+          - device: tablet
+            profile: pixel_tablet
+            apps: partner
+    env:
+      COMPOSE_PROJECT_NAME: bhojango
+      COMPOSE: docker compose -f infra/docker/compose.yaml
+      DEMO_RIDER_SIM: "0"  # nothing moves orders on its own while the flows run
+      OUT: ${{ github.workspace }}/stack-screens-out
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space (keeps the Android SDK)
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: apk-*
+          path: .apk
+          merge-multiple: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Host tools (opening hours helper)
+        run: pip install httpx==0.28.1
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: JavaScript dependencies (Metro)
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm turbo build --filter='./packages/*'
+
+      - name: Start the stack (backend profile)
+        run: $COMPOSE --profile backend up -d --build --wait --wait-timeout 600
+
+      - name: Seed and demo seed
+        run: |
+          $COMPOSE exec -T core-api python /srv/tools/seed/seed.py
+          $COMPOSE exec -T core-api python /srv/tools/seed/demo.py
+          python tools/mobile/hours.py open
+
+      - name: Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Flows on the emulator (tools/mobile/stack-screens.sh)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          disable-animations: true
+          script: bash tools/mobile/stack-screens.sh ${{ matrix.device }} ${{ matrix.apps }}
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-stack-screens-${{ matrix.device }}
+          path: stack-screens-out
+          retention-days: 7
+
+      - name: Service logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 200 core-api realtime worker
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v

@@ -1,0 +1,57 @@
+# PartnerOnboarding.html: a new kitchen applies from the tablet with a brand-new number,
+# then the partner application opens on step 2, the FSSAI licence. Creates an account
+# and a kitchen, so throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.partner
+---
+- runScript: ../scripts/new_phone.js
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+- extendedWaitUntil:
+    visible: "Apply with your kitchen"
+    timeout: 60000
+- tapOn:
+    id: "full_name"
+- inputText: "Lata Menon"
+- hideKeyboard
+- tapOn:
+    id: "kitchen_name"
+- inputText: "Lata Kitchen"
+- hideKeyboard
+- tapOn: "Hyderabad"
+- tapOn:
+    id: "street"
+- inputText: "Plot 9, Road 12"
+- hideKeyboard
+- tapOn:
+    id: "area"
+- inputText: "Banjara Hills"
+- hideKeyboard
+- tapOn:
+    id: "zip"
+- inputText: "500034"
+- hideKeyboard
+- tapOn:
+    id: "cuisines"
+- inputText: "Kerala, Thali"
+- hideKeyboard
+- takeScreenshot: stack-partner-join
+- tapOn:
+    id: "send-application"
+- extendedWaitUntil:
+    visible: "Partner application"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "FSSAI food licence"
+    timeout: 30000
+- tapOn:
+    id: "fssai-number"
+- inputText: "13623012000487"
+- tapOn:
+    id: "fssai-until"
+- inputText: "31/03/2028"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-onboarding

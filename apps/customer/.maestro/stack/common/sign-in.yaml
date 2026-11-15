@@ -1,0 +1,30 @@
+# Sign in on the throwaway stack (seed and 90000 phones get 123456), location allowed.
+appId: com.bhojango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or sign up"
+    timeout: 120000
+- repeat:
+    while:
+      notVisible:
+        id: 'phone-country-${COUNTRY || "IN"}'
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- tapOn:
+    id: "phone"
+- inputText: ${PHONE || "9000000101"}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 20000
+- inputText: "123456"
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 30000

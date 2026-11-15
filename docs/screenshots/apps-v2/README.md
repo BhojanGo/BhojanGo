@@ -13,9 +13,37 @@ GitHub (`.github/workflows/android-apk.yml`); the JavaScript came from Metro wit
 - `customer-phone/`, `rider-phone/`, `partner-phone/` (1080x2400), `partner-tablet/` (2560x1600): every
   screenshot the read-only QA flows took, in flow order.
 
-Boards with no app screen here: `CustomerLoading`, `CustomerOutOfArea`, `CustomerPaymentFailed`,
-`RiderOnboarding`, `PartnerOnboarding`. They need states that would change QA data (a failed payment, a
-new account), and QA gets no test writes. Their flows run on the local stack.
+- `stack-*` screenshots and the side-by-sides `CustomerLoading`, `CustomerOutOfArea`,
+  `CustomerPaymentFailed`, `RiderOnboarding`, `PartnerOnboarding`: states that change data, so they were
+  taken on a throwaway stack instead of QA (below).
+
+## The five states QA can't show (throwaway stack on GitHub)
+
+Reaching these writes data (a failed payment, new accounts, a held request), and QA gets no test writes.
+`.github/workflows/app-screens.yml` brings up its own stack on a GitHub runner (Docker Compose, backend
+profile, seed and demo seed, demo rider off), installs the debug APKs on an Android emulator (API 34;
+Pixel 6 for the customer and rider apps, Pixel Tablet for the partner app; JavaScript from Metro on the
+runner) and runs the flows in `apps/<app>/.maestro/stack/` with `tools/mobile/stack-screens.sh`. Those flows
+aren't tagged `qa-readonly`, and `tools/railway/maestro-qa.sh` never runs `stack/`. Run it from the
+Actions tab or by pushing to a `screens/*` branch; the screenshots are the `app-stack-screens-phone` and
+`app-stack-screens-tablet` artifacts.
+
+Taken on 2026-11-15 by run
+[43745906719](https://github.com/BhojanGo/BhojanGo/actions/runs/43745906719):
+
+- **CustomerLoading** (`customer-phone/stack-loading`): the seed customer's home while the kitchens
+  load. The app talks to core through `tools/mobile/slow_proxy.py`, which holds `GET /discover` until the
+  flow lets it go.
+- **CustomerOutOfArea** (`customer-phone/stack-out-of-area`): a brand-new customer whose only address
+  (made through the API before the app signs in) is in Nampa, Idaho, outside every zone.
+- **CustomerPaymentFailed** (`customer-phone/stack-payment-failed`): a bag at Spice Route Kitchen, Pay,
+  then Decline on the local fake checkout (payment method `fake_decline`).
+- **RiderOnboarding** (`rider-phone/stack-onboarding`): the seed rider still signing up (3 of 5,
+  insurance needed now), as on the board. `stack-signup` and `stack-onboarding-new` are a brand-new rider
+  signing up (1 of 5).
+- **PartnerOnboarding** (`partner-tablet/stack-onboarding`): a brand-new kitchen applies from the tablet
+  (`stack-join`) and lands on step 2, the FSSAI licence, with the number and date typed in. No licence
+  document is uploaded, so the upload box shows where the board shows a file.
 
 ## How they were taken (read-only on QA)
 
