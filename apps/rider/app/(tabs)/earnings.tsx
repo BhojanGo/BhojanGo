@@ -1,6 +1,6 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
 // deliveries and the next payout. Money and dates by the country (Markets).
-import { inZone, useI18n } from "@bhojango/mobile-core";
+import { inZone, num, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
 import { useFormat, useWeek, type Week } from "../../lib/rider";
-import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
+import { night, radius, space, ui } from "../../lib/theme";
 
 type DateFn = ReturnType<typeof useFormat>["date"];
 
@@ -53,30 +53,30 @@ export default function Earnings() {
     <SafeAreaView testID="earnings-screen" style={ui.screen} edges={["top"]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.head}>
-          <Text testID="earnings-title" accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22, letterSpacing: -0.3 }]}>
+          <Text testID="earnings-title" accessibilityRole="header" style={[type.h2, { color: night.text, letterSpacing: -0.3 }]}>
             {t("rider.earnings.title")}
           </Text>
           <Pressable testID="past-weeks" accessibilityRole="button" accessibilityLabel={t("rider.earnings.week_label", { range: range(w, date) })}
             onPress={() => router.push("/payouts")} style={styles.week}>
-            <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{range(w, date)}</Text>
+            <Text style={ui.bold}>{range(w, date)}</Text>
             <Icon name="chevronDown" size={14} width={2.4} />
           </Pressable>
         </View>
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
-          <Text style={[ui.muted, { fontSize: 14 }]}>{t("rider.earnings.so_far")}</Text>
-          <Text testID="week-total" style={[displayFont("600"), styles.big]}>{cash(w.total, cur)}</Text>
+          <Text style={ui.muted}>{t("rider.earnings.so_far")}</Text>
+          <Text testID="week-total" style={[type.display, num, styles.big]}>{cash(w.total, cur)}</Text>
         </View>
         <View style={[ui.stats, styles.box, { borderRadius: 16, backgroundColor: night.surface, paddingVertical: 16 }]}>
           <View style={ui.stat}>
-            <Text style={[ui.statValue, { fontSize: 18 }]}>{t("rider.earnings.hours", { value: number(hours, hours < 10 ? 1 : 0) })}</Text>
+            <Text style={ui.statValue}>{t("rider.earnings.hours", { value: number(hours, hours < 10 ? 1 : 0) })}</Text>
             <Text style={ui.statLabel}>{t("rider.earnings.active")}</Text>
           </View>
           <View style={[ui.stat, styles.mid]}>
-            <Text style={[ui.statValue, { fontSize: 18 }]}>{number(s.deliveries, 0)}</Text>
+            <Text style={ui.statValue}>{number(s.deliveries, 0)}</Text>
             <Text style={ui.statLabel}>{t("rider.earnings.deliveries")}</Text>
           </View>
           <View style={ui.stat}>
-            <Text style={[ui.statValue, { fontSize: 18 }]}>{cash(s.tips, cur, 0)}</Text>
+            <Text style={ui.statValue}>{cash(s.tips, cur, 0)}</Text>
             <Text style={ui.statLabel}>{t("rider.earnings.tips")}</Text>
           </View>
         </View>
@@ -90,7 +90,7 @@ export default function Earnings() {
               const future = d.date > todayIso;
               return (
                 <View key={d.date} style={styles.barCol}>
-                  <Text style={[textFont(today ? "800" : "400"), { fontSize: 11, color: today ? night.text : night.muted }]}>{future ? "–" : cash(v, cur, 0)}</Text>
+                  <Text style={[type.caption, num, { color: today ? night.text : night.muted }]}>{future ? "–" : cash(v, cur, 0)}</Text>
                   <View style={{ width: "100%", borderRadius: 6, height: future || v === 0 ? 4 : Math.max(8, (v / max) * 110),
                     backgroundColor: today ? night.kesar : future ? night.raised : night.line }} />
                 </View>
@@ -99,7 +99,7 @@ export default function Earnings() {
           </View>
           <View style={[styles.bars, { height: undefined, marginTop: 8 }]}>
             {w.days.map((d) => (
-              <Text key={d.date} style={[textFont(d.date === todayIso ? "800" : "400"), styles.dayLabel, d.date === todayIso && { color: night.text }]}>
+              <Text key={d.date} style={[type.caption, styles.dayLabel, d.date === todayIso && { color: night.text }]}>
                 {dayInitial(d.date, date)}
               </Text>
             ))}
@@ -108,7 +108,7 @@ export default function Earnings() {
 
         <View testID="floor-card" style={[styles.box, styles.floor]}>
           <Icon name="shield" size={24} stroke={night.link} />
-          <Text style={[ui.body, { flex: 1, fontSize: 14, lineHeight: 20 }]}>
+          <Text style={[ui.note, { flex: 1 }]}>
             {floor == null ? (
               <Text>{t("rider.earnings.floor_none")}</Text>
             ) : perHour == null ? (
@@ -128,13 +128,13 @@ export default function Earnings() {
         </View>
 
         <View style={{ marginHorizontal: 20, marginTop: 24 }}>
-          <Text style={[ui.bold, { fontSize: 15, marginBottom: 8 }]}>{t("rider.earnings.today")}</Text>
+          <Text style={[ui.bold, { marginBottom: 8 }]}>{t("rider.earnings.today")}</Text>
           {lines.length === 0 ? <Text style={ui.muted}>{t("rider.earnings.none_today")}</Text> : null}
           {lines.map((ln, i) => (
             <View key={ln.order_id} style={[styles.line, i < lines.length - 1 && styles.lineBorder]}>
               <View style={{ flex: 1 }}>
-                <Text style={[ui.bold, textFont("700")]}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
-                <Text style={[ui.muted, { fontSize: 12 }]}>
+                <Text style={ui.bold}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
+                <Text style={[ui.muted, num]}>
                   {[
                     `${time(ln.delivered_at, inZone(w.time_zone))} · ${t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
                     Number(ln.distance) > 0 ? `${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : null,
@@ -151,10 +151,10 @@ export default function Earnings() {
       {/* B6: payouts are weekly only; there's no instant cash-out, so no button that suggests one. */}
       <View style={styles.footer} accessibilityLabel={t("rider.earnings.payout_label")}>
         <View style={styles.payout}>
-          <Text testID="next-payout" style={[ui.bold, { fontSize: 15 }]}>
+          <Text testID="next-payout" style={ui.bold}>
             {t("rider.earnings.paid_weekly", { day: date(w.payout_date, { weekday: "short" }) })}
           </Text>
-          <Text style={[ui.muted, { fontSize: 13, textAlign: "center" }]}>{t("rider.earnings.no_cashout")}</Text>
+          <Text style={[ui.muted, { textAlign: "center" }]}>{t("rider.earnings.no_cashout")}</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -165,13 +165,13 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center" },
   head: { paddingHorizontal: 20, paddingTop: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   week: { height: 44, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: night.surface, flexDirection: "row", alignItems: "center", gap: 6 },
-  big: { color: night.text, fontSize: 56, letterSpacing: -2, lineHeight: 58, marginTop: 4, fontVariant: ["tabular-nums"] },
+  big: { color: night.text, marginTop: 4 },
   box: { marginHorizontal: 20, marginTop: 16 },
   mid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: night.line },
   chart: { padding: 20, borderRadius: 16, backgroundColor: night.surface },
   bars: { height: 132, flexDirection: "row", gap: 8, alignItems: "flex-end" },
   barCol: { flex: 1, alignItems: "center", gap: 6 },
-  dayLabel: { flex: 1, textAlign: "center", fontSize: 12, color: night.muted },
+  dayLabel: { flex: 1, textAlign: "center", color: night.muted },
   floor: { padding: 16, borderRadius: 16, backgroundColor: night.info, borderWidth: 1, borderColor: night.doneBg, flexDirection: "row", gap: 12, alignItems: "center" },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, gap: space[3] },
   lineBorder: { borderBottomWidth: 1, borderBottomColor: night.raised },

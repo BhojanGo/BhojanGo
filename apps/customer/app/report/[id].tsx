@@ -1,7 +1,9 @@
 // Report a problem (B5): which items, what went wrong, a photo if you like.
 // Up to the city's limit it's refunded at once to the original payment;
 // above it, support looks at it and gets back to you.
-import { api, ApiError, Button, color, radius, space, textFont, unwrap, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
+import {
+  api, ApiError, Button, color, type CoreSchemas, field, radius, space, textStyles, type, unwrap, useI18n,
+} from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -77,7 +79,7 @@ export default function Report() {
     return (
       <SafeAreaView style={[s.screen, { justifyContent: "center", gap: space[4] }]}>
         <Text accessibilityRole="header" style={s.h1}>{done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}</Text>
-        <Text style={[textFont("400"), { fontSize: 17, lineHeight: 25, color: color.kohl }]}>{done.message}</Text>
+        <Text style={[type.bodyLg, { color: color.kohl }]}>{done.message}</Text>
         {done.outcome === "ticket" ? <Text style={s.muted}>{t("account.report.ticket_note", { amount: money(done.limit, done.currency, { whole: true }) })}</Text> : null}
         <Button testID="back-to-order" title={t("account.report.back_to_order")} size="lg" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/account/receipt/${id}`))} />
       </SafeAreaView>
@@ -92,7 +94,7 @@ export default function Report() {
         <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace(`/account/receipt/${id}`))} style={s.back}>
           <Icon name="back" />
         </Pressable>
-        <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 18 }]}>{t("account.report.title")}</Text>
+        <Text accessibilityRole="header" style={type.h3}>{t("account.report.title")}</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: space[5], gap: space[5], paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <View style={s.card}>
@@ -102,9 +104,9 @@ export default function Report() {
             const set = (v: number) => setPick((p) => ({ ...p, [i.menu_item_id]: Math.max(0, Math.min(i.quantity, v)) }));
             return (
               <View key={i.menu_item_id} style={s.row}>
-                <Text style={[textFont("700"), { flex: 1, fontSize: 16 }]}>{i.name} <Text style={s.muted}>· {t("account.report.ordered", { count: i.quantity })}</Text></Text>
+                <Text style={[type.label, { flex: 1 }]}>{i.name} <Text style={s.muted}>· {t("account.report.ordered", { count: i.quantity })}</Text></Text>
                 <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.one_less", { name: i.name })} onPress={() => set(n - 1)} style={s.step}><Text style={s.stepText}>−</Text></Pressable>
-                <Text accessibilityLabel={`${t("account.report.how_many", { item: i.name })}: ${n}`} style={[textFont("800"), { width: 28, textAlign: "center", fontSize: 17 }]}>{n}</Text>
+                <Text accessibilityLabel={`${t("account.report.how_many", { item: i.name })}: ${n}`} style={[type.h3, { width: 28, textAlign: "center" }]}>{n}</Text>
                 <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.one_more", { name: i.name })} onPress={() => set(n + 1)} style={s.step}><Text style={s.stepText}>+</Text></Pressable>
               </View>
             );
@@ -116,21 +118,21 @@ export default function Report() {
             {REASONS.map((r) => (
               <Pressable key={r} testID={`reason-${r}`} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} onPress={() => setReason(r)}
                 style={[s.chip, reason === r && { borderColor: color.peacock, backgroundColor: color.peacockMist }]}>
-                <Text style={[textFont(reason === r ? "800" : "600"), { fontSize: 15 }]}>{t(`account.report.reason_${r}`)}</Text>
+                <Text style={type.label}>{t(`account.report.reason_${r}`)}</Text>
               </Pressable>
             ))}
           </View>
           <TextInput testID="problem-note" accessibilityLabel={t("account.report.more")} value={note} onChangeText={setNote} maxLength={300}
-            placeholder={t("account.report.more")} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+            placeholder={t("account.report.more")} placeholderTextColor={color.muted} style={[field.body, s.input]} />
         </View>
         <View style={s.card}>
           <Text style={s.h2}>{t("account.report.photo")}</Text>
           <Pressable testID="problem-photo" accessibilityRole="button" accessibilityLabel={t("app.report.add_photo")} onPress={addPhoto} style={s.photo}>
             {photo ? <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-            {busy === "photo" ? <Text style={s.muted}>{t("app.report.uploading")}</Text> : photo ? null : <Text style={[textFont("700"), { color: color.peacockDeep }]}>{t("app.report.add_photo")}</Text>}
+            {busy === "photo" ? <Text style={s.muted}>{t("app.report.uploading")}</Text> : photo ? null : <Text style={[type.label, { color: color.peacockDeep }]}>{t("app.report.add_photo")}</Text>}
           </Pressable>
         </View>
-        {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+        {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
       </ScrollView>
       <View style={s.footer}>
         <Button testID="send-report" title={busy === "send" ? t("account.report.sending") : t("account.report.send")} size="lg" block loading={busy === "send"} disabled={!chosen || !reason || busy === "photo"} onPress={send} />
@@ -139,19 +141,20 @@ export default function Report() {
   );
 }
 
-const s = StyleSheet.create({
+const s = textStyles(StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.porcelain, padding: space[5] },
-  h1: { ...textFont("800"), fontSize: 28, color: color.kohl },
-  h2: { ...textFont("800"), fontSize: 17, color: color.kohl },
-  muted: { ...textFont("400"), fontSize: 14, color: color.muted },
   bar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: space[5], paddingVertical: space[3] },
   back: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.card, padding: space[4], gap: space[3] },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   step: { width: 40, height: 40, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
-  stepText: { ...textFont("800"), fontSize: 20, color: color.kohl },
   chip: { paddingHorizontal: 16, height: 44, justifyContent: "center", borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
-  input: { height: 52, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 16 },
+  input: { height: 52, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16 },
   photo: { height: 120, borderRadius: radius.card, borderWidth: 1.5, borderStyle: "dashed", borderColor: color.lineStrong, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   footer: { position: "absolute", left: 0, right: 0, bottom: 0, padding: space[5], backgroundColor: color.white, borderTopWidth: 1, borderTopColor: color.line },
+}), {
+  h1: ["h1", { color: color.kohl }],
+  h2: ["h3", { color: color.kohl }],
+  muted: ["small", { color: color.muted }],
+  stepText: ["h3", { color: color.kohl }],
 });

@@ -3,12 +3,15 @@
 // payment_methods). Card numbers never touch BhojanGo: real cards are added in
 // the payment provider's form at checkout. On a test site you can save a test
 // card here (a fake token with the brand, last 4 digits and expiry).
-import { appEnv, Button, Chip, color, Input, isTestEnvironment, space, textFont, useCountry, useI18n } from "@bhojango/mobile-core";
+import { appEnv, Button, Chip, color, Input, isTestEnvironment, space, type, useCountry, useI18n } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { addTestCard, brandName, listPaymentMethods, makeDefaultPaymentMethod, payLabel, removePaymentMethod, type PaymentMethod } from "../../lib/account";
+import {
+  addTestCard, brandName, listPaymentMethods, makeDefaultPaymentMethod, payLabel, removePaymentMethod,
+  type PaymentMethod,
+} from "../../lib/account";
 import { LinkButton, Row, ScreenBar, Section, Status, ui } from "../../lib/account-ui";
 
 const TEST_SITE = isTestEnvironment(appEnv());
@@ -43,7 +46,7 @@ function AddCard({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
 
   return (
     <Section title={t("account.payments.add_title")} note={t("account.payments.add_note")} testID="add-card">
-      <Text style={[textFont("700"), { fontSize: 14 }]}>{t("account.payments.brand")}</Text>
+      <Text style={type.label}>{t("account.payments.brand")}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
         {BRANDS.map((b) => <Chip key={b} label={brandName(b)} selected={b === brand} onPress={() => setBrand(b)} />)}
       </View>
@@ -130,7 +133,7 @@ export default function Payments() {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
               {offered.map((p) => (
                 <View key={p} testID={`method-${p}`} style={{ paddingHorizontal: 14, height: 36, justifyContent: "center", borderRadius: 999, backgroundColor: color.peacockMist }}>
-                  <Text style={[textFont("700"), { fontSize: 14, color: color.peacockDeep }]}>{payLabel(t, p)}</Text>
+                  <Text style={[type.label, { color: color.peacockDeep }]}>{payLabel(t, p)}</Text>
                 </View>
               ))}
             </View>

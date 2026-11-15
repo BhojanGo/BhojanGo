@@ -3,7 +3,7 @@
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
 // On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
 // and tapping an order opens its detail (the same card); Back returns to the list.
-import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
+import { api, ApiError, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -120,7 +120,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
       <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }, narrow && { flexGrow: 1, flexShrink: 1, height: 44 }]}
         accessibilityLabel={status}>
         <View style={[s.dot, { backgroundColor: open ? color.peacock : tone.kesarInk }]} />
-        <Text style={[textFont("800"), { fontSize: 14, color: open ? color.peacockDeep : tone.kesarInk, flexShrink: 1 }]} numberOfLines={1}>{status}</Text>
+        <Text style={[type.label, { color: open ? color.peacockDeep : tone.kesarInk, flexShrink: 1 }]} numberOfLines={1}>{status}</Text>
       </View>
       <Btn testID="busy" height={narrow ? 44 : 48} style={narrow && { paddingHorizontal: 14 }}
         title={today && today.busy_extra_minutes > 0 ? tr("partner.orders.busy_undo", { min: today.busy_extra_minutes })
@@ -153,7 +153,7 @@ function Column({ title, count, badge, children, testID }: { title: string; coun
   return (
     <View testID={testID} style={s.col} accessibilityLabel={title}>
       <View style={s.colHead}>
-        <Text style={[textFont("800"), { fontSize: 15 }]}>{title}</Text>
+        <Text style={type.label}>{title}</Text>
         <Count n={count} bg={badge[0]} fg={badge[1]} />
       </View>
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>{children}</ScrollView>
@@ -193,7 +193,7 @@ function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
         <Pressable testID="order-back" accessibilityRole="button" accessibilityLabel={tr("common.back")} onPress={() => setOpenId(null)}
           hitSlop={8} style={s.back}>
           <Icon name="back" size={20} />
-          <Text style={[textFont("700"), { fontSize: 15 }]}>{tr("common.back")}</Text>
+          <Text style={type.label}>{tr("common.back")}</Text>
         </Pressable>
         {NEW.includes(open.status) ? <NewCard order={open} first defaultPrep={defaultPrep} act={act} />
           : COOKING.includes(open.status) ? <CookingCard order={open} act={act} /> : <ReadyCard order={open} />}
@@ -217,7 +217,7 @@ function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
           return (
             <Pressable key={x.key} testID={`column-${x.key}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.title}
               onPress={() => setTab(x.key)} style={[s.tab, on && s.tabOn]}>
-              <Text style={[textFont(on ? "800" : "600"), { fontSize: 14, color: on ? color.kohl : color.muted, flexShrink: 1 }]} numberOfLines={1}>{x.short}</Text>
+              <Text style={[type.label, { color: on ? color.kohl : color.muted, flexShrink: 1 }]} numberOfLines={1}>{x.short}</Text>
               <Count n={x.list.length} bg={badge[0]} fg={badge[1]} />
             </Pressable>
           );
@@ -257,9 +257,9 @@ function OrderRow({ order: o, index, onOpen }: { order: Order; index: number; on
       style={({ pressed }) => [s.orderRow, fresh && index === 0 && { borderColor: color.peacock, borderWidth: 2 }, pressed && { opacity: 0.85 }]}>
       <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
         <Text style={t.title} numberOfLines={1}>{who}</Text>
-        <Text style={[t.muted, { fontSize: 14 }]} numberOfLines={2}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
+        <Text style={t.muted} numberOfLines={2}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
       </View>
-      <Text style={[textFont("800"), { fontSize: fresh ? 18 : 13, color: tint, fontVariant: ["tabular-nums"] }]}>{when}</Text>
+      <Text style={[fresh ? type.h3 : type.small, num, { color: tint }]}>{when}</Text>
       <Icon name="chevron" size={18} stroke={color.muted} />
     </Pressable>
   );
@@ -294,27 +294,27 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
     <Card highlight={first}>
       <View style={s.row}>
         <View>
-          <Text style={[textFont("800"), { fontSize: 18 }]}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
+          <Text style={type.h3}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
           <Text style={[t.muted, { marginTop: 2 }]}>{tr("partner.orders.delivery_paid", { time: clock(o.placed_at ?? o.created_at, o.time_zone) })}</Text>
         </View>
         {left != null ? (
           <View style={{ alignItems: "flex-end" }} accessibilityLabel={tr("partner.orders.left_to_accept", { min: Math.floor(left / 60), sec: left % 60 })}>
-            <Text style={[textFont("800"), { fontSize: 20, color: color.chili, fontVariant: ["tabular-nums"] }]}>
+            <Text style={[type.h3, num, { color: color.chili }]}>
               {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
             </Text>
-            <Text style={{ ...textFont("400"), fontSize: 11, color: color.muted }}>{tr("partner.orders.to_accept")}</Text>
+            <Text style={[type.caption, { color: color.muted }]}>{tr("partner.orders.to_accept")}</Text>
           </View>
         ) : null}
       </View>
       <View style={{ gap: 8 }}>
         {items.map((it, i) => (
           <View key={i}>
-            <Text style={t.body}><Text style={textFont("800")}>{it.quantity ?? 1}×</Text> {it.name}</Text>
+            <Text style={t.body}><Text style={textFont("700")}>{it.quantity ?? 1}×</Text> {it.name}</Text>
             {it.options?.length ? <Text style={[t.muted, { marginTop: 2 }]}>{it.options.join(" · ")}</Text> : null}
           </View>
         ))}
         {o.special_instructions ? (
-          <View style={s.note}><Text style={[textFont("600"), { fontSize: 13, color: tone.kesarInk }]}>{tr("partner.orders.note", { note: o.special_instructions })}</Text></View>
+          <View style={s.note}><Text style={[type.small, { color: tone.kesarInk }]}>{tr("partner.orders.note", { note: o.special_instructions })}</Text></View>
         ) : null}
       </View>
       <View>
@@ -346,9 +346,9 @@ function CookingCard({ order: o, act }: { order: Order; act: Act }) {
     <Card>
       <View style={s.row}>
         <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
-        <Text style={[textFont("700"), { fontSize: 13, color: left < 0 ? color.chili : tone.kesarInk }]}>{cookingLabel(o, now, tr)}</Text>
+        <Text style={[type.label, { color: left < 0 ? color.chili : tone.kesarInk }]}>{cookingLabel(o, now, tr)}</Text>
       </View>
-      <Text style={[t.muted, { fontSize: 14 }]}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
+      <Text style={t.muted}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
       <View style={s.track}><View style={[s.fill, { width: `${Math.round(done * 100)}%` }]} /></View>
       <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
         {!almost ? (
@@ -390,13 +390,13 @@ function ReadyCard({ order: o }: { order: Order }) {
     <Card>
       <View style={s.row}>
         <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
-        <Text style={[textFont("700"), { fontSize: 13, color: color.peacockDeep }]}>{tr("partner.orders.ready_at", { time: clock(o.actual_ready_at, o.time_zone) })}</Text>
+        <Text style={[type.label, { color: color.peacockDeep }]}>{tr("partner.orders.ready_at", { time: clock(o.actual_ready_at, o.time_zone) })}</Text>
       </View>
-      <Text style={[t.muted, { fontSize: 14 }]}>{[...items.map((i) => `${i.quantity ?? 1}× ${i.name}`), tr("partner.orders.bags", { count: bags })].join(" · ")}</Text>
+      <Text style={t.muted}>{[...items.map((i) => `${i.quantity ?? 1}× ${i.name}`), tr("partner.orders.bags", { count: bags })].join(" · ")}</Text>
       <View style={s.rider}>
-        <View style={s.avatar}><Text style={[textFont("800"), { color: color.peacockDeep }]}>{rname ? rname.split(/\s+/).filter(Boolean).map((p) => [...p][0]).join("").slice(0, 2).toUpperCase() : "…"}</Text></View>
+        <View style={s.avatar}><Text style={[type.label, { color: color.peacockDeep }]}>{rname ? rname.split(/\s+/).filter(Boolean).map((p) => [...p][0]).join("").slice(0, 2).toUpperCase() : "…"}</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={[textFont("700"), { fontSize: 14 }]}>
+          <Text style={type.label}>
             {rname ? `${rname} · ${eta == null ? tr("partner.orders.on_the_way") : eta <= 1 ? tr("partner.orders.arriving") : tr("partner.orders.min_away", { min: eta })}`
               : tr("partner.orders.finding_rider")}
           </Text>

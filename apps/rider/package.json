@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
-    "lint": "eslint app",
+    "lint": "eslint app lib",
     "typecheck": "tsc --noEmit",
     "export:check": "expo export --platform android --platform ios --output-dir .expo/export-check"
   },

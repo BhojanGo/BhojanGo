@@ -1,14 +1,14 @@
 // RiderOnboarding.html: "Almost ready to ride", five steps, one action.
 // The API sends each step's key and status; the words are the app's (rider.checklist.*,
 // in the rider's language). A reviewer's note on a rejected document is shown as written.
-import { useI18n, type Translate } from "@bhojango/mobile-core";
+import { type Translate, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon, RiderMark } from "./icons";
 import type { Onboarding } from "./rider";
-import { night, radius, space, textFont, ui } from "./theme";
+import { night, radius, space, ui } from "./theme";
 
 type Step = Onboarding["steps"][number];
 
@@ -63,10 +63,10 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
           <View style={styles.top}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <RiderMark />
-              <Text style={[ui.bold, { fontSize: 15, ...textFont("700") }]}>{t("rider.brand")}</Text>
+              <Text style={ui.bold}>{t("rider.brand")}</Text>
             </View>
             <Pressable accessibilityRole="link" onPress={() => router.push("/sos")} style={styles.help}>
-              <Text style={[textFont("700"), { color: night.link, fontSize: 14 }]}>{t("rider.checklist.help")}</Text>
+              <Text style={[type.label, { color: night.link }]}>{t("rider.checklist.help")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -75,7 +75,7 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
         </Text>
         <View style={styles.progressRow} accessibilityLabel={t("rider.checklist.progress", { done: o.done, total: o.total })}>
           <View style={styles.track}><View style={[styles.fill, { width: `${(o.done / o.total) * 100}%` }]} /></View>
-          <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{t("rider.checklist.progress_short", { done: o.done, total: o.total })}</Text>
+          <Text style={ui.bold}>{t("rider.checklist.progress_short", { done: o.done, total: o.total })}</Text>
         </View>
         <View style={styles.list}>
           {o.steps.map((s, i) => {
@@ -93,11 +93,11 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
                   <View style={[styles.dot, { backgroundColor: night.doneBg }]}><Icon name="check" size={16} stroke={night.link} width={3} /></View>
                 ) : (
                   <View style={[styles.dot, { borderWidth: 2, borderColor: now || s.status === "rejected" ? night.kesar : night.lineStrong }]}>
-                    <Text style={[textFont("800"), { fontSize: 13, color: now ? night.kesar : night.muted }]}>{i + 1}</Text>
+                    <Text style={[type.label, { color: now ? night.kesar : night.muted }]}>{i + 1}</Text>
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={[ui.bold, { fontSize: 16 }, waiting && { color: night.muted }]}>{title}</Text>
+                  <Text style={[ui.bold, waiting && { color: night.muted }]}>{title}</Text>
                   <Text style={[ui.muted, now && { color: night.needed }, s.status === "rejected" && { color: night.sosText }]}>{detail}</Text>
                 </View>
                 {tappable ? <Icon name="chevronRight" size={18} width={2.2} /> : null}
@@ -106,7 +106,7 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
           })}
         </View>
         <View style={styles.info}>
-          <Text style={[ui.body, { fontSize: 14, lineHeight: 21 }]}>
+          <Text style={ui.note}>
             <Text style={ui.bold}>{t("rider.checklist.how_pay_title")}</Text>{" "}
             {floor ? t("rider.checklist.how_pay_floor", { floor }) : t("rider.checklist.how_pay")}
           </Text>
@@ -121,7 +121,7 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
           </Pressable>
         ) : (
           <Pressable testID="checklist-refresh" accessibilityRole="button" onPress={onRefresh} style={ui.outline}>
-            <Text style={[ui.bold, { fontSize: 16 }]}>{o.ready ? t("rider.checklist.continue") : t("rider.checklist.checking_refresh")}</Text>
+            <Text style={ui.bold}>{o.ready ? t("rider.checklist.continue") : t("rider.checklist.checking_refresh")}</Text>
           </Pressable>
         )}
       </View>

@@ -1,5 +1,5 @@
 // Upload a licence or insurance photo for review (from the onboarding checklist).
-import { api, ApiError, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -7,7 +7,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
-import { night, radius, space, textFont, ui } from "../lib/theme";
+import { night, radius, space, ui } from "../lib/theme";
 import { uploadFile } from "../lib/upload";
 
 
@@ -50,7 +50,7 @@ export default function Document() {
   return (
     <SafeAreaView testID="document-screen" style={[ui.screen, { padding: space[5], gap: space[4] }]}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text accessibilityRole="header" style={[ui.h1, { fontSize: 28, flex: 1 }]}>{known ? t(`rider.checklist.steps.${kind}`) : t("rider.document.title")}</Text>
+        <Text accessibilityRole="header" style={[ui.h1, { flex: 1 }]}>{known ? t(`rider.checklist.steps.${kind}`) : t("rider.document.title")}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={() => router.back()} style={styles.close}><Icon name="close" /></Pressable>
       </View>
       <Text style={[ui.body, { color: night.muted }]}>{known ? t(`rider.document.hint_${kind}`) : t("rider.document.hint")}</Text>
@@ -65,13 +65,13 @@ export default function Document() {
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Pressable accessibilityRole="button" onPress={() => choose("camera")} style={[ui.outline, { flex: 1 }]}>
           <Icon name="camera" size={20} stroke={night.link} />
-          <Text style={[ui.bold, textFont("700")]}>{t("rider.document.take")}</Text>
+          <Text style={ui.bold}>{t("rider.document.take")}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => choose("library")} style={[ui.outline, { flex: 1 }]}>
-          <Text style={[ui.bold, textFont("700")]}>{t("rider.document.choose")}</Text>
+          <Text style={ui.bold}>{t("rider.document.choose")}</Text>
         </Pressable>
       </View>
-      {msg ? <Text style={[textFont("600"), { color: night.sosText }]}>{msg}</Text> : null}
+      {msg ? <Text style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
       <View style={{ flex: 1 }} />
       <Text style={ui.muted}>{t("rider.document.private")}</Text>
       <Pressable accessibilityRole="button" disabled={!picked || busy} onPress={send} style={[ui.cta, { opacity: picked && !busy ? 1 : 0.5 }]}>

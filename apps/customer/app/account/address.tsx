@@ -3,7 +3,7 @@
 // where the phone is ("Use my location", asked only when tapped); the country
 // is the pin's (Markets). Then the street, city, state, postal code, a name
 // (Home, Work) and delivery notes for the rider.
-import { Button, color, Input, radius, space, textFont, useI18n } from "@bhojango/mobile-core";
+import { Button, color, Input, radius, space, type, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Switch, Text, View } from "react-native";
@@ -57,18 +57,18 @@ function PinPicker({ pin, onPin }: { pin: Pin | null; onPin: (p: Pin) => void })
           onPress={() => { onPin({ lat: a.lat, lng: a.lng, country: a.country, label: a.label, city: a.city_name }); setQ(""); }}
           style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44, paddingHorizontal: 8, borderRadius: 10 }, pressed && { backgroundColor: color.peacockMist }]}>
           <Icon name="pin" size={18} stroke={color.muted} />
-          <Text style={[textFont("600"), { fontSize: 15, color: color.kohl, flex: 1 }]}>{a.label}</Text>
+          <Text style={[type.label, { color: color.kohl, flex: 1 }]}>{a.label}</Text>
         </Pressable>
       ))}
       <Pressable testID="use-my-location" accessibilityRole="button" onPress={here} disabled={locating}
         style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, opacity: locating ? 0.6 : 1 }}>
         <Icon name="map" size={18} stroke={color.peacock} />
-        <Text style={[textFont("800"), { fontSize: 15, color: color.peacock }]}>{locating ? t("address.locating") : t("address.use_my_location")}</Text>
+        <Text style={[type.label, { color: color.peacock }]}>{locating ? t("address.locating") : t("address.use_my_location")}</Text>
       </Pressable>
       {pin ? (
         <View testID="pin-set" style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: space[3], borderRadius: radius.card, backgroundColor: color.peacockMist }}>
           <Icon name="pin" size={18} stroke={color.peacockDeep} />
-          <Text style={[textFont("700"), { fontSize: 14, color: color.peacockDeep, flex: 1 }]}>{t("account.addresses.location_set", { place: pin.label })}</Text>
+          <Text style={[type.label, { color: color.peacockDeep, flex: 1 }]}>{t("account.addresses.location_set", { place: pin.label })}</Text>
         </View>
       ) : null}
       {problem ? <Text accessibilityRole="alert" style={ui.muted}>{problem}</Text> : null}
@@ -132,7 +132,7 @@ function AddressForm({ address }: { address: Address | null }) {
           <Input testID="address-postal" label={t("account.addresses.postal_code")} value={postal} onChangeText={setPostal} maxLength={20} autoComplete="postal-code" />
           <Input testID="address-notes" label={t("account.addresses.notes")} value={notes} onChangeText={setNotes} maxLength={500} multiline />
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 48 }}>
-            <Text style={[textFont("700"), { fontSize: 15, color: color.kohl, flex: 1 }]}>{t("account.addresses.make_default")}</Text>
+            <Text style={[type.label, { color: color.kohl, flex: 1 }]}>{t("account.addresses.make_default")}</Text>
             <Switch testID="address-default-switch" accessibilityLabel={t("account.addresses.make_default")} value={isDefault} onValueChange={setIsDefault}
               trackColor={{ true: color.peacock, false: color.lineStrong }} thumbColor={color.white} />
           </View>

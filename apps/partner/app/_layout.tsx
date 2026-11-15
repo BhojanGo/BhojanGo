@@ -1,6 +1,8 @@
-import { color, I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner } from "@bhojango/mobile-core";
+import {
+  color, FontAudit, fontAuditEnabled, I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
+} from "@bhojango/mobile-core";
 import { useKeepAwake } from "expo-keep-awake";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -30,6 +32,7 @@ export default function RootLayout() {
   return (
     <I18nProvider>
       <StatusBar style="dark" />
+      {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }} />
       </WithTestBanner>

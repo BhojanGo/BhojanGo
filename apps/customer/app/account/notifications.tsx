@@ -1,6 +1,6 @@
 // Notifications (WebProfile): order updates, receipts and account, offers, each
 // by push, SMS and email. A switch saves at once (and goes back if it fails).
-import { color, textFont, useI18n } from "@bhojango/mobile-core";
+import { color, type, useI18n } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,7 +44,7 @@ export default function Notifications() {
                 const label = t("account.notifications.toggle", { kind: t(`account.notifications.${k}`), channel: t(`account.notifications.${c}`) });
                 return (
                   <View key={c} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
-                    <Text style={[textFont("600"), { fontSize: 16, color: color.kohl }]}>{t(`account.notifications.${c}`)}</Text>
+                    <Text style={[type.label, { color: color.kohl }]}>{t(`account.notifications.${c}`)}</Text>
                     <Switch testID={`notify-${k}-${c}`} accessibilityLabel={label} value={on} onValueChange={(v) => void flip(k, c, v)}
                       trackColor={{ true: color.peacock, false: color.lineStrong }} thumbColor={color.white} />
                   </View>

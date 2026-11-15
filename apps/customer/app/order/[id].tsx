@@ -3,7 +3,7 @@
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes (a slow poll as a safety net). The map is
 // MapLibre over OpenFreeMap's free tiles (components/LiveMap.tsx).
-import { api, color, inZone, QuickChat, radius, space, StatusPill, textFont, Txt, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
+import { api, color, inZone, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -94,9 +94,9 @@ export default function Tracking() {
   if (missing && !order) {
     return (
       <View style={[styles.screen, { alignItems: "center", justifyContent: "center", padding: space[6], gap: space[4] }]}>
-        <Txt variant="h1" style={{ textAlign: "center" }}>{t("track.not_found")}</Txt>
+        <Txt variant="h2" style={{ textAlign: "center" }}>{t("track.not_found")}</Txt>
         <Pressable accessibilityRole="button" onPress={() => router.replace("/orders")} style={styles.report}>
-          <Text style={[textFont("700"), { fontSize: 15, color: color.peacockDeep, paddingHorizontal: space[5] }]}>{t("track.your_orders")}</Text>
+          <Text style={[type.label, { color: color.peacockDeep, paddingHorizontal: space[5] }]}>{t("track.your_orders")}</Text>
         </Pressable>
       </View>
     );
@@ -155,25 +155,25 @@ export default function Tracking() {
       </Pressable>
       {delivered ? (
         <Pressable accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={[styles.float, { right: 20, width: undefined, paddingHorizontal: 18 }]}>
-          <Text style={[textFont("700"), { fontSize: 14 }]}>{t("track.help")}</Text>
+          <Text style={type.label}>{t("track.help")}</Text>
         </Pressable>
       ) : null}
       <ScrollView style={styles.sheet} contentContainerStyle={{ padding: space[6], paddingHorizontal: space[5], gap: space[5] }} accessibilityLabel={t("track.status")}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text testID="track-headline" style={[textFont("600"), { fontSize: 14, color: color.muted }]}>{headline}</Text>
+            <Text testID="track-headline" style={[type.label, { color: color.muted }]}>{headline}</Text>
             {!cancelled ? (
-              <Text testID="eta" style={[{ fontFamily: "FamiljenGrotesk_600SemiBold", fontSize: 44, letterSpacing: -1.5, color: color.kohl, marginTop: 6 }]}>
+              <Text testID="eta" style={[type.display, { color: color.kohl, marginTop: 6 }]}>
                 {delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—"}
               </Text>
             ) : null}
             {!finished && arrivesAt ? (
-              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{t("track.around", { time: time(arrivesAt, tz) })}</Text>
+              <Text style={[type.small, { color: color.muted }]}>{t("track.around", { time: time(arrivesAt, tz) })}</Text>
             ) : null}
           </View>
           <View style={{ alignItems: "flex-end", gap: 2 }}>
-            {leftText ? <Text testID="distance-left" style={[textFont("800"), { fontSize: 15, color: color.kohl }]}>{t("track.away", { left: leftText })}</Text> : null}
-            {live.searching && !rider ? <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{t("track.s_finding")}</Text> : null}
+            {leftText ? <Text testID="distance-left" style={[type.label, { color: color.kohl }]}>{t("track.away", { left: leftText })}</Text> : null}
+            {live.searching && !rider ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
           </View>
         </View>
         <View accessibilityLabel={t("app.track.progress", { step: t(`app.track.step_${STEPS[stepIndex]?.key ?? "placed"}`), n: stepIndex + 1, total: STEPS.length })}>
@@ -183,7 +183,7 @@ export default function Tracking() {
           </View>
           <View style={styles.steps}>
             {STEPS.map((st, i) => (
-              <Text key={st.key} style={[textFont(i === stepIndex ? "800" : "600"), { fontSize: 12, color: i === stepIndex ? color.kohl : color.muted, textAlign: "center" }]}>
+              <Text key={st.key} style={[type.small, { flex: 1, color: i === stepIndex ? color.kohl : color.muted, textAlign: "center" }]}>
                 {t(`app.track.step_${st.key}`)}{stamps[i] ? `\n${stamps[i]}` : ""}
               </Text>
             ))}
@@ -191,10 +191,10 @@ export default function Tracking() {
         </View>
         {rider ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }} accessibilityLabel={t("track.rider_card", { rider })}>
-            <View style={styles.avatar}><Text style={[textFont("800"), { fontSize: 17, color: color.peacockDeep }]}>{rider.slice(0, 2).toUpperCase()}</Text></View>
+            <View style={styles.avatar}><Text style={[type.h3, { color: color.peacockDeep }]}>{rider.slice(0, 2).toUpperCase()}</Text></View>
             <View style={{ flex: 1 }}>
-              <Text testID="rider-name" style={[textFont("800"), { fontSize: 16 }]}>{rider}</Text>
-              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{t("track.your_rider")}</Text>
+              <Text testID="rider-name" style={type.label}>{rider}</Text>
+              <Text style={[type.small, { color: color.muted }]}>{t("track.your_rider")}</Text>
             </View>
             {/* No calls and no phone numbers: quick messages while the order is on its way (B2). */}
             {!finished ? <QuickChat orderId={id} /> : null}
@@ -207,13 +207,13 @@ export default function Tracking() {
         )}
         {pin ? (
           <View style={styles.pinRow} accessibilityLabel={t("app.track.pin_a11y", { pin: pin.split("").join(" ") })}>
-            <Text style={[textFont("600"), { fontSize: 13, color: color.muted, flex: 1 }]}>{t("track.pin_long")}</Text>
-            <Text testID="delivery-pin" style={[textFont("800"), { fontSize: 22, letterSpacing: 6, color: color.kohl }]}>{pin}</Text>
+            <Text style={[type.small, { color: color.muted, flex: 1 }]}>{t("track.pin_long")}</Text>
+            <Text testID="delivery-pin" style={[type.h2, { letterSpacing: 6, color: color.kohl }]}>{pin}</Text>
           </View>
         ) : null}
         {delivered ? (
           <Pressable testID="report-problem" accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={styles.report}>
-            <Text style={[textFont("700"), { fontSize: 15, color: color.peacockDeep }]}>{t("track.report")}</Text>
+            <Text style={[type.label, { color: color.peacockDeep }]}>{t("track.report")}</Text>
           </Pressable>
         ) : null}
       </ScrollView>

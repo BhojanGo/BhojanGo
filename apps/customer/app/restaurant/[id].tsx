@@ -1,7 +1,7 @@
 // The kitchen: its own cover (or initials tile), "New" or its rating, the offer
 // and who pays, then the menu by section. A dish shows a photo only when it has
 // its own (image_url); otherwise a clean text row. Tap a dish to customise it.
-import { color, radius, space, textFont, Txt, useBag, useI18n } from "@bhojango/mobile-core";
+import { color, radius, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,15 +44,15 @@ export default function RestaurantScreen() {
             <KitchenCover name={r.name} cover={r.cover_url} cuisine={r.cuisine_types[0]} height={220} width={1600} />
             <View style={styles.head}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33, flex: 1 }}>{r.name}</Txt>
+                <Txt variant="h1" accessibilityRole="header" style={{ flex: 1 }}>{r.name}</Txt>
                 <RatingBadge x={r} testID="kitchen-rating" />
               </View>
-              <Text style={[textFont("400"), { color: color.muted, fontSize: 14 }]}>
+              <Text style={[type.small, { color: color.muted }]}>
                 {[...r.cuisine_types.slice(0, 3), t("common.minutes", { min: r.delivery_time_min, max: r.delivery_time_max })].join(" · ")}
               </Text>
               {offer ? (
                 <View testID="kitchen-offer" style={styles.offer}>
-                  <Text style={[textFont("800"), { fontSize: 13, color: color.kohl }]}>{offerBadge(offer, t, money, r.currency)}</Text>
+                  <Text style={[type.label, { color: color.kohl }]}>{offerBadge(offer, t, money, r.currency)}</Text>
                 </View>
               ) : null}
               {!open ? <Txt variant="small" style={{ color: color.chili }}>{t("kitchen.closed_note")}</Txt> : null}
@@ -73,7 +73,7 @@ export default function RestaurantScreen() {
       </View>
       {inBag > 0 ? (
         <Pressable testID="view-bag" accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
-          <Text style={[textFont("800"), { color: color.white, fontSize: 16 }]}>
+          <Text style={[type.label, { color: color.white }]}>
             {t("kitchen.view_bag")} · {t("kitchen.bar_summary", { count: inBag, total: money(total, r.currency, { whole: true }) })}
           </Text>
           <Icon name="arrow" stroke={color.white} />
@@ -100,21 +100,21 @@ function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantI
       style={[styles.item, off && { opacity: 0.5 }]}
     >
       <View style={{ flex: 1, gap: 4 }}>
-        <Text style={[textFont("800"), { fontSize: 16, color: color.kohl }]}>{item.name}</Text>
-        <Text style={[textFont("700"), { fontSize: 15, color: color.kohl }]}>
+        <Text style={[type.label, { color: color.kohl }]}>{item.name}</Text>
+        <Text style={[type.label, { color: color.kohl }]}>
           {off ? t("kitchen.sold_out_today") : money(item.price, currency, { whole: true })}
         </Text>
         {item.description ? (
-          <Text numberOfLines={2} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{item.description}</Text>
+          <Text numberOfLines={2} style={[type.small, { color: color.muted }]}>{item.description}</Text>
         ) : null}
       </View>
       {pic ? (
         <View>
           <Photo uri={pic} label={item.name} style={styles.dishPhoto} testID="photo-dish"
-            fallback={<View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>} />
+            fallback={<View style={styles.add}><Text style={[type.h2, { color: color.peacock }]}>+</Text></View>} />
         </View>
       ) : (
-        <View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>
+        <View style={styles.add}><Text style={[type.h2, { color: color.peacock }]}>+</Text></View>
       )}
     </Pressable>
   );

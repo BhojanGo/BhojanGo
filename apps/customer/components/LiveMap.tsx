@@ -8,7 +8,7 @@
 // dev build) has no MLRN modules, and importing the package would throw. So it
 // is loaded only when its native module is there; otherwise (or if the style
 // can't load) the route is drawn on a plain ground as before.
-import { color, textFont } from "@bhojango/mobile-core";
+import { color, type } from "@bhojango/mobile-core";
 import { useMemo, useState } from "react";
 import { Linking, Text, TurboModuleRegistry, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
@@ -124,9 +124,9 @@ function NativeMap({ ML, pickup, dropoff, rider, trail, next, labels, coverBotto
         testID="map-attribution"
         accessibilityRole="link"
         onPress={() => void Linking.openURL(COPYRIGHT)}
-        style={[textFont("600"), {
+        style={[type.caption, {
           // top right: always on screen (the sheet below can cover more of the map than coverBottom)
-          position: "absolute", right: 8, top: 8, maxWidth: "92%", fontSize: 9, color: color.kohl,
+          position: "absolute", right: 8, top: 8, maxWidth: "92%", color: color.kohl,
           backgroundColor: "rgba(255,255,255,0.85)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: "hidden",
         }]}
       >

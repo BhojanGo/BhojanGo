@@ -1,7 +1,7 @@
 // Saved addresses (WebProfile): the default first, delivery notes, make
 // default, edit, delete, add. Making one the default also makes it where the
 // app shows food for (and so the country, its languages and prices).
-import { Button, color, space, textFont, useI18n } from "@bhojango/mobile-core";
+import { Button, color, space, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
@@ -53,14 +53,14 @@ export default function Addresses() {
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[2] }}>
               <Text numberOfLines={1} style={[ui.h2, { flex: 1 }]}>{a.label || a.street}</Text>
               {a.is_default ? (
-                <Text testID="address-default" style={[textFont("800"), { fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase", color: color.peacockDeep }]}>
+                <Text testID="address-default" style={[type.caption, { color: color.peacockDeep }]}>
                   {t("account.addresses.default")}
                 </Text>
               ) : (
                 <LinkButton testID={`address-${i}-make-default`} title={t("account.addresses.make_default")} onPress={() => void makeDefault(a)} />
               )}
             </View>
-            <Text style={[textFont("400"), { fontSize: 15, color: color.kohl }]}>{[a.street, a.city, a.state].filter(Boolean).join(", ")} {a.postal_code}</Text>
+            <Text style={[type.body, { color: color.kohl }]}>{[a.street, a.city, a.state].filter(Boolean).join(", ")} {a.postal_code}</Text>
             {a.delivery_notes ? <Text style={ui.small}>{a.delivery_notes}</Text> : null}
             <View style={{ flexDirection: "row", gap: space[5] }}>
               <LinkButton testID={`address-${i}-edit`} title={t("account.addresses.edit")} onPress={() => router.push(`/account/address?id=${a.id}`)} />

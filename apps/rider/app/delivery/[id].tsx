@@ -6,7 +6,7 @@
 // The screen polls the order and the rider's live state, shows whatever step the
 // server is at, reloads after a refused action instead of insisting, and says so
 // plainly when the order is no longer this rider's.
-import { api, ApiError, QuickChat, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, num, QuickChat, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "../../lib/icons";
 import { RouteMap } from "../../lib/map";
 import { useFormat, useLive, useOrder } from "../../lib/rider";
-import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
+import { night, radius, space, textFont, ui } from "../../lib/theme";
 import { uploadFile } from "../../lib/upload";
 
 function km(a: [number, number] | null, b: [number, number] | null): number | null {
@@ -95,7 +95,7 @@ export default function Delivery() {
           <>
             <Text style={ui.body}>{error}</Text>
             <Pressable accessibilityRole="button" onPress={() => void reload()} style={ui.outline}>
-              <Text style={[ui.bold, textFont("700")]}>{t("common.retry")}</Text>
+              <Text style={ui.bold}>{t("common.retry")}</Text>
             </Pressable>
           </>
         ) : <ActivityIndicator testID="delivery-loading" color={night.kesar} />}
@@ -212,7 +212,7 @@ export default function Delivery() {
           <Text style={ui.pillText}>{[position, picked ? t("rider.delivery.step_drop") : t("rider.delivery.step_pickup")].filter(Boolean).join(" · ")}</Text>
         </View>
         <Pressable testID="sos-open" accessibilityRole="button" accessibilityLabel={t("rider.delivery.sos_label")} onPress={() => router.push("/sos")} style={styles.sos}>
-          <Text style={[textFont("800"), { color: night.sosText, fontSize: 14 }]}>{t("rider.delivery.sos")}</Text>
+          <Text style={[type.label, { color: night.sosText }]}>{t("rider.delivery.sos")}</Text>
         </Pressable>
       </SafeAreaView>
 
@@ -221,30 +221,30 @@ export default function Delivery() {
           {picked ? (
             <>
               <View>
-                <Text testID="delivery-name" style={[displayFont("600"), styles.name]}>{name}</Text>
-                <Text style={[ui.muted, { fontSize: 14, marginTop: 4 }]}>
+                <Text testID="delivery-name" style={[type.h1, styles.name]}>{name}</Text>
+                <Text style={[ui.muted, { marginTop: 4 }]}>
                   {[addr.street, dDrop, t("rider.delivery.order_code", { code })].filter(Boolean).join(" · ")}
                 </Text>
               </View>
               {order.special_instructions ? (
                 <View style={styles.note}>
-                  <Text style={[textFont("400"), { color: night.needed, fontSize: 14, lineHeight: 21 }]}>
-                    <Text style={textFont("800")}>{t("rider.delivery.note")} </Text>{order.special_instructions}
+                  <Text style={[type.small, { color: night.needed }]}>
+                    <Text style={textFont("700")}>{t("rider.delivery.note")} </Text>{order.special_instructions}
                   </Text>
                 </View>
               ) : null}
               <Pressable testID="navigate" accessibilityRole="button" onPress={() => navigate(drop, name)} style={[ui.outline, { marginTop: 12 }]}>
                 <Icon name="navigate" size={20} stroke={night.link} />
-                <Text style={[ui.bold, { ...textFont("700") }]}>{t("rider.delivery.navigate")}</Text>
+                <Text style={ui.bold}>{t("rider.delivery.navigate")}</Text>
               </Pressable>
               <ChatButton orderId={order.id} />
 
-              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>{t("rider.delivery.proof_title")}</Text>
+              <Text style={[ui.bold, { marginTop: 24 }]}>{t("rider.delivery.proof_title")}</Text>
               <View accessibilityRole="radiogroup" accessibilityLabel={t("rider.delivery.proof_type")} style={styles.seg}>
                 {(["photo", "pin"] as const).map((k) => (
                   <Pressable key={k} testID={`proof-${k}`} accessibilityRole="radio" accessibilityState={{ checked: proof === k }} onPress={() => { setProof(k); setMsg(null); }}
                     style={[styles.segBtn, proof === k && { backgroundColor: night.line }]}>
-                    <Text style={[textFont(proof === k ? "800" : "600"), { fontSize: 14, color: proof === k ? night.text : night.muted }]}>
+                    <Text style={[type.label, { color: proof === k ? night.text : night.muted }]}>
                       {k === "photo" ? t("rider.delivery.photo_at_door") : t("rider.delivery.pin_handover")}
                     </Text>
                   </Pressable>
@@ -258,7 +258,7 @@ export default function Delivery() {
                   {busy === "photo" ? <ActivityIndicator color={night.kesar} /> : photo ? null : (
                     <>
                       <Icon name="camera" size={28} stroke={night.link} />
-                      <Text style={[ui.bold, textFont("700")]}>{t("rider.delivery.take_photo")}</Text>
+                      <Text style={ui.bold}>{t("rider.delivery.take_photo")}</Text>
                     </>
                   )}
                 </Pressable>
@@ -267,31 +267,31 @@ export default function Delivery() {
                   <Text style={ui.muted}>{t("rider.delivery.ask_pin", { name: name.split(" ")[0] ?? name })}</Text>
                   <TextInput testID="pin" accessibilityLabel={t("rider.delivery.pin_label")} value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, "").slice(0, 4))}
                     keyboardType="number-pad" maxLength={4} placeholder="• • • •" placeholderTextColor={night.muted}
-                    style={[textFont("800"), styles.pin]} />
+                    style={[field.h1, num, styles.pin]} />
                 </View>
               )}
             </>
           ) : (
             <>
               <View>
-                <Text testID="delivery-name" style={[displayFont("600"), styles.name]}>{order.restaurant_name}</Text>
-                <Text style={[ui.muted, { fontSize: 14, marginTop: 4 }]}>
+                <Text testID="delivery-name" style={[type.h1, styles.name]}>{order.restaurant_name}</Text>
+                <Text style={[ui.muted, { marginTop: 4 }]}>
                   {[toPickup != null ? dist(toPickup, unit) : null, t("rider.delivery.order_code", { code }), t("rider.delivery.items", { count })]
                     .filter(Boolean).join(" · ")}
                 </Text>
               </View>
               <View testID={order.status === "ready" ? "kitchen-ready" : "kitchen-preparing"}
                 style={[styles.note, { backgroundColor: order.status === "ready" ? night.info : night.noteBg }]}>
-                <Text style={[textFont("700"), { color: order.status === "ready" ? night.text : night.needed, fontSize: 14 }]}>
+                <Text style={[type.label, { color: order.status === "ready" ? night.text : night.needed }]}>
                   {order.status === "ready" ? t("rider.delivery.ready_pickup") : t("rider.delivery.preparing")}
                 </Text>
               </View>
               <Pressable testID="navigate" accessibilityRole="button" onPress={() => navigate(pickup, order.restaurant_name)} style={[ui.outline, { marginTop: 12 }]}>
                 <Icon name="navigate" size={20} stroke={night.link} />
-                <Text style={[ui.bold, textFont("700")]}>{t("rider.delivery.navigate")}</Text>
+                <Text style={ui.bold}>{t("rider.delivery.navigate")}</Text>
               </Pressable>
               <ChatButton orderId={order.id} />
-              <Text style={[ui.bold, { fontSize: 15, marginTop: 24 }]}>{t("rider.delivery.in_bag")}</Text>
+              <Text style={[ui.bold, { marginTop: 24 }]}>{t("rider.delivery.in_bag")}</Text>
               {items.map((it, i) => (
                 <View key={i} style={styles.itemRow}>
                   <Text style={[ui.bold, { width: 32 }]}>{it.quantity ?? 1}×</Text>
@@ -303,7 +303,7 @@ export default function Delivery() {
               </Text>
             </>
           )}
-          {msg ? <Text testID="delivery-message" style={[textFont("600"), { color: night.sosText, fontSize: 14, marginTop: 12 }]}>{msg}</Text> : null}
+          {msg ? <Text testID="delivery-message" style={[type.label, { color: night.sosText, marginTop: 12 }]}>{msg}</Text> : null}
         </ScrollView>
         <View style={{ padding: 20, paddingTop: 8 }}>
           {picked ? (
@@ -334,7 +334,7 @@ function ChatButton({ orderId }: { orderId: string }) {
       return (
         <Pressable testID="chat-open" accessibilityRole="button" onPress={open} style={[ui.outline, { marginTop: 12 }]} accessibilityLabel={label}>
           <Icon name="message" size={20} stroke={night.link} />
-          <Text style={[ui.bold, textFont("700")]}>{label}</Text>
+          <Text style={ui.bold}>{label}</Text>
         </Pressable>
       );
     }} />
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(20, 34, 37, 0.92)", justifyContent: "center",
   },
   sheetBody: { paddingTop: 24, paddingHorizontal: 20, paddingBottom: 8 },
-  name: { color: night.text, fontSize: 28, letterSpacing: -0.6, lineHeight: 31 },
+  name: { color: night.text },
   note: { marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: night.noteBg },
   seg: { marginTop: 12, flexDirection: "row", padding: 4, borderRadius: radius.pill, backgroundColor: night.map },
   segBtn: { flex: 1, height: 44, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   pin: {
     height: 64, borderRadius: 16, borderWidth: 1.5, borderColor: night.lineStrong, backgroundColor: night.map, color: night.text,
-    fontSize: 28, letterSpacing: 12, textAlign: "center",
+    letterSpacing: 12, textAlign: "center",
   },
   itemRow: { flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: night.raised },
 });

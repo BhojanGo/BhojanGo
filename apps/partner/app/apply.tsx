@@ -1,7 +1,7 @@
 // PartnerOnboarding.html: the partner application. Steps on the left (and
 // your terms), the current step on the right: FSSAI licence, GST and bank,
 // menu, then we check everything and switch the kitchen on.
-import { api, ApiError, unwrap, useCountry, useI18n, useSession, type Translate } from "@bhojango/mobile-core";
+import { api, ApiError, field, type Translate, type, unwrap, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen, useLoad, type Application } from "../lib/data";
 import { useLayout } from "../lib/layout";
-import { Btn, color, displayFont, Icon, radius, t, textFont, tone } from "../lib/ui";
+import { Btn, color, Icon, radius, t, tone } from "../lib/ui";
 import { uploadFile } from "../lib/upload";
 
 type Step = Application["steps"][number];
@@ -109,25 +109,25 @@ export default function Apply() {
                   {x.done ? (
                     <View style={[s.num, { backgroundColor: color.peacock, borderColor: color.peacock }]}><Icon name="check" size={14} stroke={color.white} width={3} /></View>
                   ) : (
-                    <View style={[s.num, on && { borderColor: color.peacock }]}><Text style={[textFont("800"), { fontSize: 13, color: on ? color.peacock : color.muted }]}>{i + 1}</Text></View>
+                    <View style={[s.num, on && { borderColor: color.peacock }]}><Text style={[type.label, { color: on ? color.peacock : color.muted }]}>{i + 1}</Text></View>
                   )}
-                  <Text style={[textFont(on ? "800" : "600"), { fontSize: 15, color: x.done || on ? color.kohl : color.muted, flexShrink: 1 }]}>{stepText(tr, x, gst).title}</Text>
+                  <Text style={[type.label, { color: x.done || on ? color.kohl : color.muted, flexShrink: 1 }]}>{stepText(tr, x, gst).title}</Text>
                 </Pressable>
               );
             })}
           </View>
           {a?.commission_percent ? (
             <View style={[s.panel, { backgroundColor: color.peacockDeep, borderColor: color.peacockDeep }]} accessibilityLabel={tr("partner.apply.terms")}>
-              <Text style={[textFont("700"), { fontSize: 13, color: "#CFE3E5" }]}>{tr("partner.apply.terms")}</Text>
-              <Text style={[displayFont("600"), { fontSize: 40, color: color.white }]}>{Number(a.commission_percent)}%</Text>
-              <Text style={[textFont("400"), { fontSize: 14, lineHeight: 20, color: "#CFE3E5" }]}>{tr("partner.apply.terms_body")}</Text>
+              <Text style={[type.label, { color: "#CFE3E5" }]}>{tr("partner.apply.terms")}</Text>
+              <Text style={[type.display, { color: color.white }]}>{Number(a.commission_percent)}%</Text>
+              <Text style={[type.small, { color: "#CFE3E5" }]}>{tr("partner.apply.terms_body")}</Text>
             </View>
           ) : null}
         </ScrollView>
         <ScrollView style={[s.panel, { flex: phone ? undefined : 1, padding: 0 }]} scrollEnabled={!phone} contentContainerStyle={{ padding: phone ? 16 : narrow ? 20 : 32, gap: 16 }}>
           {a ? (
             <>
-              <Text style={[textFont("700"), { fontSize: 13, color: color.peacock }]}>{tr("partner.apply.step_of", { n: idx + 1, total: a.total })}</Text>
+              <Text style={[type.label, { color: color.peacock }]}>{tr("partner.apply.step_of", { n: idx + 1, total: a.total })}</Text>
               <StepBody app={a} stepKey={current} onSaved={async () => { const n = await app.reload(); setStep(n?.current ?? null); }} />
             </>
           ) : <Text style={t.muted}>{app.error ?? tr("common.loading")}</Text>}
@@ -157,7 +157,7 @@ function StepBody({ app: a, stepKey, onSaved }: { app: Application; stepKey: str
       <Text style={t.body}>{text.detail}</Text>
       {stepKey === "menu" ? <Text style={t.muted}>{tr("partner.apply.menu_note")}</Text> : null}
       {stepKey === "go_live" ? <Text style={t.muted}>{tr("partner.apply.go_live_note")}</Text> : null}
-      <Text style={[textFont("700"), { color: step.done ? color.peacock : tone.kesarInk }]}>{step.done ? tr("partner.apply.done") : tr("partner.apply.not_done")}</Text>
+      <Text style={[type.label, { color: step.done ? color.peacock : tone.kesarInk }]}>{step.done ? tr("partner.apply.done") : tr("partner.apply.not_done")}</Text>
     </>
   );
 }
@@ -212,22 +212,22 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
         <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
           <Text style={t.label}>{tr("partner.apply.licence_number")}</Text>
           <TextInput disableFullscreenUI testID="fssai-number" accessibilityLabel={tr("partner.apply.licence_number")} value={num} keyboardType="number-pad" maxLength={17}
-            onChangeText={(v) => setNum(v.replace(/\D/g, "").slice(0, 14).replace(/(\d{4})(?=\d)/g, "$1 "))} style={[textFont("600"), s.input]} />
+            onChangeText={(v) => setNum(v.replace(/\D/g, "").slice(0, 14).replace(/(\d{4})(?=\d)/g, "$1 "))} style={[field.bodyLg, s.input]} />
           <Text style={t.muted}>{tr("partner.apply.licence_number_hint")}</Text>
         </View>
         <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
           <Text style={t.label}>{tr("partner.apply.valid_until")}</Text>
           <TextInput disableFullscreenUI testID="fssai-until" accessibilityLabel={tr("partner.apply.valid_until")} value={until} onChangeText={setUntil} placeholder={tr("partner.apply.date_hint")}
-            placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+            placeholderTextColor={color.muted} style={[field.bodyLg, s.input]} />
           <Text style={t.muted}>{tr("partner.apply.remind")}</Text>
         </View>
       </View>
       <Text style={t.label}>{tr("partner.apply.licence_document")}</Text>
       {doc ? (
         <View style={s.file}>
-          <View style={s.pdf}><Text style={[textFont("800"), { fontSize: 12, color: tone.reject }]}>{doc.name.toLowerCase().endsWith(".pdf") ? tr("partner.apply.pdf") : tr("partner.apply.img")}</Text></View>
+          <View style={s.pdf}><Text style={[type.caption, { color: tone.reject }]}>{doc.name.toLowerCase().endsWith(".pdf") ? tr("partner.apply.pdf") : tr("partner.apply.img")}</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={[textFont("700"), { fontSize: 15 }]}>{doc.name}</Text>
+            <Text style={type.label}>{doc.name}</Text>
             <Text style={t.muted}>
               {[doc.size ? tr("partner.apply.megabytes", { size: (doc.size / 1048576).toFixed(1) }) : null,
                 doc.key ? tr("partner.apply.uploaded_now") : doc.size ? tr("partner.apply.uploading") : tr("partner.apply.on_file")].filter(Boolean).join(" · ")}
@@ -238,14 +238,14 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
       ) : (
         <Pressable accessibilityRole="button" onPress={pick} style={[s.file, { borderStyle: "dashed", justifyContent: "center" }]}>
           <Icon name="doc" stroke={color.peacock} />
-          <Text style={[textFont("700"), { color: color.peacock }]}>{tr("partner.apply.upload_licence")}</Text>
+          <Text style={[type.label, { color: color.peacock }]}>{tr("partner.apply.upload_licence")}</Text>
         </Pressable>
       )}
       <View style={s.info}>
         <Icon name="info" size={20} stroke={color.peacockDeep} />
-        <Text style={[t.body, { flex: 1, fontSize: 14 }]}>{tr("partner.apply.fssai_check")}</Text>
+        <Text style={[t.muted, { flex: 1, color: color.kohl }]}>{tr("partner.apply.fssai_check")}</Text>
       </View>
-      {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
+      {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
       <View style={{ flexDirection: "row", gap: 12, justifyContent: "flex-end" }}>
         <Btn testID="fssai-save" title={tr("partner.apply.save_continue")} kind="primary" height={56} busy={busy} disabled={digits.length !== 14 || !date} onPress={save} />
       </View>
@@ -288,20 +288,20 @@ function GstBank({ app: a, onSaved }: { app: Application; onSaved: () => Promise
       <Text style={t.label}>{tr("partner.apply.gstin")}</Text>
       <View style={{ flexDirection: "row", gap: 12 }}>
         <TextInput disableFullscreenUI testID="gstin" accessibilityLabel={tr("partner.apply.gstin")} value={gstin} onChangeText={(v) => setGstin(v.toUpperCase())} autoCapitalize="characters" maxLength={15}
-          placeholder="36AABCU9603R1ZM" placeholderTextColor={color.muted} style={[textFont("600"), s.input, { flex: 1 }]} />
+          placeholder="36AABCU9603R1ZM" placeholderTextColor={color.muted} style={[field.bodyLg, s.input, { flex: 1 }]} />
         <Btn title={a.gstin ? tr("partner.apply.update") : tr("partner.apply.save_gstin")} height={56} busy={busy} disabled={gstin.length !== 15} onPress={saveGst} />
       </View>
       <Text style={t.label}>{tr("partner.apply.bank")}</Text>
       <View style={s.file}>
         <View style={{ flex: 1 }}>
-          <Text style={[textFont("700"), { fontSize: 15 }]}>
+          <Text style={type.label}>
             {a.payout_account === "active" ? tr("partner.apply.bank_confirmed") : a.payout_account ? tr("partner.apply.bank_waiting") : tr("partner.apply.bank_none")}
           </Text>
           <Text style={t.muted}>{tr("partner.apply.bank_partner")}</Text>
         </View>
         {a.payout_account !== "active" ? <Btn title={a.payout_account ? tr("partner.apply.continue") : tr("partner.apply.add_bank")} kind="primary" onPress={bank} /> : null}
       </View>
-      {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
+      {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
     </>
   );
 }
@@ -312,7 +312,7 @@ const s = StyleSheet.create({
   between: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   step: { flexDirection: "row", alignItems: "center", gap: 12, height: 52, paddingHorizontal: 12, borderRadius: 12 },
   num: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
-  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 17 },
+  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16 },
   file: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.line },
   pdf: { width: 44, height: 52, borderRadius: 8, backgroundColor: "#FBEAE8", alignItems: "center", justifyContent: "center" },
   info: { flexDirection: "row", gap: 12, padding: 16, borderRadius: radius.card, backgroundColor: color.peacockMist },

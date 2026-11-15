@@ -1,5 +1,5 @@
 // CustomerOTP.html: six boxes, filled from the SMS where the phone allows.
-import { Button, color, errorMessage, radius, space, textFont, Txt, useSession } from "@bhojango/mobile-core";
+import { Button, color, errorMessage, radius, space, textFont, Txt, type, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -45,15 +45,15 @@ export default function Code() {
         <Icon name="back" />
       </Pressable>
       <View style={styles.body}>
-        <Txt variant="h1" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 33 }}>Enter the 6-digit code</Txt>
+        <Txt variant="h1" accessibilityRole="header">Enter the 6-digit code</Txt>
         <Txt style={{ color: color.muted }}>
-          Sent to <Text style={textFont("800")}>{phone}</Text> ·{" "}
+          Sent to <Text style={textFont("700")}>{phone}</Text> ·{" "}
           <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>Edit</Text>
         </Txt>
         <Pressable accessibilityLabel="Verification code" onPress={() => input.current?.focus()} style={styles.boxes}>
           {Array.from({ length: 6 }, (_, i) => (
             <View key={i} style={[styles.box, i === code.length && styles.boxActive]}>
-              <Text style={[textFont("800"), { fontSize: 26, color: color.kohl }]}>{code[i] ?? ""}</Text>
+              <Text style={[type.h2, { color: color.kohl }]}>{code[i] ?? ""}</Text>
             </View>
           ))}
         </Pressable>
@@ -77,11 +77,11 @@ export default function Code() {
           <Icon name="message" size={18} stroke={color.muted} />
           <Txt variant="small" style={{ color: color.muted }}>We&apos;ll fill it in from the SMS automatically.</Txt>
         </View>
-        {error ? <Text style={[textFont("600"), { color: color.chili, fontSize: 14 }]}>{error}</Text> : null}
+        {error ? <Text style={[type.label, { color: color.chili }]}>{error}</Text> : null}
         <Txt variant="small" style={{ color: color.muted }}>
           Didn&apos;t get it?{" "}
           {wait > 0 ? (
-            <Text>Resend in <Text style={textFont("800")}>0:{String(wait).padStart(2, "0")}</Text></Text>
+            <Text>Resend in <Text style={textFont("700")}>0:{String(wait).padStart(2, "0")}</Text></Text>
           ) : (
             <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => { void sendCode(phone, country); setWait(RESEND_AFTER); }}>
               Send it again

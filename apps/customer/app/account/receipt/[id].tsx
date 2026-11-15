@@ -3,7 +3,7 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, FairBill, inZone, space, textFont, useBag, useI18n, color } from "@bhojango/mobile-core";
+import { Button, color, FairBill, inZone, num, space, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -100,7 +100,7 @@ export default function Receipt() {
       <ScreenBar title={code} fallback="/orders" testID="receipt-title" />
       <ScrollView testID="receipt" contentContainerStyle={ui.scroll}>
         <View accessible accessibilityLabel={t("account.receipt.label", { code })} style={{ gap: 4 }}>
-          <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 24, color: color.kohl }]}>{order.restaurant_name}</Text>
+          <Text accessibilityRole="header" style={[type.h2, { color: color.kohl }]}>{order.restaurant_name}</Text>
           <Text testID="receipt-status" style={ui.muted}>
             {delivered
               ? t("account.receipt.delivered_line", { date: date(delivered, tz), time: time(delivered, tz), minutes, code })
@@ -124,7 +124,7 @@ export default function Receipt() {
           {problem ? <Text accessibilityRole="alert" style={ui.error}>{problem}</Text> : null}
           {missing ? (
             <View accessibilityRole="alert" style={{ backgroundColor: color.plate, borderRadius: 16, padding: space[4], gap: 6 }}>
-              <Text style={[textFont("600"), { fontSize: 14, color: color.kohl }]}>
+              <Text style={[type.label, { color: color.kohl }]}>
                 {missing.added ? t("account.receipt.unavailable", { items: missing.names.join(", ") }) : t("account.receipt.none_available")}
               </Text>
               {missing.added ? <Button title={t("account.receipt.continue_checkout")} variant="ghost" onPress={() => router.push("/bag")} /> : null}
@@ -140,11 +140,11 @@ export default function Receipt() {
             const line = i.total ?? (i.unit_price != null ? i.unit_price * (i.quantity ?? 1) : null);
             return (
               <View key={`${i.menu_item_id}-${n}`} style={{ flexDirection: "row", justifyContent: "space-between", gap: space[3] }}>
-                <Text style={[textFont("400"), { flex: 1, fontSize: 15, color: color.kohl }]}>
+                <Text style={[type.body, { flex: 1, color: color.kohl }]}>
                   {i.quantity ?? 1} × {i.name}
                   {opts ? <Text style={{ color: color.muted }}> · {opts}</Text> : null}
                 </Text>
-                {line != null ? <Text style={[textFont("700"), { fontSize: 15, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(line, order.currency)}</Text> : null}
+                {line != null ? <Text style={[type.label, num, { color: color.kohl }]}>{money(line, order.currency)}</Text> : null}
               </View>
             );
           })}
@@ -157,8 +157,8 @@ export default function Receipt() {
             <Section title={t("account.receipt.fair_bill")}>
               <Text style={ui.muted}>{t("account.receipt.no_bill")}</Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={[textFont("800"), { fontSize: 18, color: color.kohl }]}>{t("account.receipt.total")}</Text>
-                <Text style={[textFont("800"), { fontSize: 18, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(order.total, order.currency)}</Text>
+                <Text style={[type.h3, { color: color.kohl }]}>{t("account.receipt.total")}</Text>
+                <Text style={[type.h3, num, { color: color.kohl }]}>{money(order.total, order.currency)}</Text>
               </View>
             </Section>
           )}

@@ -1,14 +1,14 @@
 // Sign up to ride: your name and city, then the onboarding checklist (licence,
 // insurance, payout account, background check). A number that already orders
 // food on BhojanGo can't also ride.
-import { api, ApiError, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RiderMark } from "../lib/icons";
-import { night, radius, space, textFont, ui } from "../lib/theme";
+import { night, radius, space, ui } from "../lib/theme";
 
 type City = { code: string; name: string; region: string; country: string };
 
@@ -49,23 +49,23 @@ export default function Join() {
   return (
     <SafeAreaView testID="join-screen" style={ui.screen}>
       <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><RiderMark /><Text style={[ui.bold, { fontSize: 15 }]}>{t("rider.brand")}</Text></View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><RiderMark /><Text style={ui.bold}>{t("rider.brand")}</Text></View>
         <Text accessibilityRole="header" style={[ui.h1, { marginTop: 24 }]}>{t("rider.join.title")}</Text>
         <Text style={[ui.body, { color: night.muted }]}>{t("rider.join.sub")}</Text>
-        <Text style={[ui.bold, { fontSize: 14 }]}>{t("rider.join.name")}</Text>
+        <Text style={ui.bold}>{t("rider.join.name")}</Text>
         <TextInput testID="name" accessibilityLabel={t("rider.join.name")} value={name} onChangeText={setName} autoCapitalize="words"
-          placeholder={t("rider.join.name_hint")} placeholderTextColor={night.muted} style={[textFont("600"), s.input]} />
-        <Text style={[ui.bold, { fontSize: 14 }]}>{t("rider.join.city")}</Text>
+          placeholder={t("rider.join.name_hint")} placeholderTextColor={night.muted} style={[field.bodyLg, s.input]} />
+        <Text style={ui.bold}>{t("rider.join.city")}</Text>
         <View style={{ gap: 8 }}>
           {cities.map((c) => (
             <Pressable key={c.code} accessibilityRole="radio" accessibilityState={{ checked: city === c.code }} accessibilityLabel={c.name}
               onPress={() => setCity(c.code)} style={[s.city, city === c.code && { borderColor: night.kesar }]}>
-              <Text style={[ui.bold, { fontSize: 16 }]}>{c.name}</Text>
+              <Text style={ui.bold}>{c.name}</Text>
               <Text style={ui.muted}>{c.region}</Text>
             </Pressable>
           ))}
         </View>
-        {error ? <Text style={[textFont("600"), { color: night.sosText }]}>{error}</Text> : null}
+        {error ? <Text style={[type.small, { color: night.sosText }]}>{error}</Text> : null}
         <Pressable testID="join-continue" accessibilityRole="button" disabled={!ok} onPress={apply} style={[ui.cta, { opacity: ok ? 1 : 0.5 }]}>
           <Text style={ui.ctaText}>{busy ? t("rider.join.signing_up") : t("rider.join.continue")}</Text>
         </Pressable>
@@ -78,7 +78,7 @@ export default function Join() {
 }
 
 const s = StyleSheet.create({
-  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, paddingHorizontal: space[4], fontSize: 17,
+  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, paddingHorizontal: space[4],
     color: night.text, backgroundColor: night.surface },
   city: { padding: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, backgroundColor: night.surface },
 });

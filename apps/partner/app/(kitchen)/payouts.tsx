@@ -1,14 +1,14 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
-import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
+import { api, ApiError, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFormat, useKitchen, useLoad } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
-import { Btn, color, radius, t, textFont } from "../../lib/ui";
+import { Btn, color, radius, t } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string } };
@@ -60,28 +60,28 @@ export default function Payouts() {
       <View style={[s.header, narrow && { height: 64, paddingHorizontal: 16 }]}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
       <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
         <View testID="payout-account" style={[s.panel, { flex: width < 760 ? undefined : 1 }, narrow && { padding: 16 }]}>
-          <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.where")}</Text>
+          <Text style={type.h3}>{tr("partner.payouts.where")}</Text>
           <Text style={t.body}>
             {a ? (a.status === "active" ? tr("partner.payouts.paid_through", { provider: PROVIDERS[a.provider] ?? tr("partner.payouts.partner") })
               : tr("partner.payouts.unconfirmed")) : tr("partner.payouts.add_bank")}
           </Text>
           {!a || a.status !== "active" ? <Btn title={a ? tr("partner.payouts.continue") : tr("partner.payouts.set_up")} kind="primary" busy={busy} onPress={setUp} /> : null}
-          {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
+          {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
         </View>
         <View testID="payout-statements" style={[s.panel, { flex: width < 760 ? undefined : 2 }, narrow && { padding: 16 }]}>
-          <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.statements")}</Text>
+          <Text style={type.h3}>{tr("partner.payouts.statements")}</Text>
           {data.data && data.data.statements.length === 0 ? <Text style={t.muted}>{tr("partner.payouts.none_yet")}</Text> : null}
           {data.data?.statements.map((st) => (
             <View key={st.id} style={s.row}>
               <View style={{ flex: 1 }}>
-                <Text style={[textFont("700"), { fontSize: 15 }]}>{week(st, date)}</Text>
+                <Text style={type.label}>{week(st, date)}</Text>
                 <Text style={t.muted}>
                   {[st.summary.orders != null ? tr("partner.payouts.orders", { count: st.summary.orders }) : null,
                     Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? tr("partner.payouts.offers", { amount: cash(st.summary.restaurant_funded_offers, st.currency) }) : null,
                     statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
-              <Text style={[textFont("800"), { fontSize: 16, flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
+              <Text style={[type.label, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
             </View>
           ))}
         </View>

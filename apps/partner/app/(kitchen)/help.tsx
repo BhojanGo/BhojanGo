@@ -1,7 +1,7 @@
 // Help and settings: ask BhojanGo to call you back (B3: a ticket in the admin
 // support console), this tablet (kitchen, the alert sound, the language: the
 // country's languages from Markets), sign out.
-import { api, ApiError, LanguagePicker, unwrap, useI18n, useSession, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, ApiError, type CoreSchemas, field, LanguagePicker, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useBoard } from "../../lib/board";
 import { useKitchen } from "../../lib/data";
-import { Btn, color, radius, t, textFont } from "../../lib/ui";
+import { Btn, color, radius, t } from "../../lib/ui";
 
 export default function Help() {
   const { kitchen, kitchens } = useKitchen();
@@ -26,7 +26,7 @@ export default function Help() {
         {kitchen ? <CallBack restaurantId={kitchen.id} /> : null}
         <View style={{ flex: 1, gap: 16 }}>
           <View style={s.panel}>
-            <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.help.tablet")}</Text>
+            <Text style={type.h3}>{tr("partner.help.tablet")}</Text>
             <Text style={t.body}>{tr("partner.help.signed_in_as", { kitchen: kitchen?.name ?? "", name: user?.full_name ?? "" })}</Text>
             <Text style={t.muted}>{tr("partner.help.rings")}</Text>
             <Btn testID="mute" title={muted ? tr("partner.help.unmute") : tr("partner.help.mute")} onPress={() => mute(!muted)} />
@@ -35,7 +35,7 @@ export default function Help() {
             <Text style={t.muted}>{tr("partner.help.sign_out_note")}</Text>
           </View>
           <View testID="language-section" style={s.panel}>
-            <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.help.language")}</Text>
+            <Text accessibilityRole="header" style={type.h3}>{tr("partner.help.language")}</Text>
             <LanguagePicker />
           </View>
         </View>
@@ -87,11 +87,11 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
   const topicLabel = (k: string) => ((TOPICS as readonly string[]).includes(k) ? tr(`partner.help.topics.${k}`) : k);
   return (
     <View style={[s.panel, { flex: 1 }]} accessibilityLabel={tr("partner.help.support")}>
-      <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.help.support")}</Text>
+      <Text style={type.h3}>{tr("partner.help.support")}</Text>
       {open ? (
         <>
           <View style={s.done}>
-            <Text style={[textFont("800"), { fontSize: 16, color: color.peacockDeep }]}>{tr("partner.help.call_back_title")}</Text>
+            <Text style={[type.label, { color: color.peacockDeep }]}>{tr("partner.help.call_back_title")}</Text>
             <Text style={t.body}>{tr("partner.help.call_back_body")}</Text>
             <Text style={t.muted}>
               {tr("partner.help.about", { topic: topicLabel(open.topic) })}{open.note ? ` · “${open.note}”` : ""}
@@ -106,13 +106,13 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
         {TOPICS.map((k) => (
           <Pressable key={k} accessibilityRole="radio" accessibilityState={{ checked: topic === k }} onPress={() => setTopic(k)}
             style={[s.chip, topic === k && { borderColor: color.peacock, backgroundColor: color.peacockMist }]}>
-            <Text style={[textFont(topic === k ? "800" : "600"), { fontSize: 15 }]}>{topicLabel(k)}</Text>
+            <Text style={type.label}>{topicLabel(k)}</Text>
           </Pressable>
         ))}
       </View>
       <TextInput disableFullscreenUI testID="callback-note" accessibilityLabel={tr("partner.help.note")} value={note} onChangeText={setNote} maxLength={300}
-        placeholder={tr("partner.help.note")} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
-      {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
+        placeholder={tr("partner.help.note")} placeholderTextColor={color.muted} style={[field.body, s.input]} />
+      {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
       <Btn testID="callback-ask" title={open ? tr("partner.help.update_request") : tr("partner.help.request")} kind="primary" busy={busy} onPress={ask} />
       <Text style={t.muted}>{tr("partner.help.refund_note")}</Text>
     </View>
@@ -122,7 +122,7 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
 const s = StyleSheet.create({
   done: { padding: 16, borderRadius: radius.card, backgroundColor: color.peacockMist, gap: 6 },
   chip: { paddingHorizontal: 16, height: 48, justifyContent: "center", borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
-  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 16, backgroundColor: color.white },
+  input: { height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, backgroundColor: color.white },
   header: { height: 80, paddingHorizontal: 24, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.line, justifyContent: "center" },
   panel: { backgroundColor: color.white, borderRadius: radius.card, borderWidth: 1, borderColor: color.line, padding: 20, gap: 12 },
 });

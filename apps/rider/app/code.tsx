@@ -1,5 +1,5 @@
 // The 6-digit code. Only rider accounts get in: anyone else is signed out again.
-import { errorMessage, useI18n, useSession } from "@bhojango/mobile-core";
+import { errorMessage, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -59,15 +59,15 @@ export default function Code() {
         <Icon name="back" />
       </Pressable>
       <View style={styles.body}>
-        <Text accessibilityRole="header" style={[ui.h1, { fontSize: 30 }]}>{t("rider.code.title")}</Text>
+        <Text accessibilityRole="header" style={ui.h1}>{t("rider.code.title")}</Text>
         <Text style={[ui.body, { color: night.muted }]}>
-          {t("rider.code.sent_to")} <Text style={ui.bold}>{phone}</Text> ·{" "}
+          {t("rider.code.sent_to")} <Text style={[textFont("700"), { color: night.text }]}>{phone}</Text> ·{" "}
           <Text style={[textFont("700"), { color: night.link }]} onPress={() => router.back()}>{t("rider.code.edit")}</Text>
         </Text>
         <Pressable accessibilityLabel={t("rider.code.label")} onPress={() => input.current?.focus()} style={styles.boxes}>
           {Array.from({ length: 6 }, (_, i) => (
             <View key={i} style={[styles.box, i === code.length && styles.boxActive]}>
-              <Text style={[ui.bold, { fontSize: 26 }]}>{code[i] ?? ""}</Text>
+              <Text style={ui.h2}>{code[i] ?? ""}</Text>
             </View>
           ))}
         </Pressable>
@@ -87,11 +87,11 @@ export default function Code() {
           autoComplete="sms-otp"
           style={styles.hidden}
         />
-        {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14 }]}>{error}</Text> : null}
+        {error ? <Text style={[type.label, { color: night.sosText }]}>{error}</Text> : null}
         <Text style={ui.muted}>
           {t("rider.code.not_received")}{" "}
           {wait > 0 ? (
-            <Text>{t("rider.code.resend_in")} <Text style={ui.bold}>0:{String(wait).padStart(2, "0")}</Text></Text>
+            <Text>{t("rider.code.resend_in")} <Text style={[textFont("700"), { color: night.text }]}>0:{String(wait).padStart(2, "0")}</Text></Text>
           ) : (
             <Text style={[textFont("700"), { color: night.link }]} onPress={() => { void sendCode(phone, country); setWait(RESEND_AFTER); }}>
               {t("rider.code.send_again")}

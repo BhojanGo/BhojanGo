@@ -1,5 +1,5 @@
 // Payouts: where the money goes (payout account) and past weekly statements.
-import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
+import { api, ApiError, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { useFormat } from "../lib/rider";
-import { displayFont, night, space, textFont, ui } from "../lib/theme";
+import { night, space, ui } from "../lib/theme";
 
 interface Statement {
   id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
@@ -62,7 +62,7 @@ export default function Payouts() {
     <SafeAreaView testID="payouts-screen" style={ui.screen}>
       <View style={styles.head}>
         <Pressable testID="back" accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}><Icon name="back" /></Pressable>
-        <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>{t("rider.payouts.title")}</Text>
+        <Text accessibilityRole="header" style={[type.h2, { color: night.text }]}>{t("rider.payouts.title")}</Text>
       </View>
       {!data ? (
         <View style={styles.center}>{msg ? <Text style={ui.body}>{msg}</Text> : <ActivityIndicator color={night.kesar} />}</View>
@@ -88,14 +88,14 @@ export default function Payouts() {
               <Text style={ui.ctaText}>{busy ? t("rider.payouts.opening") : account ? t("rider.payouts.continue") : t("rider.payouts.set_up")}</Text>
             </Pressable>
           ) : null}
-          {msg ? <Text style={[textFont("600"), { color: night.sosText }]}>{msg}</Text> : null}
-          <Text style={[ui.bold, { fontSize: 15, marginTop: space[2] }]}>{t("rider.payouts.past_weeks")}</Text>
+          {msg ? <Text style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
+          <Text style={[ui.bold, { marginTop: space[2] }]}>{t("rider.payouts.past_weeks")}</Text>
           {data.statements.length === 0 ? <Text style={ui.muted}>{t("rider.payouts.none_yet")}</Text> : null}
           {data.statements.map((s) => (
             <View key={s.id} style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={[ui.bold, textFont("700")]}>{period(s, date)}</Text>
-                <Text style={[ui.muted, { fontSize: 12 }]}>
+                <Text style={ui.bold}>{period(s, date)}</Text>
+                <Text style={[ui.muted, num]}>
                   {[t("rider.payouts.deliveries", { count: s.summary.deliveries ?? 0 }),
                     Number(s.summary.floor_top_up ?? 0) > 0 ? t("rider.payouts.top_up", { amount: cash(s.summary.floor_top_up, s.currency) }) : null,
                     statusLabel(t, s.status)].filter(Boolean).join(" · ")}

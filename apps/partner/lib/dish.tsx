@@ -4,11 +4,11 @@
 // the right with the Add button over its bottom edge; with no photo, a text-only
 // row with the Add button at the end. The partner app shows it as the live
 // preview while a kitchen changes a dish's photo.
-import { useI18n } from "@bhojango/mobile-core";
+import { num, type, useI18n } from "@bhojango/mobile-core";
 import { Image, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-import { color, radius, textFont } from "./ui";
+import { color, radius } from "./ui";
 
 // The website's veg marks and muted tones (KitchenMenu.tsx).
 const VEG = "#2E7D32";
@@ -46,7 +46,7 @@ function AddButton() {
   const { t } = useI18n();
   return (
     <View style={s.add}>
-      <Text style={[textFont("800"), { fontSize: 15, color: color.peacock }]}>{t("common.add")}</Text>
+      <Text style={[type.label, { color: color.peacock }]}>{t("common.add")}</Text>
     </View>
   );
 }
@@ -59,10 +59,10 @@ export function DishPreview({ dish, testID }: { dish: DishLook; testID?: string 
       accessibilityLabel={t("partner.photo.preview_label", { name: dish.name })}>
       <View style={{ flex: 1, minWidth: 0 }}>
         <VegMark veg={dish.is_veg} />
-        <Text style={[textFont("800"), s.name]}>{dish.name}</Text>
-        <Text style={[textFont("800"), s.price]}>{dish.price}</Text>
-        {dish.description ? <Text style={[textFont("400"), s.desc]}>{dish.description}</Text> : null}
-        {dish.soldOut ? <Text style={[textFont("700"), { marginTop: 8, fontSize: 14, color: NON_VEG }]}>{t("kitchen.sold_out_today")}</Text> : null}
+        <Text style={[type.h3, s.name]}>{dish.name}</Text>
+        <Text style={[type.label, num, s.price]}>{dish.price}</Text>
+        {dish.description ? <Text style={[type.small, s.desc]}>{dish.description}</Text> : null}
+        {dish.soldOut ? <Text style={[type.label, { marginTop: 8, color: NON_VEG }]}>{t("kitchen.sold_out_today")}</Text> : null}
       </View>
       {pic ? (
         <View style={s.photoBox}>
@@ -71,7 +71,7 @@ export function DishPreview({ dish, testID }: { dish: DishLook; testID?: string 
               <Image testID="preview-photo" source={{ uri: dish.photo }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             ) : (
               <View testID="preview-photo-elsewhere" style={[StyleSheet.absoluteFill, s.elsewhere]}>
-                <Text style={[textFont("600"), { fontSize: 11, color: MUTED, textAlign: "center" }]}>{t("partner.photo.library_photo")}</Text>
+                <Text style={[type.small, { color: MUTED, textAlign: "center" }]}>{t("partner.photo.library_photo")}</Text>
               </View>
             )}
           </View>
@@ -90,9 +90,9 @@ const s = StyleSheet.create({
   rowText: { alignItems: "center", paddingVertical: 22 },
   veg: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, alignItems: "center", justifyContent: "center" },
   vegDot: { width: 6, height: 6, borderRadius: 3 },
-  name: { marginTop: 8, fontSize: 18, color: color.kohl },
-  price: { marginTop: 4, fontSize: 16, color: color.kohl },
-  desc: { marginTop: 8, fontSize: 14, lineHeight: 21, color: MUTED },
+  name: { marginTop: 8, color: color.kohl },
+  price: { marginTop: 4, color: color.kohl },
+  desc: { marginTop: 8, color: MUTED },
   photoBox: { width: 112, height: 104 },
   photoClip: { width: 112, height: 104, borderRadius: radius.card, overflow: "hidden", backgroundColor: "#EFF6F6" },
   elsewhere: { alignItems: "center", justifyContent: "center", padding: 8 },
