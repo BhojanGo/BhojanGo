@@ -12,8 +12,8 @@ import { Btn, color, radius, t } from "../lib/ui";
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
   const { t: tr } = useI18n();
-  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
-  const { country: current, countries, chooseCountry } = useCountry();
+  // The phone number's country code (not a site country: there is none to choose): Markets' countries, from the detected one.
+  const { country: current, countries } = useCountry();
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
@@ -28,7 +28,6 @@ export default function SignIn() {
     const phone = e164(country.phone_code, number);
     try {
       await sendCode(phone, country.code);
-      void chooseCountry(country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed")));

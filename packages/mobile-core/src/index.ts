@@ -32,5 +32,8 @@ export { convertDistance, countryForCurrency, deviceLocale, e164, findCity, form
 export type { CountrySource, MarketCountry } from "./locale";
 export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";
 export type { AppEnv } from "./env";
-export { CountryPicker, LanguagePicker, PhoneCountryButton, TestBanner, WithTestBanner } from "./ui/locale";
+// Round 6: the header's language pill (globe + "EN"); no country selector. The pure
+// helpers are @bhojango/i18n's, shared with the website.
+export { chooseLanguage, detectCountry, languageList } from "@bhojango/i18n";
+export { LanguagePicker, LanguagePill, PhoneCountryButton, TestBanner, WithTestBanner } from "./ui/locale";
 export type { Tone } from "./ui/locale";

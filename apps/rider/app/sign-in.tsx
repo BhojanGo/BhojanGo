@@ -1,6 +1,6 @@
 // Riders sign in with their phone and a code by SMS (dark, like the rest of the app).
 import {
-  e164, errorMessage, field, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+  e164, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -13,8 +13,8 @@ import { night, radius, space, ui } from "../lib/theme";
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
   const { t } = useI18n();
-  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
-  const { country: current, countries, chooseCountry } = useCountry();
+  // The phone number's country code (not a site country: there is none to choose): Markets' countries, from the detected one.
+  const { country: current, countries } = useCountry();
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
@@ -30,7 +30,6 @@ export default function SignIn() {
     const phone = e164(country.phone_code, number);
     try {
       await sendCode(phone, country.code);
-      void chooseCountry(country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, t("rider.sign_in.send_failed")));
@@ -44,7 +43,8 @@ export default function SignIn() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.body}>
         <View style={styles.brand}>
           <RiderMark />
-          <Text style={ui.bold}>{t("rider.brand")}</Text>
+          <Text style={[ui.bold, { flex: 1 }]}>{t("rider.brand")}</Text>
+          <LanguagePill tone="dark" />
         </View>
         <Text accessibilityRole="header" style={[ui.display, { marginTop: 48 }]}>{t("rider.sign_in.hero")}</Text>
         <Text style={[ui.body, { color: night.muted, marginTop: space[3] }]}>{t("rider.sign_in.sub")}</Text>

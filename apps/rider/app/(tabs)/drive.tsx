@@ -5,7 +5,7 @@
 // simulator on QA, the same rider on another phone), so this tab follows
 // /riders/me (WebSocket + a poll) and shares this phone's GPS only when the
 // rider went online here (lib/location.ts trackingHere).
-import { api, ApiError, num, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, num, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
@@ -162,8 +162,11 @@ export default function Drive() {
           <View style={[styles.dot, { backgroundColor: online ? night.online : night.muted }]} />
           <Text style={ui.pillText}>{statusText}</Text>
         </View>
-        <View testID="today-total" style={ui.pill}>
-          <Text style={[ui.pillText, { fontVariant: ["tabular-nums"] }]}>{t("rider.drive.today", { amount: today })}</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View testID="today-total" style={ui.pill}>
+            <Text style={[ui.pillText, { fontVariant: ["tabular-nums"] }]}>{t("rider.drive.today", { amount: today })}</Text>
+          </View>
+          <LanguagePill tone="dark" style={{ height: 44 }} />
         </View>
       </SafeAreaView>
       {status === "offered" && now?.offer ? (

@@ -28,13 +28,13 @@ test("regionOf reads a locale's region", () => {
   assert.equal(regionOf(null), null);
 });
 
-test("country: address, then the stored choice, then the device's region, then the only one", () => {
-  assert.deepEqual(resolveCountry({ countries: ALL, addressCountry: "BB", chosen: "AA", deviceLocale: "en-AA" }), { country: BB, source: "address" });
-  assert.deepEqual(resolveCountry({ countries: ALL, addressCountry: "ZZ", chosen: "aa", deviceLocale: "en-BB" }), { country: AA, source: "chosen" });
-  assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "es-BB" }), { country: BB, source: "device" });
-  assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "fr-FR" }), { country: null, source: "none" });
-  assert.deepEqual(resolveCountry({ countries: [BB], deviceLocale: "fr-FR" }), { country: BB, source: "only" });
-  assert.deepEqual(resolveCountry({ countries: [], chosen: "AA" }), { country: null, source: "none" });
+test("country: address, then the IP hint, then the device's region, then the first live one", () => {
+  assert.deepEqual(resolveCountry({ countries: ALL, addressCountry: "BB", ipCountry: "AA", deviceLocale: "en-AA" }), { country: BB, source: "address" });
+  assert.deepEqual(resolveCountry({ countries: ALL, addressCountry: "ZZ", ipCountry: "aa", deviceLocale: "en-BB" }), { country: AA, source: "ip" });
+  assert.deepEqual(resolveCountry({ countries: ALL, ipCountry: "ZZ", deviceLocale: "es-BB" }), { country: BB, source: "browser" });
+  assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "fr-FR" }), { country: AA, source: "default" });
+  assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "es-FR" }), { country: BB, source: "default" }); // speaks the phone's language
+  assert.deepEqual(resolveCountry({ countries: [], addressCountry: "AA" }), { country: null, source: "none" });
 });
 
 test("money follows the country's locale and the currency, never the language", () => {

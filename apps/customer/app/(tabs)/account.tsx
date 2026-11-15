@@ -1,7 +1,7 @@
 // Account (website parity, WebProfile): your details, then a page each for
-// addresses, payment methods, notifications, favourites, language and
-// country, and privacy (download your data, delete your account); sign out.
-import { Button, color, Input, LANGUAGES, Sheet, space, Txt, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+// addresses, payment methods, notifications, favourites, language,
+// and privacy (download your data, delete your account); sign out.
+import { Button, color, Input, LANGUAGES, Sheet, space, Txt, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -13,7 +13,6 @@ import { TabEnd, useTabBarSpace } from "../../lib/tabbar";
 
 export default function Account() {
   const { t, language } = useI18n();
-  const { country } = useCountry();
   const bottom = useTabBarSpace();
   const user = useSession((s) => s.user);
   const signOut = useSession((s) => s.signOut);
@@ -37,7 +36,7 @@ export default function Account() {
     }
   }
 
-  const languageValue = [LANGUAGES[language].name, country?.name].filter(Boolean).join(" · ");
+  const languageValue = LANGUAGES[language].name;
   return (
     <SafeAreaView style={ui.screen} edges={["top"]}>
       <ScrollView testID="account-screen" contentContainerStyle={{ padding: space[5], gap: space[4], paddingBottom: bottom }}>
@@ -58,7 +57,7 @@ export default function Account() {
           <MenuRow testID="account-payments" icon="bag" label={t("account.nav.payments")} href="/account/payments" />
           <MenuRow testID="account-notifications" icon="message" label={t("account.nav.notifications")} href="/account/notifications" />
           <MenuRow testID="account-favourites" icon="star" label={t("account.nav.favourites")} href="/favourites" />
-          <MenuRow testID="account-language" icon="map" label={t("account.profile.language_country")} value={languageValue} href="/account/language" />
+          <MenuRow testID="account-language" icon="map" label={t("header.language")} value={languageValue} href="/account/language" />
           <MenuRow testID="account-privacy" icon="alert" label={t("account.nav.privacy")} href="/account/privacy" last />
         </Section>
 

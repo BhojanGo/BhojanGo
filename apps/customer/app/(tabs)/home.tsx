@@ -1,8 +1,10 @@
 // CustomerHome.html (+ CustomerLoading.html while kitchens load), with the
 // website's personal home (HomeFeed): the order on its way, Order again, the
 // cuisine row, offers that say who pays, and the kitchens for the drop point
-// from GET /discover.
-import { Button, color, radius, Sheet, space, Txt, type, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+// from GET /discover. The header is minimal (round 6, like the website's): the
+// language pill, favourites and the account; where the food goes sits on the
+// page, one line above the greeting: "<City>, <CC> · Change city".
+import { Button, color, LanguagePill, radius, space, Txt, type, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -15,7 +17,7 @@ import { activeOrder, cuisineTiles, greetingZone, ofCuisine } from "../../lib/co
 import { Icon } from "../../lib/icons";
 import { useMyOrders } from "../../lib/orders";
 import { useDiscover } from "../../lib/restaurants";
-import { partOfDay, useWhere, type DropPoint } from "../../lib/where";
+import { partOfDay, useWhere } from "../../lib/where";
 import { TabEnd, useTabBarOffsets, useTabBarSpace } from "../../lib/tabbar";
 
 const BAG_PILL = 48;
@@ -24,8 +26,7 @@ export default function Home() {
   const user = useSession((s) => s.user);
   const { t } = useI18n();
   const { country } = useCountry();
-  const { point, market, status, locate, setPoint, goHere, saved } = useWhere();
-  const [picking, setPicking] = useState<DropPoint[] | null>(null);
+  const { point, market, status, locate } = useWhere();
   const [cuisine, setCuisine] = useState<string | null>(null);
   const bagCount = useBag((s) => s.lines.reduce((n, l) => n + l.quantity, 0));
 
@@ -52,18 +53,17 @@ export default function Home() {
   // The bag pill floats just above the tab bar: when it shows, the scroll leaves room for it too.
   const bottom = useTabBarSpace(bagCount > 0 ? [BAG_PILL] : []);
   const { above } = useTabBarOffsets();
-  const where = point ? (point.label || t("app.home.current_location")) : status === "failed" ? t("app.home.choose_address") : t("app.home.finding_you");
+  // The delivery address's city and its country's 2-letter code (GET /markets/locate).
+  const city = market?.city_name && market.country_code ? t("location.place", { city: market.city_name, country: market.country_code }) : null;
+  const where = city ?? (status === "failed" ? t("app.home.choose_address") : status === "ready" ? point?.label || t("app.home.current_location") : t("app.home.finding_you"));
+  const changeCity = () => router.push("/where");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }} edges={["top"]}>
       <ScrollView testID="home" contentContainerStyle={{ paddingBottom: bottom }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => void reload()} />}>
         <View style={styles.top}>
-          <Pressable testID="where" accessibilityRole="button" accessibilityLabel={t("header.change_address")} onPress={() => void saved().then(setPicking)} style={styles.where}>
-            <Icon name="pin" size={20} stroke={color.peacock} />
-            <Text numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
-            <Icon name="chevron" size={16} />
-          </Pressable>
+          <LanguagePill />
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Pressable testID="open-favourites" accessibilityRole="button" accessibilityLabel={t("header.favourites")} onPress={() => router.push("/favourites")} style={styles.avatar}>
               <HeartIcon on={false} size={20} />
@@ -72,6 +72,15 @@ export default function Home() {
               <Text style={type.label}>{initials(user?.full_name)}</Text>
             </Pressable>
           </View>
+        </View>
+
+        <View testID="location-line" style={styles.where}>
+          <Icon name="pin" size={18} stroke={color.peacock} />
+          <Text testID="location-city" numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
+          <Text style={[type.label, { color: color.muted }]}>·</Text>
+          <Pressable testID="change-city" accessibilityRole="link" onPress={changeCity} hitSlop={8} style={styles.change}>
+            <Text style={[type.label, { color: color.peacock }]}>{t("location.change_city")}</Text>
+          </Pressable>
         </View>
 
         {active ? <ActiveOrderBar order={active} cover={covers[active.restaurant_id] ?? null} /> : null}
@@ -104,7 +113,7 @@ export default function Home() {
         {status === "failed" ? (
           <View testID="home-last" style={{ paddingHorizontal: space[5], gap: space[3] }}>
             <Txt style={{ color: color.muted }}>{t("app.home.locate_failed")}</Txt>
-            <Button title={t("app.home.choose_address")} variant="secondary" onPress={() => void saved().then(setPicking)} />
+            <Button title={t("app.home.choose_address")} variant="secondary" onPress={changeCity} />
           </View>
         ) : status !== "ready" || loading ? (
           <Loading near={market?.zone_name ?? point?.label?.split("· ")[1] ?? (point?.label || null)} />
@@ -127,15 +136,6 @@ export default function Home() {
         )}
         <TabEnd tab="home" />
       </ScrollView>
-      <Sheet visible={picking != null} onClose={() => setPicking(null)} title={t("checkout.deliver_to")}>
-        {(picking ?? []).map((p) => (
-          <Pressable key={p.addressId ?? p.label} accessibilityRole="button" onPress={() => { setPicking(null); void setPoint(p); }} style={styles.pick}>
-            <Icon name="pin" size={20} stroke={color.peacock} />
-            <Text style={[type.label, { flex: 1 }]}>{p.label || t("app.home.current_location")}</Text>
-          </Pressable>
-        ))}
-        <Button title={t("app.home.use_location")} variant="secondary" block onPress={() => { setPicking(null); void goHere(); }} />
-      </Sheet>
       {bagCount > 0 ? (
         <Pressable testID="bag-pill" accessibilityRole="button" accessibilityLabel={t("common.bag_count", { count: bagCount })} onPress={() => router.push("/bag")} style={[styles.bagPill, { bottom: above }]}>
           <Icon name="bag" size={18} stroke={color.white} />
@@ -175,8 +175,9 @@ function initials(name?: string | null): string {
 
 const styles = StyleSheet.create({
   top: { paddingHorizontal: space[5], paddingTop: space[4], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  // Rounded, so the Android focus highlight (after a tap) follows the pill instead of a grey box.
-  where: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, borderRadius: radius.pill, paddingHorizontal: 4, overflow: "hidden", flexShrink: 1 },
+  where: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: space[5], paddingTop: space[3] },
+  // Rounded, so the Android focus highlight (after a tap) follows the link instead of a grey box.
+  change: { minHeight: 44, justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: 2 },
   avatar: {
     width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",
@@ -189,7 +190,6 @@ const styles = StyleSheet.create({
   sectionHead: {
     paddingHorizontal: space[5], paddingTop: space[8], paddingBottom: space[3], flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12,
   },
-  pick: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, borderBottomWidth: 1, borderBottomColor: color.divider },
   bagPill: {
     position: "absolute", right: space[5], height: BAG_PILL, paddingHorizontal: space[5], borderRadius: radius.pill,
     backgroundColor: color.peacock, flexDirection: "row", alignItems: "center", gap: 8,

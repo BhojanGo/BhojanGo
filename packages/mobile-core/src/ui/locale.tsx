@@ -1,12 +1,13 @@
 // Language, country and test-site building blocks for the three apps (round 4).
-import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { useRef, useState, type ReactNode } from "react";
+import { Dimensions, type HostInstance, Modal, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 
 import { appEnv, isTestEnvironment, type AppEnv } from "../env";
 import { LANGUAGES, useCountry, useI18n, type Language } from "../i18n";
 import type { MarketCountry } from "../locale";
-import { color, dark, radius, space } from "./theme";
+import { color, dark, elevation, radius, space } from "./theme";
 import { type } from "./type";
 
 /** "light" on the customer and partner apps' porcelain screens, "dark" on the rider app. */
@@ -60,21 +61,83 @@ export function LanguagePicker({ tone = "light", onChange, style }: {
   );
 }
 
-/** Markets' countries to choose from (when the app can't tell the country). Kept on the device. */
-export function CountryPicker({ tone = "light", onChange, style }: {
-  tone?: Tone;
-  onChange?: (country: MarketCountry) => void;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const { t } = useI18n();
-  const { country, countries, chooseCountry } = useCountry();
+function Globe({ size = 16, stroke }: { size?: number; stroke: string }) {
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={t("header.country_title")} style={[{ gap: space[2] }, style]}>
-      {countries.map((c) => (
-        <Choice key={c.code} testID={`country-${c.code}`} label={c.name} sub={c.phone_code} on={c.code === country?.code} tone={tone}
-          onPress={() => void chooseCountry(c.code).then(() => onChange?.(c))} />
-      ))}
-    </View>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx={12} cy={12} r={9} />
+      <Path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
+    </Svg>
+  );
+}
+
+/**
+ * The header's language pill (round 6, like the website's): a small globe and the
+ * language's code ("EN", "HI", "TE", "ES"). A tap opens a plain list under the pill
+ * (not a sheet): the current country's languages (Markets locales), each named in
+ * its own script, no flags. Choosing one switches the app at once and is kept on
+ * this device only (nothing is saved on the account). testIDs (the website's):
+ * "language-pill" (read aloud "Language: English"), "language-pill-code" ("EN"),
+ * "language-menu", "language-option-<code>" ("language-option-te").
+ */
+export function LanguagePill({ tone = "light", style }: { tone?: Tone; style?: StyleProp<ViewStyle> }) {
+  const { t, language, options, setLanguage } = useI18n();
+  const ref = useRef<HostInstance>(null);
+  const [at, setAt] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const name = LANGUAGES[language].name;
+  const c = tones(tone);
+  const surface = tone === "dark" ? dark.raised : color.white;
+
+  const open = () => {
+    const win = Dimensions.get("window");
+    const place = (x: number, y: number, w: number, h: number) =>
+      setAt(x + w / 2 > win.width / 2 ? { top: y + h + 6, right: Math.max(space[3], win.width - x - w) } : { top: y + h + 6, left: Math.max(space[3], x) });
+    if (ref.current) ref.current.measureInWindow(place);
+    else setAt({ top: 96, right: space[4] });
+  };
+  const choose = (lang: Language) => {
+    setAt(null);
+    if (lang !== language) void setLanguage(lang);
+  };
+
+  return (
+    <>
+      <Pressable ref={ref} testID="language-pill" accessibilityRole="button"
+        accessibilityLabel={t("header.language_pill", { language: name })} accessibilityState={{ expanded: at != null }}
+        hitSlop={6} onPress={open}
+        style={({ pressed }) => [styles.pill, { borderColor: tone === "dark" ? dark.lineStrong : color.line, backgroundColor: surface },
+          pressed && { opacity: 0.85 }, style]}>
+        <Globe stroke={c.fg} />
+        <Text testID="language-pill-code" style={[type.label, { color: c.fg }]}>{language.toUpperCase()}</Text>
+      </Pressable>
+      <Modal visible={at != null} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent
+        onRequestClose={() => setAt(null)}>
+        <Pressable testID="language-menu-backdrop" accessibilityLabel={t("common.close")} style={StyleSheet.absoluteFill} onPress={() => setAt(null)} />
+        {at ? (
+          <View testID="language-menu" accessibilityRole="menu" accessibilityLabel={t("header.language")}
+            style={[styles.menu, at, { backgroundColor: surface, borderColor: tone === "dark" ? dark.lineStrong : color.line }]}>
+            {options.map((o) => {
+              const on = o.code === language;
+              return (
+                <Pressable key={o.code} testID={`language-option-${o.code}`} accessibilityRole="menuitem" accessibilityLabel={o.name}
+                  accessibilityState={{ selected: on }} onPress={() => choose(o.code)}
+                  style={({ pressed }) => [styles.option, (on || pressed) && { backgroundColor: c.on }]}>
+                  <Text style={[on ? type.label : type.body, { color: c.fg, flex: 1 }]}>{o.name}</Text>
+                  {on ? <Check stroke={c.accent} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </Modal>
+    </>
+  );
+}
+
+function Check({ stroke }: { stroke: string }) {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M5 12.5l4.5 4.5L19 7.5" />
+    </Svg>
   );
 }
 
@@ -147,6 +210,13 @@ const styles = StyleSheet.create({
   },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   dot: { width: 10, height: 10, borderRadius: 5 },
+  pill: {
+    height: 40, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: space[3], borderRadius: radius.pill, borderWidth: 1,
+  },
+  menu: {
+    position: "absolute", minWidth: 200, maxWidth: 280, paddingVertical: space[2], borderRadius: radius.card, borderWidth: 1, ...elevation.float,
+  },
+  option: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4] },
   cc: { height: 56, paddingHorizontal: space[4], borderRadius: radius.card, borderWidth: 1.5, justifyContent: "center" },
   banner: { paddingHorizontal: space[4], paddingVertical: 6, alignItems: "center" },
   bannerLight: { backgroundColor: color.kesarBright },

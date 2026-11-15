@@ -1,6 +1,5 @@
 import {
-  color, FontAudit, fontAuditEnabled, I18nProvider, regionOf, useBrandFonts, useKnownCountry, useLocaleStore, useSession,
-  WithTestBanner,
+  color, FontAudit, fontAuditEnabled, I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
@@ -20,17 +19,11 @@ export default function RootLayout() {
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
-  // The country (as on the website): the delivery address's, else the one chosen
-  // on this phone, else the phone's region when it's a Markets country; the
-  // account's country only when none of those says anything.
-  const addressCountry = useWhere((s) => s.point?.country);
-  const accountCountry = useSession((s) => s.user?.country);
-  const chosen = useLocaleStore((s) => s.chosenCountry);
-  const deviceKnown = useLocaleStore((s) => {
-    const region = regionOf(s.device);
-    return !!region && s.countries.some((c) => c.code.toUpperCase() === region);
-  });
-  useKnownCountry(addressCountry || (chosen || deviceKnown ? null : accountCountry));
+  // The country (as on the website, no country selector): the delivery address's
+  // (its Markets city's country, else the address's own), else the IP hint, else
+  // the phone's region (detectCountry, in the locale store).
+  const addressCountry = useWhere((s) => s.market?.country_code || s.point?.country);
+  useKnownCountry(addressCountry);
 
   useEffect(() => {
     void initialize();

@@ -45,3 +45,44 @@ appId: com.bhojango.partner
 - extendedWaitUntil:
     visible: "Help and settings"
     timeout: 10000
+# Round 6: the same through the language pill in the Orders header (globe + "EN"):
+# a plain list under the pill, each language in its own script, kept on this tablet.
+- tapOn:
+    id: "rail-orders"
+- extendedWaitUntil:
+    visible:
+      id: "language-pill"
+    timeout: 20000
+- assertVisible:
+    id: "language-pill-code"
+    text: "EN"
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- assertVisible: "हिन्दी"
+- assertVisible: "తెలుగు"
+- takeScreenshot: docs/screenshots/partner/qa/04-pill-list
+- tapOn:
+    id: "language-option-hi"
+- extendedWaitUntil:
+    visible: "पिकअप के लिए तैयार"
+    timeout: 10000
+- assertVisible:
+    id: "language-pill-code"
+    text: "HI"
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- tapOn:
+    id: "language-option-en"
+- extendedWaitUntil:
+    visible:
+      id: "language-pill-code"
+      text: "EN"
+    timeout: 10000

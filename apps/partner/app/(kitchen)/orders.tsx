@@ -3,7 +3,7 @@
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
 // On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
 // and tapping an order opens its detail (the same card); Back returns to the list.
-import { api, ApiError, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -115,6 +115,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
     </View>
   );
   const chip = <RatingChip kitchenId={kitchen.id} />;
+  const pill = <LanguagePill />; // the kitchen's country's languages (the account's country, Markets locales)
   const controls = (
     <>
       <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }, narrow && { flexGrow: 1, flexShrink: 1, height: 44 }]}
@@ -135,7 +136,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   if (narrow) {
     return (
       <View style={[s.header, s.headerNarrow]}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>{title}{chip}</View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>{title}{chip}{pill}</View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>{controls}</View>
       </View>
     );
@@ -145,6 +146,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
       {title}
       {chip}
       {controls}
+      {pill}
     </View>
   );
 }
