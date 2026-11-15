@@ -7,10 +7,12 @@ and phone number is fictional; phones use the seed ranges (+91 90000 00xxx,
 Each city: 16 kitchens across at least six areas (zones; the ones the base seed
 doesn't have are added here), full menus with option groups, opening hours
 (a few are closed at most times of day: breakfast-only, evenings-only, a weekly
-day off), ratings (a couple with fewer than five, shown as "New"), offers paid
-for by the kitchen or by BhojanGo, demo customers 1-5 km from the kitchens with
-saved default addresses, favourites, a test card, and an order history with one
-order on its way.
+day off), offers paid for by the kitchen or by BhojanGo, demo customers 1-5 km
+from the kitchens with saved default addresses, favourites, a test card, and an
+order history with one order on its way. Neighbourhood regulars (REGULARS) order
+from the kitchens near them for months; ratings come only from those delivered
+orders (tools/seed/demo_history.py), so a couple of kitchens new this week have
+fewer than five and show "New".
 """
 
 # ── Option groups ─────────────────────────────────────────────────────────────
@@ -40,10 +42,19 @@ def daily(opens: str, closes: str) -> list:
     return [(DAILY, opens, closes)]
 
 
-def kitchen(slug, name, area, street, zip_, lat, lng, cuisines, description, rating, reviews, eta, fee, min_order,  # type: ignore[no-untyped-def]
+# Kitchens that joined BhojanGo last week: a handful of orders, fewer than five
+# ratings, so they show "New". Every other kitchen has months of order history.
+# Ratings are never typed in: tools/seed/demo_history.py makes each kitchen's
+# past orders and rates a share of them; demo.py recomputes rating and
+# review_count from those rows as the ratings service does.
+NEW_KITCHENS = frozenset({"mithaas-sweets-kukatpally", "green-bowl-co-hitec-city",
+                          "hyde-park-pancake-house-north-end", "himalayan-curry-house-east-end"})
+
+
+def kitchen(slug, name, area, street, zip_, lat, lng, cuisines, description, eta, fee, min_order,  # type: ignore[no-untyped-def]
             tags, hours, menu, radius_km=7.0):
     return {"slug": slug, "name": name, "area": area, "street": street, "zip": zip_, "lat": lat, "lng": lng,
-            "cuisines": cuisines, "description": description, "rating": rating, "review_count": reviews, "eta": eta,
+            "cuisines": cuisines, "description": description, "new": slug in NEW_KITCHENS, "eta": eta,
             "delivery_fee": fee, "min_order": min_order, "tags": tags, "hours": hours, "menu": menu,
             "radius_km": radius_km}
 
@@ -55,7 +66,7 @@ HYD_KITCHENS = [
     kitchen("nawabi-dum-biryani-house-tolichowki", "Nawabi Dum Biryani House", "Tolichowki",
             "Road No. 7, Tolichowki", "500008", 17.3965, 78.4180, ["Biryani", "Hyderabadi", "Mughlai"],
             "Kachchi dum biryani, sealed with dough and cooked over coals, the way the old kitchens did.",
-            4.5, 2140, (30, 40), "35.00", "199.00", ["bestseller"], daily("11:00", "23:30"), {
+            (30, 40), "35.00", "199.00", ["bestseller"], daily("11:00", "23:30"), {
                 "Biryani": [
                     ("Veg Dum Biryani", "249.00", True, "Basmati, vegetables and paneer, sealed and dum-cooked.", [BIRYANI_SIZE, SPICE]),
                     ("Mutton Dum Biryani", "399.00", False, "Raw marinated mutton and rice cooked together under dough.", [BIRYANI_SIZE, SPICE, BIRYANI_ADDONS]),
@@ -80,7 +91,7 @@ HYD_KITCHENS = [
     kitchen("noor-mahal-haleem-house-old-city", "Noor Mahal Haleem House", "Old City",
             "Shah Ali Banda Rd", "500002", 17.3605, 78.4720, ["Mughlai", "Haleem", "Kebabs"],
             "Haleem pounded for eight hours, kebabs off the coals, and Old City nights.",
-            4.6, 1680, (35, 45), "40.00", "199.00", ["late-night"], daily("12:00", "01:00"), {
+            (35, 45), "40.00", "199.00", ["late-night"], daily("12:00", "01:00"), {
                 "Haleem": [
                     ("Hyderabadi Haleem", "289.00", False, "Mutton, wheat and lentils pounded for eight hours; fried onions and lime.", [
                         g("Size", [("Regular · 350 g", 0), ("Family · 1 kg", 420)], True),
@@ -107,7 +118,7 @@ HYD_KITCHENS = [
     kitchen("gongura-ghar-kukatpally", "Gongura Ghar", "Kukatpally",
             "KPHB Colony, Road No. 1", "500072", 17.4870, 78.3990, ["Andhra", "Meals", "South Indian"],
             "Andhra meals with gongura everything, and tiffins in the morning.",
-            4.4, 960, (30, 40), "30.00", "149.00", ["spicy"], [(DAILY, "11:00", "15:30"), (DAILY, "19:00", "23:00")], {
+            (30, 40), "30.00", "149.00", ["spicy"], [(DAILY, "11:00", "15:30"), (DAILY, "19:00", "23:00")], {
                 "Meals": [
                     ("Andhra Veg Meals", "199.00", True, "Rice, pappu, two curries, rasam, sambar, curd, pickle, appadam.", [
                         g("Add-ons", [("Extra ghee", 20), ("Gongura pickle", 30)], max=2)]),
@@ -132,7 +143,7 @@ HYD_KITCHENS = [
     kitchen("udupi-tiffin-corner-madhapur", "Udupi Tiffin Corner", "Madhapur",
             "Kavuri Hills Rd", "500081", 17.4500, 78.3960, ["South Indian", "Tiffins", "Dosa"],
             "Breakfast only: idli, vada, dosa and strong filter coffee.",
-            4.3, 1220, (20, 30), "25.00", "99.00", ["breakfast", "pure-veg"], daily("06:30", "11:30"), {
+            (20, 30), "25.00", "99.00", ["breakfast", "pure-veg"], daily("06:30", "11:30"), {
                 "Idli & vada": [
                     ("Idli Sambar", "79.00", True, "Three idlis soaked in sambar, coconut chutney.", []),
                     ("Medu Vada (2)", "69.00", True, "With chutney and sambar.", []),
@@ -157,7 +168,7 @@ HYD_KITCHENS = [
     kitchen("sarson-da-dhaba-kondapur", "Sarson Da Dhaba", "Kondapur",
             "Botanical Garden Rd", "500084", 17.4660, 78.3620, ["North Indian", "Punjabi"],
             "Highway-dhaba Punjabi food: chole bhature, dal makhani and kulchas.",
-            4.4, 870, (30, 40), "35.00", "199.00", ["family"], daily("11:30", "23:30"), {
+            (30, 40), "35.00", "199.00", ["family"], daily("11:30", "23:30"), {
                 "Mains": [
                     ("Chole Bhature", "189.00", True, "Two puffed bhature, Amritsari chole, onions and pickle.", [
                         g("Add-ons", [("Extra bhatura", 45), ("Sweet lassi (small)", 60)], max=2)]),
@@ -180,7 +191,7 @@ HYD_KITCHENS = [
     kitchen("lahori-tandoor-house-begumpet", "Lahori Tandoor House", "Begumpet",
             "Prakash Nagar Main Rd", "500016", 17.4440, 78.4600, ["Tandoor", "North Indian", "Kebabs"],
             "Clay-oven chicken, kebabs and breads, fired to order.",
-            4.5, 1340, (30, 45), "40.00", "249.00", ["bestseller"], daily("12:00", "23:30"), {
+            (30, 45), "40.00", "249.00", ["bestseller"], daily("12:00", "23:30"), {
                 "From the tandoor": [
                     ("Tandoori Chicken", "349.00", False, "24-hour yoghurt and Kashmiri chilli marinade.", [
                         g("Size", [("Half", 0), ("Full", 290)], True), SPICE]),
@@ -202,7 +213,7 @@ HYD_KITCHENS = [
     kitchen("cafe-zafraan-begumpet", "Café Zafraan", "Begumpet",
             "Sardar Patel Rd", "500003", 17.4410, 78.4560, ["Irani Cafe", "Bakery", "Snacks"],
             "An Irani café: chai, bun maska and the bakery counter, from early till late.",
-            4.2, 640, (20, 30), "25.00", "99.00", ["chai", "late-night"], daily("06:30", "00:30"), {
+            (20, 30), "25.00", "99.00", ["chai", "late-night"], daily("06:30", "00:30"), {
                 "Chai & milk": [
                     ("Irani Chai", "35.00", True, "Slow-brewed with thickened milk.", []),
                     ("Pauna Chai", "30.00", True, "Three-quarter strength, three-quarter price.", []),
@@ -224,7 +235,7 @@ HYD_KITCHENS = [
     kitchen("chaat-chowk-jubilee-hills", "Chaat Chowk", "Jubilee Hills",
             "Road No. 36", "500033", 17.4320, 78.4080, ["Street Food", "Chaat"],
             "Evening chaat: pani puri, papdi chaat and kathi rolls.",
-            4.3, 510, (20, 30), "25.00", "99.00", ["snacks", "pure-veg"], daily("15:00", "23:00"), {
+            (20, 30), "25.00", "99.00", ["snacks", "pure-veg"], daily("15:00", "23:00"), {
                 "Chaat": [
                     ("Pani Puri (6)", "69.00", True, "Crisp puris, spiced potato, tangy mint water.", [
                         g("Water", [("Spicy pudina", 0), ("Sweet imli", 0), ("Both", 0)], True)]),
@@ -246,7 +257,7 @@ HYD_KITCHENS = [
     kitchen("mithaas-sweets-kukatpally", "Mithaas Sweets", "Kukatpally",
             "JNTU Rd", "500085", 17.4900, 78.4050, ["Desserts", "Sweets"],
             "Mithai, kulfi and falooda. New on BhojanGo; closed on Tuesdays.",
-            4.6, 3, (25, 35), "30.00", "149.00", ["sweets"],
+            (25, 35), "30.00", "149.00", ["sweets"],
             [(["mon", "wed", "thu", "fri", "sat", "sun"], "10:00", "22:30")], {
                 "Sweets": [
                     ("Gulab Jamun (2)", "69.00", True, "Warm, in cardamom syrup.", [g("Add-ons", [("Vanilla ice cream", 40)])]),
@@ -269,7 +280,7 @@ HYD_KITCHENS = [
     kitchen("red-lantern-wok-gachibowli", "Red Lantern Wok", "Gachibowli",
             "Gachibowli Main Rd", "500032", 17.4400, 78.3550, ["Chinese", "Indo-Chinese"],
             "Indo-Chinese from a roaring wok: chilli chicken, Manchurian, Hakka noodles.",
-            4.1, 790, (25, 35), "30.00", "149.00", ["spicy"], daily("12:00", "23:30"), {
+            (25, 35), "30.00", "149.00", ["spicy"], daily("12:00", "23:30"), {
                 "Starters": [
                     ("Chilli Chicken", "259.00", False, "Wok-tossed with peppers and green chilli.", [INDO_STYLE, SPICE]),
                     ("Gobi Manchurian", "189.00", True, "Crisp cauliflower, Manchurian sauce.", [INDO_STYLE]),
@@ -292,7 +303,7 @@ HYD_KITCHENS = [
     kitchen("green-bowl-co-hitec-city", "Green Bowl Co.", "Hitech City",
             "Hitech City Main Rd", "500081", 17.4480, 78.3790, ["Healthy", "Bowls", "Salads"],
             "Bowls, salads and wraps with the calories on the menu. New on BhojanGo.",
-            4.5, 2, (20, 30), "30.00", "199.00", ["healthy"], daily("10:00", "22:00"), {
+            (20, 30), "30.00", "199.00", ["healthy"], daily("10:00", "22:00"), {
                 "Bowls": [
                     ("Paneer Power Bowl", "289.00", True, "Grilled paneer, quinoa, chickpeas, greens, mint yoghurt.", [
                         BOWL_BASE, g("Add-ons", [("Avocado", 80), ("Extra paneer", 60), ("Boiled egg", 30)], max=3)]),
@@ -317,7 +328,7 @@ HYD_KITCHENS = [
     kitchen("forno-fiamma-jubilee-hills", "Forno Fiamma", "Jubilee Hills",
             "Road No. 45", "500033", 17.4260, 78.4150, ["Pizza", "Italian"],
             "Neapolitan-style pizza from a wood-fired oven, and fresh pasta.",
-            4.4, 1120, (25, 40), "35.00", "249.00", ["pizza"], daily("12:00", "23:30"), {
+            (25, 40), "35.00", "249.00", ["pizza"], daily("12:00", "23:30"), {
                 "Pizza": [
                     ("Margherita Pizza", "399.00", True, "San Marzano tomato, fior di latte, basil.", [PIZZA_SIZE_IN]),
                     ("Pepperoni Pizza", "549.00", False, "Chicken pepperoni, mozzarella.", [PIZZA_SIZE_IN]),
@@ -339,7 +350,7 @@ HYD_KITCHENS = [
     kitchen("smash-street-burgers-madhapur", "Smash Street Burgers", "Madhapur",
             "Image Gardens Rd", "500081", 17.4430, 78.3990, ["Burgers", "American"],
             "Smashed patties and loaded fries, evenings and late nights only.",
-            4.2, 930, (25, 35), "30.00", "199.00", ["late-night"], daily("18:00", "03:00"), {
+            (25, 35), "30.00", "199.00", ["late-night"], daily("18:00", "03:00"), {
                 "Burgers": [
                     ("Cheeseburger", "249.00", False, "Two smashed chicken patties, cheddar, pickles, house sauce.", [
                         g("Patties", [("Double", 0), ("Triple", 90)], True),
@@ -362,7 +373,7 @@ HYD_KITCHENS = [
     kitchen("royal-paneer-kitchen-kondapur", "Royal Paneer Kitchen", "Kondapur",
             "Raghavendra Colony", "500084", 17.4690, 78.3560, ["North Indian", "Pure Veg"],
             "A pure-veg kitchen: paneer five ways, dal tadka and thalis.",
-            4.3, 450, (25, 35), "30.00", "149.00", ["pure-veg"], daily("11:00", "23:00"), {
+            (25, 35), "30.00", "149.00", ["pure-veg"], daily("11:00", "23:00"), {
                 "Paneer": [
                     ("Paneer Butter Masala", "259.00", True, "Paneer in a velvety tomato-cashew gravy.", [HALF_FULL]),
                     ("Kadai Paneer", "249.00", True, "Peppers, onions, kadai masala.", [SPICE]),
@@ -385,7 +396,7 @@ HYD_KITCHENS = [
     kitchen("shubh-thali-house-begumpet", "Shubh Thali House", "Begumpet",
             "Begumpet Main Rd", "500016", 17.4480, 78.4650, ["Thali", "Gujarati", "Rajasthani"],
             "Thalis for lunch and dinner, refilled the way they would be at home.",
-            4.4, 380, (30, 40), "35.00", "199.00", ["pure-veg", "lunch"], [(DAILY, "11:30", "15:30"), (DAILY, "19:00", "22:30")], {
+            (30, 40), "35.00", "199.00", ["pure-veg", "lunch"], [(DAILY, "11:30", "15:30"), (DAILY, "19:00", "22:30")], {
                 "Thalis": [
                     ("North Indian Thali", "329.00", True, "Paneer, dal, two sabzis, rice, rotis, raita and a sweet.", [
                         g("Add-ons", [("Extra roti", 20), ("Extra sweet", 40)], max=2)]),
@@ -407,7 +418,7 @@ HYD_KITCHENS = [
     kitchen("old-delhi-rasoi-gachibowli", "Old Delhi Rasoi", "Gachibowli",
             "Nanakramguda Rd", "500032", 17.4280, 78.3500, ["North Indian", "Mughlai"],
             "Old Delhi favourites: butter chicken, nihari, rogan josh and kulchas.",
-            4.5, 1560, (30, 40), "35.00", "199.00", ["bestseller"], daily("11:00", "23:30"), {
+            (30, 40), "35.00", "199.00", ["bestseller"], daily("11:00", "23:30"), {
                 "Curries": [
                     ("Butter Chicken", "349.00", False, "Tandoori chicken in a buttery tomato-fenugreek gravy.", [
                         HALF_FULL, g("Add-ons", [("Extra butter", 30)])]),
@@ -438,7 +449,7 @@ BOI_KITCHENS = [
     kitchen("ridgeline-pizza-kitchen-west-boise", "Ridgeline Pizza Kitchen", "West Boise",
             "1450 N Milwaukee St", "83704", 43.6110, -116.2780, ["Pizza", "Italian"],
             "New York-style pies by the slice-load, with a West Boise crowd.",
-            4.5, 1340, (25, 40), "2.99", "15.00", ["pizza"], daily("11:00", "22:00"), {
+            (25, 40), "2.99", "15.00", ["pizza"], daily("11:00", "22:00"), {
                 "Pizza": [
                     ("Pepperoni Pizza", "17.50", False, "Cup-and-char pepperoni, whole-milk mozzarella.", [PIZZA_SIZE_US, CRUST]),
                     ("Sausage & Peppers Pizza", "18.50", False, "Fennel sausage, roasted peppers, onions.", [PIZZA_SIZE_US, CRUST]),
@@ -458,7 +469,7 @@ BOI_KITCHENS = [
     kitchen("sawtooth-smash-burgers-downtown", "Sawtooth Smash Burgers", "Downtown",
             "812 W Bannock St", "83702", 43.6175, -116.2005, ["Burgers", "American"],
             "Smashed burgers, crinkle fries and huckleberry shakes.",
-            4.4, 1890, (20, 30), "2.49", "12.00", ["late-night"], daily("11:00", "23:00"), {
+            (20, 30), "2.49", "12.00", ["late-night"], daily("11:00", "23:00"), {
                 "Burgers": [
                     ("Bacon Cheeseburger", "14.50", False, "Two smashed patties, bacon, American cheese, pickles, Sawtooth sauce.", [
                         g("Patties", [("Double", 0), ("Triple", 3.5)], True),
@@ -481,7 +492,7 @@ BOI_KITCHENS = [
     kitchen("taqueria-rio-azul-boise-bench", "Taqueria Río Azul", "Boise Bench",
             "3110 W Overland Rd", "83705", 43.5890, -116.2380, ["Mexican", "Tacos"],
             "Street tacos on fresh corn tortillas, birria on weekends and every day.",
-            4.6, 2210, (20, 35), "2.99", "12.00", ["bestseller"], daily("10:30", "22:00"), {
+            (20, 35), "2.99", "12.00", ["bestseller"], daily("10:30", "22:00"), {
                 "Tacos": [
                     ("Street Tacos", "11.50", False, "Three corn tortillas, onion, cilantro, salsa verde.", [
                         g("Filling", [("Carne asada", 0), ("Al pastor", 0), ("Pollo", 0), ("Carnitas", 0)], True),
@@ -504,7 +515,7 @@ BOI_KITCHENS = [
     kitchen("kawa-sushi-east-end", "Kawa Sushi", "East End",
             "1515 E Warm Springs Ave", "83712", 43.6110, -116.1760, ["Sushi", "Japanese"],
             "Rolls, nigiri and platters by the river.",
-            4.5, 980, (30, 45), "3.49", "20.00", ["date-night"], daily("11:30", "21:30"), {
+            (30, 45), "3.49", "20.00", ["date-night"], daily("11:30", "21:30"), {
                 "Rolls": [
                     ("California Roll", "9.00", False, "Crab, avocado, cucumber.", []),
                     ("Spicy Tuna Roll", "10.50", False, "Tuna, chilli mayo, scallion.", [SPICE_US]),
@@ -527,7 +538,7 @@ BOI_KITCHENS = [
     kitchen("morning-ridge-bakery-north-end", "Morning Ridge Bakery", "North End",
             "1607 N 15th St", "83702", 43.6335, -116.2090, ["Coffee", "Bakery", "Breakfast"],
             "Coffee and pastries baked before sunrise; closes after lunch.",
-            4.7, 1450, (15, 25), "1.99", "8.00", ["breakfast", "coffee"], daily("06:30", "14:00"), {
+            (15, 25), "1.99", "8.00", ["breakfast", "coffee"], daily("06:30", "14:00"), {
                 "Coffee": [
                     ("Latte", "5.25", True, "Double shot, steamed milk.", [
                         g("Size", [("12 oz", 0), ("16 oz", 0.75)], True),
@@ -552,7 +563,7 @@ BOI_KITCHENS = [
     kitchen("hyde-park-pancake-house-north-end", "Hyde Park Pancake House", "North End",
             "1609 N 13th St", "83702", 43.6380, -116.2020, ["Breakfast", "American"],
             "Pancakes, waffles and big breakfasts until mid-afternoon. New on BhojanGo.",
-            4.4, 3, (20, 30), "2.49", "12.00", ["breakfast"], daily("07:00", "14:30"), {
+            (20, 30), "2.49", "12.00", ["breakfast"], daily("07:00", "14:30"), {
                 "Pancakes & waffles": [
                     ("Honey Walnut Pancakes", "11.50", True, "Three buttermilk pancakes, honey, toasted walnuts.", [
                         g("Stack", [("Short stack (3)", 0), ("Tall stack (5)", 3)], True),
@@ -576,7 +587,7 @@ BOI_KITCHENS = [
     kitchen("smokestack-bbq-southeast-boise", "Smokestack BBQ", "Southeast Boise",
             "2950 S Federal Way", "83716", 43.5780, -116.1900, ["BBQ", "American"],
             "Hickory-smoked ribs, brisket and pulled pork, sold until it runs out.",
-            4.6, 760, (30, 45), "3.99", "18.00", ["smoked"], daily("11:00", "21:00"), {
+            (30, 45), "3.99", "18.00", ["smoked"], daily("11:00", "21:00"), {
                 "Smoked meats": [
                     ("BBQ Ribs", "24.00", False, "Half rack of St. Louis ribs, hickory-smoked, house sauce.", [
                         g("Size", [("Half rack", 0), ("Full rack", 12)], True),
@@ -598,7 +609,7 @@ BOI_KITCHENS = [
     kitchen("ramen-kaze-downtown", "Ramen Kaze", "Downtown",
             "405 S 8th St", "83702", 43.6125, -116.2060, ["Ramen", "Japanese"],
             "Shoyu, tonkotsu and miso bowls; closed on Mondays.",
-            4.5, 1210, (25, 35), "2.99", "15.00", ["noodles"],
+            (25, 35), "2.99", "15.00", ["noodles"],
             [(["tue", "wed", "thu", "fri", "sat", "sun"], "11:30", "22:00")], {
                 "Ramen": [
                     ("Shoyu Ramen", "15.50", False, "Clear soy-chicken broth, chashu pork, narutomaki, scallions, menma.", [
@@ -622,7 +633,7 @@ BOI_KITCHENS = [
     kitchen("greenhouse-salads-boise-state", "Greenhouse Salads", "Boise State",
             "1010 W University Dr", "83706", 43.5990, -116.2010, ["Salads", "Healthy"],
             "Big salads, grain bowls and soups near campus.",
-            4.3, 520, (15, 25), "2.49", "12.00", ["healthy"], daily("10:30", "21:00"), {
+            (15, 25), "2.49", "12.00", ["healthy"], daily("10:30", "21:00"), {
                 "Salads": [
                     ("Caesar Salad", "11.00", False, "Romaine, parmesan, croutons, anchovy dressing.", [
                         g("Protein", [("None", 0), ("Grilled chicken", 4), ("Salmon", 6)], True)]),
@@ -644,7 +655,7 @@ BOI_KITCHENS = [
     kitchen("saffron-lane-indian-kitchen-west-boise", "Saffron Lane Indian Kitchen", "West Boise",
             "7700 W Fairview Ave", "83704", 43.6050, -116.2650, ["Indian", "Tandoor"],
             "Tandoor grills, curries and biryani in West Boise.",
-            4.4, 640, (30, 45), "3.49", "18.00", ["indian"], daily("11:00", "21:30"), {
+            (30, 45), "3.49", "18.00", ["indian"], daily("11:00", "21:30"), {
                 "Tandoor": [
                     ("Tandoori Chicken", "16.50", False, "Yoghurt and Kashmiri chilli marinade.", [g("Size", [("Half", 0), ("Full", 9)], True), SPICE_US]),
                     ("Chicken Tikka", "15.00", False, "Boneless, charred.", [SPICE_US]),
@@ -666,7 +677,7 @@ BOI_KITCHENS = [
     kitchen("himalayan-curry-house-east-end", "Himalayan Curry House", "East End",
             "2200 E Parkcenter Blvd", "83706", 43.6170, -116.1650, ["Nepalese", "Indian", "Momos"],
             "Momos, Nepali curries and thukpa. New on BhojanGo.",
-            4.5, 4, (30, 40), "3.49", "15.00", ["new"], daily("11:00", "21:30"), {
+            (30, 40), "3.49", "15.00", ["new"], daily("11:00", "21:30"), {
                 "Momos": [
                     ("Chicken Momos (8)", "12.00", False, "Hand-pleated, tomato-sesame achar.", [MOMO_STYLE]),
                     ("Veg Momos (8)", "11.00", True, "Cabbage, paneer, ginger.", [MOMO_STYLE]),
@@ -690,7 +701,7 @@ BOI_KITCHENS = [
     kitchen("bench-fried-chicken-boise-bench", "Bench Fried Chicken", "Boise Bench",
             "2525 S Vista Ave", "83705", 43.5870, -116.2210, ["Fried Chicken", "American", "Comfort"],
             "Buttermilk fried chicken, classic or Nashville hot, with all the sides.",
-            4.2, 830, (20, 30), "2.49", "12.00", ["comfort"], daily("11:00", "22:00"), {
+            (20, 30), "2.49", "12.00", ["comfort"], daily("11:00", "22:00"), {
                 "Chicken": [
                     ("Fried Chicken (3 pc)", "12.50", False, "Buttermilk-brined, pressure-fried.", [g("Spice", [("Classic", 0), ("Nashville hot", 0.5)], True)]),
                     ("Chicken Tenders (4)", "11.00", False, "With a dip.", [g("Dip", [("Ranch", 0), ("Honey mustard", 0), ("Fry sauce", 0)], True)]),
@@ -709,7 +720,7 @@ BOI_KITCHENS = [
     kitchen("lucky-lotus-noodle-bar-southeast-boise", "Lucky Lotus Noodle Bar", "Southeast Boise",
             "1820 E Boise Ave", "83706", 43.5720, -116.1980, ["Chinese", "Noodles"],
             "Wok-fried noodles and Chinese-American classics.",
-            4.1, 410, (25, 40), "2.99", "15.00", [], daily("11:00", "21:30"), {
+            (25, 40), "2.99", "15.00", [], daily("11:00", "21:30"), {
                 "Noodles": [
                     ("Beef Chow Fun", "14.50", False, "Wide rice noodles, wok hei.", []),
                     ("Dan Dan Noodles", "13.00", False, "Sichuan pepper, pork, chilli oil.", [SPICE_US]),
@@ -731,7 +742,7 @@ BOI_KITCHENS = [
     kitchen("olive-and-zaatar-boise-state", "Olive & Za'atar", "Boise State",
             "1200 S Broadway Ave", "83706", 43.5960, -116.1950, ["Mediterranean", "Middle Eastern"],
             "Shawarma, falafel and mezze, with za'atar flatbread from the oven.",
-            4.6, 690, (20, 30), "2.49", "12.00", ["healthy"], daily("11:00", "21:00"), {
+            (20, 30), "2.49", "12.00", ["healthy"], daily("11:00", "21:00"), {
                 "Plates": [
                     ("Chicken Shawarma Plate", "14.50", False, "Rice, salad, hummus, garlic toum.", []),
                     ("Falafel Plate", "12.50", True, "Six falafel, hummus, salad, pita.", []),
@@ -752,7 +763,7 @@ BOI_KITCHENS = [
     kitchen("basil-leaf-thai-downtown", "Basil Leaf Thai", "Downtown",
             "1110 W Jefferson St", "83702", 43.6195, -116.2110, ["Thai"],
             "Thai curries, noodles and street-food starters, as hot as you like.",
-            4.4, 1020, (25, 40), "2.99", "15.00", ["spicy"], daily("11:00", "21:30"), {
+            (25, 40), "2.99", "15.00", ["spicy"], daily("11:00", "21:30"), {
                 "Curries": [
                     ("Green Curry", "15.00", False, "Coconut milk, Thai eggplant, basil.", [PROTEIN_TH, SPICE_US]),
                     ("Red Curry", "15.00", False, "Bamboo shoots, bell pepper, basil.", [PROTEIN_TH, SPICE_US]),
@@ -777,7 +788,7 @@ BOI_KITCHENS = [
     kitchen("riverside-burrito-co-east-end", "Riverside Burrito Co.", "East End",
             "3005 E Bergeson St", "83706", 43.6060, -116.1720, ["Mexican", "Burritos", "Bowls"],
             "Mission-style burritos and bowls, built your way.",
-            4.0, 310, (20, 30), "2.49", "12.00", [], daily("10:00", "22:00"), {
+            (20, 30), "2.49", "12.00", [], daily("10:00", "22:00"), {
                 "Burritos": [
                     ("California Burrito", "12.50", False, "Carne asada, fries, cheese, pico.", []),
                     ("Chile Verde Burrito", "12.00", False, "Pork in green chile.", []),
@@ -938,4 +949,39 @@ ORDERS = {
 ACTIVE = {
     "hyd": ("demo1.hyd", "royal-paneer-kitchen-kondapur", [("Paneer Butter Masala", 1, {"Size": "Full"}), ("Butter Naan", 3, {}), ("Jeera Rice", 1, {})]),
     "boi": ("demo1.boi", "riverside-burrito-co-east-end", [("California Burrito", 2, {}), ("Chips & Salsa", 1, {})]),
+}
+
+# ── Neighbourhood regulars (the order history) ────────────────────────────────
+# Demo customers behind each kitchen's past orders and ratings. Each lives 1-3 km
+# from one demo kitchen, inside a live zone (tools/seed/demo_history.py places
+# them), orders from the kitchens within reach of home, and rates some of those
+# orders. Phones: the seed ranges, 401 and up. Not listed with the demo logins.
+REGULARS = {
+    "hyd": ["Priya Reddy", "Karthik Rao", "Meera Iyer", "Arjun Nair", "Divya Sharma", "Imran Khan", "Lakshmi Menon",
+            "Rohit Gupta", "Sneha Kulkarni", "Vikram Singh", "Nikhil Joshi", "Pooja Agarwal", "Farhan Ali", "Kavya Raju",
+            "Siddharth Bose", "Aisha Siddiqui"],
+    "boi": ["Emily Carter", "Jacob Bennett", "Olivia Hayes", "Ethan Brooks", "Sophia Ramirez", "Noah Fischer", "Ava Thompson",
+            "Liam O'Connor", "Mia Sullivan", "Lucas Nguyen", "Grace Patterson", "Owen Walsh", "Chloe Jensen", "Daniel Kim",
+            "Zoe Martinez", "Ryan Cooper"],
+}
+# Street lines for the regulars' homes: (format, street names).
+STREETS = {
+    "hyd": ("Flat {n}, {street}", ["Sai Nagar Colony", "Vasavi Colony Rd", "Lane 4, Srinivasa Nagar", "Road No. 3",
+                                   "Annapurna Enclave", "Lakshmi Residency", "Street No. 6, Prashanti Nagar", "Green Park Avenue"]),
+    "boi": ("{n} {street}", ["N Elm St", "W Maple Ave", "E Cedar Ln", "S Juniper Way", "N Aspen Dr", "W Willow St",
+                             "E Birch Ct", "N Sycamore Pl"]),
+}
+# Each zone's minimum order is at most this (a basket always clears it).
+BASKET_FLOOR = {"hyd": 160, "boi": 22}
+
+# What customers write with a rating (about half of the ratings have one).
+RATING_COMMENTS = {
+    5: ["Perfect, as always.", "The {dish} was outstanding.", "Hot, fresh and on time.", "Our go-to for {dish}.",
+        "Packed really well; nothing spilled.", "Generous portions and great flavour.", "Better than eating in."],
+    4: ["Really good {dish}; a little late.", "Tasty, would order again.", "Good food, slightly less spicy than I like.",
+        "Solid {dish}, generous portion.", "Arrived warm; nicely packed."],
+    3: ["The {dish} was okay, nothing special.", "Decent, but it took a while.", "Fine, a bit cold by the time it came.",
+        "Average this time."],
+    2: ["The {dish} was too salty.", "Late and lukewarm.", "Smaller portion than usual."],
+    1: ["Missing an item and the {dish} was cold.", "Not up to the usual standard."],
 }

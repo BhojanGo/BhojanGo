@@ -16,7 +16,8 @@
 #   seed         the base seed (Hyderabad + Boise) with random passwords; the
 #                logins go to the private uploads bucket, never to the log
 #   demo         the demo seed on top of it (tools/seed/demo.py); its logins are
-#                added to the same bucket file
+#                added to the same bucket file. Refused unless this is QA (as
+#                reset); demo.py itself refuses production before any DB access.
 #   checks       read-only: each backend's /health over the private network,
 #                migrations at head and `alembic check` against the QA database
 #   g1, integration
@@ -29,12 +30,15 @@ JOB="${RUN%%#*}"
 KEY="${QA_LOGINS_KEY:-qa-private/seed-logins.tsv}"
 echo "qa-job: $RUN (commit ${RAILWAY_GIT_COMMIT_SHA:-local})"
 pg_url() { echo "$1" | sed 's/+asyncpg//'; }
+# Both names must say QA: Railway's own (any case) and APP_ENV.
+is_qa() {
+  rw_env="$(printf '%s' "${RAILWAY_ENVIRONMENT_NAME:-}" | tr '[:upper:]' '[:lower:]')"
+  [ "$rw_env" = "qa" ] && [ "${APP_ENV:-}" = "qa" ]
+}
 
 case "$JOB" in
   reset)
-    # Both names must say QA: Railway's own (any case) and APP_ENV.
-    rw_env="$(printf '%s' "${RAILWAY_ENVIRONMENT_NAME:-}" | tr '[:upper:]' '[:lower:]')"
-    if [ "$rw_env" != "qa" ] || [ "${APP_ENV:-}" != "qa" ]; then
+    if ! is_qa; then
       echo "reset: REFUSED: RAILWAY_ENVIRONMENT_NAME='${RAILWAY_ENVIRONMENT_NAME:-}' APP_ENV='${APP_ENV:-}' (only QA is ever reset)"
       rc=3
     else
@@ -68,10 +72,15 @@ print('reset: redis database 0 cleared (sessions, caches, quotes)')" \
       && uv run --frozen python /repo/tools/railway/qa_bucket.py put /tmp/qa-logins.tsv "$KEY"
     rc=$? ;;
   demo)
-    uv run --frozen python /repo/tools/railway/qa_bucket.py get "$KEY" /tmp/qa-logins.tsv \
-      && SEED_PASSWORDS=random SEED_LOGINS_FILE=/tmp/qa-logins.tsv uv run --frozen python /repo/tools/seed/demo.py \
-      && uv run --frozen python /repo/tools/railway/qa_bucket.py put /tmp/qa-logins.tsv "$KEY"
-    rc=$? ;;
+    if ! is_qa; then
+      echo "demo: REFUSED: RAILWAY_ENVIRONMENT_NAME='${RAILWAY_ENVIRONMENT_NAME:-}' APP_ENV='${APP_ENV:-}' (demo data: QA and make dev only)"
+      rc=3
+    else
+      uv run --frozen python /repo/tools/railway/qa_bucket.py get "$KEY" /tmp/qa-logins.tsv \
+        && SEED_PASSWORDS=random SEED_LOGINS_FILE=/tmp/qa-logins.tsv uv run --frozen python /repo/tools/seed/demo.py \
+        && uv run --frozen python /repo/tools/railway/qa_bucket.py put /tmp/qa-logins.tsv "$KEY"
+      rc=$?
+    fi ;;
   checks)
     # each backend's /health over the private network (the worker has no public domain)
     uv run --frozen python -c "
