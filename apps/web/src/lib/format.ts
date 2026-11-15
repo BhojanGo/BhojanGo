@@ -34,6 +34,16 @@ export function partOfDay(d = new Date()): "morning" | "afternoon" | "evening" {
   return h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
 }
 
+/** Up to two initials of a name ("Red Lantern Wok" -> "RL"), for a kitchen with no photo of its own. */
+export function initials(name: string | null | undefined): string {
+  return (name ?? "")
+    .split(/\s+/)
+    .filter((w) => /^\p{L}/u.test(w))
+    .slice(0, 2)
+    .map((w) => w[0]!.toLocaleUpperCase())
+    .join("");
+}
+
 /** A photo URL from data: absolute URLs pass through; "/food/..." is served by the website. */
 export function photo(url: string | null | undefined, width: 400 | 800 | 1600 = 800): string | null {
   if (!url) return null;

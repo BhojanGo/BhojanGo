@@ -7,7 +7,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
-import { money, number, photo } from "@/lib/format";
+import { initials, money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, menu, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
@@ -134,7 +134,13 @@ export default async function KitchenPage({ params }: { params: Params }) {
       <section className="relative mx-auto max-w-[1440px] px-5 md:-mt-11 md:px-16">
         <div className="flex items-end gap-6 pt-5 md:pt-0">
           <span className="hidden h-[120px] w-[120px] shrink-0 rounded-[28px] bg-white p-[6px] shadow-[0_10px_30px_rgba(17,20,24,0.18)] md:block">
-            <span className="block h-full w-full overflow-hidden rounded-[22px]"><Img src={logo} /></span>
+            <span className="block h-full w-full overflow-hidden rounded-[22px]">
+              {logo ? (
+                <Img src={logo} />
+              ) : (
+                <span aria-hidden="true" className="flex h-full w-full items-center justify-center bg-[#DDEBEC] font-display text-[40px] font-semibold text-[#083F46]">{initials(r.name)}</span>
+              )}
+            </span>
           </span>
           <span className="min-w-0 flex-grow md:pb-[6px]">
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
