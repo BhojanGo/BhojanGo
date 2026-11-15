@@ -40,7 +40,7 @@ function zoneLine(z: Zone, currency: string): string {
 
 function ErrorNote({ message, onClose }: { message: string; onClose: () => void }) {
   return (
-    <div role="alert" className="flex items-start justify-between gap-4 rounded-xl bg-danger-tint px-4 py-3 text-sm text-danger-ink">
+    <div role="alert" className="flex items-start justify-between gap-4 rounded-xl bg-danger-tint px-4 py-3 text-small text-danger-ink">
       <span>{message}</span>
       <button type="button" onClick={onClose} className="font-bold" aria-label="Dismiss">
         ✕
@@ -116,12 +116,12 @@ export default function CityPage() {
   return (
     <ConsoleShell section="Markets" country={country} region={null} city={code}>
       <div>
-        <div className="text-[13px] text-muted">
+        <div className="text-small text-muted">
           <Link href="/markets" className="text-muted">Markets</Link> ▸ <Link href={`/markets/${country}`} className="text-muted">{city.country.name}</Link> ▸{" "}
           <Link href={`/markets/${country}?state=${city.region.code}`} className="text-muted">{city.region.name}</Link>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">{city.name}</h1>
+          <h1 className="m-0 text-h1 tracking-[-0.8px]">{city.name}</h1>
           <div role="radiogroup" aria-label="City status" className="flex rounded-full border border-line bg-white p-1">
             {STATUSES.map((s) => (
               <button
@@ -131,7 +131,7 @@ export default function CityPage() {
                 aria-checked={city.status === s}
                 disabled={!canEdit || run.isPending}
                 onClick={() => city.status !== s && act(() => marketsApi.updateCity(code, { status: s }))}
-                className={`h-10 rounded-full px-4 capitalize ${city.status === s ? "bg-peacock font-extrabold text-white" : "font-semibold text-muted"} disabled:cursor-not-allowed`}
+                className={`h-10 rounded-full px-4 capitalize ${city.status === s ? "bg-peacock font-bold text-white" : "font-semibold text-muted"} disabled:cursor-not-allowed`}
               >
                 {s}
               </button>
@@ -143,14 +143,14 @@ export default function CityPage() {
       {problem && <ErrorNote message={problem} onClose={() => setProblem(null)} />}
 
       {missing.length > 0 && (
-        <div className="rounded-xl bg-kesar-tint px-4 py-3 text-sm text-kesar-ink">
+        <div className="rounded-xl bg-kesar-tint px-4 py-3 text-small text-kesar-ink">
           <b>Before {city.name} can open:</b> {missing.map(([k]) => CHECKLIST_LABELS[k] ?? k).join(" · ")}
         </div>
       )}
 
       <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
         <div className="rounded-2xl border border-line bg-white p-6">
-          <div className="text-[13px] font-semibold text-muted">Service hours</div>
+          <div className="text-label text-muted">Service hours</div>
           {editingHours ? (
             <form
               className="mt-2 flex flex-wrap items-end gap-2"
@@ -159,15 +159,15 @@ export default function CityPage() {
                 act(() => marketsApi.updateCity(code, { service_hours: hours }), () => setEditingHours(false));
               }}
             >
-              <label className="text-xs text-muted">Opens<input type="time" required value={hours.open} onChange={(e) => setHours({ ...hours, open: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-sm text-kohl" /></label>
-              <label className="text-xs text-muted">Closes<input type="time" required value={hours.close} onChange={(e) => setHours({ ...hours, close: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-sm text-kohl" /></label>
-              <button type="submit" className="h-9 rounded-full bg-peacock px-4 text-sm font-bold text-white">Save</button>
-              <button type="button" onClick={() => setEditingHours(false)} className="h-9 px-2 text-sm font-semibold text-muted">Cancel</button>
+              <label className="text-small text-muted">Opens<input type="time" required value={hours.open} onChange={(e) => setHours({ ...hours, open: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-small text-kohl" /></label>
+              <label className="text-small text-muted">Closes<input type="time" required value={hours.close} onChange={(e) => setHours({ ...hours, close: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-small text-kohl" /></label>
+              <button type="submit" className="h-9 rounded-full bg-peacock px-4 text-label text-white">Save</button>
+              <button type="button" onClick={() => setEditingHours(false)} className="h-9 px-2 text-label text-muted">Cancel</button>
             </form>
           ) : (
             <>
-              <div className="mt-2 text-lg font-extrabold">{city.service_hours ? `${city.service_hours.open} – ${city.service_hours.close}` : "Not set"}</div>
-              <div className="mt-1 text-[13px] text-muted">
+              <div className="mt-2 text-h3">{city.service_hours ? `${city.service_hours.open} – ${city.service_hours.close}` : "Not set"}</div>
+              <div className="mt-1 text-small text-muted">
                 {tz?.value as string} ·{" "}
                 {canEdit ? (
                   <button type="button" className="font-bold text-peacock" onClick={() => { setHours(city.service_hours ?? { open: "07:00", close: "23:00" }); setEditingHours(true); }}>
@@ -181,16 +181,16 @@ export default function CityPage() {
           )}
         </div>
         <div className="rounded-2xl border border-line bg-white p-6">
-          <div className="text-[13px] font-semibold text-muted">Money and tax</div>
-          <div className="mt-2 text-lg font-extrabold">
+          <div className="text-label text-muted">Money and tax</div>
+          <div className="mt-2 text-h3">
             {city.country.currency} · {city.country.tax_regime === "gst" ? "GST" : "Stripe Tax"} · {city.country.payment_providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(", ")}
           </div>
-          <div className="mt-1 text-[13px] font-bold text-muted">Inherited from {city.country.name}</div>
+          <div className="mt-1 text-label text-muted">Inherited from {city.country.name}</div>
         </div>
         <div className="rounded-2xl border border-line bg-white p-6">
-          <div className="text-[13px] font-semibold text-muted">City settings</div>
-          <div className="mt-2 text-lg font-extrabold">{overrides.length ? `${overrides.length} overridden here` : `All inherited from ${city.region.name}`}</div>
-          <div className="mt-1 text-[13px] text-muted">
+          <div className="text-label text-muted">City settings</div>
+          <div className="mt-2 text-h3">{overrides.length ? `${overrides.length} overridden here` : `All inherited from ${city.region.name}`}</div>
+          <div className="mt-1 text-small text-muted">
             <Link href={`/pricing/simulator?city=${code}`} className="font-bold text-peacock">Open the price simulator</Link>
           </div>
         </div>
@@ -199,14 +199,14 @@ export default function CityPage() {
       <div className="flex flex-wrap gap-6">
         <section aria-label="Zones" className="flex flex-[4_1_300px] flex-col gap-1 rounded-2xl border border-line bg-white p-6">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="m-0 text-[17px] font-extrabold">Zones · {city.zones.length}</h2>
+            <h2 className="m-0 text-h3">Zones · {city.zones.length}</h2>
             {canEdit && (
-              <button type="button" onClick={startDraw} disabled={mode !== "view"} className="h-10 rounded-full bg-peacock px-4 text-sm font-extrabold text-white disabled:opacity-50">
+              <button type="button" onClick={startDraw} disabled={mode !== "view"} className="h-10 rounded-full bg-peacock px-4 text-label text-white disabled:opacity-50">
                 + Draw zone
               </button>
             )}
           </div>
-          {city.zones.length === 0 && <p className="text-sm text-muted">No zones yet. {canEdit ? "Draw the first one on the map." : ""}</p>}
+          {city.zones.length === 0 && <p className="text-small text-muted">No zones yet. {canEdit ? "Draw the first one on the map." : ""}</p>}
           {city.zones.map((z) => (
             <button
               key={z.id}
@@ -221,7 +221,7 @@ export default function CityPage() {
               />
               <span className="flex-grow">
                 <b className="block">{z.name}</b>
-                <span className={`text-[13px] ${z.status === "paused" ? "text-kesar-ink" : "text-muted"}`}>{zoneLine(z, city.country.currency)}</span>
+                <span className={`text-small ${z.status === "paused" ? "text-kesar-ink" : "text-muted"}`}>{zoneLine(z, city.country.currency)}</span>
               </span>
             </button>
           ))}
@@ -240,14 +240,14 @@ export default function CityPage() {
 
           {mode === "view" && selected && canEdit && (
             <div className="absolute right-4 top-4 z-[500] flex gap-2">
-              <button type="button" onClick={() => startEdit(selected)} className="h-10 rounded-full bg-white px-4 text-sm font-bold text-kohl shadow-[0_4px_14px_rgba(17,20,24,0.1)]">
+              <button type="button" onClick={() => startEdit(selected)} className="h-10 rounded-full bg-white px-4 text-label text-kohl shadow-[0_4px_14px_rgba(17,20,24,0.1)]">
                 Edit shape
               </button>
             </div>
           )}
 
           {mode !== "view" && (
-            <div className="absolute left-4 right-4 top-4 z-[500] flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 text-sm shadow-[0_8px_24px_rgba(17,20,24,0.12)]">
+            <div className="absolute left-4 right-4 top-4 z-[500] flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 text-small shadow-[0_8px_24px_rgba(17,20,24,0.12)]">
               <span className="flex-grow font-semibold">
                 {mode === "draw"
                   ? `Click the map to add corners · ${draft.length} added`
@@ -293,16 +293,16 @@ export default function CityPage() {
                 );
               }}
             >
-              <b className="text-[17px]">New zone</b>
-              <label className="text-[13px] text-muted">
+              <b className="text-h3">New zone</b>
+              <label className="text-small text-muted">
                 Name
-                <input required minLength={2} value={newZone.name} onChange={(e) => setNewZone({ ...newZone, name: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl" />
+                <input required minLength={2} value={newZone.name} onChange={(e) => setNewZone({ ...newZone, name: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-small text-kohl" />
               </label>
-              <label className="text-[13px] text-muted">
+              <label className="text-small text-muted">
                 Minimum order ({sym.trim()})
-                <input type="number" min="0" step="1" value={newZone.min_order} onChange={(e) => setNewZone({ ...newZone, min_order: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl" />
+                <input type="number" min="0" step="1" value={newZone.min_order} onChange={(e) => setNewZone({ ...newZone, min_order: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-small text-kohl" />
               </label>
-              <p className="m-0 text-xs text-muted">New zones start as drafts: customers don&apos;t see them until you make them live.</p>
+              <p className="m-0 text-small text-muted">New zones start as drafts: customers don&apos;t see them until you make them live.</p>
               <button type="submit" disabled={run.isPending} className="h-11 rounded-full bg-peacock font-bold text-white">
                 Create zone
               </button>
@@ -357,10 +357,10 @@ function ZonePanel({
   return (
     <div className="absolute bottom-4 left-4 z-[500] box-border flex w-[300px] max-w-[calc(100%-32px)] flex-col gap-3 rounded-2xl bg-white p-5 shadow-[0_8px_24px_rgba(17,20,24,0.12)]">
       <div className="flex items-center justify-between">
-        <b className="text-[17px]">{zone.name}</b>
+        <b className="text-h3">{zone.name}</b>
         <StatusPill status={zone.status} />
       </div>
-      <dl className="m-0 grid grid-cols-2 gap-2 text-[13px]">
+      <dl className="m-0 grid grid-cols-2 gap-2 text-small">
         <dt className="text-muted">Min order</dt>
         <dd className="m-0 text-right font-bold">{zone.min_order ? `${sym}${Number(zone.min_order).toFixed(0)}` : "None"}</dd>
         <dt className="text-muted">Area</dt>
@@ -381,11 +381,11 @@ function ZonePanel({
             act(() => marketsApi.updateZone(zone.id, { min_order: minOrder === "" ? null : String(minOrder) }));
           }}
         >
-          <label className="flex-grow text-xs text-muted">
+          <label className="flex-grow text-small text-muted">
             Min order ({sym.trim()})
-            <input type="number" min="0" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-sm text-kohl" />
+            <input type="number" min="0" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-small text-kohl" />
           </label>
-          <button type="submit" disabled={busy} className="h-8 rounded-full border border-line px-3 text-sm font-bold">Save</button>
+          <button type="submit" disabled={busy} className="h-8 rounded-full border border-line px-3 text-label">Save</button>
         </form>
       )}
 
@@ -395,7 +395,7 @@ function ZonePanel({
         </button>
       )}
       {canEdit && (zone.status === "live" || zone.status === "beta") && !pausing && (
-        <button type="button" disabled={busy} onClick={() => act(() => marketsApi.updateZone(zone.id, { status: "draft" }))} className="h-9 text-sm font-semibold text-muted">
+        <button type="button" disabled={busy} onClick={() => act(() => marketsApi.updateZone(zone.id, { status: "draft" }))} className="h-9 text-label text-muted">
           Back to draft
         </button>
       )}
@@ -421,17 +421,17 @@ function ZonePanel({
             });
           }}
         >
-          <label className="text-xs text-muted">
+          <label className="text-small text-muted">
             Why (customers see this)
-            <input required minLength={3} value={pause.reason} onChange={(e) => setPause({ ...pause, reason: e.target.value })} placeholder="Heavy rain" className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-sm text-kohl" />
+            <input required minLength={3} value={pause.reason} onChange={(e) => setPause({ ...pause, reason: e.target.value })} placeholder="Heavy rain" className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-small text-kohl" />
           </label>
-          <label className="text-xs text-muted">
+          <label className="text-small text-muted">
             Until (optional)
-            <input type="datetime-local" value={pause.until} onChange={(e) => setPause({ ...pause, until: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-sm text-kohl" />
+            <input type="datetime-local" value={pause.until} onChange={(e) => setPause({ ...pause, until: e.target.value })} className="mt-1 block w-full rounded-lg border border-line px-2 py-1 text-small text-kohl" />
           </label>
           <div className="flex gap-2">
             <button type="submit" disabled={busy} className="h-10 flex-grow rounded-full bg-kohl font-bold text-white">Pause</button>
-            <button type="button" onClick={() => setPausing(false)} className="h-10 px-3 text-sm font-semibold text-muted">Cancel</button>
+            <button type="button" onClick={() => setPausing(false)} className="h-10 px-3 text-label text-muted">Cancel</button>
           </div>
         </form>
       )}

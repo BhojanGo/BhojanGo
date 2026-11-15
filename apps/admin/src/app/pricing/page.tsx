@@ -42,7 +42,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function Pill({ v, all }: { v: Rule; all?: Rule[] }) {
   const s = versionState(v, all);
-  return <span className={`rounded-lg px-2 py-1 text-xs font-bold ${STATUS_STYLE[s.key] ?? "bg-line-soft"}`}>{s.label}</span>;
+  return <span className={`rounded-lg px-2 py-1 text-caption ${STATUS_STYLE[s.key] ?? "bg-line-soft"}`}>{s.label}</span>;
 }
 
 /** The short form for a row: "20% (tier B)", "15%", "$1.00 per order"; otherwise the full sentence. */
@@ -95,7 +95,7 @@ function source(r: Rule, scope: string, names: Record<string, string>, kitchens:
 }
 
 function Params({ rule }: { rule: Rule }) {
-  return <p className="rounded-xl bg-porcelain p-4 text-[15px] leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, rule.market_scope)}</p>;
+  return <p className="rounded-xl bg-porcelain p-4 text-body leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, rule.market_scope)}</p>;
 }
 
 const STARTERS: Record<string, Record<string, unknown>> = {
@@ -145,8 +145,8 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   }
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label="Add a rule">
-      <h2 className="m-0 font-display text-2xl font-semibold">Add a rule · {FAMILIES.find((f) => f.key === family)?.label}</h2>
-      <div className="flex flex-wrap items-end gap-3 text-sm">
+      <h2 className="m-0 text-h2">Add a rule · {FAMILIES.find((f) => f.key === family)?.label}</h2>
+      <div className="flex flex-wrap items-end gap-3 text-small">
         <label className="font-bold">Type
           <select aria-label="Type" value={template} onChange={(e) => setTemplate(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
             {mine.map((m) => <option key={m.template} value={m.template}>{TEMPLATE_WORDS[m.template] ?? m.template.replace(/_/g, " ")}</option>)}
@@ -168,7 +168,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
         </label>
       </div>
       {level === "restaurant" ? (
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-small">
           <input aria-label="Find a restaurant" placeholder="Find a restaurant in this scope" value={kitchenQ} onChange={(e) => { setKitchenQ(e.target.value); setKitchen(null); }}
             className="h-10 w-80 rounded-full border border-line-strong px-4" />
           <div className="flex flex-wrap gap-2">
@@ -180,8 +180,8 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
         </div>
       ) : null}
       {template ? <RuleEditor key={template} params={starter as Record<string, unknown>} busy={busy} onCancel={() => onDone("")} onSave={(p) => void create(p)} saveLabel="Create draft" /> : null}
-      {err ? <p role="alert" className="text-sm font-semibold text-chili">{err}</p> : null}
-      <p className="text-xs text-muted">A new rule starts as a draft. {t?.money ? "Submitting sends it to a second admin to approve." : "Submitting makes it live."}</p>
+      {err ? <p role="alert" className="text-label text-chili">{err}</p> : null}
+      <p className="text-small text-muted">A new rule starts as a draft. {t?.money ? "Submitting sends it to a second admin to approve." : "Submitting makes it live."}</p>
     </section>
   );
 }
@@ -189,18 +189,18 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
 function PreviewBox({ rule }: { rule: Rule }) {
   const { cur } = unitsFor(rule.market_scope);
   const p = useQuery({ queryKey: ["commission-preview", rule.id, JSON.stringify(rule.params)], queryFn: async () => (await adminApi.get<Preview>(`/user/rules/commission/preview/${rule.id}`)).data });
-  if (!p.data) return <p className="text-sm text-muted">Working out the last 7 days…</p>;
+  if (!p.data) return <p className="text-small text-muted">Working out the last 7 days…</p>;
   const diff = Number(p.data.payout_difference);
   const m = (v: string | number) => `${cur}${Number(v).toFixed(2)}`;
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${m(Math.abs(v))}`;
   return (
-    <section className="space-y-2 rounded-xl border border-line p-4 text-sm" aria-label="Preview: the last 7 days">
-      <h3 className="m-0 text-sm font-extrabold">Preview: the last {p.data.days} days with this draft</h3>
+    <section className="space-y-2 rounded-xl border border-line p-4 text-small" aria-label="Preview: the last 7 days">
+      <h3 className="m-0 text-label">Preview: the last {p.data.days} days with this draft</h3>
       {p.data.orders === 0 ? <p className="text-muted" data-testid="preview-summary">No delivered orders in this scope in the last {p.data.days} days.</p> : (
         <>
           <p data-testid="preview-summary">{p.data.orders} orders · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · restaurant payouts{" "}
             <b className={diff >= 0 ? "text-peacock-dark" : "text-chili"}>{signed(diff)}</b></p>
-          <table className="w-full text-left"><thead className="text-[12px] uppercase text-muted"><tr><th>Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
+          <table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
             <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table>
         </>
       )}
@@ -253,8 +253,8 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Rule · ${rule.name ?? rule.template}`}>
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="m-0 font-display text-2xl font-semibold">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
-        <Pill v={rule} all={versions} /> <span className="text-sm text-muted" data-testid="rule-source">{label} · v{rule.version}</span>
+        <h2 className="m-0 text-h2">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
+        <Pill v={rule} all={versions} /> <span className="text-small text-muted" data-testid="rule-source">{label} · v{rule.version}</span>
       </div>
       {editing === "version" ? (
         <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(null)} onSave={(p) => void newVersion(p)} saveLabel={money ? "Send for approval" : "Save"} />
@@ -268,7 +268,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
           <>
             <button type="button" onClick={() => setEditing("draft")} className="h-10 rounded-full border border-line-strong px-4 font-bold">Edit draft</button>
             <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/submit`), money ? "Sent for approval." : "Published.", rule.id)}
-              className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">{money ? "Submit for approval" : "Publish"}</button>
+              className="h-10 rounded-full bg-peacock px-4 font-bold text-white">{money ? "Submit for approval" : "Publish"}</button>
             <button type="button" disabled={busy} onClick={() => void run(() => adminApi.delete(`/user/rules/${rule.id}`), "Draft deleted.")}
               className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili">Delete draft</button>
           </>
@@ -276,7 +276,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
         {isLive && mayEdit && !editing ? (
           <>
             <button type="button" onClick={() => setEditing("version")} className="h-10 rounded-full border border-line-strong px-4 font-bold">New version</button>
-            <input aria-label="End on" type="date" value={endAt} min={today()} onChange={(e) => setEndAt(e.target.value)} className="h-10 rounded-full border border-line px-3 text-sm" />
+            <input aria-label="End on" type="date" value={endAt} min={today()} onChange={(e) => setEndAt(e.target.value)} className="h-10 rounded-full border border-line px-3 text-small" />
             <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/end`, endAt ? { at: new Date(`${endAt}T00:00:00`).toISOString() } : {}),
               endAt ? `Ends on ${day(new Date(`${endAt}T00:00:00`).toISOString())}; then the inherited rule applies.` : "Ended now; the inherited rule applies.", rule.id)}
               className="h-10 rounded-full border border-line-strong px-4 font-bold">{endAt ? "End on that date" : "End now"}</button>
@@ -284,23 +284,23 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
         ) : null}
         {mineToApprove ? (
           <>
-            <input aria-label="Comment" placeholder="Comment (needed to send back)" value={note} onChange={(e) => setNote(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-sm" />
+            <input aria-label="Comment" placeholder="Comment (needed to send back)" value={note} onChange={(e) => setNote(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-small" />
             <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/approve`, { note: note || null }), "Approved and scheduled.")}
-              className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Approve and schedule</button>
+              className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Approve and schedule</button>
             <button type="button" disabled={busy || note.trim().length < 3} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/reject`, { note }), "Sent back with your comment.")}
               className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Send back with comment</button>
           </>
         ) : null}
-        {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-sm text-muted">Waiting for a second admin to approve.</span> : null}
-        <Link href={`/pricing/simulator?city=${where.split("-").length === 3 ? where : "IN-TG-HYD"}`} className="ml-auto text-sm font-bold text-peacock">Try it in the price simulator →</Link>
+        {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-small text-muted">Waiting for a second admin to approve.</span> : null}
+        <Link href={`/pricing/simulator?city=${where.split("-").length === 3 ? where : "IN-TG-HYD"}`} className="ml-auto text-label text-peacock">Try it in the price simulator →</Link>
       </div>
       {kitchenOffer ? (
         <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The kitchen's own offer">
-          <p className="text-sm">The kitchen pays for this offer, so it went live without approval.{rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
+          <p className="text-small">The kitchen pays for this offer, so it went live without approval.{rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
           {mayPause && !rule.paused_at ? (
             <div className="flex flex-wrap gap-2">
               <input aria-label="Why pause it (the kitchen sees this)" placeholder="Why pause it? The kitchen sees this" value={reason} maxLength={300}
-                onChange={(e) => setReason(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-sm" />
+                onChange={(e) => setReason(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-small" />
               <button type="button" disabled={busy || reason.trim().length < 3}
                 onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/pause`, { reason: reason.trim() }), "Paused. Customers stop seeing it now; the kitchen sees why.", rule.id)}
                 className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Pause offer</button>
@@ -308,14 +308,14 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
           ) : null}
           {mayPause && rule.paused_at ? (
             <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/resume`), "Resumed. Customers see it again.", rule.id)}
-              className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Resume offer</button>
+              className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Resume offer</button>
           ) : null}
         </section>
       ) : null}
-      {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+      {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
       <div>
-        <h3 className="mb-2 text-sm font-extrabold">History</h3>
-        <ul className="space-y-1 text-sm" aria-label="Versions">
+        <h3 className="mb-2 text-label">History</h3>
+        <ul className="space-y-1 text-small" aria-label="Versions">
           {versions.slice().reverse().map((v) => {
             const s = versionState(v, versions);
             const canRollBack = mayEdit && v.id !== rule.id && (s.key === "replaced" || s.key === "ended" || v.status === "superseded")
@@ -324,7 +324,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
               <li key={v.id} className="flex flex-wrap items-center gap-2"><b>v{v.version}</b> <Pill v={v} all={versions} /> <span className="text-muted">{describe(v.template, v.params, v.market_scope)} · {ago(v.created_at)}
                 {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision}${a.note ? ` (“${a.note}”)` : ""}`).join("")}</span>
                 {canRollBack ? <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${v.id}/rollback`), money ? `Rolling back to v${v.version}: a second admin approves it.` : `Rolled back to v${v.version}.`)}
-                  className="h-8 rounded-full border border-line-strong px-3 text-xs font-bold">Roll back to v{v.version}</button> : null}
+                  className="h-8 rounded-full border border-line-strong px-3 text-caption">Roll back to v{v.version}</button> : null}
               </li>
             );
           })}
@@ -368,31 +368,31 @@ function PricingPage() {
   return (
     <ConsoleShell section="Pricing & Rules" country={country} region={region} city={city} scopeHref={(s) => `/pricing?scope=${s}&tab=${tab}`}>
       <div>
-        <div className="text-[13px] text-muted">Pricing &amp; Rules ▸ {tab === "approvals" ? "Approvals" : FAMILIES.find((f) => f.key === tab)?.label}</div>
-        <h1 className="m-0 mt-1 font-display text-[32px] font-semibold tracking-[-0.8px]">Pricing &amp; Rules</h1>
+        <div className="text-small text-muted">Pricing &amp; Rules ▸ {tab === "approvals" ? "Approvals" : FAMILIES.find((f) => f.key === tab)?.label}</div>
+        <h1 className="m-0 mt-1 text-h1 tracking-[-0.8px]">Pricing &amp; Rules</h1>
       </div>
       <nav aria-label="Rule families" className="flex flex-wrap gap-1 rounded-2xl bg-white p-1">
         {FAMILIES.map((f) => (
           <button key={f.key} type="button" onClick={() => go(f.key)} aria-current={tab === f.key ? "page" : undefined}
-            className={`h-9 rounded-xl px-3 text-sm ${tab === f.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{f.label}</button>
+            className={`h-9 rounded-xl px-3 text-label ${tab === f.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{f.label}</button>
         ))}
-        <Link href={`/pricing/simulator?city=${city ?? (country === "US" ? "US-ID-BOI" : "IN-TG-HYD")}`} className="flex h-9 items-center rounded-xl px-3 text-sm font-semibold text-muted">Price simulator</Link>
+        <Link href={`/pricing/simulator?city=${city ?? (country === "US" ? "US-ID-BOI" : "IN-TG-HYD")}`} className="flex h-9 items-center rounded-xl px-3 text-label text-muted">Price simulator</Link>
         <button type="button" onClick={() => go("approvals")} aria-current={tab === "approvals" ? "page" : undefined}
-          className={`h-9 rounded-xl px-3 text-sm ${tab === "approvals" ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>
-          Approvals {approvals.data?.length ? <span className="ml-1 rounded-full bg-kesar px-1.5 text-xs text-white">{approvals.data.length}</span> : null}
+          className={`h-9 rounded-xl px-3 text-label ${tab === "approvals" ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>
+          Approvals {approvals.data?.length ? <span className="ml-1 rounded-full bg-kesar px-1.5 text-small text-white">{approvals.data.length}</span> : null}
         </button>
       </nav>
       <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
         <section className="rounded-2xl bg-white p-2" aria-label="Rules">
           {mayAdd ? (
-            <button type="button" onClick={() => { setAdding(true); setOpen(null); }} className="m-1 h-10 rounded-full bg-kohl px-4 text-sm font-extrabold text-white">Add</button>
-          ) : tab !== "approvals" && !country ? <p className="px-3 py-2 text-xs text-muted">Pick a country or city to add a rule.</p> : null}
-          {relevant.length === 0 ? <p className="p-4 text-sm text-muted">{tab === "approvals" ? "Nothing waiting for you." : "No rules here."}</p> : null}
+            <button type="button" onClick={() => { setAdding(true); setOpen(null); }} className="m-1 h-10 rounded-full bg-kohl px-4 text-label text-white">Add</button>
+          ) : tab !== "approvals" && !country ? <p className="px-3 py-2 text-small text-muted">Pick a country or city to add a rule.</p> : null}
+          {relevant.length === 0 ? <p className="p-4 text-small text-muted">{tab === "approvals" ? "Nothing waiting for you." : "No rules here."}</p> : null}
           {relevant.map((r) => (
             <button key={r.id} type="button" onClick={() => { setOpen(r.id); setAdding(false); }}
-              className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+              className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill v={r} /></div>
-              <div className="text-[13px]" data-testid="row-source">{source(r, scope, names, kitchens)}</div>
+              <div className="text-small" data-testid="row-source">{source(r, scope, names, kitchens)}</div>
             </button>
           ))}
         </section>

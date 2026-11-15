@@ -6,10 +6,6 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}", "../../packages/ui/src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      fontFamily: {
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
-        body: ["var(--font-text)", "system-ui", "sans-serif"],
-      },
       colors: {
         // Older pages still say brand/accent: they map onto Peacock and Kesar
         // until P20/P21 rebuild them on the design system.

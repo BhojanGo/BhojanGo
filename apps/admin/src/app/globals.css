@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Leaflet draws attribution, tooltips and popups at 11-13 px; on the type scale they are small text. */
+:root .leaflet-container,
+:root .leaflet-tooltip,
+:root .leaflet-popup-content {
+  @apply text-small;
+}

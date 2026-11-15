@@ -8,7 +8,7 @@ export function TestSiteBanner() {
     <div
       role="note"
       data-testid="test-site-banner"
-      className="border-b border-[#D4932A] bg-[#F6E7CC] px-4 py-[6px] text-center text-[13px] font-semibold leading-[18px] text-kohl"
+      className="border-b border-[#D4932A] bg-[#F6E7CC] px-4 py-[6px] text-center text-label leading-[18px] text-kohl"
     >
       Test site: demo kitchens, no real orders or payments
     </div>

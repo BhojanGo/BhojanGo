@@ -35,21 +35,21 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 font-body text-kohl">
+    <div className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 font-sans text-kohl">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex justify-center"><Logo size={36} suffix="admin" /></div>
         <form onSubmit={handleSubmit} className="space-y-5 rounded-3xl bg-white p-8 shadow-[0_8px_24px_rgba(17,20,24,0.08)]">
-          <h1 className="m-0 font-display text-2xl font-semibold">Sign in</h1>
-          <label className="block text-sm font-bold">Email
+          <h1 className="m-0 text-h2">Sign in</h1>
+          <label className="block text-label">Email
             <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block h-12 w-full rounded-2xl border-[1.5px] border-line-strong px-4 font-normal outline-none focus:border-peacock" placeholder="you@bhojango.com" />
           </label>
-          <label className="block text-sm font-bold">Password
+          <label className="block text-label">Password
             <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block h-12 w-full rounded-2xl border-[1.5px] border-line-strong px-4 font-normal outline-none focus:border-peacock" />
           </label>
-          {error && <p role="alert" className="text-sm font-semibold text-chili">{error}</p>}
-          <button type="submit" disabled={loading} className="h-12 w-full rounded-full bg-peacock font-extrabold text-white hover:bg-peacock-dark disabled:opacity-60">
+          {error && <p role="alert" className="text-label text-chili">{error}</p>}
+          <button type="submit" disabled={loading} className="h-12 w-full rounded-full bg-peacock font-bold text-white hover:bg-peacock-dark disabled:opacity-60">
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>

@@ -79,11 +79,11 @@ export function ConsoleShell({
   const sections = SECTIONS.filter((s) => !me || (me.permissions[s.perm] ?? []).length > 0);
 
   return (
-    <div className="flex min-h-screen flex-col bg-porcelain font-body text-kohl">
+    <div className="flex min-h-screen flex-col bg-porcelain font-sans text-kohl">
       <header className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-white px-4 py-3 sm:px-8">
         <Logo size={30} suffix="admin" />
-        <div className="ml-auto flex items-center gap-2.5 text-sm">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-peacock-tint text-xs font-extrabold text-peacock-dark">{initials}</span>
+        <div className="ml-auto flex items-center gap-2.5 text-small">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-peacock-tint text-small text-peacock-dark">{initials}</span>
           <span data-testid="who">
             {user?.full_name}
             {role ? ` · ${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : ""}
@@ -96,26 +96,26 @@ export function ConsoleShell({
       <nav aria-label="Country" className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-line bg-white px-4 sm:px-8">
         {isGlobal && (
           <Link href={scopeHref ? scopeHref("*") : "/markets"} aria-current={country === "ALL" ? "page" : undefined}
-            className={`box-border flex h-[52px] items-center border-b-[3px] px-4 text-[15px] ${country === "ALL" ? "border-peacock font-extrabold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
+            className={`box-border flex h-[52px] items-center border-b-[3px] px-4 text-label ${country === "ALL" ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
             All countries
           </Link>
         )}
         {markets?.map((c) => (
           <Link key={c.code} href={toCountry(c.code)} aria-current={c.code === country ? "page" : undefined}
-            className={`box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-[15px] ${c.code === country ? "border-peacock font-extrabold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
-            <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${c.code === country ? "bg-peacock-tint text-peacock-dark" : "bg-line-soft text-kohl"}`}>{c.code}</span>
+            className={`box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-label ${c.code === country ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
+            <span className={`rounded-md px-1.5 py-0.5 text-caption ${c.code === country ? "bg-peacock-tint text-peacock-dark" : "bg-line-soft text-kohl"}`}>{c.code}</span>
             {c.name}
           </Link>
         ))}
-        {!isGlobal && markets?.length === 1 ? <span className="ml-auto text-[13px] font-semibold text-muted">You can see {markets[0]!.name} only</span> : null}
+        {!isGlobal && markets?.length === 1 ? <span className="ml-auto text-label text-muted">You can see {markets[0]!.name} only</span> : null}
       </nav>
 
       {current && (
         <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 sm:px-8">
-          {showStates && <span className="mr-1 text-[13px] font-bold text-muted">State</span>}
+          {showStates && <span className="mr-1 text-label text-muted">State</span>}
           {showStates && (
             <Link href={toCountry(current.code)} aria-current={!region && !city ? "true" : undefined}
-              className={`flex h-9 items-center rounded-full px-3.5 text-sm ${!region && !city ? "bg-kohl font-bold text-white" : "border border-line bg-white font-semibold text-kohl"}`}>
+              className={`flex h-9 items-center rounded-full px-3.5 text-label ${!region && !city ? "bg-kohl font-bold text-white" : "border border-line bg-white font-semibold text-kohl"}`}>
               All states
             </Link>
           )}
@@ -123,13 +123,13 @@ export function ConsoleShell({
             const on = region === r.code;
             return (
               <Link key={r.code} href={toRegion(r.code)} aria-current={on ? "true" : undefined}
-                className={`flex h-9 items-center gap-2 rounded-full px-3.5 text-sm ${on ? "bg-kohl font-bold text-white" : "border border-line bg-white font-semibold text-kohl"}`}>
-                {r.name} <span className={`text-xs ${on ? "text-[#A9B8BA]" : "text-muted"}`}>{r.cities.length}</span>
+                className={`flex h-9 items-center gap-2 rounded-full px-3.5 text-label ${on ? "bg-kohl font-bold text-white" : "border border-line bg-white font-semibold text-kohl"}`}>
+                {r.name} <span className={`text-small ${on ? "text-[#A9B8BA]" : "text-muted"}`}>{r.cities.length}</span>
               </Link>
             );
           })}
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[13px] font-bold text-muted">City</span>
+            <span className="text-label text-muted">City</span>
             <CityPicker country={current} value={city ?? null} onChange={(code) => router.push(toCity(current.code, code))} />
           </div>
         </nav>
@@ -142,7 +142,7 @@ export function ConsoleShell({
             const href = s.href === "/markets" ? s.href : scope ? `${s.href}?scope=${scope}` : s.href;
             return (
               <Link key={s.href} href={href} aria-current={s.label === section ? "page" : undefined}
-                className={`flex h-11 items-center rounded-xl px-4 text-[15px] ${s.label === section ? "bg-peacock-tint font-extrabold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
+                className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
                 {s.label}
               </Link>
             );

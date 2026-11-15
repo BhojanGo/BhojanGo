@@ -78,20 +78,20 @@ function NewCountry() {
     }
   }
 
-  const field = "mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl";
+  const field = "mt-1 block w-full rounded-lg border border-line px-3 py-2 text-small text-kohl";
   const toggle = (p: string) =>
     setF({ ...f, payment_providers: f.payment_providers.includes(p) ? f.payment_providers.filter((x) => x !== p) : [...f.payment_providers, p] });
   return (
     <section aria-label="Add a country" className="rounded-2xl border border-line bg-white p-6">
       <div className="flex items-center gap-3">
-        <h2 className="m-0 flex-1 text-[17px] font-extrabold">Add a country</h2>
+        <h2 className="m-0 flex-1 text-h3">Add a country</h2>
         {!open && (
-          <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-full bg-peacock px-4 text-sm font-bold text-white">
+          <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-full bg-peacock px-4 text-label text-white">
             New country
           </button>
         )}
       </div>
-      <p className="mt-1 text-[13px] text-muted">
+      <p className="mt-1 text-small text-muted">
         A new country starts as a draft: nobody can sign up or open a kitchen there yet. Add its states, cities and zones, then
         open it. Its currency, phone code and tax regime apply to every state and city in it; it opens only once it has a payout
         provider (who pays its kitchens and riders).
@@ -104,38 +104,38 @@ function NewCountry() {
             void submit();
           }}
         >
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Country code (ISO, 2 letters)
             <input required pattern="[A-Za-z]{2}" maxLength={2} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Name
             <input required minLength={2} maxLength={100} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Currency (ISO, 3 letters)
             <input required pattern="[A-Za-z]{3}" maxLength={3} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value.toUpperCase() })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Languages (comma separated, e.g. en-GB, cy-GB)
             <input required value={f.locales} onChange={(e) => setF({ ...f, locales: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Time zone (IANA, e.g. Europe/London)
             <input required value={f.timezone} onChange={(e) => setF({ ...f, timezone: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Distance
             <select value={f.distance_unit} onChange={(e) => setF({ ...f, distance_unit: e.target.value })} className={field}>
               <option value="km">Kilometres</option>
               <option value="mi">Miles</option>
             </select>
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Phone code
             <input required pattern="\+[0-9]{1,4}" maxLength={5} value={f.phone_code} onChange={(e) => setF({ ...f, phone_code: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Tax regime
             <select value={f.tax_regime} onChange={(e) => setF({ ...f, tax_regime: e.target.value })} className={field}>
               {TAX_REGIMES.map((t) => (
@@ -145,7 +145,7 @@ function NewCountry() {
               ))}
             </select>
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Payout provider
             <select
               value={f.payout_provider}
@@ -159,11 +159,11 @@ function NewCountry() {
               ))}
             </select>
           </label>
-          <fieldset className="text-[13px] text-muted">
+          <fieldset className="text-small text-muted">
             <legend>Payment providers</legend>
             <div className="mt-2 flex gap-4">
               {PAYMENT_PROVIDERS.map((p) => (
-                <label key={p} className="flex items-center gap-2 text-sm text-kohl">
+                <label key={p} className="flex items-center gap-2 text-small text-kohl">
                   <input type="checkbox" checked={f.payment_providers.includes(p)} onChange={() => toggle(p)} />
                   {p[0].toUpperCase() + p.slice(1)}
                 </label>
@@ -174,16 +174,16 @@ function NewCountry() {
             <button
               type="submit"
               disabled={busy || f.payment_providers.length === 0}
-              className="h-10 rounded-full bg-peacock px-5 text-sm font-bold text-white disabled:opacity-50"
+              className="h-10 rounded-full bg-peacock px-5 text-label text-white disabled:opacity-50"
             >
               Create country
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full px-3 text-sm font-semibold text-muted">
+            <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full px-3 text-label text-muted">
               Cancel
             </button>
           </div>
           {problem && (
-            <p role="alert" className="col-span-full rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">
+            <p role="alert" className="col-span-full rounded-xl bg-danger-tint p-3 text-small text-danger-ink">
               {problem}
             </p>
           )}
@@ -211,8 +211,8 @@ export default function AllCountriesPage() {
   return (
     <ConsoleShell section="Markets" country="ALL">
       <div>
-        <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">All countries</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="m-0 text-h1 tracking-[-0.8px]">All countries</h1>
+        <p className="mt-1 text-small text-muted">
           {markets
             ? `${markets.length} countries · ${regions.length} states · ${cities.length} cities (${open.length} live or in beta) · money stays in each country's currency`
             : "Loading…"}
@@ -233,24 +233,24 @@ export default function AllCountriesPage() {
           return (
             <article key={c.code} className="flex flex-col gap-5 rounded-2xl border border-line bg-white p-6 tabular-nums">
               <div className="flex items-center gap-3">
-                <span className="rounded-lg bg-line-soft px-2 py-1 text-[13px] font-extrabold">{c.code}</span>
+                <span className="rounded-lg bg-line-soft px-2 py-1 text-label">{c.code}</span>
                 <div className="flex-grow">
-                  <div className="font-display text-2xl font-semibold tracking-[-0.4px]">{c.name}</div>
-                  <div className="text-[13px] text-muted">{countrySubtitle(c)}</div>
+                  <div className="text-h2 tracking-[-0.4px]">{c.name}</div>
+                  <div className="text-small text-muted">{countrySubtitle(c)}</div>
                 </div>
-                <Link href={`/markets/${c.code}`} className="flex h-11 items-center rounded-full bg-peacock px-5 text-sm font-extrabold text-white hover:bg-peacock-dark">
+                <Link href={`/markets/${c.code}`} className="flex h-11 items-center rounded-full bg-peacock px-5 text-label text-white hover:bg-peacock-dark">
                   Open {c.code === "US" ? "US" : c.name}
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div><div className="text-xs text-muted">Status</div><div className="mt-1"><StatusPill status={c.status} /></div></div>
-                <div><div className="text-xs text-muted">Cities open</div><div className="text-2xl font-extrabold">{cs.filter((x) => x.status === "live" || x.status === "beta").length}</div></div>
-                <div><div className="text-xs text-muted">Zones open</div><div className="text-2xl font-extrabold">{openZones}<span className="text-sm font-semibold text-muted"> / {zones}</span></div></div>
-                <div><div className="text-xs text-muted">In setup</div><div className="text-2xl font-extrabold">{setup}</div></div>
+                <div><div className="text-small text-muted">Status</div><div className="mt-1"><StatusPill status={c.status} /></div></div>
+                <div><div className="text-small text-muted">Cities open</div><div className="text-h2">{cs.filter((x) => x.status === "live" || x.status === "beta").length}</div></div>
+                <div><div className="text-small text-muted">Zones open</div><div className="text-h2">{openZones}<span className="text-label text-muted"> / {zones}</span></div></div>
+                <div><div className="text-small text-muted">In setup</div><div className="text-h2">{setup}</div></div>
               </div>
               <div className="border-t border-line-soft">
                 {c.regions.map((r) => (
-                  <Link key={r.code} href={`/markets/${c.code}?state=${r.code}`} className="flex items-center gap-3 border-b border-line-soft py-3 text-sm text-kohl last:border-b-0">
+                  <Link key={r.code} href={`/markets/${c.code}?state=${r.code}`} className="flex items-center gap-3 border-b border-line-soft py-3 text-small text-kohl last:border-b-0">
                     <span className="flex-grow">
                       <b>{r.name}</b> <span className="text-muted">· {stateLine(r.cities)}</span>
                     </span>
@@ -259,7 +259,7 @@ export default function AllCountriesPage() {
                 ))}
               </div>
               {setup > 0 && (
-                <div className="flex justify-between rounded-xl bg-kesar-tint px-4 py-3 text-sm text-kesar-ink">
+                <div className="flex justify-between rounded-xl bg-kesar-tint px-4 py-3 text-small text-kesar-ink">
                   <span><b>{setup} {setup === 1 ? "city" : "cities"} in setup</b> · see what each still needs</span>
                   <Link href={`/markets/${c.code}`} className="font-bold text-kesar-ink">View</Link>
                 </div>

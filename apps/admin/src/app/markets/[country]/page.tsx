@@ -44,12 +44,12 @@ function SettingsCards({ country }: { country: CountrySummary }) {
   ];
   return (
     <section aria-label={`${country.name} settings`} className="rounded-2xl border border-line bg-white p-6">
-      <h2 className="m-0 text-[17px] font-extrabold">{country.name} settings</h2>
-      <p className="mt-1 text-[13px] text-muted">States inherit these, cities inherit from their state; either can override.</p>
+      <h2 className="m-0 text-h3">{country.name} settings</h2>
+      <p className="mt-1 text-small text-muted">States inherit these, cities inherit from their state; either can override.</p>
       <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
         {cards.map((c) => (
           <div key={c.title} className="rounded-xl border border-line-soft p-4">
-            <div className="text-[13px] font-semibold text-muted">{c.title}</div>
+            <div className="text-label text-muted">{c.title}</div>
             <div className="mt-1 font-bold">{c.value}</div>
           </div>
         ))}
@@ -78,20 +78,20 @@ function CountryView() {
       {country && (
         <>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">{country.name}</h1>
+            <h1 className="m-0 text-h1 tracking-[-0.8px]">{country.name}</h1>
             <StatusPill status={country.status} />
-            <span className="basis-full text-sm text-muted">
+            <span className="basis-full text-small text-muted">
               Times in {tzShort} · amounts in {moneySymbol(country.currency).trim()} · {cities.length} cities,{" "}
               {cities.filter((c) => c.status === "live" || c.status === "beta").length} open
             </span>
           </div>
 
           <section aria-label="States and cities" className="rounded-2xl border border-line bg-white p-6">
-            <h2 className="m-0 mb-2 text-[17px] font-extrabold">States and cities</h2>
+            <h2 className="m-0 mb-2 text-h3">States and cities</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] border-collapse text-sm tabular-nums">
+              <table className="w-full min-w-[640px] border-collapse text-small tabular-nums">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-[0.6px] text-muted">
+                  <tr className="text-left text-caption text-muted">
                     <th className="py-3 font-bold">Name</th>
                     <th className="font-bold">Status</th>
                     <th className="text-right font-bold">Zones open</th>
@@ -204,18 +204,18 @@ function AddCity({ country }: { country: CountrySummary }) {
       setBusy(false);
     }
   }
-  const field = "mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl";
+  const field = "mt-1 block w-full rounded-lg border border-line px-3 py-2 text-small text-kohl";
   return (
     <section aria-label="Add a city" className="rounded-2xl border border-line bg-white p-6">
       <div className="flex items-center gap-3">
-        <h2 className="m-0 flex-1 text-[17px] font-extrabold">Add a city</h2>
+        <h2 className="m-0 flex-1 text-h3">Add a city</h2>
         {!open && (
-          <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-full bg-peacock px-4 text-sm font-bold text-white">
+          <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-full bg-peacock px-4 text-label text-white">
             New city
           </button>
         )}
       </div>
-      <p className="mt-1 text-[13px] text-muted">
+      <p className="mt-1 text-small text-muted">
         A new city starts as a draft. &ldquo;Coming soon&rdquo; lists it on the website and collects sign-ups; draw a zone, set its hours and
         open it to take orders. The website picks it up by itself.
       </p>
@@ -227,7 +227,7 @@ function AddCity({ country }: { country: CountrySummary }) {
             void submit();
           }}
         >
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             State
             <select value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })} className={field}>
               {country.regions.map((r) => (
@@ -240,11 +240,11 @@ function AddCity({ country }: { country: CountrySummary }) {
           </label>
           {newState && (
             <>
-              <label className="text-[13px] text-muted">
+              <label className="text-small text-muted">
                 State name
                 <input required minLength={2} value={f.regionName} onChange={(e) => setF({ ...f, regionName: e.target.value })} className={field} />
               </label>
-              <label className="text-[13px] text-muted">
+              <label className="text-small text-muted">
                 State code
                 <input
                   required
@@ -256,11 +256,11 @@ function AddCity({ country }: { country: CountrySummary }) {
               </label>
             </>
           )}
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             City name
             <input required minLength={2} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             City code
             <input
               required
@@ -270,28 +270,28 @@ function AddCity({ country }: { country: CountrySummary }) {
               className={field}
             />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Centre latitude
             <input required inputMode="decimal" value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Centre longitude
             <input required inputMode="decimal" value={f.lng} onChange={(e) => setF({ ...f, lng: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Time zone (empty: inherited)
             <input value={f.timezone} placeholder={country.timezone} onChange={(e) => setF({ ...f, timezone: e.target.value })} className={field} />
           </label>
           <div className="flex items-end gap-2">
-            <button type="submit" disabled={busy} className="h-10 rounded-full bg-peacock px-5 text-sm font-bold text-white disabled:opacity-50">
+            <button type="submit" disabled={busy} className="h-10 rounded-full bg-peacock px-5 text-label text-white disabled:opacity-50">
               Create city
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full px-3 text-sm font-semibold text-muted">
+            <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-full px-3 text-label text-muted">
               Cancel
             </button>
           </div>
           {problem && (
-            <p role="alert" className="col-span-full rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">
+            <p role="alert" className="col-span-full rounded-xl bg-danger-tint p-3 text-small text-danger-ink">
               {problem}
             </p>
           )}
@@ -307,17 +307,17 @@ function DemandCard({ countryCode }: { countryCode: string }) {
   const suggested = data?.suggested ?? [];
   return (
     <section aria-label="Notify me demand" className="rounded-2xl border border-line bg-white p-6">
-      <h2 className="m-0 text-[17px] font-extrabold">Notify me demand</h2>
-      <p className="mt-1 text-[13px] text-muted">
+      <h2 className="m-0 text-h3">Notify me demand</h2>
+      <p className="mt-1 text-small text-muted">
         Sign-ups from the website: coming-soon cities, addresses outside every zone, and cities visitors suggested.
       </p>
       {cities.length === 0 && suggested.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No sign-ups yet.</p>
+        <p className="mt-3 text-small text-muted">No sign-ups yet.</p>
       ) : (
         <div className="mt-3 grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-          <table className="w-full border-collapse text-sm tabular-nums">
+          <table className="w-full border-collapse text-small tabular-nums">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-[0.6px] text-muted">
+              <tr className="text-left text-caption text-muted">
                 <th className="py-2 font-bold">City</th>
                 <th className="text-right font-bold">Sign-ups</th>
                 <th className="text-right font-bold">Can email</th>
@@ -335,8 +335,8 @@ function DemandCard({ countryCode }: { countryCode: string }) {
           </table>
           {suggested.length > 0 && (
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.6px] text-muted">Suggested (not in Markets)</div>
-              <ul className="mt-2 space-y-1 text-sm">
+              <div className="text-caption text-muted">Suggested (not in Markets)</div>
+              <ul className="mt-2 space-y-1 text-small">
                 {suggested.map((s) => (
                   <li key={s.text} className="flex justify-between gap-3 border-t border-line-soft py-1">
                     <span className="capitalize">{s.text}</span>

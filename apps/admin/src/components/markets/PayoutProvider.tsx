@@ -45,8 +45,8 @@ export function PayoutProvider({ country }: { country: CountrySummary }) {
 
   return (
     <section aria-label="Payouts" className="rounded-2xl border border-line bg-white p-6">
-      <h2 className="m-0 text-[17px] font-extrabold">Payouts</h2>
-      <p className="mt-1 text-[13px] text-muted">
+      <h2 className="m-0 text-h3">Payouts</h2>
+      <p className="mt-1 text-small text-muted">
         Who pays {country.name}&apos;s kitchens and riders each week: their payout accounts are opened, and payout runs paid, with
         this provider. Now: <b className="text-kohl">{payoutLabel(country.payout_provider)}</b>.
         {country.payout_provider === "none" && " The country can't open until one is chosen."}
@@ -59,7 +59,7 @@ export function PayoutProvider({ country }: { country: CountrySummary }) {
             void save();
           }}
         >
-          <label className="min-w-[260px] text-[13px] text-muted">
+          <label className="min-w-[260px] text-small text-muted">
             Payout provider
             <select
               value={picked}
@@ -67,7 +67,7 @@ export function PayoutProvider({ country }: { country: CountrySummary }) {
                 setPicked(e.target.value as PayoutProviderName);
                 setDone(false);
               }}
-              className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-kohl"
+              className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-small text-kohl"
             >
               {PAYOUT_PROVIDERS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -79,19 +79,19 @@ export function PayoutProvider({ country }: { country: CountrySummary }) {
           <button
             type="submit"
             disabled={busy || picked === country.payout_provider}
-            className="h-10 rounded-full bg-peacock px-5 text-sm font-bold text-white disabled:opacity-50"
+            className="h-10 rounded-full bg-peacock px-5 text-label text-white disabled:opacity-50"
           >
             Save payout provider
           </button>
         </form>
       )}
       {done && (
-        <p role="status" className="mt-3 text-sm font-semibold text-peacock-dark">
+        <p role="status" className="mt-3 text-label text-peacock-dark">
           Saved.
         </p>
       )}
       {problem && (
-        <p role="alert" className="mt-3 rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">
+        <p role="alert" className="mt-3 rounded-xl bg-danger-tint p-3 text-small text-danger-ink">
           {problem}
         </p>
       )}

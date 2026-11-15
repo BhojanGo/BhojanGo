@@ -17,8 +17,8 @@ function pct(v: number | null) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-white p-4">
-      <div className="text-[13px] font-semibold text-muted">{label}</div>
-      <div className="mt-1 font-display text-[28px] font-semibold tracking-[-0.6px] tabular-nums">{value}</div>
+      <div className="text-label text-muted">{label}</div>
+      <div className="mt-1 text-h2 tracking-[-0.6px] tabular-nums">{value}</div>
     </div>
   );
 }
@@ -32,15 +32,15 @@ const ACTION_LINK: Record<string, (scope: string) => string> = {
 };
 
 function Actions({ actions, showCountry }: { actions: (Action & { country?: string })[]; showCountry?: boolean }) {
-  if (!actions.length) return <p className="text-sm text-muted">Nothing needs action right now.</p>;
+  if (!actions.length) return <p className="text-small text-muted">Nothing needs action right now.</p>;
   return (
     <ul className="divide-y divide-line">
       {actions.map((a, i) => (
         <li key={i} className="flex items-center gap-3 py-3">
-          {showCountry ? <span className="rounded-md bg-line-soft px-1.5 py-0.5 text-[11px] font-extrabold">{a.country}</span> : null}
+          {showCountry ? <span className="rounded-md bg-line-soft px-1.5 py-0.5 text-caption">{a.country}</span> : null}
           <span className={`h-2 w-2 shrink-0 rounded-full ${a.urgent ? "bg-chili" : "bg-kesar"}`} aria-hidden />
-          <span className="min-w-0 flex-1"><b>{a.label}</b> <span className="text-sm text-muted">· {a.detail}</span></span>
-          <Link href={ACTION_LINK[a.kind]?.(a.scope) ?? "#"} className="h-9 shrink-0 rounded-full border border-line-strong px-4 text-sm font-bold leading-9 hover:border-peacock">
+          <span className="min-w-0 flex-1"><b>{a.label}</b> <span className="text-small text-muted">· {a.detail}</span></span>
+          <Link href={ACTION_LINK[a.kind]?.(a.scope) ?? "#"} className="h-9 shrink-0 rounded-full border border-line-strong px-4 text-label leading-9 hover:border-peacock">
             {a.kind === "rule_approval" ? "Review" : a.kind.includes("rider") || a.kind === "late_orders" ? "Dispatch" : "Open"}
           </Link>
         </li>
@@ -56,8 +56,8 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
   return (
     <>
       <div>
-        <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">All countries</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="m-0 text-h1 tracking-[-0.8px]">All countries</h1>
+        <p className="mt-1 text-small text-muted">
           {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {countries.length} countries · {states} states · {cities} cities ({live} live or in beta) · money stays in each country&apos;s currency
         </p>
       </div>
@@ -65,9 +65,9 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
         {countries.map((c) => (
           <section key={c.code} className="flex flex-col gap-4 rounded-2xl bg-white p-6" aria-label={c.name}>
             <div className="flex items-center gap-3">
-              <span className="rounded-md bg-peacock-tint px-2 py-1 text-xs font-extrabold text-peacock-dark">{c.code}</span>
-              <div className="flex-1"><div className="text-lg font-extrabold">{c.name}</div><div className="text-[13px] text-muted">{c.currency} · {c.tax} · {c.payments} · main zone {c.timezone}</div></div>
-              <Link href={`/overview?scope=${c.code}`} className="h-10 rounded-full bg-peacock px-4 text-sm font-extrabold leading-10 text-white">Open {c.code === "US" ? "US" : c.name}</Link>
+              <span className="rounded-md bg-peacock-tint px-2 py-1 text-caption text-peacock-dark">{c.code}</span>
+              <div className="flex-1"><div className="text-h3">{c.name}</div><div className="text-small text-muted">{c.currency} · {c.tax} · {c.payments} · main zone {c.timezone}</div></div>
+              <Link href={`/overview?scope=${c.code}`} className="h-10 rounded-full bg-peacock px-4 text-label leading-10 text-white">Open {c.code === "US" ? "US" : c.name}</Link>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <MiniStat label="Live orders" value={c.totals.live} />
@@ -75,7 +75,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
               <MiniStat label="Median delivery" value={c.totals.median_delivery_min != null ? `${Math.round(c.totals.median_delivery_min)} min` : "—"} />
               <MiniStat label="GMV today" value={money(c.totals.gmv_today, c.currency)} />
             </div>
-            <ul className="divide-y divide-line text-sm">
+            <ul className="divide-y divide-line text-small">
               {c.states.map((s) => (
                 <li key={s.code} className="flex items-center gap-2 py-2.5">
                   <b>{s.name}</b>
@@ -85,7 +85,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
               ))}
             </ul>
             {c.needs_action.length ? (
-              <Link href={`/overview?scope=${c.code}`} className={`rounded-xl px-4 py-3 text-sm ${c.needs_action.some((a) => a.urgent) ? "bg-danger-tint text-danger-ink" : "bg-kesar-tint text-kesar-ink"}`}>
+              <Link href={`/overview?scope=${c.code}`} className={`rounded-xl px-4 py-3 text-small ${c.needs_action.some((a) => a.urgent) ? "bg-danger-tint text-danger-ink" : "bg-kesar-tint text-kesar-ink"}`}>
                 <b>{c.needs_action.reduce((n, a) => n + a.count, 0)} need action</b> · {c.needs_action.map((a) => a.label).join(" · ")}
               </Link>
             ) : null}
@@ -93,10 +93,10 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
         ))}
       </div>
       <section className="rounded-2xl bg-white p-6" aria-label="Side by side">
-        <div className="mb-3 flex items-baseline justify-between"><h2 className="m-0 text-lg font-extrabold">Side by side</h2><span className="text-sm text-muted">Today · local time in each city</span></div>
+        <div className="mb-3 flex items-baseline justify-between"><h2 className="m-0 text-h3">Side by side</h2><span className="text-small text-muted">Today · local time in each city</span></div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm tabular-nums">
-            <thead className="text-[12px] uppercase tracking-wide text-muted">
+          <table className="w-full text-left text-small tabular-nums">
+            <thead className="text-caption text-muted">
               <tr><th className="py-2">Country</th><th>Completed</th><th>On time</th><th>Median delivery</th><th>Live</th><th>Kitchens</th><th>Refunds</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -112,7 +112,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
         </div>
       </section>
       <section className="rounded-2xl bg-white p-6" aria-label="Needs action">
-        <h2 className="m-0 mb-2 text-lg font-extrabold">Needs action · all countries</h2>
+        <h2 className="m-0 mb-2 text-h3">Needs action · all countries</h2>
         <Actions showCountry actions={countries.flatMap((c) => c.needs_action.map((a) => ({ ...a, country: c.code })))} />
       </section>
     </>
@@ -122,8 +122,8 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl bg-porcelain px-3 py-2.5">
-      <div className="text-[12px] font-semibold text-muted">{label}</div>
-      <div className="text-xl font-extrabold tabular-nums">{value}</div>
+      <div className="text-small text-muted">{label}</div>
+      <div className="text-h3 tabular-nums">{value}</div>
     </div>
   );
 }
@@ -137,9 +137,9 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">{title}</h1>
+        <h1 className="m-0 text-h1 tracking-[-0.8px]">{title}</h1>
         {one ? <StatusPill status={one.status as MarketStatus} /> : null}
-        <p className="w-full text-sm text-muted">
+        <p className="w-full text-small text-muted">
           {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {one ? `times in ${one.timezone}` : "times in each city's own zone"} · amounts in {country.currency}
         </p>
       </div>
@@ -151,14 +151,14 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
       </div>
       <section className="rounded-2xl bg-white p-6" aria-label="States and cities">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="m-0 text-lg font-extrabold">States and cities</h2>
-          <Link href={`/markets/${country.code}`} className="text-sm font-bold text-peacock">Markets →</Link>
+          <h2 className="m-0 text-h3">States and cities</h2>
+          <Link href={`/markets/${country.code}`} className="text-label text-peacock">Markets →</Link>
         </div>
-        <table className="w-full text-left text-sm tabular-nums">
-          <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
+        <table className="w-full text-left text-small tabular-nums">
+          <thead className="text-caption text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
           <tbody className="divide-y divide-line">
             {states.map((s) => [
-              <tr key={s.code} className="bg-porcelain/60"><td className="py-3 font-extrabold"><Link href={`/overview?scope=${s.code}`}>{s.name}</Link> <span className="font-normal text-muted">· {s.cities.length} {s.cities.length === 1 ? "city" : "cities"}</span></td>
+              <tr key={s.code} className="bg-porcelain/60"><td className="py-3 font-bold"><Link href={`/overview?scope=${s.code}`}>{s.name}</Link> <span className="font-normal text-muted">· {s.cities.length} {s.cities.length === 1 ? "city" : "cities"}</span></td>
                 <td className="text-muted">{s.cities.filter((x) => x.status === "live").length} live · {s.cities.filter((x) => x.status === "draft").length} draft</td>
                 <td>{s.cities.reduce((n, x) => n + x.totals.kitchens, 0)}</td><td>{s.totals.today}</td><td>{pct(s.totals.on_time_pct)}</td><td>{s.totals.live}</td></tr>,
               ...s.cities.filter((x) => !city || x.code === city).map((x) => (
@@ -170,13 +170,13 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
         </table>
       </section>
       <section className="rounded-2xl bg-white p-6" aria-label="Needs action">
-        <h2 className="m-0 mb-2 text-lg font-extrabold">Needs action · {title}</h2>
+        <h2 className="m-0 mb-2 text-h3">Needs action · {title}</h2>
         <Actions actions={country.needs_action} />
       </section>
       <section className="rounded-2xl bg-white p-6" aria-label={`${country.name} settings`}>
-        <h2 className="m-0 text-lg font-extrabold">{country.name} settings</h2>
-        <p className="mb-3 text-sm text-muted">States inherit these, cities inherit from their state — either can override (Markets).</p>
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <h2 className="m-0 text-h3">{country.name} settings</h2>
+        <p className="mb-3 text-small text-muted">States inherit these, cities inherit from their state — either can override (Markets).</p>
+        <dl className="grid gap-3 text-small sm:grid-cols-2">
           <div><dt className="font-bold">Money and tax</dt><dd className="text-muted">{country.currency} · {country.tax}</dd></div>
           <div><dt className="font-bold">Payments</dt><dd className="text-muted">{country.payments}</dd></div>
           <div><dt className="font-bold">Main time zone</dt><dd className="text-muted">{country.timezone} · each city keeps its own ({[...new Set(country.states.flatMap((s) => s.cities.map((x) => x.timezone)))].join(", ")})</dd></div>

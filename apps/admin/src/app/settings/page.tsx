@@ -38,24 +38,24 @@ function SettingsPage() {
   const mayGrant = (me?.permissions["admins.grant"] ?? []).length > 0;
   return (
     <ConsoleShell section="Settings" country={country} region={region} city={city} scopeHref={(s) => `/settings?scope=${s}`}>
-      <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">Settings</h1>
+      <h1 className="m-0 text-h1 tracking-[-0.8px]">Settings</h1>
       <section className="rounded-2xl bg-white p-6" aria-label="Your access">
-        <h2 className="m-0 mb-2 text-lg font-extrabold">Your access</h2>
-        <ul className="space-y-1 text-sm">
+        <h2 className="m-0 mb-2 text-h3">Your access</h2>
+        <ul className="space-y-1 text-small">
           {(me?.assignments ?? []).map((a) => <li key={a.id}><b>{ROLE_LABELS[a.role] ?? a.role}</b> · {a.scope === "*" ? "everywhere" : a.scope}</li>)}
         </ul>
-        <p className="mt-2 text-sm text-muted">Country, state and city settings (money, tax, service hours, languages) are in Markets; states inherit from the country and cities from their state.</p>
+        <p className="mt-2 text-small text-muted">Country, state and city settings (money, tax, service hours, languages) are in Markets; states inherit from the country and cities from their state.</p>
       </section>
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Admins">
-        <h2 className="m-0 text-lg font-extrabold">Admins {scope !== "*" ? `in ${scope}` : ""}</h2>
-        <table className="w-full text-left text-sm">
-          <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="py-2">Admin</th><th>Role</th><th>Where</th><th /></tr></thead>
+        <h2 className="m-0 text-h3">Admins {scope !== "*" ? `in ${scope}` : ""}</h2>
+        <table className="w-full text-left text-small">
+          <thead className="text-caption text-muted"><tr><th className="py-2">Admin</th><th>Role</th><th>Where</th><th /></tr></thead>
           <tbody className="divide-y divide-line">
             {(list.data ?? []).map((a) => (
               <tr key={a.id}><td className="py-2.5"><b>{a.full_name ?? "—"}</b> <span className="text-muted">{a.email}</span></td><td>{ROLE_LABELS[a.role] ?? a.role}</td>
                 <td>{a.scope === "*" ? "Everywhere" : a.scope}</td>
                 <td className="text-right">{mayGrant && a.user_id !== me?.user_id && can(me, "admins.grant", a.scope === "*" ? "*" : a.scope) ? (
-                  <button type="button" onClick={() => void act(() => adminApi.delete(`/user/admin/role-assignments/${a.id}`), "Removed.")} className="h-8 rounded-full border border-line-strong px-3 text-xs font-bold text-chili">Remove</button>
+                  <button type="button" onClick={() => void act(() => adminApi.delete(`/user/admin/role-assignments/${a.id}`), "Removed.")} className="h-8 rounded-full border border-line-strong px-3 text-label text-chili">Remove</button>
                 ) : null}</td></tr>
             ))}
           </tbody>
@@ -65,14 +65,14 @@ function SettingsPage() {
             e.preventDefault();
             void act(() => adminApi.post("/user/admin/role-assignments", { email, role, scope: where || "*" }), `Granted ${ROLE_LABELS[role]} to ${email}.`);
           }}>
-            <label className="text-sm font-bold">Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block h-10 w-64 rounded-lg border border-line px-2 font-normal" /></label>
-            <label className="text-sm font-bold">Role<select value={role} onChange={(e) => setRole(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
+            <label className="text-label">Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block h-10 w-64 rounded-lg border border-line px-2 font-normal" /></label>
+            <label className="text-label">Role<select value={role} onChange={(e) => setRole(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
               {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-            <label className="text-sm font-bold">Where<input placeholder="IN, IN-TG or IN-TG-HYD" value={where} onChange={(e) => setWhere(e.target.value.toUpperCase())} className="mt-1 block h-10 w-44 rounded-lg border border-line px-2 font-normal" /></label>
-            <button type="submit" className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Grant</button>
+            <label className="text-label">Where<input placeholder="IN, IN-TG or IN-TG-HYD" value={where} onChange={(e) => setWhere(e.target.value.toUpperCase())} className="mt-1 block h-10 w-44 rounded-lg border border-line px-2 font-normal" /></label>
+            <button type="submit" className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Grant</button>
           </form>
-        ) : <p className="text-sm text-muted">Granting roles needs a country manager or super admin.</p>}
-        {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+        ) : <p className="text-small text-muted">Granting roles needs a country manager or super admin.</p>}
+        {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
       </section>
     </ConsoleShell>
   );

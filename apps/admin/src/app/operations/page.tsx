@@ -36,9 +36,9 @@ function Alerts({ scope }: { scope: string }) {
   if (!data?.length) return null;
   return (
     <section aria-label="Alerts" className="space-y-2 rounded-2xl bg-danger-tint p-4 text-danger-ink">
-      <h2 className="m-0 text-base font-extrabold">Alerts · {data.length} firing</h2>
+      <h2 className="m-0 text-label">Alerts · {data.length} firing</h2>
       {data.map((a) => (
-        <div key={`${a.name}-${a.city ?? "all"}`} className="text-sm">
+        <div key={`${a.name}-${a.city ?? "all"}`} className="text-small">
           <b>{a.summary}</b> <span className="opacity-80">· since {clock(a.starts_at)}{a.description ? ` · ${a.description}` : ""}</span>
         </div>
       ))}
@@ -49,9 +49,9 @@ function Alerts({ scope }: { scope: string }) {
 function Flags({ o }: { o: OpsOrder }) {
   return (
     <span className="flex flex-wrap gap-1">
-      {o.flags.includes("late") ? <span className="rounded-md bg-danger-tint px-1.5 py-0.5 text-[11px] font-bold text-danger-ink">{o.minutes_late} min late</span> : null}
-      {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-[11px] font-bold text-kesar-ink">no rider · {o.waiting_for_rider_min} min</span> : null}
-      {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-[11px] font-bold text-kesar-ink">kitchen not answering</span> : null}
+      {o.flags.includes("late") ? <span className="rounded-md bg-danger-tint px-1.5 py-0.5 text-caption text-danger-ink">{o.minutes_late} min late</span> : null}
+      {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">no rider · {o.waiting_for_rider_min} min</span> : null}
+      {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">kitchen not answering</span> : null}
     </span>
   );
 }
@@ -60,18 +60,18 @@ function OrdersTable({ orders, onOpen }: { orders: OpsOrder[]; onOpen: (id: stri
   if (!orders.length) return <p className="rounded-2xl bg-white p-6 text-muted">No orders here right now.</p>;
   return (
     <div className="overflow-x-auto rounded-2xl bg-white">
-      <table className="w-full text-left text-sm tabular-nums">
-        <thead className="text-[12px] uppercase tracking-wide text-muted"><tr>
+      <table className="w-full text-left text-small tabular-nums">
+        <thead className="text-caption text-muted"><tr>
           <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Rider</th><th>Placed</th><th>Due</th><th>Total</th><th />
         </tr></thead>
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
             <tr key={o.id} className="hover:bg-porcelain">
-              <td className="px-4 py-3 font-extrabold">{o.code}</td><td>{o.restaurant_name}</td><td>{o.customer}</td>
+              <td className="px-4 py-3 font-bold">{o.code}</td><td>{o.restaurant_name}</td><td>{o.customer}</td>
               <td><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} /></td>
               <td>{o.rider ?? <span className="text-muted">—</span>}</td><td>{clock(o.placed_at)}</td><td>{clock(o.estimated_delivery_time)}</td>
               <td>{money(o.total, o.currency, 2)}</td>
-              <td className="pr-4"><button type="button" onClick={() => onOpen(o.id)} className="h-8 rounded-full border border-line-strong px-3 text-xs font-bold hover:border-peacock">Open</button></td>
+              <td className="pr-4"><button type="button" onClick={() => onOpen(o.id)} className="h-8 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
             </tr>
           ))}
         </tbody>
@@ -105,7 +105,7 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
           <DispatchMap centre={map.data.centre} riders={map.data.riders} sos={map.data.sos}
             waiting={waiting.filter((o) => o.pickup).map((o) => ({ id: o.id, code: o.code, lat: o.pickup![0], lng: o.pickup![1], label: o.restaurant_name }))} />
         ) : <div className="h-[460px] rounded-2xl bg-white p-6 text-muted">{map.error ? "Can't load the map for this city." : "Loading the map…"}</div>}
-        <p className="text-sm text-muted">
+        <p className="text-small text-muted">
           <span className="font-bold text-peacock">●</span> free · <span className="font-bold text-kesar">●</span> offered · <span className="font-bold">●</span> on a delivery · <span className="font-bold text-kesar">■</span> waiting for a rider · <span className="font-bold text-chili">○</span> SOS
           {map.data ? ` · ${map.data.riders.length} riders online` : ""}
         </p>
@@ -113,26 +113,26 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
       <aside className="space-y-4">
         {(map.data?.sos.length ?? 0) > 0 ? (
           <section className="rounded-2xl bg-danger-tint p-4 text-danger-ink" aria-label="SOS">
-            <h2 className="m-0 mb-2 text-base font-extrabold">SOS · call the rider now</h2>
-            {map.data!.sos.map((a) => <p key={a.id} className="text-sm">Rider {a.rider_id.slice(0, 4)} · {clock(a.at)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
+            <h2 className="m-0 mb-2 text-label">SOS · call the rider now</h2>
+            {map.data!.sos.map((a) => <p key={a.id} className="text-small">Rider {a.rider_id.slice(0, 4)} · {clock(a.at)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
           </section>
         ) : null}
         <section className="rounded-2xl bg-white p-4" aria-label="Waiting for a rider">
-          <h2 className="m-0 mb-2 text-base font-extrabold">Waiting for a rider · {waiting.length}</h2>
-          {waiting.length === 0 ? <p className="text-sm text-muted">Every ready order has a rider.</p> : null}
+          <h2 className="m-0 mb-2 text-label">Waiting for a rider · {waiting.length}</h2>
+          {waiting.length === 0 ? <p className="text-small text-muted">Every ready order has a rider.</p> : null}
           {waiting.map((o) => (
             <div key={o.id} className="space-y-2 border-t border-line py-3">
-              <div className="text-sm"><b>{o.code}</b> · {o.restaurant_name} · {o.waiting_for_rider_min} min</div>
+              <div className="text-small"><b>{o.code}</b> · {o.restaurant_name} · {o.waiting_for_rider_min} min</div>
               {can(me, "dispatch.edit", city) ? (
                 <select aria-label={`Give ${o.code} to a rider`} defaultValue="" onChange={(e) => e.target.value && void assign(o.id, e.target.value)}
-                  className="h-9 w-full rounded-lg border border-line px-2 text-sm">
+                  className="h-9 w-full rounded-lg border border-line px-2 text-small">
                   <option value="">{free.length ? "Give it to a free rider…" : "No free rider online"}</option>
                   {free.map((r) => <option key={r.rider_id} value={r.rider_id}>Rider {r.rider_id.slice(0, 4)} · {r.km} km from the centre</option>)}
                 </select>
               ) : null}
             </div>
           ))}
-          {msg ? <p className="text-sm font-semibold text-peacock">{msg}</p> : null}
+          {msg ? <p className="text-label text-peacock">{msg}</p> : null}
         </section>
       </aside>
     </div>
@@ -161,26 +161,26 @@ function Support({ scope, openId, setOpenId }: { scope: string; openId: string |
       <aside className="space-y-3">
         <section className="rounded-2xl bg-white p-2" aria-label="Tickets">
           <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-sm font-extrabold">{state === "open" ? "Open tickets" : "Resolved tickets"} · {tickets.data?.length ?? 0}</span>
+            <span className="text-label">{state === "open" ? "Open tickets" : "Resolved tickets"} · {tickets.data?.length ?? 0}</span>
             <button type="button" onClick={() => { setState(state === "open" ? "resolved" : "open"); setTicketId(null); }}
-              className="text-xs font-bold text-peacock">{state === "open" ? "Show resolved" : "Show open"}</button>
+              className="text-small text-peacock">{state === "open" ? "Show resolved" : "Show open"}</button>
           </div>
-          {tickets.data?.length === 0 ? <p className="px-3 pb-3 text-sm text-muted">{state === "open" ? "No one is waiting on us." : "Nothing resolved yet."}</p> : null}
+          {tickets.data?.length === 0 ? <p className="px-3 pb-3 text-small text-muted">{state === "open" ? "No one is waiting on us." : "Nothing resolved yet."}</p> : null}
           {tickets.data?.map((t) => (
             <button key={t.id} type="button" onClick={() => { setTicketId(t.id); setOpenId(null); }}
-              className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${ticketId === t.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+              className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${ticketId === t.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex justify-between gap-2"><b>{ticketTitle(t)}</b><span className="shrink-0 text-muted">{state === "open" ? waited(t.created_at) : clock(t.resolved_at)}</span></div>
               <div className="text-muted">About {TICKET_TOPIC[t.topic] ?? t.topic}{t.note ? ` · “${t.note}”` : ""}</div>
             </button>
           ))}
         </section>
         <input aria-label="Find an order" placeholder="Order code (#A9D1C2) or customer's phone" value={q} onChange={(e) => setQ(e.target.value)}
-          className="h-11 w-full rounded-full border border-line-strong bg-white px-4 text-sm" />
+          className="h-11 w-full rounded-full border border-line-strong bg-white px-4 text-small" />
         <section className="rounded-2xl bg-white p-2" aria-label="Queue">
-          <div className="px-3 py-2 text-sm font-extrabold">{q.trim().length >= 3 ? `Found · ${found.data?.length ?? 0}` : `Needs attention · ${queue.data?.length ?? 0}`}</div>
+          <div className="px-3 py-2 text-label">{q.trim().length >= 3 ? `Found · ${found.data?.length ?? 0}` : `Needs attention · ${queue.data?.length ?? 0}`}</div>
           {(q.trim().length >= 3 ? found.data : queue.data)?.map((o) => (
             <button key={o.id} type="button" onClick={() => { setOpenId(o.id); setTicketId(null); }}
-              className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${openId === o.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+              className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${openId === o.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex justify-between"><b>{o.customer} · {STATUS[o.status] ?? o.status}</b><span className="text-muted">{clock(o.placed_at)}</span></div>
               <div className="text-muted">{o.code} · {o.restaurant_name}</div>
               <Flags o={o} />
@@ -222,30 +222,30 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={ticketTitle(t)}>
       <div>
-        <h2 className="m-0 font-display text-2xl font-semibold">{ticketTitle(t)}</h2>
-        <p className="text-sm text-muted">{t.kind === "callback" ? "Asked for a call back" : "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
+        <h2 className="m-0 text-h2">{ticketTitle(t)}</h2>
+        <p className="text-small text-muted">{t.kind === "callback" ? "Asked for a call back" : "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
       </div>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+      <dl className="grid gap-3 text-small sm:grid-cols-2">
         <div><dt className="font-bold">Who</dt><dd>{t.requester_name}{t.requester_role === "partner" && t.restaurant_name ? ` · ${t.restaurant_name}` : ""}</dd></div>
-        <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-extrabold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
+        <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-bold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
         <div><dt className="font-bold">About</dt><dd>{TICKET_TOPIC[t.topic] ?? t.topic}</dd></div>
         <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>
       </dl>
       {t.kind === "problem" ? <ProblemDetails t={t} /> : null}
       {t.status === "resolved" ? (
-        <p className="rounded-xl bg-porcelain p-4 text-sm"><b>Resolved:</b> {t.resolution}</p>
+        <p className="rounded-xl bg-porcelain p-4 text-small"><b>Resolved:</b> {t.resolution}</p>
       ) : mayResolve ? (
         <div className="space-y-2">
-          <label className="block text-sm font-bold">What did you do?
+          <label className="block text-label">What did you do?
             <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={2}
               placeholder="e.g. Called Ravi; last week's payout covered 6 days, explained the cut-off"
               className="mt-1 block w-full rounded-lg border border-line p-2 font-normal" />
           </label>
           <button type="button" disabled={busy || text.trim().length < 3} onClick={resolve}
-            className="h-11 rounded-full bg-peacock px-5 font-extrabold text-white disabled:opacity-40">{busy ? "Saving…" : "Mark resolved"}</button>
+            className="h-11 rounded-full bg-peacock px-5 font-bold text-white disabled:opacity-40">{busy ? "Saving…" : "Mark resolved"}</button>
         </div>
-      ) : <p className="text-sm text-muted">You can see this ticket; city ops or support resolve it.</p>}
-      {msg ? <p role="alert" className="text-sm font-semibold text-chili">{msg}</p> : null}
+      ) : <p className="text-small text-muted">You can see this ticket; city ops or support resolve it.</p>}
+      {msg ? <p role="alert" className="text-label text-chili">{msg}</p> : null}
     </section>
   );
 }
@@ -255,7 +255,7 @@ function ProblemDetails({ t }: { t: OpsTicket }) {
   const d = t.details as { items?: { name: string; quantity: number; amount: string }[]; amount?: string; currency?: string; photo_key?: string | null };
   const cur = d.currency ?? "INR";
   return (
-    <div className="space-y-2 rounded-xl bg-porcelain p-4 text-sm" aria-label="What they reported">
+    <div className="space-y-2 rounded-xl bg-porcelain p-4 text-small tabular-nums" aria-label="What they reported">
       <ul className="space-y-1">{(d.items ?? []).map((i) => <li key={i.name}><b>{i.quantity} × {i.name}</b> · {money(Number(i.amount), cur, 2)}</li>)}</ul>
       <p>Comes to <b>{money(Number(d.amount ?? 0), cur, 2)}</b>, over the city&apos;s automatic refund limit, so it waits for you. Refund by item below if it checks out.</p>
       {d.photo_key ? (
@@ -318,19 +318,19 @@ function OrderCase({ id }: { id: string }) {
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Order ${code}`}>
       <div>
-        <h2 className="m-0 font-display text-2xl font-semibold">{STATUS[order.status] ?? order.status} · {code}</h2>
-        <p className="text-sm text-muted">{order.restaurant_name} → {order.delivery_address.area ?? order.delivery_address.city} · {money(order.total, order.currency, 2)}{order.rider?.first_name ? ` · rider ${order.rider.first_name}` : ""}</p>
-        {order.special_instructions ? <p className="mt-2 rounded-xl bg-kesar-tint p-3 text-sm text-kesar-ink">Note: {order.special_instructions}</p> : null}
+        <h2 className="m-0 text-h2">{STATUS[order.status] ?? order.status} · {code}</h2>
+        <p className="text-small text-muted">{order.restaurant_name} → {order.delivery_address.area ?? order.delivery_address.city} · {money(order.total, order.currency, 2)}{order.rider?.first_name ? ` · rider ${order.rider.first_name}` : ""}</p>
+        {order.special_instructions ? <p className="mt-2 rounded-xl bg-kesar-tint p-3 text-small text-kesar-ink">Note: {order.special_instructions}</p> : null}
       </div>
-      <ol className="flex flex-wrap gap-2 text-sm" aria-label="Order timeline">
+      <ol className="flex flex-wrap gap-2 text-small" aria-label="Order timeline">
         {["placed", "accepted", "ready", "picked_up", "delivered", "cancelled"].filter((s) => at(s)).map((s) => (
           <li key={s} className="rounded-full bg-porcelain px-3 py-1"><b>{STATUS[s]}</b> {clock(at(s))}</li>
         ))}
       </ol>
       <fieldset className="space-y-2">
-        <legend className="mb-1 text-sm font-extrabold">Pick what to refund</legend>
+        <legend className="mb-1 text-label">Pick what to refund</legend>
         {order.items.map((i) => (
-          <label key={i.menu_item_id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2 text-sm">
+          <label key={i.menu_item_id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2 text-small">
             <input type="number" min={0} max={i.quantity} value={pick[i.menu_item_id] ?? 0} aria-label={`How many ${i.name} to refund`}
               onChange={(e) => setPick((p) => ({ ...p, [i.menu_item_id]: Math.max(0, Math.min(i.quantity, Number(e.target.value))) }))}
               className="h-9 w-16 rounded-lg border border-line px-2" />
@@ -340,24 +340,24 @@ function OrderCase({ id }: { id: string }) {
         ))}
       </fieldset>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm font-bold">Reason
+        <label className="text-label">Reason
           <select value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-line px-2 font-normal">
             {REFUND_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </label>
-        <label className="text-sm font-bold">Note (on the kitchen&apos;s statement)
+        <label className="text-label">Note (on the kitchen&apos;s statement)
           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} className="mt-1 block h-10 w-full rounded-lg border border-line px-2 font-normal" />
         </label>
       </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-porcelain p-4 text-sm">
-        <span className="flex-1">About <b>{money(estimate, order.currency, 2)}</b> plus its tax · charged to {fault === "kitchen" ? "the kitchen's payout" : "BhojanGo"} ({REFUND_REASONS.find((r) => r.value === reason)?.label.toLowerCase()})</span>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-porcelain p-4 text-small">
+        <span className="flex-1 tabular-nums">About <b>{money(estimate, order.currency, 2)}</b> plus its tax · charged to {fault === "kitchen" ? "the kitchen's payout" : "BhojanGo"} ({REFUND_REASONS.find((r) => r.value === reason)?.label.toLowerCase()})</span>
         <button type="button" disabled={!chosen.length || busy} onClick={refund}
-          className="h-11 rounded-full bg-peacock px-5 font-extrabold text-white disabled:opacity-40">{busy ? "Refunding…" : "Refund to original payment"}</button>
+          className="h-11 rounded-full bg-peacock px-5 font-bold text-white disabled:opacity-40">{busy ? "Refunding…" : "Refund to original payment"}</button>
       </div>
-      {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+      {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
       {refunds.length ? (
-        <div className="text-sm"><b>Refunds on this order</b>
-          <ul className="mt-1 space-y-1 text-muted">{refunds.map((r) => <li key={r.id}>{money(r.amount / 100, order.currency, 2)} · {r.reason ?? "refund"}{r.fault ? ` · ${r.fault}` : ""} · {r.status} · {clock(r.created_at)}</li>)}</ul>
+        <div className="text-small"><b>Refunds on this order</b>
+          <ul className="mt-1 space-y-1 tabular-nums text-muted">{refunds.map((r) => <li key={r.id}>{money(r.amount / 100, order.currency, 2)} · {r.reason ?? "refund"}{r.fault ? ` · ${r.fault}` : ""} · {r.status} · {clock(r.created_at)}</li>)}</ul>
         </div>
       ) : null}
     </section>
@@ -378,11 +378,11 @@ function OperationsPage() {
   return (
     <ConsoleShell section="Operations" country={country} region={region} city={city} scopeHref={(s) => `/operations?scope=${s}&tab=${tab}`}>
       <div className="flex flex-wrap items-end gap-3">
-        <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">Operations</h1>
+        <h1 className="m-0 text-h1 tracking-[-0.8px]">Operations</h1>
         <nav aria-label="Operations" className="ml-auto flex rounded-full bg-white p-1">
           {TABS.map((t) => (
             <button key={t.key} type="button" onClick={() => go(t.key)} aria-current={tab === t.key ? "page" : undefined}
-              className={`h-9 rounded-full px-4 text-sm ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
+              className={`h-9 rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
           ))}
         </nav>
       </div>
@@ -393,7 +393,7 @@ function OperationsPage() {
       ) : null}
       {tab === "dispatch" ? (country === "ALL" && !city ? <p className="rounded-2xl bg-white p-6 text-muted">Pick a country and city above for the dispatch map.</p> : <Dispatch scope={scope} city={firstCity} />) : null}
       {tab === "support" ? <Support scope={scope} openId={openId} setOpenId={setOpenId} /> : null}
-      <p className="text-xs text-muted">Live data refreshes every 15 seconds. <Link href={`/overview?scope=${scope}`} className="font-bold text-peacock">Overview</Link></p>
+      <p className="text-small text-muted">Live data refreshes every 15 seconds. <Link href={`/overview?scope=${scope}`} className="font-bold text-peacock">Overview</Link></p>
     </ConsoleShell>
   );
 }
