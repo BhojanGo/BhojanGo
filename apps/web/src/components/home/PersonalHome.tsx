@@ -52,6 +52,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
       <HomeFeed
         kitchens={kitchens}
         placeLabel={place.label}
+        placeCountry={place.country}
         cityName={city?.name ?? ((d.city?.name as string | undefined) ?? "")}
         currency={currency}
         formatLocale={formatLocale}

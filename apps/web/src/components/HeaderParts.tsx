@@ -120,12 +120,17 @@ export function BagButton() {
   );
 }
 
-export function AddressPill({ label, country, mobile }: { label: string; country: string | null; mobile?: boolean }) {
+export function AddressPill({ label, country, mobile, inline }: { label: string; country: string | null; mobile?: boolean; inline?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <>
-      {mobile ? (
+      {inline ? (
+        <button type="button" onClick={() => setOpen(true)} aria-label={t("header.change_address")} data-testid="change-address"
+          className="inline font-semibold text-[#0B5D66] underline decoration-[#0B5D66]/40 underline-offset-2">
+          {label}
+        </button>
+      ) : mobile ? (
         <button type="button" onClick={() => setOpen(true)} aria-label={t("header.change_address")} className="flex min-w-0 flex-grow items-center gap-[10px] text-left">
           <Pin size={22} color="#0B5D66" />
           <span className="min-w-0">
