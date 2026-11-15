@@ -113,7 +113,7 @@ async def test_cards_are_saved_as_tokens_and_the_token_never_comes_back(client: 
     assert "provider_token" not in out and first["provider_token"] not in r.text
 
     second = (await client.post("/api/v1/me/payment-methods", headers=h,
-                                json=card(provider="stripe", provider_token="pm_1QaBcDeFgHiJkLmN", last4="0005"))).json()
+                                json=card(provider="stripe", provider_token="pm_test_second_card", last4="0005"))).json()
     assert not second["is_default"]
     listed = (await client.get("/api/v1/me/payment-methods", headers=h))
     assert {m["last4"] for m in listed.json()} == {"4242", "0005"} and "pm_" not in listed.text

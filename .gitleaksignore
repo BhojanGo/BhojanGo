@@ -56,3 +56,5 @@
 8e7d9c3ff2f3fb976c2bae5581e7048f00467ada:docs/load/summary-2026-11-12.json:jwt:432
 8e7d9c3ff2f3fb976c2bae5581e7048f00467ada:docs/load/summary-2026-11-12.json:jwt:436
 8e7d9c3ff2f3fb976c2bae5581e7048f00467ada:docs/load/summary-2026-11-12.json:jwt:440
+# Reviewed 2026-11-15: a made-up Stripe-style test token in a unit test (never a real key); replaced in the next commit.
+648222091f13cde87bcc91ce1c36ab1bd1e24728:backend/core_api/modules/identity/tests/test_account.py:generic-api-key:116
