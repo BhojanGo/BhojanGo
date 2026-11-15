@@ -82,7 +82,7 @@ done
 for f in $(find "$HOME/.maestro" "$OUT" -name 'stack-*.png' -not -path "$OUT/*-*/*" 2>/dev/null); do
   b="$(basename "$f" .png)"; app="$(echo "$b" | cut -d- -f2)"; shot="${b#stack-"$app"-}"
   mkdir -p "$OUT/$app-$DEVICE_KIND"
-  cp -f "$f" "$OUT/$app-$DEVICE_KIND/$shot.png"
+  cp -f "$f" "$OUT/$app-$DEVICE_KIND/stack-$shot.png"  # the names tools/mobile/screens_compose.py pairs
 done
 ls -R "$OUT" | grep -v '^$'
 exit $fail
