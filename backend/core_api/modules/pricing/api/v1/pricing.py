@@ -51,7 +51,9 @@ async def order_bill(order_id: uuid.UUID, user: Annotated[CurrentUser, Depends(g
     snap = await QuoteService(db).snapshot(order_id)
     if snap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="This order has no itemised bill")
-    lines = [{k: ln.get(k) for k in ("code", "label", "amount", "funded_by", "detail")} for ln in snap.lines]
+    from core_api.modules.pricing.service.lookup import customer_lines
+
+    lines = customer_lines(snap.lines)
     taxes = [ln for ln in lines if ln["code"] in ("tax", "tax_included")]
     return {"order_id": str(order_id), "currency": snap.currency, "total": str(snap.total), "lines": lines,
             "taxes": taxes, "zone": snap.context.get("zone"), "distance": snap.context.get("distance"),

@@ -1,9 +1,10 @@
 import math
 import uuid
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
@@ -14,6 +15,7 @@ from shared.db import get_db
 from core_api.modules.orders.repository.order import OrderRepository
 from core_api.modules.orders.schemas.order import (
     FeeBreakdown,
+    HistoryStatus,
     OrderCancelRequest,
     OrderCreateRequest,
     OrderListResponse,
@@ -21,6 +23,7 @@ from core_api.modules.orders.schemas.order import (
     OrderStatusUpdateRequest,
     OrderTimelineResponse,
     PainPointMetrics,
+    ReorderResponse,
     StatusTimelineEntry,
 )
 from core_api.modules.orders.service.order import OrderService
@@ -58,12 +61,35 @@ async def list_my_orders(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    q: str | None = Query(None, min_length=1, max_length=100, description="Kitchen or item name (any case)"),
+    status_filter: list[HistoryStatus] | None = Query(None, alias="status", description="delivered | cancelled | active; repeatable"),
+    date_from: date | None = Query(None, alias="from", description="Placed on or after this day (UTC)"),
+    date_to: date | None = Query(None, alias="to", description="Placed on or before this day (UTC)"),
+    restaurant_id: uuid.UUID | None = Query(None),
 ) -> OrderListResponse:
-    """Get authenticated customer's order history."""
+    """Get authenticated customer's order history, newest first, with optional filters."""
+    from core_api.modules.catalog.service.lookup import restaurant_slugs
+    from core_api.modules.orders.service.history import items_summary, statuses_for
+
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            detail={"code": "BAD_DATES", "message": "'from' must be on or before 'to'"})
     repo = OrderRepository(db)
-    orders, total = await repo.list_by_customer(current_user.id, page=page, limit=limit)
+    orders, total = await repo.list_by_customer(
+        current_user.id, page=page, limit=limit, q=q, statuses=statuses_for(status_filter),  # type: ignore[arg-type]
+        created_from=datetime.combine(date_from, time.min, UTC) if date_from else None,
+        created_before=datetime.combine(date_to + timedelta(days=1), time.min, UTC) if date_to else None,
+        restaurant_id=restaurant_id,
+    )
+    slugs = await restaurant_slugs(db, {o.restaurant_id for o in orders})
+    items = []
+    for o in orders:
+        out = OrderResponse.model_validate(o)
+        out.restaurant_slug = slugs.get(o.restaurant_id)
+        out.items_summary = items_summary(o.items)
+        items.append(out)
     return OrderListResponse(
-        items=[OrderResponse.model_validate(o) for o in orders],
+        items=items,
         total=total,
         page=page,
         limit=limit,
@@ -251,6 +277,71 @@ async def cancel_order(
     """Cancel: refunded in full if it was paid."""
     updated = await OrderService(db).cancel_order(order_id, data, current_user)
     return OrderResponse.model_validate(updated)
+
+
+async def _own_order(db: AsyncSession, user: CurrentUser, order_id: uuid.UUID):  # type: ignore[no-untyped-def]
+    """The order, if the signed-in user placed it (404 otherwise, as for any order you can't see)."""
+    order = await OrderRepository(db).get_by_id(order_id)
+    if order is None or order.customer_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    return order
+
+
+@router.post("/{order_id}/reorder", response_model=ReorderResponse)
+async def reorder(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> ReorderResponse:
+    """Order again: your past order's items at today's menu prices, ready for
+    the bag. Sold-out or removed items are listed in ``unavailable`` and left
+    out. Nothing is ordered: checkout quotes the bag as usual."""
+    from core_api.modules.catalog.service.cart import reorder_lines
+    from core_api.modules.catalog.service.lookup import restaurant_brief
+
+    order = await _own_order(db, current_user, order_id)
+    kitchen = await restaurant_brief(db, order.restaurant_id)
+    if kitchen is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This kitchen is no longer on BhojanGo")
+    items, unavailable = await reorder_lines(db, order.restaurant_id, order.items or [])
+    return ReorderResponse.model_validate({"restaurant": kitchen, "items": items, "unavailable": unavailable})
+
+
+@router.get("/{order_id}/receipt.pdf", response_class=Response,
+            responses={200: {"content": {"application/pdf": {}}, "description": "The receipt (India: tax invoice) as a PDF"}})
+async def receipt_pdf(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> Response:
+    """Your receipt for a paid order: a tax invoice in India (GST, FSSAI), a
+    receipt with sales tax in the US. Same lines as the fair bill."""
+    from core_api.modules.catalog.service.lookup import restaurant_brief
+    from core_api.modules.identity.service.profile import user_profile
+    from core_api.modules.orders.service import receipt as rcpt
+    from core_api.modules.orders.service.state_machine import PAID_STATES
+    from core_api.modules.pricing.service.lookup import order_bills
+
+    order = await _own_order(db, current_user, order_id)
+    if order.status not in PAID_STATES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail={"code": "NOT_PAID", "message": "A receipt is ready once the order is paid"})
+    country = rcpt.country_of(order.market_city, order.currency)
+    bill = (await order_bills(db, [order.id])).get(order.id)
+    lines = bill["lines"] if bill else rcpt.fallback_lines(order.subtotal, order.delivery_fee, order.discount,
+                                                           order.taxes, order.tip)
+    profile = await user_profile(db, order.customer_id)
+    doc = rcpt.Receipt(
+        country=country, invoice_no=rcpt.invoice_number(order.id, order.created_at, country),
+        issued_at=order.placed_at or order.created_at, order_code="#" + order.id.hex[:6].upper(),
+        currency=order.currency, total=order.total,
+        kitchen=await restaurant_brief(db, order.restaurant_id) or {"name": order.restaurant_name},
+        customer_name=(profile or {}).get("name") or "Customer", delivery_address=order.delivery_address or {},
+        items=order.items or [], lines=lines, payment_method=order.payment_method,
+    )
+    return Response(rcpt.render(doc), media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{doc.invoice_no}.pdf"',
+                             "Cache-Control": "private, no-store"})
 
 
 async def _can_see_order(db: AsyncSession, user: CurrentUser, order) -> bool:  # type: ignore[no-untyped-def]

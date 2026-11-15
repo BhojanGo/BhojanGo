@@ -103,3 +103,49 @@ async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dic
         tier=r.tier, prep_minutes=r.avg_prep_minutes,
     )
     return info, lines
+
+
+async def reorder_lines(db: AsyncSession, restaurant_id: uuid.UUID, past: list[dict],
+                        now: datetime | None = None) -> tuple[list[dict], list[str]]:
+    """A past order's lines against today's menu, for "Order again": each line
+    that can still be ordered, at today's price, with its options as picks the
+    quote accepts; and the names of the ones that can't (sold out, gone, an
+    option dropped or a new required choice). Opening hours aren't checked:
+    the bag shows that, and the quote refuses a closed kitchen."""
+    ids = []
+    for raw in past:
+        try:
+            ids.append(uuid.UUID(str(raw.get("menu_item_id"))))
+        except ValueError:
+            continue
+    groups_by_item = await groups_for_items(db, ids)
+    ok: list[dict] = []
+    gone: list[str] = []
+    for raw in past:
+        name = str(raw.get("name") or "An item")
+        try:
+            item_id = uuid.UUID(str(raw.get("menu_item_id")))
+        except ValueError:
+            gone.append(name)
+            continue
+        # Orders keep the chosen options' names; find each again in the item's groups.
+        picks: list[dict] = []
+        for label in raw.get("options") or []:
+            match = next(((g, o) for g in groups_by_item.get(item_id, []) for o in g.options if o.name == label), None)
+            if match is None:
+                picks = []
+                break
+            picks.append({"group": str(match[0].id), "option": str(match[1].id), "name": match[1].name})
+        if len(picks) != len(raw.get("options") or []):
+            gone.append(name)
+            continue
+        try:
+            _, lines = await price_cart(db, restaurant_id, [{"menu_item_id": item_id, "quantity": int(raw.get("quantity", 1)),
+                                                             "options": picks}], check_open=False, now=now)
+        except CartError:
+            gone.append(name)
+            continue
+        line = lines[0]
+        ok.append({"menu_item_id": line.item_id, "name": line.name, "quantity": line.quantity, "options": picks,
+                   "price": float(line.unit_price), "available": True})
+    return ok, gone

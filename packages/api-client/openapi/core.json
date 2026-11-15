@@ -49,6 +49,23 @@
             "title": "Country",
             "type": "string"
           },
+          "delivery_notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Notes"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
+          },
           "label": {
             "default": "Home",
             "maxLength": 50,
@@ -183,10 +200,26 @@
             "title": "Country",
             "type": "string"
           },
+          "delivery_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Notes"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
           },
           "label": {
             "title": "Label",
@@ -311,6 +344,136 @@
           "country"
         ],
         "title": "AddressSchema",
+        "type": "object"
+      },
+      "AddressUpdate": {
+        "description": "Any field; only the ones sent change. lat/lng/delivery_notes may be null.",
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "delivery_notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Notes"
+          },
+          "is_default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Default"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lng": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "street": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street"
+          }
+        },
+        "title": "AddressUpdate",
         "type": "object"
       },
       "AdminMeResponse": {
@@ -841,6 +1004,68 @@
           "quantity"
         ],
         "title": "CartItem",
+        "type": "object"
+      },
+      "Channels": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "boolean"
+          },
+          "push": {
+            "title": "Push",
+            "type": "boolean"
+          },
+          "sms": {
+            "title": "Sms",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "push",
+          "sms",
+          "email"
+        ],
+        "title": "Channels",
+        "type": "object"
+      },
+      "ChannelsUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "push": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push"
+          },
+          "sms": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sms"
+          }
+        },
+        "title": "ChannelsUpdate",
         "type": "object"
       },
       "CityCreate": {
@@ -1881,6 +2106,200 @@
           }
         },
         "title": "FakeCompleteRequest",
+        "type": "object"
+      },
+      "FavouriteItem": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/FavouriteItemRestaurant"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price",
+          "currency",
+          "image_url",
+          "available",
+          "restaurant",
+          "saved_at"
+        ],
+        "title": "FavouriteItem",
+        "type": "object"
+      },
+      "FavouriteItemRestaurant": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "title": "FavouriteItemRestaurant",
+        "type": "object"
+      },
+      "FavouriteRestaurant": {
+        "properties": {
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "cuisine_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cuisine Types",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "delivery_fee": {
+            "title": "Delivery Fee",
+            "type": "number"
+          },
+          "delivery_time_max": {
+            "title": "Delivery Time Max",
+            "type": "integer"
+          },
+          "delivery_time_min": {
+            "title": "Delivery Time Min",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "number"
+          },
+          "review_count": {
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "cuisine_types",
+          "cover_url",
+          "city",
+          "country",
+          "rating",
+          "review_count",
+          "delivery_time_min",
+          "delivery_time_max",
+          "delivery_fee",
+          "currency",
+          "saved_at"
+        ],
+        "title": "FavouriteRestaurant",
+        "type": "object"
+      },
+      "FavouritesOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FavouriteItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "restaurants": {
+            "items": {
+              "$ref": "#/components/schemas/FavouriteRestaurant"
+            },
+            "title": "Restaurants",
+            "type": "array"
+          }
+        },
+        "required": [
+          "restaurants",
+          "items"
+        ],
+        "title": "FavouritesOut",
         "type": "object"
       },
       "FeeBreakdown": {
@@ -3034,6 +3453,64 @@
           }
         },
         "title": "NewVersion",
+        "type": "object"
+      },
+      "NotificationPreferencesOut": {
+        "description": "What we may send you, per kind of message and channel. Offers are off\nuntil you turn them on.",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Channels"
+          },
+          "offers": {
+            "$ref": "#/components/schemas/Channels"
+          },
+          "orders": {
+            "$ref": "#/components/schemas/Channels"
+          }
+        },
+        "required": [
+          "orders",
+          "offers",
+          "account"
+        ],
+        "title": "NotificationPreferencesOut",
+        "type": "object"
+      },
+      "NotificationPreferencesUpdate": {
+        "description": "Only the switches you send change.",
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelsUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "offers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelsUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orders": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelsUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "NotificationPreferencesUpdate",
         "type": "object"
       },
       "OfferIn": {
@@ -4377,6 +4854,17 @@
             "title": "Items",
             "type": "array"
           },
+          "items_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items Summary"
+          },
           "loyalty_points_earned": {
             "title": "Loyalty Points Earned",
             "type": "integer"
@@ -4521,6 +5009,17 @@
             "default": 0.0,
             "title": "Restaurant Payout",
             "type": "number"
+          },
+          "restaurant_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restaurant Slug"
           },
           "rider": {
             "anyOf": [
@@ -5065,6 +5564,124 @@
           "currency"
         ],
         "title": "PaymentInitiateResponse",
+        "type": "object"
+      },
+      "PaymentMethodCreate": {
+        "additionalProperties": false,
+        "description": "A card the provider's own form tokenised. Send the token and the display\ndetails the provider returned, never the card number.",
+        "properties": {
+          "brand": {
+            "examples": [
+              "visa"
+            ],
+            "maxLength": 20,
+            "minLength": 2,
+            "pattern": "^[A-Za-z][A-Za-z _-]*$",
+            "title": "Brand",
+            "type": "string"
+          },
+          "exp_month": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Exp Month",
+            "type": "integer"
+          },
+          "exp_year": {
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Exp Year",
+            "type": "integer"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "last4": {
+            "examples": [
+              "4242"
+            ],
+            "pattern": "^\\d{4}$",
+            "title": "Last4",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "stripe",
+              "razorpay",
+              "fake"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_token": {
+            "examples": [
+              "pm_1QaBcDeFgHiJkLmN"
+            ],
+            "maxLength": 255,
+            "title": "Provider Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "provider_token",
+          "brand",
+          "last4",
+          "exp_month",
+          "exp_year"
+        ],
+        "title": "PaymentMethodCreate",
+        "type": "object"
+      },
+      "PaymentMethodOut": {
+        "properties": {
+          "brand": {
+            "title": "Brand",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "exp_month": {
+            "title": "Exp Month",
+            "type": "integer"
+          },
+          "exp_year": {
+            "title": "Exp Year",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "last4": {
+            "title": "Last4",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "brand",
+          "last4",
+          "exp_month",
+          "exp_year",
+          "is_default",
+          "created_at"
+        ],
+        "title": "PaymentMethodOut",
         "type": "object"
       },
       "PaymentResponse": {
@@ -6009,10 +6626,15 @@
           "preferred_locale": {
             "default": "en-US",
             "enum": [
-              "en-US",
               "en-IN",
               "hi-IN",
-              "te-IN"
+              "te-IN",
+              "ta-IN",
+              "kn-IN",
+              "mr-IN",
+              "bn-IN",
+              "en-US",
+              "es-US"
             ],
             "title": "Preferred Locale",
             "type": "string"
@@ -6040,6 +6662,129 @@
           "note"
         ],
         "title": "Rejection",
+        "type": "object"
+      },
+      "ReorderItem": {
+        "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "menu_item_id": {
+            "format": "uuid",
+            "title": "Menu Item Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ReorderOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "menu_item_id",
+          "name",
+          "quantity",
+          "options",
+          "price"
+        ],
+        "title": "ReorderItem",
+        "type": "object"
+      },
+      "ReorderOption": {
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "option": {
+            "title": "Option",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "option",
+          "name"
+        ],
+        "title": "ReorderOption",
+        "type": "object"
+      },
+      "ReorderResponse": {
+        "description": "What \"Order again\" puts in the bag: ``items`` at today's prices. Nothing\nis ordered; ``unavailable`` names what couldn't be added.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReorderItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/ReorderRestaurant"
+          },
+          "unavailable": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable",
+            "type": "array"
+          }
+        },
+        "required": [
+          "restaurant",
+          "items",
+          "unavailable"
+        ],
+        "title": "ReorderResponse",
+        "type": "object"
+      },
+      "ReorderRestaurant": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "currency"
+        ],
+        "title": "ReorderRestaurant",
         "type": "object"
       },
       "ResetPasswordRequest": {
@@ -8396,10 +9141,15 @@
             "anyOf": [
               {
                 "enum": [
-                  "en-US",
                   "en-IN",
                   "hi-IN",
-                  "te-IN"
+                  "te-IN",
+                  "ta-IN",
+                  "kn-IN",
+                  "mr-IN",
+                  "bn-IN",
+                  "en-US",
+                  "es-US"
                 ],
                 "type": "string"
               },
@@ -11318,6 +12068,506 @@
         "tags": [
           "Addresses"
         ]
+      },
+      "patch": {
+        "description": "Change any field of one of your addresses.",
+        "operationId": "update_address_api_v1_me_addresses__address_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Address Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Update Address",
+        "tags": [
+          "Addresses"
+        ]
+      }
+    },
+    "/api/v1/me/addresses/{address_id}/default": {
+      "post": {
+        "description": "Make this your default address (the one checkout picks first).",
+        "operationId": "set_default_address_api_v1_me_addresses__address_id__default_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Address Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Default Address",
+        "tags": [
+          "Addresses"
+        ]
+      }
+    },
+    "/api/v1/me/export": {
+      "get": {
+        "description": "Download everything we hold about you as JSON: profile, addresses,\norders with their bills, saved cards (masked), favourites, notification\npreferences, support tickets, refunds and problems, reviews.",
+        "operationId": "export_my_data_api_v1_me_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Your data as a JSON file"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Export My Data",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/favourites": {
+      "get": {
+        "description": "Your saved kitchens and dishes (ones no longer on BhojanGo aren't shown).",
+        "operationId": "list_favourites_api_v1_me_favourites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavouritesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Favourites",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/favourites/{kind}/{target_id}": {
+      "delete": {
+        "operationId": "remove_favourite_api_v1_me_favourites__kind___target_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "restaurant",
+                "item"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Target Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Remove Favourite",
+        "tags": [
+          "Account"
+        ]
+      },
+      "put": {
+        "description": "Save a kitchen or a dish. Saving it again changes nothing.",
+        "operationId": "add_favourite_api_v1_me_favourites__kind___target_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "restaurant",
+                "item"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Target Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Add Favourite",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/notification-preferences": {
+      "get": {
+        "operationId": "get_notification_preferences_api_v1_me_notification_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Notification Preferences",
+        "tags": [
+          "Account"
+        ]
+      },
+      "put": {
+        "operationId": "set_notification_preferences_api_v1_me_notification_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferencesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Notification Preferences",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/payment-methods": {
+      "get": {
+        "description": "Your saved cards (brand, last four, expiry; the token never leaves the server).",
+        "operationId": "list_payment_methods_api_v1_me_payment_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentMethodOut"
+                  },
+                  "title": "Response List Payment Methods Api V1 Me Payment Methods Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Payment Methods",
+        "tags": [
+          "Payment methods"
+        ]
+      },
+      "post": {
+        "description": "Save a tokenised card. The first one becomes the default.",
+        "operationId": "add_payment_method_api_v1_me_payment_methods_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentMethodCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Add Payment Method",
+        "tags": [
+          "Payment methods"
+        ]
+      }
+    },
+    "/api/v1/me/payment-methods/{payment_method_id}": {
+      "delete": {
+        "operationId": "delete_payment_method_api_v1_me_payment_methods__payment_method_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_method_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payment Method Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Delete Payment Method",
+        "tags": [
+          "Payment methods"
+        ]
+      }
+    },
+    "/api/v1/me/payment-methods/{payment_method_id}/default": {
+      "post": {
+        "operationId": "set_default_payment_method_api_v1_me_payment_methods__payment_method_id__default_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_method_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payment Method Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Default Payment Method",
+        "tags": [
+          "Payment methods"
+        ]
       }
     },
     "/api/v1/ops/alerts": {
@@ -11678,7 +12928,7 @@
     },
     "/api/v1/orders": {
       "get": {
-        "description": "Get authenticated customer's order history.",
+        "description": "Get authenticated customer's order history, newest first, with optional filters.",
         "operationId": "list_my_orders_api_v1_orders_get",
         "parameters": [
           {
@@ -11702,6 +12952,107 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Kitchen or item name (any case)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Kitchen or item name (any case)",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "delivered | cancelled | active; repeatable",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "delivered",
+                      "cancelled",
+                      "active"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "delivered | cancelled | active; repeatable",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Placed on or after this day (UTC)",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Placed on or after this day (UTC)",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Placed on or before this day (UTC)",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Placed on or before this day (UTC)",
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restaurant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Restaurant Id"
             }
           }
         ],
@@ -12238,6 +13589,100 @@
         "summary": "Report Problem",
         "tags": [
           "Support"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/receipt.pdf": {
+      "get": {
+        "description": "Your receipt for a paid order: a tax invoice in India (GST, FSSAI), a\nreceipt with sales tax in the US. Same lines as the fair bill.",
+        "operationId": "receipt_pdf_api_v1_orders__order_id__receipt_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "The receipt (India: tax invoice) as a PDF"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Receipt Pdf",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/reorder": {
+      "post": {
+        "description": "Order again: your past order's items at today's menu prices, ready for\nthe bag. Sold-out or removed items are listed in ``unavailable`` and left\nout. Nothing is ordered: checkout quotes the bag as usual.",
+        "operationId": "reorder_api_v1_orders__order_id__reorder_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReorderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Reorder",
+        "tags": [
+          "Orders"
         ]
       }
     },
@@ -17207,7 +18652,7 @@
     },
     "/api/v1/users/me": {
       "delete": {
-        "description": "Delete my account (GDPR / India DPDP / app store rules).\n\nRemoves personal data (name, email, phone, social ids, addresses, admin\nroles), ends every session at once and deactivates the account. Orders\nkeep the anonymous user id so restaurant and tax records stay intact.",
+        "description": "Delete my account (GDPR / India DPDP / app store rules).\n\nRemoves personal data (name, email, phone, social ids, addresses, saved\ncards, favourites, notification preferences, admin roles), ends every\nsession at once and deactivates the account. Orders keep the anonymous\nuser id so restaurant and tax records stay intact, without the street,\nmap pin or notes (city, state, postal code and country stay for tax).",
         "operationId": "delete_me_api_v1_users_me_delete",
         "responses": {
           "200": {

@@ -103,6 +103,9 @@ class OrderResponse(BaseModel):
     customer_id: uuid.UUID
     restaurant_id: uuid.UUID
     restaurant_name: str
+    # Order history (GET /orders): the kitchen's page and "2 × Veg Dum Biryani, Raita".
+    restaurant_slug: str | None = None
+    items_summary: str | None = None
     driver_id: uuid.UUID | None
     # The assigned rider as the customer sees them (first name only); GET /orders/{id}.
     rider: dict | None = None
@@ -161,6 +164,40 @@ class OrderListResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+HistoryStatus = Literal["delivered", "cancelled", "active"]
+
+
+class ReorderRestaurant(BaseModel):
+    id: uuid.UUID
+    slug: str
+    name: str
+    currency: str
+
+
+class ReorderOption(BaseModel):
+    group: str
+    option: str
+    name: str
+
+
+class ReorderItem(BaseModel):
+    menu_item_id: uuid.UUID
+    name: str
+    quantity: int
+    options: list[ReorderOption]
+    price: float  # today's unit price with the options
+    available: bool = True
+
+
+class ReorderResponse(BaseModel):
+    """What "Order again" puts in the bag: ``items`` at today's prices. Nothing
+    is ordered; ``unavailable`` names what couldn't be added."""
+
+    restaurant: ReorderRestaurant
+    items: list[ReorderItem]
+    unavailable: list[str]
 
 
 class FeeBreakdown(BaseModel):

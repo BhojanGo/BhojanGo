@@ -281,7 +281,8 @@ class AuthService:
 
     async def delete_account(self, user: User, access_token: str | None = None) -> None:
         """Account deletion (app store requirement, GDPR/DPDP): remove personal
-        data, end every session, drop admin roles. Orders keep the anonymous id."""
+        data, end every session, drop admin roles. Orders keep the anonymous id,
+        with the street, map pin and notes removed (orders.service.lookup.forget_customer)."""
         uid = str(user.id)
         await self.repo.update(
             user.id,
@@ -299,6 +300,17 @@ class AuthService:
         )
         await AdminRoleRepository(self.db).delete_for_user(user.id)
         await self.db.execute(delete(Address).where(Address.user_id == user.id))
+        # Saved cards, favourites and preferences go; orders and reviews stay
+        # (tax and restaurant records) without the personal details.
+        from core_api.modules.catalog.service import lookup as catalog_lookup
+        from core_api.modules.identity.service import account
+        from core_api.modules.orders.service import lookup as order_lookup
+        from core_api.modules.payments.service import methods
+
+        await methods.forget_user(self.db, user.id)
+        await account.forget(self.db, user.id)
+        await order_lookup.forget_customer(self.db, user.id)
+        await catalog_lookup.forget_reviewer(self.db, user.id)
         await revoke_all_sessions(uid)
         if access_token:
             await blacklist_access_token(access_token)

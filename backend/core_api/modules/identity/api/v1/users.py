@@ -80,9 +80,11 @@ async def delete_me(
 ) -> MessageResponse:
     """Delete my account (GDPR / India DPDP / app store rules).
 
-    Removes personal data (name, email, phone, social ids, addresses, admin
-    roles), ends every session at once and deactivates the account. Orders
-    keep the anonymous user id so restaurant and tax records stay intact.
+    Removes personal data (name, email, phone, social ids, addresses, saved
+    cards, favourites, notification preferences, admin roles), ends every
+    session at once and deactivates the account. Orders keep the anonymous
+    user id so restaurant and tax records stay intact, without the street,
+    map pin or notes (city, state, postal code and country stay for tax).
     """
     await AuthService(db).delete_account(current_user, credentials.credentials)
     return MessageResponse(message="Account deleted and data anonymized successfully")
