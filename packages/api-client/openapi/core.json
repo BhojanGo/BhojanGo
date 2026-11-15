@@ -2649,6 +2649,11 @@
             "title": "Distance Unit",
             "type": "string"
           },
+          "hero_photo": {
+            "description": "The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)",
+            "title": "Hero Photo",
+            "type": "string"
+          },
           "live": {
             "title": "Live",
             "type": "integer"
@@ -2718,6 +2723,7 @@
           "tax_regime",
           "payment_providers",
           "payment_methods",
+          "hero_photo",
           "live",
           "soon",
           "regions"
@@ -2759,6 +2765,12 @@
             },
             "title": "Countries",
             "type": "array"
+          },
+          "hero_photo": {
+            "default": "poke-bowl",
+            "description": "The hero for a visitor outside every listed country (a library slug)",
+            "title": "Hero Photo",
+            "type": "string"
           },
           "totals": {
             "additionalProperties": {

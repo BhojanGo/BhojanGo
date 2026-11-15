@@ -204,6 +204,11 @@ with sync_playwright() as p:
         [expect(dir_region.get_by_role("link", name=c["name"], exact=True)).to_be_visible() for c in live],
         [expect(dir_region.get_by_role("link", name=f"{c['name']} · soon")).to_be_visible() for c in soon],
         expect(dir_region.get_by_text(f"{len(live)} cities live · {len(soon)} coming soon")).to_be_visible()))
+    hero_of = {k["code"]: k["hero_photo"] for k in directory["countries"]}
+    check("landing: the hero is the country's photo chosen in Markets (Hero dish)", lambda: (
+        expect(page.get_by_test_id("landing-hero")).to_have_attribute("src", re.compile(
+            "/food/" + re.escape(hero_of["IN"]) + r"-\d+\.webp$")),
+        _assert(page.get_by_test_id("landing-hero").evaluate("img => img.complete && img.naturalWidth > 0"), "hero not loaded")))
     shot(page, "01-landing")
 
     # Notify me ("Don't see your city?"), then the demand shows it in Markets (admin API).
@@ -229,6 +234,8 @@ with sync_playwright() as p:
     check("country menu: switching country changes the language list", lambda: (
         expect(page.get_by_role("button", name="Country: United States")).to_be_visible(timeout=15000),
         _assert(cookie(ctx, "bg_country") == "US", ctx.cookies())))
+    check("landing: another country, its own hero photo", lambda: expect(page.get_by_test_id("landing-hero")).to_have_attribute(
+        "src", re.compile("/food/" + re.escape(hero_of["US"]) + r"-\d+\.webp$"), timeout=15000))
     page.get_by_role("button", name="Language").click()
     check("language menu follows the country (US: English, Spanish)", lambda: (
         expect(page.get_by_role("menu", name="Language").get_by_text("Language · United States")).to_be_visible(),

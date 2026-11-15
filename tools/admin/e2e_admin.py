@@ -471,6 +471,30 @@ with sync_playwright() as p:
         expect(cities_table.get_by_role("row", name=re.compile(r"^Testville .*Draft"))).to_be_visible(timeout=15000)))
     page.screenshot(path=f"{OUT}/08b-markets-country.png", full_page=True)
 
+    # Hero dish: the website's landing photo for the country, picked from the library
+    # thumbnails and saved as the country's hero_photo setting (put back afterwards).
+    admin_h = token("admin@example.com", PW)
+    before = api.get(f"{CORE}/markets", headers=admin_h).json()
+    was = next(k for k in before if k["code"] == "IN")["settings"].get("hero_photo")
+    hero = page.get_by_role("region", name="Hero dish")
+    choice = "masala-dosa" if was != "masala-dosa" else "idli-sambar"
+    hero.locator(f'[data-slug="{choice}"]').click()
+    hero.get_by_role("button", name="Save hero dish").click()
+
+    def hero_saved() -> None:
+        expect(hero.get_by_role("status")).to_contain_text("Saved", timeout=15000)
+        expect(hero.locator(f'[data-slug="{choice}"]')).to_have_attribute("aria-checked", "true")
+        now = next(k for k in api.get(f"{CORE}/markets", headers=admin_h).json() if k["code"] == "IN")
+        assert now["settings"].get("hero_photo") == choice, now["settings"]
+        d = api.get(f"{CORE}/markets/directory").json()
+        assert next(k for k in d["countries"] if k["code"] == "IN")["hero_photo"] == choice
+
+    check("markets: the Hero dish picker saves the country's landing photo", hero_saved)
+    check("markets: the Hero dish thumbnails load", lambda: _ok(hero.locator(f'[data-slug="{choice}"] img').evaluate(
+        "img => img.complete && img.naturalWidth > 0")))
+    page.screenshot(path=f"{OUT}/08c-markets-hero-dish.png", full_page=True)
+    api.patch(f"{CORE}/markets/countries/IN", headers=admin_h, data={"settings": {"hero_photo": was}})
+
     page.goto(f"{BASE}/finance?scope=IN", wait_until="networkidle")
     check("finance: payout runs and reconciliation", lambda: (
         expect(page.get_by_role("region", name="Payout runs")).to_be_visible(timeout=15000),

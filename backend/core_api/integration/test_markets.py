@@ -249,3 +249,37 @@ async def test_sign_up_and_kitchens_follow_the_countries_table(client: AsyncClie
     r = await client.post("/api/v1/restaurants", headers=partner, json={
         **kitchen, "country": code, "currency": "EUR", "address": {**kitchen["address"], "country": code}})
     assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text
+
+
+async def test_hero_photo_is_a_country_setting(client: AsyncClient) -> None:
+    """The website's landing hero per country (Markets -> country -> Hero dish): a photo
+    library slug, validated, country-level only, on the public directory."""
+    def heroes(d: dict) -> dict:
+        return {k["code"]: k["hero_photo"] for k in d["countries"]}
+
+    d = (await client.get("/api/v1/markets/directory")).json()
+    assert heroes(d) == {**heroes(d), "IN": "south-indian-thali", "US": "pepperoni-pizza"}  # the seed's choices
+    assert d["hero_photo"]  # the default, for a visitor outside every country
+
+    cm = await auth(client, "cm.in@example.com")
+    r = await client.patch("/api/v1/markets/countries/IN", headers=cm, json={"settings": {"hero_photo": "not-a-dish"}})
+    assert r.status_code == 409 and "library" in r.text, r.text
+    r = await client.patch("/api/v1/markets/countries/IN", headers=cm, json={"settings": {"hero_photo": "masala-dosa"}})
+    assert r.status_code == 200 and r.json()["settings"]["hero_photo"] == "masala-dosa", r.text
+    assert r.json()["settings"]["payment_methods"]  # other settings kept
+    try:
+        assert heroes((await client.get("/api/v1/markets/directory")).json())["IN"] == "masala-dosa"
+        # another country's manager can't change it; a state can't override it
+        r = await client.patch("/api/v1/markets/countries/IN", headers=await auth(client, "cm.us@example.com"),
+                               json={"settings": {"hero_photo": "ramen"}})
+        assert r.status_code == 403
+        r = await client.patch("/api/v1/markets/regions/IN-TG", headers=cm, json={"settings": {"hero_photo": "ramen"}})
+        assert r.status_code == 409 and "Only the country" in r.text
+        # no choice: the default library photo
+        r = await client.patch("/api/v1/markets/countries/IN", headers=cm, json={"settings": {"hero_photo": None}})
+        assert r.status_code == 200 and "hero_photo" not in r.json()["settings"]
+        d = (await client.get("/api/v1/markets/directory")).json()
+        assert heroes(d)["IN"] == d["hero_photo"]
+    finally:
+        r = await client.patch("/api/v1/markets/countries/IN", headers=cm, json={"settings": {"hero_photo": "south-indian-thali"}})
+        assert r.status_code == 200

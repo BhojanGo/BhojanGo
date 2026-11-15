@@ -4179,6 +4179,11 @@ export interface components {
             currency: string;
             /** Distance Unit */
             distance_unit: string;
+            /**
+             * Hero Photo
+             * @description The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)
+             */
+            hero_photo: string;
             /** Live */
             live: number;
             /** Locales */
@@ -4215,6 +4220,12 @@ export interface components {
         Directory: {
             /** Countries */
             countries: components["schemas"]["DirCountry"][];
+            /**
+             * Hero Photo
+             * @description The hero for a visitor outside every listed country (a library slug)
+             * @default poke-bowl
+             */
+            hero_photo?: string;
             /** Totals */
             totals: {
                 [key: string]: number;

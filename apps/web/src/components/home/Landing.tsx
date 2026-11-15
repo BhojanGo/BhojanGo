@@ -1,6 +1,7 @@
 // First visit, no address (WebLanding): address first, no city named in the
-// template. The example bill, the photos and the cuisines come from the first
-// live city of the visitor's country; the directory from Markets.
+// template. The hero photo is the visitor's country's choice in Markets; the
+// example bill, the other photos and the cuisines come from the first live city
+// of that country; the directory from Markets.
 import Link from "next/link";
 
 import { AddressBox } from "@/components/AddressBox";
@@ -10,7 +11,7 @@ import { MoneyBar } from "@/components/FairBill";
 import { HintRow } from "@/components/HintRow";
 import { NotifyMe } from "@/components/NotifyMe";
 import { cuisineTiles } from "@/lib/contract";
-import { photo } from "@/lib/format";
+import { libraryPhoto, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, exampleBill } from "@/lib/server";
 import { RecruitCards } from "./Recruit";
@@ -19,8 +20,8 @@ export async function Landing() {
   const { t, country, countrySource, directory: dir } = await getContext();
   const city = firstLiveCity(dir, country?.code);
   const [d, bill] = city ? await Promise.all([discover({ city: city.code }), exampleBill(city.code)]) : [null, null];
-  const kitchens = d?.restaurants ?? [];
-  const hero = kitchens.find((k) => k.cover_url)?.cover_url ?? null;
+  // The hero is the country's chosen library photo (Markets -> country -> Hero dish; a default when unset).
+  const hero = libraryPhoto(country?.hero_photo ?? dir.hero_photo);
   // One tile per cuisine with 2+ kitchens and a photo of its own; no photo twice on the page (the hero's included).
   const tiles = cuisineTiles(d, new Set(hero ? [hero] : []));
   const steps = [1, 2, 3] as const;
@@ -43,7 +44,7 @@ export async function Landing() {
             <div className="relative h-[420px] md:h-[520px]">
               <div className="absolute right-0 top-0 h-[340px] w-full overflow-hidden rounded-[36px] bg-[#F6E7CC] md:h-[480px] md:w-[480px] md:rounded-[48px]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-                {hero && <img src={photo(hero, 800) ?? undefined} alt="" className="block h-full w-full object-cover" />}
+                {hero && <img src={hero} alt="" data-testid="landing-hero" className="block h-full w-full object-cover" />}
               </div>
               {bill && (
                 <div className="absolute bottom-0 left-4 w-[300px] max-w-[calc(100%-32px)] rounded-[24px] bg-white p-5 shadow-[0_2px_4px_rgba(17,20,24,0.06),0_24px_48px_rgba(17,20,24,0.14)] md:left-0">
