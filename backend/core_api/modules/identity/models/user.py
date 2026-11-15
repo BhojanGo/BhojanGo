@@ -42,6 +42,10 @@ class User(Base):
     # Push notifications
     fcm_token: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Dispatch pool (riders): NULL for real riders; "demo_sim" for the demo rider
+    # simulator's riders (demo seed only). Realtime offers an order only within its pool.
+    dispatch_pool: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

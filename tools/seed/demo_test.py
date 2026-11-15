@@ -5,9 +5,13 @@
 - the demo seed refuses production (APP_ENV, ENVIRONMENT or Railway's name), and
   demo.py refuses before it imports a database driver, so before any DB access;
 - the demo order history (demo_history.py): believable counts, ratings only on
-  past orders, "New" kitchens below five ratings, times the kitchen was open.
+  past orders, "New" kitchens below five ratings, times the kitchen was open;
+- the demo riders: each city has the simulator's own pool (rider.sim.<city>.<n>,
+  users.dispatch_pool "demo_sim") apart from the demo rider people test with
+  (rider.demo.<city>, no pool), which keeps the history; phones never collide.
 """
 import os
+import re
 import subprocess
 import sys
 import unittest
@@ -18,6 +22,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import demo_guard  # noqa: E402
 import demo_history as h  # noqa: E402
+import demo_data  # noqa: E402
+from data import MARKETS  # noqa: E402
 from demo_data import DEMO, ORDERS  # noqa: E402
 
 NOW = datetime(2026, 11, 15, 18, 30)  # city local time
@@ -128,6 +134,52 @@ class HistoryTests(unittest.TestCase):
                 self.assertIn(p.customer, people)
                 c, k = people[p.customer], kitchens[p.kitchen]
                 self.assertLessEqual(h.haversine_km((k["lat"], k["lng"]), (c[5], c[6])), 7.0, (p.kitchen, p.customer))
+
+
+class RiderPoolTests(unittest.TestCase):
+    """Round 5, item 3: the simulator rides its own riders; people test with the demo rider."""
+
+    SIM = re.compile(r"^rider\.sim\.([a-z0-9-]+)\.(\d+)@example\.com$")  # backend/worker/app/demo_sim/rules.py SIM_RIDER
+
+    def test_each_city_has_a_simulator_pool_apart_from_the_demo_rider(self) -> None:
+        for key, city in DEMO.items():
+            pool = city["sim_riders"]
+            self.assertTrue(2 <= len(pool) <= 3, key)
+            for n, (email, name, _) in enumerate(pool, start=1):
+                m = self.SIM.match(email)
+                self.assertIsNotNone(m, email)
+                self.assertEqual((m.group(1), int(m.group(2))), (key, n), email)
+                self.assertEqual(len(name.split()), 2, "a believable full name")
+            self.assertEqual(city["rider"][0], f"rider.demo.{key}@example.com")
+            self.assertIsNone(self.SIM.match(city["rider"][0]), "the demo rider is never the simulator's")
+            names = [city["rider"][1]] + [r[1] for r in pool]
+            self.assertEqual(len(set(names)), len(names))
+            self.assertEqual(demo_data.SIM_POOL, "demo_sim")
+
+    def test_the_order_on_its_way_is_the_simulators_and_the_history_the_demo_riders(self) -> None:
+        for key, city in DEMO.items():
+            self.assertIn(demo_data.active_rider(key), [r[0] for r in city["sim_riders"]])
+            self.assertNotEqual(demo_data.active_rider(key), city["rider"][0])
+        source = (HERE / "demo.py").read_text(encoding="utf-8")
+        self.assertIn('self.users[active_rider(key) if active else f"rider.{key}"]', source,
+                      "past orders (the earnings screen) stay the demo rider's")
+        self.assertIn("SIM_POOL", source)
+
+    def test_seed_phones_never_collide(self) -> None:
+        for m in MARKETS:
+            key, prefix = m["key"], m["phone_prefix"]
+            phones = [f"{prefix}900", *(f"{prefix}1{i:02d}" for i in range(1, len(m["customers"]) + 1)),
+                      *(f"{prefix}2{i:02d}" for i in range(1, len(m["riders"]) + 1)),
+                      *(f"{prefix}2{90 + i:02d}" for i in range(1, len(m.get("new_riders", [])) + 1))]
+            if m.get("applicant"):
+                phones.append(f"{prefix}901")
+            city = DEMO.get(key)
+            if city:
+                phones += [f"{prefix}{p}" for _, _, p in [city["partner"], city["rider"], *city["sim_riders"]]]
+                phones += [f"{prefix}{p}" for p in city["phones"].values()]
+                phones += [f"{prefix}{r[8]}" for r in h.regulars(key)]
+            self.assertEqual(len(phones), len(set(phones)), key)
+            self.assertTrue(all(len(p) == len(phones[0]) for p in phones), key)
 
 
 if __name__ == "__main__":

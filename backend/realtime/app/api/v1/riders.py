@@ -31,13 +31,14 @@ async def online(data: Point, user: Annotated[CurrentUser, Depends(get_current_u
     Only riders who have finished onboarding (core_api /riders/me/onboarding)."""
     rider = _rider(user)
     try:
-        ready = (await dispatch.core_api.rider_ready(rider)).get("ready")
+        account = await dispatch.core_api.rider_ready(rider)
     except dispatch.CoreApiError as e:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Can't check your account right now") from e
-    if not ready:
+    if not account.get("ready"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={
             "code": "ONBOARDING_INCOMPLETE", "message": "Finish your checklist before you go online"})
-    return await dispatch.go_online(rider, data.lat, data.lng)
+    # The demo simulator's riders are in a pool of their own (dispatch.same_pool); nobody else is.
+    return await dispatch.go_online(rider, data.lat, data.lng, pool=account.get("pool"))
 
 
 @router.post("/api/v1/riders/me/offline")

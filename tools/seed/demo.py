@@ -12,7 +12,10 @@ already there are kept, and the order on its way is moved to "now" again.
 Orders are priced by the real quote engine (QuoteService) for the time they were
 placed, so the bill, the pricing snapshot and the receipt agree, then written
 with their whole history (paid, accepted, ready, picked up, delivered by the
-city's demo rider).
+city's demo rider). The order on its way is carried by the demo rider
+simulator's first rider: the simulator has riders of its own (demo_data.py
+sim_riders, users.dispatch_pool "demo_sim"), and the demo rider people test with
+never gets the simulator's orders.
 
 Ratings: each demo kitchen's months of past orders from the demo customers
 (tools/seed/demo_history.py) are written like the others, a share of them rated;
@@ -41,7 +44,7 @@ from zoneinfo import ZoneInfo  # noqa: E402
 import demo_history  # noqa: E402
 import seed as base  # noqa: E402  (also puts the backend on sys.path)
 from data import MARKETS, covers, dish_photo, menu_dishes, photo_url  # noqa: E402
-from demo_data import ACTIVE, DEMO, ORDERS, PROMOTIONS  # noqa: E402
+from demo_data import ACTIVE, DEMO, ORDERS, PROMOTIONS, SIM_POOL, active_rider  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
 
@@ -126,12 +129,13 @@ class Demo:
         where = f"{market['country_name']} ▸ {market['state']} ▸ {market['city']} (demo)"
         await self.zones(city)
         partner_id = await self.person(market, where, city["partner"], "restaurant_owner", "partner (owns the demo kitchens)")
-        rider_id = await self.person(market, where, city["rider"], "driver", "rider (delivers the demo orders)")
-        for kind in ("licence", "insurance", "background_check"):
-            await self.db.execute(base.UPSERT_RIDER_DOC, {
-                "id": sid("rider_document", city["rider"][0], kind), "rider_id": rider_id, "kind": kind,
-                "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
-        self.users[f"rider.{key}"] = rider_id
+        # The demo rider people test with (by hand, Maestro): the order history is theirs.
+        self.users[f"rider.{key}"] = await self.rider(market, where, city["rider"], None,
+                                                      "rider (for testing; delivered the order history)")
+        # The simulator's own riders: only they get its orders, and they get nothing else.
+        for n, who in enumerate(city["sim_riders"], start=1):
+            self.users[who[0]] = await self.rider(market, where, who, SIM_POOL,
+                                                  f"rider (demo simulator {n}; don't sign in, it rides this account)")
         for i, k in enumerate(city["kitchens"]):
             await self.kitchen(market, city, k, partner_id, i)
         await self.city_covers(key, market, city)
@@ -155,6 +159,17 @@ class Demo:
         user_id = await base.upsert_user(self.db, email, name, role, market, f"{market['phone_prefix']}{phone}")
         self.logins.append((where, f"{label} · {name}", email, base.password_for(email)))
         return user_id
+
+    async def rider(self, market: dict, where: str, who: tuple, pool: str | None, label: str) -> uuid.UUID:
+        """A demo rider, onboarded (documents approved) and in ``pool`` (users.dispatch_pool:
+        SIM_POOL for the simulator's riders, None for everyone else)."""
+        rider_id = await self.person(market, where, who, "driver", label)
+        for kind in ("licence", "insurance", "background_check"):
+            await self.db.execute(base.UPSERT_RIDER_DOC, {
+                "id": sid("rider_document", who[0], kind), "rider_id": rider_id, "kind": kind,
+                "file_key": None if kind == "background_check" else f"rider_document/{rider_id}/seed-{kind}.jpg"})
+        await self.db.execute(text("UPDATE users SET dispatch_pool = :pool WHERE id = :id"), {"pool": pool, "id": rider_id})
+        return rider_id
 
     async def customer(self, market: dict, city: dict, where: str, c: tuple) -> None:
         key, name, street, area, postal, lat, lng, notes = c
@@ -370,7 +385,7 @@ class Demo:
         pi = f"fake_pay_demo_{oid.hex[:16]}"
         await self.db.execute(INSERT_ORDER, {
             "id": oid, "customer_id": self.users[customer], "restaurant_id": k["id"], "restaurant_name": q["restaurant_name"],
-            "driver_id": self.users[f"rider.{key}"],
+            "driver_id": self.users[active_rider(key) if active else f"rider.{key}"],
             "items": json.dumps([{**i, "unit_price": float(i["unit_price"]),
                                   "total": float(Decimal(i["unit_price"]) * i["quantity"])} for i in q["items"]]),
             "status": "picked_up" if active else "delivered", "market_city": ctx.get("city"),

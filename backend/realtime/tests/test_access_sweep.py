@@ -99,6 +99,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/internal/dispatch/batches"): Policy("user", ["customer", "rider", "ops_hyd"], {
         "mode": "live", "city": "IN-TG-HYD", "batches": [{"orders": [ORDER, OTHER_ORDER], "score": 60, "savings_percent": 30,
                                                           "total_distance_km": 3, "total_time_min": 20, "max_detour_min": 2}]}),
+    # the demo rider simulator (worker) only, signed: marks its orders for its own riders
+    ("POST", "/internal/dispatch/pool-orders"): Policy("user", ["customer", "rider", "ops_hyd"],
+                                                        {"order_id": ORDER, "pool": "demo_sim"}),
 }
 
 

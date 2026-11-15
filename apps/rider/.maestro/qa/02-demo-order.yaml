@@ -1,7 +1,9 @@
-# QA, read-only: the demo order's screen, when the demo simulator has given the
-# demo rider one. It follows the server (pickup or drop-off step, the kitchen's
-# status, the rider's position from the simulator). Nothing is tapped that changes
-# the order: no "Picked up", no "Complete delivery", no photo, no PIN.
+# QA, read-only: the delivery screen, when the demo rider is on an order. The
+# demo simulator rides its own riders (rider.sim.<city>.<n>) and never gives this
+# account one, so it shows only after a tester gave the demo rider an order;
+# otherwise the flow passes without a screenshot. It follows the server (pickup or
+# drop-off step, the kitchen's status). Nothing is tapped that changes the order:
+# no "Picked up", no "Complete delivery", no photo, no PIN.
 appId: com.bhojango.rider
 ---
 - runFlow: common/sign-in-demo.yaml

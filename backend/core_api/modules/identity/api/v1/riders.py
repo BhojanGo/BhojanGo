@@ -328,4 +328,8 @@ async def signed(request: Request) -> None:
 @internal.get("/{rider_id}/ready", dependencies=[Depends(signed)])
 async def ready(rider_id: uuid.UUID, db: DB) -> dict:
     o = await onboarding(db, rider_id)
-    return {"rider_id": str(rider_id), "ready": o.ready, "country": o.country}
+    out = {"rider_id": str(rider_id), "ready": o.ready, "country": o.country}
+    pool = (await db.get(User, rider_id)).dispatch_pool  # type: ignore[union-attr]  (onboarding 404s first)
+    if pool:  # the demo simulator's riders only (realtime: dispatch.same_pool)
+        out["pool"] = pool
+    return out

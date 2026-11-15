@@ -7,6 +7,10 @@ seed's customers (tools/seed/demo_data.py: demo<N>.<city>@example.com; the
 example.com domain is reserved, so no real person has one) that the simulator
 placed itself or the demo seed wrote (its payments carry {"demo": true}); a
 person testing with a demo account keeps their own orders.
+
+It rides only its own riders (rider.sim.<city>.<n>@example.com, users.dispatch_pool
+"demo_sim"), never the demo rider people test with (rider.demo.<city>), and realtime
+offers its orders to those riders only (dispatch.same_pool).
 """
 import re
 from collections.abc import Mapping
@@ -18,7 +22,8 @@ from app.demo_sim.path import Path, Point, rider_start, speed_kmh
 ALLOWED_ENVS = frozenset({"local", "development", "dev", "qa"})
 PRODUCTION = frozenset({"production", "prod"})  # shared/config.py PRODUCTION_NAMES
 DEMO_CUSTOMER = re.compile(r"^demo\d+\.([a-z0-9-]+)@example\.com$")
-DEMO_RIDER = re.compile(r"^rider\.demo\.([a-z0-9-]+)@example\.com$")
+SIM_RIDER = re.compile(r"^rider\.sim\.([a-z0-9-]+)\.(\d+)@example\.com$")  # the simulator's own riders
+SIM_POOL = "demo_sim"  # their users.dispatch_pool (tools/seed/demo_data.py SIM_POOL)
 ACTIVE = frozenset({"pending_payment", "placed", "accepted", "preparing", "almost_ready", "ready", "picked_up"})
 
 # The kitchen and the rider at a believable pace (and well inside the business rules'
@@ -47,9 +52,16 @@ def enabled(flag: str | bool | None, app_env: str, environ: Mapping[str, str]) -
 
 
 def city_key(rider_email: str) -> str | None:
-    """The demo city a demo rider rides in (rider.demo.<key>@example.com), else None."""
-    m = DEMO_RIDER.match((rider_email or "").lower())
+    """The demo city one of the simulator's riders rides in (rider.sim.<key>.<n>@example.com),
+    else None: the demo rider people test with (rider.demo.<key>) is never the simulator's."""
+    m = SIM_RIDER.match((rider_email or "").lower())
     return m.group(1) if m else None
+
+
+def pick_rider(pool: list[str], busy: set[str]) -> str | None:
+    """The simulator's rider for an order that needs one: the first of the city's pool
+    who isn't carrying or waiting for another of its orders; None if all of them are."""
+    return next((r for r in pool if r not in busy), None)
 
 
 def customer_email(key: str) -> str:
