@@ -14260,7 +14260,7 @@
             }
           },
           {
-            "description": "Kitchen or item name (any case)",
+            "description": "Kitchen or item name (any case), or the order code (#A9D1F0)",
             "in": "query",
             "name": "q",
             "required": false,
@@ -14275,7 +14275,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Kitchen or item name (any case)",
+              "description": "Kitchen or item name (any case), or the order code (#A9D1F0)",
               "title": "Q"
             }
           },
