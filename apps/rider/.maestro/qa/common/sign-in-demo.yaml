@@ -1,0 +1,29 @@
+# Sign in as the city's demo rider on QA (tools/seed/demo_data.py: Hyderabad's
+# demo rider, +91 90000 00250; the fixed OTP works outside production). Then leave
+# the delivery screen if it opened by itself, so every flow starts on the Drive tab.
+# READ-ONLY: nothing here accepts offers, changes an order or goes on/offline.
+appId: com.bhojango.rider
+env:
+  PHONE: ${DEMO_RIDER_PHONE || "9000000250"}
+  COUNTRY: ${DEMO_COUNTRY || "IN"}
+---
+- runFlow:
+    file: ../../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- extendedWaitUntil:
+    visible:
+      id: "drive-panel|offer-sheet|delivery-screen|delivery-gone|delivery-delivered|delivery-cancelled|checklist"
+    timeout: 45000
+- runFlow:
+    when:
+      visible:
+        id: "delivery-screen|delivery-gone|delivery-delivered|delivery-cancelled"
+    commands:
+      - takeScreenshot: docs/screenshots/rider/qa/00-delivery-opened
+      - back
+- extendedWaitUntil:
+    visible:
+      id: "drive-panel|offer-sheet"
+    timeout: 20000

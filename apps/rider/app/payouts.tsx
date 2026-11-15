@@ -1,5 +1,5 @@
 // Payouts: where the money goes (payout account) and past weekly statements.
-import { api, ApiError, unwrap } from "@bhojango/mobile-core";
+import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -15,9 +15,12 @@ interface Statement {
 }
 interface Account { id: string; provider: string; status: string; country: string }
 
-const STATUS: Record<string, string> = {
-  paid: "Paid", pending: "On its way", no_account: "Waiting for your payout account", failed: "Didn't go through · we'll retry",
-};
+const STATUSES = ["paid", "pending", "no_account", "failed"];
+const statusLabel = (t: Translate, s: string) => (STATUSES.includes(s) ? t(`rider.payouts.status.${s}`) : s);
+
+/** Stripe and Razorpay are names; anything else is "our payments partner". */
+// data-ok: payment provider brand names (Markets payment_providers values), not places or currencies.
+const PROVIDERS: Record<string, string> = { razorpay: "Razorpay", stripe: "Stripe" };
 
 function period(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
   const end = new Date(`${s.period_end}T12:00:00`);
@@ -27,6 +30,7 @@ function period(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
 
 export default function Payouts() {
   const { cash, date } = useFormat();
+  const { t } = useI18n();
   const [data, setData] = useState<{ statements: Statement[]; accounts: Account[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -47,7 +51,7 @@ export default function Payouts() {
       if (r.onboarding_url) await Linking.openURL(r.onboarding_url);
       await load();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : "Couldn't start payout set-up. Try again.");
+      setMsg(e instanceof ApiError ? e.message : t("rider.payouts.start_failed"));
     } finally {
       setBusy(false);
     }
@@ -55,10 +59,10 @@ export default function Payouts() {
 
   const account = data?.accounts[0];
   return (
-    <SafeAreaView style={ui.screen}>
+    <SafeAreaView testID="payouts-screen" style={ui.screen}>
       <View style={styles.head}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><Icon name="back" /></Pressable>
-        <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>Payouts</Text>
+        <Pressable testID="back" accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}><Icon name="back" /></Pressable>
+        <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>{t("rider.payouts.title")}</Text>
       </View>
       {!data ? (
         <View style={styles.center}>{msg ? <Text style={ui.body}>{msg}</Text> : <ActivityIndicator color={night.kesar} />}</View>
@@ -67,28 +71,34 @@ export default function Payouts() {
           <View style={styles.card}>
             <Icon name="bank" stroke={night.link} />
             <View style={{ flex: 1 }}>
-              <Text style={ui.bold}>{account ? (account.status === "active" ? "Payout account ready" : "Finish setting up payouts") : "No payout account yet"}</Text>
+              <Text style={ui.bold}>
+                {account ? (account.status === "active" ? t("rider.payouts.ready") : t("rider.payouts.finish")) : t("rider.payouts.none")}
+              </Text>
               <Text style={ui.muted}>
                 {account
-                  ? account.status === "active" ? `Paid every Monday through ${account.provider === "razorpay" ? "Razorpay" : account.provider === "stripe" ? "Stripe" : "our payments partner"}.` : "Your bank details aren't confirmed yet."
-                  : "Add your bank so your weekly pay can reach you."}
+                  ? account.status === "active"
+                    ? t("rider.payouts.paid_through", { provider: PROVIDERS[account.provider] ?? t("rider.payouts.partner") })
+                    : t("rider.payouts.unconfirmed")
+                  : t("rider.payouts.add_bank")}
               </Text>
             </View>
           </View>
           {!account || account.status !== "active" ? (
             <Pressable accessibilityRole="button" onPress={setUp} disabled={busy} style={ui.cta}>
-              <Text style={ui.ctaText}>{busy ? "Opening…" : account ? "Continue set-up" : "Set up payouts"}</Text>
+              <Text style={ui.ctaText}>{busy ? t("rider.payouts.opening") : account ? t("rider.payouts.continue") : t("rider.payouts.set_up")}</Text>
             </Pressable>
           ) : null}
           {msg ? <Text style={[textFont("600"), { color: night.sosText }]}>{msg}</Text> : null}
-          <Text style={[ui.bold, { fontSize: 15, marginTop: space[2] }]}>Past weeks</Text>
-          {data.statements.length === 0 ? <Text style={ui.muted}>Your weekly statements show here after your first payout.</Text> : null}
+          <Text style={[ui.bold, { fontSize: 15, marginTop: space[2] }]}>{t("rider.payouts.past_weeks")}</Text>
+          {data.statements.length === 0 ? <Text style={ui.muted}>{t("rider.payouts.none_yet")}</Text> : null}
           {data.statements.map((s) => (
             <View key={s.id} style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={[ui.bold, textFont("700")]}>{period(s, date)}</Text>
                 <Text style={[ui.muted, { fontSize: 12 }]}>
-                  {s.summary.deliveries ?? 0} deliveries{Number(s.summary.floor_top_up ?? 0) > 0 ? ` · floor top-up ${cash(s.summary.floor_top_up, s.currency)}` : ""} · {STATUS[s.status] ?? s.status}
+                  {[t("rider.payouts.deliveries", { count: s.summary.deliveries ?? 0 }),
+                    Number(s.summary.floor_top_up ?? 0) > 0 ? t("rider.payouts.top_up", { amount: cash(s.summary.floor_top_up, s.currency) }) : null,
+                    statusLabel(t, s.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
               <Text style={ui.bold}>{cash(s.amount / 100, s.currency)}</Text>

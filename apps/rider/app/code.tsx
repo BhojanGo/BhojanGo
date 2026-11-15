@@ -1,5 +1,5 @@
 // The 6-digit code. Only rider accounts get in: anyone else is signed out again.
-import { errorMessage, useSession } from "@bhojango/mobile-core";
+import { errorMessage, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -15,6 +15,7 @@ export default function Code() {
   const verify = useSession((s) => s.verifyCode);
   const sendCode = useSession((s) => s.sendCode);
   const signOut = useSession((s) => s.signOut);
+  const { t } = useI18n();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +23,8 @@ export default function Code() {
   const input = useRef<ComponentRef<typeof TextInput>>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setWait((w) => (w > 0 ? w - 1 : 0)), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setWait((w) => (w > 0 ? w - 1 : 0)), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   async function submit(value = code) {
@@ -39,13 +40,13 @@ export default function Code() {
       }
       if (role !== "driver") {
         await signOut();
-        setError("This number is a partner or admin account. Use another number to ride.");
+        setError(t("rider.code.wrong_account"));
         setCode("");
         return;
       }
       router.replace("/drive");
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, "That code didn't work. Check it and try again."));
+      setError(errorMessage((e as { body?: unknown }).body, t("rider.code.failed")));
       setCode("");
     } finally {
       setBusy(false);
@@ -53,17 +54,17 @@ export default function Code() {
   }
 
   return (
-    <SafeAreaView style={ui.screen}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}>
+    <SafeAreaView testID="code-screen" style={ui.screen}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={styles.back}>
         <Icon name="back" />
       </Pressable>
       <View style={styles.body}>
-        <Text accessibilityRole="header" style={[ui.h1, { fontSize: 30 }]}>Enter the 6-digit code</Text>
+        <Text accessibilityRole="header" style={[ui.h1, { fontSize: 30 }]}>{t("rider.code.title")}</Text>
         <Text style={[ui.body, { color: night.muted }]}>
-          Sent to <Text style={ui.bold}>{phone}</Text> ·{" "}
-          <Text style={[textFont("700"), { color: night.link }]} onPress={() => router.back()}>Edit</Text>
+          {t("rider.code.sent_to")} <Text style={ui.bold}>{phone}</Text> ·{" "}
+          <Text style={[textFont("700"), { color: night.link }]} onPress={() => router.back()}>{t("rider.code.edit")}</Text>
         </Text>
-        <Pressable accessibilityLabel="Verification code" onPress={() => input.current?.focus()} style={styles.boxes}>
+        <Pressable accessibilityLabel={t("rider.code.label")} onPress={() => input.current?.focus()} style={styles.boxes}>
           {Array.from({ length: 6 }, (_, i) => (
             <View key={i} style={[styles.box, i === code.length && styles.boxActive]}>
               <Text style={[ui.bold, { fontSize: 26 }]}>{code[i] ?? ""}</Text>
@@ -73,7 +74,7 @@ export default function Code() {
         <TextInput
           ref={input}
           testID="code"
-          accessibilityLabel="Code"
+          accessibilityLabel={t("rider.code.label")}
           autoFocus
           value={code}
           onChangeText={(v) => {
@@ -88,20 +89,20 @@ export default function Code() {
         />
         {error ? <Text style={[textFont("600"), { color: night.sosText, fontSize: 14 }]}>{error}</Text> : null}
         <Text style={ui.muted}>
-          Didn&apos;t get it?{" "}
+          {t("rider.code.not_received")}{" "}
           {wait > 0 ? (
-            <Text>Resend in <Text style={ui.bold}>0:{String(wait).padStart(2, "0")}</Text></Text>
+            <Text>{t("rider.code.resend_in")} <Text style={ui.bold}>0:{String(wait).padStart(2, "0")}</Text></Text>
           ) : (
             <Text style={[textFont("700"), { color: night.link }]} onPress={() => { void sendCode(phone, country); setWait(RESEND_AFTER); }}>
-              Send it again
+              {t("rider.code.send_again")}
             </Text>
           )}
         </Text>
       </View>
       <View style={{ padding: space[5] }}>
-        <Pressable accessibilityRole="button" disabled={code.length !== 6 || busy} onPress={() => submit()}
+        <Pressable testID="verify" accessibilityRole="button" disabled={code.length !== 6 || busy} onPress={() => submit()}
           style={[ui.cta, { opacity: code.length === 6 && !busy ? 1 : 0.5 }]}>
-          <Text style={ui.ctaText}>{busy ? "Checking…" : "Verify"}</Text>
+          <Text style={ui.ctaText}>{busy ? t("rider.code.checking") : t("rider.code.verify")}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
