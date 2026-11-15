@@ -195,6 +195,31 @@ not a project token. So jobs that need the database run **inside** the environme
 The demo seed refuses production by itself (`APP_ENV` or `RAILWAY_ENVIRONMENT_NAME` named production). `make dev`
 runs it after the base seed (`make seed`); CI and G1 don't.
 
+### The demo rider (QA and `make dev` only)
+
+The worker's demo rider simulator ([`backend/worker/app/demo_sim`](../../backend/worker/app/demo_sim)) keeps one
+demo order on its way in each demo city. On QA it is on through `DEMO_RIDER_SIM=1` on the worker (QA environment
+only, in `.railway/railway.ts`); `make dev` turns it on in compose. It runs only when `APP_ENV` is `local`,
+`development`, `dev` or `qa`, and production refuses to start with the flag set.
+
+- **Whose orders:** only the demo seed's customers (`demo<N>.<city>@example.com`), and of those only the order the
+  demo seed left on its way and the ones the simulator placed (Redis set `demo_sim:orders`). An order you place
+  yourself with a demo account is left alone.
+- **How:** everything through the normal APIs, signed in like the apps (phone code; seed phones have the fixed code
+  outside production). A few minutes after the last delivery, `demo1.<city>` orders a past order again from a kitchen
+  that is open (reorder, quote, order, fake card payment); the kitchen's owner accepts, cooks and marks it almost
+  ready; the demo rider goes online about 1.5 km away, takes realtime's offer, rides to the kitchen and on to the door
+  at 18-25 km/h along a path with a few turns (no routing service), a GPS fix every 4 s to
+  `/delivery/driver/location`; the kitchen hands it over as the rider arrives; the rider picks it up and delivers it
+  with the PIN from the customer's tracking screen, then goes offline. Tracking, ETA and the usual order
+  notifications follow on their own. Outside the kitchens' and the city's hours there is no order on its way.
+- **The order the demo seed writes** (already picked up) is finished the same way; its fixes reach the tracking page
+  through `/delivery/{id}/eta` (its rider was never made busy by dispatch, so no live WebSocket position for that
+  first one).
+- **Logs:** `demo_rider_sim` (on, off or refused, at start), `demo_order_placed`, `demo_rider_accepted`,
+  `demo_order_delivered`, and `demo_rider_sim_step_failed` with the reason.
+- **Don't** sign in as `rider.demo.<city>` in the rider app on QA while it runs; you'd be riding the same account.
+
 From a workstation, against a hosted environment that is neither QA nor production (staging, once it exists):
 [`tools/railway/playwright-qa.sh`](../../tools/railway/playwright-qa.sh) (web and admin Playwright),
 [`tools/railway/maestro-qa.sh`](../../tools/railway/maestro-qa.sh) (Maestro; dev builds use
@@ -265,6 +290,7 @@ The config sets every variable below. Values in *italics* are sealed secrets (st
 | `PAYMENT_PROVIDER` / `PAYOUT_PROVIDER` / `SMS_PROVIDER` / `PUSH_PROVIDER` / `EMAIL_PROVIDER` | backends | `fake` / `fake` / `log` / `log` / `log` | `live` / `live` / `live` / `live` / `sendgrid` |
 | `OTP_FIXED_CODE` | backends | default (`123456`, seed phones only) | `""` |
 | `DELIVERY_PIN_FIXED` | backends | default (`1234`, seed phones only) | `""` |
+| `DEMO_RIDER_SIM` | worker | `1` in QA only (the demo rider); unset in staging | unset (refused if set) |
 | `STORAGE_PROVIDER` | core-api | `s3` (the bucket) | `s3` |
 | `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | web, admin (build time) | `https://${{<service>.RAILWAY_PUBLIC_DOMAIN}}` | same, or the custom domains |
 | `NEXT_PUBLIC_APP_URL` | web | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | *the custom domain* |

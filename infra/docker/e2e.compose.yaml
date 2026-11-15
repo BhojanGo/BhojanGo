@@ -18,6 +18,8 @@ services:
     ports: !reset []
   worker:
     ports: !reset []
+    environment:
+      DEMO_RIDER_SIM: "0"  # tests drive their own orders; no demo rider in CI
 
   g1:
     profiles: ["e2e"]

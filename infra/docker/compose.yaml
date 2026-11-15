@@ -188,6 +188,10 @@ services:
       JWKS_URL: http://core-api:8001/.well-known/jwks.json
       DB_POOL_SIZE: "5"
       REALTIME_INTERNAL_URL: http://realtime:8004  # the batch engine sends realtime its batches (task 43)
+      CORE_API_URL: http://core-api:8001
+      # The demo rider (worker/app/demo_sim): delivers the demo customers' orders after `make seed`
+      # (tools/seed/demo.py), through the normal APIs. make dev only; e2e.compose.yaml turns it off.
+      DEMO_RIDER_SIM: "1"
     ports:
       - "${WORKER_PORT:-8006}:8006"
     depends_on:
