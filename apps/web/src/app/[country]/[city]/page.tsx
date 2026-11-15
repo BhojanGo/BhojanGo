@@ -148,7 +148,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-[15px] outline-none placeholder:text-[#4C5A5E]" />
             </form>
           </div>
-          {cuisines.length > 1 && (
+          {cuisines.length > 0 && (
             <nav aria-label={t("city.cuisines")} className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
               <Link href={`${base}${q ? `?q=${encodeURIComponent(q)}` : ""}#kitchens`} aria-current={!cuisine ? "page" : undefined} className={`flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold ${!cuisine ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}>
                 {t("city.all_cuisines")}
