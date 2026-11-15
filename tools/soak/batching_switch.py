@@ -10,6 +10,12 @@ import sys
 import httpx
 
 CORE = os.environ.get("SOAK_CORE", "http://core-api:8001") + "/api/v1"
+
+# Tests never write to QA or production (tools/target_guard.py).
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(CORE)
 ADMIN = ("cm.us@example.com", "BhojanGoAdmin1")  # USA country manager (makes the change)
 APPROVER = ("finance.us@example.com", "BhojanGoAdmin1")  # a second admin approves it
 ADMINS = {"US": (ADMIN, APPROVER), "IN": (("cm.in@example.com", "BhojanGoAdmin1"), ("finance.in@example.com", "BhojanGoAdmin1"))}

@@ -5,6 +5,7 @@ Restaurants, dishes and prices marked "board" come from the design board
 Markets don't have their own tables yet (P6), so each record carries country,
 state and city.
 """
+import re
 
 PASSWORD = "BhojanGo123"  # every seeded account; local and staging only
 ADMIN_PASSWORD = "BhojanGoAdmin1"
@@ -517,40 +518,76 @@ TIERS = {"spice-route-kitchen-madhapur": "B", "hitech-thali-hitec-city": "A", "b
 
 # ── Photos (web v2) ───────────────────────────────────────────────────────────
 # The food photo library (docs/design/photos/LICENSES.md), served by the website
-# from /food/<slug>-<width>.webp. A kitchen's cover and its dishes' pictures are
-# data like everything else: nothing in a page names a photo.
-KITCHEN_PHOTOS = {
-    "spice-route-kitchen-madhapur": "hyderabadi-chicken-biryani",
-    "curry-leaf-gachibowli": "idli-sambar",
-    "charminar-chai-house-old-city": "irani-chai",
-    "banjara-dosa-co-banjara-hills": "masala-dosa",
-    "hitech-thali-hitec-city": "south-indian-thali",
-    "kesar-kitchen-kondapur": "north-indian-thali",
-    "boise-bowl-co-hyde-park": "poke-bowl",
-    "basque-corner-kitchen-downtown": "bbq-ribs",
-    "treasure-valley-tandoor-bench": "tandoori-chicken",
-    "foothills-pizza-co-north-end": "margherita-pizza",
-    "spud-and-sage-downtown": "fries",
+# from /food/<slug>-<width>.webp. A dish gets a picture only when it IS the
+# library's dish: its name, ignoring case and a trailing count such as "(2)",
+# equals one of that photo's names below (true equivalents only: a mutton
+# biryani never borrows the chicken biryani's photo). Everything else has no
+# image_url. A kitchen's cover is the photo of one of its own dishes, and no two
+# kitchens in a city share one (covers()); a kitchen with no such dish has none.
+PHOTO_DISHES = {
+    "bbq-ribs": ["BBQ Ribs", "Barbecue Ribs"],
+    "butter-chicken": ["Butter Chicken", "Chicken Makhani", "Murgh Makhani"],
+    "caesar-salad": ["Caesar Salad"],
+    "cheeseburger": ["Cheeseburger", "Bacon Cheeseburger"],
+    "chole-bhature": ["Chole Bhature", "Chole Bhatura"],
+    "dal-makhani": ["Dal Makhani"],
+    "filter-coffee": ["Filter Coffee", "South Indian Filter Coffee"],
+    "fries": ["Fries", "French Fries"],
+    "gulab-jamun": ["Gulab Jamun"],
+    "haleem": ["Haleem", "Hyderabadi Haleem"],
+    "hyderabadi-chicken-biryani": ["Hyderabadi Chicken Biryani", "Hyderabadi Chicken Dum Biryani", "Chicken Dum Biryani"],
+    "idli-sambar": ["Idli Sambar", "Sambar Idli"],
+    "irani-chai": ["Irani Chai"],
+    "latte": ["Latte", "Caffe Latte", "Café Latte"],
+    "mango-lassi": ["Mango Lassi"],
+    "margherita-pizza": ["Margherita", "Margherita Pizza"],
+    "masala-dosa": ["Masala Dosa"],
+    "naan-basket": ["Naan", "Plain Naan", "Naan Basket"],
+    "north-indian-thali": ["North Indian Thali"],
+    "pancakes": ["Pancakes", "Honey Walnut Pancakes"],
+    "paneer-butter-masala": ["Paneer Butter Masala", "Paneer Makhani"],
+    "pani-puri": ["Pani Puri", "Golgappa"],
+    "pepperoni-pizza": ["Pepperoni Pizza", "Pepperoni"],
+    "poke-bowl": ["Poke Bowl", "Salmon Poke Bowl"],
+    "ramen": ["Ramen", "Shoyu Ramen"],
+    "samosa": ["Samosa", "Veg Samosa"],
+    "south-indian-thali": ["South Indian Thali"],
+    "sushi": ["Sushi", "Sushi Platter"],
+    "tacos": ["Tacos", "Street Tacos"],
+    "tandoori-chicken": ["Tandoori Chicken"],
+    "vada": ["Vada", "Medu Vada"],
+    "veg-dum-biryani": ["Veg Dum Biryani", "Vegetable Dum Biryani"],
 }
-# A dish's picture: the first keyword its name contains (lower case).
-DISH_PHOTOS = [
-    ("veg dum biryani", "veg-dum-biryani"), ("biryani", "hyderabadi-chicken-biryani"),
-    ("paneer tikka", "paneer-butter-masala"), ("butter chicken", "butter-chicken"), ("dosa", "masala-dosa"),
-    ("idli", "idli-sambar"), ("filter coffee", "filter-coffee"), ("chai", "irani-chai"), ("samosa", "samosa"),
-    ("andhra meals", "south-indian-thali"), ("veg thali", "south-indian-thali"), ("thali", "north-indian-thali"),
-    ("naan", "naan-basket"), ("margherita", "margherita-pizza"), ("pepperoni", "pepperoni-pizza"),
-    ("caesar", "caesar-salad"), ("poke", "poke-bowl"), ("fries", "fries"), ("tandoori", "tandoori-chicken"),
-    ("chicken biryani", "hyderabadi-chicken-biryani"), ("gulab jamun", "gulab-jamun"), ("lassi", "mango-lassi"),
-    ("latte", "latte"), ("pancake", "pancakes"), ("taco", "tacos"), ("ramen", "ramen"), ("sushi", "sushi"),
-    ("burger", "cheeseburger"), ("ribs", "bbq-ribs"), ("haleem", "haleem"), ("dal makhani", "dal-makhani"),
-    ("chole", "chole-bhature"), ("pani puri", "pani-puri"), ("vada", "vada"),
-]
+_PHOTO_BY_NAME = {n.lower(): slug for slug, names in PHOTO_DISHES.items() for n in names}
+_COUNT = re.compile(r"\s*\(\d+(\s*(pc|pcs|pieces))?\)$", re.IGNORECASE)
 
 
 def photo_url(slug: str | None, width: int = 800) -> str | None:
     return f"/food/{slug}-{width}.webp" if slug else None
 
 
+def dish_slug(name: str) -> str | None:
+    """The library photo that is exactly this dish, or None."""
+    return _PHOTO_BY_NAME.get(_COUNT.sub("", name.strip()).lower())
+
+
 def dish_photo(name: str) -> str | None:
-    n = name.lower()
-    return photo_url(next((p for k, p in DISH_PHOTOS if k in n), None))
+    return photo_url(dish_slug(name))
+
+
+def covers(kitchens: list[tuple[str, list[str]]], taken: set[str] | None = None) -> dict[str, str | None]:
+    """One city's kitchens, in order, as (slug, dish names in menu order): each
+    gets the photo of its first dish with an exact library match that no kitchen
+    before it took. Returns slug -> photo slug (None: no cover)."""
+    used = set(taken or ())
+    out: dict[str, str | None] = {}
+    for slug, dishes in kitchens:
+        pick = next((p for p in map(dish_slug, dishes) if p and p not in used), None)
+        if pick:
+            used.add(pick)
+        out[slug] = pick
+    return out
+
+
+def menu_dishes(menu: dict) -> list[str]:
+    return [d[0] for items in menu.values() for d in items]

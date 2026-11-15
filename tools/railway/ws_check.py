@@ -1,4 +1,5 @@
-"""Live tracking over a hosted environment's public proxy (Railway QA): the customer's
+"""Live tracking over a hosted environment's public proxy (staging; it places an order, so
+tools/target_guard.py refuses QA and production): the customer's
 tracking WebSocket gets the rider's positions, stays open through an idle spell
 with no client pings (like the app), and still delivers afterwards.
 
@@ -19,6 +20,12 @@ import websockets
 
 CORE, RT, LOGINS = sys.argv[1].rstrip("/"), sys.argv[2].rstrip("/"), sys.argv[3]
 IDLE = int(sys.argv[4]) if len(sys.argv) > 4 else 150
+
+# Tests never write to QA or production (tools/target_guard.py): this places an order.
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(CORE, RT)
 PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) == 4}
 SPICE_AT = (17.4486, 78.3908)  # Spice Route Kitchen, Madhapur
 

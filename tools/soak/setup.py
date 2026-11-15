@@ -20,6 +20,12 @@ from data import MARKETS  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
+# Tests never write to QA or production (tools/target_guard.py): DATABASE_URL must be local.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from target_guard import ensure_local_process  # noqa: E402
+
+ensure_local_process()
+
 # Riders 4 and up (onboarding finished, like the seed's): five named, then numbered.
 NAMES = ["Maya Patel", "Chris Walker", "Dana Kim", "Luis Ramirez", "Taylor Reed"]
 TOTAL_RIDERS = int(os.environ.get("SOAK_RIDERS", "8"))

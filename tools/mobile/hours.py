@@ -9,6 +9,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 
 API = "http://localhost:8001/api/v1"
+
+# Tests never write to QA or production (tools/target_guard.py).
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(API)
 c = httpx.Client(timeout=30)
 
 # city code, city name, timezone, country manager, partner, usual service hours (seed)

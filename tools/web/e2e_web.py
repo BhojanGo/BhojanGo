@@ -22,6 +22,7 @@ import os
 import random
 import re
 import socket
+import sys
 import threading
 
 from playwright.sync_api import expect, sync_playwright
@@ -41,6 +42,12 @@ QA_WEB, QA_CORE, QA_RT = os.environ.get("QA_WEB", ""), os.environ.get("QA_CORE",
 # The site's own address in canonical links and the sitemap (NEXT_PUBLIC_APP_URL):
 # bhojango.com locally and in production, the QA web domain on QA.
 SITE = QA_WEB or "https://bhojango.com"
+
+# Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api(QA_CORE or "http://core-api:8001")
 
 # Seed data (tools/seed/data.py). The website never names these; the test may.
 HYD_PHONE, US_PHONE, OTP = "9000000101", "2085550101", "123456"

@@ -512,6 +512,13 @@ async def deliver(p: Person, orders: list[str], ride: Any) -> None:
 
 
 async def main() -> None:
+    # Tests never write to QA or production (tools/target_guard.py).
+    import sys
+
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from target_guard import ensure_safe_api
+
+    ensure_safe_api(CORE, RT)
     limits = httpx.Limits(max_connections=200, max_keepalive_connections=50)
     async with httpx.AsyncClient(timeout=30, limits=limits) as http:
         partner = Person(http, f"partner.{CITY_KEY}@example.com")

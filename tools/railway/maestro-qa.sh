@@ -16,6 +16,12 @@ mkdir -p "$OUT"
 sh "$ROOT/tools/mobile/env-profile.sh" qa || exit 1
 QA_CORE="$(sed -n 's/^EXPO_PUBLIC_CORE_URL=//p' "$ROOT/apps/customer/.env.local")"
 QA_RT="$(sed -n 's/^EXPO_PUBLIC_REALTIME_URL=//p' "$ROOT/apps/customer/.env.local")"
+# Tests never write to QA or production: the flows sign in, place orders and change
+# data, so tools/target_guard.py refuses a QA or production API (exit 3).
+if ! python "$ROOT/tools/target_guard.py" api "$QA_CORE" "$QA_RT"; then
+  sh "$ROOT/tools/mobile/env-profile.sh" local >/dev/null
+  exit 3
+fi
 QA_PASSWORDS="$(python -c "
 import json, sys
 rows = [l.rstrip('\n').split('\t') for l in open(sys.argv[1], encoding='utf-8')]

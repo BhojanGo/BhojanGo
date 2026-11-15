@@ -3,7 +3,7 @@
 # Needs the Railway CLI with a QA project token in RAILWAY_TOKEN.
 #   tools/railway/qa-runner.sh create        # once: the service and its variables (references only)
 #   tools/railway/qa-runner.sh deploy        # upload this checkout's backend + tools and build it
-#   tools/railway/qa-runner.sh job <name>    # run one job (see tools/railway/qa-job.sh), print its log
+#   tools/railway/qa-runner.sh job <name>    # run one job (see tools/railway/qa-job.sh: reset, seed, demo, checks, hours), print its log
 #   tools/railway/qa-runner.sh delete        # remove the service when testing is done
 # Every value is a Railway reference (${{service.VAR}}): no secret passes through here.
 set -eu
