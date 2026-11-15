@@ -19,6 +19,8 @@ from core_api.modules.catalog.schemas.restaurant import (
     MenuItemResponse,
     MenuItemUpdateRequest,
     PricingConfigRequest,
+    PublicRestaurant,
+    PublicRestaurantList,
     RestaurantCreateRequest,
     RestaurantListResponse,
     RestaurantMenuResponse,
@@ -37,7 +39,7 @@ CACHE_KEY_LIST = "restaurants:list:{city}:{cuisine}:{page}:{limit}"
 CACHE_KEY_RESTAURANT = "restaurants:{id}"
 
 
-@router.get("", response_model=RestaurantListResponse)
+@router.get("", response_model=PublicRestaurantList)
 async def list_restaurants(
     city: str | None = Query(None),
     cuisine: str | None = Query(None),
@@ -48,11 +50,11 @@ async def list_restaurants(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db, scope="function"),
-) -> RestaurantListResponse:
+) -> PublicRestaurantList:
     cache_key = f"restaurants:list:{city}:{cuisine}:{country}:{page}:{limit}"
     cached = await cache_get(cache_key)
     if cached:
-        return RestaurantListResponse(**cached)
+        return PublicRestaurantList(**cached)
 
     repo = RestaurantRepository(db)
     restaurants, total = await repo.list_restaurants(
@@ -66,8 +68,8 @@ async def list_restaurants(
         limit=limit,
     )
 
-    response = RestaurantListResponse(
-        items=[RestaurantResponse.model_validate(r) for r in restaurants],
+    response = PublicRestaurantList(
+        items=[PublicRestaurant.model_validate(r) for r in restaurants],
         total=total,
         page=page,
         limit=limit,
@@ -77,7 +79,7 @@ async def list_restaurants(
     return response
 
 
-@router.get("/search", response_model=RestaurantListResponse)
+@router.get("/search", response_model=PublicRestaurantList)
 async def search_restaurants(
     q: str | None = Query(None),
     city: str | None = Query(None),
@@ -89,13 +91,13 @@ async def search_restaurants(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db, scope="function"),
-) -> RestaurantListResponse:
+) -> PublicRestaurantList:
     result = await search_svc.search_restaurants(
         q=q, city=city, cuisine=cuisine, min_rating=min_rating,
         is_open=is_open, lat=lat, lng=lng, page=page, limit=limit,
     )
     if not result["ids"]:
-        return RestaurantListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
+        return PublicRestaurantList(items=[], total=0, page=page, limit=limit, total_pages=0)
 
     repo = RestaurantRepository(db)
     restaurants = []
@@ -104,8 +106,8 @@ async def search_restaurants(
         if r:
             restaurants.append(r)
 
-    return RestaurantListResponse(
-        items=[RestaurantResponse.model_validate(r) for r in restaurants],
+    return PublicRestaurantList(
+        items=[PublicRestaurant.model_validate(r) for r in restaurants],
         total=result["total"],
         page=page,
         limit=limit,
@@ -113,8 +115,8 @@ async def search_restaurants(
     )
 
 
-@router.get("/by-slug/{slug}", response_model=RestaurantResponse)
-async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, scope="function")) -> RestaurantResponse:
+@router.get("/by-slug/{slug}", response_model=PublicRestaurant)
+async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, scope="function")) -> PublicRestaurant:
     """A live restaurant by its URL slug (the web's restaurant pages, P20)."""
     from sqlalchemy import select
 
@@ -124,25 +126,25 @@ async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, s
         Restaurant.slug == slug, Restaurant.status == "active", Restaurant.deleted_at.is_(None)))).scalars().first()
     if r is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    return RestaurantResponse.model_validate(r)
+    return PublicRestaurant.model_validate(r)
 
 
-@router.get("/{restaurant_id}", response_model=RestaurantResponse)
+@router.get("/{restaurant_id}", response_model=PublicRestaurant)
 async def get_restaurant(
     restaurant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db, scope="function"),
-) -> RestaurantResponse:
+) -> PublicRestaurant:
     cache_key = f"restaurants:{restaurant_id}"
     cached = await cache_get(cache_key)
     if cached:
-        return RestaurantResponse(**cached)
+        return PublicRestaurant(**cached)
 
     repo = RestaurantRepository(db)
     restaurant = await repo.get_by_id(restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-    response = RestaurantResponse.model_validate(restaurant)
+    response = PublicRestaurant.model_validate(restaurant)
     await cache_set(cache_key, response.model_dump(), ttl=300)
     return response
 
@@ -182,7 +184,7 @@ async def get_restaurant_menu(
     ]
 
     return RestaurantMenuResponse(
-        restaurant=RestaurantResponse.model_validate(restaurant),
+        restaurant=PublicRestaurant.model_validate(restaurant),
         categories=categories,
         uncategorized_items=uncategorized,
     )
@@ -206,6 +208,13 @@ async def create_restaurant(
     if current_user.role != "restaurant_owner" and not authz.can(access.assignments(current_user), "partners.edit",
                                                                  data.country):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Restaurant owners (or partner admins) only")
+    from core_api.modules.markets.service import countries
+
+    country = await countries.require_open(db, data.country)  # a Markets country, not a draft
+    countries.require_currency_of(country, data.currency)
+    if data.address.country != country.code:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            detail={"code": "ADDRESS_COUNTRY_MISMATCH", "message": "The address is in another country"})
     repo = RestaurantRepository(db)
     address_dict = data.address.model_dump()
     restaurant = await repo.create(
@@ -500,3 +509,34 @@ async def list_pending_restaurants(
     restaurants = await repo.list_pending_restaurants(limit=limit, offset=offset)
     mine = [r for r in restaurants if await access.admin_may(db, current_user, r, "partners.view")]
     return [RestaurantResponse.model_validate(r) for r in mine]
+
+
+@router.get("/admin/kitchens", response_model=RestaurantListResponse)
+async def list_kitchens_for_admins(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    city: str | None = Query(None),
+    country: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+) -> RestaurantListResponse:
+    """Admin: live kitchens (paused ones too) with the full record — licence expiry,
+    commission terms — cut to the cities the admin may view partners in. The
+    public list leaves those fields out (PublicRestaurant)."""
+    from sqlalchemy import func, select
+
+    from core_api.modules.catalog.models.restaurant import Restaurant
+
+    if not authz.scopes_with(access.assignments(current_user), "partners.view"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admins only")
+    q = select(Restaurant).where(Restaurant.status == "active", Restaurant.deleted_at.is_(None))
+    if city:
+        q = q.where(func.lower(Restaurant.city) == city.lower())
+    if country:
+        q = q.where(Restaurant.country == country)
+    rows = (await db.execute(q.order_by(Restaurant.name))).scalars().all()
+    mine = [r for r in rows if await access.admin_may(db, current_user, r, "partners.view")]
+    total = len(mine)
+    items = mine[(page - 1) * limit: page * limit]
+    return RestaurantListResponse(items=[RestaurantResponse.model_validate(r) for r in items], total=total, page=page,
+                                  limit=limit, total_pages=math.ceil(total / limit) if total else 0)

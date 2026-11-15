@@ -118,7 +118,7 @@ function Kitchens({ scope }: { scope: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["kitchens", cities.map((c) => c.name).join(",")],
     queryFn: async () => (await Promise.all(cities.map(async (c) =>
-      (await adminApi.get<{ items: Kitchen[] }>("/user/restaurants", { params: { city: c.name, limit: 100 } })).data.items))).flat(),
+      (await adminApi.get<{ items: Kitchen[] }>("/user/restaurants/admin/kitchens", { params: { city: c.name, limit: 100 } })).data.items))).flat(),
     enabled: cities.length > 0,
   });
   const list = (data ?? []).filter((k) => !q || k.name.toLowerCase().includes(q.toLowerCase()));

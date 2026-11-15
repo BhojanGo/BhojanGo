@@ -223,3 +223,29 @@ async def test_state_cannot_open_in_draft_country(client: AsyncClient) -> None:
         "phone_code": "+1", "payment_providers": ["stripe"], "tax_regime": "gst",
     })
     assert r.status_code == 403  # only super admins add countries
+
+
+async def test_sign_up_and_kitchens_follow_the_countries_table(client: AsyncClient) -> None:
+    """No country list in the code: a draft country takes no sign-ups or kitchens, a
+    kitchen charges in its country's currency, a phone carries its country's code."""
+    sup = await auth(client, "admin@example.com")
+    code = "Y" + random.choice("ABCDEFGHJKLMNPQRSTUVWXZ")
+    r = await client.post("/api/v1/markets/countries", headers=sup, json={
+        "code": code, "name": f"Draftland {code}", "currency": "EUR", "locales": ["en-GB"], "timezone": "UTC",
+        "phone_code": "+998", "payment_providers": ["stripe"], "tax_regime": "gst"})
+    assert r.status_code in (201, 409), r.text
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+998123456789", "country": code})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+12085550199", "country": "IN"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_COUNTRY_MISMATCH", r.text
+
+    partner = await auth(client, "partner.hyd@example.com", "BhojanGo123")
+    kitchen = {"name": "Country Check Kitchen", "cuisine_types": ["Indian"], "city": "Hyderabad",
+               "address": {"street": "1 Rd", "city": "Hyderabad", "state": "Telangana", "zip": "500081", "country": "IN"},
+               "location": {"lat": 17.44, "lng": 78.39}, "delivery_time_min": 20, "delivery_time_max": 40,
+               "minimum_order_amount": 0, "delivery_fee": 0}
+    r = await client.post("/api/v1/restaurants", headers=partner, json={**kitchen, "country": "IN", "currency": "USD"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "CURRENCY_MISMATCH", r.text
+    r = await client.post("/api/v1/restaurants", headers=partner, json={
+        **kitchen, "country": code, "currency": "EUR", "address": {**kitchen["address"], "country": code}})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text

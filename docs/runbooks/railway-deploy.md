@@ -61,7 +61,8 @@ sends events through one Redis stream ([`backend/shared/bus.py`](../../backend/s
 
 - a payment provider other than `live` (`auto` falls back to the fake when there are no keys);
 - fake payouts;
-- the fixed OTP for seed phones (`OTP_FIXED_CODE` must be set to `""`).
+- the fixed OTP for seed phones (`OTP_FIXED_CODE` must be set to `""`);
+- the fixed delivery PIN for seed phones (`DELIVERY_PIN_FIXED` must be set to `""`).
 
 "Named production" is checked against `APP_ENV` and Railway's own `RAILWAY_ENVIRONMENT_NAME`
 ([`shared/config.py`](../../backend/shared/config.py)).
@@ -139,7 +140,7 @@ You need:
 
 - Providers are `live`; it needs the provider keys from
   [11_Integration_Setup_Guide.md](../11_Integration_Setup_Guide.md).
-- `OTP_FIXED_CODE` is `""`.
+- `OTP_FIXED_CODE` and `DELIVERY_PIN_FIXED` are `""`.
 - No seed data, and no sleeping.
 - Custom domains (Settings → Networking).
 - Postgres backups on: daily, keep 7. Do the restore drill from [backup-restore.md](backup-restore.md) once.
@@ -231,6 +232,7 @@ The config sets every variable below. Values in *italics* are sealed secrets (st
 | `CORS_ORIGINS` | backends | `["https://${{web.RAILWAY_PUBLIC_DOMAIN}}","https://${{admin.RAILWAY_PUBLIC_DOMAIN}}"]` | *the custom domains* |
 | `PAYMENT_PROVIDER` / `PAYOUT_PROVIDER` / `SMS_PROVIDER` / `PUSH_PROVIDER` / `EMAIL_PROVIDER` | backends | `fake` / `fake` / `log` / `log` / `log` | `live` / `live` / `live` / `live` / `sendgrid` |
 | `OTP_FIXED_CODE` | backends | default (`123456`, seed phones only) | `""` |
+| `DELIVERY_PIN_FIXED` | backends | default (`1234`, seed phones only) | `""` |
 | `STORAGE_PROVIDER` | core-api | `s3` (the bucket) | `s3` |
 | `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | web, admin (build time) | `https://${{<service>.RAILWAY_PUBLIC_DOMAIN}}` | same, or the custom domains |
 | `NEXT_PUBLIC_APP_URL` | web | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | *the custom domain* |

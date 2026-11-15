@@ -1,8 +1,8 @@
 """Receipts and tax invoices (GET /orders/{id}/receipt.pdf): the invoice
 number, the bill lines as printed, and the PDF itself."""
-import re
+import io
+import unicodedata
 import uuid
-import zlib
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -12,14 +12,15 @@ ORDER = uuid.UUID("1a2b3c4d-0000-4000-8000-000000000001")
 
 
 def pdf_text(data: bytes) -> str:
-    """The PDF's page text: content streams inflated (fpdf2 compresses them)."""
-    out = []
-    for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", data, re.S):
-        try:
-            out.append(zlib.decompress(m.group(1)).decode("latin-1"))
-        except zlib.error:
-            out.append(m.group(1).decode("latin-1"))
-    return "\n".join(out)
+    """The PDF's text as a reader extracts it (pypdf, through the embedded fonts'
+    ToUnicode maps), NFC-normalised so shaped Indic clusters compare equal. A
+    shaped cluster drawn with several glyphs (a reordered vowel sign) maps its
+    extra glyphs to control characters in fpdf2's ToUnicode; they are dropped."""
+    from pypdf import PdfReader
+
+    reader = PdfReader(io.BytesIO(data))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    return unicodedata.normalize("NFC", "".join(ch for ch in text if ch == "\n" or unicodedata.category(ch) != "Cc"))
 
 
 def test_invoice_number_is_deterministic_and_dated_in_india_time() -> None:
@@ -33,9 +34,11 @@ def test_invoice_number_is_deterministic_and_dated_in_india_time() -> None:
 def test_country_and_money() -> None:
     assert R.country_of("IN-TG-HYD", "INR") == "IN" and R.country_of("US-TX-AUS", "USD") == "US"
     assert R.country_of(None, "INR") == "IN" and R.country_of(None, "USD") == "US"
-    assert R.money(Decimal("617.389"), "INR") == "INR 617.39"
-    assert R.money("124050", "INR") == "INR 1,24,050.00"
-    assert R.money(-12.5, "USD") == "USD -12.50"
+    assert R.money(Decimal("617.389"), "INR") == "₹617.39"
+    assert R.money("124050", "INR") == "₹1,24,050.00"
+    assert R.money(-12.5, "USD") == "-$12.50"
+    assert R.money("1240.5", "AED") == "AED 1,240.50"  # a currency with no symbol here: its code
+    assert R.country_of("GB-ENG-LON", "GBP") == "GB"  # from Markets' city code, no country list
 
 
 def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
@@ -50,17 +53,11 @@ def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
          "detail": {"rate_percent": "18.0", "included": "4.58"}},
     ]
     rows = R.bill_rows(lines, "INR")
-    assert rows[0] == ("Food", "INR 560.00")
-    assert rows[1] == ("Weekend 10% (paid for by the kitchen)", "INR -56.00")
-    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "INR -30.00")
-    assert rows[4] == ("GST on food @ 5% on INR 504.00 (collected by BhojanGo)", "INR 25.20")
-    assert rows[5] == ("VAT (included in prices) @ 18%: INR 4.58", "included")
-
-
-def test_text_helvetica_cannot_draw_is_replaced_not_fatal() -> None:
-    assert R.latin1("Café Déjà") == "Café Déjà"
-    assert R.latin1("Srī Krishna – Bhavan") == "Sri Krishna - Bhavan"
-    assert R.latin1("ప్రియ") == "?" * len("ప్రియ")
+    assert rows[0] == ("Food", "₹560.00")
+    assert rows[1] == ("Weekend 10% (paid for by the kitchen)", "-₹56.00")
+    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "-₹30.00")
+    assert rows[4] == ("GST on food @ 5% on ₹504.00 (collected by BhojanGo)", "₹25.20")
+    assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "included")
 
 
 def receipt(country: str = "IN") -> R.Receipt:
@@ -84,14 +81,14 @@ def test_india_gets_a_tax_invoice_with_the_licence_and_gst() -> None:
     data = R.render(receipt("IN"))
     assert data.startswith(b"%PDF-")
     text = pdf_text(data)
-    for want in ("Tax invoice", "BG-IN-202611-1A2B3C4D", "INR 617.39", "13622012000123", "36AABCS1429B1Z5",
+    for want in ("Tax invoice", "BG-IN-202611-1A2B3C4D", "₹617.39", "13622012000123", "36AABCS1429B1Z5",
                  "GST @ 5%", "Priya Sharma", "Flat 302", "Veg Dum Biryani"):
         assert want in text, want
 
 
 def test_us_gets_a_receipt_with_sales_tax() -> None:
     text = pdf_text(R.render(receipt("US")))
-    for want in ("Receipt", "BG-US-202611-1A2B3C4D", "USD 31.42", "Sales tax @ 8.25%"):
+    for want in ("Receipt", "BG-US-202611-1A2B3C4D", "$31.42", "Sales tax @ 8.25%"):
         assert want in text, want
     assert "Tax invoice" not in text and "FSSAI" not in text
 
@@ -100,3 +97,24 @@ def test_orders_without_an_itemised_bill_use_their_totals() -> None:
     lines = R.fallback_lines(Decimal("500"), Decimal("40"), Decimal("50"), Decimal("25"), Decimal("0"))
     assert [ln["code"] for ln in lines] == ["food", "promotion", "delivery_fee", "tax"]
     assert lines[1]["amount"] == "-50"
+
+
+def test_names_print_in_their_own_script_with_the_rupee_sign() -> None:
+    """Telugu and Devanagari names (shaped by HarfBuzz, Noto fonts embedded), mixed with Latin, and ₹."""
+    r = receipt("IN")
+    r.customer_name = "శ్రీనివాస్ Rao"
+    r.kitchen = {**r.kitchen, "name": "प्रिया की रसोई"}
+    r.items = [{"name": "ಮಸಾಲೆ ದೋಸೆ", "quantity": 1, "unit_price": 120.0}, {"name": "সন্দেশ", "quantity": 2, "unit_price": 40.0},
+               {"name": "தோசை", "quantity": 1, "unit_price": 90.0}]
+    data = R.render(r)
+    text = pdf_text(data)
+    for want in ("శ్రీనివాస్ Rao", "प्रिया की रसोई", "₹617.39", "₹120.00", "Tax invoice"):
+        assert want in text, (want, text)
+    for script in ("NotoSans", "NotoSansTelugu", "NotoSansDevanagari", "NotoSansKannada", "NotoSansBengali", "NotoSansTamil"):
+        assert f"/BaseFont /{script}".encode() in data or f"+{script}".encode() in data, script  # embedded, subset
+    assert b"Helvetica" not in data
+
+
+def test_us_receipt_uses_the_dollar_sign() -> None:
+    text = pdf_text(R.render(receipt("US")))
+    assert "$31.42" in text and "USD 31.42" not in text

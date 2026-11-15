@@ -412,7 +412,10 @@ async def receipt_pdf(
         customer_name=(profile or {}).get("name") or "Customer", delivery_address=order.delivery_address or {},
         items=order.items or [], lines=lines, payment_method=order.payment_method,
     )
-    return Response(rcpt.render(doc), media_type="application/pdf",
+    from starlette.concurrency import run_in_threadpool
+
+    pdf = await run_in_threadpool(rcpt.render, doc)  # fonts and shaping take ~0.2 s: off the event loop
+    return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{doc.invoice_no}.pdf"',
                              "Cache-Control": "private, no-store"})
 

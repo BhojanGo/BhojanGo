@@ -51,6 +51,20 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 
+COUNTRIES = {
+    "IN": ("INR", "+91", ("en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"), "live"),
+    "US": ("USD", "+1", ("en-US", "es-US"), "live"),
+    "FR": ("EUR", "+33", ("fr-FR",), "draft"),  # a country being set up: no sign-ups yet
+}
+
+
+async def fake_country(db, code: str):  # type: ignore[no-untyped-def]
+    from core_api.modules.markets.service.countries import CountryInfo
+
+    row = COUNTRIES.get(code)
+    return CountryInfo(code, row[0], row[1], row[2], row[3]) if row else None
+
+
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
@@ -77,6 +91,9 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         # changes to them are tested in core_api/integration/test_account.py.
         patch("core_api.modules.orders.service.lookup.forget_customer", AsyncMock(return_value=0)),
         patch("core_api.modules.catalog.service.lookup.forget_reviewer", AsyncMock()),
+        # Markets' countries table is Postgres-only; the seeded two stand in for it here.
+        patch("core_api.modules.markets.service.countries.lookup", fake_country),
+        patch("core_api.modules.markets.service.countries.open_currencies", AsyncMock(return_value={"INR", "USD"})),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             yield ac
