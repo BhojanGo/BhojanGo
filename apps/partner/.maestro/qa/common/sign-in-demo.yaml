@@ -1,0 +1,32 @@
+# Sign in as the city's demo partner on QA (tools/seed/demo_data.py: Hyderabad's
+# demo partner, +91 90000 00910; the fixed OTP works outside production). The demo
+# partner owns every demo kitchen, so the tablet asks which one: the first is picked
+# (kept on this device only). Ends on the orders board.
+# READ-ONLY: nothing here accepts, rejects, pauses or edits anything.
+appId: com.bhojango.partner
+env:
+  PHONE: ${DEMO_PARTNER_PHONE || "9000000910"}
+  COUNTRY: ${DEMO_COUNTRY || "IN"}
+---
+- runFlow:
+    file: ../../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- extendedWaitUntil:
+    visible:
+      id: "orders-screen|kitchens-screen"
+    timeout: 45000
+- runFlow:
+    when:
+      visible:
+        id: "kitchens-screen"
+    commands:
+      - takeScreenshot: docs/screenshots/partner/qa/00-which-kitchen
+      - tapOn:
+          id: "kitchen-.*"
+          index: 0
+- extendedWaitUntil:
+    visible:
+      id: "orders-screen"
+    timeout: 30000

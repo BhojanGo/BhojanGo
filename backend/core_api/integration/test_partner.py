@@ -211,3 +211,54 @@ async def test_today_when_open_all_day(client: AsyncClient) -> None:
     rid, _ = await spice(client)
     r = await client.get(f"/api/v1/restaurants/{rid}/today", headers=partner)
     assert r.status_code == 200, r.text
+
+
+async def test_rating_summary_on_the_dashboard(client: AsyncClient) -> None:
+    """Round 4: the kitchen's own ratings: "New" until 5 (as customers see it), the
+    average and count, how many gave each star, the latest comments without names."""
+    partner = await login(client, "partner.hyd@example.com")
+    rid, _ = await spice(client)
+    r = await client.get(f"/api/v1/restaurants/{rid}/ratings/summary", headers=partner)
+    assert r.status_code == 200, r.text
+    s = r.json()
+    assert set(s) == {"rating_display", "average", "count", "distribution", "recent"}
+    assert len(s["distribution"]) == 5 and all(n >= 0 for n in s["distribution"])
+    assert s["rating_display"]["new"] is (s["count"] < 5)
+    if s["count"]:
+        assert s["average"] is not None and 1 <= s["average"] <= 5
+    for c in s["recent"]:
+        assert set(c) == {"stars", "comment", "created_at"} and 1 <= c["stars"] <= 5 and c["comment"]
+    public = (await client.get(f"/api/v1/restaurants/{rid}")).json()
+    assert s["count"] == public["review_count"]  # the same numbers customers see
+    other = await login(client, "partner.boi@example.com")
+    assert (await client.get(f"/api/v1/restaurants/{rid}/ratings/summary", headers=other)).status_code == 403
+
+
+async def test_menu_photo_is_public_and_becomes_the_dish_photo(client: AsyncClient) -> None:
+    """Round 4: the partner app uploads a dish photo (menu_photo), gets a public path
+    for it and saves it as the item's image_url; anyone can load it, other uploads stay private."""
+    from core_api.integration.test_orders_flow import PNG, upload
+
+    partner, rider = await login(client, "partner.hyd@example.com"), await login(client, "rider1.hyd@example.com")
+    assert (await upload(client, rider, "menu_photo")).status_code == 403  # partners only
+    r = await upload(client, partner, "menu_photo")
+    assert r.status_code == 201, r.text
+    path = r.json()["public_path"]
+    assert path.startswith("/api/v1/uploads/menu-photo/") and r.json()["key"].startswith("menu_photo/")
+    got = await client.get(path)  # no token
+    assert got.status_code == 200 and got.content == PNG and got.headers["content-type"] == "image/png"
+    assert "public" in got.headers["cache-control"]
+    doc = (await upload(client, partner, "partner_document")).json()["key"]  # partner_document/<owner>/<file>
+    assert (await client.get("/api/v1/uploads/menu-photo/" + doc.removeprefix("partner_document/"))).status_code == 404
+    assert (await client.get("/api/v1/uploads/menu-photo/x/../../etc")).status_code in (404, 422)
+
+    rid, item = await spice(client)
+    menu = (await client.get(f"/api/v1/restaurants/{rid}/menu")).json()
+    was = next(i for c in menu["categories"] for i in c["items"] if i["id"] == item)["image_url"]
+    try:
+        r = await client.put(f"/api/v1/restaurants/{rid}/menu-items/{item}", headers=partner, json={"image_url": f"http://test{path}"})
+        assert r.status_code == 200 and r.json()["image_url"] == f"http://test{path}", r.text
+    finally:
+        from core_api.integration.test_web_v3 import sql
+
+        await sql("UPDATE menu_items SET image_url = :u WHERE id = :i", u=was, i=item)

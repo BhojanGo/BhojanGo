@@ -1,0 +1,17 @@
+# QA, read-only (run against QA as the demo partner: maestro test apps/partner/.maestro/qa):
+# the orders board (New, Preparing, Ready for pickup), the kitchen's status and the
+# test-site banner. No accept, reject, ready, busy or pause.
+appId: com.bhojango.partner
+---
+- runFlow: common/sign-in-demo.yaml
+- assertVisible:
+    id: "test-banner"
+- assertVisible:
+    id: "column-new"
+- assertVisible:
+    id: "column-preparing"
+- assertVisible:
+    id: "column-ready"
+- assertVisible:
+    id: "kitchen-status"
+- takeScreenshot: docs/screenshots/partner/qa/01-orders

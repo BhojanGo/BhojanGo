@@ -1,5 +1,5 @@
 // The 6-digit code. Only partner accounts get in.
-import { errorMessage, useSession } from "@bhojango/mobile-core";
+import { errorMessage, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -13,6 +13,7 @@ export default function Code() {
   const verify = useSession((s) => s.verifyCode);
   const signOut = useSession((s) => s.signOut);
   const loadKitchen = useKitchen((s) => s.load);
+  const { t: tr } = useI18n();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,14 +32,14 @@ export default function Code() {
       }
       if (role !== "restaurant_owner") {
         await signOut();
-        setError("This number is a rider or admin account. Use another number for your kitchen.");
+        setError(tr("partner.code.wrong_account"));
         setCode("");
         return;
       }
       await loadKitchen();
       router.replace("/");
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, "That code didn't work. Check it and try again."));
+      setError(errorMessage((e as { body?: unknown }).body, tr("partner.code.failed")));
       setCode("");
     } finally {
       setBusy(false);
@@ -47,19 +48,19 @@ export default function Code() {
 
   return (
     <Split>
-      <Text accessibilityRole="header" style={t.big}>Enter the 6-digit code</Text>
+      <Text accessibilityRole="header" style={t.big}>{tr("partner.code.title")}</Text>
       <Text style={t.muted}>
-        Sent to <Text style={textFont("800")}>{phone}</Text> ·{" "}
-        <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>Edit</Text>
+        {tr("partner.code.sent_to")} <Text style={textFont("800")}>{phone}</Text> ·{" "}
+        <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>{tr("partner.code.edit")}</Text>
       </Text>
-      <Pressable accessibilityLabel="Verification code" onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: 10 }}>
+      <Pressable accessibilityLabel={tr("partner.code.label")} onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: 10 }}>
         {Array.from({ length: 6 }, (_, i) => (
           <View key={i} style={[s.box, i === code.length && { borderColor: color.peacock, borderWidth: 2 }]}>
             <Text style={[textFont("800"), { fontSize: 28 }]}>{code[i] ?? ""}</Text>
           </View>
         ))}
       </Pressable>
-      <TextInput ref={input} testID="code" accessibilityLabel="Code" autoFocus value={code} keyboardType="number-pad"
+      <TextInput ref={input} testID="code" accessibilityLabel={tr("partner.code.label")} autoFocus value={code} keyboardType="number-pad"
         textContentType="oneTimeCode" autoComplete="sms-otp" style={s.hidden}
         onChangeText={(v) => {
           const d = v.replace(/\D/g, "").slice(0, 6);
@@ -67,12 +68,12 @@ export default function Code() {
           if (d.length === 6) void submit(d);
         }} />
       {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
-      <Btn title="Verify" kind="primary" height={56} busy={busy} disabled={code.length !== 6} onPress={() => submit()} />
+      <Btn testID="verify" title={tr("partner.code.verify")} kind="primary" height={56} busy={busy} disabled={code.length !== 6} onPress={() => submit()} />
     </Split>
   );
 }
 
 const s = StyleSheet.create({
-  box: { width: 64, height: 72, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
+  box: { width: 56, height: 68, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
   hidden: { position: "absolute", opacity: 0, width: 1, height: 1 },
 });

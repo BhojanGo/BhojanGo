@@ -1,0 +1,37 @@
+# QA, read-only: the menu, a dish's photo screen and the live preview of the dish
+# as customers see it (photo on the right, or the text-only row). Never picks a
+# photo (that uploads one) and never saves: "Save photo" stays disabled; Cancel.
+appId: com.bhojango.partner
+---
+- runFlow: common/sign-in-demo.yaml
+- tapOn:
+    id: "rail-menu"
+- extendedWaitUntil:
+    visible:
+      id: "menu-item-0"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/qa/03-menu
+- tapOn:
+    id: "menu-item-0"
+- extendedWaitUntil:
+    visible:
+      id: "dish-photo"
+    timeout: 10000
+- assertVisible:
+    id: "photo-preview"
+- assertVisible:
+    id: "preview-with-photo|preview-text-only"
+- assertVisible:
+    id: "photo-choose"
+- assertVisible:
+    id: "photo-save"
+    enabled: false
+- takeScreenshot: docs/screenshots/partner/qa/03-dish-photo-preview
+- tapOn:
+    id: "photo-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-photo"
+    timeout: 10000
+- assertVisible:
+    id: "menu-screen"

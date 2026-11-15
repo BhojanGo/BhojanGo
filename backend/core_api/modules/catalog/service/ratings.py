@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.models.review import Review
 
 MIN_RATINGS_FOR_STARS = 5
@@ -99,3 +100,61 @@ async def rate_order(db: AsyncSession, *, order_id: uuid.UUID, restaurant_id: uu
     await RestaurantRepository(db).update_rating(restaurant_id)
     await cache_delete_pattern(f"restaurants:{restaurant_id}")
     return review, created
+
+
+# ── the kitchen's own summary (partner tablet, round 4) ──────────────────────
+
+RECENT_COMMENTS = 5
+
+
+class RecentComment(BaseModel):
+    """A customer's comment for the kitchen: stars, words and when. No names:
+    the kitchen sees what was said, not who said it."""
+
+    stars: int
+    comment: str
+    created_at: datetime
+
+
+class RatingSummary(BaseModel):
+    """What the partner dashboard shows: the same "New" / stars as customers see
+    (``rating_display`` from the kitchen's rating and review_count), the average and
+    count, how many gave each star (``distribution[0]`` = 1 star ... ``[4]`` = 5 stars,
+    from the ratings rows) and the latest comments."""
+
+    rating_display: RatingDisplay
+    average: float | None  # one decimal; None before the first rating
+    count: int
+    distribution: list[int]
+    recent: list[RecentComment]
+
+
+def distribution(rows: list[tuple[float, int]]) -> list[int]:
+    """(stars, how many) rows -> counts for 1..5 stars (stars rounded, kept in 1..5)."""
+    out = [0, 0, 0, 0, 0]
+    for stars, n in rows:
+        s = min(5, max(1, int(round(float(stars)))))
+        out[s - 1] += int(n)
+    return out
+
+
+def summarize(rating: float | None, review_count: int | None, dist: list[int],
+              recent: list[RecentComment]) -> RatingSummary:
+    n = int(review_count or 0)
+    return RatingSummary(rating_display=rating_display(rating, n), average=round(float(rating or 0), 1) if n else None,
+                         count=n, distribution=dist, recent=recent)
+
+
+async def summary(db: AsyncSession, restaurant: Restaurant) -> RatingSummary:
+    """The kitchen's rating summary (the caller checks it's theirs: access.manage)."""
+    from sqlalchemy import func
+
+    rid = restaurant.id
+    rows = (await db.execute(select(func.round(Review.rating), func.count(Review.id))
+                             .where(Review.restaurant_id == rid).group_by(func.round(Review.rating)))).all()
+    latest = (await db.execute(select(Review).where(Review.restaurant_id == rid, Review.comment.is_not(None),
+                                                    Review.comment != "")
+                               .order_by(Review.created_at.desc()).limit(RECENT_COMMENTS))).scalars().all()
+    recent = [RecentComment(stars=min(5, max(1, int(round(r.rating)))), comment=r.comment or "", created_at=r.created_at)
+              for r in latest]
+    return summarize(restaurant.rating, restaurant.review_count, distribution([(float(s), int(n)) for s, n in rows]), recent)
