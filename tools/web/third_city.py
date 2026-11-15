@@ -183,6 +183,11 @@ def admin_sign_in(page) -> None:  # type: ignore[no-untyped-def]
     page.wait_for_url("**/overview**", timeout=30000)
 
 
+def open_link(page, code: str, name: str):  # type: ignore[no-untyped-def]
+    """Markets' "Open US" / "Open New Zealand" button for a country."""
+    return page.get_by_role("link", name=re.compile(rf"^Open ({re.escape(code)}|{re.escape(name)})$"))
+
+
 def add_country(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     """Markets > Add a country: the form a super admin fills for a new market."""
     c = m["new_country"]
@@ -203,7 +208,7 @@ def add_country(page, m: dict) -> None:  # type: ignore[no-untyped-def]
         boxes.first.check()
     card.get_by_role("button", name="Create country").click()
     expect(card.get_by_role("button", name="New country")).to_be_visible(timeout=15000)  # the form closes on success
-    expect(page.get_by_role("link", name=f"Open {c['code']}")).to_be_visible(timeout=15000)
+    expect(open_link(page, c["code"], c["name"])).to_be_visible(timeout=15000)
     got = country_summary(c["code"])
     assert got["currency"] == c["currency"] and got["phone_code"] == c["phone_code"], got
     shot(page, f"00-admin-country-{c['code'].lower()}")
@@ -227,7 +232,7 @@ def country_rules(m: dict) -> None:
 def add_city(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     page.get_by_role("link", name="Markets", exact=True).first.click()
     page.wait_for_url("**/markets")
-    page.get_by_role("link", name=f"Open {m['country']}").click()
+    open_link(page, m["country"], m["country_name"]).click()
     page.wait_for_url(f"**/markets/{m['country']}")
     card = page.get_by_role("region", name="Add a city")
     card.get_by_role("button", name="New city").click()
@@ -438,7 +443,7 @@ def kitchen_page(page, m: dict) -> None:  # type: ignore[no-untyped-def]
         for name, _, _ in m["dishes"]:
             expect(page.get_by_text(name, exact=True).first).to_be_visible(timeout=2000)
         # priced in the country's currency, formatted for its locale (en-NZ shows NZD as "$")
-        expect(page.get_by_text(re.compile(m["price_text"])).first).to_be_visible(timeout=2000)
+        expect(page.locator(f"text=/{m['price_text']}/ >> visible=true").first).to_be_visible(timeout=2000)
     until(f"the kitchen page shows its menu in {m['currency']}", look)
     shot(page, f"05-kitchen-page-{m['slug']}")
 
