@@ -1,0 +1,23 @@
+# QA, read-only (run against QA as the demo rider: maestro test apps/rider/.maestro/qa):
+# signed in, the Drive tab shows the server's state (online/offline or on a
+# delivery), the test-site banner, today's total. Taps nothing that changes state.
+appId: com.bhojango.rider
+---
+- runFlow: common/sign-in-demo.yaml
+- assertVisible:
+    id: "test-banner"
+- assertVisible:
+    id: "status-online|status-offline"
+- assertVisible:
+    id: "today-total"
+- assertVisible:
+    id: "drive-title"
+- takeScreenshot: docs/screenshots/rider/qa/01-home
+# On a delivery (the demo simulator's order): the card that reopens it.
+- runFlow:
+    when:
+      visible:
+        id: "open-delivery"
+    commands:
+      - assertVisible: "On a delivery"
+      - takeScreenshot: docs/screenshots/rider/qa/01-home-on-delivery

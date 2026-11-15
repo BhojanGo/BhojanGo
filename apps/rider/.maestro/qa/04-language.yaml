@@ -1,0 +1,50 @@
+# QA, read-only: Account shows the rider's country's languages (Markets locales:
+# India's seven); picking Hindi changes the words at once, English brings them back.
+# The language is kept on this phone only. Never taps "Sign out" (it signs the demo
+# rider out everywhere).
+appId: com.bhojango.rider
+---
+- runFlow: common/sign-in-demo.yaml
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-title"
+    timeout: 10000
+- assertVisible: "Account"
+- scrollUntilVisible:
+    element:
+      id: "language-en"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "language-hi"
+- takeScreenshot: docs/screenshots/rider/qa/04-account-languages
+- tapOn:
+    id: "language-hi"
+# The tab bar and the screen switch to Hindi.
+- extendedWaitUntil:
+    visible: "खाता"
+    timeout: 10000
+- assertVisible: "भाषा"
+- assertNotVisible: "Documents"
+- takeScreenshot: docs/screenshots/rider/qa/04-account-hindi
+- tapOn:
+    id: "tab-earnings"
+- extendedWaitUntil:
+    visible: "कमाई"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/rider/qa/04-earnings-hindi
+- tapOn:
+    id: "tab-account"
+- scrollUntilVisible:
+    element:
+      id: "language-en"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "language-en"
+- extendedWaitUntil:
+    visible: "Language"
+    timeout: 10000
+- assertVisible: "Documents"

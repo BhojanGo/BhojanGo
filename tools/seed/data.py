@@ -348,7 +348,8 @@ COUNTRIES = [
         "payout_provider": "razorpay_route",  # who pays kitchens and riders (Markets; fake when no keys: providers.py)
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
-                     "hero_photo": "south-indian-thali"},
+                     "hero_photo": "south-indian-thali",
+                     "emergency_number": "112"},  # the rider app's SOS button
         "regions": [
             {
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
@@ -387,7 +388,8 @@ COUNTRIES = [
         "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
-        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza"},
+        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
+                     "emergency_number": "911"},
         "regions": [
             {
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},

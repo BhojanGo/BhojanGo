@@ -4242,6 +4242,8 @@ export interface components {
             currency: string;
             /** Distance Unit */
             distance_unit: string;
+            /** Emergency Number */
+            emergency_number?: string | null;
             /**
              * Hero Photo
              * @description The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)

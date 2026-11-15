@@ -55,6 +55,33 @@ translation in every file (mark it here) before CI passes.
   `account.report.ordered`, `account.report.how_many`, `kitchen.one_less/one_more`
   (gender), `track.away` (distance vs time), `common.delivery_fee` word order.
 
+## The rider app (round 4, B2: every `rider.*` key)
+
+Every word in apps/rider is now a `rider.*` key (243 new, machine-translated on
+2026-11-15 into all seven languages; `rider.earnings.distance` was already there).
+Reviewers, look first at:
+
+- `rider.checklist.steps.*` / `rider.checklist.detail.*`: the onboarding steps are
+  named by the app now, not the API, so one name serves every country (India's
+  "Vehicle RC and insurance" became the general "Vehicle insurance": native
+  reviewers may want the local document's name).
+- `rider.offer.*`: the offer sheet is read in a few seconds: short words matter
+  (`rider.offer.batch_title` is capitals in English; Indic scripts have no case).
+  `rider.offer.minutes` "~{min} min", `rider.offer.per_hour` "{amount}/hr" and
+  `rider.earnings.hours` "{value} h" use local abbreviations (मिनट, నిమి, நிமி, ...).
+- `rider.earnings.floor_in`, `rider.earnings.below_floor`, `rider.earnings.above_floor`
+  follow a bold amount ("{amount} per active hour floor" + "in {city}. ..."): the
+  two pieces must read as one sentence; Telugu/Tamil/Kannada/Bengali suffixes are
+  glued to {city} (`{city}లో`, `{city} இல்`, `{city} ನಲ್ಲಿ`, `{city}-এ`).
+- `rider.sos.*`: the emergency number ({number}) is Markets data (`emergency_number`
+  in the country's settings); `rider.sos.intro_local` is said when a country has none.
+- `rider.drive.elsewhere_*`: shown when the rider is online on another device (or
+  the QA demo simulator drives the demo rider): plain wording matters.
+- `rider.account.sign_out_note`: signing out signs out every device (the API's
+  logout revokes every session).
+- Plurals: `rider.offer.bags`, `rider.offer.seconds_left`, `rider.delivery.items`,
+  `rider.payouts.deliveries` (one/other; Hindi, Bengali and Kannada use "one" for 0 too).
+
 ## The Expo apps (round 4: `app.*`, `rider.*`, `partner.*`)
 
 The apps read the same files (`all-messages.js` bundles every language for

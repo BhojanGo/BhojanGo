@@ -1,7 +1,7 @@
 """Web v2 public markets helpers that need no database."""
 from types import SimpleNamespace
 
-from core_api.modules.markets.api.v1.public import public_status, slugify
+from core_api.modules.markets.api.v1.public import emergency_number, public_status, slugify
 from shared import geoip
 
 
@@ -35,3 +35,11 @@ def test_geoip_parse() -> None:
 def test_geoip_private_and_missing() -> None:
     assert geoip.lookup("10.0.0.1") is None and geoip.lookup("127.0.0.1") is None and geoip.lookup("bad") is None
     assert geoip.lookup("8.8.8.8") is None  # no database configured
+
+
+def test_emergency_number_from_settings() -> None:
+    assert emergency_number({"emergency_number": "112"}) == "112"
+    assert emergency_number({"emergency_number": " 911 "}) == "911"
+    assert emergency_number({}) is None and emergency_number(None) is None  # not set: the app says "local emergency number"
+    assert emergency_number({"emergency_number": "call 112"}) is None  # only digits reach a tel: link
+    assert emergency_number({"emergency_number": "1234567"}) is None
