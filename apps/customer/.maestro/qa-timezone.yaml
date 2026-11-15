@@ -1,0 +1,91 @@
+# READ-ONLY (safe on QA): order times are the order's city time, never the phone's.
+# Sign in as the demo customer whose orders are in an Indian city (demo1, +91 90000
+# 00301), open a past order's receipt and read its "paid" time (testID receipt-time).
+# Nothing is tapped that writes.
+#
+# Run it with the EMULATOR IN A US ZONE (the point of the test):
+#   adb -s emulator-5554 shell cmd alarm set-timezone America/Boise     # recent images (no root)
+#   adb -s emulator-5554 shell "setprop persist.sys.timezone America/Boise"   # older images: needs `adb root` first
+#   adb -s emulator-5554 shell date                                     # check: shows MST/MDT
+#   (restart the app after changing the zone: am force-stop com.bhojango.app)
+#   maestro --device emulator-5554 test apps/customer/.maestro/qa-timezone.yaml
+# Afterwards set it back:  adb -s emulator-5554 shell cmd alarm set-timezone Asia/Kolkata   (or your usual zone)
+#
+# What to compare: the flow prints "receipt-title: #XXXXXX" and "receipt-time: UPI · paid 14 Nov, 7:05 pm".
+# Look the order up on QA (GET /api/v1/orders?q=XXXXXX as demo1, or admin Orders search by the code):
+# its placed_at is UTC; add 5:30 (the order's time_zone, Asia/Kolkata) and the receipt must show that
+# time and day. The phone's own time (Boise, UTC-7 in winter) would be 12.5 hours earlier, so a
+# wrong zone is easy to see. The flow itself checks the line has a day and a clock time.
+appId: com.bhojango.app
+tags:
+  - qa-readonly
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${PHONE || "9000000301"}
+- tapOn: "Orders"
+- extendedWaitUntil:
+    visible:
+      id: "orders-list"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "past-order-0"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "past-order-0"
+- extendedWaitUntil:
+    visible:
+      id: "receipt-status"
+    timeout: 20000
+# A cancelled order has no "paid" line: try the next past order.
+- runFlow:
+    when:
+      notVisible:
+        id: "receipt-time"
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: "receipt-time"
+          timeout: 5000
+          optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "receipt-time"
+    commands:
+      - tapOn:
+          id: "back"
+      - extendedWaitUntil:
+          visible:
+            id: "orders-list"
+          timeout: 10000
+      - scrollUntilVisible:
+          element:
+            id: "past-order-1"
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: "past-order-1"
+      - extendedWaitUntil:
+          visible:
+            id: "receipt-status"
+          timeout: 20000
+      - scrollUntilVisible:
+          element:
+            id: "receipt-time"
+          timeout: 10000
+# A day and a clock time ("14 Nov, 7:05 pm" or "14 Nov, 19:05"), whatever the language's words around it.
+- assertVisible:
+    id: "receipt-time"
+    text: ".*\\d.*\\d{1,2}[:.]\\d{2}.*"
+- copyTextFrom:
+    id: "receipt-title"
+- evalScript: ${console.log('receipt-title: ' + maestro.copiedText)}
+- copyTextFrom:
+    id: "receipt-time"
+- evalScript: ${console.log('receipt-time: ' + maestro.copiedText)}
+- tapOn:
+    id: "back"

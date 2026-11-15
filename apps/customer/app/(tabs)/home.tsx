@@ -2,7 +2,7 @@
 // website's personal home (HomeFeed): the order on its way, Order again, the
 // cuisine row, offers that say who pays, and the kitchens for the drop point
 // from GET /discover.
-import { Button, color, Sheet, radius, space, textFont, Txt, useBag, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, Sheet, radius, space, textFont, Txt, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon } from "../../components/Heart";
 import { ActiveOrderBar, CuisineRow, OfferRow, OrderAgain } from "../../components/HomeSections";
 import { KitchenCard } from "../../components/KitchenCard";
-import { activeOrder, cuisineTiles, ofCuisine } from "../../lib/contract";
+import { activeOrder, cuisineTiles, greetingZone, ofCuisine } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
 import { useMyOrders } from "../../lib/orders";
 import { useDiscover } from "../../lib/restaurants";
@@ -23,6 +23,7 @@ const BAG_PILL = 48;
 export default function Home() {
   const user = useSession((s) => s.user);
   const { t } = useI18n();
+  const { country } = useCountry();
   const { point, market, status, locate, setPoint, goHere, saved } = useWhere();
   const [picking, setPicking] = useState<DropPoint[] | null>(null);
   const [cuisine, setCuisine] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export default function Home() {
   const unit = data?.distance_unit;
 
   const first = (user?.full_name ?? "").trim().split(/\s+/)[0];
-  const pod = partOfDay(market?.timezone);
+  const pod = partOfDay(greetingZone(market?.timezone, country?.timezone)); // the delivery address's clock
   // The bag pill floats just above the tab bar: when it shows, the scroll leaves room for it too.
   const bottom = useTabBarSpace(bagCount > 0 ? [BAG_PILL] : []);
   const { above } = useTabBarOffsets();

@@ -3,7 +3,7 @@
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes (a slow poll as a safety net). The map is
 // MapLibre over OpenFreeMap's free tiles (components/LiveMap.tsx).
-import { api, color, QuickChat, radius, space, StatusPill, textFont, Txt, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
+import { api, color, inZone, QuickChat, radius, space, StatusPill, textFont, Txt, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -110,6 +110,7 @@ export default function Tracking() {
   const progress = delivered ? 1 : [0.12, 0.42, 0.78, 1][stepIndex] ?? 0.12;
   const rider = riderFirstName(order);
   const kitchen = order?.restaurant_name ?? "";
+  const tz = inZone(order?.time_zone); // the order's city clock, never the phone's
   const pickup = live.pickup ?? (order?.pickup_lat != null && order.pickup_lng != null ? [order.pickup_lat, order.pickup_lng] as Pt : null);
   const dropoff = live.dropoff ?? (order?.delivery_lat != null && order.delivery_lng != null ? [order.delivery_lat, order.delivery_lng] as Pt : null);
   const riderAt = finished ? null : live.rider;
@@ -131,7 +132,7 @@ export default function Tracking() {
     status === "placed" ? t("track.s_placed", { kitchen }) : t("track.s_cooking", { kitchen });
   const stamp = (...states: string[]) => {
     const h = (order?.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status));
-    return h ? time(h.at) : "";
+    return h ? time(h.at, tz) : "";
   };
   const stamps = [stamp("placed"), stamp("accepted", "preparing"), stamp("picked_up"), stamp("delivered")];
   const pin = order?.pin && !finished ? order.pin : null;
@@ -167,7 +168,7 @@ export default function Tracking() {
               </Text>
             ) : null}
             {!finished && arrivesAt ? (
-              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{t("track.around", { time: time(arrivesAt) })}</Text>
+              <Text style={[textFont("400"), { fontSize: 13, color: color.muted }]}>{t("track.around", { time: time(arrivesAt, tz) })}</Text>
             ) : null}
           </View>
           <View style={{ alignItems: "flex-end", gap: 2 }}>

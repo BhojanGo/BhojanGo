@@ -220,3 +220,25 @@ export function boundsOf(points: readonly (Pt | null)[], pad = 0.002): [number, 
   const lngs = pts.map((p) => p[1]);
   return [Math.min(...lngs) - pad, Math.min(...lats) - pad, Math.max(...lngs) + pad, Math.max(...lats) + pad];
 }
+
+// ── the greeting ──────────────────────────────────────────────────────────────
+
+/** The part of the day (message keys app.home.hello_*, app.home.ask_*). */
+export type PartOfDay = "morning" | "afternoon" | "evening" | "night";
+
+/** The part of the day for an hour (0-23) at the delivery address. */
+export function partOfDayAt(hour: number): PartOfDay {
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 22) return "evening";
+  return "night";
+}
+
+/**
+ * The time zone the greeting is in: the delivery address's city (GET /markets/locate),
+ * else the current country's (Markets: the address's, the person's choice, ...). null
+ * only when neither is known yet; never the phone's zone while one is.
+ */
+export function greetingZone(cityZone: string | null | undefined, countryZone: string | null | undefined): string | null {
+  return cityZone || countryZone || null;
+}

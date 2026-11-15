@@ -1,8 +1,12 @@
 // Where the food goes: the customer's saved address, or where the phone is.
 // Located against the markets API to know the city, zone and whether we deliver.
-import { api, unwrap, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, hourIn, unwrap, type CoreSchemas } from "@bhojango/mobile-core";
 import * as Location from "expo-location";
 import { create } from "zustand";
+
+import { partOfDayAt, type PartOfDay } from "./contract";
+
+export type { PartOfDay };
 
 export type Locate = CoreSchemas["LocateResult"];
 
@@ -84,26 +88,11 @@ export const useWhere = create<WhereState>()((set, get) => ({
   },
 }));
 
-/** The hour in the delivery city (its own time zone), else the phone's. */
-export function localHour(timeZone?: string | null, now = new Date()): number {
-  if (timeZone) {
-    try {
-      // data-ok: parses the hour, so Latin digits whatever the phone's language
-      return Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now)) % 24;
-    } catch {
-      // no time-zone data on this phone: fall back to its clock
-    }
-  }
-  return now.getHours();
-}
-
-/** The part of the day in the delivery city (message keys app.home.hello_*, app.home.ask_*). */
-export type PartOfDay = "morning" | "afternoon" | "evening" | "night";
-
+/**
+ * The part of the day at the delivery address, for the greeting: in its city's time
+ * zone (GET /markets/locate), else its country's (Markets), never the phone's while
+ * either is known (see greetingZone).
+ */
 export function partOfDay(timeZone?: string | null, now = new Date()): PartOfDay {
-  const h = localHour(timeZone, now);
-  if (h >= 5 && h < 12) return "morning";
-  if (h >= 12 && h < 17) return "afternoon";
-  if (h >= 17 && h < 22) return "evening";
-  return "night";
+  return partOfDayAt(hourIn(timeZone, now));
 }

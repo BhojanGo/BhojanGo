@@ -128,30 +128,62 @@ export function convertDistance(km: number, unit: string | null | undefined): { 
   return unit === "mi" ? { value: km / KM_PER_MILE, unit: "mi" } : { value: km, unit: "km" }; // data-ok: as above
 }
 
+/**
+ * Intl options for an order's time zone (the API's IANA `time_zone`: the order's
+ * city). Every order time (placed, ETA, receipt) is shown in it, never the phone's.
+ * Nothing when the zone is unknown.
+ *   time(order.placed_at, inZone(order.time_zone))
+ */
+export function inZone(timeZone: string | null | undefined): Intl.DateTimeFormatOptions {
+  return timeZone ? { timeZone } : {};
+}
+
 /** A short day and month in the locale's order; options and time zone as Intl.DateTimeFormat takes them. */
 export function formatDate(iso: string | number | Date, locale?: string, opts?: Intl.DateTimeFormatOptions): string {
-  const d = toDate(iso);
-  try {
-    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", ...opts }).format(d);
-  } catch {
-    return d.toDateString();
-  }
+  return format(iso, locale, { day: "numeric", month: "short" }, opts, (d) => d.toDateString());
 }
 
 /** A time on the locale's clock (12 or 24 hours), lower-cased as on the website. */
 export function formatTime(iso: string | number | Date, locale?: string, opts?: Intl.DateTimeFormatOptions): string {
-  const d = toDate(iso);
+  return format(iso, locale, { hour: "numeric", minute: "2-digit" }, opts,
+    (d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`).toLowerCase();
+}
+
+/** The hour (0-23) in a time zone (a city's, Markets data); the phone's clock only when no zone is known. */
+export function hourIn(timeZone: string | null | undefined, now: Date = new Date()): number {
+  if (timeZone) {
+    try {
+      // data-ok: parses the hour, so Latin digits whatever the language
+      return Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now)) % 24;
+    } catch {
+      // an engine without time-zone data: the phone's clock below
+    }
+  }
+  return now.getHours();
+}
+
+function format(iso: string | number | Date, locale: string | undefined, base: Intl.DateTimeFormatOptions,
+                opts: Intl.DateTimeFormatOptions | undefined, fallback: (d: Date) => string): string {
+  const day = isCalendarDay(iso);
+  // A calendar day from the API ("2026-11-14") is that day everywhere: noon UTC read in UTC,
+  // so no time zone (the phone's or a city's) moves it to the day before or after.
+  const d = day ? new Date(`${iso as string}T12:00:00Z`) : iso instanceof Date ? iso : new Date(iso);
+  const options = { ...base, ...opts, ...(day ? { timeZone: "UTC" } : {}) };
   try {
-    return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", ...opts }).format(d).toLowerCase();
+    return new Intl.DateTimeFormat(locale, options).format(d);
   } catch {
-    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+    try {
+      // an unknown zone name: the same format without it rather than nothing
+      const { timeZone: _unused, ...rest } = options;
+      return new Intl.DateTimeFormat(locale, rest).format(d);
+    } catch {
+      return fallback(d);
+    }
   }
 }
 
-/** A calendar day from the API ("2026-11-14") at noon, so no time zone moves it to another day. */
-function toDate(iso: string | number | Date): Date {
-  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(`${iso}T12:00:00`);
-  return iso instanceof Date ? iso : new Date(iso);
+function isCalendarDay(iso: string | number | Date): boolean {
+  return typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso);
 }
 
 /** The country's phone code (Markets phone_code) + the typed number, digits only, leading zeros dropped; a number typed with "+" is taken as is. */

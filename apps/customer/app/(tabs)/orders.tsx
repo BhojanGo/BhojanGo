@@ -1,6 +1,6 @@
 // Your orders (WebOrders): what's on its way first (tap to track), then past
 // orders (tap for the receipt: items, the fair bill, the PDF, rate, report).
-import { color, space, StatusPill, textFont, Txt, useI18n } from "@bhojango/mobile-core";
+import { color, inZone, space, StatusPill, textFont, Txt, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, SectionList, Text, View } from "react-native";
@@ -15,6 +15,7 @@ function OrderRow({ o, index }: { o: Order; index: number }) {
   const active = isActive(o.status);
   const at = o.placed_at ?? o.created_at;
   const status = statusLabel(t, o.status);
+  const tz = inZone(o.time_zone); // the order's city, never the phone's
   return (
     <Pressable testID={active ? `active-order-${index}` : `past-order-${index}`} accessibilityRole="button"
       accessibilityLabel={`${o.restaurant_name}, ${status}, ${money(o.total, o.currency)}`}
@@ -26,7 +27,7 @@ function OrderRow({ o, index }: { o: Order; index: number }) {
       </View>
       <Text numberOfLines={1} style={ui.small}>{itemsSummary(o)}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <Text numberOfLines={1} style={[ui.small, { flex: 1 }]}>{t("app.orders.when", { date: date(at), time: time(at), code: orderCode(o.id) })}</Text>
+        <Text numberOfLines={1} style={[ui.small, { flex: 1 }]}>{t("app.orders.when", { date: date(at, tz), time: time(at, tz), code: orderCode(o.id) })}</Text>
         <StatusPill status={o.status} label={status} />
       </View>
     </Pressable>

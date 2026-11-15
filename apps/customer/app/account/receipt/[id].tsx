@@ -3,7 +3,7 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, FairBill, space, textFont, useBag, useI18n, color } from "@bhojango/mobile-core";
+import { Button, FairBill, inZone, space, textFont, useBag, useI18n, color } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -45,6 +45,7 @@ export default function Receipt() {
 
   const { order, bill } = data;
   const at = order.placed_at ?? order.created_at;
+  const tz = inZone(order.time_zone); // every time here is the order's city's, never the phone's
   const delivered = order.status === "delivered" && order.actual_delivery_time ? order.actual_delivery_time : null;
   const minutes = delivered ? Math.max(1, Math.round((new Date(delivered).getTime() - new Date(at).getTime()) / 60000)) : 0;
   const active = isActive(order.status);
@@ -102,8 +103,8 @@ export default function Receipt() {
           <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 24, color: color.kohl }]}>{order.restaurant_name}</Text>
           <Text testID="receipt-status" style={ui.muted}>
             {delivered
-              ? t("account.receipt.delivered_line", { date: date(delivered), time: time(delivered), minutes, code })
-              : t("account.receipt.status_line", { status: statusLabel(t, order.status), date: date(at), time: time(at), code })}
+              ? t("account.receipt.delivered_line", { date: date(delivered, tz), time: time(delivered, tz), minutes, code })
+              : t("account.receipt.status_line", { status: statusLabel(t, order.status), date: date(at, tz), time: time(at, tz), code })}
           </Text>
         </View>
 
@@ -162,7 +163,7 @@ export default function Receipt() {
             </Section>
           )}
           {!cancelled && order.placed_at ? (
-            <Text style={ui.small}>{t("account.receipt.paid_with", { method: payLabel(t, order.payment_method), date: date(order.placed_at), time: time(order.placed_at) })}</Text>
+            <Text testID="receipt-time" style={ui.small}>{t("account.receipt.paid_with", { method: payLabel(t, order.payment_method), date: date(order.placed_at, tz), time: time(order.placed_at, tz) })}</Text>
           ) : null}
         </View>
 
