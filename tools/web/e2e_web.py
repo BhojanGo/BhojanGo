@@ -327,13 +327,18 @@ with sync_playwright() as p:
         expect(page).to_have_title("Food delivery in Hyderabad · BhojanGo"),
         expect(page.get_by_role("heading", name="Food delivery in Hyderabad", level=1)).to_be_visible(),
         expect(page.get_by_role("region", name="Kitchens in Hyderabad").get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
-        expect(page.get_by_text("A real Hyderabad bill")).to_be_visible(),
+        # a real recent order's bill, or a typical one on a fresh database
+        expect(page.get_by_text(re.compile(r"^A (real|typical) Hyderabad bill$"))).to_be_visible(),
         _assert(any(json.loads(s).get("@type") == "ItemList" for s in page.locator('script[type="application/ld+json"]').all_inner_texts()), "no ItemList"),
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
-    page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani").click()
+    # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
+    check("live city page: a cuisine with one kitchen isn't listed", lambda:
+          expect(page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani")).to_have_count(0))
+    page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="South Indian").click()
     check("live city page: a cuisine filters the kitchens", lambda: (
-        url_is(page, r"cuisine=Biryani"),
-        expect(page.locator("#kitchens").get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
+        url_is(page, r"cuisine=South(\+|%20)Indian"),
+        expect(page.locator("#kitchens").get_by_role("link", name=re.compile("Curry Leaf"))).to_be_visible(),
+        expect(page.locator("#kitchens").get_by_role("link", name=re.compile(KITCHEN))).to_have_count(0),
         expect(page.locator("#kitchens").get_by_role("link", name=re.compile("Charminar Chai House"))).to_have_count(0)))
     shot(page, "06-city")
     page.goto(base + soon_city["path"], wait_until="networkidle")
