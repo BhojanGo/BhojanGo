@@ -17,7 +17,7 @@ done
 docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
   -v "$ROOT/tools/web:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/docs/screenshots/web:/out" \
   mcr.microsoft.com/playwright/python:v1.49.0-jammy \
-  sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/e2e_web.py"
+  sh -c "pip -q install playwright==1.49.0 tzdata==2025.2 >/dev/null 2>&1; python /t/e2e_web.py"
 status=$?
 python "$ROOT/tools/mobile/hours.py" close >/dev/null
 exit $status
