@@ -55,12 +55,8 @@ EOF
   grep -q "Android Bundled" "$LOGS/metro-$app.log" || { echo "Metro never bundled $app"; tail -40 "$LOGS/metro-$app.log"; }
   sleep 15
   adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
-  # Where the phone is: the customer's new account stands outside every zone (Nampa, Idaho);
-  # the rider waits in Madhapur. (geo fix: longitude latitude)
-  case "$app" in
-    customer) adb -s "$DEVICE" emu geo fix -116.5635 43.5407 >/dev/null ;;
-    *) adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null ;;
-  esac
+  # The phone waits in Madhapur (geo fix: longitude latitude); customers use saved addresses.
+  adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   for flow in $(cd "$ROOT/apps/$app/.maestro/stack" && ls *.yaml); do
     # Every flow starts with a fresh sign-in: reset the OTP send counters.
     $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_*' | xargs -r redis-cli -n 0 del" >/dev/null 2>&1

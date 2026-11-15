@@ -1,10 +1,10 @@
-# CustomerOutOfArea.html: a brand-new customer with no saved address, the phone outside
-# every delivery zone (the workflow puts the emulator's GPS there: adb emu geo fix), so
-# home sends them to "We're not in ... yet". Creates an account, so throwaway stack only
+# CustomerOutOfArea.html: a brand-new customer whose saved address is outside every
+# delivery zone (scripts/new_customer_away.js makes both through the API), so home sends
+# them to "We're not in ... yet". Creates an account, so throwaway stack only
 # (.github/workflows/app-screens.yml).
 appId: com.bhojango.app
 ---
-- runScript: scripts/new_phone.js
+- runScript: scripts/new_customer_away.js
 - runFlow:
     file: common/sign-in.yaml
     env:

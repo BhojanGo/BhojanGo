@@ -13,6 +13,7 @@ appId: com.bhojango.app
       id: "kitchen-card-spice-route-kitchen-madhapur"
     direction: DOWN
     timeout: 30000
+    centerElement: true
 - tapOn:
     id: "kitchen-card-spice-route-kitchen-madhapur"
 - extendedWaitUntil:
