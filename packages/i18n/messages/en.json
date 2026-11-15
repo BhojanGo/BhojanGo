@@ -402,6 +402,7 @@
     "you_pay": "You pay",
     "working_out": "Working out your bill…",
     "choose_address": "Choose where it goes to see the whole bill.",
+    "min_order": "The minimum order in {zone} is {amount}",
     "held": "This price is held for {time}. No surprise changes.",
     "expired": "The price has expired. Get a fresh one to pay.",
     "fresh_price": "Get a fresh price",

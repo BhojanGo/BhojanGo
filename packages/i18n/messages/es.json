@@ -402,6 +402,7 @@
     "you_pay": "Tú pagas",
     "working_out": "Calculando tu cuenta…",
     "choose_address": "Elige a dónde va para ver la cuenta completa.",
+    "min_order": "El pedido mínimo en {zone} es de {amount}",
     "held": "Este precio se mantiene por {time}. Sin cambios sorpresa.",
     "expired": "El precio venció. Obtén uno nuevo para pagar.",
     "fresh_price": "Obtener precio nuevo",

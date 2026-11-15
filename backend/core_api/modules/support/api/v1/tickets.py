@@ -18,6 +18,7 @@ from core_api.modules.identity.api.dependencies import AdminContext, require_per
 from core_api.modules.support.models import SupportTicket
 from shared import authz
 from shared.db import get_db
+from shared.money import format_money
 
 router = APIRouter(tags=["Support"])
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
@@ -224,7 +225,6 @@ async def report_problem(order_id: uuid.UUID, data: ProblemIn, user: User, db: D
     # What this customer was already refunded automatically on this order counts towards the limit.
     auto_before = (await db.execute(select(func.coalesce(func.sum(Refund.amount), 0)).where(
         Refund.order_id == order.id, Refund.requested_by == user.id))).scalar_one()
-    sym = "₹" if currency == "INR" else "$"
     if amount + Decimal(auto_before) / 100 <= limit:
         try:
             await refunds.refund_items(db, order_id=order.id, requests=requests, include_delivery=False, reason=data.reason,
@@ -233,7 +233,7 @@ async def report_problem(order_id: uuid.UUID, data: ProblemIn, user: User, db: D
         except refunds.RefundError as e:
             raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "CANT_REFUND", "message": str(e)})
         return ProblemOut(outcome="refunded", amount=str(amount), currency=currency, limit=str(limit),
-                          message=f"Refunded {sym}{amount:.2f} to your original payment. Sorry about that.")
+                          message=f"Refunded {format_money(amount, currency)} to your original payment. Sorry about that.")
     t = SupportTicket(kind="problem", status="open", market_city=order.market_city, country=(order.market_city or "IN")[:2],
                       requester_id=user.id, requester_role="customer", restaurant_id=order.restaurant_id, order_id=order.id,
                       topic=data.reason, note=(data.note or "").strip() or None,

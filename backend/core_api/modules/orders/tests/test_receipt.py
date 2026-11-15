@@ -36,7 +36,7 @@ def test_country_and_money() -> None:
     assert R.country_of(None, "INR") == "IN" and R.country_of(None, "USD") == "US"
     assert R.money(Decimal("617.389"), "INR") == "₹617.39"
     assert R.money("124050", "INR") == "₹1,24,050.00"
-    assert R.money(-12.5, "USD") == "-$12.50"
+    assert R.money(-12.5, "USD") == "−$12.50"  # the minus sign the apps print
     assert R.money("1240.5", "AED") == "AED 1,240.50"  # a currency with no symbol here: its code
     assert R.country_of("GB-ENG-LON", "GBP") == "GB"  # from Markets' city code, no country list
 
@@ -54,8 +54,8 @@ def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
     ]
     rows = R.bill_rows(lines, "INR")
     assert rows[0] == ("Food", "₹560.00")
-    assert rows[1] == ("Weekend 10% (paid for by the kitchen)", "-₹56.00")
-    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "-₹30.00")
+    assert rows[1] == ("Weekend 10% (paid for by the kitchen)", "−₹56.00")
+    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "−₹30.00")
     assert rows[4] == ("GST on food @ 5% on ₹504.00 (collected by BhojanGo)", "₹25.20")
     assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "included")
 

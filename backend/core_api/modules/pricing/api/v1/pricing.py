@@ -17,7 +17,12 @@ DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 def _unprocessable(e: Exception) -> HTTPException:
-    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "CANNOT_QUOTE", "message": str(e)})
+    """422 {code, message, ...details}: CANNOT_QUOTE, or MIN_ORDER with zone, amount and
+    currency (the client formats and words it; ``message`` is English for older
+    clients) and, for a customer quote, the city's ``tip_presets``."""
+    code = getattr(e, "code", "CANNOT_QUOTE")
+    details = getattr(e, "details", None) or {}
+    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={**details, "code": code, "message": str(e)})
 
 
 @router.post("/quote", response_model=QuoteOut)

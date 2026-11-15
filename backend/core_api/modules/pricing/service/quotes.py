@@ -36,6 +36,7 @@ from core_api.modules.pricing.service.summary import tip_presets
 from core_api.modules.rules.service.resolver import Context
 from core_api.modules.rules.service.rules import RuleService
 from shared.auth import InvalidTokenError, decode_jwt, encode_jwt
+from shared.money import format_money
 from shared.providers.routing import get_routing_provider
 from shared.redis import get_redis
 
@@ -44,7 +45,18 @@ KM_PER_MILE = Decimal("1.609344")
 
 
 class QuoteError(ValueError):
-    """Can't quote or redeem; the message is shown to the customer."""
+    """Can't quote or redeem; the message is shown to the customer.
+
+    ``code`` says why for clients that word it themselves (MIN_ORDER: the bag is
+    under the zone's minimum); ``details`` go into the API's error detail next to
+    the English message: the amount and currency to format on the client, and the
+    city's tip buttons (``tip_presets``) once the rules are known, so a bag under
+    the minimum still shows the right tips."""
+
+    def __init__(self, message: str, *, code: str = "CANNOT_QUOTE", details: dict | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.details = details or {}
 
 
 def _key(quote_id: str) -> str:
@@ -149,12 +161,17 @@ class QuoteService:
         km = Decimal(str(get_routing_provider().leg((rest.lat, rest.lng), (lat, lng)).distance_km))
         distance = money(km / KM_PER_MILE if country.distance_unit == "mi" else km)
         food = sum((ln.unit_price * ln.quantity for ln in priced), Decimal(0))
-        if where.min_order is not None and food < where.min_order:
-            raise QuoteError(f"The minimum order in {where.zone_name} is {country.currency} {where.min_order:.0f}")
 
         ctx = Context(country=country.code, region=region.code, city=city.code, zone_id=str(where.zone_id),
                       restaurant_id=rest.id)
         rules = await RuleService(self.db).resolve(ctx, now)
+        presets = tip_presets(rules)
+        # From here on a refusal still tells the client the city's tip buttons.
+        tips = {"tip_presets": presets.model_dump(mode="json") if presets else None}
+        if where.min_order is not None and food < where.min_order:
+            shown = format_money(where.min_order, country.currency, (country.locales or [None])[0], whole=True)
+            raise QuoteError(f"The minimum order in {where.zone_name} is {shown}", code="MIN_ORDER", details={
+                "zone": where.zone_name, "amount": str(where.min_order), "currency": country.currency, **tips})
         inputs = QuoteInputs(
             currency=country.currency,
             lines=[CartLine(_label(ln), ln.quantity, ln.unit_price, ln.item_id, ln.options) for ln in priced],
@@ -165,9 +182,11 @@ class QuoteService:
         )
         try:
             result = compute(inputs, rules)
+            inputs, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal)
         except NotDeliverable as e:
-            raise QuoteError(str(e))
-        inputs, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal)
+            raise QuoteError(str(e), details=tips)
+        except QuoteError as e:
+            raise QuoteError(str(e), code=e.code, details={**tips, **e.details})
 
         quote_id = uuid.uuid4()
         expires = now + QUOTE_TTL
@@ -198,7 +217,7 @@ class QuoteService:
         return QuoteOut(
             quote_id=quote_id, token=token, expires_at=expires, currency=result.currency, lines=lines_out(result),
             total=result.total, tax_pending=result.tax_pending, zone=where.zone_name or "", city=city.name,
-            distance=distance, distance_unit=country.distance_unit, tip_presets=tip_presets(rules),
+            distance=distance, distance_unit=country.distance_unit, tip_presets=presets,
         )
 
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:

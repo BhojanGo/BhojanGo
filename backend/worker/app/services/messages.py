@@ -16,7 +16,7 @@ the source; the others are machine translations listed in
 packages/i18n/REVIEW.md ("Backend messages"). ``python tools/i18n/check_locales.py``
 (make ci-i18n) fails if a text lacks a language that a live country lists.
 
-Stdlib and shared.texts only: the CI check imports this file without the
+Stdlib, shared.texts and shared.money only: the CI check imports this file without the
 worker's packages.
 """
 import html
@@ -25,6 +25,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from shared.money import format_money
 from shared.texts import LANGUAGES, fallback_name, language_for, preset_text
 
 __all__ = ["LANGUAGES", "language_for"]
@@ -281,24 +282,9 @@ def _placeholders(text: str) -> list[str]:
 
 # ── formatting ────────────────────────────────────────────────────────────────
 
-SYMBOL = {"INR": "₹", "USD": "$"}
-
-
 def money(amount: Decimal | float | str, currency: str) -> str:
-    """₹1,24,050.00 (Indian grouping) or $1,240.50."""
-    value = Decimal(str(amount)).quantize(Decimal("0.01"))
-    sign = "-" if value < 0 else ""
-    whole, cents = f"{abs(value):.2f}".split(".")
-    if currency == "INR" and len(whole) > 3:
-        head, tail = whole[:-3], whole[-3:]
-        groups = []
-        while len(head) > 2:
-            groups.insert(0, head[-2:])
-            head = head[:-2]
-        whole = ",".join(([head] if head else []) + groups + [tail])
-    else:
-        whole = f"{int(whole):,}"
-    return f"{sign}{SYMBOL.get(currency, currency + ' ')}{whole}.{cents}"
+    """₹1,24,050.00 (Indian grouping) or $1,240.50: the one backend formatter (shared.money)."""
+    return format_money(amount, currency)
 
 
 def minor_to_money(minor: int | str, currency: str) -> str:

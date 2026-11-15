@@ -195,3 +195,10 @@ language that a live or beta country lists in Markets, or a backend text's
 - **Bengali numerals:** "৫–৭ দিন" in the refund messages, matching the website.
 - **The email footer** keeps the English brand line "The honest table." in Spanish
   ("La mesa honesta"); the Indian languages use the tagline ("Real food. Fair prices.").
+
+## Round 6
+
+- `checkout.min_order` "The minimum order in {zone} is {amount}" (machine-translated
+  2026-11-15): shown in the bag and at checkout when the bag is under the delivery
+  area's minimum. {zone} is the area's name, {amount} is formatted by the country
+  ("$15", "₹149"); check the word order around both in every language.

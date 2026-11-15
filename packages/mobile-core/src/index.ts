@@ -20,7 +20,7 @@ export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
 export type { BagLine, OptionGroup, Pick } from "./bag";
-export { ACTIVE_STATUSES, ApiError, errorMessage, unwrap } from "@bhojango/api-client";
+export { ACTIVE_STATUSES, ApiError, errorMessage, quoteRefusal, unwrap, type QuoteRefusal } from "@bhojango/api-client";
 export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";
 
 // Round 4: languages, the current country (Markets), formatting by the country's
