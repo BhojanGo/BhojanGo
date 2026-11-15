@@ -41,6 +41,7 @@
     "save_kitchen": "{name} সেভ করুন",
     "unsave_kitchen": "{name} পছন্দের তালিকা থেকে সরান",
     "skip_to_content": "মূল কনটেন্টে যান",
+    "test_site_banner": "টেস্ট সাইট: ডেমো কিচেন, কোনো আসল অর্ডার বা পেমেন্ট নেই",
     "search_placeholder_near": "{a}, {b}, কিচেন খুঁজুন…",
     "rating_label": "{count}টি রেটিং থেকে 5-এ {stars}",
     "rating_short": "★{stars} ({count})",
