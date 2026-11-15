@@ -4,6 +4,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.models.restaurant import Restaurant
+from core_api.modules.catalog.service.ratings import rating_display
 
 
 async def restaurant_city_code(db: AsyncSession, restaurant_id: str | uuid.UUID) -> str | None:
@@ -37,7 +38,8 @@ def _restaurant_card(r: Restaurant) -> dict:
     return {"id": str(r.id), "slug": r.slug, "name": r.name, "cuisine_types": list(r.cuisine_types or []),
             "cover_url": r.cover_url, "city": r.city, "country": r.country, "rating": r.rating,
             "review_count": r.review_count, "delivery_time_min": r.delivery_time_min,
-            "delivery_time_max": r.delivery_time_max, "delivery_fee": float(r.delivery_fee), "currency": r.currency}
+            "delivery_time_max": r.delivery_time_max, "delivery_fee": float(r.delivery_fee), "currency": r.currency,
+            "rating_display": rating_display(r.rating, r.review_count).model_dump()}
 
 
 async def restaurant_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:

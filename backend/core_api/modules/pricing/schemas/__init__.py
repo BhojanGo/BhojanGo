@@ -47,6 +47,14 @@ class BillLineOut(BaseModel):
     detail: dict[str, str] | None = Field(default=None, description="Taxes: rate_percent, base, jurisdiction")
 
 
+class TipPresetsOut(BaseModel):
+    """The tip buttons at checkout (the business tip_presets rule). ``default_index``
+    picks the pre-selected amount; null = none pre-selected."""
+
+    amounts: list[Decimal]
+    default_index: int | None = None
+
+
 class QuoteOut(BaseModel):
     quote_id: uuid.UUID
     token: str = Field(description="Send this when placing the order; valid until expires_at")
@@ -59,6 +67,7 @@ class QuoteOut(BaseModel):
     city: str
     distance: Decimal
     distance_unit: str
+    tip_presets: TipPresetsOut | None = Field(default=None, description="null: no tip buttons (no tip_presets rule)")
 
 
 class SplitOut(BaseModel):
@@ -104,3 +113,56 @@ class SimulateOut(BaseModel):
     live: SimSide
     draft: SimSide
     changes: list[dict] = Field(description="Lines and split amounts that differ: {label, live, draft}")
+
+
+# ── A city's prices for the website (GET /markets/cities/{country}/{slug} -> pricing) ──
+
+class FeeSlab(BaseModel):
+    up_to: Decimal = Field(description="Distance up to and including this, in the country's unit")
+    fee: Decimal
+
+
+class DeliveryFeeSummary(BaseModel):
+    """The city's delivery fee rule. ``type`` is the rule's template:
+    distance_slabs (slabs, beyond_per_unit), flat (amount), free_above
+    (min_subtotal, otherwise) or tier_base (tiers by kitchen tier)."""
+
+    type: str
+    slabs: list[FeeSlab] = []
+    beyond_per_unit: Decimal | None = Field(default=None, description="distance_slabs: per km/mi past the last slab; null = not delivered")
+    amount: Decimal | None = None
+    min_subtotal: Decimal | None = None
+    otherwise: Decimal | None = None
+    tiers: dict[str, Decimal] | None = None
+
+
+class ServiceFeeSummary(BaseModel):
+    percent: Decimal
+    min: Decimal
+    max: Decimal
+
+
+class SmallOrderFeeSummary(BaseModel):
+    below: Decimal = Field(description="Charged when the food subtotal is below this")
+    fee: Decimal
+
+
+class ZoneMinOrder(BaseModel):
+    zone: str
+    min_order: Decimal
+
+
+class CityPricing(BaseModel):
+    """What ordering costs in a city, from its live rules (city, else state,
+    else country level): the city FAQ and "from ₹25 delivery" on kitchen
+    cards. Amounts in ``currency`` (major units), distances in ``distance_unit``."""
+
+    currency: str
+    distance_unit: str
+    delivery_fee: DeliveryFeeSummary | None = None
+    delivery_from: Decimal | None = Field(default=None, description="The lowest delivery fee (before offers)")
+    service_fee: ServiceFeeSummary | None = None
+    small_order_fee: SmallOrderFeeSummary | None = None
+    min_order: list[ZoneMinOrder] = Field(default=[], description="Minimum order per open zone that has one")
+    max_distance: Decimal | None = Field(default=None, description="The farthest a kitchen delivers (max_radius rule)")
+    tip_presets: TipPresetsOut | None = None

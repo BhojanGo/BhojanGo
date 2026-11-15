@@ -247,7 +247,7 @@ class AuthService:
         """Sign in with Apple or Google: verify the provider's ID token, then
         find the account by provider id, or by a *verified* email, or create one."""
         audiences = (
-            settings.identity.google_audiences if data.provider == "google" else settings.identity.APPLE_CLIENT_IDS
+            settings.identity.google_audiences if data.provider == "google" else settings.identity.apple_audiences
         )
         try:
             ident = await oidc.verify(data.provider, data.token, audiences)

@@ -19,6 +19,8 @@ from core_api.modules.orders.schemas.order import (
     OrderCancelRequest,
     OrderCreateRequest,
     OrderListResponse,
+    OrderRating,
+    OrderRatingRequest,
     OrderResponse,
     OrderStatusUpdateRequest,
     OrderTimelineResponse,
@@ -81,12 +83,26 @@ async def list_my_orders(
         created_before=datetime.combine(date_to + timedelta(days=1), time.min, UTC) if date_to else None,
         restaurant_id=restaurant_id,
     )
+    from core_api.modules.catalog.service import ratings as ratings_svc
+    from core_api.modules.orders.service.state_machine import ACTIVE_STATES
+
     slugs = await restaurant_slugs(db, {o.restaurant_id for o in orders})
+    rated = await ratings_svc.ratings_for_orders(db, [o.id for o in orders])
+    riders = await _first_names(db, {o.driver_id for o in orders if o.driver_id and o.status in ACTIVE_STATES})
+    now = datetime.now(UTC)
     items = []
     for o in orders:
         out = OrderResponse.model_validate(o)
         out.restaurant_slug = slugs.get(o.restaurant_id)
         out.items_summary = items_summary(o.items)
+        review = rated.get(o.id)
+        out.rated = review is not None
+        out.rating = OrderRating.model_validate(ratings_svc.as_dict(review, now)) if review else None
+        if o.status in ACTIVE_STATES:  # the website's active-order bar
+            out.eta = o.estimated_delivery_time
+            if o.driver_id:  # a rider is assigned: their first name and the PIN for the door
+                out.rider_first_name = riders.get(o.driver_id)
+                out.pin = o.delivery_pin
         items.append(out)
     return OrderListResponse(
         items=items,
@@ -95,6 +111,18 @@ async def list_my_orders(
         limit=limit,
         total_pages=math.ceil(total / limit) if total else 0,
     )
+
+
+async def _first_names(db: AsyncSession, user_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """First names of riders, one query (the order list's active-order bar)."""
+    if not user_ids:
+        return {}
+    from sqlalchemy import select
+
+    from core_api.modules.identity.models.user import User
+
+    rows = (await db.execute(select(User.id, User.full_name).where(User.id.in_(user_ids)))).all()
+    return {uid: ((name or "").split() or [""])[0] for uid, name in rows}
 
 
 @router.get("/restaurant/{restaurant_id}", response_model=OrderListResponse)
@@ -285,6 +313,51 @@ async def _own_order(db: AsyncSession, user: CurrentUser, order_id: uuid.UUID): 
     if order is None or order.customer_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
+
+
+@router.get("/{order_id}/rating", response_model=OrderRating | None)
+async def get_order_rating(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> OrderRating | None:
+    """Your rating of your order, or null when you haven't rated it."""
+    from core_api.modules.catalog.service import ratings as ratings_svc
+
+    order = await _own_order(db, current_user, order_id)
+    review = await ratings_svc.rating_for_order(db, order.id)
+    return OrderRating.model_validate(ratings_svc.as_dict(review)) if review else None
+
+
+@router.post("/{order_id}/rating", response_model=OrderRating)
+async def rate_order(
+    order_id: uuid.UUID,
+    data: OrderRatingRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    response: Response,
+) -> OrderRating:
+    """Rate the kitchen of your delivered order (1-5 stars, optional comment).
+    One rating per order: posting again within 7 days changes it (200; 201 the
+    first time). 409 NOT_DELIVERED before delivery, 409 RATING_LOCKED after 7 days."""
+    from core_api.modules.catalog.service import ratings as ratings_svc
+    from core_api.modules.identity.models.user import User
+
+    order = await _own_order(db, current_user, order_id)
+    if order.status != "delivered":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail={"code": "NOT_DELIVERED", "message": "You can rate an order once it's delivered"})
+    me = await db.get(User, current_user.id)
+    first = ((me.full_name if me else "") or "").split()
+    try:
+        review, created = await ratings_svc.rate_order(
+            db, order_id=order.id, restaurant_id=order.restaurant_id, customer_id=current_user.id,
+            customer_name=first[0] if first else "Customer", stars=data.stars, comment=data.comment)
+    except ratings_svc.RatingError as e:
+        code = status.HTTP_404_NOT_FOUND if e.code == "NOT_FOUND" else status.HTTP_409_CONFLICT
+        raise HTTPException(status_code=code, detail={"code": e.code, "message": e.message})
+    response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return OrderRating.model_validate(ratings_svc.as_dict(review))
 
 
 @router.post("/{order_id}/reorder", response_model=ReorderResponse)

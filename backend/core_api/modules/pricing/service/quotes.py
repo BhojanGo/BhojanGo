@@ -32,6 +32,7 @@ from core_api.modules.pricing.service.engine import (
     money,
     taxable_amounts,
 )
+from core_api.modules.pricing.service.summary import tip_presets
 from core_api.modules.rules.service.resolver import Context
 from core_api.modules.rules.service.rules import RuleService
 from shared.auth import InvalidTokenError, decode_jwt, encode_jwt
@@ -197,7 +198,7 @@ class QuoteService:
         return QuoteOut(
             quote_id=quote_id, token=token, expires_at=expires, currency=result.currency, lines=lines_out(result),
             total=result.total, tax_pending=result.tax_pending, zone=where.zone_name or "", city=city.name,
-            distance=distance, distance_unit=country.distance_unit,
+            distance=distance, distance_unit=country.distance_unit, tip_presets=tip_presets(rules),
         )
 
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:

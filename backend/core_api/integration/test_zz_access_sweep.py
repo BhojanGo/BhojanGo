@@ -95,6 +95,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── public by design ──────────────────────────────────────────────────────
     ("GET", "/.well-known/jwks.json"): public("public keys"),
     ("GET", "/api/v1/auth/jwks"): public("public keys"),
+    ("GET", "/api/v1/auth/providers"): public("which sign-in buttons to show, with the web's public OAuth client id"),
     ("GET", "/health"): public("probe"), ("GET", "/health/live"): public("probe"),
     ("GET", "/health/ready"): public("probe"), ("GET", "/metrics"): public("scraped inside the VPC"),
     **{("POST", f"/api/v1/auth/{p}"): public("signing in")
@@ -172,6 +173,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     # order again and the receipt PDF: the order's customer only
     ("POST", "/api/v1/orders/{order_id}/reorder"): user("other_customer", "partner", "rider", "ops_hyd"),
     ("GET", "/api/v1/orders/{order_id}/receipt.pdf"): user("other_customer", "partner", "rider", "ops_hyd"),
+    # rate the order (web v3): the order's customer only
+    ("GET", "/api/v1/orders/{order_id}/rating"): user("other_customer", "partner", "rider", "ops_hyd"),
+    ("POST", "/api/v1/orders/{order_id}/rating"): user("other_customer", "partner", "rider", "ops_hyd",
+                                                      body=lambda c: {"stars": 5, "comment": "sweep"}),
     # report a problem (B5): the order's customer only
     ("POST", "/api/v1/orders/{order_id}/problems"): user("other_customer", "partner", "rider", "ops_hyd",
                                                         body=lambda c: {"items": [{"menu_item_id": c.item, "quantity": 1}], "reason": "quality"}),

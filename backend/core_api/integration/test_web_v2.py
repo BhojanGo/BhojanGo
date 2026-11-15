@@ -123,7 +123,7 @@ async def test_discover_an_address(client: AsyncClient) -> None:
     launch = next(o for o in d["offers"] if o["template"] == "percent_off")
     assert launch["funded_by"] == "platform" and launch["percent"] == "10" and launch["restaurant"] is None
     assert spice["offer"]["id"] == launch["id"]
-    assert {c["name"] for c in d["cuisines"]} and all(c["count"] >= 1 for c in d["cuisines"])
+    assert all(c["count"] >= 2 for c in d["cuisines"])  # a cuisine needs two kitchens (web v3)
     # a whole city (its page): no per-address fees
     city = (await client.get("/api/v1/discover", params={"city": "IN-TG-HYD"})).json()
     assert city["served"] and len(city["restaurants"]) >= len(d["restaurants"]) and city["restaurants"][0]["delivery_fee"] is None

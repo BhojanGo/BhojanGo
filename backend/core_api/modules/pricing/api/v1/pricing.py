@@ -170,8 +170,10 @@ async def _typical_bill(db: AsyncSession, city: str) -> dict:
     food = (Decimal(str(median(prices))) * 2).quantize(Decimal("1")) if prices else EXAMPLE_CARTS.get(country.code, EXAMPLE_CARTS["IN"])[0]
     local = datetime.combine(datetime.now(UTC).astimezone(tz).date(), time(20, 0))
     resolved = await RuleService(db).resolve(Context(country=country.code, region=region.code, city=c.code))
-    presets = next((x.params for s, x in resolved.items() if x.template == "tip_presets"), None)
-    tip = Decimal(str(presets["amounts"][presets.get("default_index", 0)])) if presets else Decimal("0")
+    from core_api.modules.pricing.service.summary import tip_presets
+
+    presets = tip_presets(resolved)
+    tip = presets.amounts[presets.default_index or 0] if presets else Decimal("0")
     try:
         out = await QuoteService(db).simulate(SimulateRequest(city=city, cart=SimCart(food_subtotal=food), distance=Decimal("3"),
                                                                local_time=local, tip=tip, restaurant_tier="B"))

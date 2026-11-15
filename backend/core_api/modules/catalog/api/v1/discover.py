@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
 from shared.db import get_db
 
 router = APIRouter(prefix="/discover", tags=["Discover"])
@@ -25,6 +26,7 @@ DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 KM_PER_MI = Decimal("1.609344")
 NEW_FOR_DAYS = 30
 CACHE_SECONDS = 60
+MIN_KITCHENS_PER_CUISINE = 2
 
 
 class Offer(BaseModel):
@@ -52,6 +54,7 @@ class Card(BaseModel):
     logo_url: str | None
     rating: float
     review_count: int
+    rating_display: RatingDisplay  # {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}
     is_new: bool
     open_now: bool
     opens_at: str | None  # next opening, local ISO, when closed
@@ -73,7 +76,7 @@ class Discover(BaseModel):
     city: dict | None = None  # {code, name, path, status}
     zone: str | None = None
     restaurants: list[Card] = []
-    cuisines: list[dict] = []  # [{name, count}]
+    cuisines: list[dict] = []  # [{name, count, photo?}]: cuisines with 2+ kitchens; photo omitted when none is left
     offers: list[Offer] = []
 
 
@@ -188,6 +191,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             id=str(k.id), slug=k.slug, name=k.name, path=ref["path"], cuisine_types=list(k.cuisine_types or []),
             tags=list(k.tags or []), area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url, logo_url=k.logo_url,
             rating=float(k.rating or 0), review_count=int(getattr(k, "review_count", 0) or 0),
+            rating_display=rating_display(k.rating, getattr(k, "review_count", 0)),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
             opens_at=a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
@@ -198,8 +202,56 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     for c in cards:
         for name in c.cuisine_types:
             cuisines[name] = cuisines.get(name, 0) + 1
+    names = [n for n, v in sorted(cuisines.items(), key=lambda kv: (-kv[1], kv[0])) if v >= MIN_KITCHENS_PER_CUISINE]
+    photos = pick_cuisine_photos(names, await _photo_candidates(db, names, kitchens, {c.id for c in cards}))
     base.restaurants = cards
-    base.cuisines = [{"name": n, "count": v} for n, v in sorted(cuisines.items(), key=lambda kv: (-kv[1], kv[0]))]
+    base.cuisines = [{"name": n, "count": cuisines[n], **({"photo": photos[n]} if n in photos else {})} for n in names]
     base.offers = sorted(offers.values(), key=lambda o: (o.restaurant is not None, o.title))
     return base
 
+
+
+async def _photo_candidates(db: AsyncSession, names: list[str], kitchens: list, on_cards: set[str]) -> dict[str, list[str]]:  # type: ignore[type-arg]
+    """Each cuisine's photos, best first: covers of the city's kitchens of that
+    cuisine that aren't on a card in this response, then dish photos from the
+    cuisine's kitchens, then covers that are already on a card (repeats a card)."""
+    from core_api.modules.catalog.models.menu import MenuItem
+
+    if not names:
+        return {}
+    by_kitchen: dict[str, list[str]] = {}
+    ids = [k.id for k in kitchens]
+    if ids:
+        rows = (await db.execute(
+            select(MenuItem.restaurant_id, MenuItem.image_url)
+            .where(MenuItem.restaurant_id.in_(ids), MenuItem.image_url.is_not(None), MenuItem.image_url != "",
+                   MenuItem.deleted_at.is_(None), MenuItem.is_available.is_(True))
+            .order_by(MenuItem.restaurant_id, MenuItem.sort_order, MenuItem.name))).all()
+        for rid, url in rows:
+            by_kitchen.setdefault(str(rid), []).append(url)
+    card_covers = {k.cover_url for k in kitchens if str(k.id) in on_cards and k.cover_url}
+    out: dict[str, list[str]] = {}
+    for name in names:
+        mine = sorted((k for k in kitchens if name.lower() in {c.lower() for c in (k.cuisine_types or [])}),
+                      key=lambda k: (-(k.review_count or 0), k.name))
+        covers = [k.cover_url for k in mine if k.cover_url]
+        dishes = [u for k in mine for u in by_kitchen.get(str(k.id), [])]
+        out[name] = ([u for u in covers if u not in card_covers] + [u for u in dishes if u not in card_covers]
+                     + [u for u in covers if u in card_covers])
+    return out
+
+
+def pick_cuisine_photos(names: list[str], candidates: dict[str, list[str]]) -> dict[str, str]:
+    """One photo per cuisine, never the same photo for two cuisines. Each takes
+    its best photo nobody has taken yet; cuisines with fewer photos to choose
+    from pick first, so a cuisine with one fitting photo isn't left without it.
+    A cuisine with nothing left gets no photo."""
+    used: set[str] = set()
+    out: dict[str, str] = {}
+    order = sorted(names, key=lambda n: (len(dict.fromkeys(candidates.get(n, []))), names.index(n)))
+    for name in order:
+        photo = next((u for u in candidates.get(name, []) if u not in used), None)
+        if photo:
+            used.add(photo)
+            out[name] = photo
+    return out
