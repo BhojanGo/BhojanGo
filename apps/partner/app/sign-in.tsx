@@ -42,7 +42,7 @@ export default function SignIn() {
       <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.sign_in.mobile")}</Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <PhoneCountryButton value={country} onChange={setPicked} />
-        <TextInput testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
+        <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
           placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
           style={[textFont("600"), s.number]} />
       </View>

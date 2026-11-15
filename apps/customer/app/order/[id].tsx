@@ -74,6 +74,8 @@ export default function Tracking() {
           }
           case "status_change":
             return { ...s, status: (p.status as string) ?? s.status };
+          case "eta_update": // realtime recomputes the ETA from the rider's last fix on a status change
+            return { ...s, status: (p.status as string) ?? s.status, eta: (p.eta as Eta) ?? s.eta };
           default:
             return s;
         }
@@ -112,8 +114,10 @@ export default function Tracking() {
   const dropoff = live.dropoff ?? (order?.delivery_lat != null && order.delivery_lng != null ? [order.delivery_lat, order.delivery_lng] as Pt : null);
   const riderAt = finished ? null : live.rider;
   const next = finished ? null : nextStop(status, pickup, dropoff);
-  const arrivesAt = live.eta?.arrives_at ?? order?.estimated_delivery_time ?? null;
-  const minutes = live.eta ? live.eta.to_customer_minutes : arrivesAt ? Math.max(1, Math.round((Date.parse(arrivesAt) - now) / 60000)) : null;
+  const estimate = live.eta?.arrives_at ?? order?.estimated_delivery_time ?? null;
+  const minutes = live.eta ? live.eta.to_customer_minutes : estimate ? Math.max(1, Math.round((Date.parse(estimate) - now) / 60000)) : null;
+  // "Around …" is never in the past: a stale estimate moves to now + the minutes left.
+  const arrivesAt = estimate && minutes != null ? new Date(Math.max(Date.parse(estimate), now + minutes * 60000)).toISOString() : estimate;
   const left = finished ? null : distanceLeft(live.eta, riderAt, next);
   const leftText = left ? (left.km ? distance(left.value) : t(`app.units.${left.unit}`, { value: number(left.value, 1) })) : null;
 

@@ -152,7 +152,7 @@ export function QuickChat({ orderId, tone = "light", render }: {
             ))}
           </View>
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-            <TextInput testID="chat-text" accessibilityLabel="Write a short message" value={text} maxLength={MAX}
+            <TextInput disableFullscreenUI testID="chat-text" accessibilityLabel="Write a short message" value={text} maxLength={MAX}
               onChangeText={setText} placeholder="Write a short message" placeholderTextColor={c.muted}
               style={[textFont("600"), s.input, { borderColor: c.line, backgroundColor: c.field, color: c.text }]} />
             <Pressable testID="chat-send" accessibilityRole="button" accessibilityLabel="Send" disabled={busy || !text.trim()}

@@ -262,7 +262,7 @@ export function Input({ label, hint, error, shape = "field", dark: onDark, ...re
   return (
     <View style={{ gap: space[2] }}>
       {label ? <Text style={[textFont("700"), { fontSize: 14, color: onDark ? dark.text : color.kohl }]}>{label}</Text> : null}
-      <TextInput
+      <TextInput disableFullscreenUI
         accessibilityLabel={label ?? rest.placeholder}
         placeholderTextColor={onDark ? dark.muted : color.muted}
         style={[

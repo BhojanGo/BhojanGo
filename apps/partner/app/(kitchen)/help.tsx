@@ -110,7 +110,7 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
           </Pressable>
         ))}
       </View>
-      <TextInput testID="callback-note" accessibilityLabel={tr("partner.help.note")} value={note} onChangeText={setNote} maxLength={300}
+      <TextInput disableFullscreenUI testID="callback-note" accessibilityLabel={tr("partner.help.note")} value={note} onChangeText={setNote} maxLength={300}
         placeholder={tr("partner.help.note")} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
       {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
       <Btn testID="callback-ask" title={open ? tr("partner.help.update_request") : tr("partner.help.request")} kind="primary" busy={busy} onPress={ask} />

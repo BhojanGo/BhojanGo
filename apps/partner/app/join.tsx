@@ -58,7 +58,7 @@ export default function Join() {
   const field = (k: keyof typeof f, label: string, hint: string, props: object = {}) => (
     <View style={{ flex: 1, minWidth: 240, gap: 6 }}>
       <Text style={t.label}>{label}</Text>
-      <TextInput testID={k} accessibilityLabel={label} value={f[k]} onChangeText={set(k)} placeholder={hint} placeholderTextColor={color.muted}
+      <TextInput disableFullscreenUI testID={k} accessibilityLabel={label} value={f[k]} onChangeText={set(k)} placeholder={hint} placeholderTextColor={color.muted}
         style={[textFont("600"), s.input]} {...props} />
     </View>
   );

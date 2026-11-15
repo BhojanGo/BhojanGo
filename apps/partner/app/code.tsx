@@ -60,7 +60,7 @@ export default function Code() {
           </View>
         ))}
       </Pressable>
-      <TextInput ref={input} testID="code" accessibilityLabel={tr("partner.code.label")} autoFocus value={code} keyboardType="number-pad"
+      <TextInput disableFullscreenUI ref={input} testID="code" accessibilityLabel={tr("partner.code.label")} autoFocus value={code} keyboardType="number-pad"
         textContentType="oneTimeCode" autoComplete="sms-otp" style={s.hidden}
         onChangeText={(v) => {
           const d = v.replace(/\D/g, "").slice(0, 6);

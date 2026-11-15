@@ -6,11 +6,21 @@ appId: com.bhojango.app
 tags:
   - qa-readonly
 ---
-- runFlow: sign-in.yaml
+# The demo customer (demo1, +91 90000 00301) has a history of delivered orders.
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${PHONE || "9000000301"}
 - tapOn: "Orders"
 - extendedWaitUntil:
     visible:
+      id: "orders-list"
+    timeout: 30000
+# Orders in progress come first; the past ones are below.
+- scrollUntilVisible:
+    element:
       id: "past-order-0"
+    direction: DOWN
     timeout: 30000
 - takeScreenshot: docs/screenshots/customer/47-orders
 - tapOn:

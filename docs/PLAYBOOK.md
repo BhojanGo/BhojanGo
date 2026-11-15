@@ -193,6 +193,12 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 63. **A test that only passes on a used database is broken: CI's fresh database is the reference.**
     Why: the website e2e expected "A real Hyderabad bill" (needs a past order) and a Biryani filter (one kitchen, hidden by the 2+ rule); both held on the laptop's database full of earlier runs and failed on every fresh GitHub stack from #72 to #78.
 
+64. **Squash merges break stacked branches: merge them with the parent's commit as the base.**
+    Why: round 4's app branches were built on the foundation branch, which was squash-merged; plain `git merge` then saw 14 conflicts that weren't real. `git merge-file ours base theirs` with the foundation commit as the base resolved all of them cleanly. Prefer one branch per PR off `dev`, or merge stacked ones right after their parent.
+
+65. **On Windows, Maestro writes `takeScreenshot` files into `~/.maestro/tests/<run>/<flow>/takeScreenshot/`, and an emulator started with host GPU can capture blank screens.**
+    Why: the screenshots seemed lost and the phone emulator captured black/white frames; start emulators with `-gpu swiftshader_indirect` for screenshot runs and collect from the run folder.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

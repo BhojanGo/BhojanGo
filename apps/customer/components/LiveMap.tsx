@@ -125,7 +125,8 @@ function NativeMap({ ML, pickup, dropoff, rider, trail, next, labels, coverBotto
         accessibilityRole="link"
         onPress={() => void Linking.openURL(COPYRIGHT)}
         style={[textFont("600"), {
-          position: "absolute", left: 8, bottom: 8 + coverBottom, maxWidth: "80%", fontSize: 10, color: color.kohl,
+          // top right: always on screen (the sheet below can cover more of the map than coverBottom)
+          position: "absolute", right: 8, top: 8, maxWidth: "92%", fontSize: 9, color: color.kohl,
           backgroundColor: "rgba(255,255,255,0.85)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: "hidden",
         }]}
       >
