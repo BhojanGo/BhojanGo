@@ -1330,6 +1330,8 @@
       "preparing": "Preparing",
       "ready": "Ready for pickup",
       "ready_note": "Orders leave this column when the rider confirms pickup.",
+      "ready_short": "Ready",
+      "open_order": "Open order {order}",
       "pause_title": "Pause new orders",
       "pause_sub": "Customers see you're paused. Orders already placed carry on.",
       "minutes": "{min} min",

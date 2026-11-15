@@ -137,5 +137,9 @@ Reviewers, look first at:
 - `partner.offers.*_over` / `*_all`: an offer's description with an amount
   ({amount}, {off} are formatted money) and a percent ({percent}).
 - `partner.help.sign_out_note`: signing out signs the account out on every device.
+- Round 5 (the partner app on phones, portrait): `partner.orders.ready_short` "Ready"
+  (the third tab's label on a phone, beside a count: one short word; Spanish is
+  plural, "Listos", for the orders), `partner.orders.open_order` "Open order {order}"
+  (read aloud on an order in the phone's list; {order} is "#A1B2 · customer name").
 - Plurals: `partner.orders.today_orders`, `partner.orders.bags`, `partner.payouts.orders`,
   `partner.apply.steps.menu_detail` (one/other; Hindi, Bengali and Kannada use "one" for 0 too).
