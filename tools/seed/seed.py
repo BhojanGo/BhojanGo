@@ -28,7 +28,10 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
     if (_backend / "core_api").is_dir():
         sys.path.insert(1, str(_backend))
         break
-from data import ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, TIERS  # noqa: E402
+from data import (  # noqa: E402
+    ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, KITCHEN_PHOTOS, MARKETS, PASSWORD, RULES, TIERS, dish_photo,
+    photo_url,
+)
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -232,12 +235,12 @@ INSERT INTO restaurants (id, name, slug, owner_id, description, cuisine_types, a
                          rating, review_count, is_open, opens_at, closes_at,
                          delivery_time_min, delivery_time_max, minimum_order_amount, delivery_fee,
                          currency, country, city, tags, status, is_active, avg_prep_minutes,
-                         created_at, updated_at)
+                         cover_url, logo_url, created_at, updated_at)
 VALUES (:id, :name, :slug, :owner_id, :description, :cuisines, CAST(:address AS jsonb), :lat, :lng,
         :rating, :review_count, true, '11:00', '23:00',
         :eta_min, :eta_max, :min_order, :delivery_fee,
         :currency, :country, :city, :tags, 'active', true, 20,
-        now(), now())
+        :cover_url, :logo_url, now(), now())
 ON CONFLICT (slug) DO UPDATE SET
     name = EXCLUDED.name, owner_id = EXCLUDED.owner_id, description = EXCLUDED.description,
     cuisine_types = EXCLUDED.cuisine_types, address = EXCLUDED.address,
@@ -246,7 +249,7 @@ ON CONFLICT (slug) DO UPDATE SET
     minimum_order_amount = EXCLUDED.minimum_order_amount, delivery_fee = EXCLUDED.delivery_fee,
     currency = EXCLUDED.currency, country = EXCLUDED.country, city = EXCLUDED.city,
     tags = EXCLUDED.tags, status = 'active', is_active = true, deleted_at = NULL,
-    updated_at = now()
+    cover_url = EXCLUDED.cover_url, logo_url = EXCLUDED.logo_url, updated_at = now()
 RETURNING id
 """)
 
@@ -261,15 +264,15 @@ ON CONFLICT (id) DO UPDATE SET
 UPSERT_ITEM = text("""
 INSERT INTO menu_items (id, restaurant_id, category_id, name, description, price, category,
                         is_veg, is_vegan, is_available, allergens, sort_order,
-                        prep_time_minutes, created_at, updated_at)
+                        prep_time_minutes, image_url, created_at, updated_at)
 VALUES (:id, :restaurant_id, :category_id, :name, :description, :price, :category,
         :is_veg, false, true, '{}', :sort_order,
-        15, now(), now())
+        15, :image_url, now(), now())
 ON CONFLICT (id) DO UPDATE SET
     restaurant_id = EXCLUDED.restaurant_id, category_id = EXCLUDED.category_id,
     name = EXCLUDED.name, description = EXCLUDED.description, price = EXCLUDED.price,
     category = EXCLUDED.category, is_veg = EXCLUDED.is_veg, is_available = true,
-    sort_order = EXCLUDED.sort_order, sold_out_until = NULL,
+    sort_order = EXCLUDED.sort_order, sold_out_until = NULL, image_url = EXCLUDED.image_url,
     deleted_at = NULL, updated_at = now()
 """)
 
@@ -374,6 +377,8 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                     "owner_id": partner_id, "description": r["description"], "cuisines": r["cuisines"],
                     "address": json.dumps(address), "lat": r["lat"], "lng": r["lng"],
                     "rating": r["rating"], "review_count": 0,
+                    "cover_url": photo_url(KITCHEN_PHOTOS.get(r["slug"]), 1600),
+                    "logo_url": photo_url(KITCHEN_PHOTOS.get(r["slug"]), 400),
                     "eta_min": r["eta"][0], "eta_max": r["eta"][1],
                     "min_order": Decimal(r["min_order"]), "delivery_fee": Decimal(r["delivery_fee"]),
                     "currency": m["currency"], "country": m["country"], "city": m["city"],
@@ -387,7 +392,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                         await conn.execute(UPSERT_ITEM, {
                             "id": item_id, "restaurant_id": rid, "category_id": cid,
                             "name": name, "description": desc, "price": Decimal(price), "category": category,
-                            "is_veg": veg, "sort_order": i_order,
+                            "is_veg": veg, "sort_order": i_order, "image_url": dish_photo(name),
                         })
                         # Option groups (P10): one per customization on the board.
                         await conn.execute(text("DELETE FROM menu_item_option_groups WHERE menu_item_id = :i"), {"i": item_id})

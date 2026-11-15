@@ -186,7 +186,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
         created = getattr(k, "created_at", None)
         cards.append(Card(
             id=str(k.id), slug=k.slug, name=k.name, path=ref["path"], cuisine_types=list(k.cuisine_types or []),
-            tags=list(k.tags or []), area=getattr(k, "area", None), cover_url=k.cover_url, logo_url=k.logo_url,
+            tags=list(k.tags or []), area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url, logo_url=k.logo_url,
             rating=float(k.rating or 0), review_count=int(getattr(k, "review_count", 0) or 0),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
             opens_at=a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
