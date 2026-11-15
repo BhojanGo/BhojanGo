@@ -50,7 +50,10 @@ def test_every_dispatch_field_realtime_reads_is_in_the_contract() -> None:
         read |= set(re.findall(r'\binfo(?:\.get\(|\[)"([a-z_]+)"', src))
         read |= set(re.findall(r'\boffer(?:\.get\(|\[)"([a-z_]+)"', src)) & set(DispatchInfo.model_fields)
     assert {"order_id", "driver_id", "pickup", "dropoff", "status"} <= read  # the scan works
-    unknown = read - set(DispatchInfo.model_fields)
+    # Fields realtime derives itself when it saves the info (not core_api's to promise):
+    # ready_at = when it was saved + ready_in_minutes (realtime/app/services/dispatch.py _save_info).
+    derived = {"ready_at"}
+    unknown = read - set(DispatchInfo.model_fields) - derived
     assert not unknown, f"realtime reads fields core_api doesn't promise: {sorted(unknown)}"
 
 
