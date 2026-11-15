@@ -2,14 +2,18 @@
 // WebTracking / MWebTracking: when it arrives, the PIN for the door, each step
 // with its time, the rider (first name) and quick messages, the route, the
 // items and the fair bill. Live from the realtime WebSocket (/ws/track), with a
-// slow poll as a safety net. The map is drawn here (no paid map provider).
+// slow poll as a safety net. The map is MapLibre GL over OpenFreeMap's free
+// tiles (LiveMap, loaded in the browser only).
 import { unwrap, type CoreSchemas } from "@bhojango/api-client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { FairBill } from "@/components/FairBill";
+import { RateOrder } from "@/components/order/RateOrder";
 import { api, useHydrated, useSession, wsUrl } from "@/lib/client";
+import { riderFirstName } from "@/lib/contract";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import type { BillLine } from "@/lib/server";
 import { slugify } from "../../../[country]/[city]/[kitchen]/data";
@@ -19,7 +23,9 @@ type Pt = [number, number];
 interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string }
 interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; at: number | null }
 interface Bill { lines: BillLine[]; currency: string; total?: string }
-type T = ReturnType<typeof useT>;
+
+// WebGL map: browser only, and only on this page (it is a large script).
+const LiveMap = dynamic(() => import("./LiveMap"), { ssr: false, loading: () => <div className="h-full w-full bg-[#E9EEEE]" /> });
 
 // Where each status sits on the five steps (placed, cooking, picked up, on the way, delivered).
 const STAGE: Record<string, number> = { pending_payment: 0, placed: 1, accepted: 1, preparing: 1, almost_ready: 1, ready: 2, picked_up: 3, delivered: 5 };
@@ -138,7 +144,7 @@ export function Tracking({ id }: { id: string }) {
   const cancelled = status === "cancelled";
   const delivered = status === "delivered";
   const stage = STAGE[status] ?? 1;
-  const rider = (order.rider as { first_name?: string } | null)?.first_name || null;
+  const rider = riderFirstName(order);
   const kitchen = order.restaurant_name;
   const stamp = (...states: string[]) => (order.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status))?.at ?? null;
   const arrivesAt = live.eta?.arrives_at ?? order.estimated_delivery_time;
@@ -178,19 +184,27 @@ export function Tracking({ id }: { id: string }) {
   return (
     <div className="mx-auto grid max-w-[1440px] md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:px-16 md:py-6">
       {/* the map */}
-      <div className="relative h-[400px] overflow-hidden md:h-[760px] md:rounded-[28px]">
-        <RouteMap live={live} t={t} />
-        <Link href="/account/orders" aria-label={t("track.back")} className="absolute left-4 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,20,24,0.18)] md:hidden">
+      {/* phone: the sheet below overlaps the map's last 32 px, so the map's controls and credits sit above it */}
+      <div className="relative h-[400px] overflow-hidden md:h-[760px] md:rounded-[28px] [&_.maplibregl-ctrl-bottom-left]:bottom-8 [&_.maplibregl-ctrl-bottom-right]:bottom-8 md:[&_.maplibregl-ctrl-bottom-left]:bottom-0 md:[&_.maplibregl-ctrl-bottom-right]:bottom-0">
+        <LiveMap
+          pickup={live.pickup}
+          dropoff={live.dropoff}
+          rider={delivered || cancelled ? null : live.rider}
+          trail={live.trail}
+          finished={delivered || cancelled}
+          labels={{ map: t("track.map"), kitchen: t("track.map_kitchen", { kitchen }), home: t("track.map_home"), rider: rider ? t("track.map_rider", { rider }) : t("track.your_rider"), failed: t("track.map_failed") }}
+        />
+        <Link href="/account/orders" aria-label={t("track.back")} className="absolute left-4 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,20,24,0.18)] md:hidden">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111418" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
         </Link>
         {ago != null && !delivered && !cancelled && (
-          <span className="absolute left-5 top-5 hidden h-10 items-center rounded-full bg-white px-[14px] text-sm font-extrabold shadow-[0_2px_8px_rgba(17,20,24,0.12)] md:flex" aria-live="off">
+          <span className="absolute left-5 top-5 z-10 hidden h-10 items-center rounded-full bg-white px-[14px] text-sm font-extrabold shadow-[0_2px_8px_rgba(17,20,24,0.12)] md:flex" aria-live="off">
             {t("track.live_ago", { s: ago })}
           </span>
         )}
       </div>
 
-      <div className="relative -mt-8 flex flex-col gap-4 rounded-t-[28px] bg-white px-5 pb-10 pt-6 md:mt-0 md:rounded-none md:p-0">
+      <div className="relative z-10 -mt-8 flex flex-col gap-4 rounded-t-[28px] bg-white px-5 pb-10 pt-6 md:mt-0 md:rounded-none md:p-0">
         {/* phone: the summary */}
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">
@@ -249,6 +263,9 @@ export function Tracking({ id }: { id: string }) {
             </ol>
           </section>
         )}
+
+        {/* after delivery: rate it */}
+        {delivered && <RateOrder orderId={id} order={order} />}
 
         {/* the rider */}
         {rider && !cancelled && (
@@ -399,56 +416,5 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
         </>
       )}
     </section>
-  );
-}
-
-/** The route, drawn: kitchen, rider, home (no map provider key). */
-function RouteMap({ live, t }: { live: Live; t: T }) {
-  const W = 800;
-  const H = 800;
-  const pts = [live.pickup, live.dropoff, live.rider, ...live.trail].filter(Boolean) as Pt[];
-  const grid = (
-    <>
-      <rect width={W} height={H} fill="#E9EEEE" />
-      {[120, 300, 470, 640].map((y, i) => <path key={`h${y}`} d={`M0 ${y + i * 6} L${W} ${y - i * 4}`} stroke="#FFFFFF" strokeWidth={12} />)}
-      {[130, 330, 540, 720].map((x, i) => <path key={`v${x}`} d={`M${x} 0 L${x + 10 - i * 6} ${H}`} stroke="#FFFFFF" strokeWidth={12} />)}
-      <rect x={40} y={190} width={90} height={90} rx={12} fill="#DCE9D7" />
-      <rect x={560} y={470} width={110} height={110} rx={12} fill="#DCE9D7" />
-    </>
-  );
-  if (!pts.length) {
-    return <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" aria-hidden="true">{grid}</svg>;
-  }
-  const lats = pts.map((p) => p[0]);
-  const lngs = pts.map((p) => p[1]);
-  const [a, b, c, d] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
-  const span = Math.max(b - a, d - c, 0.005);
-  const xy = (p: Pt) => [160 + ((p[1] - c) / span) * (W - 320), H - 160 - ((p[0] - a) / span) * (H - 320)] as const;
-  const line = (list: Pt[]) => list.map((p) => xy(p).join(",")).join(" ");
-  const done = live.pickup ? [live.pickup, ...live.trail] : live.trail;
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" role="img" aria-label={t("track.map")}>
-      {grid}
-      {done.length > 1 && <polyline points={line(done)} fill="none" stroke="#8FB3B7" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />}
-      {live.dropoff && (live.rider ?? live.pickup) && <polyline points={line([(live.rider ?? live.pickup)!, live.dropoff])} fill="none" stroke="#0B5D66" strokeWidth={6} strokeLinecap="round" strokeDasharray={live.rider ? undefined : "2 12"} />}
-      {live.pickup && (
-        <g transform={`translate(${xy(live.pickup).join(",")})`}>
-          <circle r={17} fill="#FFFFFF" stroke="#111418" strokeWidth={3} />
-          <path d="M-5 -8v16M-8 -8v5a3 3 0 0 0 6 0v-5M5 -8c-3 2-3 7 0 9v7" stroke="#111418" strokeWidth={2.4} fill="none" strokeLinecap="round" />
-        </g>
-      )}
-      {live.dropoff && (
-        <g transform={`translate(${xy(live.dropoff).join(",")})`}>
-          <circle r={18} fill="#0B5D66" />
-          <path d="M-8 1 0-7 8 1v8h-16z" fill="#FFFFFF" />
-        </g>
-      )}
-      {live.rider && (
-        <g transform={`translate(${xy(live.rider).join(",")})`}>
-          <circle r={26} fill="#F6E7CC" />
-          <circle r={16} fill="#E8A93C" stroke="#FFFFFF" strokeWidth={3} />
-        </g>
-      )}
-    </svg>
   );
 }

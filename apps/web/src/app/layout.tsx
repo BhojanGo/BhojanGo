@@ -3,6 +3,7 @@ import { Familjen_Grotesk, Hanken_Grotesk } from "next/font/google";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { TabBar } from "@/components/TabBar";
 import { I18nProvider } from "@/lib/i18n";
 import { getContext } from "@/lib/prefs";
 import { INDEXABLE, SITE } from "@/lib/server";
@@ -24,7 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0B5D66" };
+// viewport-fit=cover: the phone tab bar pads itself for the home indicator (safe area).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0B5D66", viewportFit: "cover" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext();
@@ -59,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </main>
           <SiteFooter />
+          <TabBar cityPath={ctx.place && ctx.place.served !== false ? (ctx.place.city_path ?? null) : null} />
         </I18nProvider>
       </body>
     </html>

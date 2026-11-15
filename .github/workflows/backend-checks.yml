@@ -120,3 +120,16 @@ jobs:
 
       - name: Order to payout on a throwaway stack
         run: make ci-e2e
+
+  # ──────────────────────────────────────────
+  # G1 again on the backend as .railway/railway.ts runs it (Railway's Postgres
+  # image + PostGIS, migrations as pre-deploy, events on Redis Streams)
+  # ──────────────────────────────────────────
+  e2e-railway:
+    name: G1 on the Railway layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Order to payout on the Railway simulation
+        run: make ci-railway

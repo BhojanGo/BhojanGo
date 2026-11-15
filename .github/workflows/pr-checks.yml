@@ -38,11 +38,36 @@ jobs:
               - 'packages/**'
             backend:
               - 'backend/**'
-              - 'infra/docker/db/**'
+              - 'infra/docker/**'
+              - 'infra/railway/**'
+              - 'tools/**'
+              - 'Makefile'
             infra:
               - 'infra/**'
             terraform:
               - 'infra/terraform/**'
+
+  # ──────────────────────────────────────────
+  # Repo checks (always): the quick `make ci` stages that need no stack
+  # ──────────────────────────────────────────
+  repo-checks:
+    name: Repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No JWTs in commits (hook self-test)
+        run: sh tools/git-hooks/no-jwt.sh --self-test
+      - name: Tests never write to QA or production (make ci-guard)
+        run: make ci-guard
+      - name: Photo credits match LICENSES.md (make ci-photos)
+        run: make ci-photos
+      - name: Website names no seeded place (make ci-web-data)
+        run: make ci-web-data
+      - name: Alert rules and their unit tests (make ci-observe)
+        run: make ci-observe
 
   # ──────────────────────────────────────────
   # Frontend checks
@@ -202,7 +227,7 @@ jobs:
   pr-status:
     name: PR Status
     if: always()
-    needs: [frontend-lint, backend-test, backend-checks, terraform-validate, terraform-plan]
+    needs: [repo-checks, frontend-lint, backend-test, backend-checks, terraform-validate, terraform-plan]
     runs-on: ubuntu-latest
     steps:
       # Skipped jobs (no matching changes) are fine; failed or cancelled ones are not.
