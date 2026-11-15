@@ -1,17 +1,12 @@
 // The fair bill (design: WebKitchen "Your bag", WebCheckout, WebOrders receipt):
 // every line with who gets it. Lines come from the engine (quote, order bill or
 // example bill); amounts are never computed here.
+import { fairSplit, payeeOf, type Payee } from "@/lib/fairSplit";
 import { money } from "@/lib/format";
 import type { BillLine } from "@/lib/server";
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
-// Who each line goes to: the delivery and service fees are ours (riders are
-// paid separately), tax is the government's, the tip is all the rider's.
-const PAYEE: Record<string, "kitchen" | "us" | "tax" | "rider"> = {
-  food: "kitchen", packaging: "kitchen", delivery_fee: "us", service_fee: "us", small_order_fee: "us",
-  surge: "us", late_night_fee: "us", tax: "tax", tip: "rider",
-};
 const TRANSLATED = new Set(["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
 
 export function billLabel(ln: BillLine, t: T, distance?: string | null): string {
@@ -22,7 +17,7 @@ export function billLabel(ln: BillLine, t: T, distance?: string | null): string 
 
 export function payeeLabel(ln: BillLine, t: T): string {
   if (ln.code === "promotion") return ln.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays");
-  const p = PAYEE[ln.code] ?? "us";
+  const p = payeeOf(ln);
   return p === "kitchen" ? t("bill.kitchen") : p === "tax" ? t("bill.tax") : p === "rider" ? t("bill.rider") : t("bill.bhojango");
 }
 
@@ -72,36 +67,36 @@ export function FairBill({
   );
 }
 
-/** "Who gets your money" bar (landing page): shares of an example bill. */
-export function MoneyBar({ lines, t }: { lines: BillLine[]; t: T }) {
-  const sums = { kitchen: 0, rider: 0, tax: 0, us: 0 };
-  for (const ln of lines) {
-    const a = Number(ln.amount);
-    if (ln.code === "promotion") sums[ln.funded_by === "restaurant" ? "kitchen" : "us"] += a;
-    else sums[PAYEE[ln.code] ?? "us"] += a;
-  }
-  const total = Object.values(sums).reduce((a, b) => a + Math.max(b, 0), 0) || 1;
-  const parts = [
-    { k: "kitchen", color: "#0B5D66", label: t("bill.kitchen") },
-    { k: "rider", color: "#E8A93C", label: t("bill.rider_tip") },
-    { k: "tax", color: "#A9B8BA", label: t("bill.tax") },
-    { k: "us", color: "#111418", label: t("bill.bhojango") },
-  ] as const;
+/**
+ * "Who gets your money" (landing page): the shares of a real bill from the engine
+ * (the country's example quote), as whole percentages that add up to 100.
+ */
+export function MoneyBar({ lines, t, formatLocale }: { lines: BillLine[]; t: T; formatLocale: string }) {
+  const split = fairSplit(lines);
+  if (!split) return null;
+  const look: Record<Payee, { color: string; label: string }> = {
+    kitchen: { color: "#0B5D66", label: t("bill.kitchen") },
+    rider: { color: "#E8A93C", label: t("bill.rider_tip") },
+    tax: { color: "#A9B8BA", label: t("bill.tax") },
+    us: { color: "#111418", label: t("bill.bhojango") },
+  };
+  const pct = new Intl.NumberFormat(formatLocale, { style: "percent", maximumFractionDigits: 0 });
   return (
-    <div>
-      <div className="flex h-3 overflow-hidden rounded-full" role="img" aria-label={parts.map((p) => `${p.label} ${Math.round((Math.max(sums[p.k], 0) / total) * 100)}%`).join(", ")}>
-        {parts.map((p) => (
-          <span key={p.k} style={{ width: `${(Math.max(sums[p.k], 0) / total) * 100}%`, background: p.color }} />
+    <div data-testid="money-split">
+      <div className="flex h-3 overflow-hidden rounded-full" role="img" aria-label={split.map((p) => `${look[p.payee].label} ${p.percent}%`).join(", ")}>
+        {split.map((p) => (
+          <span key={p.payee} style={{ width: `${p.percent}%`, background: look[p.payee].color }} />
         ))}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-small">
-        {parts.map((p) => (
-          <span key={p.k} className="flex items-center gap-[6px]">
-            <span className="h-[10px] w-[10px]" style={{ background: p.color }} />
-            {p.label}
-          </span>
+      <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-x-6 gap-y-1 p-0 text-small">
+        {split.map((p) => (
+          <li key={p.payee} data-payee={p.payee} data-percent={p.percent} className="flex items-center gap-[6px]">
+            <span className="h-[10px] w-[10px] shrink-0" style={{ background: look[p.payee].color }} />
+            <span className="flex-grow">{look[p.payee].label}</span>
+            <b className="font-semibold tabular-nums text-[#111418]">{pct.format(p.percent / 100)}</b>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

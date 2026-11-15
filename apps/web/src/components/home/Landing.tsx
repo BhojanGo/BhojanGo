@@ -1,7 +1,9 @@
 // First visit, no address (WebLanding): address first, no city named in the
-// template. The hero photo is the visitor's country's choice in Markets; the
-// example bill, the other photos and the cuisines come from the first live city
-// of that country; the directory from Markets.
+// template. The location line ("<city>, <CC> · Change city") sits above the hero.
+// The hero photo is the visitor's country's choice in Markets; the example bill
+// ("Who gets your money", real percentages from the engine's example quote), the
+// other photos and the cuisines come from the visitor's city when it is live, else
+// the first live city of that country; the directory from Markets.
 import Link from "next/link";
 
 import { AddressBox } from "@/components/AddressBox";
@@ -11,14 +13,15 @@ import { MoneyBar } from "@/components/FairBill";
 import { HintRow } from "@/components/HintRow";
 import { NotifyMe } from "@/components/NotifyMe";
 import { cuisineTiles } from "@/lib/contract";
-import { libraryPhoto, photo } from "@/lib/format";
+import { libraryPhoto, money, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, exampleBill } from "@/lib/server";
+import { LocationLine } from "./LocationLine";
 import { RecruitCards } from "./Recruit";
 
 export async function Landing() {
-  const { t, country, countrySource, directory: dir } = await getContext();
-  const city = firstLiveCity(dir, country?.code);
+  const { t, country, countrySource, city: here, formatLocale, directory: dir } = await getContext();
+  const city = here?.status === "live" ? here : firstLiveCity(dir, country?.code);
   const [d, bill] = city ? await Promise.all([discover({ city: city.code }), exampleBill(city.code)]) : [null, null];
   // The hero is the country's chosen library photo (Markets -> country -> Hero dish; a default when unset).
   const hero = libraryPhoto(country?.hero_photo ?? dir.hero_photo);
@@ -31,10 +34,13 @@ export async function Landing() {
       <section className="bg-[linear-gradient(180deg,#EFF6F6_0%,#FFFFFF_100%)]">
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 pb-14 pt-10 md:px-16 md:pb-20 md:pt-[72px] lg:grid-cols-[1fr_560px] lg:gap-14">
           <div>
-            <h1 className="m-0 whitespace-pre-line text-display leading-[0.98] tracking-[-1.8px] md:tracking-[-2.8px]">
+            <div className="mb-6 md:mb-8">
+              <LocationLine />
+            </div>
+            <h1 className="m-0 whitespace-pre-line text-display tracking-[-1.8px] md:tracking-[-2.8px]">
               {t("home.hero_title")}
             </h1>
-            <p className="mt-[22px] max-w-[560px] text-body-lg leading-[1.5] text-[#4C5A5E]">{t("home.hero_body")}</p>
+            <p className="mt-[22px] max-w-[560px] text-body-lg text-[#4C5A5E]">{t("home.hero_body")}</p>
             <div className="mt-9">
               <AddressBox size="hero" country={country?.code ?? null} />
             </div>
@@ -47,9 +53,17 @@ export async function Landing() {
                 {hero && <img src={hero} alt="" data-testid="landing-hero" className="block h-full w-full object-cover" />}
               </div>
               {bill && (
-                <div className="absolute bottom-0 left-4 w-[300px] max-w-[calc(100%-32px)] rounded-[24px] bg-white p-5 shadow-[0_2px_4px_rgba(17,20,24,0.06),0_24px_48px_rgba(17,20,24,0.14)] md:left-0">
-                  <div className="mb-[14px] text-caption text-[#0B5D66]">{t("bill.who_gets")}</div>
-                  <MoneyBar lines={bill.lines} t={t} />
+                <div
+                  data-testid="who-gets"
+                  data-city={bill.city}
+                  data-total={bill.total}
+                  className="absolute bottom-0 left-4 w-[320px] max-w-[calc(100%-32px)] rounded-[24px] bg-white p-5 shadow-[0_2px_4px_rgba(17,20,24,0.06),0_24px_48px_rgba(17,20,24,0.14)] md:left-0"
+                >
+                  <h2 className="m-0 text-caption text-[#0B5D66]">{t("bill.who_gets")}</h2>
+                  <p className="mb-[14px] mt-1 text-small tabular-nums text-[#4C5A5E]">
+                    {t("bill.example_in", { total: money(bill.total, bill.currency, formatLocale), city: bill.city_name })}
+                  </p>
+                  <MoneyBar lines={bill.lines} t={t} formatLocale={formatLocale} />
                   <p className="mt-3 text-small text-[#4C5A5E]">{t("bill.exact_note")}</p>
                 </div>
               )}
@@ -64,7 +78,7 @@ export async function Landing() {
             <li key={n} className="rounded-[24px] bg-[#F4F6F6] p-5 md:p-7">
               <div aria-hidden="true" className="text-h1 tracking-[-1px] text-[#0B5D66]">{n}</div>
               <b className="mt-2 block text-h3">{t(`home.step${n}_title`)}</b>
-              <p className="mt-[6px] text-body leading-[1.5] text-[#4C5A5E]">{t(`home.step${n}_body`)}</p>
+              <p className="mt-[6px] text-body text-[#4C5A5E]">{t(`home.step${n}_body`)}</p>
             </li>
           ))}
         </ol>
