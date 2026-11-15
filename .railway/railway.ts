@@ -161,6 +161,8 @@ export default defineRailway((ctx, project) => {
       deploy: { ...(prod ? {} : { sleepApplication: true }), ...cap(0.5, 0.5) },
       env: {
         APP: pkg, APP_DIR: dir, PORT: "3000",
+        // production only is indexable (robots.txt, meta and X-Robots-Tag); a build arg too
+        APP_ENV: appEnv,
         CORE_API_URL: "http://core-api.railway.internal:8001",
         REALTIME_URL: "http://realtime.railway.internal:8004",
         NEXT_PUBLIC_CORE_URL: `https://\${{core-api.RAILWAY_PUBLIC_DOMAIN}}`,
