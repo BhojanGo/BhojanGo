@@ -219,7 +219,9 @@ class ProviderSettings(BaseSettings):
     FAKE_PAYMENT_WEBHOOK_URL: str = "http://localhost:8001/api/v1/payments/fake/webhook"
 
     TAX_PROVIDER: str = "auto"  # auto | stripe_tax | local (US sales tax, P9)
-    PAYOUT_PROVIDER: str = "auto"  # auto | live (Stripe Connect US, Razorpay Route IN) | fake (P13)
+    # auto | live | fake (P13). Which provider a country pays with is its Markets field
+    # countries.payout_provider; this only says whether real money may move (finance/service/providers.py).
+    PAYOUT_PROVIDER: str = "auto"
     SMS_PROVIDER: str = "log"  # log | live (Twilio for US, MSG91 for India)
     MSG91_AUTH_KEY: str = ""
     # DLT-registered template id per message key, e.g. {"otp": "6650..."}

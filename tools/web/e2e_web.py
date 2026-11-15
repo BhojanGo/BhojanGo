@@ -537,6 +537,34 @@ with sync_playwright() as p:
                         and abs(marker.bounding_box()["x"] - before_box["x"]) + abs(marker.bounding_box()["y"] - before_box["y"]) > 5,
                         (before_box, marker.bounding_box()))))
     shot(page, "13c-rider-on-map")
+    check("tracking map: the rider's trail so far, a dashed line to home only (no kitchen-to-home route)", lambda: (
+        expect(route_map).to_have_attribute("data-heading", "home"),
+        eventually(lambda: _assert(int(route_map.get_attribute("data-trail") or 0) >= 2, route_map.get_attribute("data-trail")))))
+
+    # The ETA comes from the distance left: further away, then closer, and the minutes and "km left" go down.
+    eta_box = page.locator('[data-testid="eta"]:visible')
+    north = lambda km: api("POST", "/delivery/driver/location", rider, {  # noqa: E731
+        "lat": z[0] + km / 111.195, "lng": z[1], "order_id": order_id}, host=8004)
+    left_re = re.compile(r"On the way · ([\d.]+) km left")
+    timeline = page.get_by_role("region", name="Order steps")
+    seen: dict[str, float] = {}
+
+    def eta_after(km: float, key: str) -> None:
+        north(km)
+        def read() -> None:
+            minutes = int(re.search(r"\d+", eta_box.inner_text()).group())  # type: ignore[union-attr]
+            m = left_re.search(timeline.inner_text())
+            _assert(m is not None, timeline.inner_text())
+            km_left = float(m.group(1))  # type: ignore[union-attr]
+            # road distance (x1.3) from the rider to the door, as realtime worked it out
+            _assert(abs(km_left - km * 1.3) < 0.3, f"{km_left} km left for a rider {km} km away")
+            seen[key], seen[key + "_km"] = minutes, km_left
+        eventually(read)
+    check("tracking: the ETA comes from the distance left and goes down as the rider gets closer", lambda: (
+        eta_after(3, "far"), eta_after(1, "near"),
+        _assert(seen["near"] < seen["far"] and seen["near_km"] < seen["far_km"], seen)))
+    # back at the door for the handover
+    fix(1.0)
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "delivered", "proof": {"method": "pin", "pin": pin}})
     check("tracking: delivered, live (no reload), messages closed", lambda: (
         expect(status).to_contain_text("Delivered. Enjoy your meal.", timeout=20000),

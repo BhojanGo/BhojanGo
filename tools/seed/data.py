@@ -345,6 +345,7 @@ COUNTRIES = [
         "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"],
         "timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
         "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
+        "payout_provider": "razorpay_route",  # who pays kitchens and riders (Markets; fake when no keys: providers.py)
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali"},
@@ -385,6 +386,7 @@ COUNTRIES = [
         "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US", "es-US"],
         "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
+        "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza"},
         "regions": [
             {

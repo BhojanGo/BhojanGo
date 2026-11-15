@@ -56,7 +56,9 @@ MARKETS = [
     {"key": "country", "country": "NZ", "country_name": "New Zealand",
      "new_country": {"code": "NZ", "name": "New Zealand", "currency": "NZD", "locales": "en-NZ",
                      "timezone": "Pacific/Auckland", "distance_unit": "km", "phone_code": "+64", "tax_regime": "gst",
-                     "payments": "Stripe"},
+                     "payments": "Stripe",
+                     # GitHub's throwaway stack has no payout keys: the fake (never offered in production)
+                     "payouts": "fake"},
      "city": "Wellington", "state": "Wellington Region", "lat": -41.2865, "lng": 174.7762, "zone": "Wellington Central",
      "kitchen": "Harbour Kai Kitchen", "owner": "Aroha Ngata", "phone": ("+6421", 7), "street": "120 Cuba St",
      "area": "Te Aro", "zip": "6011", "cuisines": ["New Zealand"], "currency": "NZD", "price_text": r"\$24(\.00)?",
@@ -209,12 +211,14 @@ def add_country(page, m: dict) -> None:  # type: ignore[no-untyped-def]
         if boxes.nth(i).is_checked():
             boxes.nth(i).uncheck()
     card.get_by_label(c["payments"], exact=True).check()
+    card.get_by_label("Payout provider").select_option(c["payouts"])
     card.get_by_role("button", name="Create country").click()
     # on success the console opens the new country's page
     page.wait_for_url(f"**/markets/{c['code']}", timeout=15000)
     expect(page.get_by_role("heading", name=c["name"], level=1)).to_be_visible(timeout=15000)
     got = country_summary(c["code"])
     assert got["currency"] == c["currency"] and got["phone_code"] == c["phone_code"], got
+    assert got["payout_provider"] == c["payouts"], got
     shot(page, f"00-admin-country-{c['code'].lower()}")
 
 
@@ -257,6 +261,23 @@ def add_city(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     state[m["key"]] = {"city_code": code, "region": region}
     table = page.get_by_role("region", name="States and cities")
     expect(table.get_by_role("link", name=m["city"], exact=True)).to_be_visible(timeout=15000)
+
+
+def no_payouts_no_opening(m: dict) -> None:
+    """A country with no payout provider can't open (nobody could pay its kitchens
+    and riders); with one it can. Uses the country page's "Payout provider" via the API."""
+    t = token(ADMIN_EMAIL)
+    code, chosen = m["country"], m["new_country"]["payouts"]
+    api("PATCH", f"/markets/countries/{code}", t, {"payout_provider": "none"})
+    refused = None
+    try:
+        api("PATCH", f"/markets/countries/{code}", t, {"status": "live"})
+    except AssertionError as e:  # api() raises on an HTTP error
+        refused = str(e)
+    assert refused and ": 409 " in refused and "no payout provider" in refused, refused or "opened with payout provider none"
+    assert country_summary(code)["status"] == "draft"
+    api("PATCH", f"/markets/countries/{code}", t, {"payout_provider": chosen})
+    assert country_summary(code)["payout_provider"] == chosen
 
 
 def open_country(m: dict) -> None:
@@ -472,6 +493,7 @@ def run_market(b, admin, m: dict) -> None:  # type: ignore[no-untyped-def]
         ]
     steps.append((f"admin: Markets > {m['country_name']} > New city: {where} (codes made from the names)", lambda: add_city(admin, m)))
     if m["new_country"]:
+        steps.append((f"admin: {m['country_name']} can't open with payout provider none", lambda: no_payouts_no_opening(m)))
         steps.append((f"admin: open {m['country_name']} and {m['state']}", lambda: open_country(m)))
     steps += [
         ("admin: draw a zone on the map (4 corners) and name it", lambda: draw_zone(admin, m)),

@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { HeroDish } from "@/components/markets/HeroDish";
+import { PayoutProvider } from "@/components/markets/PayoutProvider";
 import { StatusPill } from "@/components/console/StatusPill";
 import {
   CHECKLIST_LABELS,
@@ -17,6 +18,7 @@ import {
   can,
   marketsApi,
   moneySymbol,
+  payoutLabel,
   useAdminMe,
   useDemand,
   useMarkets,
@@ -35,6 +37,7 @@ function SettingsCards({ country }: { country: CountrySummary }) {
   const cards = [
     { title: "Money and tax", value: `${country.currency} · ${country.tax_regime === "gst" ? "GST" : "Stripe Tax"}` },
     { title: "Payments", value: [country.payment_providers.map((p) => p[0].toUpperCase() + p.slice(1)).join(", "), methods].filter(Boolean).join(" · ") },
+    { title: "Payouts", value: payoutLabel(country.payout_provider) },
     { title: "Languages", value: country.locales.map((l) => LOCALE_NAMES[l] ?? l).join(" · ") },
     { title: "Compliance", value: compliance || "No extra rules" },
     { title: "Time and units", value: `${country.timezone} · ${country.distance_unit}` },
@@ -108,6 +111,7 @@ function CountryView() {
           <AddCity country={country} />
           <DemandCard countryCode={country.code} />
           <SettingsCards country={country} />
+          <PayoutProvider country={country} />
           <HeroDish country={country} />
         </>
       )}

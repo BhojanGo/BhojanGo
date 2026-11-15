@@ -191,7 +191,7 @@ services:
       CORE_API_URL: http://core-api:8001
       # The demo rider (worker/app/demo_sim): delivers the demo customers' orders after `make seed`
       # (tools/seed/demo.py), through the normal APIs. make dev only; e2e.compose.yaml turns it off.
-      DEMO_RIDER_SIM: "1"
+      DEMO_RIDER_SIM: "${DEMO_RIDER_SIM:-1}"  # on for make dev; CI e2e sets 0
     ports:
       - "${WORKER_PORT:-8006}:8006"
     depends_on:
