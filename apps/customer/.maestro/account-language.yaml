@@ -1,6 +1,7 @@
-# The language picker lists exactly the country's languages (Markets) and
-# switching changes the words; then back to English. The country shown is the
-# delivery address's (or the one chosen). Switching also remembers the language
+# The language page lists exactly the country's languages (Markets: the same list
+# as the header's pill) and switching changes the words; then back to English.
+# There is no country selector (the country follows the delivery address).
+# Switching here also remembers the language
 # on the account (PATCH /users/me preferred_locale) as the website does: run
 # against a demo account. LANG2 is a second language of the account's country
 # (default "hi" for the seed phones' country).
@@ -17,16 +18,20 @@ appId: com.bhojango.app
     visible:
       id: "language-en"
     timeout: 20000
-- assertVisible: "Language and country"
+- assertVisible:
+    id: "language-title"
+    text: "Language"
 - assertVisible:
     id: 'language-${LANG2 || "hi"}'
-- assertVisible:
+- assertNotVisible:
     id: "country-section"
 - takeScreenshot: docs/screenshots/customer/45-language
 - tapOn:
     id: 'language-${LANG2 || "hi"}'
 - extendedWaitUntil:
-    notVisible: "Language and country"
+    notVisible:
+      id: "language-title"
+      text: "Language"
     timeout: 5000
 - assertVisible:
     id: "language-title"
@@ -34,5 +39,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "language-en"
 - extendedWaitUntil:
-    visible: "Language and country"
+    visible:
+      id: "language-title"
+      text: "Language"
     timeout: 5000

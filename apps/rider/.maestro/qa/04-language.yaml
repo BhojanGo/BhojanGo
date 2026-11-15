@@ -48,3 +48,44 @@ appId: com.bhojango.rider
     visible: "Language"
     timeout: 10000
 - assertVisible: "Documents"
+# Round 6: the same through the language pill in the Drive top bar (globe + "EN"):
+# a plain list under the pill, each language in its own script, kept on this phone.
+- tapOn:
+    id: "tab-drive"
+- extendedWaitUntil:
+    visible:
+      id: "language-pill"
+    timeout: 20000
+- assertVisible:
+    id: "language-pill-code"
+    text: "EN"
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- assertVisible: "हिन्दी"
+- assertVisible: "తెలుగు"
+- takeScreenshot: docs/screenshots/rider/qa/04-pill-list
+- tapOn:
+    id: "language-option-hi"
+- extendedWaitUntil:
+    visible: "खाता"
+    timeout: 10000
+- assertVisible:
+    id: "language-pill-code"
+    text: "HI"
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- tapOn:
+    id: "language-option-en"
+- extendedWaitUntil:
+    visible:
+      id: "language-pill-code"
+      text: "EN"
+    timeout: 10000
