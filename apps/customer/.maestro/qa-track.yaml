@@ -11,9 +11,10 @@ tags:
     file: sign-in.yaml
     env:
       PHONE: ${PHONE || "9000000301"}
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: "active-order"
+    direction: UP
     timeout: 60000
 - tapOn:
     id: "active-order"

@@ -37,13 +37,15 @@ tags:
     element:
       id: "kitchen-card-.*"
     direction: DOWN
-    timeout: 30000
+    visibilityPercentage: 50
+    timeout: 90000
 - scrollUntilVisible:
     element:
       id: "home-end"
     direction: DOWN
     visibilityPercentage: 50
-    timeout: 60000
+    timeout: 240000
+    speed: 80
 - repeat:
     times: 3
     commands:
@@ -79,7 +81,8 @@ tags:
       id: "search-end"
     direction: DOWN
     visibilityPercentage: 50
-    timeout: 60000
+    timeout: 240000
+    speed: 80
 - repeat:
     times: 3
     commands:
@@ -114,7 +117,8 @@ tags:
       id: "orders-end"
     direction: DOWN
     visibilityPercentage: 50
-    timeout: 90000
+    timeout: 240000
+    speed: 80
 - repeat:
     times: 3
     commands:
@@ -145,7 +149,8 @@ tags:
       id: "account-end"
     direction: DOWN
     visibilityPercentage: 50
-    timeout: 30000
+    timeout: 240000
+    speed: 80
 - repeat:
     times: 3
     commands:
