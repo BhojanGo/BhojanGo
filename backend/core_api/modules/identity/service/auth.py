@@ -37,6 +37,7 @@ from core_api.modules.identity.schemas.user import (
 from core_api.modules.identity.service import oidc
 from core_api.modules.identity.service.otp import send_otp, verify_otp
 from core_api.modules.identity.service.redis_keys import blacklist_key, refresh_families_key, refresh_family_key
+from core_api.modules.markets.service import countries
 from core_api.modules.identity.service.security import (
     create_access_token,
     create_refresh_token,
@@ -55,8 +56,8 @@ settings = get_settings()
 # Dummy hash to prevent timing attacks — always run bcrypt even if user not found
 _DUMMY_HASH = hash_password("dummy-never-matches-any-password")
 
-CURRENCY = {"US": "USD", "IN": "INR"}
-LOCALE = {"US": "en-US", "IN": "en-IN"}
+# A new account's currency and language come from its country in Markets
+# (markets.service.countries), not from a list here.
 
 
 def _unauthorized(code: str, message: str) -> HTTPException:
@@ -119,6 +120,9 @@ class AuthService:
         self.repo = UserRepository(db)
 
     async def register(self, data: RegisterRequest) -> AuthTokensResponse:
+        country = await countries.require_open(self.db, data.country)
+        countries.require_phone_in(country, data.phone)
+        await countries.require_known_currency(self.db, data.preferred_currency)
         if await self.repo.email_exists(data.email):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -159,6 +163,8 @@ class AuthService:
 
     async def phone_sign_in(self, data: PhoneSignInRequest) -> AuthTokensResponse:
         """Sign in with an SMS code; creates a customer account for a new number."""
+        country = await countries.require_open(self.db, data.country)
+        countries.require_phone_in(country, data.phone)
         if not await verify_otp(data.phone, data.otp):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,9 +178,9 @@ class AuthService:
                 phone=data.phone,
                 full_name=data.full_name or "BhojanGo customer",
                 role="customer",
-                country=data.country,
-                preferred_currency=CURRENCY[data.country],
-                preferred_locale=LOCALE[data.country],
+                country=country.code,
+                preferred_currency=country.currency,
+                preferred_locale=country.default_locale,
                 is_phone_verified=True,
             )
             logger.info("user_registered", user_id=str(user.id), method="phone")
@@ -216,7 +222,9 @@ class AuthService:
         logger.info("user_logged_out", user_id=user_id)
 
     async def send_otp(self, data: OtpSendRequest) -> bool:
-        return await send_otp(data.phone, data.country)
+        country = await countries.require_open(self.db, data.country)
+        countries.require_phone_in(country, data.phone)
+        return await send_otp(data.phone, country.code)
 
     async def reset_password(self, data: ResetPasswordRequest) -> None:
         """Verify the OTP, set a new password, and revoke existing sessions."""
@@ -264,13 +272,14 @@ class AuthService:
             if user is not None:
                 user = await self.repo.update(user.id, **{id_field: ident.subject}) or user
         if user is None:
+            country = await countries.require_open(self.db, data.country)
             user = await self.repo.create(
                 email=ident.email.lower() if ident.email and ident.email_verified else None,
                 full_name=ident.name or ("Apple user" if data.provider == "apple" else "Google user"),
                 role="customer",
-                country=data.country,
-                preferred_currency=CURRENCY[data.country],
-                preferred_locale=LOCALE[data.country],
+                country=country.code,
+                preferred_currency=country.currency,
+                preferred_locale=country.default_locale,
                 is_verified=ident.email_verified,
                 **{id_field: ident.subject},
             )

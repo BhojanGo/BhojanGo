@@ -280,10 +280,10 @@
             "type": "string"
           },
           "country": {
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -6492,10 +6492,10 @@
       "OtpSendRequest": {
         "properties": {
           "country": {
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -6692,10 +6692,7 @@
           "country": {
             "anyOf": [
               {
-                "enum": [
-                  "US",
-                  "IN"
-                ],
+                "pattern": "^[A-Z]{2}$",
                 "type": "string"
               },
               {
@@ -6707,10 +6704,10 @@
           "currency": {
             "anyOf": [
               {
-                "enum": [
-                  "USD",
+                "examples": [
                   "INR"
                 ],
+                "pattern": "^[A-Z]{3}$",
                 "type": "string"
               },
               {
@@ -6783,10 +6780,10 @@
             "title": "Client Secret"
           },
           "currency": {
-            "enum": [
-              "USD",
+            "examples": [
               "INR"
             ],
+            "pattern": "^[A-Z]{3}$",
             "title": "Currency",
             "type": "string"
           },
@@ -7015,10 +7012,10 @@
         "description": "Sign in (or sign up) with the code from /auth/send-otp.",
         "properties": {
           "country": {
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -7324,6 +7321,276 @@
           "restaurants"
         ],
         "title": "PublicCity",
+        "type": "object"
+      },
+      "PublicRestaurant": {
+        "description": "A restaurant as customers and the public see it (browse, search, the\nrestaurant page, the menu). Never the commission or payout terms, the\nowner, tax registration or licence documents: those are in\nRestaurantResponse, for the owner and admins only. The FSSAI licence\nnumber stays: Indian law requires showing it to customers.\nintegration/test_public_contract.py fails if a public route grows one.",
+        "properties": {
+          "address": {
+            "additionalProperties": true,
+            "title": "Address",
+            "type": "object"
+          },
+          "avg_prep_minutes": {
+            "default": 20,
+            "title": "Avg Prep Minutes",
+            "type": "integer"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "closes_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closes At"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cuisine_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cuisine Types",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "delivery_fee": {
+            "title": "Delivery Fee",
+            "type": "number"
+          },
+          "delivery_radius_km": {
+            "default": 5.0,
+            "title": "Delivery Radius Km",
+            "type": "number"
+          },
+          "delivery_time_max": {
+            "title": "Delivery Time Max",
+            "type": "integer"
+          },
+          "delivery_time_min": {
+            "title": "Delivery Time Min",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fssai_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fssai Number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_open": {
+            "title": "Is Open",
+            "type": "boolean"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lng": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "minimum_order_amount": {
+            "title": "Minimum Order Amount",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "opens_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opens At"
+          },
+          "paused_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Reason"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "number"
+          },
+          "rating_display": {
+            "$ref": "#/components/schemas/RatingDisplay",
+            "description": "Public stars: {\"new\": true} below 5 ratings, else {\"new\": false, \"stars\": 4.6, \"count\": 23}.",
+            "readOnly": true
+          },
+          "review_count": {
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "cuisine_types",
+          "logo_url",
+          "cover_url",
+          "address",
+          "lat",
+          "lng",
+          "rating",
+          "review_count",
+          "is_open",
+          "opens_at",
+          "closes_at",
+          "delivery_time_min",
+          "delivery_time_max",
+          "minimum_order_amount",
+          "delivery_fee",
+          "currency",
+          "country",
+          "city",
+          "tags",
+          "status",
+          "is_active",
+          "created_at",
+          "updated_at",
+          "rating_display"
+        ],
+        "title": "PublicRestaurant",
+        "type": "object"
+      },
+      "PublicRestaurantList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicRestaurant"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "total_pages"
+        ],
+        "title": "PublicRestaurantList",
         "type": "object"
       },
       "PublicZone": {
@@ -7926,10 +8193,10 @@
       "RegisterRequest": {
         "properties": {
           "country": {
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -7963,10 +8230,10 @@
           },
           "preferred_currency": {
             "default": "USD",
-            "enum": [
-              "USD",
+            "examples": [
               "INR"
             ],
+            "pattern": "^[A-Z]{3}$",
             "title": "Preferred Currency",
             "type": "string"
           },
@@ -8270,10 +8537,10 @@
             "title": "Closes At"
           },
           "country": {
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -8286,10 +8553,10 @@
             "type": "array"
           },
           "currency": {
-            "enum": [
-              "USD",
+            "examples": [
               "INR"
             ],
+            "pattern": "^[A-Z]{3}$",
             "title": "Currency",
             "type": "string"
           },
@@ -8382,6 +8649,7 @@
         "type": "object"
       },
       "RestaurantListResponse": {
+        "description": "Admins' list (full restaurants).",
         "properties": {
           "items": {
             "items": {
@@ -8427,7 +8695,7 @@
             "type": "array"
           },
           "restaurant": {
-            "$ref": "#/components/schemas/RestaurantResponse"
+            "$ref": "#/components/schemas/PublicRestaurant"
           },
           "uncategorized_items": {
             "items": {
@@ -8446,6 +8714,7 @@
         "type": "object"
       },
       "RestaurantResponse": {
+        "description": "The full restaurant, for its owner and admins (create, update, pricing,\napprove, the admin lists): adds the commission terms, owner and licence expiry.",
         "properties": {
           "address": {
             "additionalProperties": true,
@@ -8697,7 +8966,6 @@
           "id",
           "name",
           "slug",
-          "owner_id",
           "description",
           "cuisine_types",
           "logo_url",
@@ -8722,6 +8990,7 @@
           "is_active",
           "created_at",
           "updated_at",
+          "owner_id",
           "rating_display"
         ],
         "title": "RestaurantResponse",
@@ -10058,10 +10327,10 @@
         "properties": {
           "country": {
             "default": "US",
-            "enum": [
-              "US",
+            "examples": [
               "IN"
             ],
+            "pattern": "^[A-Z]{2}$",
             "title": "Country",
             "type": "string"
           },
@@ -10575,10 +10844,10 @@
           "preferred_currency": {
             "anyOf": [
               {
-                "enum": [
-                  "USD",
+                "examples": [
                   "INR"
                 ],
+                "pattern": "^[A-Z]{3}$",
                 "type": "string"
               },
               {
@@ -10804,10 +11073,10 @@
             "type": "number"
           },
           "currency": {
-            "enum": [
-              "USD",
+            "examples": [
               "INR"
             ],
+            "pattern": "^[A-Z]{3}$",
             "title": "Currency",
             "type": "string"
           },
@@ -16628,7 +16897,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RestaurantListResponse"
+                  "$ref": "#/components/schemas/PublicRestaurantList"
                 }
               }
             },
@@ -16690,6 +16959,100 @@
           }
         ],
         "summary": "Create Restaurant",
+        "tags": [
+          "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurants/admin/kitchens": {
+      "get": {
+        "description": "Admin: live kitchens (paused ones too) with the full record \u2014 licence expiry,\ncommission terms \u2014 cut to the cities the admin may view partners in. The\npublic list leaves those fields out (PublicRestaurant).",
+        "operationId": "list_kitchens_for_admins_api_v1_restaurants_admin_kitchens_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Kitchens For Admins",
         "tags": [
           "Restaurants"
         ]
@@ -16828,7 +17191,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RestaurantResponse"
+                  "$ref": "#/components/schemas/PublicRestaurant"
                 }
               }
             },
@@ -17056,7 +17419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RestaurantListResponse"
+                  "$ref": "#/components/schemas/PublicRestaurantList"
                 }
               }
             },
@@ -17099,7 +17462,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RestaurantResponse"
+                  "$ref": "#/components/schemas/PublicRestaurant"
                 }
               }
             },

@@ -249,6 +249,11 @@ class ProviderSettings(BaseSettings):
     # needs no SMS. Their phones start with these prefixes.
     OTP_FIXED_CODE: str = "123456"
     OTP_FIXED_CODE_PHONE_PREFIXES: list[str] = ["+9190000", "+12085550"]
+    # Orders by customers on the fictional seed numbers get this delivery PIN
+    # (not a random one) outside production, so Maestro/e2e runs can hand it
+    # over. Everyone else gets a random 4-digit PIN. Empty = always random.
+    DELIVERY_PIN_FIXED: str = Field(default="1234", pattern=r"^(\d{4})?$")
+    DELIVERY_PIN_FIXED_PHONE_PREFIXES: list[str] = ["+9190000", "+1208555"]
 
 
 class Settings(BaseSettings):
@@ -345,7 +350,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def refuse_fakes_in_production(self) -> "Settings":
         """No service starts in an environment named production with the fake
-        payment or payout provider, or with the fixed OTP for seed phones."""
+        payment or payout provider, or with the fixed OTP or delivery PIN for seed phones."""
         if not self.production_named:
             return self
         p = self.providers
@@ -356,6 +361,8 @@ class Settings(BaseSettings):
             problems.append("PAYOUT_PROVIDER='fake'")
         if p.OTP_FIXED_CODE:
             problems.append("OTP_FIXED_CODE is set (set it to an empty string)")
+        if p.DELIVERY_PIN_FIXED:
+            problems.append("DELIVERY_PIN_FIXED is set (set it to an empty string)")
         if problems:
             raise ProductionConfigError("refusing to start in production: " + "; ".join(problems))
         return self

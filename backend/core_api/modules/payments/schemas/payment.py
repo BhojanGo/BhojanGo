@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 PaymentProvider = Literal["stripe", "razorpay", "wallet", "fake"]
 PaymentStatus = Literal["pending", "processing", "succeeded", "failed", "cancelled", "refunded", "partially_refunded"]
-Currency = Literal["USD", "INR"]
+Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$", examples=["INR"])]  # the order's (from Markets)
 
 
 class PaymentInitiateRequest(BaseModel):
@@ -15,7 +15,7 @@ class PaymentInitiateRequest(BaseModel):
     payment_method_id: str | None = None
     # Ignored since P11: the order decides the gateway, amount and currency. If
     # sent, amount and currency must match the order.
-    country: Literal["US", "IN"] | None = None
+    country: Annotated[str, Field(pattern=r"^[A-Z]{2}$")] | None = None
     amount: int | None = Field(default=None, gt=0, description="Optional check, in cents/paise")
     currency: Currency | None = None
 

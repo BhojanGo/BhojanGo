@@ -22,6 +22,7 @@ from core_api.modules.orders.models.order import Order
 from core_api.modules.orders.repository.order import OrderRepository
 from core_api.modules.orders.schemas.order import OrderCancelRequest, OrderCreateRequest, OrderStatusUpdateRequest
 from core_api.modules.orders.service import state_machine as sm
+from core_api.modules.orders.service.pin import delivery_pin
 from shared import authz, outbox
 from shared.auth import CurrentUser
 from shared.config import get_settings
@@ -103,6 +104,11 @@ class OrderService:
         self.db = db
         self.repo = OrderRepository(db)
 
+    async def _customer_phone(self, customer_id: uuid.UUID) -> str | None:
+        from core_api.modules.identity.models.user import User
+
+        return (await self.db.execute(select(User.phone).where(User.id == customer_id))).scalar()
+
     # ── create: from a quote, waiting for payment ────────────────────────────
     async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str | None = None) -> Order:
         """Place an order at exactly the quoted price; it waits for payment."""
@@ -164,7 +170,7 @@ class OrderService:
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
             promo_code=data.promo_code,
-            delivery_pin=f"{secrets.randbelow(10000):04d}",
+            delivery_pin=delivery_pin(await self._customer_phone(customer_id)),
             loyalty_points_used=0,
             estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
