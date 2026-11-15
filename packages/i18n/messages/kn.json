@@ -41,6 +41,7 @@
     "save_kitchen": "{name} ಉಳಿಸಿ",
     "unsave_kitchen": "{name} ಅನ್ನು ಮೆಚ್ಚಿನವುಗಳಿಂದ ತೆಗೆದುಹಾಕಿ",
     "skip_to_content": "ವಿಷಯಕ್ಕೆ ಹೋಗಿ",
+    "test_site_banner": "ಪರೀಕ್ಷಾ ಸೈಟ್: ಡೆಮೊ ಅಡುಗೆಮನೆಗಳು, ನಿಜವಾದ ಆರ್ಡರ್‌ಗಳು ಅಥವಾ ಪಾವತಿಗಳಿಲ್ಲ",
     "search_placeholder_near": "{a}, {b}, ಕಿಚನ್‌ಗಳನ್ನು ಹುಡುಕಿ…",
     "rating_label": "{count} ರೇಟಿಂಗ್‌ಗಳಿಂದ 5ಕ್ಕೆ {stars}",
     "rating_short": "★{stars} ({count})",

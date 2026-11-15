@@ -41,6 +41,7 @@
     "save_kitchen": "{name} सेव्ह करा",
     "unsave_kitchen": "{name} आवडीतून काढा",
     "skip_to_content": "मुख्य मजकुराकडे जा",
+    "test_site_banner": "चाचणी साइट: डेमो किचन, खरे ऑर्डर किंवा पेमेंट नाहीत",
     "search_placeholder_near": "{a}, {b}, किचन शोधा…",
     "rating_label": "{count} रेटिंगवरून 5 पैकी {stars}",
     "rating_short": "★{stars} ({count})",

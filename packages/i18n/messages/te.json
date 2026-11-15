@@ -41,6 +41,7 @@
     "save_kitchen": "{name} సేవ్ చేయండి",
     "unsave_kitchen": "{name}ను ఇష్టమైనవాటి నుండి తీసివేయండి",
     "skip_to_content": "కంటెంట్‌కు వెళ్లండి",
+    "test_site_banner": "టెస్ట్ సైట్: డెమో కిచెన్‌లు, నిజమైన ఆర్డర్‌లు లేదా చెల్లింపులు లేవు",
     "search_placeholder_near": "{a}, {b}, కిచెన్‌లు వెతకండి…",
     "rating_label": "{count} రేటింగ్‌ల నుండి 5కి {stars}",
     "rating_short": "★{stars} ({count})",

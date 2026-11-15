@@ -41,6 +41,7 @@
     "save_kitchen": "Guardar {name}",
     "unsave_kitchen": "Quitar {name} de favoritos",
     "skip_to_content": "Saltar al contenido",
+    "test_site_banner": "Sitio de prueba: cocinas de demostración, sin pedidos ni pagos reales",
     "search_placeholder_near": "Busca {a}, {b}, cocinas…",
     "rating_label": "Calificación de {stars} sobre 5, de {count} calificaciones",
     "rating_short": "★{stars} ({count})",

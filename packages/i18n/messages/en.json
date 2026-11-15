@@ -41,6 +41,7 @@
     "save_kitchen": "Save {name}",
     "unsave_kitchen": "Remove {name} from favourites",
     "skip_to_content": "Skip to content",
+    "test_site_banner": "Test site: demo kitchens, no real orders or payments",
     "search_placeholder_near": "Search {a}, {b}, kitchens…",
     "rating_label": "Rated {stars} out of 5 from {count} ratings",
     "rating_short": "★{stars} ({count})",
