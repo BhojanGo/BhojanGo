@@ -11,7 +11,11 @@
     "./tsconfig/nextjs": "./tsconfig.nextjs.json",
     "./tsconfig/react-native": "./tsconfig.react-native.json",
     "./eslint/react-native": "./eslint-react-native.js",
-    "./eslint/expo": "./eslint-expo.js"
+    "./eslint/expo": "./eslint-expo.js",
+    "./eslint-rules": "./eslint-rules/index.js"
+  },
+  "scripts": {
+    "test": "node --test test/no-raw-font-size.test.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.8.0",
