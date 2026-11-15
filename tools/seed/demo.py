@@ -378,6 +378,33 @@ class Demo:
         fallback = [datetime.combine(today - timedelta(days=d), time(h, 0), tz).astimezone(UTC)
                     for d in range(3) for h in (20, 13)]
         await self.order(key, 999, customer, slug, lines, [now] + [f for f in fallback if f < now], active=True)
+        await self.past_ratings(key)
+
+    async def past_ratings(self, key: str) -> None:
+        """Older star ratings (no order rows behind them), so each kitchen's
+        rating and count come from real `reviews` rows, as the ratings service
+        computes them: a later rating moves the average instead of resetting it."""
+        city = DEMO[key]
+        first_names = [c[1].split()[0] + " " + c[1].split()[-1][0] + "." for c in city["customers"]]
+        now = datetime.now(UTC)
+        for k in city["kitchens"]:
+            rid = self.kitchens[k["slug"]]["id"]
+            have = (await self.db.execute(text("SELECT count(*) FROM reviews WHERE restaurant_id = :r"), {"r": rid})).scalar_one()
+            want = max(0, int(k["review_count"]) - have)
+            lo = max(1, min(5, int(float(k["rating"]))))
+            highs = round((float(k["rating"]) - lo) * want)
+            for n in range(want):
+                stars = min(5, lo + 1) if n < highs else lo
+                await self.db.execute(text("""
+                    INSERT INTO reviews (id, restaurant_id, order_id, customer_id, customer_name, rating, created_at)
+                    VALUES (:id, :r, :o, :c, :name, :stars, :at) ON CONFLICT (order_id) DO NOTHING"""), {
+                    "id": sid("review", k["slug"], "past", str(n)), "r": rid, "o": sid("order", k["slug"], "past", str(n)),
+                    "c": sid("customer", k["slug"], "past", str(n)), "name": first_names[n % len(first_names)],
+                    "stars": float(stars), "at": now - timedelta(days=30 + 7 * n)})
+            await self.db.execute(text("""
+                UPDATE restaurants r SET rating = s.avg, review_count = s.n
+                FROM (SELECT round(avg(rating)::numeric, 2) AS avg, count(*) AS n FROM reviews WHERE restaurant_id = :r) s
+                WHERE r.id = :r"""), {"r": rid})
 
 
 async def demo(database_url: str) -> tuple[list, dict]:

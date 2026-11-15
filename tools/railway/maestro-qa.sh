@@ -5,7 +5,7 @@
 #   RAILWAY_TOKEN=<QA project token> E2E_LOGINS_FILE=/path/outside/the/repo/BhojanGo_QA_Logins.txt \
 #   tools/railway/maestro-qa.sh [customer|rider|partner ...]
 # Needs: the apps installed on emulator-5554 (make apk APP=...), Maestro, and the
-# QA restaurants open (tools/railway/qa-runner.sh job hours). Passwords go to the
+# QA restaurants open (demo seed hours). Refused while QA is protected (below). Passwords go to the
 # flows' scripts as QA_PASSWORDS (a local maestro argument; never printed).
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

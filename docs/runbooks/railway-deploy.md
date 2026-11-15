@@ -183,7 +183,7 @@ not a project token. So jobs that need the database run **inside** the environme
 | `seed` | The base seed (Hyderabad + Boise) with random passwords |
 | `demo` | The demo seed on top; its logins are added to the same bucket file |
 | `checks` | Read-only: each backend's `/health` (with its `environment`) over the private network; `alembic current`/`heads`/`check` against the QA database |
-| `hours` | Open the seed cities and kitchens around the clock; clear OTP counters (for demos at odd hours) |
+| `hours` | Removed (it rewrote QA data for tests; tests never write to QA). Exits 3 |
 | `g1`, `integration` | Refused (exit 3): they write test data. They run in `make ci` (`ci-e2e`, `ci-migrations`) and in CI |
 
 The demo seed refuses production by itself (`APP_ENV` or `RAILWAY_ENVIRONMENT_NAME` named production). `make dev`

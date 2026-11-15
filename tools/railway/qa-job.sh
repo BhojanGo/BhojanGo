@@ -19,7 +19,6 @@
 #                added to the same bucket file
 #   checks       read-only: each backend's /health over the private network,
 #                migrations at head and `alembic check` against the QA database
-#   hours        open the seed cities and restaurants around the clock (for demos)
 #   g1, integration
 #                refused (exit 3): the G1 and integration suites write test data.
 #                They run in make ci (ci-e2e, ci-migrations) and in CI.
@@ -85,23 +84,9 @@ for name, port in (('core-api', 8001), ('realtime', 8004), ('worker', 8006)):
       && uv run --frozen alembic current && uv run --frozen alembic heads && uv run --frozen alembic check
     rc=$? ;;
   hours)
-    # also clears the OTP send counters, so repeated sign-ins aren't rate limited
-    uv run --frozen python -c "
-import asyncio
-import redis.asyncio as redis
-from core_api.integration.conftest import open_all_day
-from shared.config import get_settings
-from shared.db import engine
-async def go():
-    await open_all_day(); await engine.dispose()
-    r = redis.from_url(get_settings().REDIS_URL)
-    n = 0
-    async for k in r.scan_iter('otp_attempts:*'):
-        await r.delete(k); n += 1
-    await r.aclose()
-    print('cleared', n, 'OTP counters')
-asyncio.run(go())" && echo "opened around the clock"
-    rc=$? ;;
+    # Removed: it rewrote QA's opening hours for tests. Tests never write to QA;
+    # the demo seed's hours are what QA shows.
+    echo "qa-job: 'hours' was removed (tests never write to QA)"; rc=3 ;;
   g1|integration)
     # Tests never write to QA or production (tools/target_guard.py): the guard
     # refuses (G1: the QA API's /health says qa; integration: this process is QA's).
