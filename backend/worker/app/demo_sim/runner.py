@@ -1,20 +1,32 @@
 """The demo rider simulator (make dev and QA only; app/demo_sim/rules.py says when).
 
-Every few seconds, for each demo city (a demo rider rider.demo.<key>@example.com
-from tools/seed/demo.py), it plays the people around the demo customer's order
-on its way, through the same APIs their apps use, so every business rule,
-event, notification, tracking update and ETA happens as it would for real:
+Every few seconds, for each demo city (its pool of simulator riders
+rider.sim.<key>.<n>@example.com from tools/seed/demo.py), it plays the people
+around the demo customer's order on its way, through the same APIs their apps
+use, so every business rule, event, notification, tracking update and ETA
+happens as it would for real:
 
 - the demo customer (demo1.<key>) orders one of their past orders again
   (POST /orders/{id}/reorder, /pricing/quote, /orders, /payments/initiate) a few
   minutes after the last one arrived;
 - the kitchen's owner accepts it, cooks, marks it almost ready (dispatch starts)
   and ready when the rider walks in (PUT /orders/{id}/status);
-- the demo rider goes online near the kitchen, accepts the offer realtime makes
-  (/riders/me, /offers/{id}/accept), rides to the kitchen and on to the
-  customer's door at 18-25 km/h, a GPS fix every 4 s to realtime's
-  /delivery/driver/location, picks up and delivers with the PIN the customer
-  reads from their tracking screen, then goes offline.
+- one of the city's simulator riders who is free goes online near the kitchen,
+  accepts the offer realtime makes (/riders/me, /offers/{id}/accept), rides to
+  the kitchen and on to the customer's door at 18-25 km/h, a GPS fix every 4 s
+  to realtime's /delivery/driver/location, picks up and delivers with the PIN
+  the customer reads from their tracking screen, then goes offline.
+
+Riders: the simulator has a pool of its own per city (users.dispatch_pool
+"demo_sim", which only the demo seed writes). Before the kitchen makes an order
+almost ready, the simulator marks it in realtime (signed POST
+/internal/dispatch/pool-orders), and realtime offers it only to pool riders and
+never offers pool riders anyone else's order (realtime dispatch.same_pool). So
+the demo rider people test with by hand and in Maestro (rider.demo.<key>) never
+gets a simulator order, and real riders never do. Each order that needs a rider
+gets a pool rider not busy with another (rules.pick_rider); if realtime offers a
+waiting order to another of the pool's riders, that rider takes it and the two
+swap, so no simulator rider ever passes a simulator order.
 
 Sign-in: each of them signs in like the apps do, with the phone code
 (/auth/send-otp, /auth/phone). Seed phones get the fixed code outside production
@@ -24,6 +36,7 @@ signs tokens. Reads (which orders, whose phone) come from the database; every
 change goes through the APIs.
 """
 import asyncio
+import json
 import os
 import time
 import uuid
@@ -35,6 +48,7 @@ from sqlalchemy import text
 
 from app.demo_sim import rules
 from app.demo_sim.path import FIX_SECONDS, rider_start
+from shared import internal_auth
 from shared.config import get_settings
 from shared.db import AsyncSessionLocal
 from shared.redis import get_redis
@@ -48,9 +62,11 @@ _running = False
 
 RIDERS_SQL = text("""
 SELECT id, email, phone, country FROM users
-WHERE role = 'driver' AND email LIKE 'rider.demo.%@example.com' AND phone IS NOT NULL AND is_active
+WHERE role = 'driver' AND dispatch_pool = 'demo_sim' AND email LIKE 'rider.sim.%@example.com'
+  AND phone IS NOT NULL AND is_active
 ORDER BY email
 """)
+POOL_ORDERS_PATH = "/internal/dispatch/pool-orders"  # realtime, signed (shared/internal_auth.py)
 USER_SQL = text("SELECT id, email, phone, country FROM users WHERE email = :email AND phone IS NOT NULL AND is_active")
 OWNER_SQL = text("SELECT id, email, phone, country FROM users WHERE id = :id AND phone IS NOT NULL AND is_active")
 ORDERS_SQL = text("""
@@ -149,6 +165,14 @@ class Api:
             self.people[uid] = Person(self, uid, row.phone, row.country)
         return self.people[uid]
 
+    async def mark(self, order_id: str) -> None:
+        """Tell realtime this order is the simulator's: only its pool's riders get it."""
+        body = json.dumps({"order_id": order_id, "pool": rules.SIM_POOL}).encode()
+        r = await self.rt.post(POOL_ORDERS_PATH, content=body, headers={
+            "content-type": "application/json", **internal_auth.sign("POST", POOL_ORDERS_PATH, body)})
+        if r.status_code >= 400:
+            raise ApiError(r.status_code, r.text)
+
 
 def _order(row) -> rules.DemoOrder:  # type: ignore[no-untyped-def]
     return rules.DemoOrder(
@@ -161,18 +185,47 @@ def _order(row) -> rules.DemoOrder:  # type: ignore[no-untyped-def]
 
 
 class City:
-    """One demo city: its rider, its demo customer, and the order on its way."""
+    """One demo city: its pool of simulator riders, its demo customer, and the orders on their way."""
 
-    def __init__(self, api: Api, key: str, rider_row) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, api: Api, key: str, rider_rows: list) -> None:  # type: ignore[type-arg]
         self.api, self.key = api, key
-        self.rider = api.person(rider_row)
-        self.rider_id = str(rider_row.id)
+        self.pool: list[str] = []  # the simulator's riders here, in a fixed order (by email)
+        self.riders: dict[str, Person] = {}
+        self.set_riders(rider_rows)
         self.customer_email = rules.customer_email(key)
         self.last_attempt: datetime | None = None
         self.paid: set[str] = set()
-        self.go_offline = False  # after a delivery: off duty once realtime has seen it delivered
+        self.claims: dict[str, str] = {}  # order still without a rider -> the pool rider waiting for it
+        self.waiting: set[str] = set()  # this tick: our orders still without a rider
+        self.no_rider: set[str] = set()  # orders told "every pool rider is busy" (logged once)
+        self.off_duty: set[str] = set()  # delivered: off duty once realtime has seen it delivered
         self.watches: dict[str, rules.Watch] = {}  # order -> its step and since when (the watchdog)
         self.given_up: set[str] = set()  # stalled twice: cancelled, or left alone if it can't be
+
+    def set_riders(self, rows: list) -> None:  # type: ignore[type-arg]
+        """The pool as the database has it now (the demo seed may add riders)."""
+        self.pool = [str(r.id) for r in rows]
+        self.riders = {str(r.id): self.api.person(r) for r in rows}
+
+    def rider_of(self, o: rules.DemoOrder) -> str | None:
+        """The pool rider on this order: its rider, or the one waiting for its offer."""
+        if o.driver_id:
+            return o.driver_id if o.driver_id in self.riders else None
+        return self.claims.get(o.id)
+
+    def claim(self, o: rules.DemoOrder, busy: set[str]) -> str | None:
+        """A free pool rider for an order that needs one (kept until it has its rider)."""
+        rider = self.claims.get(o.id)
+        if rider is None:
+            rider = rules.pick_rider(self.pool, busy | set(self.claims.values()))
+            if rider is None:
+                if o.id not in self.no_rider:  # once per order, not every 4 s
+                    self.no_rider.add(o.id)
+                    logger.info("demo_riders_all_busy", city=self.key, order_id=o.id, pool=len(self.pool))
+                return None
+            self.claims[o.id] = rider
+            self.off_duty.discard(rider)
+        return rider
 
     async def tick(self, now: datetime) -> list[str]:
         async with AsyncSessionLocal() as db:
@@ -184,21 +237,26 @@ class City:
             owners = {str(r.owner_id): (await db.execute(OWNER_SQL, {"id": r.owner_id})).first() for r in rows if r.owner_id}
         ours = set(await (await get_redis()).smembers(OURS))
         mine = [o for o in map(_order, rows) if rules.is_sim_order(o, ours) and o.id not in self.given_up]
-        steps = []
-        if self.go_offline and not any(o.driver_id == self.rider_id for o in mine):
-            try:  # so realtime never offers it a real order it would ignore
-                await self.rider.call("rt", "POST", "/riders/me/offline")
-                self.go_offline = False
-            except ApiError:
+        # Pool riders on an open order (any of the customer's, given up ones too: realtime keeps them busy).
+        busy = {str(r.driver_id) for r in rows if r.driver_id and str(r.driver_id) in self.riders}
+        self.waiting = {o.id for o in mine if o.driver_id is None}
+        self.claims = {o: r for o, r in self.claims.items() if o in self.waiting}
+        for rider in sorted(self.off_duty - busy - set(self.claims.values())):
+            try:  # so realtime never offers it an order it would ignore
+                await self.riders[rider].call("rt", "POST", "/riders/me/offline")
+                self.off_duty.discard(rider)
+            except (ApiError, KeyError):
                 pass  # realtime hasn't seen the delivery yet (still busy): next tick
+        steps = []
         for o in mine:
-            step = rules.next_step(o, self.rider_id, now)
+            rider = self.rider_of(o)
+            step = rules.next_step(o, rider or "", now)
             steps.append(step)
             owner = owners.get(o.restaurant_owner_id or "")
             w, verdict = rules.watch(self.watches.get(o.id), step, now)
             self.watches[o.id] = w
             if verdict == "new":
-                logger.info("demo_order_step", city=self.key, order_id=o.id, status=o.status, step=step)
+                logger.info("demo_order_step", city=self.key, order_id=o.id, status=o.status, step=step, rider_id=rider)
             else:
                 logger.debug("demo_order_tick", city=self.key, order_id=o.id, status=o.status, step=step)
             if verdict == "stalled":
@@ -209,7 +267,7 @@ class City:
                 await self.give_up(o, customer, owner)
                 continue
             if step != "wait":
-                await self.do(step, o, customer, owner, now)
+                await self.do(step, o, customer, owner, now, busy)
         for gone in set(self.watches) - {o.id for o in mine}:  # delivered, cancelled or given up
             del self.watches[gone]
         if rules.should_create(len(mine), last, self.last_attempt, now):
@@ -218,16 +276,21 @@ class City:
         return steps
 
     async def recover(self, o: rules.DemoOrder) -> None:
-        """First aid for a stalled order: the rider signs in afresh (the demo rider may have
-        signed in or out on another device; the others renew on a 401 anyway), payment is retried, and the rider goes online
-        again near the kitchen, which also frees it in realtime if it was left busy with an
-        order that is over (realtime dispatch.free_if_stale)."""
-        self.rider.access = None  # signs in again on the next call (with the phone code)
+        """First aid for a stalled order: its rider signs in afresh (the others renew on a 401
+        anyway), the order is marked for the pool again, payment is retried, and the rider goes
+        online again near the kitchen, which also frees it in realtime if it was left busy with
+        an order that is over (realtime dispatch.free_if_stale)."""
         self.paid.discard(o.id)
-        if o.driver_id in (None, self.rider_id) and o.status != "picked_up":
+        rider = self.rider_of(o)
+        if rider is None:
+            return
+        self.riders[rider].access = None  # signs in again on the next call (with the phone code)
+        if o.status != "picked_up":
             start = rider_start(o.pickup, o.id)
             try:
-                await self.rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
+                if o.driver_id is None:
+                    await self.api.mark(o.id)
+                await self.riders[rider].call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
             except ApiError as e:
                 logger.warning("demo_rider_online_failed", city=self.key, order_id=o.id, error=str(e))
 
@@ -235,6 +298,7 @@ class City:
         """Stalled again after a recovery: cancel it the way its kitchen or customer could,
         so the next order can start; if nobody may cancel it (ready, on its way), leave it."""
         self.given_up.add(o.id)
+        self.claims.pop(o.id, None)
         who = rules.cancel_as(o.status)
         person = None
         if who == "kitchen" and owner is not None:
@@ -252,7 +316,9 @@ class City:
         except ApiError as e:
             logger.error("demo_order_given_up", city=self.key, order_id=o.id, status=o.status, error=str(e))
 
-    async def do(self, step: str, o: rules.DemoOrder, customer, owner, now: datetime) -> None:  # type: ignore[no-untyped-def]
+    async def do(self, step: str, o: rules.DemoOrder, customer, owner, now: datetime,  # type: ignore[no-untyped-def]
+                 busy: set[str] | None = None) -> None:
+        """One step of one order. ``busy``: pool riders already on another order."""
         cust = self.api.person(customer)
         kitchen = self.api.person(owner) if owner is not None else None
         if step == "pay":
@@ -262,48 +328,73 @@ class City:
         elif step == "cancel":
             await cust.call("core", "POST", f"/orders/{o.id}/cancel", json={"reason": "other", "note": "Demo order not paid"})
         elif step in ("accept", "prepare", "almost_ready", "ready") and kitchen is not None:
-            if step == "almost_ready":  # the rider is about by the time dispatch looks for one
+            if step == "almost_ready":
+                rider_id = self.claim(o, busy or set())
+                if rider_id is None:
+                    return  # every pool rider is on another order: the kitchen waits a little
+                # Marked first, so dispatch offers it to the pool's riders only; then the rider
+                # is about by the time dispatch looks for one.
+                await self.api.mark(o.id)
                 start = rider_start(o.pickup, o.id)
-                await self.rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
+                await self.riders[rider_id].call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
             status = {"accept": "accepted", "prepare": "preparing"}.get(step, step)
             await kitchen.call("core", "PUT", f"/orders/{o.id}/status", json={"status": status})
         elif step == "find_rider":
+            rider_id = self.claim(o, busy or set())
+            if rider_id is None:
+                return
+            rider = self.riders[rider_id]
+            await self.api.mark(o.id)  # again: cheap, and a realtime restart can't lose it
             start = rider_start(o.pickup, o.id)
-            me = await self.rider.call("rt", "GET", "/riders/me")
+            me = await rider.call("rt", "GET", "/riders/me")
             state = me.get("state") or {}
             if state.get("status", "offline") not in ("available", "offered"):
                 # Offline (another device, a restart), or busy with an order that isn't this one:
                 # going online again frees a rider left busy with an order that is over.
-                logger.info("demo_rider_online_again", city=self.key, order_id=o.id, state=state.get("status"),
-                            busy_with=state.get("order_id") or None)
-                await self.rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
-                me = await self.rider.call("rt", "GET", "/riders/me")
+                logger.info("demo_rider_online_again", city=self.key, order_id=o.id, rider_id=rider_id,
+                            state=state.get("status"), busy_with=state.get("order_id") or None)
+                await rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
+                me = await rider.call("rt", "GET", "/riders/me")
             else:
                 # Keep the GPS fresh while waiting, as the app does: dispatch skips a rider
                 # whose last fix is older than DRIVER_LOCATION_TTL (30 s).
-                await self.rider.call("rt", "POST", "/delivery/driver/location", json={
+                await rider.call("rt", "POST", "/delivery/driver/location", json={
                     "lat": round(start[0], 6), "lng": round(start[1], 6), "speed": 0, "accuracy": 8})
-            offer = me.get("offer") or {}
-            if offer.get("order_id") == o.id:
-                await self.rider.call("rt", "POST", f"/offers/{o.id}/accept")
-                logger.info("demo_rider_accepted", city=self.key, order_id=o.id)
-            elif offer.get("order_id"):  # someone else's order: not ours to take
-                await self.rider.call("rt", "POST", f"/offers/{offer['order_id']}/pass")
-        elif step in ("to_kitchen", "to_home"):
-            (lat, lng), heading, speed = rules.position(o, step, now)
-            await self.rider.call("rt", "POST", "/delivery/driver/location", json={
-                "lat": round(lat, 6), "lng": round(lng, 6), "heading": round(heading, 1), "speed": speed, "accuracy": 8})
-        elif step == "pick_up":
-            await self.rider.call("core", "PUT", f"/orders/{o.id}/status", json={"status": "picked_up"})
-        elif step == "deliver":
-            (lat, lng), heading, _ = rules.position(o, "to_home", now)
-            await self.rider.call("rt", "POST", "/delivery/driver/location", json={
-                "lat": round(lat, 6), "lng": round(lng, 6), "heading": round(heading, 1), "speed": 0, "accuracy": 8})
-            pin = (await cust.call("core", "GET", f"/orders/{o.id}")).get("pin")  # read out at the door
-            await self.rider.call("core", "PUT", f"/orders/{o.id}/status", json={
-                "status": "delivered", "proof": {"method": "pin", "pin": pin}})
-            logger.info("demo_order_delivered", city=self.key, order_id=o.id)
-            self.go_offline = True
+            offered = (me.get("offer") or {}).get("order_id")
+            if offered == o.id or (offered and offered in self.waiting):
+                # This order, or another of ours that realtime offered to this rider first:
+                # take it, and the two orders swap riders.
+                await rider.call("rt", "POST", f"/offers/{offered}/accept")
+                if offered != o.id:
+                    other = self.claims.get(offered)  # the rider who was waiting for that one
+                    self.claims[offered] = rider_id
+                    if other and other != rider_id:
+                        self.claims[o.id] = other
+                    else:
+                        self.claims.pop(o.id, None)
+                logger.info("demo_rider_accepted", city=self.key, order_id=offered, rider_id=rider_id)
+            elif offered:  # someone else's order (pools keep these away; never ours to take)
+                await rider.call("rt", "POST", f"/offers/{offered}/pass")
+        elif step in ("to_kitchen", "to_home", "pick_up", "deliver"):
+            rider_id = self.rider_of(o)
+            if rider_id is None:
+                return
+            rider = self.riders[rider_id]
+            if step in ("to_kitchen", "to_home"):
+                (lat, lng), heading, speed = rules.position(o, step, now)
+                await rider.call("rt", "POST", "/delivery/driver/location", json={
+                    "lat": round(lat, 6), "lng": round(lng, 6), "heading": round(heading, 1), "speed": speed, "accuracy": 8})
+            elif step == "pick_up":
+                await rider.call("core", "PUT", f"/orders/{o.id}/status", json={"status": "picked_up"})
+            else:
+                (lat, lng), heading, _ = rules.position(o, "to_home", now)
+                await rider.call("rt", "POST", "/delivery/driver/location", json={
+                    "lat": round(lat, 6), "lng": round(lng, 6), "heading": round(heading, 1), "speed": 0, "accuracy": 8})
+                pin = (await cust.call("core", "GET", f"/orders/{o.id}")).get("pin")  # read out at the door
+                await rider.call("core", "PUT", f"/orders/{o.id}/status", json={
+                    "status": "delivered", "proof": {"method": "pin", "pin": pin}})
+                logger.info("demo_order_delivered", city=self.key, order_id=o.id, rider_id=rider_id)
+                self.off_duty.add(rider_id)
 
     async def place(self, customer) -> str | None:  # type: ignore[no-untyped-def]
         """The demo customer orders one of their past orders again, from a kitchen
@@ -346,14 +437,29 @@ class City:
         return None
 
 
-async def cities(api: Api) -> list[City]:
+async def pools() -> dict[str, list]:  # type: ignore[type-arg]
+    """Each demo city's pool of simulator riders, from the database (the demo seed writes them)."""
     async with AsyncSessionLocal() as db:
         riders = (await db.execute(RIDERS_SQL)).all()
-    out = []
+    out: dict[str, list] = {}  # type: ignore[type-arg]
     for row in riders:
         key = rules.city_key(row.email)
         if key:
-            out.append(City(api, key, row))
+            out.setdefault(key, []).append(row)
+    return out
+
+
+async def cities(api: Api, known: list[City] | None = None) -> list[City]:
+    """The demo cities now; a city already running keeps its state and takes the pool as it is now."""
+    have = {c.key: c for c in known or []}
+    out = []
+    for key, rows in (await pools()).items():
+        city = have.get(key)
+        if city is None:
+            city = City(api, key, rows)
+        else:
+            city.set_riders(rows)
+        out.append(city)
     return out
 
 
@@ -376,8 +482,7 @@ async def run() -> None:
             loop_now = asyncio.get_event_loop().time()
             if not found or loop_now - last_scan > 300:  # demo cities appear after the demo seed runs
                 try:
-                    known = {c.key: c for c in found}
-                    found = [known.get(c.key, c) for c in await cities(api)]
+                    found = await cities(api, found)
                 except Exception as e:  # noqa: BLE001 - the database may not be there yet
                     logger.warning("demo_rider_sim_scan_failed", error=str(e))
                 last_scan = loop_now

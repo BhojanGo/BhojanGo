@@ -116,7 +116,12 @@ async def test_ready_says_the_dispatch_pool_only_for_the_simulators_riders(clien
     async with AsyncSessionLocal() as db:
         await db.execute(update(User).where(User.id == uuid.UUID(rid)).values(dispatch_pool="demo_sim"))
         await db.commit()
-    assert (await signed_get(client, f"/api/v1/internal/riders/{rid}/ready")).json()["pool"] == "demo_sim"
+    try:
+        assert (await signed_get(client, f"/api/v1/internal/riders/{rid}/ready")).json()["pool"] == "demo_sim"
+    finally:  # nobody but the simulator's riders stays in its pool
+        async with AsyncSessionLocal() as db:
+            await db.execute(update(User).where(User.id == uuid.UUID(rid)).values(dispatch_pool=None))
+            await db.commit()
 
 
 async def test_delivery_needs_pin_or_own_photo_and_pin_is_customer_only(client: AsyncClient) -> None:

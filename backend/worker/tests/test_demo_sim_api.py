@@ -14,10 +14,11 @@ from app.demo_sim.path import haversine_km
 
 KITCHEN, HOME = (17.4400, 78.3550), (17.4560, 78.3870)
 NOW = datetime(2026, 11, 15, 13, 0, tzinfo=UTC)
-RIDER = SimpleNamespace(id="rider-1", email="rider.demo.hyd@example.com", phone="+919000000250", country="IN")
+RIDER = SimpleNamespace(id="rider-1", email="rider.sim.hyd.1@example.com", phone="+919000000261", country="IN")
+RIDER2 = SimpleNamespace(id="rider-2", email="rider.sim.hyd.2@example.com", phone="+919000000262", country="IN")
 CUSTOMER = SimpleNamespace(id="cust-1", email="demo1.hyd@example.com", phone="+919000000301", country="IN")
 OWNER = SimpleNamespace(id="owner-1", email="partner.demo.hyd@example.com", phone="+919000000910", country="IN")
-PHONES = {RIDER.phone: "rider", CUSTOMER.phone: "customer", OWNER.phone: "owner"}
+PHONES = {RIDER.phone: "rider", RIDER2.phone: "rider2", CUSTOMER.phone: "customer", OWNER.phone: "owner"}
 
 
 class Services:
@@ -26,11 +27,18 @@ class Services:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, str, dict | None]] = []  # (who, method, path, body)
         self.tokens: dict[str, str] = {}
-        self.offer: str | None = None
-        self.state = "offline"
+        self.riders: dict[str, dict] = {}  # who -> what realtime has: state, offer, busy_with (the order it's on)
         self.closed_kitchens: set[str] = set()
-        self.busy_with: str | None = None  # the order realtime thinks the rider is on (state busy)
         self.refresh_revoked = False  # signed out on another device: refresh tokens revoked
+        self.marked: list[str] = []  # orders marked for the simulator's pool (signed internal call)
+
+    def rt(self, who: str) -> dict:
+        return self.riders.setdefault(who, {"state": "offline", "offer": None, "busy_with": None})
+
+    # The first rider's state, as most tests set it.
+    state = property(lambda s: s.rt("rider")["state"], lambda s, v: s.rt("rider").__setitem__("state", v))
+    offer = property(lambda s: s.rt("rider")["offer"], lambda s, v: s.rt("rider").__setitem__("offer", v))
+    busy_with = property(lambda s: s.rt("rider")["busy_with"], lambda s, v: s.rt("rider").__setitem__("busy_with", v))
 
     def who(self, request: httpx.Request) -> str:
         token = request.headers.get("authorization", "").removeprefix("Bearer ")
@@ -45,6 +53,15 @@ class Services:
         if path == "/api/v1/auth/phone":
             assert body["otp"] == "123456"
             return self._tokens(PHONES[body["phone"]], path, body)
+        if path == runner.POOL_ORDERS_PATH:
+            from shared import internal_auth
+
+            internal_auth.verify(method, path, request.content, request.headers.get("x-internal-timestamp"),
+                                 request.headers.get("x-internal-signature"))
+            assert body["pool"] == "demo_sim"
+            self.marked.append(body["order_id"])
+            self.calls.append(("internal", method, path, body))
+            return httpx.Response(200, json=body)
         if path == "/api/v1/auth/refresh":
             if self.refresh_revoked:
                 return httpx.Response(401, json={"detail": {"code": "INVALID_TOKEN"}})
@@ -53,13 +70,16 @@ class Services:
         if not who:
             return httpx.Response(401, json={"detail": "Invalid credentials"})
         self.calls.append((who, method, path, body))
+        me = self.rt(who)
         if path == "/api/v1/riders/me" and method == "GET":
-            return httpx.Response(200, json={"state": {"status": self.state, "order_id": self.busy_with or ""},
-                                             "offer": {"order_id": self.offer} if self.offer else None})
+            return httpx.Response(200, json={"state": {"status": me["state"], "order_id": me["busy_with"] or ""},
+                                             "offer": {"order_id": me["offer"]} if me["offer"] else None})
         if path == "/api/v1/riders/me/online":  # realtime frees a rider stuck on an order that is over
-            self.state, self.busy_with = "available", None
+            me["state"], me["busy_with"] = "available", None
+        if path == "/api/v1/riders/me/offline":
+            me["state"] = "offline"
         if path.startswith("/api/v1/offers/") and path.endswith("/accept"):
-            self.state, self.offer = "busy", None
+            me["state"], me["offer"], me["busy_with"] = "busy", None, path.split("/")[4]
         if path == "/api/v1/me/addresses":
             return httpx.Response(200, json=[{"id": "addr-1", "label": "Home", "street": "Flat 504, Cyber Residency",
                                               "city": "Hyderabad", "state": "Telangana", "postal_code": "500081",
@@ -147,7 +167,7 @@ async def test_sign_in_waits_out_the_code_limit(services: Services, monkeypatch)
 
 async def test_the_rider_takes_only_its_order(services: Services) -> None:
     api = api_for(services)
-    city = runner.City(api, "hyd", RIDER)
+    city = runner.City(api, "hyd", [RIDER])
     services.offer = "someone-elses"
     await city.do("find_rider", order(), CUSTOMER, OWNER, NOW)
     rider = services.of("rider")
@@ -161,7 +181,7 @@ async def test_the_rider_takes_only_its_order(services: Services) -> None:
 
 async def test_kitchen_steps_are_status_moves_by_the_owner(services: Services) -> None:
     api = api_for(services)
-    city = runner.City(api, "hyd", RIDER)
+    city = runner.City(api, "hyd", [RIDER])
     for step, status in (("accept", "accepted"), ("prepare", "preparing"), ("almost_ready", "almost_ready"), ("ready", "ready")):
         await city.do(step, order(), CUSTOMER, OWNER, NOW)
         assert services.of("owner")[-1] == ("PUT", "/api/v1/orders/o1/status", {"status": status})
@@ -170,7 +190,7 @@ async def test_kitchen_steps_are_status_moves_by_the_owner(services: Services) -
 
 async def test_riding_sends_gps_and_delivers_with_the_customers_pin(services: Services) -> None:
     api = api_for(services)
-    city = runner.City(api, "hyd", RIDER)
+    city = runner.City(api, "hyd", [RIDER])
     o = order(status="picked_up", driver_id=RIDER.id, picked_up_at=NOW - timedelta(minutes=2))
     for k in range(3):
         await city.do("to_home", o, CUSTOMER, OWNER, NOW + timedelta(seconds=4 * k))
@@ -184,7 +204,7 @@ async def test_riding_sends_gps_and_delivers_with_the_customers_pin(services: Se
     assert ("GET", "/api/v1/orders/o1", None) in services.of("customer"), "the customer reads out the PIN"
     assert ("PUT", "/api/v1/orders/o1/status", {"status": "delivered", "proof": {"method": "pin", "pin": "4821"}}) \
         in services.of("rider")
-    assert city.go_offline, "off duty once realtime has seen the delivery (City.tick)"
+    assert city.off_duty == {RIDER.id}, "off duty once realtime has seen the delivery (City.tick)"
 
 
 async def test_orders_again_from_an_open_kitchen(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -201,7 +221,7 @@ async def test_orders_again_from_an_open_kitchen(services: Services, monkeypatch
     monkeypatch.setattr(runner, "AsyncSessionLocal", Db)
     services.closed_kitchens = {"kitchen-of-past-1"}
     api = api_for(services)
-    city = runner.City(api, "hyd", RIDER)
+    city = runner.City(api, "hyd", [RIDER])
     assert await city.place(CUSTOMER) == "new-order"
     calls = services.of("customer")
     quotes = [b for m, p, b in calls if p == "/api/v1/pricing/quote"]
@@ -255,7 +275,7 @@ async def test_a_tick_drives_only_its_own_orders(services: Services, monkeypatch
     seeded = row("seeded", "picked_up", seeded=True, driver=RIDER.id, picked=NOW - timedelta(minutes=2))
     persons = row("a-testers-order", "placed")  # a person testing with the demo account
     monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([seeded, persons], NOW - timedelta(hours=1)))
-    city = runner.City(api_for(services), "hyd", RIDER)
+    city = runner.City(api_for(services), "hyd", [RIDER])
     placed: list = []
 
     async def place(customer):  # type: ignore[no-untyped-def]
@@ -280,7 +300,7 @@ async def test_a_tick_drives_only_its_own_orders(services: Services, monkeypatch
 
 async def test_a_rider_left_busy_with_another_order_goes_online_again(services: Services) -> None:
     services.state, services.busy_with = "busy", "an-order-the-reset-dropped"
-    city = runner.City(api_for(services), "hyd", RIDER)
+    city = runner.City(api_for(services), "hyd", [RIDER])
     await city.do("find_rider", order(), CUSTOMER, OWNER, NOW)
     rider = [p for _, p, _ in services.of("rider")]
     assert rider == ["/api/v1/riders/me", "/api/v1/riders/me/online", "/api/v1/riders/me"]
@@ -291,7 +311,7 @@ async def test_a_rider_left_busy_with_another_order_goes_online_again(services: 
 
 async def test_waiting_for_an_offer_keeps_the_gps_fresh(services: Services) -> None:
     services.state = "available"
-    city = runner.City(api_for(services), "hyd", RIDER)
+    city = runner.City(api_for(services), "hyd", [RIDER])
     for k in range(3):
         await city.do("find_rider", order(), CUSTOMER, OWNER, NOW + timedelta(seconds=4 * k))
     fixes = [b for _, p, b in services.of("rider") if p == "/api/v1/delivery/driver/location"]
@@ -315,7 +335,7 @@ async def test_watchdog_recovers_then_cancels_a_stalled_order(services: Services
     await (await runner.get_redis()).sadd(runner.OURS, "stuck")
     monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([stuck], NOW - timedelta(hours=1)))
     services.state, services.busy_with = "busy", "gone"
-    city = runner.City(api_for(services), "hyd", RIDER)
+    city = runner.City(api_for(services), "hyd", [RIDER])
     original = services.handle
 
     def never_offers(request: httpx.Request) -> httpx.Response:  # going online doesn't help this time
@@ -352,7 +372,7 @@ async def test_an_order_nobody_may_cancel_is_left_and_the_next_one_starts(servic
     ready.restaurant_accepted_at = NOW - timedelta(minutes=30)
     await (await runner.get_redis()).sadd(runner.OURS, "ready-one")
     monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([ready], NOW - timedelta(hours=1)))
-    city = runner.City(api_for(services), "hyd", RIDER)
+    city = runner.City(api_for(services), "hyd", [RIDER])
     placed: list = []
 
     async def place(customer):  # type: ignore[no-untyped-def]
@@ -381,3 +401,92 @@ def test_watch_verdicts() -> None:
     assert rules.watch(ride, "to_home", NOW + timedelta(minutes=46))[1] == "stalled"
     assert [rules.cancel_as(x) for x in ("pending_payment", "placed", "almost_ready", "ready", "picked_up")] == \
         ["customer", "kitchen", "kitchen", None, None]
+
+
+# -- the simulator's own riders (Round 5, item 3) ------------------------------------
+
+async def test_an_order_is_marked_for_the_pool_before_it_is_almost_ready(services: Services) -> None:
+    city = runner.City(api_for(services), "hyd", [RIDER])
+    await city.do("almost_ready", order(status="preparing"), CUSTOMER, OWNER, NOW)
+    order_of = [(w, p) for w, _, p, _ in services.calls if w != "-"]
+    assert order_of == [("internal", runner.POOL_ORDERS_PATH), ("rider", "/api/v1/riders/me/online"),
+                        ("owner", "/api/v1/orders/o1/status")], "marked, rider about, then dispatch starts"
+    assert services.marked == ["o1"]
+    await city.do("find_rider", order(), CUSTOMER, OWNER, NOW)
+    assert services.marked == ["o1", "o1"], "again while it waits: a realtime restart can't lose it"
+
+
+async def test_orders_in_flight_together_get_different_riders(services: Services) -> None:
+    city = runner.City(api_for(services), "hyd", [RIDER, RIDER2])
+    city.waiting = {"o1", "o2"}
+    await city.do("almost_ready", order(id="o1", status="preparing"), CUSTOMER, OWNER, NOW)
+    await city.do("almost_ready", order(id="o2", status="preparing"), CUSTOMER, OWNER, NOW)
+    assert city.claims == {"o1": RIDER.id, "o2": RIDER2.id}
+    assert any(p == "/api/v1/riders/me/online" for _, p, _ in services.of("rider2"))
+    # Realtime offered o2 to the first rider (nearer): it takes it, and the two swap.
+    services.rt("rider")["offer"] = "o2"
+    await city.do("find_rider", order(id="o1"), CUSTOMER, OWNER, NOW)
+    assert ("POST", "/api/v1/offers/o2/accept", None) in services.of("rider")
+    assert not [p for _, p, _ in services.of("rider") if p.endswith("/pass")], "never passes one of ours"
+    assert city.claims == {"o1": RIDER2.id, "o2": RIDER.id}
+    services.rt("rider2")["offer"] = "o1"
+    await city.do("find_rider", order(id="o1"), CUSTOMER, OWNER, NOW)
+    assert ("POST", "/api/v1/offers/o1/accept", None) in services.of("rider2")
+
+
+async def test_a_tick_gives_the_next_order_a_rider_who_is_free(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    on_its_way = row("seeded", "picked_up", seeded=True, driver=RIDER.id, picked=NOW - timedelta(minutes=2))
+    waiting = row("next", "almost_ready")
+    await (await runner.get_redis()).sadd(runner.OURS, "next")
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([on_its_way, waiting], NOW - timedelta(hours=1)))
+    city = runner.City(api_for(services), "hyd", [RIDER, RIDER2])
+    assert await city.tick(NOW) == ["to_home", "find_rider"]
+    assert city.claims == {"next": RIDER2.id}, "the first rider is carrying the other one"
+    assert [p for _, p, _ in services.of("rider")] == ["/api/v1/delivery/driver/location"]
+    assert "/api/v1/riders/me" in [p for _, p, _ in services.of("rider2")]
+
+
+async def test_with_every_rider_on_an_order_the_next_one_waits(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    on_its_way = row("seeded", "picked_up", seeded=True, driver=RIDER.id, picked=NOW - timedelta(minutes=2))
+    cooking = row("next", "preparing")
+    cooking.restaurant_accepted_at = NOW - timedelta(minutes=5)
+    await (await runner.get_redis()).sadd(runner.OURS, "next")
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([on_its_way, cooking], NOW - timedelta(hours=1)))
+    city = runner.City(api_for(services), "hyd", [RIDER])
+    assert await city.tick(NOW) == ["to_home", "almost_ready"]
+    assert not services.of("owner"), "not almost ready until a rider of its own is free"
+    assert not services.marked and not city.claims
+
+
+async def test_off_duty_after_the_delivery_one_rider_at_a_time(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    still = row("other", "picked_up", seeded=True, driver=RIDER2.id, picked=NOW - timedelta(minutes=1))
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([still], NOW - timedelta(minutes=1)))
+    city = runner.City(api_for(services), "hyd", [RIDER, RIDER2])
+    city.off_duty = {RIDER.id}
+    await city.tick(NOW)
+    assert ("POST", "/api/v1/riders/me/offline", None) in services.of("rider")
+    assert not [p for _, p, _ in services.of("rider2") if p.endswith("/offline")], "the other is still riding"
+    assert city.off_duty == set()
+
+
+async def test_cities_group_the_pool_by_city(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    boise = SimpleNamespace(id="b1", email="rider.sim.boi.1@example.com", phone="+12085550261", country="US")
+    stray = SimpleNamespace(id="x", email="rider.demo.hyd@example.com", phone="+919000000250", country="IN")
+
+    class Db:
+        async def __aenter__(self):  # type: ignore[no-untyped-def]
+            return self
+
+        async def __aexit__(self, *a):  # type: ignore[no-untyped-def]
+            return False
+
+        async def execute(self, *_a, **_k):  # type: ignore[no-untyped-def]
+            return SimpleNamespace(all=lambda: [boise, RIDER, RIDER2, stray])
+
+    monkeypatch.setattr(runner, "AsyncSessionLocal", Db)
+    api = api_for(Services())
+    found = {c.key: c for c in await runner.cities(api)}
+    assert set(found) == {"hyd", "boi"}
+    assert found["hyd"].pool == [RIDER.id, RIDER2.id] and found["boi"].pool == ["b1"]
+    again = await runner.cities(api, list(found.values()))
+    assert {c.key: c for c in again}["hyd"] is found["hyd"], "a running city keeps its state"

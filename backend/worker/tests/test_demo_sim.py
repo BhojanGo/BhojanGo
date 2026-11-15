@@ -125,10 +125,12 @@ def order(**kw) -> R.DemoOrder:  # type: ignore[no-untyped-def]
 
 
 def test_demo_people_are_recognised() -> None:
-    assert R.city_key("rider.demo.hyd@example.com") == "hyd"
-    assert R.city_key("Rider.Demo.BOI@example.com") == "boi"
-    for email in ("rider1.hyd@example.com", "rider.demo.hyd@gmail.com", "x.rider.demo.hyd@example.com", ""):
-        assert R.city_key(email) is None
+    assert R.city_key("rider.sim.hyd.1@example.com") == "hyd"
+    assert R.city_key("Rider.Sim.BOI.3@example.com") == "boi"
+    for email in ("rider.demo.hyd@example.com",  # the demo rider people test with: never the simulator's
+                  "rider1.hyd@example.com", "rider.sim.hyd@example.com", "rider.sim.hyd.1@gmail.com",
+                  "x.rider.sim.hyd.1@example.com", ""):
+        assert R.city_key(email) is None, email
     assert R.customer_email("boi") == "demo1.boi@example.com"
     assert R.is_demo_customer("demo3.hyd@example.com")
     for email in ("customer1.hyd@example.com", "regular01.hyd@example.com", "demo1.hyd@example.org",
@@ -189,3 +191,23 @@ def test_a_new_order_after_a_pause() -> None:
     assert R.should_create(0, NOW - timedelta(minutes=4), None, NOW)
     assert not R.should_create(0, None, NOW - timedelta(minutes=2), NOW), "no kitchen open: try again later"
     assert R.should_create(0, None, NOW - timedelta(minutes=11), NOW)
+
+
+# ── the simulator's riders (Round 5, item 3) ────────────────────────────────────
+
+def test_each_order_gets_a_free_pool_rider() -> None:
+    pool = ["r1", "r2", "r3"]
+    assert R.pick_rider(pool, set()) == "r1"
+    assert R.pick_rider(pool, {"r1"}) == "r2", "the first one is on another order"
+    assert R.pick_rider(pool, {"r1", "r3"}) == "r2"
+    assert R.pick_rider(pool, set(pool)) is None, "all on orders: the next one waits"
+    assert R.pick_rider([], set()) is None
+
+
+def test_it_reads_only_its_own_riders() -> None:
+    from app.demo_sim import runner
+
+    sql = str(runner.RIDERS_SQL)
+    assert "dispatch_pool = 'demo_sim'" in sql and "rider.sim.%@example.com" in sql
+    assert "rider.demo" not in sql, "never the demo rider people test with"
+    assert R.SIM_POOL == "demo_sim"

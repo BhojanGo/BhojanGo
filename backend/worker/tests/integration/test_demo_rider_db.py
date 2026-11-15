@@ -69,9 +69,26 @@ async def test_kitchen_steps_through_the_api_and_only_demo_orders(core: AsyncCli
     assert not rules.is_sim_order(o, {o.id}), "a real customer's order is never the simulator's"
 
     # As for its own order: the kitchen's owner signs in and accepts, then cooks.
-    city = runner.City(api, "hyd", customer)  # any user row will do as the rider here
+    city = runner.City(api, "hyd", [customer])  # any user row will do as the rider here
     await city.do("accept", o, customer, owner, o.created_at)
     await city.do("prepare", o, customer, owner, o.created_at)
     r = await core.get(f"/api/v1/orders/{order['id']}", headers=h)
     assert r.json()["status"] == "preparing", r.text
     assert api.person(owner).refresh, "the kitchen's session can be refreshed"
+
+
+async def test_it_finds_only_the_simulators_own_riders(core: AsyncClient) -> None:
+    """RIDERS_SQL on the real schema (users.dispatch_pool, migration 0028): a rider in the
+    simulator's pool is found; the base seed's riders (no pool) never are."""
+    from sqlalchemy import text
+
+    from app.demo_sim import runner
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        found = {r.email for r in (await db.execute(runner.RIDERS_SQL)).all()}
+        assert not {e for e in found if not e.startswith("rider.sim.")}
+        assert "rider1.hyd@example.com" not in found
+        pooled = (await db.execute(text(
+            "SELECT count(*) FROM users WHERE email LIKE 'rider_.hyd@example.com' AND dispatch_pool IS NOT NULL"))).scalar()
+        assert pooled == 0, "the base seed's riders are in no pool"
