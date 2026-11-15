@@ -103,6 +103,22 @@ async def test_seed_riders_are_ready(client: AsyncClient) -> None:
     assert o["ready"] is True and {s["key"] for s in o["steps"]} >= {"licence", "insurance", "background_check"}
 
 
+async def test_ready_says_the_dispatch_pool_only_for_the_simulators_riders(client: AsyncClient) -> None:
+    """Realtime keeps the pool when the rider goes online (dispatch.same_pool): the demo
+    simulator's riders say "demo_sim"; nobody else says anything (no pool)."""
+    from sqlalchemy import update
+
+    from core_api.modules.identity.models.user import User
+    from shared.db import AsyncSessionLocal
+
+    rid, _ = await new_rider()
+    assert "pool" not in (await signed_get(client, f"/api/v1/internal/riders/{rid}/ready")).json()
+    async with AsyncSessionLocal() as db:
+        await db.execute(update(User).where(User.id == uuid.UUID(rid)).values(dispatch_pool="demo_sim"))
+        await db.commit()
+    assert (await signed_get(client, f"/api/v1/internal/riders/{rid}/ready")).json()["pool"] == "demo_sim"
+
+
 async def test_delivery_needs_pin_or_own_photo_and_pin_is_customer_only(client: AsyncClient) -> None:
     cust = await login(client, "customer1.hyd@example.com")
     order = await new_order(client, cust)

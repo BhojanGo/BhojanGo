@@ -37,6 +37,17 @@ Batching (task 43)
   total pay; accepting assigns both, and the rider stays busy until both are
   delivered (``rider:{id}:state`` ``batch``: the orders left, in drop-off
   order). A pass or a timeout sends both back to solo dispatch.
+
+Pools (make dev and QA only; a no-op in production)
+  An order is offered only to riders of its own pool (``same_pool``). Real riders
+  and orders have no pool, so for them nothing changes. The demo rider
+  simulator (worker app/demo_sim) has riders of its own: users.dispatch_pool
+  "demo_sim", which only the demo seed writes; core_api's /internal/riders/{id}/ready
+  says so and going online keeps it in ``rider:{id}:pool``. The simulator marks
+  each order it drives (``dispatch:{order}:pool``, /internal/dispatch/pool-orders)
+  before the kitchen makes it almost ready. So simulator orders go only to
+  simulator riders, simulator riders never get anyone else's order, and the
+  demo riders people test with by hand (and Maestro) never get simulator orders.
 """
 import json
 import time
@@ -90,6 +101,39 @@ def info_key(order: str) -> str:
 
 def declined_key(order: str) -> str:
     return f"dispatch:{order}:declined"
+
+
+def rider_pool_key(rider: str) -> str:
+    return f"rider:{rider}:pool"
+
+
+def order_pool_key(order: str) -> str:
+    return f"dispatch:{order}:pool"
+
+
+POOLS = frozenset({"demo_sim"})  # the only pool there is: the demo rider simulator's
+
+
+def same_pool(rider_pool: str | None, order_pool: str | None) -> bool:
+    """May this rider be offered this order? Only within one pool: a pool's orders go
+    to its riders only, and an order with no pool (every real one) only to riders with
+    no pool (every real rider, and the demo riders people test with)."""
+    return (rider_pool or None) == (order_pool or None)
+
+
+async def mark_order_pool(order: str, pool: str) -> None:
+    """The demo simulator's order (POST /internal/dispatch/pool-orders): only its riders get it."""
+    if pool not in POOLS:
+        raise ValueError(f"no such pool: {pool}")
+    await (await get_redis()).set(order_pool_key(order), pool, ex=2 * DAY)
+
+
+async def order_pool(order: str) -> str | None:
+    return await (await get_redis()).get(order_pool_key(order)) or None
+
+
+async def rider_pool(rider: str) -> str | None:
+    return await (await get_redis()).get(rider_pool_key(rider)) or None
 
 
 def in_batch_offer_key(order: str) -> str:
@@ -164,11 +208,16 @@ async def free_if_stale(rider: str) -> bool:
     return True
 
 
-async def go_online(rider: str, lat: float, lng: float) -> dict:
+async def go_online(rider: str, lat: float, lng: float, pool: str | None = None) -> dict:
+    """``pool``: the rider's dispatch pool as core_api says (None for every real rider)."""
     from app.services import shifts
 
     await free_if_stale(rider)
     r = await get_redis()
+    if pool:
+        await r.set(rider_pool_key(rider), pool)
+    else:
+        await r.delete(rider_pool_key(rider))
     if not await r.exists(f"driver:{rider}:shift"):
         await shifts.start_shift(rider, _now())
     await r.sadd(ONLINE, rider)
@@ -352,13 +401,17 @@ async def start_dispatch(order: str, info: dict | None = None) -> str | None:
 
 
 async def _claim_rider(order: str, pickup: list, declined: set, timeout: int) -> tuple[str, float] | None:
-    """The nearest free rider within DISPATCH_RADIUS_KM who hasn't declined, claimed atomically."""
+    """The nearest free rider within DISPATCH_RADIUS_KM who hasn't declined and is in
+    the order's pool (same_pool), claimed atomically."""
     r = await get_redis()
     lat, lng = pickup
+    pool = await order_pool(order)
     near = await r.geosearch(GEO, longitude=lng, latitude=lat, radius=_s().DISPATCH_RADIUS_KM, unit="km",
                              sort="ASC", count=25, withdist=True)
     for rider, dist_km in near:
         if rider in declined or not await r.sismember(ONLINE, rider):
+            continue
+        if not same_pool(await rider_pool(rider), pool):
             continue
         if not await r.exists(loc_key(rider)):
             continue  # no GPS for a while: the app is probably closed
@@ -448,6 +501,8 @@ async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None
         return None
     if early and len({i.get("restaurant_id") for i in infos}) != 1:
         return None  # an order still cooking can only join a pickup at its own kitchen
+    if len({await order_pool(o) for o in orders}) != 1:
+        return None  # never a simulator order with anyone else's (same_pool)
     lead, lead_info = orders[0], infos[0]
     declined: set = set()
     for o in orders:
