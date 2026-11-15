@@ -1,0 +1,28 @@
+# QA, read-only, on a PHONE (the app locks portrait there; lib/formFactor.ts): the
+# sign-in band, the orders list (New / Preparing / Ready tabs), an order's detail
+# and back, the rating summary, the menu with a dish's photo preview, the store
+# hours, offers and payouts. Screenshots: docs/screenshots/partner/qa/portrait-*.
+# On a tablet (landscape) the phone layout never shows: this flow only signs in.
+# Never accepts, rejects, marks ready, pauses, picks a photo or saves anything.
+appId: com.bhojango.partner
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: "sign-in-title"
+    timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: "split-band"
+    commands:
+      - takeScreenshot: docs/screenshots/partner/qa/portrait-sign-in
+- runFlow: common/sign-in-demo.yaml
+- runFlow:
+    when:
+      visible:
+        id: "order-list"
+    file: common/phone-tour.yaml

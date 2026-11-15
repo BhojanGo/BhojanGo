@@ -5,6 +5,7 @@ import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useKitchen } from "../lib/data";
+import { useLayout } from "../lib/layout";
 import { Split } from "../lib/split";
 import { Btn, color, radius, t, textFont } from "../lib/ui";
 
@@ -14,6 +15,7 @@ export default function Code() {
   const signOut = useSession((s) => s.signOut);
   const loadKitchen = useKitchen((s) => s.load);
   const { t: tr } = useI18n();
+  const { narrow } = useLayout(); // a phone: six smaller boxes fit its width
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,10 +55,10 @@ export default function Code() {
         {tr("partner.code.sent_to")} <Text style={textFont("800")}>{phone}</Text> ·{" "}
         <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>{tr("partner.code.edit")}</Text>
       </Text>
-      <Pressable accessibilityLabel={tr("partner.code.label")} onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: 10 }}>
+      <Pressable accessibilityLabel={tr("partner.code.label")} onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: narrow ? 8 : 10 }}>
         {Array.from({ length: 6 }, (_, i) => (
-          <View key={i} style={[s.box, i === code.length && { borderColor: color.peacock, borderWidth: 2 }]}>
-            <Text style={[textFont("800"), { fontSize: 28 }]}>{code[i] ?? ""}</Text>
+          <View key={i} style={[s.box, narrow && { width: 46, height: 58 }, i === code.length && { borderColor: color.peacock, borderWidth: 2 }]}>
+            <Text style={[textFont("800"), { fontSize: narrow ? 24 : 28 }]}>{code[i] ?? ""}</Text>
           </View>
         ))}
       </Pressable>

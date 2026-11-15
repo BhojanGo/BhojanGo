@@ -1,15 +1,18 @@
 // PartnerOrders.html: New (ring, accept timer, "ready in" picker), Preparing
 // (time left, almost ready, mark ready), Ready for pickup (rider on the way).
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
-import { api, ApiError, unwrap, useI18n } from "@bhojango/mobile-core";
+// On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
+// and tapping an order opens its detail (the same card); Back returns to the list.
+import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
 import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
+import { useLayout } from "../../lib/layout";
 import { RatingChip } from "../../lib/ratings";
-import { Btn, Card, color, Count, radius, Segmented, t, textFont, tone } from "../../lib/ui";
+import { Btn, Card, color, Count, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 
 const PREP = [15, 20, 25, 30];
 
@@ -29,6 +32,7 @@ export default function Orders() {
   const { orders, today, error, refresh, setToday } = useBoard();
   const [pausing, setPausing] = useState(false);
   const { t: tr } = useI18n();
+  const { narrow } = useLayout();
   const fresh = orders.filter((o) => NEW.includes(o.status)).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const cooking = orders.filter((o) => COOKING.includes(o.status));
   const ready = orders.filter((o) => READY.includes(o.status));
@@ -58,6 +62,7 @@ export default function Orders() {
     <SafeAreaView testID="orders-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} />
       {error ? <Text style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>{error}</Text> : null}
+      {narrow ? <PhoneBoard fresh={fresh} cooking={cooking} ready={ready} defaultPrep={today?.prep_minutes ?? 20} act={act} /> : (
       <View style={s.board}>
         <Column testID="column-new" title={tr("partner.orders.new")} count={fresh.length} badge={[color.peacock, color.white]}>
           {fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}
@@ -71,9 +76,10 @@ export default function Orders() {
           <Text style={[t.muted, { textAlign: "center", marginTop: 4 }]}>{tr("partner.orders.ready_note")}</Text>
         </Column>
       </View>
-      <Modal visible={pausing} transparent animationType="fade" onRequestClose={() => setPausing(false)}>
+      )}
+      <Modal visible={pausing} transparent animationType="fade" supportedOrientations={["landscape", "portrait"]} onRequestClose={() => setPausing(false)}>
         <Pressable style={s.scrim} onPress={() => setPausing(false)}>
-          <View style={s.sheet} accessibilityLabel={tr("partner.orders.pause_title")}>
+          <View style={[s.sheet, narrow && { padding: 24 }]} accessibilityLabel={tr("partner.orders.pause_title")}>
             <Text style={t.h1}>{tr("partner.orders.pause_title")}</Text>
             <Text style={t.muted}>{tr("partner.orders.pause_sub")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
@@ -90,8 +96,8 @@ export default function Orders() {
 function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () => void; onPause: () => void }) {
   const { cash, clock } = useFormat();
   const { t: tr } = useI18n();
-  const { width } = useWindowDimensions();
-  const compact = width < 1100; // a phone held sideways, or a small tablet
+  const { width, narrow } = useLayout();
+  const compact = width < 1100; // a phone, or a small tablet
   const kitchen = useKitchen((s) => s.kitchen)!;
   const cur = today?.currency ?? kitchen.currency;
   const open = today && today.open_now && !today.paused;
@@ -99,25 +105,46 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const status = !today ? "…" : today.paused
     ? today.paused_until ? tr("partner.orders.paused_till", { time: clock(today.paused_until) }) : tr("partner.orders.paused")
     : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open")) : today.reason ?? tr("partner.orders.closed");
+  const title = (
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>
+      <Text style={[t.muted, { marginTop: 2 }]} numberOfLines={narrow ? 2 : undefined}>
+        {[today?.area, today ? tr("partner.orders.today_orders", { count: today.today_orders }) : null, today ? cash(today.today_sales, cur) : null]
+          .filter(Boolean).join(" · ")}
+      </Text>
+    </View>
+  );
+  const chip = <RatingChip kitchenId={kitchen.id} />;
+  const controls = (
+    <>
+      <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }, narrow && { flexGrow: 1, flexShrink: 1, height: 44 }]}
+        accessibilityLabel={status}>
+        <View style={[s.dot, { backgroundColor: open ? color.peacock : tone.kesarInk }]} />
+        <Text style={[textFont("800"), { fontSize: 14, color: open ? color.peacockDeep : tone.kesarInk, flexShrink: 1 }]} numberOfLines={1}>{status}</Text>
+      </View>
+      <Btn testID="busy" height={narrow ? 44 : 48} style={narrow && { paddingHorizontal: 14 }}
+        title={today && today.busy_extra_minutes > 0 ? tr("partner.orders.busy_undo", { min: today.busy_extra_minutes })
+          : compact ? tr("partner.orders.busy_short") : tr("partner.orders.busy")}
+        label={today && today.busy_extra_minutes > 0 ? undefined : tr("partner.orders.busy")} onPress={onBusy} />
+      <Btn testID="pause" height={narrow ? 44 : 48} style={narrow && { paddingHorizontal: 14 }}
+        title={today?.paused ? tr("partner.orders.resume") : compact ? tr("partner.orders.pause_short") : tr("partner.orders.pause")}
+        label={today?.paused ? undefined : tr("partner.orders.pause")} kind={today?.paused ? "dark" : "outline"} onPress={onPause} />
+    </>
+  );
+  // A phone's width: the name and the rating on one line, the status and the buttons below.
+  if (narrow) {
+    return (
+      <View style={[s.header, s.headerNarrow]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>{title}{chip}</View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>{controls}</View>
+      </View>
+    );
+  }
   return (
     <View style={s.header}>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>
-        <Text style={[t.muted, { marginTop: 2 }]}>
-          {[today?.area, today ? tr("partner.orders.today_orders", { count: today.today_orders }) : null, today ? cash(today.today_sales, cur) : null]
-            .filter(Boolean).join(" · ")}
-        </Text>
-      </View>
-      <RatingChip kitchenId={kitchen.id} />
-      <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }]} accessibilityLabel={status}>
-        <View style={[s.dot, { backgroundColor: open ? color.peacock : tone.kesarInk }]} />
-        <Text style={[textFont("800"), { fontSize: 14, color: open ? color.peacockDeep : tone.kesarInk }]} numberOfLines={1}>{status}</Text>
-      </View>
-      <Btn testID="busy" title={today && today.busy_extra_minutes > 0 ? tr("partner.orders.busy_undo", { min: today.busy_extra_minutes })
-        : compact ? tr("partner.orders.busy_short") : tr("partner.orders.busy")}
-        label={today && today.busy_extra_minutes > 0 ? undefined : tr("partner.orders.busy")} onPress={onBusy} />
-      <Btn testID="pause" title={today?.paused ? tr("partner.orders.resume") : compact ? tr("partner.orders.pause_short") : tr("partner.orders.pause")}
-        label={today?.paused ? undefined : tr("partner.orders.pause")} kind={today?.paused ? "dark" : "outline"} onPress={onPause} />
+      {title}
+      {chip}
+      {controls}
     </View>
   );
 }
@@ -134,11 +161,123 @@ function Column({ title, count, badge, children, testID }: { title: string; coun
   );
 }
 
+type Tab = "new" | "preparing" | "ready";
+type Act = (fn: () => Promise<unknown>) => Promise<void>;
+
+/**
+ * The board on a phone: New / Preparing / Ready as tabs (the same testIDs as the
+ * tablet's columns), one list of orders, and an order's detail (its full card:
+ * accept, ready in, mark ready, the rider) with Back, or the phone's back button.
+ */
+function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
+  fresh: Order[]; cooking: Order[]; ready: Order[]; defaultPrep: number; act: Act;
+}) {
+  const { t: tr } = useI18n();
+  const [tab, setTab] = useState<Tab>("new");
+  const [openId, setOpenId] = useState<string | null>(null);
+  // Picked up (or cancelled) while open: it leaves the board, and the list shows again.
+  const open = openId ? [...fresh, ...cooking, ...ready].find((o) => o.id === openId) ?? null : null;
+  const shown = open?.id;
+  useEffect(() => {
+    if (!shown) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setOpenId(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [shown]);
+
+  if (open) {
+    return (
+      <ScrollView testID="order-detail" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
+        <Pressable testID="order-back" accessibilityRole="button" accessibilityLabel={tr("common.back")} onPress={() => setOpenId(null)}
+          hitSlop={8} style={s.back}>
+          <Icon name="back" size={20} />
+          <Text style={[textFont("700"), { fontSize: 15 }]}>{tr("common.back")}</Text>
+        </Pressable>
+        {NEW.includes(open.status) ? <NewCard order={open} first defaultPrep={defaultPrep} act={act} />
+          : COOKING.includes(open.status) ? <CookingCard order={open} act={act} /> : <ReadyCard order={open} />}
+      </ScrollView>
+    );
+  }
+
+  const tabs: { key: Tab; title: string; short: string; list: Order[]; badge: [string, string] }[] = [
+    { key: "new", title: tr("partner.orders.new"), short: tr("partner.orders.new"), list: fresh, badge: [color.peacock, color.white] },
+    { key: "preparing", title: tr("partner.orders.preparing"), short: tr("partner.orders.preparing"), list: cooking, badge: [tone.kesarSoft, tone.kesarInk] },
+    { key: "ready", title: tr("partner.orders.ready"), short: tr("partner.orders.ready_short"), list: ready, badge: [color.peacockTint, color.peacockDeep] },
+  ];
+  const current = tabs.find((x) => x.key === tab)!;
+  return (
+    <View style={{ flex: 1 }}>
+      <View accessibilityRole="tablist" style={s.tabs}>
+        {tabs.map((x) => {
+          const on = x.key === tab;
+          // New orders waiting while another tab is open: the count turns red.
+          const badge: [string, string] = x.key === "new" && !on && x.list.length > 0 ? [color.chili, color.white] : x.badge;
+          return (
+            <Pressable key={x.key} testID={`column-${x.key}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.title}
+              onPress={() => setTab(x.key)} style={[s.tab, on && s.tabOn]}>
+              <Text style={[textFont(on ? "800" : "600"), { fontSize: 14, color: on ? color.kohl : color.muted, flexShrink: 1 }]} numberOfLines={1}>{x.short}</Text>
+              <Count n={x.list.length} bg={badge[0]} fg={badge[1]} />
+            </Pressable>
+          );
+        })}
+      </View>
+      <ScrollView testID="order-list" contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 24 }}>
+        {tab === "new" && fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}
+        {current.list.map((o, i) => <OrderRow key={o.id} order={o} index={i} onOpen={() => setOpenId(o.id)} />)}
+        {tab === "ready" ? <Text style={[t.muted, { textAlign: "center", marginTop: 4 }]}>{tr("partner.orders.ready_note")}</Text> : null}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** One order in the phone's list: code, customer, the items, and its clock (to accept, left, ready at). */
+function OrderRow({ order: o, index, onOpen }: { order: Order; index: number; onOpen: () => void }) {
+  const { clock } = useFormat();
+  const { t: tr } = useI18n();
+  const fresh = NEW.includes(o.status);
+  const now = useNow(fresh ? 1000 : 15000);
+  const items = (o.items ?? []) as Item[];
+  const who = `${code(o.id)} · ${name(o, tr("partner.orders.customer"))}`;
+  let when: string, tint: string;
+  if (fresh) {
+    const left = o.accept_due_at ? Math.max(0, Math.round((Date.parse(o.accept_due_at) - now) / 1000)) : null;
+    when = left == null ? "" : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    tint = color.chili;
+  } else if (COOKING.includes(o.status)) {
+    when = cookingLabel(o, now, tr);
+    tint = tone.kesarInk;
+  } else {
+    when = tr("partner.orders.ready_at", { time: clock(o.actual_ready_at) });
+    tint = color.peacockDeep;
+  }
+  return (
+    <Pressable testID={`order-row-${index}`} accessibilityRole="button" accessibilityLabel={tr("partner.orders.open_order", { order: who })} onPress={onOpen}
+      style={({ pressed }) => [s.orderRow, fresh && index === 0 && { borderColor: color.peacock, borderWidth: 2 }, pressed && { opacity: 0.85 }]}>
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+        <Text style={t.title} numberOfLines={1}>{who}</Text>
+        <Text style={[t.muted, { fontSize: 14 }]} numberOfLines={2}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
+      </View>
+      <Text style={[textFont("800"), { fontSize: fresh ? 18 : 13, color: tint, fontVariant: ["tabular-nums"] }]}>{when}</Text>
+      <Icon name="chevron" size={18} stroke={color.muted} />
+    </Pressable>
+  );
+}
+
+/** "12 min left", "3 min late" or "almost ready": a cooking order's clock. */
+function cookingLabel(o: Order, now: number, tr: Translate) {
+  if (o.status === "almost_ready") return tr("partner.orders.almost_ready_label");
+  const start = o.restaurant_accepted_at ? Date.parse(o.restaurant_accepted_at) : now;
+  const left = Math.round((start + (o.estimated_prep_minutes ?? 20) * 60000 - now) / 60000);
+  return left < 0 ? tr("partner.orders.late", { min: -left }) : tr("partner.orders.left", { min: left });
+}
+
 function name(o: Order, customer: string) {
   return (o.customer as { name?: string } | null)?.name ?? customer;
 }
 
-function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: boolean; defaultPrep: number; act: (fn: () => Promise<unknown>) => Promise<void> }) {
+function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: boolean; defaultPrep: number; act: Act }) {
   const { cash, clock } = useFormat();
   const { t: tr } = useI18n();
   const now = useNow();
@@ -194,7 +333,7 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
   );
 }
 
-function CookingCard({ order: o, act }: { order: Order; act: (fn: () => Promise<unknown>) => Promise<void> }) {
+function CookingCard({ order: o, act }: { order: Order; act: Act }) {
   const { t: tr } = useI18n();
   const now = useNow(15000);
   const start = o.restaurant_accepted_at ? Date.parse(o.restaurant_accepted_at) : now;
@@ -207,9 +346,7 @@ function CookingCard({ order: o, act }: { order: Order; act: (fn: () => Promise<
     <Card>
       <View style={s.row}>
         <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
-        <Text style={[textFont("700"), { fontSize: 13, color: left < 0 ? color.chili : tone.kesarInk }]}>
-          {almost ? tr("partner.orders.almost_ready_label") : left < 0 ? tr("partner.orders.late", { min: -left }) : tr("partner.orders.left", { min: left })}
-        </Text>
+        <Text style={[textFont("700"), { fontSize: 13, color: left < 0 ? color.chili : tone.kesarInk }]}>{cookingLabel(o, now, tr)}</Text>
       </View>
       <Text style={[t.muted, { fontSize: 14 }]}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
       <View style={s.track}><View style={[s.fill, { width: `${Math.round(done * 100)}%` }]} /></View>
@@ -275,6 +412,14 @@ const s = StyleSheet.create({
     minHeight: 80, paddingHorizontal: 24, paddingVertical: 8, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.line,
     flexDirection: "row", alignItems: "center", gap: 16,
   },
+  headerNarrow: { flexDirection: "column", alignItems: "stretch", paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
+  tabs: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 12 },
+  tab: { flex: 1, minWidth: 0, height: 44, borderRadius: radius.pill, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingHorizontal: 8, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
+  tabOn: { borderColor: color.kohl },
+  orderRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: radius.card, borderWidth: 1, borderColor: color.line,
+    backgroundColor: color.white },
+  back: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", height: 40 },
   status: { flexDirection: "row", alignItems: "center", gap: 8, height: 48, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: color.peacockTint },
   dot: { width: 8, height: 8, borderRadius: 4 },
   board: { flex: 1, flexDirection: "row", padding: 24, gap: 16 },

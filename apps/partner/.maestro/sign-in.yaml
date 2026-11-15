@@ -1,4 +1,4 @@
-# Sign in on the tablet (landscape) with the kitchen's phone; seed phones get 123456.
+# Sign in with the kitchen's phone (a tablet runs landscape, a phone portrait); seed phones get 123456.
 appId: com.bhojango.partner
 ---
 - launchApp:

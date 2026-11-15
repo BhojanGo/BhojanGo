@@ -5,10 +5,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useOrientationLock } from "../lib/layout";
+
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useKeepAwake(); // a kitchen tablet stays on: new orders must never wait for the screen
+  useOrientationLock(); // phones upright, tablets sideways (lib/formFactor.ts)
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);

@@ -1,15 +1,18 @@
 // PartnerMenu.html: items by category with "In stock / Sold out today", store
 // hours and prep time, and offers the kitchen funds (weekly cap). Tapping a dish
 // opens its photo: pick one (library or camera), see the dish exactly as customers
-// will (lib/dish.tsx), then save it as the item's image_url.
+// will (lib/dish.tsx), then save it as the item's image_url. On a phone (portrait,
+// lib/layout.ts) it is one column: the search under the title, each dish on two
+// lines (name, then price and stock), then the store hours and offers.
 import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { imageUri, useFormat, useKitchen, useLoad, type Offer } from "../../lib/data";
 import { DishPreview } from "../../lib/dish";
+import { useLayout } from "../../lib/layout";
 import { Btn, color, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 import { menuPhotoUrl, uploadFile } from "../../lib/upload";
 
@@ -39,8 +42,8 @@ function hourRows(h: Hours, day: (d: number) => string, hm: Clock, closed: strin
 export default function MenuScreen() {
   const { cash, clock, date } = useFormat();
   const { t: tr } = useI18n();
-  const { width } = useWindowDimensions();
-  const stacked = width < 1000; // a phone held sideways: the menu first, the store panels below
+  const { width, narrow } = useLayout();
+  const stacked = width < 1000; // a phone (or a small tablet): the menu first, the store panels below
   const kitchen = useKitchen((s) => s.kitchen)!;
   const id = kitchen.id;
   const menu = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/menu", { params: { path: { restaurant_id: id } } })) as unknown as Menu, id);
@@ -95,7 +98,7 @@ export default function MenuScreen() {
 
   const prep = today.data ? today.data.prep_minutes - today.data.busy_extra_minutes : 20;
   const itemsPanel = (
-    <View style={[s.panel, stacked ? { minHeight: 420 } : { flex: 1.6 }]} accessibilityLabel={tr("partner.menu.items")}>
+    <View style={[s.panel, stacked ? { minHeight: 420 } : { flex: 1.6 }, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.menu.items")}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
         {cats.map((c, ci) => {
           const on = !q && c.name === current;
@@ -107,21 +110,34 @@ export default function MenuScreen() {
           );
         })}
       </ScrollView>
-      <View style={s.th}>
-        <Text style={[s.thText, { flex: 1 }]}>{tr("partner.menu.item")}</Text>
-        <Text style={[s.thText, { width: 96 }]}>{tr("partner.menu.price")}</Text>
-        <Text style={[s.thText, { width: stacked ? 150 : 190 }]}>{tr("partner.menu.available")}</Text>
-      </View>
+      {narrow ? null : (
+        <View style={s.th}>
+          <Text style={[s.thText, { flex: 1 }]}>{tr("partner.menu.item")}</Text>
+          <Text style={[s.thText, { width: 96 }]}>{tr("partner.menu.price")}</Text>
+          <Text style={[s.thText, { width: stacked ? 150 : 190 }]}>{tr("partner.menu.available")}</Text>
+        </View>
+      )}
       <ScrollView nestedScrollEnabled contentContainerStyle={{ paddingBottom: 12 }}>
         {menu.data && items.length === 0 ? <Text style={[t.muted, { paddingVertical: 16 }]}>{tr("partner.menu.none")}</Text> : null}
         {items.map((i, n) => {
           const inStock = i.is_available && !i.sold_out_today;
           const groups = (i.option_groups ?? []).map((g) => g.name.toLowerCase());
+          const price = <Text style={[textFont("700"), { width: narrow ? undefined : 96, fontSize: 15, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
+          const stock = (
+            <Pressable accessibilityRole="switch" accessibilityState={{ checked: inStock }} accessibilityLabel={tr("partner.menu.in_stock_label", { name: i.name })}
+              onPress={() => toggle(i)} style={{ width: narrow ? undefined : stacked ? 150 : 190, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
+              <View style={[s.switch, inStock && { backgroundColor: color.peacock }]}><View style={[s.knob, inStock && { left: 22 }]} /></View>
+              <Text style={[textFont("600"), { fontSize: 14, color: inStock ? color.kohl : color.muted, flexShrink: 1 }]}>
+                {inStock ? tr("partner.menu.in_stock") : tr("partner.menu.sold_out")}
+              </Text>
+            </Pressable>
+          );
           return (
-            <View key={i.id} style={s.tr}>
+            <View key={i.id} style={[s.tr, narrow && s.trNarrow]}>
               <Pressable testID={n === 0 ? "menu-item-0" : `menu-item-${i.id}`} accessibilityRole="button"
                 accessibilityLabel={tr("partner.photo.open", { name: i.name })} onPress={() => setEditing(i)}
-                style={({ pressed }) => [{ flex: 1, flexDirection: "row", gap: 12, alignItems: "center", minHeight: 64 }, pressed && { opacity: 0.7 }]}>
+                style={({ pressed }) => [{ flex: narrow ? undefined : 1, flexDirection: "row", gap: 12, alignItems: "center", minHeight: narrow ? 52 : 64 },
+                  pressed && { opacity: 0.7 }]}>
                 <View style={[s.veg, { borderColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]}><View style={[s.vegDot, { backgroundColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={[textFont("700"), { fontSize: 15 }]}>{i.name}</Text>
@@ -135,14 +151,12 @@ export default function MenuScreen() {
                   </Text>
                 </View>
               </Pressable>
-              <Text style={[textFont("700"), { width: 96, fontSize: 15, paddingLeft: 8 }]}>{cash(i.price, cur)}</Text>
-              <Pressable accessibilityRole="switch" accessibilityState={{ checked: inStock }} accessibilityLabel={tr("partner.menu.in_stock_label", { name: i.name })}
-                onPress={() => toggle(i)} style={{ width: stacked ? 150 : 190, flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={[s.switch, inStock && { backgroundColor: color.peacock }]}><View style={[s.knob, inStock && { left: 22 }]} /></View>
-                <Text style={[textFont("600"), { fontSize: 14, color: inStock ? color.kohl : color.muted, flexShrink: 1 }]}>
-                  {inStock ? tr("partner.menu.in_stock") : tr("partner.menu.sold_out")}
-                </Text>
-              </Pressable>
+              {narrow ? (
+                // A phone: the price and the stock switch on a second line, under the name.
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingLeft: 28 }}>{price}{stock}</View>
+              ) : (
+                <>{price}{stock}</>
+              )}
             </View>
           );
         })}
@@ -152,7 +166,7 @@ export default function MenuScreen() {
   );
   const storePanels = (
     <>
-      <View style={s.panel} accessibilityLabel={tr("partner.menu.hours")}>
+      <View testID="hours-panel" style={[s.panel, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.menu.hours")}>
         <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.menu.hours")}</Text>
         {hours.data ? hourRows(hours.data, day, hm, tr("partner.menu.closed")).map((r) => (
           <View key={r.days} style={s.hoursRow}><Text style={t.body}>{r.days}</Text><Text style={[t.body, textFont("600"), { flexShrink: 1, textAlign: "right" }]}>{r.hours}</Text></View>
@@ -165,10 +179,10 @@ export default function MenuScreen() {
         ))}
         <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.menu.prep")}</Text>
         <Segmented label={tr("partner.menu.prep")} value={prep} onChange={(m) => void setPrep(m)}
-          options={[15, 20, 25, 30, 40].map((m) => ({ value: m, label: tr("partner.orders.minutes", { min: m }) }))} />
+          options={[15, 20, 25, 30, 40].map((m) => ({ value: m, label: !narrow || m === prep ? tr("partner.orders.minutes", { min: m }) : String(m) }))} />
       </View>
 
-      <View style={s.panel} accessibilityLabel={tr("partner.offers.title")}>
+      <View testID="offers-panel" style={[s.panel, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.offers.title")}>
         <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.offers.title")}</Text>
         {(offers.data ?? []).length === 0 ? <Text style={t.muted}>{tr("partner.offers.none")}</Text> : null}
         {(offers.data ?? []).map((o) => {
@@ -199,16 +213,16 @@ export default function MenuScreen() {
   );
   return (
     <SafeAreaView testID="menu-screen" edges={["top", "right"]} style={{ flex: 1 }}>
-      <View style={s.header}>
-        <Text accessibilityRole="header" style={[t.h1, { flex: 1 }]} numberOfLines={1}>{tr("partner.menu.title")}</Text>
-        <View style={[s.search, stacked && { width: 220 }]}>
+      <View style={[s.header, narrow && s.headerNarrow]}>
+        <Text accessibilityRole="header" style={[t.h1, { flex: narrow ? undefined : 1 }]} numberOfLines={1}>{tr("partner.menu.title")}</Text>
+        <View style={[s.search, stacked && { width: 220 }, narrow && { width: "100%" }]}>
           <Icon name="search" size={18} stroke={color.muted} />
           <TextInput disableFullscreenUI testID="menu-search" accessibilityLabel={tr("partner.menu.search")} placeholder={tr("partner.menu.search")} placeholderTextColor={color.muted}
             value={q} onChangeText={setQ} style={[textFont("500"), { flex: 1, fontSize: 15 }]} />
         </View>
       </View>
       {stacked ? (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <ScrollView testID="menu-scroll" contentContainerStyle={{ padding: narrow ? 12 : 16, gap: narrow ? 12 : 16 }}>
           {itemsPanel}
           {storePanels}
         </ScrollView>
@@ -240,7 +254,7 @@ function DishPhoto({ item, currency, kitchenId, onClose, onSaved }: {
 }) {
   const { cash } = useFormat();
   const { t: tr } = useI18n();
-  const { width, height } = useWindowDimensions();
+  const { width, height, narrow } = useLayout();
   const wide = width >= 900;
   // The photo the dish will have: undefined = unchanged, null = removed, else a picked one.
   const [next, setNext] = useState<{ uri: string; url: string | null } | null | undefined>(undefined);
@@ -293,13 +307,13 @@ function DishPhoto({ item, currency, kitchenId, onClose, onSaved }: {
   return (
     <Modal visible transparent animationType="fade" supportedOrientations={["landscape", "portrait"]} onRequestClose={onClose}>
       <View style={s.scrim}>
-        <View testID="dish-photo" style={[s.editor, { width: Math.min(980, width - 32), maxHeight: height - 32 }]}>
+        <View testID="dish-photo" style={[s.editor, { width: Math.min(980, width - (narrow ? 16 : 32)), maxHeight: height - 32 }, narrow && { padding: 18 }]}>
           <ScrollView contentContainerStyle={{ gap: 20 }} keyboardShouldPersistTaps="handled">
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Text accessibilityRole="header" style={[t.h1, { flex: 1 }]} numberOfLines={2}>{tr("partner.photo.title", { name: item.name })}</Text>
               <Btn testID="photo-cancel" title={tr("common.cancel")} onPress={onClose} />
             </View>
-            <View style={{ flexDirection: wide ? "row" : "column", gap: 24 }}>
+            <View style={{ flexDirection: wide ? "row" : "column", gap: narrow ? 16 : 24 }}>
               <View style={{ width: wide ? 300 : undefined, gap: 12 }}>
                 <Text style={t.label}>{tr("partner.photo.photo")}</Text>
                 <View style={s.photoFrame}>
@@ -322,7 +336,7 @@ function DishPhoto({ item, currency, kitchenId, onClose, onSaved }: {
               </View>
               <View style={{ flex: 1, gap: 12 }}>
                 <Text style={t.label}>{tr("partner.photo.preview")}</Text>
-                <View testID="photo-preview" style={s.previewCard}>
+                <View testID="photo-preview" style={[s.previewCard, narrow && { paddingHorizontal: 14 }]}>
                   <DishPreview testID={shown || elsewhere ? "preview-with-photo" : "preview-text-only"} dish={{
                     name: item.name, price: cash(item.price, currency), description: item.description, is_veg: item.is_veg,
                     photo: shown, photoElsewhere: elsewhere, soldOut: !item.is_available || !!item.sold_out_today,
@@ -368,6 +382,7 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
   const [error, setError] = useState<string | null>(null);
   const { cash } = useFormat();
   const { t: tr } = useI18n(); // lib/ui's `t` is the text styles
+  const { narrow } = useLayout();
   const ok = Number(cap) > 0 && (kind === "free_delivery" || Number(value) > 0);
   async function save() {
     setBusy(true);
@@ -387,7 +402,7 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
   return (
     <Modal visible={visible} transparent animationType="fade" supportedOrientations={["landscape", "portrait"]} onRequestClose={onClose}>
       <View style={s.scrim}>
-        <View style={s.sheet} accessibilityLabel={tr("partner.offers.create_title")}>
+        <View style={[s.sheet, narrow && { padding: 20 }]} accessibilityLabel={tr("partner.offers.create_title")}>
           <Text style={t.h1}>{tr("partner.offers.create_title")}</Text>
           <Segmented label={tr("partner.offers.kind")} value={kind} onChange={setKind}
             options={[{ value: "free_delivery", label: tr("partner.offers.free_delivery") }, { value: "percent_off", label: tr("partner.offers.percent_off") },
@@ -414,13 +429,16 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
 
 const s = StyleSheet.create({
   header: { height: 80, paddingHorizontal: 24, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.line, flexDirection: "row", alignItems: "center", gap: 16 },
+  headerNarrow: { height: undefined, flexDirection: "column", alignItems: "stretch", paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
   search: { width: 320, height: 48, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 },
   body: { flex: 1, flexDirection: "row", padding: 24, gap: 16 },
   panel: { backgroundColor: color.white, borderRadius: radius.card, borderWidth: 1, borderColor: color.line, padding: 20, gap: 10 },
+  panelNarrow: { padding: 14 },
   chip: { height: 44, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, justifyContent: "center" },
   th: { flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: color.line },
   thText: { ...textFont("700"), fontSize: 12, color: color.muted, textTransform: "uppercase", letterSpacing: 0.6 },
   tr: { flexDirection: "row", alignItems: "center", minHeight: 64, borderBottomWidth: 1, borderBottomColor: color.divider },
+  trNarrow: { flexDirection: "column", alignItems: "stretch", paddingBottom: 6 },
   veg: { width: 16, height: 16, borderWidth: 1.5, borderRadius: 3, alignItems: "center", justifyContent: "center" },
   vegDot: { width: 6, height: 6, borderRadius: 3 },
   photoTag: { paddingHorizontal: 10, height: 28, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, justifyContent: "center" },

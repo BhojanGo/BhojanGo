@@ -3,7 +3,7 @@
     "name": "BhojanGo Partner",
     "slug": "bhojango-partner",
     "version": "1.0.0",
-    "orientation": "landscape",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -53,6 +53,7 @@
         }
       ],
       "expo-secure-store",
+      "expo-screen-orientation",
       "expo-font",
       [
         "expo-splash-screen",

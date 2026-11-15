@@ -1,11 +1,13 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
-// offers you funded, refunds that were the kitchen's fault).
+// offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
+// the account sits above the statements.
 import { api, ApiError, unwrap, useI18n, type Translate } from "@bhojango/mobile-core";
 import { useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFormat, useKitchen, useLoad } from "../../lib/data";
+import { useLayout } from "../../lib/layout";
 import { Btn, color, radius, t, textFont } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
@@ -26,7 +28,7 @@ function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
 export default function Payouts() {
   const { cash, date } = useFormat();
   const { t: tr } = useI18n();
-  const { width } = useWindowDimensions();
+  const { width, narrow } = useLayout();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -55,9 +57,9 @@ export default function Payouts() {
   const a = data.data?.account;
   return (
     <SafeAreaView testID="payouts-screen" edges={["top", "right"]} style={{ flex: 1 }}>
-      <View style={s.header}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
-      <ScrollView contentContainerStyle={{ padding: width < 1000 ? 16 : 24, gap: 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
-        <View style={[s.panel, { flex: 1 }]}>
+      <View style={[s.header, narrow && { height: 64, paddingHorizontal: 16 }]}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
+      <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
+        <View testID="payout-account" style={[s.panel, { flex: width < 760 ? undefined : 1 }, narrow && { padding: 16 }]}>
           <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.where")}</Text>
           <Text style={t.body}>
             {a ? (a.status === "active" ? tr("partner.payouts.paid_through", { provider: PROVIDERS[a.provider] ?? tr("partner.payouts.partner") })
@@ -66,7 +68,7 @@ export default function Payouts() {
           {!a || a.status !== "active" ? <Btn title={a ? tr("partner.payouts.continue") : tr("partner.payouts.set_up")} kind="primary" busy={busy} onPress={setUp} /> : null}
           {msg ? <Text style={[textFont("600"), { color: color.chili }]}>{msg}</Text> : null}
         </View>
-        <View style={[s.panel, { flex: 2 }]}>
+        <View testID="payout-statements" style={[s.panel, { flex: width < 760 ? undefined : 2 }, narrow && { padding: 16 }]}>
           <Text style={[textFont("800"), { fontSize: 17 }]}>{tr("partner.payouts.statements")}</Text>
           {data.data && data.data.statements.length === 0 ? <Text style={t.muted}>{tr("partner.payouts.none_yet")}</Text> : null}
           {data.data?.statements.map((st) => (
@@ -79,7 +81,7 @@ export default function Payouts() {
                     statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
               </View>
-              <Text style={[textFont("800"), { fontSize: 16 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
+              <Text style={[textFont("800"), { fontSize: 16, flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
             </View>
           ))}
         </View>

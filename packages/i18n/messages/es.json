@@ -1330,6 +1330,8 @@
       "preparing": "En preparación",
       "ready": "Listos para recoger",
       "ready_note": "Los pedidos salen de esta columna cuando el repartidor confirma la recogida.",
+      "ready_short": "Listos",
+      "open_order": "Abrir pedido {order}",
       "pause_title": "Pausar pedidos nuevos",
       "pause_sub": "Los clientes ven que estás en pausa. Los pedidos ya hechos siguen.",
       "minutes": "{min} min",

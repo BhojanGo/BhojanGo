@@ -4,11 +4,12 @@
 import { api, ApiError, unwrap, useCountry, useI18n, useSession, type Translate } from "@bhojango/mobile-core";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen, useLoad, type Application } from "../lib/data";
+import { useLayout } from "../lib/layout";
 import { Btn, color, displayFont, Icon, radius, t, textFont, tone } from "../lib/ui";
 import { uploadFile } from "../lib/upload";
 
@@ -69,7 +70,7 @@ export default function Apply() {
   const kitchen = useKitchen((s) => s.kitchen);
   const signOut = useSession((s) => s.signOut);
   const { t: tr } = useI18n();
-  const { width } = useWindowDimensions();
+  const { width, narrow: phone } = useLayout();
   const narrow = width < 1000;
   const gst = useCountry().country?.tax_regime === "gst"; // the kitchen's country (the account's: useKnownCountry)
   const id = kitchen?.id ?? "";
@@ -85,15 +86,16 @@ export default function Apply() {
 
   return (
     <SafeAreaView edges={["left", "right", "top"]} style={{ flex: 1, backgroundColor: color.porcelain }}>
-      <View style={s.header}>
+      <View style={[s.header, phone && { height: undefined, paddingHorizontal: 16, paddingVertical: 12 }]}>
         <View style={{ flex: 1 }}>
           <Text accessibilityRole="header" style={t.h1}>{tr("partner.apply.title")}</Text>
           <Text style={t.muted}>{[a?.name ?? kitchen.name, a?.area, kitchen.city].filter(Boolean).join(" · ")}</Text>
         </View>
         <Btn title={tr("partner.apply.save_exit")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
       </View>
-      <View style={{ flex: 1, flexDirection: "row", padding: narrow ? 16 : 24, gap: narrow ? 16 : 24 }}>
-        <ScrollView style={{ width: narrow ? 240 : 320, flexGrow: 0 }} contentContainerStyle={{ gap: 16 }}>
+      <Scroller on={phone}>
+      <View style={phone ? { gap: 12 } : { flex: 1, flexDirection: "row", padding: narrow ? 16 : 24, gap: narrow ? 16 : 24 }}>
+        <ScrollView style={phone ? undefined : { width: narrow ? 240 : 320, flexGrow: 0 }} scrollEnabled={!phone} contentContainerStyle={{ gap: 16 }}>
           <View style={s.panel} accessibilityLabel={tr("partner.apply.steps_label")}>
             <View style={s.between}>
               <Text style={t.label}>{tr("partner.apply.progress")}</Text>
@@ -122,7 +124,7 @@ export default function Apply() {
             </View>
           ) : null}
         </ScrollView>
-        <ScrollView style={[s.panel, { flex: 1, padding: 0 }]} contentContainerStyle={{ padding: narrow ? 20 : 32, gap: 16 }}>
+        <ScrollView style={[s.panel, { flex: phone ? undefined : 1, padding: 0 }]} scrollEnabled={!phone} contentContainerStyle={{ padding: phone ? 16 : narrow ? 20 : 32, gap: 16 }}>
           {a ? (
             <>
               <Text style={[textFont("700"), { fontSize: 13, color: color.peacock }]}>{tr("partner.apply.step_of", { n: idx + 1, total: a.total })}</Text>
@@ -131,8 +133,14 @@ export default function Apply() {
           ) : <Text style={t.muted}>{app.error ?? tr("common.loading")}</Text>}
         </ScrollView>
       </View>
+      </Scroller>
     </SafeAreaView>
   );
+}
+
+/** A phone scrolls the whole page (the steps, then the step's form); a tablet scrolls each column. */
+function Scroller({ on, children }: { on: boolean; children: ReactNode }) {
+  return on ? <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }} keyboardShouldPersistTaps="handled">{children}</ScrollView> : <>{children}</>;
 }
 
 function StepBody({ app: a, stepKey, onSaved }: { app: Application; stepKey: string; onSaved: () => Promise<void> }) {
