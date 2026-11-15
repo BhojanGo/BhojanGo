@@ -66,3 +66,24 @@ jobs:
       - name: Stop
         if: always()
         run: $COMPOSE down -v
+
+  # A third city and a third country from the admin console alone (no code
+  # change): Meridian (US) and Wellington (New Zealand: NZD, GST, +64), each
+  # with a zone and a kitchen; the website must pick both up from data.
+  third-city:
+    name: Third city and third country
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Meridian and Wellington on a clean stack (make web-third-city)
+        run: make web-third-city
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: third-city-screenshots
+          path: docs/screenshots/web-v2/third-city
+          retention-days: 7

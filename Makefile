@@ -115,9 +115,9 @@ ci-secrets:
 	sh tools/security/scanner-canaries.sh semgrep
 	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --gitleaks-ignore-path /repo/.gitleaksignore --redact --no-banner
 
-# A third city with no code change: a clean stack of its own (bhojango-3c, no host
+# A third city and a third country with no code change: a clean stack of its own (bhojango-3c, no host
 # ports), Meridian launched in admin Markets, a kitchen approved; the website's
-# directory, city page, sitemap, personal home and kitchen page must follow. Not in ci.
+# directory, city page, sitemap, personal home and kitchen page must follow. Runs on GitHub (e2e.yml).
 web-third-city:
 	sh tools/web/third_city.sh
 
