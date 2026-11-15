@@ -49,16 +49,17 @@ MARKETS = [
     {"key": "city", "country": "US", "country_name": "United States", "new_country": None,
      "city": "Meridian", "state": "Idaho", "lat": 43.6121, "lng": -116.3915, "zone": "Meridian Downtown",
      "kitchen": "Treasure Valley Kitchen", "owner": "Maya Ortiz", "phone": ("+1208555", 4), "street": "33 E Broadway Ave",
-     "area": "Downtown", "zip": "83642", "cuisines": ["American"], "currency": "USD", "price_text": r"\$14(\.00)?",
+     "area": "Downtown", "zip": "83642", "cuisines": ["American"], "currency": "USD", "price_text": r"\$14(\.00)?",
      "dishes": [("Finger Steak Basket", "14.00", "Mains"), ("Huckleberry Salmon", "21.00", "Mains"),
                 ("Basque Chorizo Sandwich", "13.50", "Mains"), ("Fry Sauce Fries", "6.00", "Sides"),
                 ("Huckleberry Shake", "7.50", "Drinks")]},
     {"key": "country", "country": "NZ", "country_name": "New Zealand",
      "new_country": {"code": "NZ", "name": "New Zealand", "currency": "NZD", "locales": "en-NZ",
-                     "timezone": "Pacific/Auckland", "distance_unit": "km", "phone_code": "+64", "tax_regime": "gst"},
+                     "timezone": "Pacific/Auckland", "distance_unit": "km", "phone_code": "+64", "tax_regime": "gst",
+                     "payments": "Stripe"},
      "city": "Wellington", "state": "Wellington Region", "lat": -41.2865, "lng": 174.7762, "zone": "Wellington Central",
      "kitchen": "Harbour Kai Kitchen", "owner": "Aroha Ngata", "phone": ("+6421", 7), "street": "120 Cuba St",
-     "area": "Te Aro", "zip": "6011", "cuisines": ["New Zealand"], "currency": "NZD", "price_text": r"\$24(\.00)?",
+     "area": "Te Aro", "zip": "6011", "cuisines": ["New Zealand"], "currency": "NZD", "price_text": r"\$24(\.00)?",
      "dishes": [("Fish and Chips", "24.00", "Mains"), ("Lamb Shank Pie", "19.50", "Mains"),
                 ("Kumara Fries", "8.00", "Sides"), ("Pavlova", "11.00", "Desserts"), ("Flat White", "5.50", "Drinks")],
      "rules": [
@@ -204,11 +205,14 @@ def add_country(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     card.get_by_label("Phone code").fill(c["phone_code"])
     card.get_by_label("Tax regime").select_option(c["tax_regime"])
     boxes = card.get_by_role("checkbox")
-    if not any(boxes.nth(i).is_checked() for i in range(boxes.count())):
-        boxes.first.check()
+    for i in range(boxes.count()):  # the country's payment provider only
+        if boxes.nth(i).is_checked():
+            boxes.nth(i).uncheck()
+    card.get_by_label(c["payments"], exact=True).check()
     card.get_by_role("button", name="Create country").click()
-    expect(card.get_by_role("button", name="New country")).to_be_visible(timeout=15000)  # the form closes on success
-    expect(open_link(page, c["code"], c["name"])).to_be_visible(timeout=15000)
+    # on success the console opens the new country's page
+    page.wait_for_url(f"**/markets/{c['code']}", timeout=15000)
+    expect(page.get_by_role("heading", name=c["name"], level=1)).to_be_visible(timeout=15000)
     got = country_summary(c["code"])
     assert got["currency"] == c["currency"] and got["phone_code"] == c["phone_code"], got
     shot(page, f"00-admin-country-{c['code'].lower()}")
