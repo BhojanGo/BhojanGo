@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone
 from core_api.modules.markets.service import rules
+from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
 
 router = APIRouter(prefix="/markets", tags=["Markets (public)"])
@@ -52,6 +53,7 @@ class DirCity(BaseModel):
     status: Literal["live", "soon"]
     beta: bool
     restaurants: int
+    waiting: int = 0  # "Notify me" sign-ups for a coming-soon city (0 when live)
     lat: float
     lng: float
 
@@ -94,11 +96,20 @@ async def _restaurant_counts(db: AsyncSession) -> dict[tuple[str, str], int]:
     return {(c or "", (city or "").lower()): n for c, city, n in rows}
 
 
+async def _waiting_counts(db: AsyncSession) -> dict[str, int]:
+    """City code -> how many asked to be notified when it opens."""
+    rows = (await db.execute(
+        select(LaunchWaitlist.city_code, func.count(LaunchWaitlist.id))
+        .where(LaunchWaitlist.city_code.is_not(None)).group_by(LaunchWaitlist.city_code))).all()
+    return {code: n for code, n in rows}
+
+
 async def build_directory(db: AsyncSession) -> Directory:
     rows = (await db.execute(
         select(City, Region, Country).join(Region, Region.id == City.region_id).join(Country, Country.id == City.country_id)
         .order_by(Country.name, Region.name, City.name))).all()
     counts = await _restaurant_counts(db)
+    waiting = await _waiting_counts(db)
     countries: dict[str, DirCountry] = {}
     regions: dict[str, DirRegion] = {}
     for city, region, country in rows:
@@ -123,6 +134,7 @@ async def build_directory(db: AsyncSession) -> Directory:
             code=city.code, name=city.name, slug=slug, path=f"/{k.slug}/{slug}", status=st,
             beta=st == "live" and "beta" in (country.status, region.status, city.status),
             restaurants=counts.get((country.code, city.name.lower()), 0) if st == "live" else 0,
+            waiting=waiting.get(city.code, 0) if st == "soon" else 0,
             lat=city.center_lat, lng=city.center_lng))
         if st == "live":
             k.live += 1
@@ -160,14 +172,19 @@ class CityPage(BaseModel):
     country: DirCountry
     timezone: str
     restaurants: int
+    waiting: int = 0  # "Notify me" sign-ups (coming-soon cities; 0 when live)
     lat: float
     lng: float
     zones: list[PublicZone]
+    pricing: CityPricing | None = None  # the city's prices from its live rules (FAQ, "from ₹25 delivery")
 
 
 @router.get("/cities/{country}/{slug}", response_model=CityPage)
 async def city_page(country: str, slug: str, db: DB) -> CityPage:
-    """One public city by its website path (/in/hyderabad). 404 when hidden."""
+    """One public city by its website path (/in/hyderabad). 404 when hidden.
+    ``pricing``: the city's fees from its live rules; ``waiting``: Notify-me sign-ups."""
+    from core_api.modules.pricing.service.summary import city_pricing
+
     d = await build_directory(db)
     k = next((c for c in d.countries if c.slug == country.lower()), None)
     for r in (k.regions if k else []):
@@ -178,9 +195,13 @@ async def city_page(country: str, slug: str, db: DB) -> CityPage:
                 now = datetime.now(UTC)
                 open_zones = [z for z in zones if rules.ZoneState(z.status, z.paused_until).is_open(now)]
                 tz = row.timezone or k.timezone  # type: ignore[union-attr]
+                pricing = await city_pricing(
+                    db, country=k.code, region=r.code, city=c.code, currency=k.currency,  # type: ignore[union-attr]
+                    distance_unit=k.distance_unit,  # type: ignore[union-attr]
+                    zone_minimums=[(z.name, z.min_order) for z in open_zones])
                 return CityPage(code=c.code, name=c.name, slug=c.slug, status=c.status, beta=c.beta,
                                 region={"code": r.code, "name": r.name}, country=k, timezone=tz,  # type: ignore[arg-type]
-                                restaurants=c.restaurants, lat=c.lat, lng=c.lng,
+                                restaurants=c.restaurants, waiting=c.waiting, lat=c.lat, lng=c.lng, pricing=pricing,
                                 zones=[PublicZone(name=z.name, min_order=float(z.min_order) if z.min_order is not None else None)
                                        for z in open_zones])
     raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "NOT_FOUND", "message": "No such city"})

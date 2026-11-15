@@ -1151,6 +1151,9 @@
             "title": "Rating",
             "type": "number"
           },
+          "rating_display": {
+            "$ref": "#/components/schemas/RatingDisplay"
+          },
           "review_count": {
             "title": "Review Count",
             "type": "integer"
@@ -1179,6 +1182,7 @@
           "logo_url",
           "rating",
           "review_count",
+          "rating_display",
           "is_new",
           "open_now",
           "opens_at",
@@ -1570,6 +1574,16 @@
             "title": "Name",
             "type": "string"
           },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CityPricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "region": {
             "additionalProperties": {
               "type": "string"
@@ -1597,6 +1611,11 @@
             "title": "Timezone",
             "type": "string"
           },
+          "waiting": {
+            "default": 0,
+            "title": "Waiting",
+            "type": "integer"
+          },
           "zones": {
             "items": {
               "$ref": "#/components/schemas/PublicZone"
@@ -1620,6 +1639,98 @@
           "zones"
         ],
         "title": "CityPage",
+        "type": "object"
+      },
+      "CityPricing": {
+        "description": "What ordering costs in a city, from its live rules (city, else state,\nelse country level): the city FAQ and \"from \u20b925 delivery\" on kitchen\ncards. Amounts in ``currency`` (major units), distances in ``distance_unit``.",
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "delivery_fee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryFeeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The lowest delivery fee (before offers)",
+            "title": "Delivery From"
+          },
+          "distance_unit": {
+            "title": "Distance Unit",
+            "type": "string"
+          },
+          "max_distance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The farthest a kitchen delivers (max_radius rule)",
+            "title": "Max Distance"
+          },
+          "min_order": {
+            "default": [],
+            "description": "Minimum order per open zone that has one",
+            "items": {
+              "$ref": "#/components/schemas/ZoneMinOrder"
+            },
+            "title": "Min Order",
+            "type": "array"
+          },
+          "service_fee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceFeeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "small_order_fee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SmallOrderFeeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tip_presets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipPresetsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency",
+          "distance_unit"
+        ],
+        "title": "CityPricing",
         "type": "object"
       },
       "CitySummary": {
@@ -2232,6 +2343,87 @@
         "title": "DeliveryCheckResponse",
         "type": "object"
       },
+      "DeliveryFeeSummary": {
+        "description": "The city's delivery fee rule. ``type`` is the rule's template:\ndistance_slabs (slabs, beyond_per_unit), flat (amount), free_above\n(min_subtotal, otherwise) or tier_base (tiers by kitchen tier).",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "beyond_per_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "distance_slabs: per km/mi past the last slab; null = not delivered",
+            "title": "Beyond Per Unit"
+          },
+          "min_subtotal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Subtotal"
+          },
+          "otherwise": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otherwise"
+          },
+          "slabs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FeeSlab"
+            },
+            "title": "Slabs",
+            "type": "array"
+          },
+          "tiers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tiers"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "DeliveryFeeSummary",
+        "type": "object"
+      },
       "DeliveryProof": {
         "description": "How the rider proved the drop-off (P18): the customer's PIN, or a photo\nuploaded with POST /uploads (purpose delivery_proof).",
         "properties": {
@@ -2422,6 +2614,11 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "waiting": {
+            "default": 0,
+            "title": "Waiting",
+            "type": "integer"
           }
         },
         "required": [
@@ -2974,6 +3171,16 @@
             "title": "Rating",
             "type": "number"
           },
+          "rating_display": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RatingDisplay"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "review_count": {
             "title": "Review Count",
             "type": "integer"
@@ -3083,6 +3290,25 @@
           "currency"
         ],
         "title": "FeeBreakdown",
+        "type": "object"
+      },
+      "FeeSlab": {
+        "properties": {
+          "fee": {
+            "title": "Fee",
+            "type": "string"
+          },
+          "up_to": {
+            "description": "Distance up to and including this, in the country's unit",
+            "title": "Up To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "up_to",
+          "fee"
+        ],
+        "title": "FeeSlab",
         "type": "object"
       },
       "GeoJsonPolygon": {
@@ -5558,6 +5784,89 @@
         "title": "OrderListResponse",
         "type": "object"
       },
+      "OrderRating": {
+        "description": "The customer's rating of an order. Editable until ``editable_until`` (7 days).",
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "editable": {
+            "title": "Editable",
+            "type": "boolean"
+          },
+          "editable_until": {
+            "format": "date-time",
+            "title": "Editable Until",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "restaurant_id": {
+            "format": "uuid",
+            "title": "Restaurant Id",
+            "type": "string"
+          },
+          "stars": {
+            "title": "Stars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "restaurant_id",
+          "stars",
+          "comment",
+          "created_at",
+          "editable_until",
+          "editable"
+        ],
+        "title": "OrderRating",
+        "type": "object"
+      },
+      "OrderRatingRequest": {
+        "description": "Rate the kitchen of a delivered order: 1-5 stars, an optional short comment.",
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "stars": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Stars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "stars"
+        ],
+        "title": "OrderRatingRequest",
+        "type": "object"
+      },
       "OrderResponse": {
         "properties": {
           "accept_due_at": {
@@ -5742,6 +6051,18 @@
             "title": "Estimated Prep Minutes",
             "type": "integer"
           },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5890,6 +6211,27 @@
             ],
             "title": "Promo Code"
           },
+          "rated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rated"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "restaurant_accepted_at": {
             "anyOf": [
               {
@@ -5938,6 +6280,17 @@
               }
             ],
             "title": "Rider"
+          },
+          "rider_first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rider First Name"
           },
           "special_instructions": {
             "anyOf": [
@@ -6907,6 +7260,19 @@
         "title": "ProblemOut",
         "type": "object"
       },
+      "ProviderClient": {
+        "properties": {
+          "client_id": {
+            "title": "Client Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
+        "title": "ProviderClient",
+        "type": "object"
+      },
       "PublicCity": {
         "properties": {
           "code": {
@@ -7155,6 +7521,17 @@
             "title": "Tax Pending",
             "type": "boolean"
           },
+          "tip_presets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TipPresetsOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null: no tip buttons (no tip_presets rule)"
+          },
           "token": {
             "description": "Send this when placing the order; valid until expires_at",
             "title": "Token",
@@ -7235,6 +7612,42 @@
           "deliver_to"
         ],
         "title": "QuoteRequest",
+        "type": "object"
+      },
+      "RatingDisplay": {
+        "description": "What a public kitchen card shows: \"New\" or the stars and how many rated.",
+        "properties": {
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "new": {
+            "title": "New",
+            "type": "boolean"
+          },
+          "stars": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stars"
+          }
+        },
+        "required": [
+          "new"
+        ],
+        "title": "RatingDisplay",
         "type": "object"
       },
       "RazorpayVerifyRequest": {
@@ -8239,6 +8652,11 @@
             "title": "Rating",
             "type": "number"
           },
+          "rating_display": {
+            "$ref": "#/components/schemas/RatingDisplay",
+            "description": "Public stars: {\"new\": true} below 5 ratings, else {\"new\": false, \"stars\": 4.6, \"count\": 23}.",
+            "readOnly": true
+          },
           "review_count": {
             "title": "Review Count",
             "type": "integer"
@@ -8303,7 +8721,8 @@
           "status",
           "is_active",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "rating_display"
         ],
         "title": "RestaurantResponse",
         "type": "object"
@@ -9261,6 +9680,29 @@
         "title": "RunCreate",
         "type": "object"
       },
+      "ServiceFeeSummary": {
+        "properties": {
+          "max": {
+            "title": "Max",
+            "type": "string"
+          },
+          "min": {
+            "title": "Min",
+            "type": "string"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "percent",
+          "min",
+          "max"
+        ],
+        "title": "ServiceFeeSummary",
+        "type": "object"
+      },
       "ServiceHours": {
         "properties": {
           "close": {
@@ -9317,6 +9759,33 @@
           "source_level"
         ],
         "title": "SettingValue",
+        "type": "object"
+      },
+      "SignInProviders": {
+        "description": "Which \"Sign in with ...\" buttons to show: null = not configured (hide it).",
+        "properties": {
+          "apple": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderClient"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "google": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderClient"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "SignInProviders",
         "type": "object"
       },
       "SimCart": {
@@ -9564,6 +10033,25 @@
           "local_time"
         ],
         "title": "SimulateRequest",
+        "type": "object"
+      },
+      "SmallOrderFeeSummary": {
+        "properties": {
+          "below": {
+            "description": "Charged when the food subtotal is below this",
+            "title": "Below",
+            "type": "string"
+          },
+          "fee": {
+            "title": "Fee",
+            "type": "string"
+          }
+        },
+        "required": [
+          "below",
+          "fee"
+        ],
+        "title": "SmallOrderFeeSummary",
         "type": "object"
       },
       "SocialLoginRequest": {
@@ -9887,6 +10375,34 @@
           "note"
         ],
         "title": "TierIn",
+        "type": "object"
+      },
+      "TipPresetsOut": {
+        "description": "The tip buttons at checkout (the business tip_presets rule). ``default_index``\npicks the pre-selected amount; null = none pre-selected.",
+        "properties": {
+          "amounts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amounts",
+            "type": "array"
+          },
+          "default_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Index"
+          }
+        },
+        "required": [
+          "amounts"
+        ],
+        "title": "TipPresetsOut",
         "type": "object"
       },
       "UserResponse": {
@@ -10522,6 +11038,24 @@
           "polygon"
         ],
         "title": "ZoneCreate",
+        "type": "object"
+      },
+      "ZoneMinOrder": {
+        "properties": {
+          "min_order": {
+            "title": "Min Order",
+            "type": "string"
+          },
+          "zone": {
+            "title": "Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone",
+          "min_order"
+        ],
+        "title": "ZoneMinOrder",
         "type": "object"
       },
       "ZoneOut": {
@@ -11260,6 +11794,28 @@
         ]
       }
     },
+    "/api/v1/auth/providers": {
+      "get": {
+        "description": "Public: the social sign-in providers this environment accepts, with the\nwebsite's OAuth client id (public by nature). Send the provider's ID token\nto POST /auth/social-login.",
+        "operationId": "sign_in_providers_api_v1_auth_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInProviders"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sign In Providers",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "description": "Exchange a refresh token for a new access + refresh token pair.",
@@ -11430,7 +11986,7 @@
     },
     "/api/v1/auth/social-login": {
       "post": {
-        "description": "Login with Google or Apple identity token.",
+        "description": "Sign in with a Google or Apple ID token (the website's Google button sends\nthe Google Identity Services credential). The token is verified against the\nprovider's public keys, issuer and our client ids; the account is found by\nprovider id, else linked by a verified email, else created (customer).\n401 INVALID_GOOGLE_TOKEN / INVALID_APPLE_TOKEN, also when the provider isn't configured.",
         "operationId": "social_login_api_v1_auth_social_login_post",
         "requestBody": {
           "content": {
@@ -12600,7 +13156,7 @@
     },
     "/api/v1/markets/cities/{country}/{slug}": {
       "get": {
-        "description": "One public city by its website path (/in/hyderabad). 404 when hidden.",
+        "description": "One public city by its website path (/in/hyderabad). 404 when hidden.\n``pricing``: the city's fees from its live rules; ``waiting``: Notify-me sign-ups.",
         "operationId": "city_page_api_v1_markets_cities__country___slug__get",
         "parameters": [
           {
@@ -14894,6 +15450,120 @@
         "summary": "Report Problem",
         "tags": [
           "Support"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/rating": {
+      "get": {
+        "description": "Your rating of your order, or null when you haven't rated it.",
+        "operationId": "get_order_rating_api_v1_orders__order_id__rating_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderRating"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Order Rating Api V1 Orders  Order Id  Rating Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Order Rating",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "post": {
+        "description": "Rate the kitchen of your delivered order (1-5 stars, optional comment).\nOne rating per order: posting again within 7 days changes it (200; 201 the\nfirst time). 409 NOT_DELIVERED before delivery, 409 RATING_LOCKED after 7 days.",
+        "operationId": "rate_order_api_v1_orders__order_id__rating_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRatingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderRating"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Rate Order",
+        "tags": [
+          "Orders"
         ]
       }
     },

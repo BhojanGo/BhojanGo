@@ -189,6 +189,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sign In Providers
+         * @description Public: the social sign-in providers this environment accepts, with the
+         *     website's OAuth client id (public by nature). Send the provider's ID token
+         *     to POST /auth/social-login.
+         */
+        get: operations["sign_in_providers_api_v1_auth_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
@@ -282,7 +304,11 @@ export interface paths {
         put?: never;
         /**
          * Social Login
-         * @description Login with Google or Apple identity token.
+         * @description Sign in with a Google or Apple ID token (the website's Google button sends
+         *     the Google Identity Services credential). The token is verified against the
+         *     provider's public keys, issuer and our client ids; the account is found by
+         *     provider id, else linked by a verified email, else created (customer).
+         *     401 INVALID_GOOGLE_TOKEN / INVALID_APPLE_TOKEN, also when the provider isn't configured.
          */
         post: operations["social_login_api_v1_auth_social_login_post"];
         delete?: never;
@@ -692,6 +718,7 @@ export interface paths {
         /**
          * City Page
          * @description One public city by its website path (/in/hyderabad). 404 when hidden.
+         *     ``pricing``: the city's fees from its live rules; ``waiting``: Notify-me sign-ups.
          */
         get: operations["city_page_api_v1_markets_cities__country___slug__get"];
         put?: never;
@@ -1435,6 +1462,32 @@ export interface paths {
          *     limit, support gets a ticket and gets back to them.
          */
         post: operations["report_problem_api_v1_orders__order_id__problems_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Order Rating
+         * @description Your rating of your order, or null when you haven't rated it.
+         */
+        get: operations["get_order_rating_api_v1_orders__order_id__rating_get"];
+        put?: never;
+        /**
+         * Rate Order
+         * @description Rate the kitchen of your delivered order (1-5 stars, optional comment).
+         *     One rating per order: posting again within 7 days changes it (200; 201 the
+         *     first time). 409 NOT_DELIVERED before delivery, 409 RATING_LOCKED after 7 days.
+         */
+        post: operations["rate_order_api_v1_orders__order_id__rating_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3564,6 +3617,7 @@ export interface components {
             path: string;
             /** Rating */
             rating: number;
+            rating_display: components["schemas"]["RatingDisplay"];
             /** Review Count */
             review_count: number;
             /** Slug */
@@ -3716,6 +3770,7 @@ export interface components {
             lng: number;
             /** Name */
             name: string;
+            pricing?: components["schemas"]["CityPricing"] | null;
             /** Region */
             region: {
                 [key: string]: string;
@@ -3731,8 +3786,45 @@ export interface components {
             status: "live" | "soon";
             /** Timezone */
             timezone: string;
+            /**
+             * Waiting
+             * @default 0
+             */
+            waiting?: number;
             /** Zones */
             zones: components["schemas"]["PublicZone"][];
+        };
+        /**
+         * CityPricing
+         * @description What ordering costs in a city, from its live rules (city, else state,
+         *     else country level): the city FAQ and "from ₹25 delivery" on kitchen
+         *     cards. Amounts in ``currency`` (major units), distances in ``distance_unit``.
+         */
+        CityPricing: {
+            /** Currency */
+            currency: string;
+            delivery_fee?: components["schemas"]["DeliveryFeeSummary"] | null;
+            /**
+             * Delivery From
+             * @description The lowest delivery fee (before offers)
+             */
+            delivery_from?: string | null;
+            /** Distance Unit */
+            distance_unit: string;
+            /**
+             * Max Distance
+             * @description The farthest a kitchen delivers (max_radius rule)
+             */
+            max_distance?: string | null;
+            /**
+             * Min Order
+             * @description Minimum order per open zone that has one
+             * @default []
+             */
+            min_order?: components["schemas"]["ZoneMinOrder"][];
+            service_fee?: components["schemas"]["ServiceFeeSummary"] | null;
+            small_order_fee?: components["schemas"]["SmallOrderFeeSummary"] | null;
+            tip_presets?: components["schemas"]["TipPresetsOut"] | null;
         };
         /** CitySummary */
         CitySummary: {
@@ -3947,6 +4039,36 @@ export interface components {
             radius_km: number;
         };
         /**
+         * DeliveryFeeSummary
+         * @description The city's delivery fee rule. ``type`` is the rule's template:
+         *     distance_slabs (slabs, beyond_per_unit), flat (amount), free_above
+         *     (min_subtotal, otherwise) or tier_base (tiers by kitchen tier).
+         */
+        DeliveryFeeSummary: {
+            /** Amount */
+            amount?: string | null;
+            /**
+             * Beyond Per Unit
+             * @description distance_slabs: per km/mi past the last slab; null = not delivered
+             */
+            beyond_per_unit?: string | null;
+            /** Min Subtotal */
+            min_subtotal?: string | null;
+            /** Otherwise */
+            otherwise?: string | null;
+            /**
+             * Slabs
+             * @default []
+             */
+            slabs?: components["schemas"]["FeeSlab"][];
+            /** Tiers */
+            tiers?: {
+                [key: string]: string;
+            } | null;
+            /** Type */
+            type: string;
+        };
+        /**
          * DeliveryProof
          * @description How the rider proved the drop-off (P18): the customer's PIN, or a photo
          *     uploaded with POST /uploads (purpose delivery_proof).
@@ -4021,6 +4143,11 @@ export interface components {
              * @enum {string}
              */
             status: "live" | "soon";
+            /**
+             * Waiting
+             * @default 0
+             */
+            waiting?: number;
         };
         /** DirCountry */
         DirCountry: {
@@ -4221,6 +4348,7 @@ export interface components {
             name: string;
             /** Rating */
             rating: number;
+            rating_display?: components["schemas"]["RatingDisplay"] | null;
             /** Review Count */
             review_count: number;
             /**
@@ -4261,6 +4389,16 @@ export interface components {
             tip: number;
             /** Total */
             total: number;
+        };
+        /** FeeSlab */
+        FeeSlab: {
+            /** Fee */
+            fee: string;
+            /**
+             * Up To
+             * @description Distance up to and including this, in the country's unit
+             */
+            up_to: string;
         };
         /**
          * GeoJsonPolygon
@@ -5152,6 +5290,48 @@ export interface components {
             /** Total Pages */
             total_pages: number;
         };
+        /**
+         * OrderRating
+         * @description The customer's rating of an order. Editable until ``editable_until`` (7 days).
+         */
+        OrderRating: {
+            /** Comment */
+            comment: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Editable */
+            editable: boolean;
+            /**
+             * Editable Until
+             * Format: date-time
+             */
+            editable_until: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /**
+             * Restaurant Id
+             * Format: uuid
+             */
+            restaurant_id: string;
+            /** Stars */
+            stars: number;
+        };
+        /**
+         * OrderRatingRequest
+         * @description Rate the kitchen of a delivered order: 1-5 stars, an optional short comment.
+         */
+        OrderRatingRequest: {
+            /** Comment */
+            comment?: string | null;
+            /** Stars */
+            stars: number;
+        };
         /** OrderResponse */
         OrderResponse: {
             /** Accept Due At */
@@ -5207,6 +5387,8 @@ export interface components {
              * @default 20
              */
             estimated_prep_minutes?: number;
+            /** Eta */
+            eta?: string | null;
             /**
              * Id
              * Format: uuid
@@ -5252,6 +5434,9 @@ export interface components {
             platform_fee?: number;
             /** Promo Code */
             promo_code: string | null;
+            /** Rated */
+            rated?: boolean | null;
+            rating?: components["schemas"]["OrderRating"] | null;
             /** Restaurant Accepted At */
             restaurant_accepted_at?: string | null;
             /**
@@ -5272,6 +5457,8 @@ export interface components {
             rider?: {
                 [key: string]: unknown;
             } | null;
+            /** Rider First Name */
+            rider_first_name?: string | null;
             /** Special Instructions */
             special_instructions: string | null;
             /** Status */
@@ -5633,6 +5820,11 @@ export interface components {
             /** Ticket Id */
             ticket_id?: string | null;
         };
+        /** ProviderClient */
+        ProviderClient: {
+            /** Client Id */
+            client_id: string;
+        };
         /** PublicCity */
         PublicCity: {
             /** Code */
@@ -5740,6 +5932,8 @@ export interface components {
              * @description True when an external tax provider still adds tax (US until P9)
              */
             tax_pending: boolean;
+            /** @description null: no tip buttons (no tip_presets rule) */
+            tip_presets?: components["schemas"]["TipPresetsOut"] | null;
             /**
              * Token
              * @description Send this when placing the order; valid until expires_at
@@ -5767,6 +5961,18 @@ export interface components {
              * @default 0
              */
             tip?: number | string;
+        };
+        /**
+         * RatingDisplay
+         * @description What a public kitchen card shows: "New" or the stars and how many rated.
+         */
+        RatingDisplay: {
+            /** Count */
+            count?: number | null;
+            /** New */
+            new: boolean;
+            /** Stars */
+            stars?: number | null;
         };
         /** RazorpayVerifyRequest */
         RazorpayVerifyRequest: {
@@ -6171,6 +6377,8 @@ export interface components {
             pricing_model?: string;
             /** Rating */
             rating: number;
+            /** @description Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}. */
+            readonly rating_display: components["schemas"]["RatingDisplay"];
             /** Review Count */
             review_count: number;
             /** Slug */
@@ -6508,6 +6716,15 @@ export interface components {
              */
             period_start: string;
         };
+        /** ServiceFeeSummary */
+        ServiceFeeSummary: {
+            /** Max */
+            max: string;
+            /** Min */
+            min: string;
+            /** Percent */
+            percent: string;
+        };
         /** ServiceHours */
         ServiceHours: {
             /**
@@ -6538,6 +6755,14 @@ export interface components {
             source_level: "country" | "region" | "city";
             /** Value */
             value: unknown;
+        };
+        /**
+         * SignInProviders
+         * @description Which "Sign in with ..." buttons to show: null = not configured (hide it).
+         */
+        SignInProviders: {
+            apple?: components["schemas"]["ProviderClient"] | null;
+            google?: components["schemas"]["ProviderClient"] | null;
         };
         /**
          * SimCart
@@ -6636,6 +6861,16 @@ export interface components {
             tip?: number | string;
             /** Zone Id */
             zone_id?: string | null;
+        };
+        /** SmallOrderFeeSummary */
+        SmallOrderFeeSummary: {
+            /**
+             * Below
+             * @description Charged when the food subtotal is below this
+             */
+            below: string;
+            /** Fee */
+            fee: string;
         };
         /** SocialLoginRequest */
         SocialLoginRequest: {
@@ -6750,6 +6985,17 @@ export interface components {
              * @enum {string}
              */
             tier: "A" | "B" | "C";
+        };
+        /**
+         * TipPresetsOut
+         * @description The tip buttons at checkout (the business tip_presets rule). ``default_index``
+         *     picks the pre-selected amount; null = none pre-selected.
+         */
+        TipPresetsOut: {
+            /** Amounts */
+            amounts: string[];
+            /** Default Index */
+            default_index?: number | null;
         };
         /** UserResponse */
         UserResponse: {
@@ -6966,6 +7212,13 @@ export interface components {
              * @enum {string}
              */
             status?: "draft" | "soon" | "beta" | "live" | "paused";
+        };
+        /** ZoneMinOrder */
+        ZoneMinOrder: {
+            /** Min Order */
+            min_order: string;
+            /** Zone */
+            zone: string;
         };
         /** ZoneOut */
         ZoneOut: {
@@ -7342,6 +7595,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_in_providers_api_v1_auth_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInProviders"];
                 };
             };
         };
@@ -9527,6 +9800,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_order_rating_api_v1_orders__order_id__rating_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRating"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rate_order_api_v1_orders__order_id__rating_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRatingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderRating"];
                 };
             };
             /** @description Validation Error */

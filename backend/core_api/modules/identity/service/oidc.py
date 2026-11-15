@@ -3,7 +3,8 @@
 Both are RS256 JWTs signed by the provider. We check the signature against
 the provider's published keys (JWKS), the issuer, our client id as audience,
 and expiry. No provider account is needed to verify; the client ids
-(GOOGLE_CLIENT_IDS / APPLE_CLIENT_IDS) come from the app configuration.
+(GOOGLE_WEB_CLIENT_ID / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_IDS, APPLE_CLIENT_ID /
+APPLE_CLIENT_IDS) come from the app configuration; a provider with none is off.
 """
 import json
 import time
@@ -45,13 +46,26 @@ _cache: dict[str, tuple[float, dict[str, object]]] = {}
 CACHE_SECONDS = 3600
 
 
+async def _fetch_jwks(url: str) -> dict:
+    """The provider's published keys (a JWKS document). Tests replace this."""
+    async with httpx.AsyncClient(timeout=5) as client:
+        r = await client.get(url)
+        r.raise_for_status()
+        return r.json()
+
+
 async def _keys(provider: Provider, *, refresh: bool = False) -> dict[str, object]:
     cached = _cache.get(provider.name)
     if cached and not refresh and time.monotonic() - cached[0] < CACHE_SECONDS:
         return cached[1]
-    async with httpx.AsyncClient(timeout=5) as client:
-        data = (await client.get(provider.jwks_url)).json()
-    keys = {k["kid"]: RSAAlgorithm.from_jwk(json.dumps(k)) for k in data.get("keys", [])}
+    try:
+        data = await _fetch_jwks(provider.jwks_url)
+    except (httpx.HTTPError, ValueError) as e:
+        if cached:  # the provider is unreachable: keep using the keys we have
+            return cached[1]
+        raise OidcError(f"could not fetch {provider.name}'s signing keys") from e
+    keys = {k["kid"]: RSAAlgorithm.from_jwk(json.dumps(k)) for k in data.get("keys", [])
+            if k.get("kty") == "RSA" and k.get("kid")}
     _cache[provider.name] = (time.monotonic(), keys)
     return keys
 
@@ -77,6 +91,8 @@ async def verify(provider_name: str, token: str, audiences: list[str]) -> Identi
         )
     except jwt.PyJWTError as e:
         raise OidcError(str(e)) from e
+    if not claims.get("sub"):
+        raise OidcError("token has no subject")
     verified = claims.get("email_verified")
     return Identity(
         subject=str(claims["sub"]),

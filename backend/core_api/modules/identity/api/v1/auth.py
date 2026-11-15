@@ -3,6 +3,7 @@ from typing import Annotated
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import BaseModel
 
 from shared.auth import BearerAuth
 from shared.client_ip import client_ip
@@ -143,10 +144,38 @@ async def reset_password(
     return MessageResponse(message="Password reset successfully")
 
 
+class ProviderClient(BaseModel):
+    client_id: str
+
+
+class SignInProviders(BaseModel):
+    """Which "Sign in with ..." buttons to show: null = not configured (hide it)."""
+
+    google: ProviderClient | None = None
+    apple: ProviderClient | None = None
+
+
+@router.get("/providers", response_model=SignInProviders)
+async def sign_in_providers() -> SignInProviders:
+    """Public: the social sign-in providers this environment accepts, with the
+    website's OAuth client id (public by nature). Send the provider's ID token
+    to POST /auth/social-login."""
+    from shared.config import get_settings
+
+    ident = get_settings().identity
+    google = ident.google_web_client_id
+    return SignInProviders(google=ProviderClient(client_id=google) if google else None,
+                           apple=ProviderClient(client_id=ident.APPLE_CLIENT_ID) if ident.APPLE_CLIENT_ID else None)
+
+
 @router.post("/social-login", response_model=AuthTokensResponse)
 async def social_login(
     data: SocialLoginRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AuthTokensResponse:
-    """Login with Google or Apple identity token."""
+    """Sign in with a Google or Apple ID token (the website's Google button sends
+    the Google Identity Services credential). The token is verified against the
+    provider's public keys, issuer and our client ids; the account is found by
+    provider id, else linked by a verified email, else created (customer).
+    401 INVALID_GOOGLE_TOKEN / INVALID_APPLE_TOKEN, also when the provider isn't configured."""
     return await AuthService(db).social_login(data)

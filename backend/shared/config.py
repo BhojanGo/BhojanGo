@@ -42,13 +42,17 @@ class IdentitySettings(BaseSettings):
     TWILIO_PHONE_NUMBER_IN: str = ""
 
     # Sign in with Google / Apple: the OAuth client ids whose ID tokens we
-    # accept (web, iOS and Android each have one). Verifying needs no account.
+    # accept (web, iOS and Android each have one). Verifying needs no account:
+    # tokens are checked against Google's public keys (free). Unset = off.
     GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_IDS: list[str] = []
+    # The website's OAuth client id (Google Identity Services); also shown to the
+    # website by GET /auth/providers. Falls back to GOOGLE_CLIENT_ID.
+    GOOGLE_WEB_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_IDS: list[str] = []  # more accepted audiences (the apps' client ids)
     GOOGLE_CLIENT_SECRET: str = ""
 
-    # Apple: the app bundle ids (native) and the Services ID (web).
-    APPLE_CLIENT_IDS: list[str] = ["com.bhojango.app", "com.bhojango.rider", "com.bhojango.partner"]
+    # Apple: the app bundle ids (native) and the Services ID (web). Off unless set.
+    APPLE_CLIENT_IDS: list[str] = []
     APPLE_CLIENT_ID: str = ""
     APPLE_TEAM_ID: str = ""
     APPLE_KEY_ID: str = ""
@@ -58,7 +62,16 @@ class IdentitySettings(BaseSettings):
 
     @property
     def google_audiences(self) -> list[str]:
-        return [c for c in [*self.GOOGLE_CLIENT_IDS, self.GOOGLE_CLIENT_ID] if c]
+        """Every Google client id whose ID tokens we accept (web and apps)."""
+        return list(dict.fromkeys(c for c in [self.GOOGLE_WEB_CLIENT_ID, self.GOOGLE_CLIENT_ID, *self.GOOGLE_CLIENT_IDS] if c))
+
+    @property
+    def google_web_client_id(self) -> str:
+        return self.GOOGLE_WEB_CLIENT_ID or self.GOOGLE_CLIENT_ID
+
+    @property
+    def apple_audiences(self) -> list[str]:
+        return list(dict.fromkeys(c for c in [self.APPLE_CLIENT_ID, *self.APPLE_CLIENT_IDS] if c))
 
     RATE_LIMIT_REGISTER: str = "5/minute"
     RATE_LIMIT_LOGIN: str = "10/minute"

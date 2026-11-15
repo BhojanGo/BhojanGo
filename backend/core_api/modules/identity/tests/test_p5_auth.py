@@ -183,6 +183,7 @@ def provider_keys(monkeypatch):
     from shared.config import get_settings
 
     monkeypatch.setattr(get_settings().identity, "GOOGLE_CLIENT_IDS", ["google-web-client"])
+    monkeypatch.setattr(get_settings().identity, "APPLE_CLIENT_IDS", ["com.bhojango.app"])
 
 
 async def test_apple_sign_in_creates_account(client: AsyncClient, provider_keys) -> None:
@@ -221,6 +222,7 @@ async def test_google_unconfigured_is_rejected(client: AsyncClient, monkeypatch)
 
     monkeypatch.setattr(get_settings().identity, "GOOGLE_CLIENT_IDS", [])
     monkeypatch.setattr(get_settings().identity, "GOOGLE_CLIENT_ID", "")
+    monkeypatch.setattr(get_settings().identity, "GOOGLE_WEB_CLIENT_ID", "")
     r = await client.post("/api/v1/auth/social-login", json={"provider": "google", "token": "x" * 20})
     assert r.status_code == 401
 

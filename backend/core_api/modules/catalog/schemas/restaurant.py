@@ -4,7 +4,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
+
+from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
 
 
 Country = Literal["US", "IN"]
@@ -119,6 +121,13 @@ class RestaurantResponse(BaseModel):
     lng: float | None
     rating: float
     review_count: int
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def rating_display(self) -> RatingDisplay:
+        """Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}."""
+        return rating_display(self.rating, self.review_count)
+
     is_open: bool
     opens_at: str | None
     closes_at: str | None

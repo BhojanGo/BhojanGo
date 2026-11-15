@@ -96,6 +96,25 @@ class OrderItemResponse(BaseModel):
     image_url: str | None = None
 
 
+class OrderRatingRequest(BaseModel):
+    """Rate the kitchen of a delivered order: 1-5 stars, an optional short comment."""
+
+    stars: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=500)
+
+
+class OrderRating(BaseModel):
+    """The customer's rating of an order. Editable until ``editable_until`` (7 days)."""
+
+    order_id: uuid.UUID
+    restaurant_id: uuid.UUID
+    stars: int
+    comment: str | None
+    created_at: datetime
+    editable_until: datetime
+    editable: bool
+
+
 class OrderResponse(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -113,6 +132,13 @@ class OrderResponse(BaseModel):
     pin: str | None = None
     # The customer as the assigned rider sees them ("Sam P."), P18.
     customer: dict | None = None
+    # Order list (GET /orders), the website's active-order bar: active orders only, the
+    # customer's own; rider_first_name and the PIN once a rider is assigned; eta = estimated delivery.
+    rider_first_name: str | None = None
+    eta: datetime | None = None
+    # Order list (GET /orders): has the customer rated it, and the rating ("Rate this order").
+    rated: bool | None = None
+    rating: OrderRating | None = None
     items: list[dict[str, Any]]
     status: str
     market_city: str | None = None

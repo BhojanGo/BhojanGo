@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.catalog.service.ratings import RatingDisplay
 from core_api.modules.identity.api.dependencies import get_current_active_user
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.service import account
@@ -31,6 +32,7 @@ class FavouriteRestaurant(BaseModel):
     country: str
     rating: float
     review_count: int
+    rating_display: RatingDisplay | None = None  # public stars: {"new": true} below 5 ratings
     delivery_time_min: int
     delivery_time_max: int
     delivery_fee: float
