@@ -1,11 +1,12 @@
 #!/bin/sh
-# A third city with no code change (make web-third-city).
+# A third city and a third country with no code change (make web-third-city; GitHub e2e.yml).
 #   tools/web/third_city.sh
 # Builds this checkout and runs the whole stack (backend, web, admin) as its own
 # compose project, bhojango-3c, on a clean database with no host ports (so it
 # never clashes with `make dev`), seeds it, then runs tools/web/third_city.py in
 # the Playwright image on the project's network: the admin launches Meridian
-# (Idaho) in Markets, a partner opens a kitchen there, the admin approves it, and
+# (Idaho) and a new country, New Zealand (Wellington), in Markets; a partner opens a
+# kitchen in each, the admin approves them, and
 # the website's directory, city page, sitemap, personal home and kitchen page
 # must all pick it up from data. Always torn down with its volumes.
 # Screenshots land in docs/screenshots/web-v2/third-city.
