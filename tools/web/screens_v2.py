@@ -171,8 +171,7 @@ try:
         save(pg, "WebCities")
         # An address outside every zone, in a country we serve (the design: a town near a live city).
         far = {"label": "Twin Falls, Idaho", "lat": 42.5558, "lng": -114.4701, "country": "US", "city_code": None, "city_path": None, "zone": None, "served": False}
-        pg.context.add_cookies([{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(far)), "url": BASE},
-                                {"name": "bg_country", "value": "US", "url": BASE}])
+        pg.context.add_cookies([{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(far)), "url": BASE}])
         pg.goto(BASE, wait_until="networkidle")
         save(pg, "WebNotInArea")
         m = anon(390, 844)

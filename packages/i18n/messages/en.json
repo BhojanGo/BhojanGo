@@ -66,7 +66,8 @@
     "account_menu": "Account menu",
     "orders": "Orders",
     "profile": "Profile",
-    "favourites": "Favourites"
+    "favourites": "Favourites",
+    "language_pill": "Language: {language}"
   },
   "footer": {
     "where_we_deliver": "Where we deliver",
@@ -104,6 +105,7 @@
     "bhojango": "BhojanGo",
     "total": "Total",
     "who_gets": "Who gets your money",
+    "example_in": "On a {total} order in {city}",
     "line_food": "Food",
     "line_packaging": "Packaging",
     "line_delivery_fee": "Delivery",
@@ -222,7 +224,9 @@
     },
     "no_match": "No city by that name yet.",
     "suggest_link": "Tell us where you are.",
-    "not_listed": "Not on the list? Tell us your city. The most-requested cities open first."
+    "not_listed": "Not on the list? Tell us your city. The most-requested cities open first.",
+    "choose_title": "Choose your city",
+    "choose_note": "Prices, kitchens and languages follow the city you pick."
   },
   "city": {
     "breadcrumb": "Breadcrumb",
@@ -1554,5 +1558,10 @@
       "amount_off": "{amount} off",
       "flat_off": "Amount off"
     }
+  },
+  "location": {
+    "label": "Your city",
+    "place": "{city}, {country}",
+    "change_city": "Change city"
   }
 }

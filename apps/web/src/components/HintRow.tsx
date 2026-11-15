@@ -2,7 +2,8 @@
 // "Looks like you're near …" under the landing page's address box: from the
 // visitor's IP (asked from the browser, so it's their address, not the server's),
 // a hint only, shown only when that place is inside an open zone. The IP's
-// country is also remembered (cookie) for the header's country and languages.
+// country and city are also remembered (cookies) for the country, the languages
+// and the home page's location line.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -38,10 +39,12 @@ export function HintRow({ currentCountry, countrySource }: { currentCountry: str
     }
     const apply = (h: Hint) => {
       setHint(h);
-      // The IP's country beats the browser locale, but never an address or a choice.
-      if (h.country && h.country !== currentCountry && (countrySource === "locale" || countrySource === "none")) {
+      // The IP's country (and city, for the location line) beats the browser locale,
+      // but never an address or a chosen city.
+      if (h.country && (countrySource === "browser" || countrySource === "default" || countrySource === "none")) {
         setCookie("bg_hint", h.country);
-        router.refresh();
+        setCookie("bg_hint_city", h.city_code);
+        if (h.country !== currentCountry || h.city_code) router.refresh();
       }
     };
     if (cached) return apply(cached);

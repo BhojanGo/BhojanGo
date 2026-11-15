@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { LANGUAGES, languagesFor, pickLanguage, formatLocale, createTranslator } = require("..");
+const { LANGUAGES, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry, formatLocale, createTranslator } = require("..");
 
 const INDIA = ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"];
 const US = ["en-US", "es-US"];
@@ -19,6 +19,38 @@ test("choice, then browser, then English", () => {
   assert.equal(pickLanguage({ chosen: "te", acceptLanguage: "es-ES,es;q=0.9", locales: US }), "es"); // te isn't offered in the US
   assert.equal(pickLanguage({ acceptLanguage: "fr-FR, hi;q=0.8", locales: INDIA }), "hi");
   assert.equal(pickLanguage({ locales: US }), "en");
+});
+
+test("the language pill's list: the country's languages, each in its own script, in Markets order", () => {
+  assert.deepEqual(languageList(INDIA).map((l) => l.code), ["en", "hi", "te", "ta", "kn", "mr", "bn"]);
+  assert.deepEqual(languageList(INDIA).map((l) => l.name), ["English", "हिन्दी", "తెలుగు", "தமிழ்", "ಕನ್ನಡ", "मराठी", "বাংলা"]);
+  assert.deepEqual(languageList(US), [{ code: "en", name: "English" }, { code: "es", name: "Español" }]);
+  assert.deepEqual(languageList(null), [{ code: "en", name: "English" }]);
+});
+
+test("remembered language: kept when the country offers it, else English; the browser never decides", () => {
+  assert.equal(chooseLanguage("te", INDIA), "te");
+  assert.equal(chooseLanguage("te-IN", INDIA), "te");
+  assert.equal(chooseLanguage("te", US), "en"); // moved to a US city: Telugu isn't offered there
+  assert.equal(chooseLanguage("es", US), "es");
+  assert.equal(chooseLanguage(null, US), "en");
+  assert.equal(chooseLanguage("", INDIA), "en");
+  assert.equal(chooseLanguage("hi", ["hi-IN"]), "hi");
+  assert.equal(chooseLanguage(null, ["es-MX"]), "es"); // no English offered: the country's first
+});
+
+test("country: address, then a chosen city, then the page, then IP, then the browser, then a default", () => {
+  const C = [{ code: "IN", locales: INDIA }, { code: "US", locales: US }];
+  assert.deepEqual(detectCountry({ address: "us", chosen: "IN", ip: "IN", browser: "en-IN" }, C), { code: "US", source: "address" });
+  assert.deepEqual(detectCountry({ address: "FR", chosen: "US", ip: "IN" }, C), { code: "US", source: "chosen" });
+  assert.deepEqual(detectCountry({ page: "IN", ip: "US" }, C), { code: "IN", source: "page" });
+  assert.deepEqual(detectCountry({ ip: "US", browser: "en-IN" }, C), { code: "US", source: "ip" });
+  assert.deepEqual(detectCountry({ ip: "DE", browser: "de-DE, en-US;q=0.8" }, C), { code: "US", source: "browser" });
+  assert.deepEqual(detectCountry({ browser: ["es", "en-IN"] }, C), { code: "IN", source: "browser" });
+  assert.deepEqual(detectCountry({ browser: "es" }, C), { code: "US", source: "default" }); // a country that speaks it
+  assert.deepEqual(detectCountry({ browser: "en" }, C), { code: "IN", source: "default" }); // the directory's first
+  assert.deepEqual(detectCountry({}, C), { code: "IN", source: "default" });
+  assert.deepEqual(detectCountry({ address: "IN" }, []), { code: null, source: "none" });
 });
 
 test("money and dates follow the country, not the language", () => {

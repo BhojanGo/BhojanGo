@@ -1,18 +1,18 @@
-// The header (server part). Two shapes from the design:
-// - no address yet (WebLanding): links, country, language, sign in;
-// - an address (WebHome and inside the app): address, search, language, account, bag.
-// On a phone (MWeb*): "Deliver to" + language + account, search on its own row.
+// The header (server part), minimal (R6): no country selector; the language is a
+// small globe + code pill. Where the visitor is shows on the home page itself
+// (the location line), not here. Two shapes:
+// - no address yet (WebLanding): links, language pill, sign in;
+// - an address (WebHome and inside the app): address, search, language pill, account, bag.
+// On a phone (MWeb*): "Deliver to" + the same pill + account, search on its own row.
 import Link from "next/link";
 
 import { getContext } from "@/lib/prefs";
 import { discover } from "@/lib/server";
-import { AccountButton, AddressPill, BagButton, CountryMenu, LanguageMenu, SearchBox } from "./HeaderParts";
+import { AccountButton, AddressPill, BagButton, LanguageMenu, SearchBox } from "./HeaderParts";
 import { LogoMark } from "./Icons";
 
 export async function SiteHeader() {
-  const { t, place, country, directory } = await getContext();
-  const countries = directory.countries.map((c) => ({ code: c.code, name: c.name }));
-  const current = country ? { code: country.code, name: country.name } : null;
+  const { t, place } = await getContext();
   const brand = (
     <Link href="/" aria-label={t("common.home")} className="flex shrink-0 items-center gap-[10px] text-[#111418] hover:text-[#111418]">
       <LogoMark />
@@ -31,16 +31,7 @@ export async function SiteHeader() {
             <Link href="/partner" className="text-label text-[#111418]">{t("header.add_your_kitchen")}</Link>
             <Link href="/ride" className="text-label text-[#111418]">{t("header.ride_with_us")}</Link>
           </nav>
-          <div className="hidden md:block">
-            <CountryMenu countries={countries} current={current} />
-          </div>
-          {/* a phone has room for the language code only (390 px: brand, language, sign in) */}
-          <div className="md:hidden">
-            <LanguageMenu compact />
-          </div>
-          <div className="hidden md:block">
-            <LanguageMenu />
-          </div>
+          <LanguageMenu />
           <AccountButton />
         </div>
       </header>
@@ -69,7 +60,7 @@ export async function SiteHeader() {
             <LogoMark />
           </Link>
           <AddressPill label={place.label} country={place.country} mobile />
-          <LanguageMenu compact />
+          <LanguageMenu />
           <AccountButton />
         </div>
         <div className="px-5 pb-3">

@@ -50,6 +50,62 @@ function pickLanguage({ chosen, acceptLanguage, locales }) {
   return offered.includes(DEFAULT_LANGUAGE) ? DEFAULT_LANGUAGE : offered[0];
 }
 
+/**
+ * The header's language pill list (R6): the country's Markets locales, in Markets'
+ * order, each language named in its own script: [{code: "te", name: "తెలుగు"}].
+ */
+function languageList(locales) {
+  return languagesFor(locales).map((code) => ({ code, name: LANGUAGES[code].name }));
+}
+
+/**
+ * The language to show (R6, website and apps): the visitor's remembered choice if
+ * the country offers it, else English (if offered), else the country's first. The
+ * browser's or phone's language never picks it: English until the visitor taps one.
+ */
+function chooseLanguage(chosen, locales) {
+  const offered = languagesFor(locales);
+  const lang = chosen ? languageOf(chosen) : "";
+  if (lang && offered.includes(lang)) return lang;
+  return offered.includes(DEFAULT_LANGUAGE) ? DEFAULT_LANGUAGE : offered[0];
+}
+
+/** "en-US,en;q=0.9" or ["es-US", "en"] -> ["en-US", "en"] (language tags, best first). */
+function browserTags(browser) {
+  const list = Array.isArray(browser) ? browser : String(browser || "").split(",");
+  return list.map((p) => String(p).split(";")[0].trim()).filter(Boolean);
+}
+
+/**
+ * Which country the visitor is in (R6), from the strongest evidence that names a
+ * country we have (`countries`: Markets' [{code, locales}], directory order):
+ *   address  the delivery address (saved, signed-in default, or the area they set)
+ *   chosen   a city they picked ("Change city"), as its country code
+ *   page     the country of the page itself (a city or kitchen page), website only
+ *   ip       the IP hint (GET /markets/hint -> country)
+ *   browser  the browser's / phone's locale region (Accept-Language, navigator.languages)
+ *   default  a country offering the browser's (non-English) language, else the first
+ * Returns {code, source}; {code: null, source: "none"} only when there are no countries.
+ */
+function detectCountry(evidence, countries) {
+  const list = countries || [];
+  const byCode = (code) => (code ? list.find((c) => c.code === String(code).toUpperCase()) || null : null);
+  const e = evidence || {};
+  for (const source of ["address", "chosen", "page", "ip"]) {
+    const hit = byCode(e[source]);
+    if (hit) return { code: hit.code, source };
+  }
+  const tags = browserTags(e.browser);
+  for (const tag of tags) {
+    const hit = byCode(tag.split(/[-_]/)[1]);
+    if (hit) return { code: hit.code, source: "browser" };
+  }
+  if (!list.length) return { code: null, source: "none" };
+  const lang = languageOf(tags[0]);
+  const speaks = lang && lang !== DEFAULT_LANGUAGE ? list.find((c) => languagesFor(c.locales).includes(lang)) : null;
+  return { code: (speaks || list[0]).code, source: "default" };
+}
+
 /** Money, numbers and dates follow the country (its first Markets locale), never the language. */
 function formatLocale(locales) {
   return (locales && locales[0]) || "en-US";
@@ -107,4 +163,7 @@ function createTranslator(language, messages, fallback) {
   };
 }
 
-module.exports = { LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, pickLanguage, formatLocale, createTranslator, pluralSelector };
+module.exports = {
+  LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
+  formatLocale, createTranslator, pluralSelector,
+};
