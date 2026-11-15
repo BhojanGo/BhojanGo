@@ -1978,6 +1978,17 @@
             "title": "Payment Providers",
             "type": "array"
           },
+          "payout_provider": {
+            "default": "none",
+            "enum": [
+              "stripe_connect",
+              "razorpay_route",
+              "fake",
+              "none"
+            ],
+            "title": "Payout Provider",
+            "type": "string"
+          },
           "phone_code": {
             "pattern": "^\\+\\d{1,4}$",
             "title": "Phone Code",
@@ -2052,6 +2063,16 @@
             "title": "Payment Providers",
             "type": "array"
           },
+          "payout_provider": {
+            "enum": [
+              "stripe_connect",
+              "razorpay_route",
+              "fake",
+              "none"
+            ],
+            "title": "Payout Provider",
+            "type": "string"
+          },
           "phone_code": {
             "title": "Phone Code",
             "type": "string"
@@ -2092,6 +2113,7 @@
           "phone_code",
           "payment_providers",
           "tax_regime",
+          "payout_provider",
           "settings",
           "status"
         ],
@@ -2134,6 +2156,16 @@
             },
             "title": "Payment Providers",
             "type": "array"
+          },
+          "payout_provider": {
+            "enum": [
+              "stripe_connect",
+              "razorpay_route",
+              "fake",
+              "none"
+            ],
+            "title": "Payout Provider",
+            "type": "string"
           },
           "phone_code": {
             "title": "Phone Code",
@@ -2182,6 +2214,7 @@
           "phone_code",
           "payment_providers",
           "tax_regime",
+          "payout_provider",
           "settings",
           "status",
           "regions"
@@ -2244,6 +2277,23 @@
               }
             ],
             "title": "Payment Providers"
+          },
+          "payout_provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "stripe_connect",
+                  "razorpay_route",
+                  "fake",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Provider"
           },
           "settings": {
             "anyOf": [
@@ -12537,7 +12587,7 @@
     },
     "/api/v1/finance/payout-accounts": {
       "post": {
-        "description": "Set up where you're paid: Stripe Connect Express (US) or Razorpay Route\n(India). Follow onboarding_url to finish (bank, identity).",
+        "description": "Set up where you're paid, with your country's payout provider in Markets\n(Stripe Connect Express, Razorpay Route). Follow onboarding_url to finish (bank,\nidentity). 409 FINANCE_RULE when the country has no payout provider.",
         "operationId": "open_account_api_v1_finance_payout_accounts_post",
         "requestBody": {
           "content": {

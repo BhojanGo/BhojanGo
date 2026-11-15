@@ -407,8 +407,9 @@ export interface paths {
         put?: never;
         /**
          * Open Account
-         * @description Set up where you're paid: Stripe Connect Express (US) or Razorpay Route
-         *     (India). Follow onboarding_url to finish (bank, identity).
+         * @description Set up where you're paid, with your country's payout provider in Markets
+         *     (Stripe Connect Express, Razorpay Route). Follow onboarding_url to finish (bank,
+         *     identity). 409 FINANCE_RULE when the country has no payout provider.
          */
         post: operations["open_account_api_v1_finance_payout_accounts_post"];
         delete?: never;
@@ -3935,6 +3936,12 @@ export interface components {
             name: string;
             /** Payment Providers */
             payment_providers: string[];
+            /**
+             * Payout Provider
+             * @default none
+             * @enum {string}
+             */
+            payout_provider?: "stripe_connect" | "razorpay_route" | "fake" | "none";
             /** Phone Code */
             phone_code: string;
             /**
@@ -3971,6 +3978,11 @@ export interface components {
             name: string;
             /** Payment Providers */
             payment_providers: string[];
+            /**
+             * Payout Provider
+             * @enum {string}
+             */
+            payout_provider: "stripe_connect" | "razorpay_route" | "fake" | "none";
             /** Phone Code */
             phone_code: string;
             /** Settings */
@@ -4006,6 +4018,11 @@ export interface components {
             name: string;
             /** Payment Providers */
             payment_providers: string[];
+            /**
+             * Payout Provider
+             * @enum {string}
+             */
+            payout_provider: "stripe_connect" | "razorpay_route" | "fake" | "none";
             /** Phone Code */
             phone_code: string;
             /** Regions */
@@ -4034,6 +4051,8 @@ export interface components {
             name?: string | null;
             /** Payment Providers */
             payment_providers?: string[] | null;
+            /** Payout Provider */
+            payout_provider?: ("stripe_connect" | "razorpay_route" | "fake" | "none") | null;
             /** Settings */
             settings?: {
                 [key: string]: unknown;

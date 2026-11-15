@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from shared.db import Base
 
 STATUSES = ("draft", "soon", "beta", "live", "paused")
+PAYOUT_PROVIDERS = ("stripe_connect", "razorpay_route", "fake", "none")
 
 
 class _Timestamps:
@@ -39,6 +40,9 @@ class Country(_Timestamps, Base):
     phone_code: Mapped[str] = mapped_column(String(5), nullable=False)
     payment_providers: Mapped[list[str]] = mapped_column(ARRAY(String(20)), nullable=False)
     tax_regime: Mapped[str] = mapped_column(String(20), nullable=False)  # gst | us_sales_tax
+    # Who pays restaurants and riders here (finance/service/providers.py): stripe_connect,
+    # razorpay_route, fake (never in production) or none (the country can't open).
+    payout_provider: Mapped[str] = mapped_column(String(20), nullable=False, default="none", server_default="none")
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="draft")
 
@@ -103,7 +107,7 @@ class Zone(_Timestamps, Base):
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
 
-__all__ = ["STATUSES", "City", "Country", "Region", "Zone"]
+__all__ = ["PAYOUT_PROVIDERS", "STATUSES", "City", "Country", "Region", "Zone"]
 
 
 class LaunchWaitlist(Base):

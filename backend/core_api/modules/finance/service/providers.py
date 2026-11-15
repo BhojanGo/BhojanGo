@@ -1,8 +1,17 @@
-"""Payout providers (P13): Stripe Connect Express (US), Razorpay Route (India),
-or a local fake.
+"""Payout providers (P13): Stripe Connect Express, Razorpay Route, or a local fake.
 
-``PAYOUT_PROVIDER``: ``auto`` (the live provider for a country when its keys
-are set, else the fake), ``live`` or ``fake``. Production refuses the fake.
+Which one a country uses is a Markets field, ``countries.payout_provider``
+(stripe_connect, razorpay_route, fake or none), set by an admin; nothing here
+knows a country. ``PAYOUT_PROVIDER`` (env) only says whether this deployment
+may move real money:
+
+    live   the country's provider, for real (missing keys fail loudly)
+    auto   the country's provider when its keys are set, else the fake (dev, CI, QA)
+    fake   always the fake (CI and QA with no keys)
+
+A country set to ``fake`` always gets the fake; one set to ``none`` has no
+payouts (Markets won't let it open). Production refuses the fake in every case
+(``PAYOUT_PROVIDER=fake`` already fails at start-up: shared/config.py).
 """
 import asyncio
 import uuid
@@ -109,18 +118,57 @@ class FakePayouts:
         return f"fake_tr_{uuid.uuid4().hex[:16]}"
 
 
-def get_payout_provider(country: str) -> PayoutProvider:
-    s = get_settings()
-    mode = s.providers.PAYOUT_PROVIDER
-    live_keys = bool(s.payments.STRIPE_SECRET_KEY) if country == "US" else bool(s.payments.RAZORPAY_KEY_ID and s.payments.RAZORPAY_KEY_SECRET)
-    if mode == "fake" or (mode == "auto" and not live_keys):
-        if s.is_production:
-            raise ProviderConfigError("The fake payout provider is not allowed in production")
-        return FakePayouts()
-    if mode not in ("auto", "live"):
+class NoPayoutProvider(PayoutError):
+    """The country has no payout provider in Markets (``none``)."""
+
+
+LIVE: dict[str, type] = {"stripe_connect": StripeConnect, "razorpay_route": RazorpayRoute}
+
+
+def _has_keys(choice: str) -> bool:
+    p = get_settings().payments
+    if choice == "stripe_connect":
+        return bool(p.STRIPE_SECRET_KEY)
+    return bool(p.RAZORPAY_KEY_ID and p.RAZORPAY_KEY_SECRET)
+
+
+def _fake() -> PayoutProvider:
+    if get_settings().is_production:
+        raise ProviderConfigError("The fake payout provider is not allowed in production")
+    return FakePayouts()
+
+
+def get_payout_provider(choice: str) -> PayoutProvider:
+    """The provider for a country's Markets choice (``Country.payout_provider``)."""
+    if choice == "none":
+        raise NoPayoutProvider("No payout provider is set for this country in Markets")
+    if choice == "fake":
+        return _fake()
+    if choice not in LIVE:
+        raise ProviderConfigError(f"Unknown payout provider '{choice}'")
+    mode = get_settings().providers.PAYOUT_PROVIDER
+    if mode not in ("auto", "live", "fake"):
         raise ProviderConfigError(f"Unknown PAYOUT_PROVIDER '{mode}'")
-    return StripeConnect() if country == "US" else RazorpayRoute()
+    if mode == "fake" or (mode == "auto" and not _has_keys(choice)):
+        return _fake()
+    return LIVE[choice]()
+
+
+async def country_payout_provider(db, country: str) -> PayoutProvider:  # type: ignore[no-untyped-def]
+    """The provider a country pays with, from Markets."""
+    from core_api.modules.markets.service.markets import MarketService
+
+    c = await MarketService(db).repo.country(country)
+    if c is None:
+        raise NoPayoutProvider(f"Country {country} not found")
+    try:
+        return get_payout_provider(c.payout_provider)
+    except NoPayoutProvider:
+        raise NoPayoutProvider(f"Payouts aren't set up in {c.name} yet: choose a payout provider in Markets") from None
 
 
 def provider_by_name(name: str) -> PayoutProvider:
-    return {"stripe_connect": StripeConnect, "razorpay_route": RazorpayRoute, "fake": FakePayouts}[name]()
+    """An existing account's provider (webhooks, transfers to an account opened earlier)."""
+    if name == "fake":
+        return _fake()
+    return LIVE[name]()

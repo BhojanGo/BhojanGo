@@ -5,6 +5,10 @@ in it becomes a line on its restaurant's and its rider's statement. A second
 finance admin approves the run, and each statement is paid to the payee's
 payout account (statements without an active account wait as no_account and
 are paid by "retry" once the payee finishes onboarding).
+
+The provider (Stripe Connect, Razorpay Route, the fake) is the country's choice in
+Markets (countries.payout_provider; providers.py): accounts are opened with it,
+and a run pays each payee's account with that provider.
 """
 import uuid
 from collections import defaultdict
@@ -19,7 +23,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.audit import service as audit
 from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStatement
 from core_api.modules.finance.service import statements as S
-from core_api.modules.finance.service.providers import PayoutError, get_payout_provider, provider_by_name
+from core_api.modules.finance.service.providers import (
+    NoPayoutProvider,
+    PayoutError,
+    PayoutProvider,
+    country_payout_provider,
+)
 from shared import outbox
 
 logger = structlog.get_logger(__name__)
@@ -27,6 +36,14 @@ logger = structlog.get_logger(__name__)
 
 class FinanceError(ValueError):
     """Shown to the admin as is."""
+
+
+async def _provider(db: AsyncSession, country: str) -> PayoutProvider:
+    """The country's payout provider from Markets; none set -> FinanceError (shown to the admin)."""
+    try:
+        return await country_payout_provider(db, country)
+    except NoPayoutProvider as e:
+        raise FinanceError(str(e)) from e
 
 
 async def _country(db: AsyncSession, code: str):  # type: ignore[no-untyped-def]
@@ -192,15 +209,17 @@ async def approve_and_pay(db: AsyncSession, actor: uuid.UUID, run_id: uuid.UUID)
         raise FinanceError(f"This run is already {run.status}")
     if run.created_by == actor:
         raise FinanceError("A second finance admin must approve the payouts you prepared")
+    provider = await _provider(db, run.country)
     run.status, run.approved_by, run.approved_at = "approved", actor, datetime.now(UTC)
     await audit.record(db, actor_id=actor, action="payout_run.approved", entity_type="payout_run", entity_id=run.id,
                        scope=run.country, after=run.totals)
-    await pay_pending(db, run)
+    await pay_pending(db, run, provider)
     return run
 
 
-async def pay_pending(db: AsyncSession, run: PayoutRun) -> None:
-    """Pay every statement not yet paid; payees without an active account wait."""
+async def pay_pending(db: AsyncSession, run: PayoutRun, provider: PayoutProvider) -> None:
+    """Pay every statement not yet paid with the country's provider; payees without an
+    active account with it wait (no_account)."""
     stmts = (await db.execute(select(PayoutStatement).where(
         PayoutStatement.run_id == run.id, PayoutStatement.status.in_(("pending", "failed", "no_account"))))).scalars().all()
     for st in stmts:
@@ -209,12 +228,13 @@ async def pay_pending(db: AsyncSession, run: PayoutRun) -> None:
             continue
         acct = (await db.execute(select(PayoutAccount).where(
             PayoutAccount.payee_type == st.payee_type, PayoutAccount.payee_id == st.payee_id,
-            PayoutAccount.country == run.country, PayoutAccount.status == "active"))).scalars().first()
+            PayoutAccount.country == run.country, PayoutAccount.provider == provider.name,
+            PayoutAccount.status == "active"))).scalars().first()
         if acct is None:
             st.status, st.error = "no_account", "The payee hasn't set up a payout account"
             continue
         try:
-            st.transfer_id = await provider_by_name(acct.provider).transfer(acct.external_id, st.amount, st.currency, f"{run.id}:{st.id}")
+            st.transfer_id = await provider.transfer(acct.external_id, st.amount, st.currency, f"{run.id}:{st.id}")
             st.status, st.error = "paid", None
             await outbox.add(db, "payout.paid", st.payee_type, st.payee_id, {
                 "statement_id": str(st.id), "run_id": str(run.id), "amount": st.amount, "currency": st.currency,
@@ -236,7 +256,7 @@ async def retry(db: AsyncSession, actor: uuid.UUID, run_id: uuid.UUID) -> Payout
         raise FinanceError("Payout run not found")
     if run.status not in ("approved", "partially_paid"):
         raise FinanceError("Only an approved run with unpaid statements can be retried")
-    await pay_pending(db, run)
+    await pay_pending(db, run, await _provider(db, run.country))
     await audit.record(db, actor_id=actor, action="payout_run.retried", entity_type="payout_run", entity_id=run.id,
                        scope=run.country, after={"status": run.status})
     return run
@@ -296,7 +316,7 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
 
 async def open_account(db: AsyncSession, payee_type: str, payee_id: uuid.UUID, country: str, profile: dict,
                        return_url: str) -> tuple[PayoutAccount, str | None]:
-    provider = get_payout_provider(country)
+    provider = await _provider(db, country)
     existing = (await db.execute(select(PayoutAccount).where(and_(
         PayoutAccount.payee_type == payee_type, PayoutAccount.payee_id == payee_id,
         PayoutAccount.provider == provider.name)))).scalars().first()

@@ -40,7 +40,7 @@ def chain_open(*statuses: str) -> bool:
 
 
 def launch_checklist(*, country_status: str, region_status: str, service_hours: dict | None,
-                     zones: list[ZoneState], now: datetime, priced: bool) -> dict[str, bool]:
+                     zones: list[ZoneState], now: datetime, priced: bool, payout_provider: str) -> dict[str, bool]:
     """What a city needs before it can open (shown on the country page as "setup 2 of 5")."""
     return {
         "country_open": country_status in OPEN,
@@ -51,6 +51,8 @@ def launch_checklist(*, country_status: str, region_status: str, service_hours: 
         # a delivery fee applies (the city's own or the country's default): without
         # one no order can be priced, and the website would list no kitchens
         "pricing_set": priced,
+        # someone pays the kitchens and riders (the country's payout provider in Markets)
+        "payouts_set": payout_provider != "none",
     }
 
 
@@ -66,8 +68,18 @@ def check_city_status(new_status: str, checklist: dict[str, bool]) -> None:
             "zone_open": "no zone is beta or live",
             "service_hours_set": "service hours are not set",
             "pricing_set": "no delivery fee applies (add one in Pricing, for the city or the country)",
+            "payouts_set": "the country has no payout provider (choose one on the country's page in Markets)",
         }
         raise MarketRuleError("Can't open this city: " + "; ".join(words[m] for m in missing))
+
+
+def check_country_payouts(status: str, payout_provider: str, *, production: bool) -> None:
+    """A country opens only with a payout provider; production never uses the fake one."""
+    if payout_provider == "fake" and production:
+        raise MarketRuleError("The fake payout provider moves no money: production needs Stripe Connect or Razorpay Route")
+    if status in OPEN and payout_provider == "none":
+        raise MarketRuleError("Can't open this country: it has no payout provider, so kitchens and riders couldn't be "
+                              "paid. Choose one (Payout provider) first")
 
 
 def check_parent_open(new_status: str, parent_status: str, parent_label: str) -> None:

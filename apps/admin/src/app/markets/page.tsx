@@ -14,6 +14,8 @@ import {
   type CountrySummary,
   marketsApi,
   PAYMENT_PROVIDERS,
+  PAYOUT_PROVIDERS,
+  type PayoutProviderName,
   TAX_REGIMES,
   useAdminMe,
   useMarkets,
@@ -33,7 +35,7 @@ function stateLine(cities: CountrySummary["regions"][number]["cities"]) {
   return cities.map((c) => `${c.name} ${c.status}`).join(", ");
 }
 
-const EMPTY = { code: "", name: "", currency: "", locales: "", timezone: "", distance_unit: "km", phone_code: "+", payment_providers: [] as string[], tax_regime: "gst" };
+const EMPTY = { code: "", name: "", currency: "", locales: "", timezone: "", distance_unit: "km", phone_code: "+", payment_providers: [] as string[], tax_regime: "gst", payout_provider: "none" as PayoutProviderName };
 
 /** Super admins add a country (a draft); then its states, cities and zones, and it
  * opens from its own page. Sign-up, phone codes and kitchens' currency follow it
@@ -61,6 +63,7 @@ function NewCountry() {
       phone_code: f.phone_code.trim(),
       payment_providers: f.payment_providers,
       tax_regime: f.tax_regime,
+      payout_provider: f.payout_provider,
     };
     try {
       await marketsApi.createCountry(body);
@@ -90,7 +93,8 @@ function NewCountry() {
       </div>
       <p className="mt-1 text-[13px] text-muted">
         A new country starts as a draft: nobody can sign up or open a kitchen there yet. Add its states, cities and zones, then
-        open it. Its currency, phone code and tax regime apply to every state and city in it.
+        open it. Its currency, phone code and tax regime apply to every state and city in it; it opens only once it has a payout
+        provider (who pays its kitchens and riders).
       </p>
       {open && (
         <form
@@ -137,6 +141,20 @@ function NewCountry() {
               {TAX_REGIMES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-[13px] text-muted">
+            Payout provider
+            <select
+              value={f.payout_provider}
+              onChange={(e) => setF({ ...f, payout_provider: e.target.value as PayoutProviderName })}
+              className={field}
+            >
+              {PAYOUT_PROVIDERS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
                 </option>
               ))}
             </select>

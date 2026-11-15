@@ -183,8 +183,9 @@ async def get_statement(statement_id: uuid.UUID, user: User, db: DB) -> dict:
 
 @router.post("/payout-accounts", status_code=status.HTTP_201_CREATED)
 async def open_account(data: AccountCreate, user: User, db: DB) -> dict:
-    """Set up where you're paid: Stripe Connect Express (US) or Razorpay Route
-    (India). Follow onboarding_url to finish (bank, identity)."""
+    """Set up where you're paid, with your country's payout provider in Markets
+    (Stripe Connect Express, Razorpay Route). Follow onboarding_url to finish (bank,
+    identity). 409 FINANCE_RULE when the country has no payout provider."""
     from core_api.modules.catalog.models.restaurant import Restaurant
     from core_api.modules.identity.service.profile import user_profile
 
@@ -198,7 +199,10 @@ async def open_account(data: AccountCreate, user: User, db: DB) -> dict:
         if user.role != "driver":
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
         payee_id, country = user.id, user.country
-    acct, url = await payouts.open_account(db, data.payee_type, payee_id, country, profile, data.return_url)
+    try:
+        acct, url = await payouts.open_account(db, data.payee_type, payee_id, country, profile, data.return_url)
+    except FinanceError as e:  # the country has no payout provider in Markets
+        raise _bad(e) from e
     return {"id": str(acct.id), "provider": acct.provider, "status": acct.status, "onboarding_url": url}
 
 
