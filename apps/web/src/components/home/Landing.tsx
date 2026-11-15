@@ -31,10 +31,10 @@ export async function Landing() {
       <section className="bg-[linear-gradient(180deg,#EFF6F6_0%,#FFFFFF_100%)]">
         <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 pb-14 pt-10 md:px-16 md:pb-20 md:pt-[72px] lg:grid-cols-[1fr_560px] lg:gap-14">
           <div>
-            <h1 className="m-0 whitespace-pre-line font-display text-[52px] font-semibold leading-[0.98] tracking-[-1.8px] md:text-[80px] md:tracking-[-2.8px]">
+            <h1 className="m-0 whitespace-pre-line text-display leading-[0.98] tracking-[-1.8px] md:tracking-[-2.8px]">
               {t("home.hero_title")}
             </h1>
-            <p className="mt-[22px] max-w-[560px] text-lg leading-[1.5] text-[#4C5A5E] md:text-xl">{t("home.hero_body")}</p>
+            <p className="mt-[22px] max-w-[560px] text-body-lg leading-[1.5] text-[#4C5A5E]">{t("home.hero_body")}</p>
             <div className="mt-9">
               <AddressBox size="hero" country={country?.code ?? null} />
             </div>
@@ -48,9 +48,9 @@ export async function Landing() {
               </div>
               {bill && (
                 <div className="absolute bottom-0 left-4 w-[300px] max-w-[calc(100%-32px)] rounded-[24px] bg-white p-5 shadow-[0_2px_4px_rgba(17,20,24,0.06),0_24px_48px_rgba(17,20,24,0.14)] md:left-0">
-                  <div className="mb-[14px] text-xs font-extrabold uppercase tracking-[1px] text-[#0B5D66]">{t("bill.who_gets")}</div>
+                  <div className="mb-[14px] text-caption text-[#0B5D66]">{t("bill.who_gets")}</div>
                   <MoneyBar lines={bill.lines} t={t} />
-                  <p className="mt-3 text-xs text-[#4C5A5E]">{t("bill.exact_note")}</p>
+                  <p className="mt-3 text-small text-[#4C5A5E]">{t("bill.exact_note")}</p>
                 </div>
               )}
             </div>
@@ -62,9 +62,9 @@ export async function Landing() {
         <ol className="m-0 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-6">
           {steps.map((n) => (
             <li key={n} className="rounded-[24px] bg-[#F4F6F6] p-5 md:p-7">
-              <div aria-hidden="true" className="font-display text-[32px] font-semibold tracking-[-1px] text-[#0B5D66] md:text-[40px]">{n}</div>
-              <b className="mt-2 block text-lg">{t(`home.step${n}_title`)}</b>
-              <p className="mt-[6px] text-[15px] leading-[1.5] text-[#4C5A5E]">{t(`home.step${n}_body`)}</p>
+              <div aria-hidden="true" className="text-h1 tracking-[-1px] text-[#0B5D66]">{n}</div>
+              <b className="mt-2 block text-h3">{t(`home.step${n}_title`)}</b>
+              <p className="mt-[6px] text-body leading-[1.5] text-[#4C5A5E]">{t(`home.step${n}_body`)}</p>
             </li>
           ))}
         </ol>
@@ -73,15 +73,15 @@ export async function Landing() {
       {city && tiles.length > 0 && (
         <section aria-labelledby="cooking" className="mx-auto max-w-[1440px] px-5 pt-14 md:px-16 md:pt-[72px]">
           <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
-            <h2 id="cooking" className="m-0 font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[36px]">{t("home.cooking_title")}</h2>
-            <span className="text-[15px] text-[#4C5A5E]">{t("home.cooking_note")}</span>
+            <h2 id="cooking" className="m-0 text-h1 tracking-[-0.8px]">{t("home.cooking_title")}</h2>
+            <span className="text-body text-[#4C5A5E]">{t("home.cooking_note")}</span>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
             {tiles.map(({ name, photo: src }) => (
               <Link key={name} href={`${city.path}?cuisine=${encodeURIComponent(name)}`} className="relative block aspect-square overflow-hidden rounded-[20px] bg-[#EFF6F6] text-white hover:text-white">
                 {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
                 <img src={photo(src, 400) ?? undefined} alt="" loading="lazy" className="block h-full w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-base font-extrabold">{name}</span>
+                <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-label">{name}</span>
               </Link>
             ))}
           </div>

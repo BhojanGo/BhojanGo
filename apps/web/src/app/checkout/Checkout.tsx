@@ -67,10 +67,10 @@ const card = "rounded-[24px] border border-[#E2E7E8] bg-white p-5 md:p-6";
 function StepHead({ n, done, title, action }: { n: number; done: boolean; title: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-[14px]">
-      <span aria-hidden="true" className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold text-white md:flex ${done ? "bg-[#0B5D66]" : "bg-[#111418]"}`}>
+      <span aria-hidden="true" className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-label text-white md:flex ${done ? "bg-[#0B5D66]" : "bg-[#111418]"}`}>
         {done ? <Check color="#FFFFFF" /> : n}
       </span>
-      <h2 className="m-0 flex-grow font-display text-lg font-semibold tracking-[-0.4px] md:text-2xl">{title}</h2>
+      <h2 className="m-0 flex-grow text-h2 tracking-[-0.4px]">{title}</h2>
       {action}
     </div>
   );
@@ -193,9 +193,9 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   if (!lines.length || !bag.restaurant) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
-        <h1 className="font-display text-3xl font-semibold">{t("checkout.empty_title")}</h1>
+        <h1 className="text-h1">{t("checkout.empty_title")}</h1>
         <p className="mt-2 text-[#4C5A5E]">{t("checkout.empty_body")}</p>
-        <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-extrabold text-white hover:text-white">{t("checkout.find_food")}</Link>
+        <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:text-white">{t("checkout.find_food")}</Link>
       </div>
     );
   }
@@ -291,13 +291,13 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   const bill = (
     <>
-      <div className="mb-2 text-[13px] font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
+      <div className="mb-2 text-caption text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
       {q ? (
         <FairBill lines={q.lines} total={q.total} currency={q.currency} formatLocale={f.formatLocale} t={t} distance={distance} totalLabel={t("checkout.you_pay")} compact />
       ) : (
         <div>
-          <div className="flex justify-between text-[15px]"><span>{t("bill.line_food")}</span><b className="tabular-nums">{money(subtotal)}</b></div>
-          <p className="mt-2 text-sm text-[#4C5A5E]" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
+          <div className="flex justify-between text-body"><span>{t("bill.line_food")}</span><b className="tabular-nums">{money(subtotal)}</b></div>
+          <p className="mt-2 text-small text-[#4C5A5E]" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
         </div>
       )}
     </>
@@ -305,7 +305,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 pb-32 pt-4 md:px-16 md:pb-20 md:pt-6">
-      <div className="mb-4 flex items-center justify-between text-[15px]">
+      <div className="mb-4 flex items-center justify-between text-body">
         <Link href={kitchenPath} className="inline-flex items-center gap-2 font-bold text-[#0B5D66]">
           <span aria-hidden="true">←</span> {t("checkout.back_to_menu")}
         </Link>
@@ -316,7 +316,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       </div>
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_460px] md:gap-10">
         <div className="flex flex-col gap-4">
-          <h1 className="m-0 font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[44px] md:tracking-[-1.2px]">{t("checkout.title")}</h1>
+          <h1 className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1.2px]">{t("checkout.title")}</h1>
 
           {/* where */}
           <section className={card} aria-labelledby="where-h">
@@ -324,7 +324,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               n={1}
               done={!!deliverTo}
               title={t("checkout.deliver_to")}
-              action={deliverTo && (list.length > 0 || place) ? <button type="button" aria-expanded={editing} onClick={() => setEditing((e) => !e)} className="font-extrabold text-[#0B5D66]">{editing ? t("checkout.done") : t("checkout.change")}</button> : null}
+              action={deliverTo && (list.length > 0 || place) ? <button type="button" aria-expanded={editing} onClick={() => setEditing((e) => !e)} className="font-bold text-[#0B5D66]">{editing ? t("checkout.done") : t("checkout.change")}</button> : null}
             />
             <span id="where-h" className="sr-only">{t("checkout.deliver_to")}</span>
             <div className="mt-3 md:pl-[46px]">
@@ -332,8 +332,8 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 <div className="flex items-start gap-3">
                   <span className="mt-[2px] md:hidden"><Pin size={20} color="#0B5D66" /></span>
                   <span>
-                    <b className="block text-base">{address ? placeLine(address) : place?.label}</b>
-                    <span className="text-sm text-[#4C5A5E]">{[address?.delivery_notes, distance ? t("checkout.from_kitchen", { distance }) : null, arrive].filter(Boolean).join(" · ")}</span>
+                    <b className="block text-label">{address ? placeLine(address) : place?.label}</b>
+                    <span className="text-small text-[#4C5A5E]">{[address?.delivery_notes, distance ? t("checkout.from_kitchen", { distance }) : null, arrive].filter(Boolean).join(" · ")}</span>
                   </span>
                 </div>
               ) : (
@@ -343,29 +343,29 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                     <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-4 ${picked === "place" ? "border-[#0B5D66] bg-[#EFF6F6]" : "border-[#E2E7E8]"}`}>
                       <input type="radio" name="where" className="peer sr-only" checked={picked === "place"} onChange={() => { setChoice("place"); setNote(null); }} />
                       <Radio on={picked === "place"} />
-                      <span><b className="block">{place.label}</b><span className="text-sm text-[#4C5A5E]">{t("checkout.the_area_you_chose")}</span></span>
+                      <span><b className="block">{place.label}</b><span className="text-small text-[#4C5A5E]">{t("checkout.the_area_you_chose")}</span></span>
                     </label>
                   )}
                   {list.map((a) => (
                     <label key={a.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-4 ${picked === a.id ? "border-[#0B5D66] bg-[#EFF6F6]" : "border-[#E2E7E8]"}`}>
                       <input type="radio" name="where" className="peer sr-only" checked={picked === a.id} onChange={() => { setChoice(a.id); setNote(null); }} />
                       <Radio on={picked === a.id} />
-                      <span><b className="block">{placeLine(a)}</b><span className="text-sm text-[#4C5A5E]">{[a.city, a.delivery_notes].filter(Boolean).join(" · ")}</span></span>
+                      <span><b className="block">{placeLine(a)}</b><span className="text-small text-[#4C5A5E]">{[a.city, a.delivery_notes].filter(Boolean).join(" · ")}</span></span>
                     </label>
                   ))}
-                  {!place && list.length === 0 && addresses !== null && <p className="m-0 text-[15px] text-[#4C5A5E]">{t("checkout.no_address")}</p>}
+                  {!place && list.length === 0 && addresses !== null && <p className="m-0 text-body text-[#4C5A5E]">{t("checkout.no_address")}</p>}
                 </fieldset>
               )}
               {usingPlace && (
                 <label className="mt-3 block">
                   <span className="sr-only">{t("checkout.street")}</span>
-                  <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder={t("checkout.street")} autoComplete="address-line1" className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-[15px] outline-none focus:border-[#0B5D66]" />
+                  <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder={t("checkout.street")} autoComplete="address-line1" className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-body outline-none focus:border-[#0B5D66]" />
                 </label>
               )}
               {deliverTo && (
                 <label className="mt-3 hidden md:block">
                   <span className="sr-only">{t("checkout.rider_note")}</span>
-                  <input value={riderNote} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("checkout.rider_note")} className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-[15px] outline-none focus:border-[#0B5D66]" />
+                  <input value={riderNote} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("checkout.rider_note")} className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-body outline-none focus:border-[#0B5D66]" />
                 </label>
               )}
             </div>
@@ -377,7 +377,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
             <div className="mt-4 pl-[46px]">
               <div className="flex max-w-[350px] items-center gap-3 rounded-2xl border-2 border-[#0B5D66] bg-[#EFF6F6] px-4 py-3">
                 <Radio on />
-                <span><b className="block">{t("checkout.asap")}</b>{arrive && <span className="text-sm text-[#4C5A5E]">{arrive}</span>}</span>
+                <span><b className="block">{t("checkout.asap")}</b>{arrive && <span className="text-small text-[#4C5A5E]">{arrive}</span>}</span>
               </div>
             </div>
           </section>
@@ -390,22 +390,22 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               {[0, ...presets].map((n) => {
                 const on = !other && bag.tip === n;
                 return (
-                  <button key={n} type="button" role="radio" aria-checked={on} onClick={() => { setTipTouched(true); setOther(false); bag.setTip(n); }} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${on ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
+                  <button key={n} type="button" role="radio" aria-checked={on} onClick={() => { setTipTouched(true); setOther(false); bag.setTip(n); }} className={`h-11 rounded-full px-4 text-label tabular-nums md:h-[50px] md:px-5 ${on ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
                     {n === 0 ? t("checkout.tip_none") : money(n, true)}
                   </button>
                 );
               })}
-              <button type="button" role="radio" aria-checked={other} onClick={() => { setTipTouched(true); setOther(true); }} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${other ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
+              <button type="button" role="radio" aria-checked={other} onClick={() => { setTipTouched(true); setOther(true); }} className={`h-11 rounded-full px-4 text-label md:h-[50px] md:px-5 ${other ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
                 {t("checkout.tip_other")}
               </button>
               {other && (
                 <label className="flex h-11 items-center gap-2 rounded-full border-[1.5px] border-[#0B5D66] px-4 md:h-[50px]">
                   <span className="sr-only">{t("checkout.tip_amount")}</span>
-                  <input type="number" min={0} step="any" inputMode="decimal" autoFocus value={bag.tip || ""} onChange={(e) => bag.setTip(Math.max(0, Number(e.target.value) || 0))} placeholder={t("checkout.tip_amount")} className="w-24 bg-transparent text-[15px] font-bold outline-none" />
+                  <input type="number" min={0} step="any" inputMode="decimal" autoFocus value={bag.tip || ""} onChange={(e) => bag.setTip(Math.max(0, Number(e.target.value) || 0))} placeholder={t("checkout.tip_amount")} className="w-24 bg-transparent text-label outline-none" />
                 </label>
               )}
             </div>
-            <p className="m-0 mt-3 text-sm text-[#4C5A5E] md:pl-[46px] md:text-[15px]">{t("checkout.tip_note")}</p>
+            <p className="m-0 mt-3 text-body text-[#4C5A5E] md:pl-[46px]">{t("checkout.tip_note")}</p>
           </section>
 
           {/* the bill (phone) */}
@@ -423,7 +423,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                   <label key={m.key} className={`flex cursor-pointer items-center gap-[14px] rounded-[18px] px-4 py-[14px] ${on ? "border-2 border-[#0B5D66] bg-[#EFF6F6]" : "border border-[#E2E7E8]"}`}>
                     <input type="radio" name="method" className="sr-only" checked={on} onChange={() => setMethod(m.key)} />
                     <Radio on={on} />
-                    <span><b className="block text-[17px]">{m.title}</b>{m.sub && <span className="text-sm text-[#24383B]">{m.sub}</span>}</span>
+                    <span><b className="block text-h3">{m.title}</b>{m.sub && <span className="text-small text-[#24383B]">{m.sub}</span>}</span>
                   </label>
                 );
               })}
@@ -433,7 +433,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
           {deliverTo && (
             <label className="md:hidden">
               <span className="sr-only">{t("checkout.rider_note")}</span>
-              <input value={riderNote} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("checkout.rider_note")} className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-[15px] outline-none focus:border-[#0B5D66]" />
+              <input value={riderNote} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("checkout.rider_note")} className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-body outline-none focus:border-[#0B5D66]" />
             </label>
           )}
         </div>
@@ -447,12 +447,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 {rest && photo(rest.logo_url ?? rest.cover_url, 400) && <img src={photo(rest.logo_url ?? rest.cover_url, 400)!} alt="" className="h-full w-full object-cover" />}
               </span>
               <span>
-                <b className="block text-lg">{kitchen.name}</b>
-                <span className="text-sm text-[#4C5A5E]">{[t("kitchen.items", { count }), area].filter(Boolean).join(" · ")}</span>
+                <b className="block text-h3">{kitchen.name}</b>
+                <span className="text-small text-[#4C5A5E]">{[t("kitchen.items", { count }), area].filter(Boolean).join(" · ")}</span>
               </span>
             </div>
             <div className="p-5">
-              <ul className="m-0 hidden list-none flex-col gap-2 p-0 text-[15px] md:flex">
+              <ul className="m-0 hidden list-none flex-col gap-2 p-0 text-body md:flex">
                 {lines.map((l) => (
                   <li key={l.key} className="flex gap-3">
                     <span className="flex-grow">{t("kitchen.line", { count: l.quantity, name: l.name })}{l.summary && <span className="text-[#4C5A5E]"> · {l.summary}</span>}</span>
@@ -460,12 +460,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                   </li>
                 ))}
               </ul>
-              <div className="mb-4 mt-4 rounded-[14px] border border-dashed border-[#C9D3D4] px-4 py-3 text-[15px]">
+              <div className="mb-4 mt-4 rounded-[14px] border border-dashed border-[#C9D3D4] px-4 py-3 text-body">
                 {promo ? (
                   <div className="flex items-center gap-2">
                     <Check color="#0B5D66" />
                     <span className="flex-grow"><b>{promo}</b> {quote.error ? "" : t("checkout.promo_applied")}</span>
-                    <button type="button" onClick={() => setPromo(null)} className="font-extrabold text-[#0B5D66]">{t("checkout.remove")}</button>
+                    <button type="button" onClick={() => setPromo(null)} className="font-bold text-[#0B5D66]">{t("checkout.remove")}</button>
                   </div>
                 ) : (
                   <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (promoInput.trim()) setPromo(promoInput.trim().toUpperCase()); }}>
@@ -473,23 +473,23 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                       <span className="sr-only">{t("checkout.promo")}</span>
                       <input value={promoInput} onChange={(e) => setPromoInput(e.target.value)} placeholder={t("checkout.promo")} className="w-full bg-transparent uppercase outline-none placeholder:normal-case" />
                     </label>
-                    <button type="submit" className="font-extrabold text-[#0B5D66]">{t("checkout.apply")}</button>
+                    <button type="submit" className="font-bold text-[#0B5D66]">{t("checkout.apply")}</button>
                   </form>
                 )}
               </div>
               <div className="hidden md:block">{bill}</div>
               {q && (
-                <p className="m-0 mt-4 flex items-center gap-2 rounded-xl bg-[#EFF6F6] px-4 py-[10px] text-[13px] text-[#24383B]" aria-live="off">
+                <p className="m-0 mt-4 flex items-center gap-2 rounded-xl bg-[#EFF6F6] px-4 py-[10px] text-small text-[#24383B]" aria-live="off">
                   <Clock size={14} />
                   {held > 0 ? t("checkout.held", { time: `${Math.floor(held / 60)}:${String(held % 60).padStart(2, "0")}` }) : t("checkout.expired")}
                 </p>
               )}
-              {error && <p role="alert" className="m-0 mt-3 rounded-xl bg-[#F1E3E1] px-4 py-3 text-sm font-semibold text-[#8C1D18]">{error}</p>}
+              {error && <p role="alert" className="m-0 mt-3 rounded-xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{error}</p>}
               <div className="fixed inset-x-4 bottom-4 z-40 md:static md:mt-4">
                 {q && held === 0 ? (
-                  <button type="button" onClick={() => setNonce((n) => n + 1)} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-lg font-extrabold text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] md:shadow-none">{t("checkout.fresh_price")}</button>
+                  <button type="button" onClick={() => setNonce((n) => n + 1)} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] md:shadow-none">{t("checkout.fresh_price")}</button>
                 ) : (
-                  <button type="button" disabled={!canPay} onClick={() => void pay()} aria-busy={busy} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-lg font-extrabold text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] hover:bg-[#083F46] disabled:bg-[#8FB3B7] md:shadow-none">
+                  <button type="button" disabled={!canPay} onClick={() => void pay()} aria-busy={busy} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 tabular-nums text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] hover:bg-[#083F46] disabled:bg-[#8FB3B7] md:shadow-none">
                     {busy ? t("checkout.paying") : payLabel}
                   </button>
                 )}
@@ -530,7 +530,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] md:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={id} onClick={(e) => e.stopPropagation()} className="w-full rounded-t-[28px] bg-white p-6 md:w-[480px] md:rounded-[28px]">
         <div className="mb-3 flex items-center">
-          <h2 id={id} className="m-0 flex-grow font-display text-2xl font-semibold">{title}</h2>
+          <h2 id={id} className="m-0 flex-grow text-h2">{title}</h2>
           <button type="button" aria-label={t("common.close")} onClick={onClose}><Close color="#4C5A5E" /></button>
         </div>
         {children}
@@ -544,10 +544,10 @@ function FakePay({ amount, onClose, onOutcome }: { amount: string; onClose: () =
   const t = useT();
   return (
     <Modal title={t("checkout.test_title")} onClose={onClose}>
-      <p className="m-0 text-[15px] text-[#4C5A5E]">{t("checkout.test_body")}</p>
+      <p className="m-0 text-body text-[#4C5A5E]">{t("checkout.test_body")}</p>
       <div className="mt-6 flex gap-3">
-        <button type="button" onClick={() => onOutcome("failed")} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-extrabold">{t("checkout.test_decline")}</button>
-        <button type="button" autoFocus onClick={() => onOutcome("succeeded")} className="h-12 flex-[2] rounded-full bg-[#0B5D66] font-extrabold text-white">{t("checkout.test_approve", { amount })}</button>
+        <button type="button" onClick={() => onOutcome("failed")} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-bold">{t("checkout.test_decline")}</button>
+        <button type="button" autoFocus onClick={() => onOutcome("succeeded")} className="h-12 flex-[2] rounded-full bg-[#0B5D66] text-label tabular-nums text-white">{t("checkout.test_approve", { amount })}</button>
       </div>
     </Modal>
   );
@@ -592,8 +592,8 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
   return (
     <Modal title={t("checkout.card_title")} onClose={onClose}>
       <div ref={box} className="min-h-[120px]" />
-      {error && <p role="alert" className="mt-3 text-sm font-semibold text-[#8C1D18]">{error}</p>}
-      <button type="button" disabled={!ready || busy} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] font-extrabold text-white disabled:bg-[#8FB3B7]">
+      {error && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{error}</p>}
+      <button type="button" disabled={!ready || busy} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
         {busy ? t("checkout.paying") : t("checkout.pay_amount", { amount })}
       </button>
     </Modal>

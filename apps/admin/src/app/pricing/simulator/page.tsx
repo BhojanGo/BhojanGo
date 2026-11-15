@@ -98,7 +98,7 @@ function Simulator() {
     return labels.map((label) => ({ label, live: amt(out.live, label), draft: amt(out.draft, label) }));
   }, [sim.data]);
 
-  const field = "mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-kohl";
+  const field = "mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2 text-small text-kohl";
   const changed = (a: number | string | null | undefined, b: number | string | null | undefined) => Number(a) !== Number(b);
 
   return (
@@ -110,9 +110,9 @@ function Simulator() {
       cityHref={(_, c) => `/pricing/simulator?city=${c}`}
     >
       <div>
-        <div className="text-[13px] text-muted">Pricing &amp; Rules ▸ Price simulator</div>
-        <h1 className="m-0 mt-2 font-display text-[32px] font-semibold tracking-[-0.8px]">Price simulator · {cityInfo?.name ?? city}</h1>
-        <p className="mt-1 text-sm text-muted">Price one cart with the live rules and with drafts before anyone approves them.</p>
+        <div className="text-small text-muted">Pricing &amp; Rules ▸ Price simulator</div>
+        <h1 className="m-0 mt-2 text-h1 tracking-[-0.8px]">Price simulator · {cityInfo?.name ?? city}</h1>
+        <p className="mt-1 text-small text-muted">Price one cart with the live rules and with drafts before anyone approves them.</p>
       </div>
 
       <div className="flex flex-wrap gap-6">
@@ -123,25 +123,25 @@ function Simulator() {
             sim.mutate();
           }}
         >
-          <h2 className="m-0 text-[17px] font-extrabold">Cart</h2>
-          <label className="text-[13px] text-muted">
+          <h2 className="m-0 text-h3">Cart</h2>
+          <label className="text-small text-muted">
             Food subtotal ({sym.trim()})
             <input required type="number" min="1" step="0.01" value={form.food} onChange={(e) => setForm({ ...form, food: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Distance ({unit})
             <input required type="number" min="0.1" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} className={field} />
           </label>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Day and time ({cityInfo?.name ?? "city"} time)
             <input required type="datetime-local" value={form.when} onChange={(e) => setForm({ ...form, when: e.target.value })} className={field} />
           </label>
           <div className="flex gap-3">
-            <label className="flex-1 text-[13px] text-muted">
+            <label className="flex-1 text-small text-muted">
               Tip ({sym.trim()})
               <input type="number" min="0" step="1" value={form.tip} onChange={(e) => setForm({ ...form, tip: e.target.value })} className={field} />
             </label>
-            <label className="flex-1 text-[13px] text-muted">
+            <label className="flex-1 text-small text-muted">
               Restaurant tier
               <select value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} className={field}>
                 <option value="A">A</option>
@@ -150,7 +150,7 @@ function Simulator() {
               </select>
             </label>
           </div>
-          <label className="text-[13px] text-muted">
+          <label className="text-small text-muted">
             Restaurant (adds its own rules, e.g. packaging)
             <select value={form.restaurant} onChange={(e) => setForm({ ...form, restaurant: e.target.value })} className={field}>
               <option value="">Any restaurant</option>
@@ -162,21 +162,21 @@ function Simulator() {
             </select>
           </label>
           <div className="flex gap-3">
-            <label className="flex-1 text-[13px] text-muted">
+            <label className="flex-1 text-small text-muted">
               Promo code
               <input value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value.toUpperCase() })} className={field} />
             </label>
-            <label className="mt-6 flex items-center gap-2 text-[13px] text-kohl">
+            <label className="mt-6 flex items-center gap-2 text-small text-kohl">
               <input type="checkbox" checked={form.firstOrder} onChange={(e) => setForm({ ...form, firstOrder: e.target.checked })} />
               First order
             </label>
           </div>
 
           <fieldset className="mt-2 rounded-xl border border-line-soft p-3">
-            <legend className="px-1 text-[13px] font-bold text-muted">Drafts to try</legend>
-            {!draftRules?.length && <p className="m-0 text-sm text-muted">No drafts here. Compare against live rules only.</p>}
+            <legend className="px-1 text-label text-muted">Drafts to try</legend>
+            {!draftRules?.length && <p className="m-0 text-small text-muted">No drafts here. Compare against live rules only.</p>}
             {draftRules?.map((r) => (
-              <label key={r.id} className="flex items-center gap-2 py-1 text-sm">
+              <label key={r.id} className="flex items-center gap-2 py-1 text-small">
                 <input
                   type="checkbox"
                   checked={drafts.includes(r.id)}
@@ -188,33 +188,33 @@ function Simulator() {
               </label>
             ))}
           </fieldset>
-          <button type="submit" disabled={sim.isPending} className="mt-2 h-11 rounded-full bg-peacock font-extrabold text-white disabled:opacity-60">
+          <button type="submit" disabled={sim.isPending} className="mt-2 h-11 rounded-full bg-peacock font-bold text-white disabled:opacity-60">
             {sim.isPending ? "Pricing…" : "Price this cart"}
           </button>
-          {sim.error ? <p role="alert" className="m-0 rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">{apiError(sim.error)}</p> : null}
+          {sim.error ? <p role="alert" className="m-0 rounded-xl bg-danger-tint p-3 text-small text-danger-ink">{apiError(sim.error)}</p> : null}
         </form>
 
         <section aria-label="Live and draft prices" className="flex-[2_1_480px] rounded-2xl border border-line bg-white p-6">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-            <span className="rounded-full bg-porcelain px-3 py-1">Cart {fmt(sym, form.food)}</span>
+          <div className="flex flex-wrap items-center gap-2 text-small text-muted">
+            <span className="rounded-full bg-porcelain px-3 py-1 tabular-nums">Cart {fmt(sym, form.food)}</span>
             <span className="rounded-full bg-porcelain px-3 py-1">{form.distance} {unit}</span>
             <span className="rounded-full bg-porcelain px-3 py-1">
               {new Date(form.when).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}
             </span>
             <span className="rounded-full bg-porcelain px-3 py-1">Tier {form.tier}</span>
           </div>
-          {!sim.data && <p className="mt-6 text-sm text-muted">Set up a cart and press “Price this cart”.</p>}
+          {!sim.data && <p className="mt-6 text-small text-muted">Set up a cart and press “Price this cart”.</p>}
           {sim.data && (
             <div className="mt-4 overflow-x-auto">
               {(!sim.data.live.ok || !sim.data.draft.ok) && (
-                <p role="alert" className="rounded-xl bg-kesar-tint p-3 text-sm text-kesar-ink">
+                <p role="alert" className="rounded-xl bg-kesar-tint p-3 text-small text-kesar-ink">
                   {!sim.data.live.ok ? `Live: ${sim.data.live.message}. ` : ""}
                   {!sim.data.draft.ok ? `Draft: ${sim.data.draft.message}.` : ""}
                 </p>
               )}
-              <table className="w-full min-w-[420px] border-collapse text-sm tabular-nums">
+              <table className="w-full min-w-[420px] border-collapse text-small tabular-nums">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-[0.6px] text-muted">
+                  <tr className="text-left text-caption text-muted">
                     <th className="py-2 font-bold">Line</th>
                     <th className="text-right font-bold">Live</th>
                     <th className="text-right font-bold">{drafts.length ? "Draft" : "Live (no drafts)"}</th>
@@ -228,7 +228,7 @@ function Simulator() {
                       <td className="text-right">{fmt(sym, r.draft)}</td>
                     </tr>
                   ))}
-                  <tr className="border-t-2 border-kohl text-base font-extrabold">
+                  <tr className="border-t-2 border-kohl text-label">
                     <td className="py-3">Customer pays</td>
                     <td className="text-right">{fmt(sym, sim.data.live.total)}</td>
                     <td className="text-right">{fmt(sym, sim.data.draft.total)}</td>
@@ -246,7 +246,7 @@ function Simulator() {
                   })}
                 </tbody>
               </table>
-              <p className="mt-3 text-xs text-muted">
+              <p className="mt-3 text-small text-muted">
                 {sim.data.changes.length ? `${sim.data.changes.length} amounts change with the drafts.` : "No change."}{" "}
                 <button type="button" className="font-bold text-peacock" onClick={() => router.refresh()}>
                   Try another cart

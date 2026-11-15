@@ -35,9 +35,9 @@ export async function NotInArea({ place }: { place: Place }) {
   return (
     <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 py-10 md:px-16 md:py-16 lg:grid-cols-[1fr_520px] lg:gap-16">
       <div>
-        <div className="text-xs font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{place.label}</div>
-        <h1 className="mt-3 font-display text-[40px] font-semibold leading-[1.02] tracking-[-1.2px] md:text-[56px] md:tracking-[-1.6px]">{t("home.not_in_area_title")}</h1>
-        <p className="mt-[14px] max-w-[560px] text-lg leading-[1.5] text-[#4C5A5E]">
+        <div className="text-caption text-[#4C5A5E]">{place.label}</div>
+        <h1 className="mt-3 text-display leading-[1.02] tracking-[-1.2px] md:tracking-[-1.6px]">{t("home.not_in_area_title")}</h1>
+        <p className="mt-[14px] max-w-[560px] text-body-lg leading-[1.5] text-[#4C5A5E]">
           {soonCity
             ? t("home.not_in_area_soon", { city: soonCity.name })
             : first
@@ -61,7 +61,7 @@ export async function NotInArea({ place }: { place: Place }) {
         </ChangeAddress>
         {nearest.length > 0 && (
           <div className="mt-9">
-            <h2 className="m-0 text-[15px] font-extrabold">{t("home.nearest_title")}</h2>
+            <h2 className="m-0 text-label">{t("home.nearest_title")}</h2>
             <ul className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0">
               {nearest.map((c) => (
                 <li key={c.code}>

@@ -38,8 +38,6 @@ const config: Config = {
           900: "#3D2B00",
         },
       },
-      fontFamily: {
-      },
       animation: {
         "fade-in": "fadeIn 0.2s ease-in-out",
         "slide-up": "slideUp 0.3s ease-out",

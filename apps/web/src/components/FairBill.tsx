@@ -49,14 +49,14 @@ export function FairBill({
 }) {
   return (
     <div>
-      <table className="w-full border-collapse text-[15px] tabular-nums">
+      <table className="w-full border-collapse text-body tabular-nums">
         <tbody>
           {lines.map((ln, i) => {
             const promo = ln.code === "promotion";
             return (
               <tr key={`${ln.code}-${i}`}>
-                <td className={`py-[3px] pr-2 ${compact ? "text-sm" : ""}`}>{billLabel(ln, t, distance)}</td>
-                <td className="py-[3px] pr-3 text-right text-[13px] text-[#4C5A5E]">{payeeLabel(ln, t)}</td>
+                <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
+                <td className="py-[3px] pr-3 text-right text-small text-[#4C5A5E]">{payeeLabel(ln, t)}</td>
                 <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale)}</td>
               </tr>
             );
@@ -64,10 +64,10 @@ export function FairBill({
         </tbody>
       </table>
       <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
-        <b className="text-xl">{totalLabel ?? t("bill.total")}</b>
-        <b className="text-xl tabular-nums">{money(total, currency, formatLocale)}</b>
+        <b className="text-h3">{totalLabel ?? t("bill.total")}</b>
+        <b className="text-h3 tabular-nums">{money(total, currency, formatLocale)}</b>
       </div>
-      {note && <p className="mt-1 text-sm text-[#4C5A5E]">{note}</p>}
+      {note && <p className="mt-1 text-small text-[#4C5A5E]">{note}</p>}
     </div>
   );
 }
@@ -94,7 +94,7 @@ export function MoneyBar({ lines, t }: { lines: BillLine[]; t: T }) {
           <span key={p.k} style={{ width: `${(Math.max(sums[p.k], 0) / total) * 100}%`, background: p.color }} />
         ))}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
+      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-small">
         {parts.map((p) => (
           <span key={p.k} className="flex items-center gap-[6px]">
             <span className="h-[10px] w-[10px]" style={{ background: p.color }} />

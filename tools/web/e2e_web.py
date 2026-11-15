@@ -16,7 +16,8 @@ their APIs), the account area (orders, receipt, PDF, order again, report a
 problem, addresses, a test card, notifications, data export, favourites), the
 receipt seen from a browser in a US time zone (the order's city time, not the device's), no
 marketing when signed in, a US kitchen in dollars, SEO files and headers, and
-no sideways scroll at 390 px.
+no sideways scroll at 390 px, and only the type scale's font sizes on the
+kitchen page, home, receipt and (at 390) checkout (font_sizes.py).
 """
 import json
 import os
@@ -51,6 +52,9 @@ sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/g
 from target_guard import ensure_safe_api  # noqa: E402
 
 ensure_safe_api(QA_CORE or "http://core-api:8001")
+
+# The type scale check (font_sizes.py, next to this file): every visible text's size.
+from font_sizes import collect as font_sizes_on, problems as font_problems  # noqa: E402
 
 # Seed data (tools/seed/data.py). The website never names these; the test may.
 HYD_PHONE, US_PHONE, OTP = "9000000101", "2085550101", "123456"
@@ -155,6 +159,13 @@ def eventually(fn, timeout: float = 15) -> None:  # type: ignore[no-untyped-def]
 def no_sideways_scroll(page) -> None:  # type: ignore[no-untyped-def]
     w = page.evaluate("document.documentElement.scrollWidth")
     assert w <= 392, f"page is {w}px wide at 390"
+
+
+def type_scale_only(page) -> None:  # type: ignore[no-untyped-def]
+    """Every visible text is a type-scale size (64 44 40 30 28 22 20 18 17 16 15 14 12); 12 px only uppercase."""
+    page.wait_for_timeout(300)  # web fonts
+    bad = font_problems(font_sizes_on(page))
+    _assert(not bad, f"{len(bad)} off the scale: " + "; ".join(bad[:4]))
 
 
 def url_is(page, pattern: str, timeout: int = 20000) -> None:  # type: ignore[no-untyped-def]
@@ -403,6 +414,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("navigation", name="Menu sections")).to_be_visible(),
         expect(page.get_by_role("region", name="Biryani")).to_be_visible(),
         _assert(any(x.get("@type") == "Restaurant" and x.get("hasMenu") for x in ld()), ld())))
+    check("type scale: the kitchen page uses only the scale's font sizes", lambda: type_scale_only(page))
     page.get_by_role("button", name=f"Add {DISH}").click()
     dialog = page.get_by_role("dialog", name=DISH)
     check("customise sheet: required and optional groups with prices", lambda: (
@@ -491,6 +503,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading", name="Ride with BhojanGo")).to_have_count(0),
         expect(page.get_by_role("region", name="Work with us")).to_have_count(0),
         expect(page.get_by_role("contentinfo").get_by_role("link", name="Ride with BhojanGo")).to_be_visible()))
+    check("type scale: the signed-in home uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "13-home-signed-in")
 
     # The kitchen, ops and the rider move the order along; the page follows live.
@@ -637,6 +650,7 @@ with sync_playwright() as p:
         expect(receipt.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible(),
         expect(receipt.get_by_role("row", name=re.compile("^Tip for your rider Rider"))).to_be_visible(),
         expect(receipt.get_by_text("You paid")).to_be_visible()))
+    check("type scale: the receipt uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "16-receipt")
 
     def pdf() -> None:
@@ -796,6 +810,8 @@ with sync_playwright() as p:
         m.goto(base + path, wait_until="networkidle")
         m.wait_for_timeout(500)
         check(f"phone width {path}: no sideways scroll", lambda: no_sideways_scroll(m))
+        if path in ("/", KITCHEN_PATH, "/checkout"):
+            check(f"phone width {path}: only the type scale's font sizes", lambda: type_scale_only(m))
     m.goto(base, wait_until="networkidle")
 
     def banner_scrolls_away() -> None:

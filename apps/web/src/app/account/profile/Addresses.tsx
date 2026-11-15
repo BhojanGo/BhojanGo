@@ -94,8 +94,8 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
   const shown = q.trim().length >= 2 && hits?.q === q.trim() ? hits.list : [];
   return (
     <div className="sm:col-span-2">
-      <span className="text-sm font-bold text-[#4C5A5E]">{t("account.addresses.location")}</span>
-      <p className="text-[13px] text-[#4C5A5E]">{t("account.addresses.location_hint")}</p>
+      <span className="text-label text-[#4C5A5E]">{t("account.addresses.location")}</span>
+      <p className="text-small text-[#4C5A5E]">{t("account.addresses.location_hint")}</p>
       <div className="relative mt-2">
         <label className="flex h-11 items-center gap-2 rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 focus-within:border-[#0B5D66]">
           <Pin size={16} color="#0B5D66" />
@@ -108,7 +108,7 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("account.addresses.search_area")}
-            className="min-w-0 flex-grow bg-transparent text-[15px] text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+            className="min-w-0 flex-grow bg-transparent text-body text-[#111418] outline-none placeholder:text-[#4C5A5E]"
           />
         </label>
         {shown.length > 0 && (
@@ -132,12 +132,12 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <button type="button" onClick={locate} disabled={locating} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0B5D66] disabled:opacity-60">
+        <button type="button" onClick={locate} disabled={locating} className="inline-flex items-center gap-2 text-label text-[#0B5D66] disabled:opacity-60">
           <Locate color="#0B5D66" />
           {locating ? t("address.locating") : t("address.use_my_location")}
         </button>
-        {point && <span className="text-sm font-semibold text-[#24383B]">{t("account.addresses.location_set", { place: point.label })}</span>}
-        {problem && <span role="status" className="text-sm text-[#4C5A5E]">{problem}</span>}
+        {point && <span className="text-label text-[#24383B]">{t("account.addresses.location_set", { place: point.label })}</span>}
+        {problem && <span role="status" className="text-small text-[#4C5A5E]">{problem}</span>}
       </div>
     </div>
   );
@@ -195,32 +195,32 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
             if (p.city && !city.trim()) setCity(p.city);
           }}
         />
-        <label className="text-sm font-bold text-[#4C5A5E]">
+        <label className="text-label text-[#4C5A5E]">
           {t("account.addresses.label")}
           <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={50} className={input} />
         </label>
-        <label className="text-sm font-bold text-[#4C5A5E]">
+        <label className="text-label text-[#4C5A5E]">
           {t("account.addresses.street")}
           <input value={street} onChange={(e) => setStreet(e.target.value)} required maxLength={500} autoComplete="street-address" className={input} />
         </label>
-        <label className="text-sm font-bold text-[#4C5A5E]">
+        <label className="text-label text-[#4C5A5E]">
           {t("account.addresses.city")}
           <input value={city} onChange={(e) => setCity(e.target.value)} required maxLength={100} autoComplete="address-level2" className={input} />
         </label>
-        <label className="text-sm font-bold text-[#4C5A5E]">
+        <label className="text-label text-[#4C5A5E]">
           {t("account.addresses.state")}
           <input value={state} onChange={(e) => setState(e.target.value)} required maxLength={100} autoComplete="address-level1" className={input} />
         </label>
-        <label className="text-sm font-bold text-[#4C5A5E]">
+        <label className="text-label text-[#4C5A5E]">
           {t("account.addresses.postal_code")}
           <input value={postal} onChange={(e) => setPostal(e.target.value)} required maxLength={20} autoComplete="postal-code" className={input} />
         </label>
-        <label className="text-sm font-bold text-[#4C5A5E] sm:col-span-2">
+        <label className="text-label text-[#4C5A5E] sm:col-span-2">
           {t("account.addresses.notes")}
           <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={input} />
         </label>
       </div>
-      {problem && <p role="alert" className="mt-3 text-sm font-semibold text-[#8C1D18]">{problem}</p>}
+      {problem && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{problem}</p>}
       <div className="mt-4 flex flex-wrap gap-[10px]">
         <button type="submit" disabled={busy} className={primary}>{t("common.save")}</button>
         <button type="button" onClick={onCancel} className={ghost}>{t("common.cancel")}</button>
@@ -288,14 +288,14 @@ export function Addresses() {
               <div className="flex items-baseline justify-between gap-2">
                 <b className="truncate">{a.label || a.street}</b>
                 {a.is_default ? (
-                  <span className="shrink-0 text-xs font-extrabold uppercase text-[#083F46]">{t("account.addresses.default")}</span>
+                  <span className="shrink-0 text-caption text-[#083F46]">{t("account.addresses.default")}</span>
                 ) : (
-                  <button type="button" onClick={() => void makeDefault(a)} className={`${link} text-[13px]`}>{t("account.addresses.make_default")}</button>
+                  <button type="button" onClick={() => void makeDefault(a)} className={`${link} text-small`}>{t("account.addresses.make_default")}</button>
                 )}
               </div>
-              <div className="mt-1 text-sm text-[#24383B]">{[a.street, a.city, a.state].filter(Boolean).join(", ")} {a.postal_code}</div>
-              {a.delivery_notes && <div className="mt-1 text-[13px] text-[#4C5A5E]">{a.delivery_notes}</div>}
-              <div className="mt-auto flex gap-4 pt-3 text-[13px]">
+              <div className="mt-1 text-small text-[#24383B]">{[a.street, a.city, a.state].filter(Boolean).join(", ")} {a.postal_code}</div>
+              {a.delivery_notes && <div className="mt-1 text-small text-[#4C5A5E]">{a.delivery_notes}</div>}
+              <div className="mt-auto flex gap-4 pt-3 text-small">
                 <button type="button" onClick={() => setEditing(a)} className={link}>{t("account.addresses.edit")}</button>
                 <button type="button" onClick={() => void remove(a)} className="font-bold text-[#B3261E]">{t("account.addresses.delete")}</button>
               </div>
@@ -305,13 +305,13 @@ export function Addresses() {
             type="button"
             onClick={() => setEditing("new")}
             aria-expanded={editing === "new"}
-            className="flex min-h-[110px] items-center justify-center rounded-2xl border-[1.5px] border-dashed border-[#C9D3D4] p-4 font-extrabold text-[#0B5D66] hover:bg-[#F4F6F6]"
+            className="flex min-h-[110px] items-center justify-center rounded-2xl border-[1.5px] border-dashed border-[#C9D3D4] p-4 font-bold text-[#0B5D66] hover:bg-[#F4F6F6]"
           >
             + {t("account.addresses.add")}
           </button>
         </div>
       )}
-      {problem && <p role="alert" className="mt-3 text-sm font-semibold text-[#8C1D18]">{problem}</p>}
+      {problem && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{problem}</p>}
       {editing && (
         <AddressForm
           key={editing === "new" ? "new" : editing.id}

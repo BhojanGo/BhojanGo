@@ -53,7 +53,7 @@ function Marks({ item, t }: { item: Item; t: T }) {
     <span className="flex items-center gap-2">
       <VegMark veg={item.is_veg} t={t} />
       {badges.map((b) => (
-        <span key={b} className="rounded-md bg-[#F6E7CC] px-2 py-[3px] text-xs font-extrabold text-[#7A4F0E]">{t(b)}</span>
+        <span key={b} className="rounded-md bg-[#F6E7CC] px-2 py-[3px] text-caption text-[#7A4F0E]">{t(b)}</span>
       ))}
     </span>
   );
@@ -138,7 +138,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                   href={`#cat-${c.key}`}
                   aria-current={on ? "true" : undefined}
                   onClick={() => setActive(c.key)}
-                  className={`flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold ${on ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}
+                  className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${on ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}
                 >
                   <span className="md:hidden">{c.name}</span>
                   <span className="hidden md:inline">{t("kitchen.category_count", { name: c.name, count: c.items.length })}</span>
@@ -146,22 +146,22 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
               );
             })}
           </nav>
-          <label className="hidden h-10 w-[180px] shrink-0 items-center gap-2 rounded-full bg-[#F4F6F6] px-4 text-sm text-[#4C5A5E] focus-within:ring-2 focus-within:ring-[#0B5D66] md:flex lg:w-[200px]">
+          <label className="hidden h-10 w-[180px] shrink-0 items-center gap-2 rounded-full bg-[#F4F6F6] px-4 text-small text-[#4C5A5E] focus-within:ring-2 focus-within:ring-[#0B5D66] md:flex lg:w-[200px]">
             <Search size={16} color="#4C5A5E" />
             <span className="sr-only">{t("kitchen.search_menu")}</span>
             <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("kitchen.search_menu")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
           </label>
         </div>
 
-        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-sm font-semibold text-[#8C1D18]">{t("kitchen.closed_note")}</p>}
+        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t("kitchen.closed_note")}</p>}
         {categories.length === 0 && <p className="mt-8 text-[#4C5A5E]">{t("kitchen.menu_unavailable")}</p>}
         {q.trim() && shown.length === 0 && <p className="mt-8 text-[#4C5A5E]">{t("kitchen.no_match", { q: q.trim() })}</p>}
 
         {shown.map((c, ci) => (
           <section key={c.key} id={`cat-${c.key}`} aria-labelledby={`h-${c.key}`} className="scroll-mt-[150px] md:scroll-mt-[160px]">
             <div className={ci ? "mt-8" : "mt-6"}>
-              <h2 id={`h-${c.key}`} className="m-0 font-display text-[22px] font-semibold tracking-[-0.5px] md:text-2xl">{c.name}</h2>
-              {c.description && <div className="text-sm text-[#4C5A5E]">{c.description}</div>}
+              <h2 id={`h-${c.key}`} className="m-0 text-h2 tracking-[-0.5px]">{c.name}</h2>
+              {c.description && <div className="text-small text-[#4C5A5E]">{c.description}</div>}
             </div>
             {c.items.map((i) => {
               const off = !i.is_available || !!i.sold_out_today;
@@ -169,9 +169,9 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
               // A dish photo only when the kitchen has one; otherwise a clean text row.
               const pic = photo(i.image_url, 400);
               const control = off ? (
-                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-sm font-extrabold text-[#4C5A5E]">{t("kitchen.sold_out")}</span>
+                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#4C5A5E]">{t("kitchen.sold_out")}</span>
                 ) : n > 0 ? (
-                  <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-extrabold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
+                  <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
                     <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
                     <span aria-live="polite" className="min-w-[14px] text-center tabular-nums">{n}</span>
                     <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:opacity-50"><Plus color="#FFFFFF" /></button>
@@ -182,7 +182,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                     disabled={closed}
                     aria-label={t("kitchen.add_dish", { name: i.name })}
                     onClick={() => plus(i)}
-                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-extrabold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-[#4C5A5E]"
+                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-[#4C5A5E]"
                   >
                     {t("common.add")}
                   </button>
@@ -191,10 +191,10 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                 <div key={i.id} className={`flex gap-4 border-b border-[#E2E7E8] md:gap-5 ${pic ? "pb-[30px] pt-[22px]" : "items-center py-[22px]"} ${off ? "opacity-60" : ""}`}>
                   <span className="min-w-0 flex-grow">
                     <Marks item={i} t={t} />
-                    <b className="mt-2 block text-lg">{i.name}</b>
-                    <b className="mt-1 block text-base">{fmt(i.price)}</b>
-                    {i.description && <span className="mt-2 block text-sm leading-[1.5] text-[#4C5A5E]">{i.description}</span>}
-                    {off && <span className="mt-2 block text-sm font-bold text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
+                    <b className="mt-2 block text-h3">{i.name}</b>
+                    <b className="mt-1 block text-label tabular-nums">{fmt(i.price)}</b>
+                    {i.description && <span className="mt-2 block text-small leading-[1.5] text-[#4C5A5E]">{i.description}</span>}
+                    {off && <span className="mt-2 block text-label text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
                   </span>
                   {pic ? (
                     <span className="relative h-[104px] w-[112px] shrink-0 rounded-2xl md:h-[140px] md:w-[156px] md:rounded-[18px]">
@@ -302,21 +302,21 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
           </div>
           <div className={`px-5 pb-5 md:px-7 ${item.image_url ? "pt-6" : "pt-0"}`}>
             <Marks item={item} t={t} />
-            <h2 id={titleId} className="m-0 mt-2 font-display text-[26px] font-semibold tracking-[-0.6px] md:text-[30px]">{item.name}</h2>
-            {item.description && <p className="m-0 mt-2 text-[15px] text-[#4C5A5E]">{item.description}</p>}
+            <h2 id={titleId} className="m-0 mt-2 text-h1 tracking-[-0.6px]">{item.name}</h2>
+            {item.description && <p className="m-0 mt-2 text-body text-[#4C5A5E]">{item.description}</p>}
             {groups.map((g) => {
               const radio = g.max_picks === 1;
               const absolute = g.min_picks >= 1 && radio && g.options.some((o) => Number(o.price) > 0); // a portion: show the dish's price with it
               return (
                 <fieldset key={g.id} className="mt-6 border-0 p-0">
                   <legend className="flex w-full items-center justify-between">
-                    <b className="text-[17px]">{g.name}</b>
+                    <b className="text-h3">{g.name}</b>
                     {g.min_picks > 0 ? (
-                      <span className="rounded-md bg-[#DDEBEC] px-2 py-[3px] text-xs font-extrabold uppercase text-[#083F46]">
+                      <span className="rounded-md bg-[#DDEBEC] px-2 py-[3px] text-caption text-[#083F46]">
                         {g.min_picks === g.max_picks ? t("kitchen.required_pick", { count: g.min_picks }) : t("kitchen.required_range", { min: g.min_picks, max: g.max_picks })}
                       </span>
                     ) : (
-                      <span className="text-xs font-extrabold uppercase text-[#4C5A5E]">{t("kitchen.optional_upto", { count: g.max_picks })}</span>
+                      <span className="text-caption text-[#4C5A5E]">{t("kitchen.optional_upto", { count: g.max_picks })}</span>
                     )}
                   </legend>
                   <div className="mt-2">
@@ -336,8 +336,8 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
                               {on && <Check color="#FFFFFF" />}
                             </span>
                           )}
-                          <span className={`flex-grow text-base ${on ? "font-bold" : ""}`}>{o.name}</span>
-                          <span className="text-base text-[#4C5A5E]">{absolute ? fmt(base + price) : price > 0 ? `+${fmt(price)}` : ""}</span>
+                          <span className={`flex-grow text-body ${on ? "font-bold" : ""}`}>{o.name}</span>
+                          <span className="text-body tabular-nums text-[#4C5A5E]">{absolute ? fmt(base + price) : price > 0 ? `+${fmt(price)}` : ""}</span>
                         </label>
                       );
                     })}
@@ -350,10 +350,10 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
         <div className="flex shrink-0 items-center gap-4 border-t border-[#E2E7E8] px-5 py-[18px] md:px-7">
           <span className="flex h-14 items-center gap-1 rounded-full border-[1.5px] border-[#C9D3D4] px-2">
             <button type="button" aria-label={t("kitchen.less")} onClick={() => setQty((n) => Math.max(1, n - 1))} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[#F4F6F6]"><Minus /></button>
-            <b aria-live="polite" className="w-5 text-center text-lg tabular-nums">{qty}</b>
+            <b aria-live="polite" className="w-5 text-center text-h3 tabular-nums">{qty}</b>
             <button type="button" aria-label={t("kitchen.more_qty")} onClick={() => setQty((n) => Math.min(20, n + 1))} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-[#F4F6F6]"><Plus /></button>
           </span>
-          <button type="button" disabled={!valid} onClick={add} className="h-14 flex-grow rounded-full bg-[#0B5D66] px-5 text-[15px] font-extrabold text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
+          <button type="button" disabled={!valid} onClick={add} className="h-14 flex-grow rounded-full bg-[#0B5D66] px-5 text-label tabular-nums text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
             {t("kitchen.add_to_bag", { price: fmt(unit * qty) })}
           </button>
         </div>
@@ -369,11 +369,11 @@ function NewBag({ from, dish, onKeep, onStart }: { from: string; dish: string; o
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] md:items-center" onClick={onKeep}>
       <div role="alertdialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} className="w-full rounded-t-[28px] bg-white p-6 md:w-[460px] md:rounded-[28px]">
-        <h2 id={titleId} className="m-0 font-display text-2xl font-semibold tracking-[-0.5px]">{t("kitchen.new_bag_title")}</h2>
-        <p className="mt-2 text-[15px] text-[#4C5A5E]">{t("kitchen.new_bag_body", { kitchen: from, dish })}</p>
+        <h2 id={titleId} className="m-0 text-h2 tracking-[-0.5px]">{t("kitchen.new_bag_title")}</h2>
+        <p className="mt-2 text-body text-[#4C5A5E]">{t("kitchen.new_bag_body", { kitchen: from, dish })}</p>
         <div className="mt-6 flex gap-3">
-          <button type="button" autoFocus onClick={onKeep} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-extrabold">{t("kitchen.keep_bag")}</button>
-          <button type="button" onClick={onStart} className="h-12 flex-1 rounded-full bg-[#0B5D66] font-extrabold text-white hover:bg-[#083F46]">{t("kitchen.start_new_bag")}</button>
+          <button type="button" autoFocus onClick={onKeep} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-bold">{t("kitchen.keep_bag")}</button>
+          <button type="button" onClick={onStart} className="h-12 flex-1 rounded-full bg-[#0B5D66] font-bold text-white hover:bg-[#083F46]">{t("kitchen.start_new_bag")}</button>
         </div>
       </div>
     </div>
@@ -391,15 +391,15 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
   const box = "rounded-[24px] border border-[#E2E7E8] p-[22px]";
   const head = (
     <div className="flex items-baseline justify-between">
-      <h2 className="m-0 font-display text-[22px] font-semibold tracking-[-0.5px]">{t("kitchen.your_bag")}</h2>
-      {count > 0 && <span className="text-sm text-[#4C5A5E]">{t("kitchen.items", { count })}</span>}
+      <h2 className="m-0 text-h2 tracking-[-0.5px]">{t("kitchen.your_bag")}</h2>
+      {count > 0 && <span className="text-small text-[#4C5A5E]">{t("kitchen.items", { count })}</span>}
     </div>
   );
   if (!hydrated || !restaurant || !lines.length) {
     return (
       <div className={box}>
         {head}
-        <p className="mt-2 text-[15px] text-[#4C5A5E]">{t("kitchen.bag_empty")}</p>
+        <p className="mt-2 text-body text-[#4C5A5E]">{t("kitchen.bag_empty")}</p>
       </div>
     );
   }
@@ -408,13 +408,13 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
   return (
     <div className={box}>
       {head}
-      {restaurant.id !== kitchenId && <p className="mt-1 text-sm text-[#4C5A5E]">{t("kitchen.from_kitchen", { kitchen: restaurant.name })}</p>}
-      <ul className="mt-[14px] flex list-none flex-col gap-3 p-0 text-[15px]">
+      {restaurant.id !== kitchenId && <p className="mt-1 text-small text-[#4C5A5E]">{t("kitchen.from_kitchen", { kitchen: restaurant.name })}</p>}
+      <ul className="mt-[14px] flex list-none flex-col gap-3 p-0 text-body">
         {lines.map((l) => (
           <li key={l.key} className="flex items-start gap-[10px]">
             <span className="min-w-0 flex-grow">
               {t("kitchen.line", { count: l.quantity, name: l.name })}
-              {l.summary && <span className="block truncate text-[13px] text-[#4C5A5E]">{l.summary}</span>}
+              {l.summary && <span className="block truncate text-small text-[#4C5A5E]">{l.summary}</span>}
             </span>
             <span className="flex shrink-0 items-center gap-1">
               <button type="button" aria-label={t("kitchen.one_less", { name: l.name })} onClick={() => setQuantity(l.key, l.quantity - 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E2E7E8] hover:bg-[#F4F6F6]"><Minus size={12} /></button>
@@ -424,7 +424,7 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
           </li>
         ))}
       </ul>
-      <div className="mt-4 border-t border-[#E2E7E8] pt-[14px] text-sm">
+      <div className="mt-4 border-t border-[#E2E7E8] pt-[14px] text-small">
         {q ? (
           <FairBill
             lines={q.lines}
@@ -438,17 +438,17 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
           />
         ) : (
           <>
-            <div className="flex items-baseline justify-between text-base">
+            <div className="flex items-baseline justify-between text-body">
               <span>{t("bill.line_food")}</span>
               <b className="tabular-nums">{f.money(foodSubtotal(lines), currency)}</b>
             </div>
-            <p className="mt-1 text-[13px] text-[#4C5A5E]" aria-live="polite">
+            <p className="mt-1 text-small text-[#4C5A5E]" aria-live="polite">
               {quote.loading ? t("kitchen.working_out") : quote.error ? quote.error : !signedIn ? t("kitchen.bill_after_sign_in") : !hasAddress ? t("kitchen.bill_after_address") : t("kitchen.bill_at_checkout")}
             </p>
           </>
         )}
       </div>
-      <Link href="/checkout" className="mt-4 flex h-14 w-full items-center justify-center rounded-full bg-[#0B5D66] px-[22px] text-[15px] font-extrabold text-white hover:bg-[#083F46] hover:text-white">
+      <Link href="/checkout" className="mt-4 flex h-14 w-full items-center justify-center rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] hover:text-white">
         {t("kitchen.go_to_checkout")}
       </Link>
     </div>
@@ -465,9 +465,9 @@ function PhoneBagBar({ quote }: { quote: string | null }) {
   return (
     <Link
       href="/checkout"
-      className="fixed inset-x-4 bottom-4 z-40 flex h-14 items-center justify-between rounded-full bg-[#0B5D66] px-[22px] text-base font-extrabold text-white shadow-[0_10px_30px_rgba(11,93,102,0.35)] hover:text-white md:hidden"
+      className="fixed inset-x-4 bottom-4 z-40 flex h-14 items-center justify-between rounded-full bg-[#0B5D66] px-[22px] text-label text-white shadow-[0_10px_30px_rgba(11,93,102,0.35)] hover:text-white md:hidden"
     >
-      <span>{t("kitchen.bar_summary", { count, total: f.money(quote ?? foodSubtotal(lines), restaurant.currency) })}</span>
+      <span className="tabular-nums">{t("kitchen.bar_summary", { count, total: f.money(quote ?? foodSubtotal(lines), restaurant.currency) })}</span>
       <span>{t("kitchen.view_bag")} →</span>
     </Link>
   );

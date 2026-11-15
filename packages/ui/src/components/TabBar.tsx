@@ -21,7 +21,7 @@ export function TabBar({ items, current, onSelect, className }: {
       {items.map((t) => {
         const active = t.key === current;
         const cls = cn(
-          "flex h-12 items-center justify-center gap-2 rounded-pill text-sm font-bold",
+          "flex h-12 items-center justify-center gap-2 rounded-pill text-label",
           active ? "bg-peacock px-[18px] text-white" : "w-[52px] text-line-strong hover:text-white",
         );
         const body = (

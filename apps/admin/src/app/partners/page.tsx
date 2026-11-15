@@ -51,7 +51,7 @@ function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  if (!c.data) return <p className="text-sm text-muted">Loading commission…</p>;
+  if (!c.data) return <p className="text-small text-muted">Loading commission…</p>;
   const d = c.data;
   const scope = d.city ?? d.country;
   const cur = d.country === "US" ? "$" : "₹";
@@ -73,24 +73,24 @@ function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
   const pending = d.pending_tier_change;
   return (
     <section className="space-y-3 rounded-2xl bg-white p-6" aria-label={`Commission · ${d.name}`}>
-      <h2 className="m-0 font-display text-2xl font-semibold">{d.name}</h2>
-      <p className="text-[15px]" data-testid="kitchen-commission">
+      <h2 className="m-0 text-h2">{d.name}</h2>
+      <p className="text-body" data-testid="kitchen-commission">
         Pays <b>{d.percent ?? "no"}%</b> of food{d.flat_per_order ? ` + ${cur}${Number(d.flat_per_order).toFixed(2)} per order` : ""}
         {src ? <> · set by {LEVEL_SOURCE[src.scope_level] ?? src.scope_level}{src.name ? ` “${src.name}”` : ""} (v{src.version})</> : null}
         {src?.effective_to ? <> · until {new Date(src.effective_to).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</> : null}
       </p>
-      <p className="text-sm">Tier <b data-testid="kitchen-tier">{d.tier ?? "default"}</b>
+      <p className="text-small">Tier <b data-testid="kitchen-tier">{d.tier ?? "default"}</b>
         {pending ? <> · <span className="text-kesar-ink">change to tier {pending.to} waiting for approval (“{pending.note}”)</span></> : null}</p>
       {pending && can(me, "rules.approve", scope) && pending.requested_by !== me?.user_id ? (
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/commission/tier-changes/${pending.id}/approve`, {}), `Tier changed to ${pending.to}.`)}
-            className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Approve tier {pending.to}</button>
+            className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Approve tier {pending.to}</button>
           <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/commission/tier-changes/${pending.id}/reject`, {}), "Tier change turned down.")}
             className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili">Turn down</button>
         </div>
       ) : null}
       {!pending && can(me, "rules.edit", scope) ? (
-        <div className="flex flex-wrap items-end gap-2 text-sm">
+        <div className="flex flex-wrap items-end gap-2 text-small">
           <label className="font-bold">Change tier to
             <select aria-label="New tier" value={tier} onChange={(e) => setTier(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
               {["A", "B", "C"].filter((t) => t !== d.tier).map((t) => <option key={t}>{t}</option>)}
@@ -102,7 +102,7 @@ function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
             className="h-10 rounded-full border border-line-strong px-4 font-bold disabled:opacity-40">Ask for tier {tier}</button>
         </div>
       ) : null}
-      {msg ? <p role="status" className={`text-sm font-semibold ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
+      {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
     </section>
   );
 }
@@ -126,11 +126,11 @@ function Kitchens({ scope }: { scope: string }) {
   const opened = list.find((k) => k.id === open) ?? null;
   return (
     <section className="space-y-3">
-      <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-80 rounded-full border border-line-strong bg-white px-4 text-sm" />
+      <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
       {isLoading ? <p className="text-muted">Loading…</p> : null}
       <div className="overflow-x-auto rounded-2xl bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="text-[12px] uppercase tracking-wide text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>FSSAI</th><th>Open</th></tr></thead>
+        <table className="w-full text-left text-small">
+          <thead className="text-caption text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>FSSAI</th><th>Open</th></tr></thead>
           <tbody className="divide-y divide-line">
             {list.map((k) => (
               <tr key={k.id} onClick={() => setOpen(k.id)} className={`cursor-pointer ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}><td className="px-4 py-3 font-bold"><button type="button" className="font-bold">{k.name}</button></td><td>{k.city}</td><td className="text-muted">{k.cuisine_types.join(", ")}</td>
@@ -177,26 +177,26 @@ function Applications({ scope }: { scope: string }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <section className="rounded-2xl bg-white p-2" aria-label="Kitchens applying">
-        <div className="px-3 py-2 text-sm font-extrabold">Applying · {mine.length}</div>
-        {mine.length === 0 ? <p className="px-3 pb-3 text-sm text-muted">No kitchens waiting.</p> : null}
+        <div className="px-3 py-2 text-label">Applying · {mine.length}</div>
+        {mine.length === 0 ? <p className="px-3 pb-3 text-small text-muted">No kitchens waiting.</p> : null}
         {mine.map((k) => (
-          <button key={k.id} type="button" onClick={() => setOpen(k.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+          <button key={k.id} type="button" onClick={() => setOpen(k.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
             <b>{k.name}</b><div className="text-muted">{k.city} · {k.cuisine_types.join(", ")} · applied {ago(k.created_at)}</div>
           </button>
         ))}
       </section>
       {open && app.data ? (
         <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Application · ${app.data.name}`}>
-          <div><h2 className="m-0 font-display text-2xl font-semibold">{app.data.name}</h2><p className="text-sm text-muted">{kitchen?.city} · {app.data.done} of {app.data.total} done · commission {app.data.commission_percent}%</p></div>
+          <div><h2 className="m-0 text-h2">{app.data.name}</h2><p className="text-small text-muted">{kitchen?.city} · {app.data.done} of {app.data.total} done · commission {app.data.commission_percent}%</p></div>
           <ol className="space-y-2">
             {app.data.steps.map((s, i) => (
-              <li key={s.key} className="flex items-center gap-3 text-sm">
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${s.done ? "bg-peacock text-white" : "border-2 border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
+              <li key={s.key} className="flex items-center gap-3 text-small">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-caption ${s.done ? "bg-peacock text-white" : "border-2 border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
                 <b className="w-44">{s.title}</b><span className="text-muted">{s.detail}</span>
               </li>
             ))}
           </ol>
-          <dl className="grid gap-2 rounded-xl bg-porcelain p-4 text-sm sm:grid-cols-2">
+          <dl className="grid gap-2 rounded-xl bg-porcelain p-4 text-small sm:grid-cols-2">
             <div><dt className="font-bold">FSSAI licence</dt><dd>{app.data.fssai_number ?? "not given"}{app.data.fssai_expires_on ? ` · until ${app.data.fssai_expires_on}` : ""}
               {app.data.fssai_document_key ? <> · <button type="button" className="font-bold text-peacock" onClick={() => void openFile(app.data!.fssai_document_key!)}>View certificate</button></> : null}</dd></div>
             <div><dt className="font-bold">GSTIN</dt><dd>{app.data.gstin ?? "not given"}</dd></div>
@@ -206,12 +206,12 @@ function Applications({ scope }: { scope: string }) {
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void decide(open, true)} disabled={app.data.done < app.data.total - 1}
                 title={app.data.done < app.data.total - 1 ? "Every step before going live must be done" : undefined}
-                className="h-11 rounded-full bg-peacock px-5 font-extrabold text-white disabled:opacity-40">Approve and go live</button>
-              <input aria-label="Reason for turning down" placeholder="Reason (kept with the application)" value={reason} onChange={(e) => setReason(e.target.value)} className="h-11 flex-1 rounded-full border border-line px-4 text-sm" />
+                className="h-11 rounded-full bg-peacock px-5 font-bold text-white disabled:opacity-40">Approve and go live</button>
+              <input aria-label="Reason for turning down" placeholder="Reason (kept with the application)" value={reason} onChange={(e) => setReason(e.target.value)} className="h-11 flex-1 rounded-full border border-line px-4 text-small" />
               <button type="button" disabled={reason.trim().length < 3} onClick={() => void decide(open, false)} className="h-11 rounded-full border border-line-strong px-5 font-bold text-chili disabled:opacity-40">Turn down</button>
             </div>
-          ) : <p className="text-sm text-muted">You can view this application; approving needs partners.edit for {kitchen?.city}.</p>}
-          {msg ? <p role="status" className="text-sm font-semibold text-peacock">{msg}</p> : null}
+          ) : <p className="text-small text-muted">You can view this application; approving needs partners.edit for {kitchen?.city}.</p>}
+          {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
         </section>
       ) : <div className="rounded-2xl bg-white p-6 text-muted">{msg ?? "Pick a kitchen to see its application."}</div>}
     </div>
@@ -240,11 +240,11 @@ function Riders({ scope }: { scope: string }) {
   }
   return (
     <section className="space-y-3">
-      <p className="text-sm text-muted">Riders work across a country, so their documents are reviewed by country. A rider goes online once their licence, insurance and background check are approved.</p>
-      {msg ? <p role="status" className="text-sm font-semibold text-peacock">{msg}</p> : null}
+      <p className="text-small text-muted">Riders work across a country, so their documents are reviewed by country. A rider goes online once their licence, insurance and background check are approved.</p>
+      {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
       {(docs.data ?? []).length === 0 ? <p className="rounded-2xl bg-white p-6 text-muted">Nothing to review.</p> : null}
       {(docs.data ?? []).map((d) => (
-        <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 text-sm">
+        <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 text-small">
           <div className="min-w-[220px] flex-1"><b>{d.rider_name}</b> <span className="text-muted">· {d.rider_phone} · {d.country}</span>
             <div>{DOC_LABELS[d.kind] ?? d.kind} · sent {ago(d.submitted_at)}</div></div>
           {d.file_key ? <button type="button" className="font-bold text-peacock" onClick={() => void openFile(d.file_key!)}>View</button> : <span className="text-muted">our check</span>}
@@ -253,7 +253,7 @@ function Riders({ scope }: { scope: string }) {
               <input aria-label={`Note for ${d.rider_name}`} placeholder="What to fix (if sending back)" value={notes[d.id] ?? ""}
                 onChange={(e) => setNotes((n) => ({ ...n, [d.id]: e.target.value }))} className="h-10 w-64 rounded-full border border-line px-3" />
               <button type="button" onClick={() => void review(d, "reject")} disabled={!notes[d.id]} className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Send back</button>
-              <button type="button" onClick={() => void review(d, "approve")} className="h-10 rounded-full bg-peacock px-4 font-extrabold text-white">Approve</button>
+              <button type="button" onClick={() => void review(d, "approve")} className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Approve</button>
             </>
           ) : null}
         </div>
@@ -271,11 +271,11 @@ function PartnersPage() {
   return (
     <ConsoleShell section="Partners" country={country} region={region} city={city} scopeHref={(s) => `/partners?scope=${s}&tab=${tab}`}>
       <div className="flex flex-wrap items-end gap-3">
-        <h1 className="m-0 font-display text-[32px] font-semibold tracking-[-0.8px]">Partners</h1>
+        <h1 className="m-0 text-h1 tracking-[-0.8px]">Partners</h1>
         <nav aria-label="Partners" className="ml-auto flex rounded-full bg-white p-1">
           {TABS.map((t) => (
             <button key={t.key} type="button" onClick={() => router.replace(`/partners?scope=${scope}&tab=${t.key}`)} aria-current={tab === t.key ? "page" : undefined}
-              className={`h-9 rounded-full px-4 text-sm ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
+              className={`h-9 rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
           ))}
         </nav>
       </div>

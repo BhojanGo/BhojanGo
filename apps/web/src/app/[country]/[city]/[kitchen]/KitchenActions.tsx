@@ -38,8 +38,8 @@ export function KitchenActions({ id, name, compact }: { id: string; name: string
   }
 
   const pill = compact
-    ? "flex h-9 items-center gap-[6px] rounded-[10px] border border-[#E2E7E8] bg-white px-3 text-sm font-bold text-[#111418]"
-    : "inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-[22px] text-[15px] font-extrabold text-[#111418] hover:border-[#0B5D66]";
+    ? "flex h-9 items-center gap-[6px] rounded-[10px] border border-[#E2E7E8] bg-white px-3 text-label text-[#111418]"
+    : "inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-[22px] text-label text-[#111418] hover:border-[#0B5D66]";
   return (
     <span className="flex gap-[10px]">
       <button

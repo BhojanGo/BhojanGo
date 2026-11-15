@@ -159,11 +159,11 @@ export function AddressBox({
             if (e.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
           }}
           placeholder={t("address.placeholder")}
-          className="min-w-0 flex-grow bg-transparent text-[17px] text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+          className="min-w-0 flex-grow bg-transparent text-body-lg text-[#111418] outline-none placeholder:text-[#4C5A5E]"
         />
         <button
           type="submit"
-          className={`shrink-0 rounded-full border-0 bg-[#0B5D66] font-extrabold text-white hover:bg-[#083F46] ${hero ? "h-11 px-5 text-[15px] md:h-14 md:px-[30px] md:text-base" : "h-10 px-4 text-sm"}`}
+          className={`shrink-0 rounded-full border-0 bg-[#0B5D66] text-label text-white hover:bg-[#083F46] ${hero ? "h-11 px-5 md:h-14 md:px-[30px]" : "h-10 px-4"}`}
         >
           {t("address.find_food")}
         </button>
@@ -180,7 +180,7 @@ export function AddressBox({
               >
                 <Pin size={16} color="#4C5A5E" />
                 <span className="flex-grow font-semibold text-[#111418]">{a.label}</span>
-                <span className={`text-xs font-bold ${a.served ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
+                <span className={`text-small ${a.served ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
                   {a.served ? t("address.served") : t("address.not_served")}
                 </span>
               </button>
@@ -191,12 +191,12 @@ export function AddressBox({
       {(!hero || problem) && (
         <div className="mt-2 flex items-center gap-2">
           {!hero && (
-            <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0B5D66] disabled:opacity-60">
+            <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex items-center gap-2 text-label text-[#0B5D66] disabled:opacity-60">
               <Locate color="#0B5D66" />
               {locate.busy ? t("address.locating") : t("address.use_my_location")}
             </button>
           )}
-          {problem && <span role="status" className="text-sm text-[#4C5A5E]">{problem}</span>}
+          {problem && <span role="status" className="text-small text-[#4C5A5E]">{problem}</span>}
         </div>
       )}
     </div>

@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Familjen_Grotesk, Hanken_Grotesk } from "next/font/google";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -8,11 +7,9 @@ import { TestSiteBanner } from "@/components/TestSiteBanner";
 import { I18nProvider } from "@/lib/i18n";
 import { getContext } from "@/lib/prefs";
 import { INDEXABLE, SITE } from "@/lib/server";
+import { fontVariables } from "./fonts";
 import "./globals.css";
 
-// Design system fonts: display for headings and big numbers, text for everything else.
-const display = Familjen_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
-const text = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-text" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getContext();
@@ -43,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : null;
   return (
     <html lang={ctx.language}>
-      <body className={`${display.variable} ${text.variable} bg-white font-sans text-[#111418] antialiased`}>
+      <body className={`${fontVariables} bg-white font-sans text-[#111418] antialiased`}>
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
           {ctx.t("common.skip_to_content")}
         </a>

@@ -57,22 +57,22 @@ function KitchenFav({ k }: { k: FavKitchen }) {
         <div className="relative aspect-[4/3] overflow-hidden rounded-[20px]">
           <Thumb src={photo(k.cover_url, 800)} name={k.name} className="h-full w-full rounded-[20px]" />
           {open != null && (
-            <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-xs font-extrabold text-white">
+            <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-caption text-white">
               {open ? t("favourites.open_now") : t("favourites.closed_now")}
             </span>
           )}
         </div>
         <div className="mt-3 flex items-baseline justify-between gap-2">
-          <b className="truncate text-[17px]">{k.name}</b>
-          {k.is_new && <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-xs font-extrabold text-[#083F46]">{t("common.new")}</span>}
+          <b className="truncate text-h3">{k.name}</b>
+          {k.is_new && <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-caption text-[#083F46]">{t("common.new")}</span>}
         </div>
-        <div className="mt-1 truncate text-sm text-[#4C5A5E]">{[...k.cuisine_types.slice(0, 2), k.city].filter(Boolean).join(" · ")}</div>
-        <div className="mt-1 text-sm">
+        <div className="mt-1 truncate text-small text-[#4C5A5E]">{[...k.cuisine_types.slice(0, 2), k.city].filter(Boolean).join(" · ")}</div>
+        <div className="mt-1 text-small">
           <b>{t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })}</b>
           {fee !== null && (
             <>
               {" · "}
-              {fee === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_fee", { fee: f.money(fee, k.currency, { whole: true }) })}
+              {fee === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : <span className="tabular-nums">{t("common.delivery_fee", { fee: f.money(fee, k.currency, { whole: true }) })}</span>}
             </>
           )}
         </div>
@@ -91,8 +91,8 @@ function DishFav({ d, href }: { d: FavDish; href: string | null }) {
     <>
       <Thumb src={photo(d.image_url, 400)} className="h-[72px] w-[72px] shrink-0 rounded-[14px] md:h-[84px] md:w-[84px]" />
       <span className="min-w-0 flex-grow">
-        <b className="block truncate text-base">{d.name}</b>
-        <span className="block truncate text-sm text-[#4C5A5E]">{d.restaurant.name}</span>
+        <b className="block truncate text-label">{d.name}</b>
+        <span className="block truncate text-small text-[#4C5A5E]">{d.restaurant.name}</span>
         <b className="mt-1 block tabular-nums">{f.money(d.price, d.currency, { whole: true })}</b>
       </span>
     </>
@@ -110,12 +110,12 @@ function DishFav({ d, href }: { d: FavDish; href: string | null }) {
           <Link
             href={href}
             aria-label={t("favourites.add_dish", { name: d.name, kitchen: d.restaurant.name })}
-            className="flex h-10 items-center justify-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-[22px] text-[15px] font-extrabold text-[#111418] hover:text-[#111418]"
+            className="flex h-10 items-center justify-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-[22px] text-label text-[#111418] hover:text-[#111418]"
           >
             {t("favourites.add")}
           </Link>
         ) : (
-          !d.available && <span className="text-[13px] font-bold text-[#4C5A5E]">{t("favourites.sold_out")}</span>
+          !d.available && <span className="text-label text-[#4C5A5E]">{t("favourites.sold_out")}</span>
         )}
       </span>
     </div>
@@ -150,7 +150,7 @@ export function FavouritesView() {
   if (data === "error") {
     return (
       <div>
-        <h1 className="font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">{t("favourites.title")}</h1>
+        <h1 className="text-h1 tracking-[-0.8px]">{t("favourites.title")}</h1>
         <p role="alert" className="mt-4 text-[#4C5A5E]">
           {t("favourites.error")}{" "}
           <button type="button" onClick={() => { setData(null); setRetry((n) => n + 1); }} className="font-bold text-[#0B5D66]">{t("common.retry")}</button>
@@ -173,7 +173,7 @@ export function FavouritesView() {
       type="button"
       aria-pressed={show === s}
       onClick={() => setShow((v) => (v === s ? null : s))}
-      className={`flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold ${show === s ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
+      className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${show === s ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
     >
       {label}
     </button>
@@ -181,7 +181,7 @@ export function FavouritesView() {
 
   return (
     <div>
-      <h1 className="font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[32px]">{t("favourites.title")}</h1>
+      <h1 className="text-h1 tracking-[-0.8px]">{t("favourites.title")}</h1>
       {!kitchens.length && !dishes.length ? (
         <p className="mt-4 text-[#4C5A5E]">
           {t("favourites.empty")} <Link href="/" className="font-bold">{t("favourites.find_food")}</Link>
@@ -205,7 +205,7 @@ export function FavouritesView() {
           )}
           {show !== "kitchens" && (
             <section aria-labelledby="saved-dishes" className="mt-9">
-              <h2 id="saved-dishes" className="font-display text-[22px] font-semibold tracking-[-0.5px]">{t("favourites.saved_dishes")}</h2>
+              <h2 id="saved-dishes" className="text-h2 tracking-[-0.5px]">{t("favourites.saved_dishes")}</h2>
               {dishes.length ? (
                 <div className="mt-[14px] grid gap-3 xl:grid-cols-2">
                   {dishes.map((d) => <DishFav key={d.id} d={d} href={dishHref(d)} />)}

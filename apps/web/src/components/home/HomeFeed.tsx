@@ -86,12 +86,12 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
           {img && <img src={img} alt="" className="block h-full w-full object-cover" />}
         </span>
         <span className="min-w-0 flex-grow">
-          <b className="line-clamp-2 block text-sm md:line-clamp-none md:truncate md:text-[17px]">
+          <b className="line-clamp-2 block text-h3 md:line-clamp-none md:truncate">
             {t(onWay ? "home.order_on_way" : "home.order_preparing", { kitchen: order.restaurant_name })}
           </b>
           {/* phone: the minutes go here (the big ETA block is desktop only) */}
           {(sub || (minutes != null && minutes < 600)) && (
-            <span className="block truncate text-xs text-[#A9B8BA] md:text-sm">
+            <span className="block truncate text-small text-[#A9B8BA]">
               <span className="md:hidden">{[minutes != null && minutes < 600 ? t("home.order_minutes", { count: minutes }) : null, sub].filter(Boolean).join(" · ")}</span>
               <span className="hidden md:inline">{sub}</span>
             </span>
@@ -99,11 +99,11 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
         </span>
         {minutes != null && eta && minutes < 600 && (
           <span className="hidden text-right md:block">
-            <b className="block font-display text-[26px] font-semibold">{t("home.order_minutes", { count: minutes })}</b>
-            <span className="text-[13px] text-[#A9B8BA]">{t("home.order_arriving", { time: f.zone(order.time_zone).time(eta) })}</span>
+            <b className="block text-h2">{t("home.order_minutes", { count: minutes })}</b>
+            <span className="text-small text-[#A9B8BA]">{t("home.order_arriving", { time: f.zone(order.time_zone).time(eta) })}</span>
           </span>
         )}
-        <span className="text-sm font-extrabold text-[#E8A93C] md:flex md:h-12 md:items-center md:rounded-full md:bg-[#E8A93C] md:px-5 md:text-base md:text-[#111418]">
+        <span className="text-label text-[#E8A93C] md:flex md:h-12 md:items-center md:rounded-full md:bg-[#E8A93C] md:px-5 md:text-[#111418]">
           <span className="md:hidden">{t("home.track")}</span>
           <span className="hidden md:inline">{t("home.track_order")}</span>
         </span>
@@ -154,7 +154,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
   return (
     <section aria-labelledby="order-again" className="order-4 md:order-3">
       <div className="flex items-baseline justify-between">
-        <h2 id="order-again" className="m-0 font-display text-xl font-semibold tracking-[-0.5px] md:text-[26px]">{t("home.order_again")}</h2>
+        <h2 id="order-again" className="m-0 text-h2 tracking-[-0.5px]">{t("home.order_again")}</h2>
         <Link href="/account/orders" className="font-bold">{t("home.all_orders")}</Link>
       </div>
       <div className="-mx-5 mt-3 flex gap-3 overflow-x-auto px-5 md:mx-0 md:mt-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0">
@@ -168,13 +168,13 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
                 {img && <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-grow">
-                <b className="block truncate text-sm md:text-base">{o.restaurant_name}</b>
-                <span className="mt-[2px] hidden truncate text-sm text-[#4C5A5E] md:block">{items}</span>
-                <span className="mt-[2px] block text-xs text-[#4C5A5E] md:text-[13px]">
+                <b className="block truncate text-label">{o.restaurant_name}</b>
+                <span className="mt-[2px] hidden truncate text-small text-[#4C5A5E] md:block">{items}</span>
+                <span className="mt-[2px] block text-small tabular-nums text-[#4C5A5E]">
                   <span className="hidden md:inline">{f.zone(o.time_zone).date(o.created_at)} · </span>
                   {f.money(o.total, o.currency)}
                 </span>
-                <button type="button" onClick={() => void again(o)} disabled={busy !== null} className="text-[13px] font-extrabold text-[#0B5D66] disabled:opacity-60 md:hidden">
+                <button type="button" onClick={() => void again(o)} disabled={busy !== null} className="text-label text-[#0B5D66] disabled:opacity-60 md:hidden">
                   {t("home.order_again_button")}
                 </button>
               </span>
@@ -183,7 +183,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
                 onClick={() => void again(o)}
                 disabled={busy !== null}
                 aria-label={t("home.order_again_from", { kitchen: o.restaurant_name })}
-                className="hidden h-11 shrink-0 items-center rounded-full bg-[#0B5D66] px-[18px] text-sm font-extrabold text-white hover:bg-[#083F46] disabled:opacity-60 md:flex"
+                className="hidden h-11 shrink-0 items-center rounded-full bg-[#0B5D66] px-[18px] text-label text-white hover:bg-[#083F46] disabled:opacity-60 md:flex"
               >
                 {busy === o.id ? t("common.loading") : t("home.order_again_button")}
               </button>
@@ -191,7 +191,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
           );
         })}
       </div>
-      {problem && <p role="alert" className="mt-2 text-sm text-[#A3271F]">{problem}</p>}
+      {problem && <p role="alert" className="mt-2 text-small text-[#A3271F]">{problem}</p>}
     </section>
   );
 }
@@ -243,8 +243,8 @@ export function HomeFeed({
 
       <section aria-labelledby="greeting" className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 id="greeting" className="m-0 font-display text-[28px] font-semibold tracking-[-0.8px] md:text-[40px] md:tracking-[-1px]">{greeting}</h1>
-          <p className="mt-[6px] text-[15px] text-[#4C5A5E] md:text-base">{t("home.kitchens_deliver", { count: kitchens.length, place: placeLabel })}</p>
+          <h1 id="greeting" className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{greeting}</h1>
+          <p className="mt-[6px] text-body text-[#4C5A5E]">{t("home.kitchens_deliver", { count: kitchens.length, place: placeLabel })}</p>
         </div>
         <div role="group" aria-label={t("home.filters")} className="-mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
           {FILTERS.map((f) => {
@@ -256,7 +256,7 @@ export function HomeFeed({
                 aria-pressed={pressed}
                 aria-controls="kitchens"
                 onClick={() => toggle(f)}
-                className={`flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-bold ${pressed ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
+                className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${pressed ? "bg-[#111418] text-white" : "border border-[#C9D3D4] text-[#111418]"}`}
               >
                 {t(`home.filter_${f}`)}
               </button>
@@ -273,8 +273,8 @@ export function HomeFeed({
       <section id="kitchens" aria-labelledby="kitchens-near" className="order-6">
         <div className="flex items-baseline justify-between gap-4">
           <div>
-            <h2 id="kitchens-near" className="m-0 font-display text-xl font-semibold tracking-[-0.5px] md:text-[26px]">{t("home.kitchens_near")}</h2>
-            <p className="mt-1 hidden text-[15px] text-[#4C5A5E] md:block">{t("home.kitchens_near_note")}</p>
+            <h2 id="kitchens-near" className="m-0 text-h2 tracking-[-0.5px]">{t("home.kitchens_near")}</h2>
+            <p className="mt-1 hidden text-body text-[#4C5A5E] md:block">{t("home.kitchens_near_note")}</p>
           </div>
           {/* the rest of the same list, here (with the filters on: the rest of what they keep) */}
           {!all && shown.length > SHOWN && (
@@ -296,7 +296,7 @@ export function HomeFeed({
             ))}
           </div>
         ) : (
-          <p role="status" className="mt-4 text-[15px] text-[#4C5A5E]">
+          <p role="status" className="mt-4 text-body text-[#4C5A5E]">
             {kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}
           </p>
         )}

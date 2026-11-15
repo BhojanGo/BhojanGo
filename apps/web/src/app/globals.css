@@ -26,3 +26,9 @@
     display: none;
   }
 }
+
+/* The map library draws its controls at 12 px; on the type scale they are small text. */
+:root .maplibregl-map,
+:root .maplibregl-ctrl-attrib {
+  @apply text-small;
+}

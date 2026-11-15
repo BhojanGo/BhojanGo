@@ -42,12 +42,12 @@ export function ScopeBar(p: ScopeBarProps) {
         )}
         {p.countries.map((c) => (
           <CountryTab key={c.code} active={p.country === c.code} onClick={() => p.onCountry(c.code)}>
-            <span className="rounded-[6px] bg-line-divider px-1.5 py-0.5 text-[11px] font-extrabold text-kohl">{c.code}</span>
+            <span className="rounded-[6px] bg-line-divider px-1.5 py-0.5 text-caption text-kohl">{c.code}</span>
             {c.name}
             {c.badge ? (
               <span
                 className={cn(
-                  "inline-flex h-5 min-w-5 items-center justify-center rounded-pill px-1 text-[11px] font-extrabold",
+                  "inline-flex h-5 min-w-5 items-center justify-center rounded-pill px-1 text-caption",
                   c.badgeTone === "alert" ? "bg-chili text-white" : "bg-kesar text-kohl",
                 )}
               >
@@ -87,8 +87,8 @@ function CountryTab({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-[15px]",
-        active ? "border-peacock font-extrabold text-peacock-deep" : "border-transparent font-semibold text-muted hover:text-kohl",
+        "box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-label",
+        active ? "border-peacock font-bold text-peacock-deep" : "border-transparent font-semibold text-muted hover:text-kohl",
       )}
     >
       {children}
@@ -103,8 +103,8 @@ function StateChip({ active, onClick, children }: { active: boolean; onClick: ()
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-9 rounded-pill border px-3.5 text-sm",
-        active ? "border-peacock bg-peacock-tint font-extrabold text-peacock-deep" : "border-line bg-white font-semibold text-kohl hover:border-line-strong",
+        "h-9 rounded-pill border px-3.5 text-label",
+        active ? "border-peacock bg-peacock-tint font-bold text-peacock-deep" : "border-line bg-white font-semibold text-kohl hover:border-line-strong",
       )}
     >
       {children}
@@ -135,7 +135,7 @@ export function CityPicker({ states, value, onChange }: {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 items-center gap-2 rounded-pill border border-line-strong bg-white px-4 text-sm font-bold"
+        className="flex h-10 items-center gap-2 rounded-pill border border-line-strong bg-white px-4 text-label"
       >
         {current ? current.name : "All cities"}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
@@ -150,30 +150,30 @@ export function CityPicker({ states, value, onChange }: {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search cities"
             aria-controls={listId}
-            className="h-10 w-full rounded-pill bg-porcelain px-4 text-sm outline-none"
+            className="h-10 w-full rounded-pill bg-porcelain px-4 text-small outline-none"
           />
           <ul id={listId} role="listbox" aria-label="Cities" className="mt-2 max-h-72 overflow-y-auto">
             <li role="option" aria-selected={!value}>
-              <button type="button" className="w-full rounded-chip px-3 py-2 text-left text-sm hover:bg-porcelain" onClick={() => choose(null)}>
+              <button type="button" className="w-full rounded-chip px-3 py-2 text-left text-small hover:bg-porcelain" onClick={() => choose(null)}>
                 All cities
               </button>
             </li>
             {matches.map((c, i) => (
               <li key={c.code} role="option" aria-selected={c.code === value}>
                 {(i === 0 || c.state !== matches[i - 1]?.state) && (
-                  <div className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted">{c.state}</div>
+                  <div className="px-3 pb-1 pt-2 text-caption text-muted">{c.state}</div>
                 )}
                 <button
                   type="button"
                   onClick={() => choose(c.code)}
-                  className={cn("w-full rounded-chip px-3 py-2 text-left text-sm hover:bg-porcelain", c.code === value && "font-extrabold text-peacock-deep")}
+                  className={cn("w-full rounded-chip px-3 py-2 text-left text-small hover:bg-porcelain", c.code === value && "font-bold text-peacock-deep")}
                 >
                   {c.name}
-                  {c.status && c.status !== "live" ? <span className="ml-2 text-xs text-muted">{c.status}</span> : null}
+                  {c.status && c.status !== "live" ? <span className="ml-2 text-small text-muted">{c.status}</span> : null}
                 </button>
               </li>
             ))}
-            {matches.length === 0 && <li className="px-3 py-2 text-sm text-muted">No city matches</li>}
+            {matches.length === 0 && <li className="px-3 py-2 text-small text-muted">No city matches</li>}
           </ul>
         </div>
       )}

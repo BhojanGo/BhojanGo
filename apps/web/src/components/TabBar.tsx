@@ -65,7 +65,7 @@ export function TabBar({ cityPath }: { cityPath: string | null }) {
                 <Link
                   href={x.href}
                   aria-current={on ? "page" : undefined}
-                  className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-bold ${on ? "text-[#0B5D66] hover:text-[#0B5D66]" : "text-[#4C5A5E] hover:text-[#111418]"}`}
+                  className={`flex h-full flex-col items-center justify-center gap-1 text-small ${on ? "text-[#0B5D66] hover:text-[#0B5D66]" : "text-[#4C5A5E] hover:text-[#111418]"}`}
                 >
                   {x.icon}
                   {x.label}

@@ -15,7 +15,7 @@ const styles = {
 } as const;
 
 export function Badge({ variant = "neutral", className, ...rest }: BadgeProps) {
-  return <span className={cn("inline-flex items-center rounded-pill px-2.5 py-1.5 text-xs font-bold", styles[variant], className)} {...rest} />;
+  return <span className={cn("inline-flex items-center rounded-pill px-2.5 py-1.5 text-caption", styles[variant], className)} {...rest} />;
 }
 
 export const badgeVariants = (v: NonNullable<BadgeProps["variant"]> = "neutral") => styles[v];

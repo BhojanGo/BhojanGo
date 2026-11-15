@@ -12,7 +12,7 @@ const LABELS: Record<MarketStatus, string> = { live: "Live", beta: "Beta", pause
 
 export function StatusPill({ status }: { status: MarketStatus }) {
   return (
-    <span className={`inline-flex items-center rounded-lg px-2 py-1 text-xs font-bold ${STYLES[status]}`}>
+    <span className={`inline-flex items-center rounded-lg px-2 py-1 text-caption ${STYLES[status]}`}>
       {LABELS[status]}
     </span>
   );

@@ -61,7 +61,7 @@ export function HintRow({ currentCountry, countrySource }: { currentCountry: str
 
   const near = hint?.served && hint.place ? [hint.place, hint.region].filter(Boolean).join(", ") : null;
   const locateButton = (
-    <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex items-center gap-2 font-extrabold text-[#0B5D66] disabled:opacity-60">
+    <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex items-center gap-2 font-bold text-[#0B5D66] disabled:opacity-60">
       {!near && <Locate color="#0B5D66" />}
       {locate.busy ? t("address.locating") : t("address.use_my_location")}
     </button>
@@ -69,14 +69,14 @@ export function HintRow({ currentCountry, countrySource }: { currentCountry: str
   // No hint (or not a place we serve): no box at all, just "Use my location" under the address box.
   if (!near) {
     return (
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 text-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 text-small">
         {locateButton}
         {problem && <span role="status" className="text-[#4C5A5E]">{problem}</span>}
       </div>
     );
   }
   return (
-    <div className="mt-4 flex max-w-[694px] flex-wrap items-center gap-x-3 gap-y-1 rounded-[14px] border border-[#E2E7E8] bg-white px-4 py-3 text-sm">
+    <div className="mt-4 flex max-w-[694px] flex-wrap items-center gap-x-3 gap-y-1 rounded-[14px] border border-[#E2E7E8] bg-white px-4 py-3 text-small">
       <Locate color="#0B5D66" />
       <span className="flex-grow">
         <button type="button" className="font-bold text-[#111418]" onClick={() => hint?.city_path && router.push(hint.city_path)}>

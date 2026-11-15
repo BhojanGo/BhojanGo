@@ -50,14 +50,14 @@ export function HeroDish({ country }: { country: CountrySummary }) {
   return (
     <section aria-label="Hero dish" className="rounded-2xl border border-line bg-white p-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="m-0 flex-1 text-[17px] font-extrabold">Hero dish</h2>
+        <h2 className="m-0 flex-1 text-h3">Hero dish</h2>
         {editable && (
           <>
             <button
               type="button"
               disabled={busy || !saved}
               onClick={() => void save(null)}
-              className="h-10 rounded-full px-3 text-sm font-semibold text-muted disabled:opacity-50"
+              className="h-10 rounded-full px-3 text-label text-muted disabled:opacity-50"
             >
               Use the default
             </button>
@@ -65,14 +65,14 @@ export function HeroDish({ country }: { country: CountrySummary }) {
               type="button"
               disabled={busy || !picked || picked === saved}
               onClick={() => void save(picked)}
-              className="h-10 rounded-full bg-peacock px-5 text-sm font-bold text-white disabled:opacity-50"
+              className="h-10 rounded-full bg-peacock px-5 text-label text-white disabled:opacity-50"
             >
               Save hero dish
             </button>
           </>
         )}
       </div>
-      <p className="mt-1 text-[13px] text-muted">
+      <p className="mt-1 text-small text-muted">
         The big photo on the website&apos;s landing page for visitors in {country.name}.{" "}
         {saved ? <>Now: <b className="text-kohl">{dishName(saved)}</b>.</> : "None chosen: the website shows its default photo."}
       </p>
@@ -95,18 +95,18 @@ export function HeroDish({ country }: { country: CountrySummary }) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- static thumbnails from the photo library */}
               <img src={`/food/${slug}-400.webp`} alt="" loading="lazy" className="block aspect-[4/3] w-full object-cover" />
-              <span className="block px-2 py-1 text-xs font-semibold text-kohl">{dishName(slug)}</span>
+              <span className="block px-2 py-1 text-small text-kohl">{dishName(slug)}</span>
             </button>
           );
         })}
       </div>
       {done && (
-        <p role="status" className="mt-3 text-sm font-semibold text-peacock-dark">
+        <p role="status" className="mt-3 text-label text-peacock-dark">
           Saved. The website picks it up within a minute.
         </p>
       )}
       {problem && (
-        <p role="alert" className="mt-3 rounded-xl bg-danger-tint p-3 text-sm text-danger-ink">
+        <p role="alert" className="mt-3 rounded-xl bg-danger-tint p-3 text-small text-danger-ink">
           {problem}
         </p>
       )}

@@ -63,7 +63,7 @@ export function CityPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 min-w-[200px] items-center gap-2 rounded-[10px] border-[1.5px] border-peacock bg-white px-3 text-sm font-bold text-kohl"
+        className="flex h-9 min-w-[200px] items-center gap-2 rounded-[10px] border-[1.5px] border-peacock bg-white px-3 text-label text-kohl"
       >
         {selected ? <span className={`h-2 w-2 rounded-full ${DOT[selected.status]}`} /> : null}
         <span className="flex-grow text-left">{selected ? selected.name : "Pick a city"}</span>
@@ -97,17 +97,17 @@ export function CityPicker({
                 else if (e.key === "Escape") setOpen(false);
               }}
               placeholder={`Search cities in ${country.name}`}
-              className="w-full border-0 bg-transparent text-sm outline-none"
+              className="w-full border-0 bg-transparent text-small outline-none"
             />
           </label>
           <ul id={listId} role="listbox" aria-label="Cities" className="mt-2 max-h-72 overflow-y-auto">
-            {matches.length === 0 && <li className="px-3 py-2 text-sm text-muted">No city matches</li>}
+            {matches.length === 0 && <li className="px-3 py-2 text-small text-muted">No city matches</li>}
             {matches.map((c, i) => {
               // A state's name above its first city.
               const header = i === 0 || c.regionName !== matches[i - 1]?.regionName ? c.regionName : null;
               return (
                 <li key={c.code} role="presentation">
-                  {header && <div className="px-3 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted">{header}</div>}
+                  {header && <div className="px-3 pb-1 pt-2 text-caption text-muted">{header}</div>}
                   <div
                     id={`${listId}-${c.code}`}
                     role="option"
@@ -116,11 +116,11 @@ export function CityPicker({
                     onMouseEnter={() => setActive(i)}
                     onClick={() => choose(c.code)}
                     onKeyDown={(e) => e.key === "Enter" && choose(c.code)}
-                    className={`flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm ${i === active ? "bg-peacock-wash" : ""}`}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-small ${i === active ? "bg-peacock-wash" : ""}`}
                   >
                     <span className={`h-2 w-2 rounded-full ${DOT[c.status]}`} />
                     <span className="flex-grow font-semibold">{c.name}</span>
-                    <span className="text-xs capitalize text-muted">{c.status}</span>
+                    <span className="text-small capitalize text-muted">{c.status}</span>
                   </div>
                 </li>
               );

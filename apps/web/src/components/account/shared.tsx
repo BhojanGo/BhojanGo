@@ -18,7 +18,7 @@ export function Thumb({ src, className, name }: { src: string | null; className:
   if (!src) {
     // no photo of its own: the kitchen's initials, never an empty frame or another kitchen's photo
     return (
-      <span aria-hidden="true" className={`flex items-center justify-center bg-[#DDEBEC] font-display text-[22px] font-semibold text-[#083F46] ${className}`}>
+      <span aria-hidden="true" className={`flex items-center justify-center bg-[#DDEBEC] text-h2 text-[#083F46] ${className}`}>
         {initials(name)}
       </span>
     );
