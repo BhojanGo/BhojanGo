@@ -1,29 +1,29 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
 // deliveries and the next payout.
+import { useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
-import { CITY_NAMES, cash, useWeek, type Week } from "../../lib/rider";
+import { useFormat, useWeek, type Week } from "../../lib/rider";
 import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
 
 const DAY = ["M", "T", "W", "T", "F", "S", "S"];
 
-function md(iso: string, opts: Intl.DateTimeFormatOptions) {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", opts);
-}
+type DateFn = ReturnType<typeof useFormat>["date"];
 
-function range(w: Week) {
+/** "Nov 10 – Nov 16" or "10 Nov – 16 Nov" (the country's order) for the week [start, end). */
+function range(w: Week, date: DateFn) {
   const end = new Date(`${w.period_end}T12:00:00`);
   end.setDate(end.getDate() - 1);
-  const a = md(w.period_start, { month: "short", day: "numeric" });
-  const sameMonth = end.getMonth() === new Date(`${w.period_start}T12:00:00`).getMonth();
-  return `${a}–${end.toLocaleDateString("en-US", sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" })}`;
+  return `${date(w.period_start)} – ${date(end)}`;
 }
 
 export default function Earnings() {
+  const { cash, cityName, date, time } = useFormat();
+  const { t } = useI18n();
   const { data: w, error, reload } = useWeek();
   useFocusEffect(useCallback(() => void reload(), [reload]));
 
@@ -34,7 +34,7 @@ export default function Earnings() {
   const s = w.summary;
   const todayIso = w.today.date; // in the city's time zone
   const max = Math.max(...w.days.map((d) => Number(d.total)), 1);
-  const city = w.city ? CITY_NAMES[w.city] ?? w.city : "your city";
+  const city = cityName(w.city) ?? "your city";
   // A rate from a few minutes of work means nothing: wait for half an hour.
   const perHour = s.per_active_hour && Number(s.active_hours) >= 0.5 ? Number(s.per_active_hour) : null;
   const lines = [...w.today.lines].reverse(); // newest first
@@ -47,8 +47,8 @@ export default function Earnings() {
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.head}>
           <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22, letterSpacing: -0.3 }]}>Earnings</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Week of ${range(w)}. Past weeks`} onPress={() => router.push("/payouts")} style={styles.week}>
-            <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{range(w)}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Week of ${range(w, date)}. Past weeks`} onPress={() => router.push("/payouts")} style={styles.week}>
+            <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>{range(w, date)}</Text>
             <Icon name="chevronDown" size={14} width={2.4} />
           </Pressable>
         </View>
@@ -107,8 +107,8 @@ export default function Earnings() {
               <View style={{ flex: 1 }}>
                 <Text style={[ui.bold, textFont("700")]}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
                 <Text style={[ui.muted, { fontSize: 12 }]}>
-                  {new Date(ln.delivered_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()} · base {cash(ln.base, cur)}
-                  {Number(ln.distance) > 0 ? ` + ${cur === "USD" ? "miles" : "km"} ${cash(ln.distance, cur)}` : ""}
+                  {time(ln.delivered_at)} · base {cash(ln.base, cur)}
+                  {Number(ln.distance) > 0 ? ` + ${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : ""}
                   {Number(ln.waiting) > 0 ? ` + wait ${cash(ln.waiting, cur)}` : ""}
                   {Number(ln.tip) > 0 ? ` + tip ${cash(ln.tip, cur)}` : ""}
                 </Text>
@@ -121,7 +121,7 @@ export default function Earnings() {
       {/* B6: payouts are weekly only; there's no instant cash-out, so no button that suggests one. */}
       <View style={styles.footer} accessibilityLabel="Payout">
         <View style={styles.payout}>
-          <Text style={[ui.bold, { fontSize: 15 }]}>Paid weekly · next payout {md(w.payout_date, { weekday: "short", month: "short", day: "numeric" })}</Text>
+          <Text style={[ui.bold, { fontSize: 15 }]}>Paid weekly · next payout {date(w.payout_date, { weekday: "short" })}</Text>
           <Text style={[ui.muted, { fontSize: 13, textAlign: "center" }]}>Everything you earn this week goes to your bank together. There&apos;s no instant cash-out.</Text>
         </View>
       </View>

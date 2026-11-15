@@ -1,6 +1,6 @@
 // The design system for the Expo apps (P16): the same components as
 // @bhojango/ui on the web, in React Native, from the same tokens.
-import { billRows, billTotal, money, type BillLine } from "@bhojango/ui/bill";
+import { billTotal, PAYEE, type BillLine } from "@bhojango/ui/bill";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ActivityIndicator, Animated, Image, Modal, Pressable, StyleSheet, Text, TextInput, View,
@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 
+import { useI18n } from "../i18n";
 import { color, dark, elevation, radius, space, textFont, touch, typeStyle } from "./theme";
 
 // ── text ──────────────────────────────────────────────────────────────────────
@@ -137,14 +138,44 @@ export function Card({ tone = "flat", padded = true, style, children }: {
   );
 }
 
-/** The fair bill: every line with who gets the money, then the total. */
-export function FairBill({ lines, currency, totalLabel = "You pay" }: { lines: BillLine[]; currency: string; totalLabel?: string }) {
-  const rows = billRows(lines, currency);
+// Who gets it, in the website's words (bill.*): the kitchen, BhojanGo, tax, the rider.
+const PAYEE_KEY: Record<string, string> = { KITCHEN: "bill.kitchen", US: "bill.bhojango", GOVT: "bill.tax", RIDER: "bill.rider" };
+
+interface FairRow { label: string; payee: string; amount: string; accent?: boolean; struck?: string }
+
+/**
+ * The fair bill: every line with who gets the money, then the total. Amounts are
+ * formatted by the country (useI18n().money), payees and headings translated.
+ * - discounts show who funded them (US or KITCHEN) in Peacock
+ * - free delivery (a delivery fee plus an offer of minus that fee) is one row:
+ *   the usual fee struck through, then 0, paid by the kitchen or by us
+ */
+export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; currency: string; totalLabel?: string }) {
+  const { t, money } = useI18n();
+  const payee = (code: string) => t(PAYEE_KEY[code] ?? code);
+  const delivery = lines.find((ln) => ln.code === "delivery_fee");
+  const free = delivery && lines.find((ln) => ln.code === "promotion" && Number(delivery.amount) > 0 &&
+    Math.abs(Number(ln.amount) + Number(delivery.amount)) < 0.005);
+  const rows: FairRow[] = [];
+  for (const ln of lines) {
+    if (ln === free) continue;
+    const amount = Number(ln.amount);
+    if (ln === delivery && free) {
+      rows.push({ label: ln.label, payee: t(free.funded_by === "restaurant" ? "app.bill.kitchens_treat" : "app.bill.on_us"),
+                  amount: money(0, currency, { whole: true }), struck: money(amount, currency, { whole: true }) });
+    } else if (ln.code === "promotion") {
+      const by = ln.funded_by === "restaurant" ? "KITCHEN" : "US"; // data-ok: payee codes, not countries
+      rows.push({ label: ln.label, payee: payee(by), amount: money(amount, currency), accent: true });
+    } else {
+      const to = PAYEE[ln.code] ?? "US"; // data-ok: payee code, not a country
+      rows.push({ label: ln.label, payee: payee(to), amount: money(amount, currency) });
+    }
+  }
   return (
-    <View accessibilityLabel="The fair bill" style={[styles.card, { padding: space[4] }]}>
+    <View accessibilityLabel={t("checkout.fair_bill")} style={[styles.card, { padding: space[4] }]}>
       <View style={styles.billHead}>
-        <Txt variant="title" style={{ fontSize: 18 }}>The fair bill</Txt>
-        <Text style={[textFont("700"), { fontSize: 12, color: color.peacock }]}>who gets each {currency === "INR" ? "rupee" : "dollar"}</Text>
+        <Txt variant="title" style={{ fontSize: 18 }}>{t("checkout.fair_bill")}</Txt>
+        <Text style={[textFont("700"), { fontSize: 12, color: color.peacock }]}>{t("bill.who_gets")}</Text>
       </View>
       {rows.map((r, i) => (
         <View key={i} style={styles.billRow}>
@@ -157,7 +188,7 @@ export function FairBill({ lines, currency, totalLabel = "You pay" }: { lines: B
         </View>
       ))}
       <View style={styles.billTotal}>
-        <Text style={[textFont("800"), { fontSize: 18, color: color.kohl }]}>{totalLabel}</Text>
+        <Text style={[textFont("800"), { fontSize: 18, color: color.kohl }]}>{totalLabel ?? t("checkout.you_pay")}</Text>
         <Text style={[textFont("800"), { fontSize: 18, color: color.kohl, fontVariant: ["tabular-nums"] }]}>{money(billTotal(lines), currency)}</Text>
       </View>
     </View>
@@ -345,7 +376,7 @@ const styles = StyleSheet.create({
   billHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 },
   billRow: { flexDirection: "row", alignItems: "baseline", gap: 10, paddingVertical: 4 },
   billLabel: { flex: 1, fontSize: 14, color: color.kohl },
-  payee: { fontSize: 11, color: color.muted },
+  payee: { fontSize: 11, color: color.muted, textTransform: "uppercase" },
   billAmount: { fontSize: 14, color: color.kohl, textAlign: "right", fontVariant: ["tabular-nums"] },
   billTotal: {
     marginTop: space[3], paddingTop: space[3], borderTopWidth: 1.5, borderStyle: "dashed", borderTopColor: color.lineStrong,

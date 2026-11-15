@@ -9,3 +9,4 @@ export declare function languagesFor(locales: string[] | null | undefined): Lang
 export declare function pickLanguage(opts: { chosen?: string | null; acceptLanguage?: string | null; locales?: string[] | null }): Language;
 export declare function formatLocale(locales: string[] | null | undefined): string;
 export declare function createTranslator(language: string, messages: Messages, fallback: Messages): Translate;
+export declare function pluralSelector(language: string): (count: number) => string;

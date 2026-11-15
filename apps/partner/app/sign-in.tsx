@@ -1,30 +1,33 @@
 // Partners sign in with the kitchen's phone number and a code by SMS.
-import { errorMessage, useSession } from "@bhojango/mobile-core";
+import { e164, errorMessage, PhoneCountryButton, useCountry, useI18n, useSession, type MarketCountry } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Split } from "../lib/split";
 import { Btn, color, radius, t, textFont } from "../lib/ui";
 
-const COUNTRIES = { IN: { code: "+91", label: "IN +91" }, US: { code: "+1", label: "US +1" } } as const;
-
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
-  const [country, setCountry] = useState<"IN" | "US">("IN");
+  const { t: tr } = useI18n();
+  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
+  const { country: current, countries, chooseCountry } = useCountry();
+  const [picked, setPicked] = useState<MarketCountry | null>(null);
+  const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const c = COUNTRIES[country];
   const digits = number.replace(/\D/g, "");
 
   async function send() {
     setBusy(true);
     setError(null);
-    const phone = `${c.code}${digits}`;
+    if (!country) return;
+    const phone = e164(country.phone_code, number);
     try {
-      await sendCode(phone, country);
-      router.push({ pathname: "/code", params: { phone, country } });
+      await sendCode(phone, country.code);
+      void chooseCountry(country.code);
+      router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, "We couldn't send a code. Check the number and try again."));
     } finally {
@@ -38,22 +41,18 @@ export default function SignIn() {
       <Text style={t.muted}>Use the phone number on your partner account. We&apos;ll text you a code.</Text>
       <Text style={[t.label, { marginTop: 8 }]}>Mobile number</Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Country code, ${country === "IN" ? "India" : "United States"} ${c.code}`}
-          onPress={() => setCountry(country === "IN" ? "US" : "IN")} style={s.cc}>
-          <Text style={[textFont("800"), { fontSize: 16 }]}>{c.label}</Text>
-        </Pressable>
+        <PhoneCountryButton value={country} onChange={setPicked} />
         <TextInput testID="phone" accessibilityLabel="Mobile number" value={number} onChangeText={setNumber} keyboardType="phone-pad"
-          placeholder={country === "IN" ? "98480 21234" : "(208) 555-0199"} placeholderTextColor={color.muted} maxLength={14}
+          placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
           style={[textFont("600"), s.number]} />
       </View>
       {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
-      <Btn title="Send code" kind="primary" height={56} busy={busy} disabled={digits.length !== 10} onPress={send} />
+      <Btn title="Send code" kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
       <Text style={t.muted}>New to BhojanGo? Sign in with your kitchen&apos;s number and apply: it takes about ten minutes.</Text>
     </Split>
   );
 }
 
 const s = StyleSheet.create({
-  cc: { height: 56, paddingHorizontal: 16, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, justifyContent: "center" },
   number: { flex: 1, height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16, fontSize: 18 },
 });

@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
 import { RouteMap } from "../../lib/map";
-import { dist, useLive, useOrder } from "../../lib/rider";
+import { useFormat, useLive, useOrder } from "../../lib/rider";
 import { displayFont, night, radius, space, textFont, ui } from "../../lib/theme";
 import { uploadFile } from "../../lib/upload";
 
@@ -29,6 +29,7 @@ function navigate(to: [number, number] | null, label: string) {
 }
 
 export default function Delivery() {
+  const { dist, unitFor } = useFormat();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: order, error, reload } = useOrder(id);
   const fixNow = useLive((s) => s.now?.location);
@@ -69,7 +70,7 @@ export default function Delivery() {
   const pickup: [number, number] | null = o.pickup_lat != null && o.pickup_lng != null ? [o.pickup_lat, o.pickup_lng] : null;
   const drop: [number, number] | null = o.delivery_lat != null && o.delivery_lng != null ? [o.delivery_lat, o.delivery_lng] : null;
   const rider: [number, number] | null = fixNow ? [fixNow.lat, fixNow.lng] : null;
-  const unit = order.currency === "USD" ? "mi" : "km";
+  const unit = unitFor(order.currency); // the order's country's unit (Markets)
   const code = "#" + order.id.replace(/-/g, "").slice(0, 6).toUpperCase();
   const picked = order.status === "picked_up";
   const items = (order.items ?? []) as { name?: string; quantity?: number }[];

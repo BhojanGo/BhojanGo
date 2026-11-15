@@ -1,4 +1,4 @@
-import { useBrandFonts, useSession } from "@bhojango/mobile-core";
+import { I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner } from "@bhojango/mobile-core";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -18,6 +18,7 @@ export default function RootLayout() {
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
+  useKnownCountry(useSession((s) => s.user?.country)); // the rider's account country (Markets)
 
   useEffect(() => {
     void initialize();
@@ -30,12 +31,14 @@ export default function RootLayout() {
   if (!fontsReady || status === "loading") return null;
 
   return (
-    <>
+    <I18nProvider>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: night.ground } }}>
-        <Stack.Screen name="sos" options={{ presentation: "modal" }} />
-        <Stack.Screen name="document" options={{ presentation: "modal" }} />
-      </Stack>
-    </>
+      <WithTestBanner tone="dark">
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: night.ground } }}>
+          <Stack.Screen name="sos" options={{ presentation: "modal" }} />
+          <Stack.Screen name="document" options={{ presentation: "modal" }} />
+        </Stack>
+      </WithTestBanner>
+    </I18nProvider>
   );
 }

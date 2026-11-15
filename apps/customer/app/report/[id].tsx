@@ -1,7 +1,7 @@
 // Report a problem (B5): which items, what went wrong, a photo if you like.
 // Up to the city's limit it's refunded at once to the original payment;
 // above it, support looks at it and gets back to you.
-import { api, ApiError, Button, color, radius, space, textFont, unwrap, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, ApiError, Button, color, radius, space, textFont, unwrap, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -23,6 +23,7 @@ const REASONS = [
 type Reason = (typeof REASONS)[number]["key"];
 
 export default function Report() {
+  const { money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [pick, setPick] = useState<Record<string, number>>({});
@@ -79,12 +80,11 @@ export default function Report() {
   }
 
   if (done) {
-    const sym = done.currency === "INR" ? "₹" : "$";
     return (
       <SafeAreaView style={[s.screen, { justifyContent: "center", gap: space[4] }]}>
         <Text accessibilityRole="header" style={s.h1}>{done.outcome === "refunded" ? "Refunded" : "Sent to support"}</Text>
         <Text style={[textFont("400"), { fontSize: 17, lineHeight: 25, color: color.kohl }]}>{done.message}</Text>
-        {done.outcome === "ticket" ? <Text style={s.muted}>Refunds above {sym}{Number(done.limit).toFixed(0)} on one order are checked by a person first.</Text> : null}
+        {done.outcome === "ticket" ? <Text style={s.muted}>Refunds above {money(done.limit, done.currency, { whole: true })} on one order are checked by a person first.</Text> : null}
         <Button title="Back to your order" size="lg" onPress={() => router.replace(`/order/${id}`)} />
       </SafeAreaView>
     );

@@ -1,5 +1,5 @@
 // Account: who you are, your documents, payouts, safety and sign-out.
-import { useSession } from "@bhojango/mobile-core";
+import { useCountry, useSession } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +11,8 @@ import { displayFont, night, space, textFont, ui } from "../../lib/theme";
 export default function Account() {
   const user = useSession((s) => s.user);
   const signOut = useSession((s) => s.signOut);
+  const { countries } = useCountry();
+  const countryName = countries.find((c) => c.code === user?.country)?.name ?? user?.country;
   const rows: { icon: IconName; title: string; detail: string; href: Href }[] = [
     { icon: "document", title: "Documents", detail: "Licence, insurance, background check", href: "/documents" },
     { icon: "bank", title: "Payouts", detail: "Payout account and past weeks", href: "/payouts" },
@@ -22,7 +24,7 @@ export default function Account() {
         <Text accessibilityRole="header" style={[displayFont("600"), { color: night.text, fontSize: 22 }]}>Account</Text>
         <View style={styles.card}>
           <Text style={[ui.h1, { fontSize: 26 }]}>{user?.full_name}</Text>
-          <Text style={ui.muted}>{[user?.phone, user?.country === "IN" ? "India" : "United States"].filter(Boolean).join(" · ")}</Text>
+          <Text style={ui.muted}>{[user?.phone, countryName].filter(Boolean).join(" · ")}</Text>
         </View>
         <View style={[styles.card, { padding: 0 }]}>
           {rows.map((r, i) => (

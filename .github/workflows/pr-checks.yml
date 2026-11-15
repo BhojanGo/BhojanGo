@@ -60,7 +60,7 @@ jobs:
           python-version: "3.12"
       - name: No JWTs in commits (hook self-test)
         run: sh tools/git-hooks/no-jwt.sh --self-test
-      - name: Tests never write to QA or production (make ci-guard)
+      - name: Tests never write to QA or production; demo seed refuses production (make ci-guard)
         run: make ci-guard
       - name: Photo credits match LICENSES.md (make ci-photos)
         run: make ci-photos

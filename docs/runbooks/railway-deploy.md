@@ -134,6 +134,11 @@ You need:
 8. **Seed (QA)**, from inside the private network: `tools/railway/qa-runner.sh job reset` (below) rebuilds the
    database and loads the base seed and the demo data ([`tools/seed/demo.py`](../../tools/seed/demo.py): 16 kitchens
    a city with full menus, offers, demo customers with order history and an order on its way).
+   - Kitchen ratings come only from that history: each demo kitchen gets months of delivered demo orders
+     ([`tools/seed/demo_history.py`](../../tools/seed/demo_history.py)), a share of them rated, and its rating and
+     count are recomputed as the ratings service does (kitchens new this week have fewer than 5: "New"). Those
+     orders show up in payout drafts and reconciliation like any delivered order (fake payout provider on QA); the
+     seed never adds one to a week a payout run already covers. The demo seed (and the `demo` job) refuse production.
    - Every account gets a **random password**.
    - The logins go to the private bucket and from there to a file outside the repo. They're never printed or logged.
    - Seed phones (`+1208555…`, `+9190000…`) sign in with OTP `123456` in QA only.

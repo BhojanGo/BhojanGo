@@ -1,5 +1,5 @@
 # Sign in with a rider's phone and the code (seed phones always get 123456).
-# PHONE: 10 digits; INDIA=true switches the country code to +91.
+# PHONE: 10 digits; INDIA=true (or COUNTRY=IN) picks India's country code, else the US.
 appId: com.bhojango.rider
 ---
 - launchApp:
@@ -10,12 +10,16 @@ appId: com.bhojango.rider
     visible: "Ride on your.*"
     timeout: 60000
 - takeScreenshot: docs/screenshots/rider/01-sign-in
-- runFlow:
-    when:
-      true: ${INDIA == "true"}
+# The phone's country starts from the device's region (Markets countries); step to
+# ${INDIA == "true" ? "IN" : (COUNTRY || "US")} (INDIA=true or COUNTRY=<code>; the US by default).
+- repeat:
+    while:
+      notVisible:
+        id: 'phone-country-${INDIA == "true" ? "IN" : (COUNTRY || "US")}'
+    times: 6
     commands:
       - tapOn:
-          text: "Country code.*"
+          id: "phone-country-.*"
 - tapOn:
     id: "phone"
 - inputText: ${PHONE || "9000000201"}

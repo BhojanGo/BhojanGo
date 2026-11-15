@@ -11,7 +11,7 @@ import { night, radius, space, textFont, ui } from "../lib/theme";
 const RESEND_AFTER = 30;
 
 export default function Code() {
-  const { phone, country } = useLocalSearchParams<{ phone: string; country: "IN" | "US" }>();
+  const { phone, country } = useLocalSearchParams<{ phone: string; country: string }>();
   const verify = useSession((s) => s.verifyCode);
   const sendCode = useSession((s) => s.sendCode);
   const signOut = useSession((s) => s.signOut);

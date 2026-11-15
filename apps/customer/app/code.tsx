@@ -10,7 +10,7 @@ import { Icon } from "../lib/icons";
 const RESEND_AFTER = 30;
 
 export default function Code() {
-  const { phone, country } = useLocalSearchParams<{ phone: string; country: "IN" | "US" }>();
+  const { phone, country } = useLocalSearchParams<{ phone: string; country: string }>();
   const verify = useSession((s) => s.verifyCode);
   const sendCode = useSession((s) => s.sendCode);
   const [code, setCode] = useState("");

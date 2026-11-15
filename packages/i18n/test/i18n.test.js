@@ -48,3 +48,27 @@ test("every language has every English key (machine translations are listed in R
     assert.deepEqual(missing, [], `${lang}.json is missing ${missing.length} keys`);
   }
 });
+
+test("plurals work without Intl.PluralRules (React Native's Hermes may not have it)", () => {
+  const saved = Intl.PluralRules;
+  try {
+    Intl.PluralRules = undefined;
+    const en = { k: { one: "{count} kitchen", other: "{count} kitchens" } };
+    assert.equal(createTranslator("en", en, en)("k", { count: 1 }), "1 kitchen");
+    assert.equal(createTranslator("en", en, en)("k", { count: 0 }), "0 kitchens");
+    assert.equal(createTranslator("hi", en, en)("k", { count: 0 }), "0 kitchen"); // Hindi: 0 and 1 are "one"
+    assert.equal(createTranslator("es", en, en)("k", { count: 2 }), "2 kitchens");
+  } finally {
+    Intl.PluralRules = saved;
+  }
+});
+
+test("the apps' bundle has every language, and the apps' keys exist", () => {
+  const all = require("../all-messages");
+  assert.deepEqual(Object.keys(all).sort(), Object.keys(LANGUAGES).sort());
+  for (const lang of Object.keys(LANGUAGES)) {
+    const t = createTranslator(lang, all[lang], all.en);
+    assert.notEqual(t("app.test_banner"), "app.test_banner", lang);
+    assert.match(t("app.units.km", { value: "2.1" }), /2\.1/, lang);
+  }
+});

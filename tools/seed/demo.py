@@ -13,18 +13,32 @@ Orders are priced by the real quote engine (QuoteService) for the time they were
 placed, so the bill, the pricing snapshot and the receipt agree, then written
 with their whole history (paid, accepted, ready, picked up, delivered by the
 city's demo rider).
+
+Ratings: each demo kitchen's months of past orders from the demo customers
+(tools/seed/demo_history.py) are written like the others, a share of them rated;
+the kitchen's rating and review_count are then recomputed from those rows by the
+ratings service's own code (RestaurantRepository.update_rating). Nothing is typed
+in, and no rating exists without a delivered order behind it.
 """
-import asyncio
-import json
 import os
 import sys
-import uuid
-from datetime import UTC, date, datetime, time, timedelta
-from decimal import Decimal
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from demo_guard import refuse_production  # noqa: E402  (standard library only)
+
+if __name__ == "__main__":
+    refuse_production()  # before any database driver is even imported (tools/seed/demo_test.py)
+
+import asyncio  # noqa: E402
+import json  # noqa: E402
+import time as clock  # noqa: E402
+import uuid  # noqa: E402
+from datetime import UTC, date, datetime, time, timedelta  # noqa: E402
+from decimal import Decimal  # noqa: E402
+from zoneinfo import ZoneInfo  # noqa: E402
+
+import demo_history  # noqa: E402
 import seed as base  # noqa: E402  (also puts the backend on sys.path)
 from data import MARKETS, covers, dish_photo, menu_dishes, photo_url  # noqa: E402
 from demo_data import ACTIVE, DEMO, ORDERS, PROMOTIONS  # noqa: E402
@@ -32,16 +46,18 @@ from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
 
 sid = base.sid
-PRODUCTION = frozenset({"production", "prod"})
 TZ = {"hyd": ZoneInfo("Asia/Kolkata"), "boi": ZoneInfo("America/Boise")}
 DAY_INDEX = base.DAY_INDEX
 
 
-def refuse_production() -> None:
-    for var in ("APP_ENV", "RAILWAY_ENVIRONMENT_NAME"):
-        value = os.environ.get(var, "")
-        if value.strip().lower() in PRODUCTION:
-            sys.exit(f"demo seed: REFUSED: {var}={value!r}. Demo data is for make dev and QA only, never production.")
+def history_id(key: str, slug: str, n: int) -> uuid.UUID:
+    """A history order's id (demo_history.Planned): stable, so a second run keeps it."""
+    return sid("order", "demo", key, "history", slug, str(n))
+
+
+def active_id(key: str) -> uuid.UUID:
+    """The city's order on its way (ACTIVE)."""
+    return sid("order", "demo", key, "999")
 
 
 UPSERT_ADDRESS = text("""
@@ -57,7 +73,7 @@ ON CONFLICT (id) DO UPDATE SET
 """)
 
 UPDATE_KITCHEN = text("""
-UPDATE restaurants SET review_count = :reviews, delivery_radius_km = :radius, opens_at = :opens, closes_at = :closes,
+UPDATE restaurants SET delivery_radius_km = :radius, opens_at = :opens, closes_at = :closes,
     tier = :tier, fssai_number = :fssai, fssai_expires_on = :fssai_expires, paused_reason = NULL, paused_until = NULL,
     is_open = true, busy_extra_minutes = 0, busy_until = NULL,
     created_at = CASE WHEN :new THEN now() - interval '6 days' ELSE now() - interval '14 months' END
@@ -101,7 +117,8 @@ class Demo:
         self.users: dict[str, uuid.UUID] = {}
         self.addresses: dict[str, uuid.UUID] = {}
         self.kitchens: dict[str, dict] = {}
-        self.counts = {"orders": 0, "orders_kept": 0}
+        self.people: dict[str, tuple] = {}  # customer key -> (key, name, street, area, postal, lat, lng, notes)
+        self.counts = {"orders": 0, "orders_kept": 0, "history": 0, "history_kept": 0, "history_skipped": 0}
 
     async def run(self, key: str) -> None:
         city = DEMO[key]
@@ -120,6 +137,8 @@ class Demo:
         await self.city_covers(key, market, city)
         for c in city["customers"]:
             await self.customer(market, city, where, c)
+        for r in demo_history.regulars(key):
+            await self.regular(market, r)
         await self.promotions(key, market)
         await self.favourites_and_card(key, city)
 
@@ -142,6 +161,7 @@ class Demo:
         email = f"{key}@example.com"
         user_id = await self.person(market, where, (email, name, city["phones"][key]), "customer", "customer")
         self.users[key] = user_id
+        self.people[key] = tuple(c)
         home = sid("address", email, "home")
         self.addresses[key] = home
         await self.db.execute(UPSERT_ADDRESS, {
@@ -155,13 +175,28 @@ class Demo:
                 "city": market["city"], "state": market["state"], "postal_code": w_postal, "country": market["country"],
                 "lat": w_lat, "lng": w_lng, "want_default": False, "notes": "Reception desk, ground floor"})
 
+    async def regular(self, market: dict, r: tuple) -> None:
+        """A neighbourhood regular (demo_history.regulars): a demo customer with a home
+        address, behind the order history; not listed with the demo logins."""
+        key, name, street, area, postal, lat, lng, notes, phone = r
+        email = f"{key}@example.com"
+        user_id = await base.upsert_user(self.db, email, name, "customer", market, f"{market['phone_prefix']}{phone}")
+        self.users[key] = user_id
+        self.people[key] = r[:8]
+        home = sid("address", email, "home")
+        self.addresses[key] = home
+        await self.db.execute(UPSERT_ADDRESS, {
+            "id": home, "user_id": user_id, "label": "Home", "street": f"{street}, {area}", "city": market["city"],
+            "state": market["state"], "postal_code": postal, "country": market["country"], "lat": lat, "lng": lng,
+            "want_default": True, "notes": notes})
+
     async def kitchen(self, market: dict, city: dict, k: dict, owner: uuid.UUID, i: int) -> None:
         address = {"street": k["street"], "city": market["city"], "state": market["state"], "zip": k["zip"],
                    "country": market["country"], "lat": k["lat"], "lng": k["lng"], "landmark": k["area"]}
         rid = (await self.db.execute(base.UPSERT_RESTAURANT, {
             "id": sid("restaurant", k["slug"]), "name": k["name"], "slug": k["slug"], "owner_id": owner,
             "description": k["description"], "cuisines": k["cuisines"], "address": json.dumps(address),
-            "lat": k["lat"], "lng": k["lng"], "rating": k["rating"], "review_count": k["review_count"],
+            "lat": k["lat"], "lng": k["lng"], "rating": 0, "review_count": 0,  # from its ratings, after the orders
             "cover_url": None, "logo_url": None, "eta_min": k["eta"][0], "eta_max": k["eta"][1],
             "min_order": Decimal(k["min_order"]), "delivery_fee": Decimal(k["delivery_fee"]),
             "currency": market["currency"], "country": market["country"], "city": market["city"], "tags": k["tags"],
@@ -169,9 +204,9 @@ class Demo:
         first = k["hours"][0]
         fssai = f"{city['fssai_base'] + i}" if city["fssai_base"] else None
         await self.db.execute(UPDATE_KITCHEN, {
-            "id": rid, "reviews": k["review_count"], "radius": Decimal(str(k["radius_km"])), "opens": first[1],
+            "id": rid, "radius": Decimal(str(k["radius_km"])), "opens": first[1],
             "closes": first[2], "tier": None, "fssai": fssai, "fssai_expires": date(2028, 3, 31) if fssai else None,
-            "new": k["review_count"] < 5})
+            "new": k["new"]})
         await self.db.execute(text("DELETE FROM store_hours WHERE restaurant_id = :r"), {"r": rid})
         for days, opens, closes in k["hours"]:
             for day in days:
@@ -262,7 +297,8 @@ class Demo:
             out.append(CartItem(menu_item_id=sid("item", slug, name), quantity=qty, options=options))
         return out
 
-    async def price(self, key: str, customer: str, slug: str, lines: list, tip: str, times: list[datetime]) -> tuple[dict, datetime]:
+    async def price(self, key: str, customer: str, slug: str, lines: list, tip: str,
+                    times: list[datetime]) -> tuple[dict | None, datetime | None, Exception | None]:
         """The first of ``times`` the kitchen was open: the stored quote (lines, split, snapshot context)."""
         from core_api.modules.orders.service.order import OrderService
         from core_api.modules.pricing.schemas import QuoteRequest, Where
@@ -272,7 +308,7 @@ class Demo:
         req = QuoteRequest(restaurant_id=sid("restaurant", slug), items=self.cart(slug, lines),
                            deliver_to=Where(address_id=self.addresses[customer]), tip=Decimal(tip))
         qs = QuoteService(self.db)
-        last = None
+        last: Exception | None = None
         for at in times:
             try:
                 out = await qs.quote(self.users[customer], req, now=at)
@@ -282,43 +318,52 @@ class Demo:
             q = await qs.get(self.users[customer], out.quote_id)
             await (await get_redis()).delete(_key(str(out.quote_id)))
             await OrderService(self.db)._add_payment_fees(q, DEMO[key]["method"])
-            return q, at
-        raise SystemExit(f"demo seed: couldn't price an order at {slug}: {last}")
+            return q, at, None
+        return None, None, last
 
-    async def order(self, key: str, n: int, customer: str, slug: str, lines: list, times: list[datetime],
-                    active: bool = False, review: tuple | None = None) -> None:
-        oid = sid("order", "demo", key, str(n))
+    async def order(self, key: str, oid: uuid.UUID, customer: str, slug: str, lines: list, times: list[datetime],
+                    active: bool = False, review: tuple | None = None, review_after: timedelta = timedelta(hours=2),
+                    history: bool = False) -> bool:
+        """Write one demo order (and its rating). False if it couldn't be priced (history only)."""
+        tally = "history" if history else "orders"
         now = datetime.now(UTC)
         exists = (await self.db.execute(text("SELECT 1 FROM orders WHERE id = :id"), {"id": oid})).first()
         if exists and not active:
-            self.counts["orders_kept"] += 1
-            return
+            self.counts[f"{tally}_kept"] += 1
+            return True
         if exists:  # the order on its way: on its way now again
             await self.db.execute(text("DELETE FROM order_pricing_snapshots WHERE order_id = :id"), {"id": oid})
             await self.db.execute(text("DELETE FROM payment_intents WHERE order_id = :id"), {"id": oid})
             await self.db.execute(text("DELETE FROM orders WHERE id = :id"), {"id": oid})
         city = DEMO[key]
-        q, priced_at = await self.price(key, customer, slug, lines, city["tip"], times)
+        q, priced_at, why = await self.price(key, customer, slug, lines, city["tip"], times)
+        if q is None or priced_at is None:
+            if history:
+                self.counts["history_skipped"] += 1
+                print(f"demo seed: skipped a past order at {slug} for {customer}: {why}")
+                return False
+            raise SystemExit(f"demo seed: couldn't price an order at {slug}: {why}")
         k = self.kitchens[slug]
         ctx = q["context"]
         km = float(ctx["distance"]) * (1.609344 if ctx.get("distance_unit") == "mi" else 1)
         ride = max(8, round(km * 3) + 4)
+        jitter = int(oid.hex[:2], 16) % 9 if history else 0  # kitchens aren't equally quick every day
         start = now - timedelta(minutes=34) if active else priced_at
         t = {"pending_payment": start, "placed": start + timedelta(minutes=1), "accepted": start + timedelta(minutes=3),
-             "preparing": start + timedelta(minutes=4), "rider": start + timedelta(minutes=16),
-             "ready": start + timedelta(minutes=24), "picked_up": start + timedelta(minutes=27),
-             "delivered": start + timedelta(minutes=27 + ride)}
+             "preparing": start + timedelta(minutes=4), "rider": start + timedelta(minutes=16 + jitter),
+             "ready": start + timedelta(minutes=24 + jitter), "picked_up": start + timedelta(minutes=27 + jitter),
+             "delivered": start + timedelta(minutes=27 + jitter + ride)}
         steps = ["placed", "accepted", "preparing", "ready", "picked_up"] + ([] if active else ["delivered"])
         by = {"placed": "system", "accepted": "restaurant", "preparing": "restaurant", "ready": "restaurant",
               "picked_up": "rider", "delivered": "rider"}
-        history = [{"status": "pending_payment", "at": start.isoformat()}]
-        history += [{"status": s, "at": t[s].isoformat(), "by": by[s]} for s in steps]
+        history_rows = [{"status": "pending_payment", "at": start.isoformat()}]
+        history_rows += [{"status": s, "at": t[s].isoformat(), "by": by[s]} for s in steps]
 
         def line_sum(*codes: str) -> Decimal:
             return sum((Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in codes), Decimal(0)).quantize(Decimal("0.01"))
 
         market = next(m for m in MARKETS if m["key"] == key)
-        cust = next(c for c in city["customers"] if c[0] == customer)
+        cust = self.people[customer]
         address = {"street": f"{cust[2]}, {cust[3]}", "city": market["city"], "state": market["state"], "zip": cust[4],
                    "country": market["country"], "lat": cust[5], "lng": cust[6], "landmark": cust[3]}
         pin = f"{int(oid.hex[:6], 16) % 10000:04d}"
@@ -339,7 +384,7 @@ class Demo:
             "taxes": line_sum("tax"), "tip": line_sum("tip"), "discount": -line_sum("promotion"), "total": Decimal(q["total"]),
             "currency": q["currency"], "platform_fee": Decimal(q["split"]["platform"]),
             "restaurant_payout": Decimal(q["split"]["restaurant"]), "prep": 20, "accepted_at": t["accepted"],
-            "ready_at": t["ready"], "distance": Decimal(ctx["distance"]), "history": json.dumps(history),
+            "ready_at": t["ready"], "distance": Decimal(ctx["distance"]), "history": json.dumps(history_rows),
             "address": json.dumps(address), "eta": t["delivered"], "delivered_at": None if active else t["delivered"],
             "method": city["method"], "pi": pi, "created_at": start, "updated_at": t["picked_up"] if active else t["delivered"],
         })
@@ -353,61 +398,78 @@ class Demo:
             "id": sid("payment", str(oid)), "order_id": oid, "user_id": self.users[customer], "ppid": pi,
             "amount": int(Decimal(q["total"]) * minor), "currency": q["currency"], "key": f"demo-{oid}",
             "created_at": t["placed"]})
-        if review:
+        if review and not active:
             rating, comment = review
+            # Rated by the customer after delivery (ratings.py: one rating per delivered order).
+            rated_at = max(min(t["delivered"] + review_after, now - timedelta(minutes=5)), t["delivered"] + timedelta(minutes=1))
             await self.db.execute(text("""
                 INSERT INTO reviews (id, restaurant_id, order_id, customer_id, customer_name, rating, comment, created_at)
                 VALUES (:id, :r, :o, :c, :n, :rating, :comment, :at) ON CONFLICT (order_id) DO NOTHING"""), {
                 "id": sid("review", str(oid)), "r": k["id"], "o": oid, "c": self.users[customer],
                 "n": cust[1].split()[0] + " " + cust[1].split()[-1][0] + ".", "rating": float(rating), "comment": comment,
-                "at": t["delivered"] + timedelta(hours=2)})
-        self.counts["orders"] += 1
+                "at": rated_at})
+        self.counts[tally] += 1
+        return True
+
+    async def paid_out(self, key: str) -> list[tuple[date, date]]:
+        """Periods a payout run already covers in this city's country: no new past order
+        is written into one (it would be owed to the kitchen and rider but never paid)."""
+        country = next(m["country"] for m in MARKETS if m["key"] == key)
+        rows = (await self.db.execute(text("SELECT period_start, period_end FROM payout_runs WHERE country = :c"),
+                                      {"c": country})).all()
+        return [(r[0], r[1]) for r in rows]
 
     async def orders(self, key: str) -> None:
         tz = TZ[key]
-        today = datetime.now(tz).date()
+        local_now = datetime.now(tz)
+        today = local_now.date()
         now = datetime.now(UTC)
+        # 1. Each kitchen's past orders and ratings, oldest first (demo_history.py).
+        paid_out = await self.paid_out(key)
+        started = clock.monotonic()
+        for p in demo_history.plan_city(key, today, local_now.replace(tzinfo=None)):
+            oid = history_id(key, p.kitchen, p.n)
+            if any(a <= p.local.date() < b for a, b in paid_out) and not (
+                    await self.db.execute(text("SELECT 1 FROM orders WHERE id = :id"), {"id": oid})).first():
+                self.counts["history_skipped"] += 1
+                continue
+            await self.order(key, oid, p.customer, p.kitchen, p.lines, [p.local.replace(tzinfo=tz).astimezone(UTC)],
+                             review=p.review, review_after=p.review_after, history=True)
+        print(f"Demo {DEMO[key]['city_code']}: order history written in {clock.monotonic() - started:.0f}s")
+        # 2. The demo customer's own recent orders (demo_data.ORDERS).
         for n, (customer, slug, days, hhmm, lines, review) in enumerate(ORDERS[key]):
             at = time.fromisoformat(hhmm)
             # that day, or a day either side if the kitchen was closed (a weekly day off);
             # always finished well before now
             times = [datetime.combine(today - timedelta(days=days + shift), at, tz).astimezone(UTC) for shift in (0, 1, -1, 2)]
-            await self.order(key, n, customer, slug, lines, [t for t in times if t < now - timedelta(hours=3)], review=review)
+            await self.order(key, sid("order", "demo", key, str(n)), customer, slug, lines,
+                             [t for t in times if t < now - timedelta(hours=3)], review=review)
+        # 3. One order on its way, placed now.
         customer, slug, lines = ACTIVE[key]
         # Priced now if the kitchen is open now, else at the last lunch or dinner it was open.
         fallback = [datetime.combine(today - timedelta(days=d), time(h, 0), tz).astimezone(UTC)
                     for d in range(3) for h in (20, 13)]
-        await self.order(key, 999, customer, slug, lines, [now] + [f for f in fallback if f < now], active=True)
-        await self.past_ratings(key)
+        await self.order(key, active_id(key), customer, slug, lines, [now] + [f for f in fallback if f < now], active=True)
+        await self.ratings(key)
 
-    async def past_ratings(self, key: str) -> None:
-        """Older star ratings (no order rows behind them), so each kitchen's
-        rating and count come from real `reviews` rows, as the ratings service
-        computes them: a later rating moves the average instead of resetting it."""
-        city = DEMO[key]
-        first_names = [c[1].split()[0] + " " + c[1].split()[-1][0] + "." for c in city["customers"]]
-        now = datetime.now(UTC)
-        for k in city["kitchens"]:
+    async def ratings(self, key: str) -> None:
+        """Each demo kitchen's rating and review_count, recomputed from its ratings by the
+        ratings service's own code. Ratings an older demo seed wrote with no order behind
+        them are removed first: every rating belongs to a delivered order."""
+        from core_api.modules.catalog.repository.cache import cache_delete_pattern
+        from core_api.modules.catalog.repository.restaurant import RestaurantRepository
+
+        for k in DEMO[key]["kitchens"]:
             rid = self.kitchens[k["slug"]]["id"]
-            have = (await self.db.execute(text("SELECT count(*) FROM reviews WHERE restaurant_id = :r"), {"r": rid})).scalar_one()
-            want = max(0, int(k["review_count"]) - have)
-            lo = max(1, min(5, int(float(k["rating"]))))
-            highs = round((float(k["rating"]) - lo) * want)
-            for n in range(want):
-                stars = min(5, lo + 1) if n < highs else lo
-                await self.db.execute(text("""
-                    INSERT INTO reviews (id, restaurant_id, order_id, customer_id, customer_name, rating, created_at)
-                    VALUES (:id, :r, :o, :c, :name, :stars, :at) ON CONFLICT (order_id) DO NOTHING"""), {
-                    "id": sid("review", k["slug"], "past", str(n)), "r": rid, "o": sid("order", k["slug"], "past", str(n)),
-                    "c": sid("customer", k["slug"], "past", str(n)), "name": first_names[n % len(first_names)],
-                    "stars": float(stars), "at": now - timedelta(days=30 + 7 * n)})
             await self.db.execute(text("""
-                UPDATE restaurants r SET rating = s.avg, review_count = s.n
-                FROM (SELECT round(avg(rating)::numeric, 2) AS avg, count(*) AS n FROM reviews WHERE restaurant_id = :r) s
-                WHERE r.id = :r"""), {"r": rid})
+                DELETE FROM reviews v WHERE v.restaurant_id = :r
+                  AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.id = v.order_id AND o.status = 'delivered')"""), {"r": rid})
+            await RestaurantRepository(self.db).update_rating(rid)
+            await cache_delete_pattern(f"restaurants:{rid}")
 
 
 async def demo(database_url: str) -> tuple[list, dict]:
+    refuse_production()  # every entry point, before the first connection
     for m in ("catalog.models", "identity.models.account", "identity.models.address", "identity.models.admin_role",
               "identity.models.rider", "identity.models.user", "markets.models", "rules.models", "pricing.models",
               "orders.models", "payments.models"):
@@ -434,13 +496,19 @@ async def demo(database_url: str) -> tuple[list, dict]:
                          WHERE r.slug = ANY(:slugs) AND i.image_url IS NOT NULL),
                        (SELECT count(*) FROM restaurants r WHERE r.slug = ANY(:slugs) AND r.cover_url IS NOT NULL),
                        (SELECT count(*) FROM orders o WHERE o.market_city = :code AND o.id::text = ANY(CAST(:ids AS text[]))),
-                       (SELECT count(*) FROM zones z JOIN cities c ON c.id = z.city_id WHERE c.code = :code AND z.status = 'live')
+                       (SELECT count(*) FROM zones z JOIN cities c ON c.id = z.city_id WHERE c.code = :code AND z.status = 'live'),
+                       (SELECT count(*) FROM orders o JOIN restaurants r ON r.id = o.restaurant_id
+                         WHERE r.slug = ANY(:slugs) AND o.status = 'delivered'),
+                       (SELECT count(*) FROM reviews v JOIN restaurants r ON r.id = v.restaurant_id WHERE r.slug = ANY(:slugs)),
+                       (SELECT count(*) FROM restaurants r WHERE r.slug = ANY(:slugs) AND r.review_count < 5),
+                       (SELECT min(r.rating) || '-' || max(r.rating) FROM restaurants r WHERE r.slug = ANY(:slugs) AND r.review_count >= 5)
             """), {"city": next(m["city"] for m in MARKETS if m["key"] == key), "code": city["city_code"],
                    "slugs": [k["slug"] for k in city["kitchens"]],
                    "ids": [str(sid("order", "demo", key, str(n))) for n in [*range(len(ORDERS[key])), 999]]})).one()
             counts[city["city_code"]] = dict(zip(
                 ("kitchens_in_city", "demo_kitchens", "demo_areas", "demo_dishes", "demo_dishes_with_photo",
-                 "demo_kitchens_with_cover", "demo_orders", "live_zones"), row))
+                 "demo_kitchens_with_cover", "demo_orders", "live_zones", "delivered_at_demo_kitchens", "ratings",
+                 "kitchens_new", "rated_range"), row))
     await engine.dispose()
     return d.logins, counts | {"written": d.counts}
 

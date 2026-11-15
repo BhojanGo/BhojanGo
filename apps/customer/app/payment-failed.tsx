@@ -1,5 +1,5 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
-import { Button, color, errorMessage, money, radius, Sheet, space, textFont, Txt } from "@bhojango/mobile-core";
+import { Button, color, errorMessage, radius, Sheet, space, textFont, Txt, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -9,6 +9,7 @@ import { Icon } from "../lib/icons";
 import { paymentStatus, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
 
 export default function PaymentFailed() {
+  const { money } = useI18n();
   const { orderId, method } = useLocalSearchParams<{ orderId: string; method: "upi" | "card" }>();
   const [status, setStatus] = useState<PayStatus | null>(null);
   const [now, setNow] = useState(() => Date.now());

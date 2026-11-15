@@ -155,8 +155,8 @@
     "greeting_afternoon_name": "नमस्कार, {name}",
     "greeting_evening_name": "शुभ संध्याकाळ, {name}",
     "kitchens_deliver": {
-      "one": "आत्ता {count} किचन {place} इथे डिलिव्हरी करतं",
-      "other": "आत्ता {count} किचन {place} इथे डिलिव्हरी करतात"
+      "one": "{count} किचन {place} इथे डिलिव्हरी करतं",
+      "other": "{count} किचन {place} इथे डिलिव्हरी करतात"
     },
     "filters": "किचन फिल्टर करा",
     "filter_open": "आता सुरू",
@@ -804,5 +804,38 @@
     "failed": "तुमचे रेटिंग सेव्ह झाले नाही. कृपया पुन्हा प्रयत्न करा.",
     "your_rating": "तुमचे रेटिंग",
     "thanks": "या ऑर्डरला रेटिंग दिल्याबद्दल धन्यवाद."
+  },
+  "app": {
+    "test_banner": "चाचणी साइट: डेमो किचन, कोणतीही खरी ऑर्डर किंवा पेमेंट नाही",
+    "units": {
+      "km": "{value} कि.मी.",
+      "mi": "{value} मैल"
+    },
+    "bill": {
+      "kitchens_treat": "किचनकडून भेट",
+      "on_us": "आमच्याकडून"
+    },
+    "phone": {
+      "country_code": "देश कोड, {country} {code}",
+      "choose_country": "तुमचा देश निवडा"
+    },
+    "home": {
+      "banner": "तुमच्या जवळच्या किचनमध्ये ऑर्डरनुसार बनवलेले"
+    },
+    "out_of_area": {
+      "cooking_in": "BhojanGo {cities} मध्ये स्वयंपाक करत आहे.",
+      "leave_number": "तुमचा नंबर द्या, आम्ही येऊ त्या दिवशी तुम्हाला मेसेज करू."
+    }
+  },
+  "rider": {
+    "earnings": {
+      "distance": "अंतर"
+    }
+  },
+  "partner": {
+    "offer": {
+      "amount_off": "{amount} सूट",
+      "flat_off": "रकमेची सूट"
+    }
   }
 }

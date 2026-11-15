@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { cash, useKitchen, useLoad } from "../../lib/data";
+import { useFormat, useKitchen, useLoad } from "../../lib/data";
 import { Btn, color, radius, t, textFont } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
@@ -14,14 +14,14 @@ type Account = { id: string; payee_id: string; provider: string; status: string 
 
 const STATUS: Record<string, string> = { paid: "Paid", pending: "On its way", no_account: "Waiting for your bank details", failed: "Didn't go through · we'll retry" };
 
-function week(s: Statement) {
+function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
   const end = new Date(`${s.period_end}T12:00:00`);
   end.setDate(end.getDate() - 1);
-  const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${f(new Date(`${s.period_start}T12:00:00`))} – ${f(end)}`;
+  return `${date(s.period_start)} – ${date(end)}`;
 }
 
 export default function Payouts() {
+  const { cash, date } = useFormat();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export default function Payouts() {
           {data.data?.statements.map((st) => (
             <View key={st.id} style={s.row}>
               <View style={{ flex: 1 }}>
-                <Text style={[textFont("700"), { fontSize: 15 }]}>{week(st)}</Text>
+                <Text style={[textFont("700"), { fontSize: 15 }]}>{week(st, date)}</Text>
                 <Text style={t.muted}>
                   {[st.summary.orders != null ? `${st.summary.orders} orders` : null,
                     Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? `offers ${cash(st.summary.restaurant_funded_offers, st.currency)}` : null,

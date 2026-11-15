@@ -54,3 +54,21 @@ translation in every file (mark it here) before CI passes.
   `checkout.fair_bill` "La cuenta justa" ("cuenta" also means account);
   `account.report.ordered`, `account.report.how_many`, `kitchen.one_less/one_more`
   (gender), `track.away` (distance vs time), `common.delivery_fee` word order.
+
+## The Expo apps (round 4: `app.*`, `rider.*`, `partner.*`)
+
+The apps read the same files (`all-messages.js` bundles every language for
+Metro) and reuse the website's keys where the words are the same (`checkout.*`,
+`bill.*`, `header.language*`, `signin.mobile`). Their own keys, machine-translated
+on 2026-11-15, needing the same native review:
+
+- `app.test_banner`: the test-site strip on every screen of a non-production build.
+- `app.units.km` / `app.units.mi`: a distance with its unit ("{value} km"); local
+  abbreviations (कि.मी., కి.మీ., ...) need checking.
+- `app.bill.kitchens_treat`, `app.bill.on_us`: who pays for free delivery (the fair bill).
+- `app.phone.country_code`, `app.phone.choose_country`: the phone's country box.
+- `app.home.banner`, `app.out_of_area.cooking_in` ({cities} is a comma list of
+  city names: Telugu/Tamil/Kannada/Bengali suffixes glued to the last name),
+  `app.out_of_area.leave_number`.
+- `rider.earnings.distance`, `partner.offer.amount_off` ({amount} is formatted
+  money), `partner.offer.flat_off`.

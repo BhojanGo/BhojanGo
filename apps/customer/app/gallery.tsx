@@ -1,7 +1,8 @@
 // The mobile component gallery (P16): every design-system component on a
 // phone, for design review. Open it at bhojango://gallery (not linked in the app).
 import {
-  Button, Card, Chip, color, dark, FairBill, Input, LogoMark, PlateImage, Segmented, Sheet, StatusPill, TabBar, Txt,
+  Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill, TabBar,
+  TestBanner, Txt, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -10,7 +11,7 @@ import Svg, { Path } from "react-native-svg";
 const BILL = [
   { code: "food", label: "Food", amount: "560.00" },
   { code: "promotion", label: "Code BHOJAN10", amount: "-50.00", funded_by: "platform" },
-  { code: "delivery_fee", label: "Delivery · 4.2 km", amount: "35.00" },
+  { code: "delivery_fee", label: "Delivery", amount: "35.00" },
   { code: "promotion", label: "Free delivery", amount: "-35.00", funded_by: "restaurant" },
   { code: "packaging", label: "Packaging", amount: "10.00" },
   { code: "service_fee", label: "Service fee", amount: "11.20" },
@@ -33,6 +34,10 @@ export default function Gallery() {
   const [chip, setChip] = useState("Biryani");
   const [sheet, setSheet] = useState(false);
   const [tab, setTab] = useState("home");
+  const { money, distance } = useI18n();
+  // Sample amounts in the current country's currency (Markets), else the first country's.
+  const { country, countries } = useCountry();
+  const cur = country?.currency ?? countries[0]?.currency;
   return (
     <ScrollView style={{ backgroundColor: color.porcelain }} contentContainerStyle={{ padding: 20, gap: 32, paddingBottom: 64 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 32 }}>
@@ -58,14 +63,14 @@ export default function Gallery() {
 
       <View style={{ gap: 12 }}>
         <Txt variant="h2">Buttons and chips</Txt>
-        <Button title="Pay ₹596.92" size="lg" block />
+        <Button title={`Pay ${money(596.92, cur)}`} size="lg" block />
         <Button title="Details" variant="secondary" />
         <Button title="Accept order" variant="rider" block />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {["Biryani", "Dosa", "Thali", "Pizza"].map((c) => <Chip key={c} label={c} selected={chip === c} onPress={() => setChip(c)} />)}
         </View>
         <Segmented label="Tip your rider" value={tip} onChange={setTip}
-          options={[{ value: "0", label: "None" }, { value: "10", label: "₹10" }, { value: "20", label: "₹20" }, { value: "30", label: "₹30" }]} />
+          options={[{ value: "0", label: "None" }, ...[10, 20, 30].map((n) => ({ value: String(n), label: money(n, cur, { whole: true }) }))]} />
       </View>
 
       <View style={{ gap: 12 }}>
@@ -74,7 +79,7 @@ export default function Gallery() {
           <PlateImage label="Hyderabadi Dum Biryani" />
           <View style={{ padding: 16, gap: 4 }}>
             <Txt variant="title">Spice Route Kitchen</Txt>
-            <Txt variant="small" style={{ color: color.muted }}>4.6 · Hyderabadi · 25–30 min · 2.1 km</Txt>
+            <Txt variant="small" style={{ color: color.muted }}>4.6 · Hyderabadi · 25–30 min · {distance(2.1)}</Txt>
           </View>
         </Card>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -82,7 +87,13 @@ export default function Gallery() {
         </View>
       </View>
 
-      <FairBill lines={BILL} currency="INR" />
+      {cur ? <FairBill lines={BILL} currency={cur} /> : null}
+
+      <View style={{ gap: 12 }}>
+        <Txt variant="h2">Language and test site</Txt>
+        <TestBanner />
+        <LanguagePicker />
+      </View>
 
       <View style={{ gap: 12 }}>
         <Txt variant="h2">Inputs and sheet</Txt>
@@ -105,7 +116,7 @@ export default function Gallery() {
       ]} />
 
       <Sheet visible={sheet} onClose={() => setSheet(false)} title="Chicken Dum Biryani"
-        footer={<Button title="Add to bag · ₹340" size="lg" block onPress={() => setSheet(false)} />}>
+        footer={<Button title={`Add to bag · ${money(340, cur, { whole: true })}`} size="lg" block onPress={() => setSheet(false)} />}>
         <Txt style={{ color: color.muted }}>Pick a size, spice level and add-ons.</Txt>
       </Sheet>
     </ScrollView>

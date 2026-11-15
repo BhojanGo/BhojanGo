@@ -1,5 +1,5 @@
 // The restaurant: its menu by category; tap a dish to customise it.
-import { color, money, radius, space, textFont, Txt, useBag } from "@bhojango/mobile-core";
+import { color, radius, space, textFont, Txt, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { PlateHeader } from "../../lib/plate";
 import { useMenu } from "../../lib/restaurants";
 
 export default function RestaurantScreen() {
+  const { money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { menu, error } = useMenu(id);
   const bag = useBag();
@@ -61,7 +62,7 @@ export default function RestaurantScreen() {
                   <Text numberOfLines={2} style={[textFont("400"), { fontSize: 14, color: color.muted }]}>{item.description}</Text>
                 ) : null}
                 <Text style={[textFont("700"), { fontSize: 15, color: color.kohl }]}>
-                  {off ? "Sold out today" : money(item.price, r.currency, { decimals: 0 })}
+                  {off ? "Sold out today" : money(item.price, r.currency, { whole: true })}
                 </Text>
               </View>
               <View style={styles.add}><Text style={[textFont("800"), { color: color.peacock, fontSize: 22 }]}>+</Text></View>

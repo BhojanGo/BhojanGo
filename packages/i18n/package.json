@@ -10,6 +10,10 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
+    "./all-messages": {
+      "types": "./all-messages.d.ts",
+      "default": "./all-messages.js"
+    },
     "./messages/*.json": "./messages/*.json"
   },
   "scripts": {
@@ -21,6 +25,8 @@
   "files": [
     "index.js",
     "index.d.ts",
+    "all-messages.js",
+    "all-messages.d.ts",
     "messages",
     "REVIEW.md"
   ]

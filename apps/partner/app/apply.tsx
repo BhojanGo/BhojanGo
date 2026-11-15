@@ -242,7 +242,7 @@ function GstBank({ app: a, onSaved }: { app: Application; onSaved: () => Promise
       <View style={s.file}>
         <View style={{ flex: 1 }}>
           <Text style={[textFont("700"), { fontSize: 15 }]}>{a.payout_account === "active" ? "Bank account confirmed" : a.payout_account ? "Waiting for your bank details" : "No bank account yet"}</Text>
-          <Text style={t.muted}>Set up securely with our payments partner (Razorpay Route in India).</Text>
+          <Text style={t.muted}>Set up securely with our payments partner (Razorpay Route).</Text>
         </View>
         {a.payout_account !== "active" ? <Btn title={a.payout_account ? "Continue" : "Add bank account"} kind="primary" onPress={bank} /> : null}
       </View>
