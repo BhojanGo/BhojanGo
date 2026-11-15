@@ -182,7 +182,29 @@ export const LOCALE_NAMES: Record<string, string> = {
   "es-US": "Español",
 };
 
+/** What a new country can choose (backend CountryCreate): the tax regimes and
+ * payment gateways the platform already integrates. A country with another tax
+ * system picks the closest one; a new regime is a code change. */
+export const TAX_REGIMES = [
+  { value: "gst", label: "GST (tax invoice)" },
+  { value: "us_sales_tax", label: "Sales tax (Stripe Tax, receipt)" },
+] as const;
+export const PAYMENT_PROVIDERS = ["razorpay", "stripe"] as const;
+
+export interface CountryCreate {
+  code: string;
+  name: string;
+  currency: string;
+  locales: string[];
+  timezone: string;
+  distance_unit: "km" | "mi";
+  phone_code: string;
+  payment_providers: string[];
+  tax_regime: string;
+}
+
 export const marketsApi = {
+  createCountry: (body: CountryCreate) => adminApi.post<Country>("/user/markets/countries", body),
   createRegion: (country: string, body: { code: string; name: string; timezone?: string | null }) =>
     adminApi.post<Region>(`/user/markets/countries/${country}/regions`, body),
   updateRegion: (code: string, body: { name?: string; status?: MarketStatus }) =>

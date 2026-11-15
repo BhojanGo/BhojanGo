@@ -45,6 +45,7 @@ dependencies = [
     "opentelemetry-instrumentation-httpx>=0.51b0",
     "fpdf2>=2.8.3,<3",
     "maxminddb>=2.6,<3",
+    "uharfbuzz>=0.50,<1",
 ]
 
 [dependency-groups]
@@ -57,6 +58,7 @@ dev = [
     "factory-boy>=3.3.3,<4",
     "faker>=40.54.0,<41",
     "fakeredis>=2.32,<3",
+    "pypdf>=6,<7",
 ]
 
 [tool.uv]

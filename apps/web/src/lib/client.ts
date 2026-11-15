@@ -18,8 +18,8 @@ interface Session {
   access: string | null;
   refreshToken: string | null;
   user: User | null;
-  sendCode: (phone: string, country: "IN" | "US") => Promise<void>;
-  verify: (phone: string, code: string, country: "IN" | "US") => Promise<void>;
+  sendCode: (phone: string, country: string) => Promise<void>;
+  verify: (phone: string, code: string, country: string) => Promise<void>;
   refresh: () => Promise<string | null>;
   signOut: () => Promise<void>;
   adopt: (t: { access_token: string; refresh_token: string }) => Promise<void>;
