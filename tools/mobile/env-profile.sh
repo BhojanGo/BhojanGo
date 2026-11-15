@@ -7,6 +7,8 @@
 # token in RAILWAY_TOKEN), so no environment's URL is written into the code.
 # Expo bakes EXPO_PUBLIC_* in when Metro bundles: restart Metro (expo start -c)
 # after switching. The worker has no public URL; the apps don't call it.
+# EXPO_PUBLIC_APP_ENV (qa | local) puts the test-site banner on every screen; a
+# store build sets production and shows none (packages/mobile-core/src/env.ts).
 set -eu
 PROFILE="${1:?usage: env-profile.sh <qa|local>}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -34,6 +36,7 @@ esac
 for app in customer rider partner; do
   cat > "$ROOT/apps/$app/.env.local" <<EOF
 # Written by tools/mobile/env-profile.sh $PROFILE. Git-ignored; delete it to go back to .env.
+EXPO_PUBLIC_APP_ENV=$PROFILE
 EXPO_PUBLIC_ENV=$PROFILE
 EXPO_PUBLIC_CORE_URL=$CORE
 EXPO_PUBLIC_REALTIME_URL=$REALTIME

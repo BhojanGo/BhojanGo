@@ -11,6 +11,7 @@ import { night, radius, space, textFont, ui } from "../lib/theme";
 
 export default function Sos() {
   const country = useSession((s) => s.user?.country);
+  // data-ok: emergency numbers aren't in Markets yet (follow-up: a country field); realtime's SOS reply has the same table.
   const emergency = country === "IN" ? "112" : "911";
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);

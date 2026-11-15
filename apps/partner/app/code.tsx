@@ -9,7 +9,7 @@ import { Split } from "../lib/split";
 import { Btn, color, radius, t, textFont } from "../lib/ui";
 
 export default function Code() {
-  const { phone, country } = useLocalSearchParams<{ phone: string; country: "IN" | "US" }>();
+  const { phone, country } = useLocalSearchParams<{ phone: string; country: string }>();
   const verify = useSession((s) => s.verifyCode);
   const signOut = useSession((s) => s.signOut);
   const loadKitchen = useKitchen((s) => s.load);

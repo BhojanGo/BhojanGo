@@ -9,6 +9,16 @@ appId: com.bhojango.partner
     visible: "Sign in to your kitchen"
     timeout: 60000
 - takeScreenshot: docs/screenshots/partner/01-sign-in
+# The phone's country starts from the device's region (Markets countries); step to
+# ${COUNTRY || "IN"} (the seed phones are Indian unless COUNTRY says otherwise).
+- repeat:
+    while:
+      notVisible:
+        id: 'phone-country-${COUNTRY || "IN"}'
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
 - tapOn:
     id: "phone"
 - inputText: ${PHONE || "9000000900"}

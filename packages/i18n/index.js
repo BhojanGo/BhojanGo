@@ -69,23 +69,42 @@ function interpolate(text, vars) {
 }
 
 /**
+ * The plural category of a count ("one" | "other" | ...). Intl.PluralRules where
+ * the engine has it; React Native's Hermes may not, so a small fallback covers our
+ * languages: English, Spanish, Telugu, Tamil, Marathi: one for exactly 1; Hindi,
+ * Bengali, Kannada: one for 0 and 1 (CLDR).
+ */
+function pluralSelector(language) {
+  try {
+    if (typeof Intl !== "undefined" && typeof Intl.PluralRules === "function") {
+      const rules = new Intl.PluralRules(language);
+      return (n) => rules.select(n);
+    }
+  } catch {
+    // fall through to the built-in rules
+  }
+  const zeroIsOne = ["hi", "bn", "kn"].includes(languageOf(language));
+  return (n) => (n === 1 || (zeroIsOne && n === 0) ? "one" : "other");
+}
+
+/**
  * t("home.greeting", {name}) from `messages` (the language's), falling back to
  * `fallback` (English) key by key, then to the key itself (visible, never blank).
  * A message can be plural: {"one": "{count} kitchen", "other": "{count} kitchens"},
  * chosen by vars.count with the language's plural rules.
  */
 function createTranslator(language, messages, fallback) {
-  const rules = new Intl.PluralRules(language);
+  const select = pluralSelector(language);
   return function t(key, vars) {
     let msg = lookup(messages, key);
     if (msg == null || msg === "") msg = lookup(fallback, key);
     if (msg == null) return key;
     if (typeof msg === "object") {
       const count = vars && typeof vars.count === "number" ? vars.count : 0;
-      msg = msg[rules.select(count)] ?? msg.other ?? key;
+      msg = msg[select(count)] ?? msg.other ?? key;
     }
     return interpolate(String(msg), vars);
   };
 }
 
-module.exports = { LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, pickLanguage, formatLocale, createTranslator };
+module.exports = { LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, pickLanguage, formatLocale, createTranslator, pluralSelector };

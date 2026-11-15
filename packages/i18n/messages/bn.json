@@ -803,5 +803,38 @@
     "failed": "আপনার রেটিং সেভ করা যায়নি। আবার চেষ্টা করুন।",
     "your_rating": "আপনার রেটিং",
     "thanks": "এই অর্ডারটি রেট করার জন্য ধন্যবাদ।"
+  },
+  "app": {
+    "test_banner": "টেস্ট সাইট: ডেমো কিচেন, কোনো আসল অর্ডার বা পেমেন্ট নেই",
+    "units": {
+      "km": "{value} কিমি",
+      "mi": "{value} মাইল"
+    },
+    "bill": {
+      "kitchens_treat": "কিচেনের তরফে",
+      "on_us": "আমাদের তরফে"
+    },
+    "phone": {
+      "country_code": "দেশের কোড, {country} {code}",
+      "choose_country": "আপনার দেশ বেছে নিন"
+    },
+    "home": {
+      "banner": "আপনার কাছের কিচেনে অর্ডার অনুযায়ী তৈরি"
+    },
+    "out_of_area": {
+      "cooking_in": "BhojanGo {cities}-এ রান্না করছে।",
+      "leave_number": "আপনার নম্বর দিন, যেদিন আমরা আসব সেদিন আপনাকে মেসেজ করব।"
+    }
+  },
+  "rider": {
+    "earnings": {
+      "distance": "দূরত্ব"
+    }
+  },
+  "partner": {
+    "offer": {
+      "amount_off": "{amount} ছাড়",
+      "flat_off": "টাকার ছাড়"
+    }
   }
 }

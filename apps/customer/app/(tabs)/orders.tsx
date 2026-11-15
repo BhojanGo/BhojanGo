@@ -1,5 +1,5 @@
 // Your orders: what's on its way first, then past orders.
-import { ACTIVE_STATUSES, api, color, money, space, StatusPill, textFont, Txt, unwrap, type CoreSchemas, type OrderStatus } from "@bhojango/mobile-core";
+import { ACTIVE_STATUSES, api, color, space, StatusPill, textFont, Txt, unwrap, useI18n, type CoreSchemas, type OrderStatus } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
@@ -9,6 +9,7 @@ import { useTabBarSpace } from "../../lib/tabbar";
 type Order = CoreSchemas["OrderResponse"];
 
 export default function Orders() {
+  const { money } = useI18n();
   const bottom = useTabBarSpace();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);

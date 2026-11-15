@@ -1,28 +1,34 @@
 // CustomerSignIn.html: phone number, a code by SMS, no password.
-import { Button, color, errorMessage, LogoMark, radius, space, textFont, Txt, useSession } from "@bhojango/mobile-core";
+import {
+  Button, color, e164, errorMessage, LogoMark, PhoneCountryButton, radius, space, textFont, Txt, useCountry, useI18n, useSession,
+  type MarketCountry,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const COUNTRIES = { IN: { code: "+91", label: "IN +91", digits: 10 }, US: { code: "+1", label: "US +1", digits: 10 } } as const;
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
-  const [country, setCountry] = useState<"IN" | "US">("IN");
+  const { t } = useI18n();
+  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
+  const { country: current, countries, chooseCountry } = useCountry();
+  const [picked, setPicked] = useState<MarketCountry | null>(null);
+  const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const c = COUNTRIES[country];
   const digits = number.replace(/\D/g, "");
 
   async function send() {
     setBusy(true);
     setError(null);
-    const phone = `${c.code}${digits}`;
+    if (!country) return;
+    const phone = e164(country.phone_code, number);
     try {
-      await sendCode(phone, country);
-      router.push({ pathname: "/code", params: { phone, country } });
+      await sendCode(phone, country.code);
+      void chooseCountry(country.code);
+      router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, "We couldn't send a code. Check the number and try again."));
     } finally {
@@ -46,28 +52,21 @@ export default function SignIn() {
           <Txt variant="small" style={{ color: color.muted }}>We&apos;ll text you a code. No password needed.</Txt>
           <Text style={[textFont("700"), styles.label]}>Mobile number</Text>
           <View style={styles.phone}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Country code, ${country === "IN" ? "India" : "United States"} ${c.code}`}
-              onPress={() => setCountry(country === "IN" ? "US" : "IN")}
-              style={styles.cc}
-            >
-              <Text style={[textFont("800"), { fontSize: 15 }]}>{c.label}</Text>
-            </Pressable>
+            <PhoneCountryButton value={country} onChange={setPicked} />
             <TextInput
               testID="phone"
               accessibilityLabel="Mobile number"
               value={number}
               onChangeText={setNumber}
               keyboardType="phone-pad"
-              placeholder={country === "IN" ? "98480 21234" : "(208) 555-0199"}
+              placeholder={t("signin.mobile")}
               placeholderTextColor={color.muted}
               maxLength={14}
               style={[textFont("600"), styles.number]}
             />
           </View>
           {error ? <Text style={[textFont("600"), { color: color.chili, fontSize: 13 }]}>{error}</Text> : null}
-          <Button title="Send code" size="lg" block loading={busy} disabled={digits.length !== c.digits} onPress={send} />
+          <Button title="Send code" size="lg" block loading={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
           <Txt variant="small" style={{ color: color.muted, textAlign: "center", marginTop: space[2] }}>
             By continuing you agree to our Terms and Privacy notice.
           </Txt>
@@ -88,10 +87,6 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, color: color.kohl, marginTop: space[2] },
   phone: { flexDirection: "row", gap: space[2] },
-  cc: {
-    height: 56, paddingHorizontal: space[4], borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong,
-    justifyContent: "center",
-  },
   number: {
     flex: 1, height: 56, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: space[4],
     fontSize: 18, letterSpacing: 0.5, color: color.kohl,

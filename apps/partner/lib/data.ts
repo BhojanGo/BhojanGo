@@ -1,7 +1,7 @@
 // The partner's restaurant and what the tablet shows: today's state, the
 // orders board (polled every 4 s), the menu, offers and the application.
-import { api, money, unwrap, useSession, type CoreSchemas } from "@bhojango/mobile-core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { api, unwrap, useI18n, useSession, type CoreSchemas } from "@bhojango/mobile-core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
@@ -46,17 +46,25 @@ export const useKitchen = create<KitchenStore>()((set) => ({
   },
 }));
 
-export function cash(v: string | number | null | undefined, currency = "INR", decimals = 0): string {
-  return money(Number(v ?? 0), currency, { decimals });
+/**
+ * Money, times and dates for the kitchen's screens, by the country (Markets data
+ * through useI18n). Call it at the top of a component.
+ *   const { cash, clock, date } = useFormat();
+ */
+export function useFormat() {
+  const { money, time, date } = useI18n();
+  return useMemo(() => ({
+    /** cash(250, order.currency): whole amounts lose ".00" (decimals 2 always shows cents). No currency: the country's. */
+    cash: (v: string | number | null | undefined, currency?: string | null, decimals = 0) =>
+      money(Number(v ?? 0), currency, { whole: decimals === 0 }),
+    /** "7:05 pm" in the country's clock. */
+    clock: (iso: string | null | undefined) => (iso ? time(iso) : ""),
+    date,
+  }), [money, time, date]);
 }
 
 export function code(id: string): string {
   return "#" + id.replace(/-/g, "").slice(0, 6).toUpperCase(); // as in messages and the rider app
-}
-
-export function clock(iso: string | null | undefined): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
 }
 
 export function useLoad<T>(load: () => Promise<T>, key = "", every = 0) {

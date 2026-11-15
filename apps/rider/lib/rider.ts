@@ -1,7 +1,7 @@
 // The rider's state: onboarding, online/offer/busy (live over /ws/rider with a
 // poll as a safety net), the active delivery and the week's earnings.
-import { api, money, unwrap, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { api, countryForCurrency, findCity, unwrap, useCountry, useI18n, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 
 export type Onboarding = CoreSchemas["OnboardingOut"];
@@ -24,7 +24,7 @@ export interface Offer {
   bags?: number;
   ready_in_minutes?: number | null;
   drop_area?: string | null;
-  distance_unit?: "km" | "mi";
+  distance_unit?: string; // the country's unit (Markets)
   trip_km?: number | null;
   /** Task 43: two orders from one kitchen, in drop-off order. rider_pay and tip are then the totals. */
   batch?: BatchStop[] | null;
@@ -71,19 +71,28 @@ export interface WeekLine {
 
 // ── formatting ───────────────────────────────────────────────────────────────
 
-const MI = 1.609344;
-
-export function dist(km: number | null | undefined, unit: "km" | "mi" = "km"): string {
-  if (km == null) return "";
-  const v = unit === "mi" ? km / MI : km;
-  return `${v.toFixed(1)} ${unit}`;
+/**
+ * Money, distances, dates and city names for the rider's screens, all by the
+ * country (Markets data through useI18n/useCountry). Call it at the top of a component.
+ *   const { cash, dist, cityName, unitFor, date, time } = useFormat();
+ */
+export function useFormat() {
+  const { money, distance, date, time } = useI18n();
+  const { countries } = useCountry();
+  return useMemo(() => ({
+    /** cash(12.5, order.currency): decimals 0 drops ".00" from whole amounts (never rounds cents away). */
+    cash: (v: string | number | null | undefined, currency?: string | null, decimals = 2) =>
+      money(Number(v ?? 0), currency, { whole: decimals === 0 }),
+    /** Kilometres in, the country's unit out (or `unit` as the API sends it). */
+    dist: (km: number | null | undefined, unit?: string | null) => distance(km, unit),
+    /** The distance unit of the country that uses `currency` (an order's), from Markets. */
+    unitFor: (currency: string | null | undefined) => countryForCurrency(countries, currency)?.distance_unit ?? null,
+    /** A city's name from its Markets code ("XX-RR-CCC"), else the code. */
+    cityName: (code: string | null | undefined) => (code ? findCity(countries, code)?.city.name ?? code : null),
+    date,
+    time,
+  }), [money, distance, date, time, countries]);
 }
-
-export function cash(v: string | number | null | undefined, currency = "USD", decimals = 2): string {
-  return money(Number(v ?? 0), currency, { decimals });
-}
-
-export const CITY_NAMES: Record<string, string> = { "IN-TG-HYD": "Hyderabad", "US-ID-BOI": "Boise" };
 
 // ── live rider state ─────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 // Riders sign in with their phone and a code by SMS (dark, like the rest of the app).
-import { errorMessage, useSession } from "@bhojango/mobile-core";
+import { e164, errorMessage, PhoneCountryButton, useCountry, useI18n, useSession, type MarketCountry } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -8,25 +8,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { RiderMark } from "../lib/icons";
 import { night, radius, space, textFont, ui } from "../lib/theme";
 
-const COUNTRIES = { IN: { code: "+91", label: "IN +91", digits: 10 }, US: { code: "+1", label: "US +1", digits: 10 } } as const;
-
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
-  const [country, setCountry] = useState<"IN" | "US">("US");
+  const { t } = useI18n();
+  // The phone's country: Markets' countries, starting from the current one (tap the box for the next).
+  const { country: current, countries, chooseCountry } = useCountry();
+  const [picked, setPicked] = useState<MarketCountry | null>(null);
+  const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const c = COUNTRIES[country];
   const digits = number.replace(/\D/g, "");
-  const ok = digits.length === c.digits && !busy;
+  const ok = !!country && digits.length >= 6 && digits.length <= 15 && !busy;
 
   async function send() {
     setBusy(true);
     setError(null);
-    const phone = `${c.code}${digits}`;
+    if (!country) return;
+    const phone = e164(country.phone_code, number);
     try {
-      await sendCode(phone, country);
-      router.push({ pathname: "/code", params: { phone, country } });
+      await sendCode(phone, country.code);
+      void chooseCountry(country.code);
+      router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body, "We couldn't send a code. Check the number and try again."));
     } finally {
@@ -48,21 +51,14 @@ export default function SignIn() {
         <View style={{ flex: 1 }} />
         <Text style={[ui.bold, { fontSize: 14, ...textFont("700") }]}>Mobile number</Text>
         <View style={styles.phone}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Country code, ${country === "IN" ? "India" : "United States"} ${c.code}`}
-            onPress={() => setCountry(country === "IN" ? "US" : "IN")}
-            style={styles.cc}
-          >
-            <Text style={[ui.bold, { fontSize: 15 }]}>{c.label}</Text>
-          </Pressable>
+          <PhoneCountryButton tone="dark" value={country} onChange={setPicked} style={styles.cc} />
           <TextInput
             testID="phone"
             accessibilityLabel="Mobile number"
             value={number}
             onChangeText={setNumber}
             keyboardType="phone-pad"
-            placeholder={country === "IN" ? "98480 21234" : "(208) 555-0199"}
+            placeholder={t("signin.mobile")}
             placeholderTextColor={night.muted}
             maxLength={14}
             style={[textFont("600"), styles.number]}
