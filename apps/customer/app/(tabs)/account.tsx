@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updateMe } from "../../lib/account";
 import { LinkButton, MenuRow, Row, Section, ui } from "../../lib/account-ui";
-import { useTabBarSpace } from "../../lib/tabbar";
+import { TabEnd, useTabBarSpace } from "../../lib/tabbar";
 
 export default function Account() {
   const { t, language } = useI18n();
@@ -62,8 +62,11 @@ export default function Account() {
           <MenuRow testID="account-privacy" icon="alert" label={t("account.nav.privacy")} href="/account/privacy" last />
         </Section>
 
-        <Button testID="sign-out" title={t("common.sign_out")} variant="secondary" block
-          onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
+        <View testID="account-last">
+          <Button testID="sign-out" title={t("common.sign_out")} variant="secondary" block
+            onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
+        </View>
+        <TabEnd tab="account" />
       </ScrollView>
 
       <Sheet visible={editing} onClose={() => setEditing(false)} title={t("account.profile.name_label")}

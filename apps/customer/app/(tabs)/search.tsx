@@ -10,7 +10,7 @@ import { KitchenCard } from "../../components/KitchenCard";
 import { cuisineTiles, ofCuisine } from "../../lib/contract";
 import { useDiscover } from "../../lib/restaurants";
 import { useWhere } from "../../lib/where";
-import { useTabBarSpace } from "../../lib/tabbar";
+import { TabEnd, useTabBarSpace } from "../../lib/tabbar";
 
 export default function Search() {
   const { t } = useI18n();
@@ -38,8 +38,17 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={<View style={{ marginTop: -space[8], marginBottom: space[4], marginHorizontal: -space[5] }}><CuisineRow tiles={tiles} selected={cuisine} onSelect={setCuisine} /></View>}
         contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
-        ListEmptyComponent={<Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>}
-        renderItem={({ item }) => <KitchenCard k={item} currency={data?.currency} unit={data?.distance_unit} compact />}
+        ListEmptyComponent={
+          <View testID="search-last">
+            <Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>
+          </View>
+        }
+        ListFooterComponent={<TabEnd tab="search" />}
+        renderItem={({ item, index }) => (
+          <View testID={index === results.length - 1 ? "search-last" : undefined}>
+            <KitchenCard k={item} currency={data?.currency} unit={data?.distance_unit} compact />
+          </View>
+        )}
       />
     </SafeAreaView>
   );

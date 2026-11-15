@@ -5,6 +5,8 @@ export * from "./ui/components";
 export { useBrandFonts } from "./ui/fonts";
 export { color, dark, displayFont, elevation, FONT_FILES, radius, space, textFont, touch, typeStyle } from "./ui/theme";
 export { billTotal } from "@bhojango/ui/bill";
+// Round 5: the floating tab bar's geometry and the room every tab screen leaves for it.
+export { aboveTabBar, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance } from "./tabbar";
 
 // P17: generated API client, session and bag.
 export { api, urls, useSession, wsUrl } from "./session";

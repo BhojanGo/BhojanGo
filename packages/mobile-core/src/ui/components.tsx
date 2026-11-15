@@ -9,6 +9,7 @@ import {
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 
 import { useI18n } from "../i18n";
+import { TAB_BAR_HEIGHT } from "../tabbar";
 import { color, dark, elevation, radius, space, textFont, touch, typeStyle } from "./theme";
 
 // ── text ──────────────────────────────────────────────────────────────────────
@@ -322,14 +323,17 @@ export interface TabItem {
 }
 
 /** The floating dark pill: the current tab shows its label on Peacock. */
-export function TabBar({ items, current, onSelect }: { items: TabItem[]; current: string; onSelect: (key: string) => void }) {
+export function TabBar({ items, current, onSelect, testID = "tab-bar" }: {
+  items: TabItem[]; current: string; onSelect: (key: string) => void; testID?: string;
+}) {
   return (
-    <View accessibilityRole="tablist" style={styles.tabBar}>
+    <View testID={testID} collapsable={false} accessibilityRole="tablist" style={styles.tabBar}>
       {items.map((t) => {
         const on = t.key === current;
         return (
           <Pressable
             key={t.key}
+            testID={`tab-${t.key}`}
             accessibilityRole="tab"
             accessibilityLabel={t.label}
             accessibilityState={{ selected: on }}
@@ -394,7 +398,7 @@ const styles = StyleSheet.create({
   },
   grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: color.lineStrong },
   tabBar: {
-    flexDirection: "row", alignItems: "center", gap: 4, height: 64, paddingHorizontal: 8,
+    flexDirection: "row", alignItems: "center", gap: 4, height: TAB_BAR_HEIGHT, paddingHorizontal: 8,
     borderRadius: radius.pill, backgroundColor: color.kohl, alignSelf: "center", ...elevation.bar,
   },
   tab: { height: 48, minWidth: 52, borderRadius: radius.pill, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
