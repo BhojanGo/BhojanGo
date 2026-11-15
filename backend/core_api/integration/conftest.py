@@ -49,8 +49,39 @@ async def open_all_day(restaurant_ids: list | None = None) -> None:
         await db.commit()
 
 
+def target_guard():  # type: ignore[no-untyped-def]
+    """tools/target_guard.py (the repo's tools/, also /repo/tools in the test images).
+    Missing means we can't tell where we'd write: refuse."""
+    import importlib.util
+    from pathlib import Path
+
+    for root in Path(__file__).resolve().parents:
+        path = root / "tools" / "target_guard.py"
+        if path.is_file():
+            spec = importlib.util.spec_from_file_location("target_guard", path)
+            mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            return mod
+    pytest.exit("REFUSED: tools/target_guard.py not found, so the test target can't be checked", returncode=3)
+
+
+def refuse_qa_and_production() -> None:
+    """Tests never write to QA or production: this process's APP_ENV and
+    RAILWAY_ENVIRONMENT_NAME, and DATABASE_URL's host, must be local."""
+    problem = target_guard().process_problem()
+    if problem:
+        pytest.exit(f"REFUSED (tools/target_guard.py): {problem}", returncode=3)
+
+
 @pytest.fixture(scope="session", autouse=True)
-def _restaurants_open_for_tests():
+def _never_qa_or_production():
+    if os.environ.get("RUN_MIGRATED_DB_TESTS") == "1":
+        refuse_qa_and_production()
+    yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _restaurants_open_for_tests(_never_qa_or_production):
     if os.environ.get("RUN_MIGRATED_DB_TESTS") != "1":
         yield
         return

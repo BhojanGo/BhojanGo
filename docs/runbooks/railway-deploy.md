@@ -131,7 +131,9 @@ You need:
 
 7. **Redeploy in order:** postgres → core-api (its pre-deploy migrates to head) → realtime, worker → web, admin.
    After that, merging to `dev` redeploys QA by itself. Watch patterns rebuild only the services whose files changed.
-8. **Seed (QA, once)**, from inside the private network: `tools/railway/qa-runner.sh job seed` (below).
+8. **Seed (QA)**, from inside the private network: `tools/railway/qa-runner.sh job reset` (below) rebuilds the
+   database and loads the base seed and the demo data ([`tools/seed/demo.py`](../../tools/seed/demo.py): 16 kitchens
+   a city with full menus, offers, demo customers with order history and an order on its way).
    - Every account gets a **random password**.
    - The logins go to the private bucket and from there to a file outside the repo. They're never printed or logged.
    - Seed phones (`+1208555…`, `+9190000…`) sign in with OTP `123456` in QA only.
@@ -145,7 +147,26 @@ You need:
 - Custom domains (Settings → Networking).
 - Postgres backups on: daily, keep 7. Do the restore drill from [backup-restore.md](backup-restore.md) once.
 
-## Testing an environment without opening the database
+## QA gets demo data and read-only checks, never tests
+
+**Tests never write to QA or production.** They run locally (`make dev`, `make ci`) and in CI. Everything that creates
+data through the APIs or the database calls the shared guard [`tools/target_guard.py`](../../tools/target_guard.py)
+first and refuses (a clear message, exit 3) when its target is an environment named `qa` or `production`:
+
+- the target API's public `/health` reports `environment` (core-api, realtime and worker; `APP_ENV`, or Railway's own
+  name when that is QA or production). A hosted API that doesn't say is refused too;
+- a process that opens the database (the backend conftests) checks its own `APP_ENV` and `RAILWAY_ENVIRONMENT_NAME`,
+  and `DATABASE_URL` must point at a local or compose host (any dotted host, such as `*.railway.internal`, is remote).
+
+Guarded: the backend integration suites (`core_api/integration`, `worker/tests/integration`) and G1 (`backend/e2e`),
+`tools/web/e2e_web.py`, `tools/web/screens_v2.py`, `tools/web/third_city.py`, `tools/admin/e2e_admin.py`,
+`tools/mobile/hours.py`, k6 (`tools/load/pilot.js` stops in `setup()`), the soak (`tools/soak/setup.py`, `soak.py`,
+`batching_switch.py`), `tools/railway/ws_check.py`, `restart_check.py`, `playwright-qa.sh`, `maestro-qa.sh`, and the
+QA runner's `g1` and `integration` jobs. `make ci-guard` runs the guard's unit tests.
+
+What QA gets instead: the demo data (below), and read-only checks: the `checks` job, a browser, `curl` of `/health`.
+
+### The QA runner
 
 Postgres and Redis have no public port, and sealed secrets can't be read back. `railway ssh` needs a personal login,
 not a project token. So jobs that need the database run **inside** the environment, in a temporary service:
@@ -154,36 +175,42 @@ not a project token. So jobs that need the database run **inside** the environme
   [`tools/railway/qa-runner.sh`](../../tools/railway/qa-runner.sh).
 - It reaches Postgres, Redis and the worker through Railway references (`${{postgres.POSTGRES_PASSWORD}}`, …).
 - It runs one job per deploy, prints a result line and exits (restart policy NEVER, so it costs nothing between jobs).
-- Delete it when testing is done (`tools/railway/qa-runner.sh delete`).
+- Deploy it from the commit QA runs (`dev`), so its migrations match core-api's.
+- Delete it when done (`tools/railway/qa-runner.sh delete`).
 
 | Job | What |
 |---|---|
-| `seed` | Hyderabad + Boise with random passwords |
-| `checks` | each backend's `/health` over the private network; `alembic current`/`heads`/`check` against the QA database |
-| `hours` | open the seed cities and kitchens around the clock; clear OTP counters (before UI tests) |
-| `g1` | G1 against the public QA API |
-| `integration` | migrations up/down/up, `alembic check`, seed and the integration suites, on a throwaway database (`bhojango_it`) on QA's Postgres and Redis database 9; dropped afterwards |
+| `reset` | Rebuild QA's database from scratch: other sessions closed, the `public` schema dropped and recreated (PostGIS re-created by `infra/docker/db/init.sql`), migrations to head, Redis database 0 cleared (sessions, caches), then the base seed and the demo seed with random passwords; the logins go to the private bucket. **Refused unless `RAILWAY_ENVIRONMENT_NAME` is `QA` (any case) and `APP_ENV` is `qa`.** Everyone signs in again afterwards |
+| `seed` | The base seed (Hyderabad + Boise) with random passwords |
+| `demo` | The demo seed on top; its logins are added to the same bucket file |
+| `checks` | Read-only: each backend's `/health` (with its `environment`) over the private network; `alembic current`/`heads`/`check` against the QA database |
+| `hours` | Removed (it rewrote QA data for tests; tests never write to QA). Exits 3 |
+| `g1`, `integration` | Refused (exit 3): they write test data. They run in `make ci` (`ci-e2e`, `ci-migrations`) and in CI |
 
-From a workstation, against the public URLs:
+The demo seed refuses production by itself (`APP_ENV` or `RAILWAY_ENVIRONMENT_NAME` named production). `make dev`
+runs it after the base seed (`make seed`); CI and G1 don't.
 
-- [`tools/railway/playwright-qa.sh`](../../tools/railway/playwright-qa.sh): the web and admin Playwright suites;
-- [`tools/railway/maestro-qa.sh`](../../tools/railway/maestro-qa.sh): the three apps' Maestro flows. Dev builds use
-  the QA env profile, [`tools/mobile/env-profile.sh qa`](../../tools/mobile/env-profile.sh);
-- [`tools/railway/ws_check.py`](../../tools/railway/ws_check.py): live tracking through the proxy, including 150 s idle;
-- [`tools/railway/restart_check.py`](../../tools/railway/restart_check.py): restart every service and check nothing is
-  lost;
-- `SCALE=0.1 tools/load/pilot.js`: a k6 smoke at 1× pilot peak.
+From a workstation, against a hosted environment that is neither QA nor production (staging, once it exists):
+[`tools/railway/playwright-qa.sh`](../../tools/railway/playwright-qa.sh) (web and admin Playwright),
+[`tools/railway/maestro-qa.sh`](../../tools/railway/maestro-qa.sh) (Maestro; dev builds use
+[`tools/mobile/env-profile.sh`](../../tools/mobile/env-profile.sh)),
+[`tools/railway/ws_check.py`](../../tools/railway/ws_check.py) (live tracking through the proxy, 150 s idle),
+[`tools/railway/restart_check.py`](../../tools/railway/restart_check.py) (restart every service, nothing lost) and
+`SCALE=0.1 tools/load/pilot.js` (k6 at 1× pilot peak). Pointed at QA or production they stop at the guard.
 
 Notes:
 
 - **Maestro's partner flows need the tablet emulator** (`bhojango_tablet`); on a phone the kitchen app's forms run
   off the screen.
-- **Maestro writes every `-e` value into its logs**, so `maestro-qa.sh` redacts the QA passwords afterwards
+- **Maestro writes every `-e` value into its logs**, so `maestro-qa.sh` redacts the passwords afterwards
   (`redact_logins.py`).
 - **The OTP limit is 3 a minute per client address**, now the real one. Don't run two UI suites from one machine at
   once.
 
 ### QA test results (2026-11-14)
+
+Run once while QA was being built, before the rule above: QA no longer gets the G1, integration, Playwright,
+Maestro, WebSocket, restart or k6 runs that wrote test data (`reset` clears what they left).
 
 URLs: web https://web-qa-3fd3b3f8.up.railway.app, admin https://admin-qa-df130aa4.up.railway.app,
 API https://core-api-qa-03da2a58.up.railway.app (realtime https://realtime-qa-2a1e9d2e.up.railway.app).

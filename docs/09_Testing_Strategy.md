@@ -139,7 +139,8 @@ class OrderFactory(factory.Factory):
 ```
 
 ### Seed Data
-- `tools/seed/` loads idempotent Hyderabad + Boise seed data for local/staging (`make seed`)
+- `tools/seed/` loads idempotent Hyderabad + Boise seed data (`seed.py`, what CI and G1 test on) and, for `make dev` and QA only, demo data on top (`demo.py`; `make seed` runs both)
+- Tests never write to QA or production: integration, G1, Playwright, Maestro, k6 and the soak check their target first (`tools/target_guard.py`, unit-tested by `make ci-guard`)
 - Idempotent (safe to run multiple times)
 
 ## 8. CI Strategy

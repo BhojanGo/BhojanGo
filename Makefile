@@ -4,7 +4,8 @@
 #
 #   make dev     build and start everything (profile "all"), run migrations, seed
 #   make observe make dev + Grafana, Prometheus, Alertmanager, Loki, Tempo (P23)
-#   make seed    (re)load the Hyderabad + Boise seed data; safe to run again
+#   make seed    (re)load the Hyderabad + Boise seed data, then the demo data
+#                (tools/seed/demo.py: 16 kitchens a city, orders); safe to run again
 #   make test    backend pytest + JS lint/typecheck/test, inside Docker
 #   make ci      everything GitHub CI runs (the merge gate), inside Docker
 #   make web-third-city  launch a 3rd city in admin on a clean stack; the website must follow (not in ci)
@@ -18,7 +19,7 @@ PROFILE ?= all
 # Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
 export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev observe up seed test test-backend test-js ci ci-photos ci-web-data ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps web-third-city
+.PHONY: help dev observe up seed test test-backend test-js ci ci-guard ci-photos ci-web-data ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps web-third-city
 
 help:
 	@sed -n '1,15p' Makefile
@@ -55,9 +56,11 @@ observe:
 	@echo "  alertmanager  http://localhost:$${ALERTMANAGER_PORT:-9093}"
 	@echo "Firing alerts also show in the admin console (Operations) and in the logs."
 
+# The base seed, then the demo data on top (make dev and QA only: CI and G1 keep the base seed).
 seed:
 	$(COMPOSE) --profile backend up -d --wait core-api
 	$(COMPOSE) exec -T core-api python /srv/tools/seed/seed.py
+	$(COMPOSE) exec -T core-api python /srv/tools/seed/demo.py
 
 test: test-backend test-js
 
@@ -71,7 +74,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: ci-secrets ci-photos ci-web-data ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
+ci: ci-secrets ci-guard ci-photos ci-web-data ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -117,6 +120,10 @@ ci-secrets:
 # directory, city page, sitemap, personal home and kitchen page must follow. Runs on GitHub (e2e.yml).
 web-third-city:
 	sh tools/web/third_city.sh
+
+# Tests never write to QA or production: the shared guard's unit tests (tools/target_guard.py).
+ci-guard:
+	python tools/target_guard_test.py
 
 # Photo credits: apps/web/src/content/photo-credits.json matches docs/design/photos/LICENSES.md.
 ci-photos:

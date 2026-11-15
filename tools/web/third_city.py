@@ -73,6 +73,12 @@ for _m in MARKETS:
     _m["slug"] = _m["city"].lower()
     _m["city_path"] = f"/{_m['country'].lower()}/{_m['slug']}"
 
+# Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api("http://core-api:8001")
+
 results: list[tuple[str, bool, str]] = []
 state: dict = {}  # per market key: city_code, region, rid, slug, path
 

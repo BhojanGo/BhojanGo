@@ -67,7 +67,7 @@ curl -s 'http://localhost:8001/api/v1/restaurants?limit=20'   # 10 restaurants, 
 | Command | What it does |
 | --- | --- |
 | `make dev` | Build and start everything, run migrations, load seed data |
-| `make seed` | Reload the seed data (safe to run again; no duplicates) |
+| `make seed` | Reload the seed data, then the demo data (`tools/seed/demo.py`: 16 kitchens a city, order history); safe to run again, no duplicates |
 | `make test` | Backend pytest + JS lint/typecheck/test, inside Docker |
 | `make ci` | Everything GitHub CI runs (adds migrations up/down/up, `alembic check`, image builds, Terraform validate). **The merge gate.** |
 | `make down` | Stop everything (data is kept) |
@@ -332,7 +332,7 @@ bhojango/
 ├── infra/
 │   ├── terraform/        AWS IaC
 │   └── docker/           compose.yaml (profiles infra/backend/all), Dockerfiles, db/, localstack/
-├── tools/seed/           Hyderabad + Boise seed data (idempotent; make seed)
+├── tools/seed/           Hyderabad + Boise seed data and demo data (idempotent; make seed)
 ├── docs/                 adr/, specs/ (source of truth for P1–P24)
 ├── .github/workflows/    CI/CD pipelines (ci.yml, pr-checks.yml, security.yml)
 ├── Makefile              make dev / seed / test / down / reset

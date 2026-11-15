@@ -84,7 +84,23 @@ def idem() -> dict[str, str]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def open_around_the_clock() -> None:
+def never_qa_or_production() -> None:
+    """Tests never write to QA or production (tools/target_guard.py): the APIs'
+    /health must not report qa or production, and this process (which opens the
+    database to set opening hours) must be local."""
+    if not CORE:
+        return
+    from core_api.integration.conftest import refuse_qa_and_production, target_guard
+
+    for url in (CORE, RT, WK):
+        problem = target_guard().api_problem(url)
+        if problem:
+            pytest.exit(f"REFUSED (tools/target_guard.py): {problem}", returncode=3)
+    refuse_qa_and_production()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def open_around_the_clock(never_qa_or_production: None) -> None:
     """City and restaurant hours open all day (what core_api's integration suite does)."""
     if not CORE:
         return

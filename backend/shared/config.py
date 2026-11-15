@@ -19,6 +19,8 @@ _ENV = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ign
 # APP_ENV and the hosting platform's own name for the environment (Railway sets
 # RAILWAY_ENVIRONMENT_NAME), so a mislabelled APP_ENV can't slip a fake through.
 PRODUCTION_NAMES = frozenset({"production", "prod"})
+# Environments tests never write to (tools/target_guard.py reads them from /health).
+PROTECTED_TEST_TARGETS = PRODUCTION_NAMES | {"qa"}
 
 
 class ProductionConfigError(RuntimeError):
@@ -332,6 +334,13 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @property
+    def environment_name(self) -> str:
+        """The environment's name for public /health (tools/target_guard.py: tests never
+        write to QA or production): APP_ENV, or Railway's own name when that is qa or production."""
+        platform = os.environ.get("RAILWAY_ENVIRONMENT_NAME", "").strip().lower()
+        return platform if platform in PROTECTED_TEST_TARGETS else self.APP_ENV.strip().lower()
 
     @property
     def production_named(self) -> bool:

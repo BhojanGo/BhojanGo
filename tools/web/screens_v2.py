@@ -27,6 +27,12 @@ FORWARD = {3000: ("web", 3000), 8001: ("core-api", 8001), 8004: ("realtime", 800
 KITCHEN_PATH = "/in/hyderabad/spice-route-kitchen-madhapur"
 CUSTOMER = "customer1.hyd@example.com"
 
+# Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
+from target_guard import ensure_safe_api  # noqa: E402
+
+ensure_safe_api("http://core-api:8001")
+
 
 def forward(port: int, target: tuple[str, int]) -> None:
     srv = socket.socket()

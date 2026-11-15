@@ -51,3 +51,24 @@ def test_other_environments_keep_the_fakes(monkeypatch, env) -> None:  # type: i
 def test_railway_bucket_url_style_maps_to_boto(monkeypatch, given, used) -> None:  # type: ignore[no-untyped-def]
     """`railway bucket credentials` gives urlStyle "virtual-host"; boto3 only knows "virtual"."""
     assert make(monkeypatch, APP_ENV="qa", S3_ADDRESSING_STYLE=given).providers.S3_ADDRESSING_STYLE == used
+
+
+@pytest.mark.parametrize(("env", "expected"), [
+    ({"APP_ENV": "development"}, "development"), ({"APP_ENV": "QA"}, "qa"),
+    ({"APP_ENV": "staging", "RAILWAY_ENVIRONMENT_NAME": "staging"}, "staging"),
+    # Railway's own name wins when it's one tests must never write to (tools/target_guard.py)
+    ({"APP_ENV": "development", "RAILWAY_ENVIRONMENT_NAME": "QA"}, "qa"),
+])
+def test_environment_name_for_health(monkeypatch, env, expected) -> None:  # type: ignore[no-untyped-def]
+    assert make(monkeypatch, **env).environment_name == expected
+
+
+async def test_public_health_reports_the_environment() -> None:
+    from httpx import ASGITransport, AsyncClient
+
+    from core_api.main import app
+    from shared.config import get_settings
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get("/health")
+    assert r.json()["environment"] == get_settings().environment_name

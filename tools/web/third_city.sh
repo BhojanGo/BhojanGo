@@ -52,7 +52,7 @@ timeout 300 $C exec -T core-api python /srv/tools/seed/seed.py >/dev/null || { e
 mkdir -p "$OUT"
 echo "== Playwright: tools/web/third_city.py"
 timeout 1200 docker run --rm --name "$PW" --network "${P}_default" \
-  -v "$ROOT/tools/web:/t:ro" -v "$OUT:/out" \
+  -v "$ROOT/tools/web:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$OUT:/out" \
   mcr.microsoft.com/playwright/python:v1.49.0-jammy \
   sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python -u /t/third_city.py"
 status=$?

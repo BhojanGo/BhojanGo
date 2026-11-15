@@ -15,7 +15,7 @@ for pattern in 'otp_attempts:*' 'discover:*'; do
   $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern '$pattern' | xargs -r redis-cli -n 0 del" >/dev/null
 done
 docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
-  -v "$ROOT/tools/web:/t:ro" -v "$ROOT/docs/screenshots/web:/out" \
+  -v "$ROOT/tools/web:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/docs/screenshots/web:/out" \
   mcr.microsoft.com/playwright/python:v1.49.0-jammy \
   sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/e2e_web.py"
 status=$?
