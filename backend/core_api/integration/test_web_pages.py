@@ -37,6 +37,8 @@ async def test_example_bill_comes_from_the_engine(client: AsyncClient) -> None:
     assert r.status_code == 200, r.text
     b = r.json()
     codes = [ln["code"] for ln in b["lines"]]
-    assert b["currency"] == "INR" and codes[0] == "food" and "delivery_fee" in codes and "tax" in codes and "tip" in codes
+    assert b["currency"] == "INR" and codes[0] == "food" and "delivery_fee" in codes and "tax" in codes
+    # a real recent order's bill (its tip, if any), or a typical cart with the country's default tip
+    assert b["source"] in ("order", "typical") and (b["source"] == "order" or "tip" in codes)
     assert abs(sum(float(ln["amount"]) for ln in b["lines"]) - float(b["total"])) < 0.01
     assert (await client.get("/api/v1/pricing/example", params={"city": "IN-TG-XXX"})).status_code == 404
