@@ -41,7 +41,7 @@ export function offerSubtitle(o: Offer, t: T, currency: string, formatLocale: st
 }
 
 function Img({ src, alt = "", className }: { src: string | null; alt?: string; className?: string }) {
-  if (!src) return <span aria-hidden="true" className={`block bg-[#EFF6F6] ${className ?? ""}`} />;
+  if (!src) return <span aria-hidden="true" className={`block h-full w-full bg-[#EFF6F6] ${className ?? ""}`} />;
   // eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library, already optimised
   return <img src={src} alt={alt} loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
