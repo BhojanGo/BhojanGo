@@ -143,3 +143,55 @@ Reviewers, look first at:
   (read aloud on an order in the phone's list; {order} is "#A1B2 · customer name").
 - Plurals: `partner.orders.today_orders`, `partner.orders.bags`, `partner.payouts.orders`,
   `partner.apply.steps.menu_detail` (one/other; Hindi, Bengali and Kannada use "one" for 0 too).
+
+## Backend messages and quick messages (round 5)
+
+Every notification and quick message is now written in all eight languages
+(machine-translated on 2026-11-15; Hindi and Telugu existed for the worker's
+messages, Tamil, Kannada, Marathi, Bengali and Spanish are new). They live in
+Python, not in these files, because the backend images can't read
+`packages/` (their build context is `backend/`):
+
+- `backend/worker/app/services/messages.py`: push title and body (SMS sends
+  "BhojanGo: <body>", email wraps the same words): `order_placed`, `order_accepted`,
+  `order_preparing`, `driver_assigned`, `order_picked_up`, `order_almost_there`,
+  `order_message` (title only: "Message from {name}"), `order_delivered`,
+  `order_cancelled_refunded`, `order_cancelled_unpaid`, `payment_failed`, `refund_items`,
+  `partner_new_order`, `payout_paid`; `ARRIVING` ("Arriving around {eta}."), `ITEMS`
+  ("{n} item(s)"), `EMAIL_FOOTER`, `EMAIL_TOTAL`, `EMAIL_ORDER`.
+- `backend/shared/texts.py`: the quick messages `QUICK_PRESETS` (rider: `at_kitchen`,
+  `on_my_way`, `outside`, `cant_find`, `running_late`; customer: `leave_at_door`,
+  `coming_down`, `ring_bell`, `ask_guard`), `NAMES` (`your_rider`, `the_customer`,
+  used when someone has no name), `OTP_SMS` (the sign-in code), `WELCOME` (the
+  welcome email: `subject`, `hello`, `hello_anon`, `body`, `signoff`).
+- `app.chat.*` here (the apps' message sheet): `title` "Message {name}", `new`
+  (plural), `note`, `close`, `empty`.
+
+`python tools/i18n/check_locales.py` (`make ci-i18n`, in GitHub's Repo checks)
+fails if any of these, or any key in these files, is missing or empty in a
+language that a live or beta country lists in Markets, or a backend text's
+`{placeholders}` differ from English. Reviewers, look first at:
+
+- **India SMS (DLT):** every SMS text must match its DLT-registered template word
+  for word, so a reviewed wording has to be registered (or re-registered) with
+  the operator before it goes live. Keys are `<message>_<language>` (e.g.
+  `order_picked_up_ta`, `otp_bn`); the variables are the `{placeholders}` in order.
+  SMS with Indic scripts or ₹ is UCS-2 (70 characters a part): the tests keep each
+  message to three parts, which is why the Tamil cancellation and payment-failed
+  bodies are shorter than English ("{restaurant} ஆர்டர் {code} ரத்தானது").
+- **Gendered verbs (Hindi, Marathi):** a rider or customer can be anyone, so the
+  quick messages avoid gendered first-person verbs: Hindi `at_kitchen` "...इंतज़ार है",
+  `on_my_way` / `coming_down` use the plural "आ रहे हैं"; Marathi uses the neutral
+  "येत आहे" / "पाहत आहे". Check they read naturally.
+- **Names as subjects:** `{rider}` can be "Your rider" in the language
+  (`NAMES.your_rider`) when the rider has no name: Hindi "आपका राइडर ने" should be
+  oblique ("आपके राइडर ने"); check every language's sentences with the fallback.
+- **Suffixes after {placeholders}:** Telugu/Kannada/Tamil/Bengali glue case suffixes
+  to `{restaurant}`, `{code}`, `{period}`, `{eta}` (`{restaurant}ನಿಂದ`, `{code}-க்கு`,
+  `{period}-এর`, `{eta}க்கு`): kitchen names ending in a consonant may need a joiner.
+- **Spanish:** "tú" throughout (as on the website); `order_delivered` "Buen provecho.";
+  `payment_failed` title "No se pudo cobrar"; `partner_new_order` "Acéptalo antes de
+  las {accept_by}" assumes {accept_by} is a time.
+- **Bengali numerals:** "৫–৭ দিন" in the refund messages, matching the website.
+- **The email footer** keeps the English brand line "The honest table." in Spanish
+  ("La mesa honesta"); the Indian languages use the tagline ("Real food. Fair prices.").

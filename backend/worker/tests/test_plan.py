@@ -129,5 +129,18 @@ async def test_almost_there_tells_the_customer() -> None:
     assert (en.title, en.body) == ("Almost there", "Imran is a couple of minutes away with your order from Spice Route Kitchen.")
     assert "Imran" in m.render(out.key, "te", **out.params).body and "Spice Route Kitchen" in m.render(out.key, "hi", **out.params).body
     d.row = {**d.row, "driver_id": None}
-    assert (await plan(ev("driver.almost_there"), d))[0].params["rider"] == "Your rider"  # type: ignore[arg-type]
+    out = await plan(ev("driver.almost_there"), d)  # type: ignore[arg-type]
+    assert out[0].params["rider"] is None  # the message says "Your rider" in the customer's language
+    assert m.render(out[0].key, "en", **out[0].params).body.startswith("Your rider is a couple of minutes away")
     assert await plan({"event_type": "driver.almost_there", "payload": {"order_id": str(uuid.uuid4())}}, d) == []  # type: ignore[arg-type]
+
+
+async def test_a_preset_quick_message_reaches_the_other_person_in_their_language() -> None:
+    """Round 5: the rider taps "I'm outside." in Hindi; a Telugu customer reads it in Telugu."""
+    from app.services import messages as m
+
+    out = await plan(ev("order.message", to_user_id=CUSTOMER, from_name="", from_role="rider", preset="outside",  # type: ignore[arg-type]
+                        text="I'm outside.", message_id="m2"), FakeDirectory())
+    assert out[0].params == {"name": "", "text": "I'm outside.", "preset": "outside", "from_role": "rider"}
+    r = m.render("order_message", "te", **out[0].params)
+    assert (r.title, r.body) == ("మీ రైడర్ నుండి సందేశం", "నేను బయట ఉన్నాను.")

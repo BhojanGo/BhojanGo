@@ -30,7 +30,9 @@ export const useSession = create<Session>()(persist((set, get) => ({
   refreshToken: null,
   user: null,
   sendCode: async (phone, country) => {
-    unwrap(await api.core.POST("/api/v1/auth/send-otp", { body: { phone, country } }));
+    // The page's language (<html lang>): the code's SMS is written in it when the country offers it.
+    const language = typeof document === "undefined" ? undefined : document.documentElement.lang || undefined;
+    unwrap(await api.core.POST("/api/v1/auth/send-otp", { body: { phone, country, language } }));
   },
   verify: async (phone, code, country) => {
     const t = unwrap(await api.core.POST("/api/v1/auth/phone", { body: { phone, otp: code, country } })) as { access_token: string; refresh_token: string };

@@ -173,6 +173,8 @@ class MarketService:
         if "status" in patch or "payout_provider" in patch:
             rules.check_country_payouts(patch.get("status", c.status), patch.get("payout_provider", c.payout_provider),
                                         production=_production())
+        if "status" in patch or "locales" in patch:
+            rules.check_country_languages(patch.get("status", c.status), patch.get("locales") or c.locales)
         for k, v in patch.items():
             setattr(c, k, v)
         await self.db.flush()

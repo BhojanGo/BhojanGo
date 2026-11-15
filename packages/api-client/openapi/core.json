@@ -6573,6 +6573,21 @@
             "title": "Country",
             "type": "string"
           },
+          "language": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "hi"
+            ],
+            "title": "Language"
+          },
           "phone": {
             "pattern": "^\\+?[1-9]\\d{7,14}$",
             "title": "Phone",
@@ -15704,7 +15719,7 @@
     },
     "/api/v1/orders/{order_id}/messages": {
       "get": {
-        "description": "The conversation with the rider (or the customer). Empty and closed\nbefore a rider is assigned and after the order is delivered or cancelled.",
+        "description": "The conversation with the rider (or the customer). Empty and closed\nbefore a rider is assigned and after the order is delivered or cancelled.\nQuick messages (and the presets offered) are in the reader's language.",
         "operationId": "list_messages_api_v1_orders__order_id__messages_get",
         "parameters": [
           {
@@ -15715,6 +15730,25 @@
               "format": "uuid",
               "title": "Order Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "The reader's language (the app's), e.g. hi",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The reader's language (the app's), e.g. hi",
+              "title": "Lang"
             }
           }
         ],
@@ -15751,7 +15785,7 @@
         ]
       },
       "post": {
-        "description": "Send a quick message or a short text (140 characters) to the other side.",
+        "description": "Send a quick message or a short text (140 characters) to the other side.\nA quick message is stored by its key and shown to each side in their own\nlanguage (the reply is in the sender's).",
         "operationId": "send_message_api_v1_orders__order_id__messages_post",
         "parameters": [
           {
@@ -15762,6 +15796,25 @@
               "format": "uuid",
               "title": "Order Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "The reader's language (the app's), e.g. hi",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The reader's language (the app's), e.g. hi",
+              "title": "Lang"
             }
           }
         ],

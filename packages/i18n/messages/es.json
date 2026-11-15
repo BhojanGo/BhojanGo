@@ -903,6 +903,16 @@
       "step_picked": "Recogido",
       "step_home": "En casa",
       "pin_a11y": "PIN de entrega {pin}. Dáselo a tu repartidor en la puerta."
+    },
+    "chat": {
+      "title": "Escribir a {name}",
+      "new": {
+        "one": "{count} nuevo",
+        "other": "{count} nuevos"
+      },
+      "note": "Tu número se mantiene privado. Los mensajes se cierran cuando se entrega el pedido.",
+      "close": "Cerrar mensajes",
+      "empty": "Todavía no hay mensajes. Toca un mensaje rápido o escribe una nota corta."
     }
   },
   "rider": {

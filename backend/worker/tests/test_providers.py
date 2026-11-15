@@ -80,3 +80,10 @@ async def test_msg91_sends_dlt_template(monkeypatch) -> None:
     assert sent["headers"]["authkey"] == "test-key"
     # No template registered for this message: refuse rather than send off-template.
     assert not await Msg91Sms().send("+919876543210", "hi", "IN", "promo", {})
+    # Round 5: the code's SMS per language ("otp_hi"); the old English "otp" until those are registered.
+    assert await Msg91Sms().send("+919876543210", "कोड 123456", "IN", "otp_hi", {"otp": "123456"})
+    assert sent["json"]["template_id"] == "tmpl-otp"
+    monkeypatch.setattr(get_settings().providers, "MSG91_TEMPLATE_IDS", {"otp": "tmpl-otp", "otp_hi": "tmpl-otp-hi"})
+    assert await Msg91Sms().send("+919876543210", "कोड 123456", "IN", "otp_hi", {"otp": "123456"})
+    assert sent["json"]["template_id"] == "tmpl-otp-hi"
+    assert not await Msg91Sms().send("+919876543210", "x", "IN", "order_placed_hi", {})

@@ -64,6 +64,15 @@ def test_city_can_open_only_when_checklist_complete() -> None:
         rules.check_city_status("beta", checklist(payouts="none"))
 
 
+def test_a_country_opens_only_in_languages_we_have_words_for() -> None:
+    """Round 5: every locale an open country lists must be one we translate into."""
+    rules.check_country_languages("live", ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"])
+    rules.check_country_languages("beta", ["en-US", "es-US"])
+    rules.check_country_languages("draft", ["en-NZ", "mi-NZ"])  # set up first, translate, then open
+    with pytest.raises(MarketRuleError, match="mi-NZ"):
+        rules.check_country_languages("live", ["en-NZ", "mi-NZ"])
+
+
 def test_a_country_opens_only_with_a_payout_provider() -> None:
     for provider in ("stripe_connect", "razorpay_route", "fake"):
         rules.check_country_payouts("live", provider, production=False)

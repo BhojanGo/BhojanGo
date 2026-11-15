@@ -82,6 +82,21 @@ def check_country_payouts(status: str, payout_provider: str, *, production: bool
                               "paid. Choose one (Payout provider) first")
 
 
+def check_country_languages(status: str, locales: list[str] | tuple[str, ...]) -> None:
+    """A country opens only in languages we have words for: the website, the apps,
+    notifications and quick messages are written in shared/texts.py LANGUAGES
+    (tools/i18n/check_locales.py keeps them complete for every open country)."""
+    from shared.texts import LANGUAGES
+
+    if status not in OPEN:
+        return
+    missing = [loc for loc in locales if loc.replace("_", "-").split("-")[0].lower() not in LANGUAGES]
+    if missing:
+        raise MarketRuleError(f"Can't open this country in {', '.join(missing)}: BhojanGo has no translations for "
+                              f"{'that language' if len(missing) == 1 else 'those languages'} yet. Remove "
+                              f"{'it' if len(missing) == 1 else 'them'} from the locales, or add the translations first")
+
+
 def check_parent_open(new_status: str, parent_status: str, parent_label: str) -> None:
     """A state can't open inside a draft country, and so on."""
     if new_status in OPEN and parent_status == "draft":

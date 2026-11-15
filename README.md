@@ -226,13 +226,14 @@ Real keys plug in later through env vars (`PAYMENT_PROVIDER=live`, `SMS_PROVIDER
 `EMAIL_PROVIDER=sendgrid`, `PUSH_PROVIDER=live` (Expo, FCM or APNs per device)); `APP_ENV=production` refuses the local stand-ins.
 
 **Messages (P15, worker):** order, payment and payout events become messages in the person's
-language (`preferred_locale`: English, Hindi or Telugu), in the brand voice (plain, specific, warm;
+language (`preferred_locale`: every language a country lists in Markets, en hi te ta kn mr bn es), in the brand voice (plain, specific, warm;
 times and amounts, no emoji). Push goes to every registered device (`POST /api/v1/notifications/device-token`
 with `provider` expo | fcm | apns, or worked out from the token); dead tokens are dropped. Email
 (Mailpit locally, SendGrid live) for the confirmation, receipt, cancellations, refunds and payouts.
 SMS only as a fallback when push reached no device, for the moments that matter (rider on the way,
 cancellation, failed payment, a new order for a restaurant without the app); India SMS uses a DLT
-template per message and language (`MSG91_TEMPLATE_IDS`, keys like `order_picked_up_hi`). Each
+template per message and language (`MSG91_TEMPLATE_IDS`, keys `<message>_<language>`: `order_picked_up_hi`,
+`otp_ta`, ...; the sign-in code falls back to the old `otp` key until the per-language ones are registered). Each
 message is sent once per event, person and channel, and kept in the in-app inbox.
 
 **Mobile apps** are Expo development builds (not Expo Go):

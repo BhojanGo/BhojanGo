@@ -1431,12 +1431,15 @@ export interface paths {
          * List Messages
          * @description The conversation with the rider (or the customer). Empty and closed
          *     before a rider is assigned and after the order is delivered or cancelled.
+         *     Quick messages (and the presets offered) are in the reader's language.
          */
         get: operations["list_messages_api_v1_orders__order_id__messages_get"];
         put?: never;
         /**
          * Send Message
          * @description Send a quick message or a short text (140 characters) to the other side.
+         *     A quick message is stored by its key and shown to each side in their own
+         *     language (the reply is in the sender's).
          */
         post: operations["send_message_api_v1_orders__order_id__messages_post"];
         delete?: never;
@@ -5620,6 +5623,11 @@ export interface components {
              * @example IN
              */
             country: string;
+            /**
+             * Language
+             * @example hi
+             */
+            language?: string | null;
             /** Phone */
             phone: string;
         };
@@ -9958,7 +9966,10 @@ export interface operations {
     };
     list_messages_api_v1_orders__order_id__messages_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The reader's language (the app's), e.g. hi */
+                lang?: string | null;
+            };
             header?: never;
             path: {
                 order_id: string;
@@ -9989,7 +10000,10 @@ export interface operations {
     };
     send_message_api_v1_orders__order_id__messages_post: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The reader's language (the app's), e.g. hi */
+                lang?: string | null;
+            };
             header?: never;
             path: {
                 order_id: string;

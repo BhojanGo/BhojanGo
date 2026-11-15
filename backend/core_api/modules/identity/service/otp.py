@@ -3,6 +3,7 @@ from shared import notify
 from shared.config import get_settings
 from core_api.modules.identity.service.redis_keys import otp_attempts_key, otp_key
 from shared.redis import get_redis
+from shared.texts import OTP_SMS, pick
 from core_api.modules.identity.service.security import generate_otp
 
 logger = structlog.get_logger(__name__)
@@ -11,8 +12,9 @@ settings = get_settings()
 MAX_OTP_ATTEMPTS = 5
 
 
-async def send_otp(phone: str, country: str) -> bool:
-    """Generate an OTP, store it in Redis and have the worker text it. True on success."""
+async def send_otp(phone: str, country: str, language: str = "en") -> bool:
+    """Generate an OTP, store it in Redis and have the worker text it in ``language``
+    (shared/texts.py OTP_SMS; India's DLT template key is "otp_<language>"). True on success."""
     redis = await get_redis()
 
     # Check attempts
@@ -35,9 +37,11 @@ async def send_otp(phone: str, country: str) -> bool:
     await pipe.execute()
 
     # The worker sends it (locally: printed in the worker log).
-    body = f"Your BhojanGo verification code is: {otp}. Valid for {settings.identity.OTP_EXPIRE_MINUTES} minutes."
-    return await notify.send("sms", phone, body, country=country, template="otp",
-                             params={"otp": otp, "minutes": settings.identity.OTP_EXPIRE_MINUTES})
+    minutes = settings.identity.OTP_EXPIRE_MINUTES
+    language = language if language in OTP_SMS else "en"
+    body = pick(OTP_SMS, language).format(otp=otp, minutes=minutes)
+    return await notify.send("sms", phone, body, country=country, template=f"otp_{language}",
+                             params={"otp": otp, "minutes": minutes})
 
 
 def _fixed_code_for(phone: str) -> str | None:

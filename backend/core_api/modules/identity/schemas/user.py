@@ -13,8 +13,8 @@ UserRole = Literal["customer", "driver", "restaurant_owner", "admin", "super_adm
 # markets.service.countries (sign-up: exists and isn't draft; phone: its code).
 Country = Annotated[str, Field(pattern=r"^[A-Z]{2}$", examples=["IN"])]
 Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$", examples=["INR"])]
-# The web's languages; the worker's messages fall back to English for the ones
-# it doesn't have yet (worker/app/services/messages.py language_for).
+# The web's languages; every backend message is written in each of them
+# (shared/texts.py LANGUAGES, language_for; tools/i18n/check_locales.py).
 Locale = Literal["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN", "en-US", "es-US"]
 
 
@@ -60,6 +60,8 @@ class LoginRequest(BaseModel):
 class OtpSendRequest(BaseModel):
     phone: str = Field(pattern=r"^\+?[1-9]\d{7,14}$")
     country: Country
+    # The app's language ("hi"): the code's SMS is written in it when the country offers it.
+    language: str | None = Field(default=None, pattern=r"^[a-z]{2}$", examples=["hi"])
 
 
 class OtpVerifyRequest(BaseModel):

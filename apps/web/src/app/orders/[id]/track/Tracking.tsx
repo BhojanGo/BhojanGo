@@ -317,13 +317,15 @@ export function Tracking({ id }: { id: string }) {
 }
 
 // ── quick messages with the rider (no phone numbers; closed once delivered) ──
+// Quick messages come from the API in the page's language (`lang`): each side
+// reads them in their own.
 
 type Chat = CoreSchemas["QuickMessagesOut"];
 type ChatMessage = CoreSchemas["QuickMessage"];
 
-async function fetchChat(orderId: string): Promise<Chat | null> {
+async function fetchChat(orderId: string, lang: string): Promise<Chat | null> {
   try {
-    return unwrap(await api.core.GET("/api/v1/orders/{order_id}/messages", { params: { path: { order_id: orderId } } }));
+    return unwrap(await api.core.GET("/api/v1/orders/{order_id}/messages", { params: { path: { order_id: orderId }, query: { lang } } }));
   } catch {
     return null;
   }
@@ -331,6 +333,7 @@ async function fetchChat(orderId: string): Promise<Chat | null> {
 
 function Messages({ orderId, rider }: { orderId: string; rider: string }) {
   const t = useT();
+  const { language } = useLanguage();
   const [chat, setChat] = useState<Chat | null>(null);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -340,7 +343,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
   useEffect(() => {
     let alive = true;
     const refresh = () =>
-      fetchChat(orderId).then((c) => {
+      fetchChat(orderId, language).then((c) => {
         if (!alive || !c) return;
         c.messages.forEach((m) => seen.current.add(m.id));
         setChat(c);
@@ -348,9 +351,15 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
     void refresh();
     const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
     ws.onmessage = (e) => {
-      const m = JSON.parse(String(e.data)) as { type: string; payload: { id: string; sender_role: string; text: string; at: string } };
+      const m = JSON.parse(String(e.data)) as {
+        type: string; payload: { id: string; sender_role: string; text: string; at: string; preset?: string | null };
+      };
       if (m.type === "status_change" || m.type === "rider_assigned") void refresh();
       if (m.type !== "chat_message" || seen.current.has(m.payload.id)) return;
+      if (m.payload.preset) {
+        void refresh(); // a quick message: the API has it in this page's language
+        return;
+      }
       seen.current.add(m.payload.id);
       setChat((c) => c && { ...c, messages: [...c.messages, { ...m.payload, mine: m.payload.sender_role === c.me } as ChatMessage] });
     };
@@ -360,13 +369,15 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
       clearInterval(poll);
       ws.close();
     };
-  }, [orderId]);
+  }, [orderId, language]);
 
   async function send(body: { preset: string } | { text: string }) {
     setBusy(true);
     setError(null);
     try {
-      const m = unwrap(await api.core.POST("/api/v1/orders/{order_id}/messages", { params: { path: { order_id: orderId } }, body }));
+      const m = unwrap(await api.core.POST("/api/v1/orders/{order_id}/messages", {
+        params: { path: { order_id: orderId }, query: { lang: language } }, body,
+      }));
       if (!seen.current.has(m.id)) {
         seen.current.add(m.id);
         setChat((c) => c && { ...c, messages: [...c.messages, m] });

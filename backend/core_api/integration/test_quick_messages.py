@@ -47,6 +47,18 @@ async def test_quick_messages_during_the_order(client: AsyncClient) -> None:  # 
     assert [(m["sender_role"], m["mine"]) for m in seen] == [("rider", True), ("customer", False)]
     assert (await outbox_types(oid)).count("order.message") == 2
 
+    # Round 5: each side reads a quick message in their own language (the app's `lang`);
+    # free text stays as written.
+    te = (await client.get(url + "?lang=te", headers=cust)).json()
+    assert [m["text"] for m in te["messages"]] == ["నేను కిచెన్ దగ్గర ఉన్నాను, మీ ఆర్డర్ కోసం ఎదురుచూస్తున్నాను.",
+                                                 "Gate 2, call •••"]
+    assert "దయచేసి బెల్ కొట్టండి." in {p["text"] for p in te["presets"]}
+    hi = (await client.get(url + "?lang=hi", headers=rider)).json()
+    assert hi["messages"][0]["text"] == "मैं किचन पर हूं, आपके ऑर्डर का इंतज़ार है।"
+    r = await client.post(url + "?lang=es", headers=rider, json={"preset": "outside"})
+    assert r.status_code == 201 and r.json()["text"] == "Estoy afuera."
+    assert (await client.get(url + "?lang=xx", headers=cust)).json()["messages"][-1]["text"] == "I'm outside."
+
     # Nobody else: not another customer, rider or the kitchen, and not an admin.
     for who in (("customer2.hyd@example.com", "BhojanGo123"), ("rider2.hyd@example.com", "BhojanGo123"),
                 ("partner.hyd@example.com", "BhojanGo123"), ("ops.hyd@example.com", "BhojanGoAdmin1")):

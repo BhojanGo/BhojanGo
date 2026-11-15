@@ -283,3 +283,13 @@ async def test_hero_photo_is_a_country_setting(client: AsyncClient) -> None:
     finally:
         r = await client.patch("/api/v1/markets/countries/IN", headers=cm, json={"settings": {"hero_photo": "south-indian-thali"}})
         assert r.status_code == 200
+
+
+async def test_an_open_country_only_lists_languages_we_translate(client: AsyncClient) -> None:
+    """Round 5: the website, apps and messages have no words in a language we don't
+    translate, so an open country can't list it (a draft one can, while it's set up)."""
+    sup = await auth(client, "admin@example.com")
+    r = await client.patch("/api/v1/markets/countries/US", headers=sup, json={"locales": ["en-US", "es-US", "fr-US"]})
+    assert r.status_code == 409 and "fr-US" in r.text, r.text
+    us = next(c for c in (await client.get("/api/v1/markets", headers=sup)).json() if c["code"] == "US")
+    assert us["locales"] == ["en-US", "es-US"]

@@ -19,7 +19,7 @@ PROFILE ?= all
 # Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
 export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev observe up seed test test-backend test-js ci ci-guard ci-photos ci-web-data ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps web-third-city
+.PHONY: help dev observe up seed test test-backend test-js ci ci-guard ci-photos ci-web-data ci-i18n ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps web-third-city
 
 help:
 	@sed -n '1,15p' Makefile
@@ -74,7 +74,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: ci-secrets ci-guard ci-photos ci-web-data ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
+ci: ci-secrets ci-guard ci-photos ci-web-data ci-i18n ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -134,6 +134,12 @@ ci-photos:
 # The website names no seeded city, state or country: places come from Markets data.
 ci-web-data:
 	python tools/web/check_templates.py
+
+# Every user-facing text (website/app messages, push/SMS/email, quick messages) in
+# every language a live country lists in Markets; the self-test proves it fails.
+ci-i18n:
+	python tools/i18n/check_locales.py --self-test
+	python tools/i18n/check_locales.py
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
 ci-observe:
