@@ -69,7 +69,7 @@ curl -s 'http://localhost:8001/api/v1/restaurants?limit=20'   # 10 restaurants, 
 | `make dev` | Build and start everything, run migrations, load seed data |
 | `make seed` | Reload the seed data, then the demo data (`tools/seed/demo.py`: 16 kitchens a city, order history); safe to run again, no duplicates |
 | `make test` | Backend pytest + JS lint/typecheck/test, inside Docker |
-| `make ci` | Everything GitHub CI runs (adds migrations up/down/up, `alembic check`, image builds, Terraform validate). **The merge gate.** |
+| `make ci` | Everything GitHub's PR checks run (migrations up/down/up, `alembic check`, image builds, G1 twice, Terraform validate). **The merge gate is the same checks on GitHub**; locally run single stages only (`make ci-guard`, `make ci-web-data`, ...). |
 | `make down` | Stop everything (data is kept) |
 | `make reset` | Wipe the data volumes and run `make dev` again |
 | `make logs` / `make ps` | Follow logs / list containers |

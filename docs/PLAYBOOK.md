@@ -20,8 +20,8 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 5. **Pin Expo native packages to the versions the SDK supports, and keep one React copy across the monorepo.**
    Why: mismatched native modules or two Reacts build fine, then crash at runtime on a device.
 
-6. **`make ci` passing locally is the merge gate; GitHub Actions is a bonus.**
-   Why: a merge shouldn't wait on Actions minutes or a stuck runner, and `make ci` runs exactly the same checks.
+6. **GitHub's PR checks are the merge gate: every `make ci` stage runs there; don't run Docker CI on the laptop.**
+   Why: local `make ci` runs grew Docker's disk image to 342 GB and filled the laptop's drive, stopping all work; and while merges trusted local runs, GitHub's Playwright job sat red for six PRs unnoticed. Locally run only quick checks (unit tests, typecheck, lint, gitleaks on the tree).
 
 7. **Every paid provider has a free local fake behind the same interface, so the whole product runs at zero cost.**
    Why: anyone can run and test the whole product on day one, with no account, card or secret. Real keys plug in later without code changes.
@@ -189,6 +189,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 
 62. **A page never names a place: a CI check makes sure.**
     Why: the website must work for a city launched in admin Markets with no code change (web v2). `tools/web/check_templates.py` (`make ci-web-data`) fails on any seeded city, state or country name in apps/web or the messages, comments included; legal pages describe jurisdictions generically ("the law of the country where you receive the order").
+
+63. **A test that only passes on a used database is broken: CI's fresh database is the reference.**
+    Why: the website e2e expected "A real Hyderabad bill" (needs a past order) and a Biryani filter (one kitchen, hidden by the 2+ rule); both held on the laptop's database full of earlier runs and failed on every fresh GitHub stack from #72 to #78.
 
 ## How to add a lesson
 
