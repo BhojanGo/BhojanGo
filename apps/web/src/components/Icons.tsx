@@ -99,6 +99,24 @@ export const Share = (p: P) => (
 );
 
 /** BhojanGo mark (the design's logo SVG). */
+export const HomeIcon = (p: P) => (
+  <Svg size={22} {...p}>
+    <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z" />
+  </Svg>
+);
+export const ReceiptIcon = (p: P) => (
+  <Svg size={22} {...p}>
+    <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+    <path d="M9 8h6M9 12h6" />
+  </Svg>
+);
+export const UserIcon = (p: P) => (
+  <Svg size={22} {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+  </Svg>
+);
+
 export function LogoMark({ size = 34 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">

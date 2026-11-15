@@ -13,6 +13,7 @@ import { FairBill } from "@/components/FairBill";
 import { Check, Clock, Close, Pin } from "@/components/Icons";
 import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQuote";
 import { api, authed, cartItems, useBag, useHydrated, useSession } from "@/lib/client";
+import { tipPresetsOf, type TipPresets } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { useFormat, useT } from "@/lib/i18n";
 import type { Place } from "@/lib/prefs";
@@ -59,14 +60,6 @@ function flowsFor(methods: string[] | undefined): PayType[] {
     if (f && !out.includes(f)) out.push(f);
   }
   return out.length ? out : ["card"];
-}
-
-/** Tip choices from the bill itself: about 5, 10 and 15% of the food, rounded to a tidy step. */
-function tipPresets(subtotal: number): number[] {
-  if (subtotal <= 0) return [];
-  const step = 5 * 10 ** (Math.floor(Math.log10(subtotal)) - 2);
-  const out = [0.05, 0.1, 0.15].map((p) => Math.max(step, Math.round((subtotal * p) / step) * step)).map((n) => Math.round(n * 100) / 100);
-  return [...new Set(out)];
 }
 
 const card = "rounded-[24px] border border-[#E2E7E8] bg-white p-5 md:p-6";
@@ -162,7 +155,20 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const q = quote.quote;
   const money = (n: number | string, whole = false) => f.money(n, bag.restaurant?.currency ?? q?.currency, { whole });
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
-  const presets = useMemo(() => tipPresets(subtotal), [subtotal]);
+  // Tip choices are the city's, from the quote (kept while the next quote loads); none set: "Other" only.
+  const [tipCfg, setTipCfg] = useState<TipPresets | null>(null);
+  const [tipTouched, setTipTouched] = useState(false);
+  const fromQuote = q ? tipPresetsOf(q) : undefined;
+  if (fromQuote !== undefined && JSON.stringify(fromQuote) !== JSON.stringify(tipCfg)) setTipCfg(fromQuote);
+  const presets = useMemo(() => [...new Set((tipCfg?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))], [tipCfg]);
+  const setTip = bag.setTip;
+  const tipNow = bag.tip;
+  useEffect(() => {
+    // The city's suggested tip, until the customer picks one themselves.
+    if (tipTouched || !tipCfg || tipNow !== 0 || tipCfg.default_index == null) return;
+    const n = Number(tipCfg.amounts[tipCfg.default_index]);
+    if (Number.isFinite(n) && n > 0) setTip(n);
+  }, [tipCfg, tipTouched, tipNow, setTip]);
 
   const methods: Method[] = useMemo(() => {
     const out: Method[] = saved.map((m) => {
@@ -383,12 +389,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               {[0, ...presets].map((n) => {
                 const on = !other && bag.tip === n;
                 return (
-                  <button key={n} type="button" role="radio" aria-checked={on} onClick={() => { setOther(false); bag.setTip(n); }} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${on ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
+                  <button key={n} type="button" role="radio" aria-checked={on} onClick={() => { setTipTouched(true); setOther(false); bag.setTip(n); }} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${on ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
                     {n === 0 ? t("checkout.tip_none") : money(n, true)}
                   </button>
                 );
               })}
-              <button type="button" role="radio" aria-checked={other} onClick={() => setOther(true)} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${other ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
+              <button type="button" role="radio" aria-checked={other} onClick={() => { setTipTouched(true); setOther(true); }} className={`h-11 rounded-full px-4 text-[15px] font-extrabold md:h-[50px] md:px-5 md:text-base ${other ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
                 {t("checkout.tip_other")}
               </button>
               {other && (

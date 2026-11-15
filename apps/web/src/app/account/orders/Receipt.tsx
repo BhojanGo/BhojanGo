@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 
 import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
 import { FairBill } from "@/components/FairBill";
+import { RateOrder } from "@/components/order/RateOrder";
 import { authed, useBag } from "@/lib/client";
 import { photo } from "@/lib/format";
 import { useFormat, useT } from "@/lib/i18n";
@@ -187,6 +188,8 @@ export function Receipt({ id }: { id: string }) {
             )}
           </div>
         )}
+
+        {order.status === "delivered" && <RateOrder key={order.id} orderId={order.id} order={order} compact />}
 
         <h3 className="mt-6 text-[13px] font-extrabold uppercase tracking-[1px] text-[#4C5A5E]">{t("account.receipt.items")}</h3>
         <ul className="mt-[10px] flex flex-col gap-2 text-[15px]">

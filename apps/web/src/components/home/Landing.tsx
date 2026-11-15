@@ -4,12 +4,12 @@
 import Link from "next/link";
 
 import { AddressBox } from "@/components/AddressBox";
-import { cuisinePhotos } from "@/components/Cards";
 import { LandingDirectory } from "@/components/discover/DirectoryBrowser";
 import { firstLiveCity } from "@/components/discover/places";
 import { MoneyBar } from "@/components/FairBill";
 import { HintRow } from "@/components/HintRow";
 import { NotifyMe } from "@/components/NotifyMe";
+import { cuisineTiles } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, exampleBill } from "@/lib/server";
@@ -21,18 +21,8 @@ export async function Landing() {
   const [d, bill] = city ? await Promise.all([discover({ city: city.code }), exampleBill(city.code)]) : [null, null];
   const kitchens = d?.restaurants ?? [];
   const hero = kitchens.find((k) => k.cover_url)?.cover_url ?? null;
-  const photos = cuisinePhotos(kitchens);
-  // One tile per cuisine with a photo, each photo used once (more variety).
-  const used = new Set<string>();
-  const tiles = (d?.cuisines ?? [])
-    .map((c) => String(c.name))
-    .filter((name) => {
-      const src = photos[name];
-      if (!src || used.has(src)) return false;
-      used.add(src);
-      return true;
-    })
-    .slice(0, 8);
+  // One tile per cuisine with 2+ kitchens and a photo of its own; no photo twice on the page (the hero's included).
+  const tiles = cuisineTiles(d, new Set(hero ? [hero] : []));
   const steps = [1, 2, 3] as const;
 
   return (
@@ -86,10 +76,10 @@ export async function Landing() {
             <span className="text-[15px] text-[#4C5A5E]">{t("home.cooking_note")}</span>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
-            {tiles.map((name) => (
+            {tiles.map(({ name, photo: src }) => (
               <Link key={name} href={`${city.path}?cuisine=${encodeURIComponent(name)}`} className="relative block aspect-square overflow-hidden rounded-[20px] bg-[#EFF6F6] text-white hover:text-white">
                 {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-                <img src={photo(photos[name], 400) ?? undefined} alt="" loading="lazy" className="block h-full w-full object-cover" />
+                <img src={photo(src, 400) ?? undefined} alt="" loading="lazy" className="block h-full w-full object-cover" />
                 <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-base font-extrabold">{name}</span>
               </Link>
             ))}

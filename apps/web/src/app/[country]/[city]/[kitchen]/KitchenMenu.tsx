@@ -166,8 +166,29 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
             {c.items.map((i) => {
               const off = !i.is_available || !!i.sold_out_today;
               const n = qtyOf(i.id);
+              // A dish photo only when the kitchen has one; otherwise a clean text row.
+              const pic = photo(i.image_url, 400);
+              const control = off ? (
+                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-sm font-extrabold text-[#4C5A5E]">{t("kitchen.sold_out")}</span>
+                ) : n > 0 ? (
+                  <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-extrabold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
+                    <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
+                    <span aria-live="polite" className="min-w-[14px] text-center tabular-nums">{n}</span>
+                    <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:opacity-50"><Plus color="#FFFFFF" /></button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={closed}
+                    aria-label={t("kitchen.add_dish", { name: i.name })}
+                    onClick={() => plus(i)}
+                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-extrabold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-[#4C5A5E]"
+                  >
+                    {t("common.add")}
+                  </button>
+                );
               return (
-                <div key={i.id} className={`flex gap-4 border-b border-[#E2E7E8] pb-[30px] pt-[22px] md:gap-5 ${off ? "opacity-60" : ""}`}>
+                <div key={i.id} className={`flex gap-4 border-b border-[#E2E7E8] md:gap-5 ${pic ? "pb-[30px] pt-[22px]" : "items-center py-[22px]"} ${off ? "opacity-60" : ""}`}>
                   <span className="min-w-0 flex-grow">
                     <Marks item={i} t={t} />
                     <b className="mt-2 block text-lg">{i.name}</b>
@@ -175,32 +196,16 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                     {i.description && <span className="mt-2 block text-sm leading-[1.5] text-[#4C5A5E]">{i.description}</span>}
                     {off && <span className="mt-2 block text-sm font-bold text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
                   </span>
-                  <span className="relative h-[104px] w-[112px] shrink-0 rounded-2xl md:h-[140px] md:w-[156px] md:rounded-[18px]">
-                    <span className="block h-full w-full overflow-hidden rounded-2xl md:rounded-[18px]">
-                      <Img src={photo(i.image_url, 400)} />
+                  {pic ? (
+                    <span className="relative h-[104px] w-[112px] shrink-0 rounded-2xl md:h-[140px] md:w-[156px] md:rounded-[18px]">
+                      <span className="block h-full w-full overflow-hidden rounded-2xl md:rounded-[18px]">
+                        <Img src={pic} />
+                      </span>
+                      <span className="absolute bottom-[-18px] left-1/2 -translate-x-1/2">{control}</span>
                     </span>
-                    <span className="absolute bottom-[-18px] left-1/2 -translate-x-1/2">
-                      {off ? (
-                        <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-sm font-extrabold text-[#4C5A5E]">{t("kitchen.sold_out")}</span>
-                      ) : n > 0 ? (
-                        <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-extrabold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
-                          <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
-                          <span aria-live="polite" className="min-w-[14px] text-center tabular-nums">{n}</span>
-                          <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:opacity-50"><Plus color="#FFFFFF" /></button>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={closed}
-                          aria-label={t("kitchen.add_dish", { name: i.name })}
-                          onClick={() => plus(i)}
-                          className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-extrabold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-[#4C5A5E]"
-                        >
-                          {t("common.add")}
-                        </button>
-                      )}
-                    </span>
-                  </span>
+                  ) : (
+                    <span className="shrink-0">{control}</span>
+                  )}
                 </div>
               );
             })}
@@ -288,13 +293,14 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] md:items-center md:p-6" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white md:max-h-[90vh] md:w-[640px] md:rounded-[28px]">
         <div className="min-h-0 flex-grow overflow-y-auto">
-          <div className="relative h-[200px] md:h-[260px]">
-            <Img src={photo(item.image_url, 800)} />
-            <button type="button" autoFocus aria-label={t("common.close")} onClick={onClose} className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,20,24,0.18)]">
+          {/* the dish photo only when there is one (no stand-in picture) */}
+          <div className={item.image_url ? "relative h-[200px] md:h-[260px]" : "flex justify-end px-4 pt-4"}>
+            {item.image_url && <Img src={photo(item.image_url, 800)} />}
+            <button type="button" autoFocus aria-label={t("common.close")} onClick={onClose} className={`flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,20,24,0.18)] ${item.image_url ? "absolute right-4 top-4" : "border border-[#E2E7E8]"}`}>
               <Close color="#111418" />
             </button>
           </div>
-          <div className="px-5 pb-5 pt-6 md:px-7">
+          <div className={`px-5 pb-5 md:px-7 ${item.image_url ? "pt-6" : "pt-0"}`}>
             <Marks item={item} t={t} />
             <h2 id={titleId} className="m-0 mt-2 font-display text-[26px] font-semibold tracking-[-0.6px] md:text-[30px]">{item.name}</h2>
             {item.description && <p className="m-0 mt-2 text-[15px] text-[#4C5A5E]">{item.description}</p>}
