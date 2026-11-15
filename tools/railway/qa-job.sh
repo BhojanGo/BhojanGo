@@ -9,7 +9,7 @@
 # make ci) and in CI, and tools/target_guard.py refuses anything that would write
 # test data here.
 #   reset        rebuild QA's database from scratch: drop and recreate the public
-#                schema (PostGIS re-created), migrations to head, Redis database 0
+#                schema (PostGIS re-created), migrations to head, Redis databases 0 and 3
 #                cleared, then the base seed and the demo seed with random
 #                passwords (logins to the private bucket, QA_LOGINS_KEY). Refused
 #                unless RAILWAY_ENVIRONMENT_NAME is QA and APP_ENV is qa.
@@ -54,14 +54,20 @@ case "$JOB" in
         && uv run --frozen alembic upgrade head \
         && uv run --frozen python -c "
 import asyncio
+from urllib.parse import urlsplit, urlunsplit
 import redis.asyncio as redis
 from shared.config import get_settings
+def db(url, n):
+    return urlunsplit(urlsplit(url)._replace(path='/' + str(n)))
 async def go():
-    r = redis.from_url(get_settings().REDIS_URL)
-    await r.flushdb()
-    await r.aclose()
+    # 0: core_api and worker (sessions, caches, quotes). 3: realtime (riders, offers, tracking):
+    # left alone, its riders stay busy with orders the new database doesn't have.
+    for n in (0, 3):
+        r = redis.from_url(db(get_settings().REDIS_URL, n))
+        await r.flushdb()
+        await r.aclose()
 asyncio.run(go())
-print('reset: redis database 0 cleared (sessions, caches, quotes)')" \
+print('reset: redis databases 0 and 3 cleared (sessions, caches, quotes; riders, offers)')" \
         && SEED_PASSWORDS=random SEED_LOGINS_FILE=/tmp/qa-logins.tsv uv run --frozen python /repo/tools/seed/seed.py \
         && SEED_PASSWORDS=random SEED_LOGINS_FILE=/tmp/qa-logins.tsv uv run --frozen python /repo/tools/seed/demo.py \
         && uv run --frozen python /repo/tools/railway/qa_bucket.py put /tmp/qa-logins.tsv "$KEY"

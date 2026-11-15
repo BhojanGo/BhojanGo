@@ -29,6 +29,8 @@ class Services:
         self.offer: str | None = None
         self.state = "offline"
         self.closed_kitchens: set[str] = set()
+        self.busy_with: str | None = None  # the order realtime thinks the rider is on (state busy)
+        self.refresh_revoked = False  # signed out on another device: refresh tokens revoked
 
     def who(self, request: httpx.Request) -> str:
         token = request.headers.get("authorization", "").removeprefix("Bearer ")
@@ -44,16 +46,18 @@ class Services:
             assert body["otp"] == "123456"
             return self._tokens(PHONES[body["phone"]], path, body)
         if path == "/api/v1/auth/refresh":
+            if self.refresh_revoked:
+                return httpx.Response(401, json={"detail": {"code": "INVALID_TOKEN"}})
             return self._tokens(body["refresh_token"].split(":")[1], path, body)
         who = self.who(request)
         if not who:
             return httpx.Response(401, json={"detail": "Invalid credentials"})
         self.calls.append((who, method, path, body))
         if path == "/api/v1/riders/me" and method == "GET":
-            return httpx.Response(200, json={"state": {"status": self.state},
+            return httpx.Response(200, json={"state": {"status": self.state, "order_id": self.busy_with or ""},
                                              "offer": {"order_id": self.offer} if self.offer else None})
-        if path == "/api/v1/riders/me/online":
-            self.state = "available"
+        if path == "/api/v1/riders/me/online":  # realtime frees a rider stuck on an order that is over
+            self.state, self.busy_with = "available", None
         if path.startswith("/api/v1/offers/") and path.endswith("/accept"):
             self.state, self.offer = "busy", None
         if path == "/api/v1/me/addresses":
@@ -270,3 +274,110 @@ async def test_a_tick_drives_only_its_own_orders(services: Services, monkeypatch
     assert placed == [CUSTOMER]
     await city.tick(NOW + timedelta(minutes=1))
     assert placed == [CUSTOMER], "no kitchen took it: not again for a while"
+
+
+# -- stalls and recovery (QA, 2026-11-15: a reset left the rider busy with a vanished order) --
+
+async def test_a_rider_left_busy_with_another_order_goes_online_again(services: Services) -> None:
+    services.state, services.busy_with = "busy", "an-order-the-reset-dropped"
+    city = runner.City(api_for(services), "hyd", RIDER)
+    await city.do("find_rider", order(), CUSTOMER, OWNER, NOW)
+    rider = [p for _, p, _ in services.of("rider")]
+    assert rider == ["/api/v1/riders/me", "/api/v1/riders/me/online", "/api/v1/riders/me"]
+    services.offer = "o1"
+    await city.do("find_rider", order(), CUSTOMER, OWNER, NOW)
+    assert ("POST", "/api/v1/offers/o1/accept", None) in services.of("rider")
+
+
+async def test_waiting_for_an_offer_keeps_the_gps_fresh(services: Services) -> None:
+    services.state = "available"
+    city = runner.City(api_for(services), "hyd", RIDER)
+    for k in range(3):
+        await city.do("find_rider", order(), CUSTOMER, OWNER, NOW + timedelta(seconds=4 * k))
+    fixes = [b for _, p, b in services.of("rider") if p == "/api/v1/delivery/driver/location"]
+    assert len(fixes) == 3, "dispatch skips riders whose last fix is over 30 s old"
+    assert all(0.9 <= haversine_km(KITCHEN, (f["lat"], f["lng"])) <= 1.9 for f in fixes)
+
+
+async def test_signed_out_on_another_device_signs_in_again(services: Services) -> None:
+    api = api_for(services)
+    rider = api.person(RIDER)
+    await rider.call("rt", "GET", "/riders/me")
+    services.tokens.clear()  # the access token stopped working
+    services.refresh_revoked = True  # and the refresh token was revoked (signed out elsewhere)
+    await rider.call("rt", "GET", "/riders/me")
+    assert [p for _, _, p, _ in services.calls].count("/api/v1/auth/phone") == 2
+
+
+async def test_watchdog_recovers_then_cancels_a_stalled_order(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    stuck = row("stuck", "almost_ready")  # nobody ever takes it: realtime keeps the rider busy
+    stuck.restaurant_accepted_at = NOW - timedelta(minutes=10)
+    await (await runner.get_redis()).sadd(runner.OURS, "stuck")
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([stuck], NOW - timedelta(hours=1)))
+    services.state, services.busy_with = "busy", "gone"
+    city = runner.City(api_for(services), "hyd", RIDER)
+    original = services.handle
+
+    def never_offers(request: httpx.Request) -> httpx.Response:  # going online doesn't help this time
+        response = original(request)
+        if request.url.path == "/api/v1/riders/me/online":
+            services.state, services.busy_with = "busy", "gone"
+        return response
+
+    city.api.core._transport = city.api.rt._transport = httpx.MockTransport(never_offers)  # type: ignore[attr-defined]
+    placed: list = []
+
+    async def place(customer):  # type: ignore[no-untyped-def]
+        placed.append(customer)
+
+    monkeypatch.setattr(city, "place", place)
+    assert await city.tick(NOW) == ["find_rider"]
+    assert city.watches["stuck"].step == "find_rider" and city.watches["stuck"].recoveries == 0
+    await city.tick(NOW + timedelta(minutes=10))
+    assert city.watches["stuck"].recoveries == 0, "not yet: 15 minutes"
+    sign_ins = [p for _, _, p, _ in services.calls].count("/api/v1/auth/phone")
+    await city.tick(NOW + timedelta(minutes=16))
+    assert city.watches["stuck"].recoveries == 1
+    assert [p for _, _, p, _ in services.calls].count("/api/v1/auth/phone") == sign_ins + 1, "the rider signs in afresh"
+    assert not services.of("owner"), "not cancelled on the first stall"
+    await city.tick(NOW + timedelta(minutes=32))
+    assert ("POST", "/api/v1/orders/stuck/cancel",
+            {"reason": "other", "note": "Demo order stalled; cancelled by the demo rider simulator"}) in services.of("owner")
+    assert "stuck" in city.given_up and await city.tick(NOW + timedelta(minutes=33)) == [], "left alone after"
+    assert placed == [CUSTOMER], "and the next order starts"
+
+
+async def test_an_order_nobody_may_cancel_is_left_and_the_next_one_starts(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    ready = row("ready-one", "ready", driver="a-person")  # another rider took it and vanished
+    ready.restaurant_accepted_at = NOW - timedelta(minutes=30)
+    await (await runner.get_redis()).sadd(runner.OURS, "ready-one")
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([ready], NOW - timedelta(hours=1)))
+    city = runner.City(api_for(services), "hyd", RIDER)
+    placed: list = []
+
+    async def place(customer):  # type: ignore[no-untyped-def]
+        placed.append(customer)
+
+    monkeypatch.setattr(city, "place", place)
+    for minutes in (0, 16, 32):
+        await city.tick(NOW + timedelta(minutes=minutes))
+    assert not [c for c in services.calls if c[2].endswith("/cancel")], "only an admin may cancel a ready order"
+    assert "ready-one" in city.given_up
+    await city.tick(NOW + timedelta(minutes=33))
+    assert placed == [CUSTOMER], "the next order starts"
+
+
+def test_watch_verdicts() -> None:
+    w, v = rules.watch(None, "find_rider", NOW)
+    assert v == "new"
+    assert rules.watch(w, "find_rider", NOW + timedelta(minutes=14))[1] == "same"
+    w, v = rules.watch(w, "find_rider", NOW + timedelta(minutes=15))
+    assert v == "stalled" and w.recoveries == 1 and w.since == NOW + timedelta(minutes=15)
+    assert rules.watch(w, "find_rider", NOW + timedelta(minutes=20))[1] == "same"
+    assert rules.watch(w, "find_rider", NOW + timedelta(minutes=30))[1] == "give_up"
+    assert rules.watch(w, "to_kitchen", NOW + timedelta(minutes=30))[1] == "new", "moving on resets it"
+    ride, _ = rules.watch(None, "to_home", NOW)
+    assert rules.watch(ride, "to_home", NOW + timedelta(minutes=30))[1] == "same", "a ride takes as long as it takes"
+    assert rules.watch(ride, "to_home", NOW + timedelta(minutes=46))[1] == "stalled"
+    assert [rules.cancel_as(x) for x in ("pending_payment", "placed", "almost_ready", "ready", "picked_up")] == \
+        ["customer", "kitchen", "kitchen", None, None]

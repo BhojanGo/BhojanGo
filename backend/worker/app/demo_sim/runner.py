@@ -171,6 +171,8 @@ class City:
         self.last_attempt: datetime | None = None
         self.paid: set[str] = set()
         self.go_offline = False  # after a delivery: off duty once realtime has seen it delivered
+        self.watches: dict[str, rules.Watch] = {}  # order -> its step and since when (the watchdog)
+        self.given_up: set[str] = set()  # stalled twice: cancelled, or left alone if it can't be
 
     async def tick(self, now: datetime) -> list[str]:
         async with AsyncSessionLocal() as db:
@@ -181,7 +183,7 @@ class City:
             last = (await db.execute(LAST_DELIVERED_SQL, {"email": self.customer_email})).scalar()
             owners = {str(r.owner_id): (await db.execute(OWNER_SQL, {"id": r.owner_id})).first() for r in rows if r.owner_id}
         ours = set(await (await get_redis()).smembers(OURS))
-        mine = [o for o in map(_order, rows) if rules.is_sim_order(o, ours)]
+        mine = [o for o in map(_order, rows) if rules.is_sim_order(o, ours) and o.id not in self.given_up]
         steps = []
         if self.go_offline and not any(o.driver_id == self.rider_id for o in mine):
             try:  # so realtime never offers it a real order it would ignore
@@ -192,12 +194,63 @@ class City:
         for o in mine:
             step = rules.next_step(o, self.rider_id, now)
             steps.append(step)
+            owner = owners.get(o.restaurant_owner_id or "")
+            w, verdict = rules.watch(self.watches.get(o.id), step, now)
+            self.watches[o.id] = w
+            if verdict == "new":
+                logger.info("demo_order_step", city=self.key, order_id=o.id, status=o.status, step=step)
+            else:
+                logger.debug("demo_order_tick", city=self.key, order_id=o.id, status=o.status, step=step)
+            if verdict == "stalled":
+                logger.warning("demo_order_stalled", city=self.key, order_id=o.id, status=o.status, step=step,
+                               action="recover: rider signs in and goes online again, step retried")
+                await self.recover(o)
+            elif verdict == "give_up":
+                await self.give_up(o, customer, owner)
+                continue
             if step != "wait":
-                await self.do(step, o, customer, owners.get(o.restaurant_owner_id or ""), now)
+                await self.do(step, o, customer, owner, now)
+        for gone in set(self.watches) - {o.id for o in mine}:  # delivered, cancelled or given up
+            del self.watches[gone]
         if rules.should_create(len(mine), last, self.last_attempt, now):
             self.last_attempt = now
             await self.place(customer)
         return steps
+
+    async def recover(self, o: rules.DemoOrder) -> None:
+        """First aid for a stalled order: the rider signs in afresh (the demo rider may have
+        signed in or out on another device; the others renew on a 401 anyway), payment is retried, and the rider goes online
+        again near the kitchen, which also frees it in realtime if it was left busy with an
+        order that is over (realtime dispatch.free_if_stale)."""
+        self.rider.access = None  # signs in again on the next call (with the phone code)
+        self.paid.discard(o.id)
+        if o.driver_id in (None, self.rider_id) and o.status != "picked_up":
+            start = rider_start(o.pickup, o.id)
+            try:
+                await self.rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
+            except ApiError as e:
+                logger.warning("demo_rider_online_failed", city=self.key, order_id=o.id, error=str(e))
+
+    async def give_up(self, o: rules.DemoOrder, customer, owner) -> None:  # type: ignore[no-untyped-def]
+        """Stalled again after a recovery: cancel it the way its kitchen or customer could,
+        so the next order can start; if nobody may cancel it (ready, on its way), leave it."""
+        self.given_up.add(o.id)
+        who = rules.cancel_as(o.status)
+        person = None
+        if who == "kitchen" and owner is not None:
+            person = self.api.person(owner)
+        elif who == "customer":
+            person = self.api.person(customer)
+        if person is None:
+            logger.error("demo_order_given_up", city=self.key, order_id=o.id, status=o.status,
+                         reason="stalled and nobody but an admin can cancel it now; the next order starts")
+            return
+        try:
+            await person.call("core", "POST", f"/orders/{o.id}/cancel", json={
+                "reason": "other", "note": "Demo order stalled; cancelled by the demo rider simulator"})
+            logger.warning("demo_order_cancelled_stalled", city=self.key, order_id=o.id, status=o.status, by=who)
+        except ApiError as e:
+            logger.error("demo_order_given_up", city=self.key, order_id=o.id, status=o.status, error=str(e))
 
     async def do(self, step: str, o: rules.DemoOrder, customer, owner, now: datetime) -> None:  # type: ignore[no-untyped-def]
         cust = self.api.person(customer)
@@ -217,9 +270,19 @@ class City:
         elif step == "find_rider":
             start = rider_start(o.pickup, o.id)
             me = await self.rider.call("rt", "GET", "/riders/me")
-            if (me.get("state") or {}).get("status", "offline") == "offline":
+            state = me.get("state") or {}
+            if state.get("status", "offline") not in ("available", "offered"):
+                # Offline (another device, a restart), or busy with an order that isn't this one:
+                # going online again frees a rider left busy with an order that is over.
+                logger.info("demo_rider_online_again", city=self.key, order_id=o.id, state=state.get("status"),
+                            busy_with=state.get("order_id") or None)
                 await self.rider.call("rt", "POST", "/riders/me/online", json={"lat": start[0], "lng": start[1]})
                 me = await self.rider.call("rt", "GET", "/riders/me")
+            else:
+                # Keep the GPS fresh while waiting, as the app does: dispatch skips a rider
+                # whose last fix is older than DRIVER_LOCATION_TTL (30 s).
+                await self.rider.call("rt", "POST", "/delivery/driver/location", json={
+                    "lat": round(start[0], 6), "lng": round(start[1], 6), "speed": 0, "accuracy": 8})
             offer = me.get("offer") or {}
             if offer.get("order_id") == o.id:
                 await self.rider.call("rt", "POST", f"/offers/{o.id}/accept")

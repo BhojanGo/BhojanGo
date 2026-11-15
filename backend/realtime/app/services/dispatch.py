@@ -140,9 +140,34 @@ async def _engaged(rider: str, on: bool) -> None:
         pass
 
 
+async def free_if_stale(rider: str) -> bool:
+    """A rider left busy with an order that is over or gone (its delivered event was
+    lost, or the database was rebuilt under realtime's Redis, as a QA reset does) can
+    never be offered anything again, nor go offline. Ask core_api: if the order is
+    delivered, cancelled, someone else's or no longer there, the rider is free.
+    True if they were freed. A rider mid-batch is left alone."""
+    r = await get_redis()
+    state = await r.hgetall(state_key(rider))
+    order = state.get("order_id")
+    if state.get("status") != "busy" or not order or state.get("batch"):
+        return False
+    try:
+        info = await order_info(order, refresh=True)
+    except CoreApiError:
+        return False  # can't tell now: leave it as it is
+    if info is not None and info.get("status") not in ("delivered", "cancelled") and info.get("driver_id") == rider:
+        return False
+    await r.hset(state_key(rider), mapping={"status": "available", "order_id": ""})
+    await _engaged(rider, False)
+    logger.warning("rider_freed_from_stale_order", rider_id=rider, order_id=order,
+                   order_status=info.get("status") if info else "gone")
+    return True
+
+
 async def go_online(rider: str, lat: float, lng: float) -> dict:
     from app.services import shifts
 
+    await free_if_stale(rider)
     r = await get_redis()
     if not await r.exists(f"driver:{rider}:shift"):
         await shifts.start_shift(rider, _now())
@@ -156,6 +181,7 @@ async def go_online(rider: str, lat: float, lng: float) -> dict:
 
 
 async def go_offline(rider: str) -> dict:
+    await free_if_stale(rider)
     r = await get_redis()
     state = await r.hgetall(state_key(rider))
     if state.get("status") == "busy":
