@@ -181,7 +181,9 @@ async def update_location(rider: str, lat: float, lng: float, extra: dict | None
     state = await r.hgetall(state_key(rider))
     order = state.get("order_id") if state.get("status") == "busy" else None
     if order:
-        info = await order_info(order)
+        # Refreshed from core_api now and then, so a missed or late order event can't leave
+        # the ETA on an old status for long (the cached copy is otherwise kept for a day).
+        info = await order_info(order, max_age=INFO_MAX_AGE_ON_FIX)
         eta = eta_for(info, (lat, lng)) if info else None
         await r.lpush(f"trail:{order}", json.dumps([lat, lng, fix["timestamp"]]))
         await r.ltrim(f"trail:{order}", 0, TRAIL_KEEP - 1)
@@ -218,8 +220,28 @@ async def order_info(order: str, refresh: bool = False, max_age: float | None = 
     return info
 
 
+# An order only moves forward: placed -> ... -> picked_up -> delivered (or cancelled).
+STATUS_RANK = {"pending_payment": 0, "placed": 1, "accepted": 2, "preparing": 3, "almost_ready": 4, "ready": 5,
+               "picked_up": 6, "delivered": 7, "cancelled": 7}
+INFO_MAX_AGE_ON_FIX = 60  # seconds
+
+
+def _rank(status: str | None) -> int:
+    return STATUS_RANK.get(status or "", -1)
+
+
 async def _save_info(info: dict) -> None:
+    """Cache the order as dispatch sees it. Its status never goes backwards: a core_api
+    read that started before a status change, or an order event retried after newer
+    ones (the bus redelivers unacknowledged entries), would otherwise put an old status
+    back, and the ETA would wait at the kitchen for food that was picked up long ago."""
     r = await get_redis()
+    raw = await r.get(info_key(info["order_id"]))
+    if raw:
+        cached = json.loads(raw)
+        if _rank(cached.get("status")) > _rank(info.get("status")):
+            info = {**info, "status": cached["status"], "ready_at": cached.get("ready_at"),
+                    "driver_id": info.get("driver_id") or cached.get("driver_id")}
     if info.get("ready_in_minutes") is not None and info.get("ready_at") is None:
         # core_api says "ready in N minutes" as of now; keep it as a time, so the ETA's prep
         # wait shrinks as time passes (the cached copy is re-saved on every order event).
