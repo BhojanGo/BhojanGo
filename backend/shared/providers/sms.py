@@ -60,6 +60,10 @@ class Msg91Sms:
     async def send(self, to: str, body: str, country: str, template: str = "", params: dict | None = None) -> bool:
         p = get_settings().providers
         template_id = p.MSG91_TEMPLATE_IDS.get(template)
+        if not template_id and template.startswith("otp_"):
+            # Before round 5 the sign-in code had one English template ("otp"): keep it working
+            # until the per-language ones ("otp_hi", ...) are registered with DLT.
+            template_id = p.MSG91_TEMPLATE_IDS.get("otp")
         if not template_id:
             logger.error("sms_send_failed", provider="msg91", reason=f"no DLT template for {template!r}")
             return False

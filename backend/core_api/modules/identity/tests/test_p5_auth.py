@@ -156,6 +156,25 @@ async def test_non_seed_phone_gets_a_random_code(client: AsyncClient, capsys) ->
     assert r.status_code == 200
 
 
+async def test_the_code_sms_is_in_the_apps_language(client: AsyncClient, monkeypatch) -> None:
+    """Round 5: the app's language when the country offers it, else the country's default."""
+    from shared import notify
+
+    sent: list[dict] = []
+
+    async def fake_send(channel, to, body, **kw):  # type: ignore[no-untyped-def]
+        sent.append({"body": body, **kw})
+        return True
+
+    monkeypatch.setattr(notify, "send", fake_send)
+    phone = "+919876500011"
+    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "hi"})).status_code == 200
+    assert sent[-1]["template"] == "otp_hi" and "सत्यापन कोड" in sent[-1]["body"]
+    # Spanish isn't one of India's languages: India's default (English).
+    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "es"})).status_code == 200
+    assert sent[-1]["template"] == "otp_en" and "verification code is: " in sent[-1]["body"]
+
+
 # ── Sign in with Apple / Google ───────────────────────────────────────────────
 
 PROVIDER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)

@@ -49,6 +49,7 @@ from shared import notify
 from shared.auth import InvalidTokenError
 from shared.config import get_settings
 from shared.redis import get_redis
+from shared.texts import WELCOME, language_for, pick
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -64,12 +65,12 @@ def _unauthorized(code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"code": code, "message": message})
 
 
-def _welcome_html(name: str) -> str:
-    safe = html.escape(name or "there")
-    return (
-        f"<p>Hi {safe},</p><p>Welcome to BhojanGo. Your account is ready: "
-        "pick a restaurant near you and we'll bring the food over.</p><p>The BhojanGo team</p>"
-    )
+def _welcome_html(name: str, language: str = "en") -> str:
+    """The welcome email in the person's language (shared/texts.py WELCOME)."""
+    first = (name or "").strip()
+    hello = pick(WELCOME["hello"], language).format(name=html.escape(first)) if first else pick(WELCOME["hello_anon"], language)
+    return (f'<p>{hello}</p><p>{html.escape(pick(WELCOME["body"], language))}</p>'
+            f'<p>{html.escape(pick(WELCOME["signoff"], language))}</p>')
 
 
 async def issue_tokens(db: AsyncSession, user: User, *, family: str | None = None, is_new_user: bool = False) -> AuthTokensResponse:
@@ -145,7 +146,9 @@ class AuthService:
             preferred_locale=data.preferred_locale,
         )
         logger.info("user_registered", user_id=str(user.id))
-        await notify.send("email", user.email or "", _welcome_html(user.full_name), subject="Welcome to BhojanGo")
+        language = language_for(user.preferred_locale)
+        await notify.send("email", user.email or "", _welcome_html(user.full_name, language),
+                          subject=pick(WELCOME["subject"], language))
         return await issue_tokens(self.db, user, is_new_user=True)
 
     async def login(self, data: LoginRequest) -> AuthTokensResponse:
@@ -224,7 +227,17 @@ class AuthService:
     async def send_otp(self, data: OtpSendRequest) -> bool:
         country = await countries.require_open(self.db, data.country)
         countries.require_phone_in(country, data.phone)
-        return await send_otp(data.phone, country.code)
+        return await send_otp(data.phone, country.code, await self._otp_language(data, country))
+
+    async def _otp_language(self, data: OtpSendRequest, country: countries.CountryInfo) -> str:
+        """The app's language when the country offers it, else the account's, else the country's default."""
+        offered = {language_for(loc) for loc in country.locales}
+        if data.language and data.language in offered and language_for(data.language) == data.language:
+            return data.language
+        user = await self.repo.get_by_phone(data.phone)
+        if user is not None and user.preferred_locale:
+            return language_for(user.preferred_locale)
+        return language_for(country.default_locale)
 
     async def reset_password(self, data: ResetPasswordRequest) -> None:
         """Verify the OTP, set a new password, and revoke existing sessions."""

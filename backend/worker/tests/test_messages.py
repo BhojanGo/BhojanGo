@@ -1,4 +1,4 @@
-"""P15 messages: every message in English, Hindi and Telugu, in the brand voice."""
+"""P15 messages: every message in every language (round 5: en, hi, te, ta, kn, mr, bn, es), in the brand voice."""
 import re
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -12,6 +12,9 @@ PARAMS = {"restaurant": "Spice Route Kitchen", "code": "#AB12CD", "eta": "8:24 P
           "period": "3–9 Nov", "name": "Imran", "text": "I'm outside."}
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
 DEVANAGARI, TELUGU = re.compile("[ऀ-ॿ]"), re.compile("[ఀ-౿]")
+# The script each language is written in (Spanish: its accents or ñ somewhere in the catalogue).
+SCRIPT = {"hi": DEVANAGARI, "mr": DEVANAGARI, "te": TELUGU, "ta": re.compile("[஀-௿]"),
+          "kn": re.compile("[ಀ-೿]"), "bn": re.compile("[ঀ-৿]")}
 
 
 @pytest.mark.parametrize("key", sorted(m.CATALOGUE))
@@ -22,10 +25,10 @@ def test_every_message_renders_in_every_language(key: str, lang: str) -> None:
     assert "{" not in text and "}" not in text
     assert not EMOJI.search(text), "brand voice: no emoji"
     translated = r.title if key in m.VERBATIM else r.body  # a quick message is the sender's own words
-    if lang == "hi":
-        assert DEVANAGARI.search(translated)
-    if lang == "te":
-        assert TELUGU.search(translated)
+    if lang in SCRIPT:
+        assert SCRIPT[lang].search(translated), (key, lang)
+    if lang != "en" and key not in ("partner_new_order",):  # "{items}, {total}." is mostly numbers
+        assert translated != m.render(key, "en", **PARAMS).body or key in m.VERBATIM, (key, lang)
     # SMS with ₹ or Indian scripts is UCS-2: 70 characters a part; keep to 3 parts.
     assert len(r.sms) <= 201, len(r.sms)
     assert r.dlt_template == f"{key}_{lang}"
@@ -56,8 +59,9 @@ def test_dlt_variables_are_only_the_ones_used() -> None:
     assert set(r.params) == {"rider", "arriving"}
 
 
-@pytest.mark.parametrize("locale,lang", [("hi-IN", "hi"), ("te-IN", "te"), ("en-IN", "en"), ("en-US", "en"),
-                                         ("fr-FR", "en"), (None, "en")])
+@pytest.mark.parametrize("locale,lang", [("en-IN", "en"), ("hi-IN", "hi"), ("te-IN", "te"), ("ta-IN", "ta"),
+                                         ("kn-IN", "kn"), ("mr-IN", "mr"), ("bn-IN", "bn"), ("en-US", "en"),
+                                         ("es-US", "es"), ("fr-FR", "en"), (None, "en")])
 def test_language_from_locale(locale: str | None, lang: str) -> None:
     assert m.language_for(locale) == lang
 
@@ -89,3 +93,38 @@ def test_email_escapes_and_brands() -> None:
     page = m.email_html(r, total="$39.73", code="#AB12CD")
     assert "Tom &amp; Jerry&#x27;s &lt;Diner&gt;" in page and "<Diner>" not in page
     assert "#0B5D66" in page and "Total $39.73" in page and 'lang="en"' in page
+
+
+def test_every_text_has_every_language_with_the_same_placeholders() -> None:
+    import string
+
+    def names(t: str) -> list[str]:
+        return sorted(f for _, f, _, _ in string.Formatter().parse(t) if f)
+
+    for name, texts in m.entries().items():
+        assert set(texts) == set(m.LANGUAGES), name
+        for lang, text in texts.items():
+            assert text.strip() and names(text) == names(texts["en"]), (name, lang)
+
+
+def test_a_rider_without_a_name_is_your_rider_in_the_language() -> None:
+    assert m.render("order_picked_up", "en", rider=None).body.startswith("Your rider picked up")
+    assert m.render("order_picked_up", "es", rider="").body.startswith("Tu repartidor recogió")
+
+
+@pytest.mark.parametrize("lang", m.LANGUAGES)
+def test_a_quick_message_preset_reads_in_the_readers_language(lang: str) -> None:
+    from shared.texts import QUICK_PRESETS, fallback_name
+
+    r = m.render("order_message", lang, name="", text="I'm outside.", preset="outside", from_role="rider")
+    assert r.body == QUICK_PRESETS["rider"]["outside"][lang]
+    assert fallback_name("rider", lang) in r.title
+    # Free text is the sender's own words.
+    assert m.render("order_message", lang, name="Asha", text="Gate 2", from_role="customer").body == "Gate 2"
+
+
+def test_email_in_spanish_and_bengali() -> None:
+    page = m.email_html(m.render("order_delivered", "es", restaurant="Spice Route"), total="$39.73", code="#AB12CD")
+    assert 'lang="es"' in page and "Pedido #AB12CD" in page and "La mesa honesta" in page
+    page = m.email_html(m.render("refund_items", "bn", amount="₹99.00", code="#AB12CD"), total="₹99.00", code="#AB12CD")
+    assert "মোট ₹99.00" in page

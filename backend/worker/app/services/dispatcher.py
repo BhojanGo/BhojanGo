@@ -1,8 +1,9 @@
 """Domain events → messages (P15).
 
 Outbox events arrive from SNS → SQS. Each one becomes messages for the people
-it concerns (customer, restaurant owner, payee), in their language (en, hi,
-te from preferred_locale), on the channels in POLICY:
+it concerns (customer, restaurant owner, payee), in their language (from
+preferred_locale: every language in shared/texts.py LANGUAGES), on the channels
+in POLICY:
 
 - push to every device the person has (Expo, FCM or APNs);
 - SMS only where it matters and the person has no device to push to
@@ -86,7 +87,10 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
     if order is None:
         return []
     if kind == "order.message":
-        return [Outgoing(str(p["to_user_id"]), "order_message", {"name": p.get("from_name") or "", "text": p.get("text") or ""},
+        # A preset is translated for the reader (messages.render); free text goes as written.
+        params = {"name": p.get("from_name") or "", "text": p.get("text") or ""}
+        params.update({k: p[k] for k in ("preset", "from_role") if p.get(k)})
+        return [Outgoing(str(p["to_user_id"]), "order_message", params,
                          str(order["id"]), data={"message_id": str(p.get("message_id", ""))})]
 
     tz = await d.timezone(order["market_city"])
@@ -112,13 +116,13 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
         key = STATUS_MESSAGES.get(p.get("new_status", ""))
         if key == "order_picked_up":
             rider = await d.person(order["driver_id"]) if order["driver_id"] else None
-            return [to_customer(key, rider=rider.first_name if rider else "Your rider")]
+            return [to_customer(key, rider=rider.first_name if rider else None)]  # None: "Your rider", translated
         return [to_customer(key)] if key else []
     if kind == "driver.almost_there":  # realtime: the rider is a couple of minutes from the door
         rider = await d.person(order["driver_id"]) if order["driver_id"] else None
-        return [to_customer("order_almost_there", rider=rider.first_name if rider else "Your rider")]
+        return [to_customer("order_almost_there", rider=rider.first_name if rider else None)]
     if kind == "driver.assigned":
-        name = (p.get("driver_name") or "").split(" ")[0] or "Your rider"
+        name = (p.get("driver_name") or "").split(" ")[0] or None
         return [to_customer("driver_assigned", rider=name)]
     if kind == "order.cancelled":
         refund = int(p.get("refund_amount") or 0)
