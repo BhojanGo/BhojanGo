@@ -39,7 +39,7 @@ from there.
 ## Notes for review
 
 - Times on these screens use the emulator's time zone (US). A phone in the city shows local time.
-- The demo order in the customer screens was stuck in "almost ready" (a simulator stall, being fixed
-  in a follow-up), so tracking shows the kitchen and home but no rider yet. The rider marker and trail
-  on the live map are covered by the website e2e (`docs/screenshots/web-v3/github/e2e-rider-on-map.jpg`)
-  and the app's tracking code shares that design.
+- Tracking (`CustomerTracking.jpg`, `customer-phone/qa-05-tracking.jpg`) was retaken after the
+  simulator fix (#99): the demo rider is on the map with the trail so far, ETA and distance left from
+  realtime, the rider's name and the PIN. The PIN is the fixed one because the demo customer's phone is
+  a fictional seed number.
