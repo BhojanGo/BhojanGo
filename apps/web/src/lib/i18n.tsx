@@ -3,7 +3,7 @@
 // so client components read the same words. Setting the language or the
 // address writes a cookie (the server reads it) and refreshes the page.
 
-import { createTranslator, LANGUAGES, type Messages } from "@bhojango/i18n";
+import { chooseLanguage, createTranslator, languageList, LANGUAGES, type Messages } from "@bhojango/i18n";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 
@@ -62,7 +62,14 @@ export function useFormat() {
 
 export function useLanguage() {
   const { language, languages, country } = useI18n();
-  return { language, languages, country, name: (l: string) => LANGUAGES[l as keyof typeof LANGUAGES]?.name ?? l };
+  return {
+    language,
+    languages,
+    /** The pill's list: [{code, name in its own script}], in Markets order. */
+    list: languageList(languages),
+    country,
+    name: (l: string) => LANGUAGES[l as keyof typeof LANGUAGES]?.name ?? l,
+  };
 }
 
 const YEAR = 60 * 60 * 24 * 365;
@@ -81,10 +88,16 @@ export function usePrefs() {
       setCookie("bg_lang", lang);
       router.refresh();
     }, [router]),
-    setCountry: useCallback((code: string) => {
-      setCookie("bg_country", code);
-      router.refresh();
-    }, [router]),
+    /**
+     * "Change city": remember the city (its country decides currency and languages).
+     * An address in another city no longer applies, and a language the new country
+     * doesn't offer goes back to English. The caller navigates (home) afterwards.
+     */
+    setCity: useCallback((city: { code: string; locales: string[] }, current: { language: string; addressCity?: string | null }) => {
+      setCookie("bg_city", city.code);
+      if (current.addressCity !== city.code) setCookie("bg_addr", null);
+      if (chooseLanguage(current.language, city.locales) !== current.language) setCookie("bg_lang", null);
+    }, []),
     setPlace: useCallback((p: Place | null) => {
       setCookie("bg_addr", p ? JSON.stringify(p) : null);
       router.refresh();

@@ -6,6 +6,7 @@ import { cuisineTiles } from "@/lib/contract";
 import { getContext, type Place } from "@/lib/prefs";
 import type { Discover } from "@/lib/server";
 import { HomeFeed } from "./HomeFeed";
+import { LocationLine } from "./LocationLine";
 
 export async function PersonalHome({ place, d }: { place: Place; d: Discover }) {
   const { t, directory: dir, formatLocale, country } = await getContext();
@@ -43,16 +44,22 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
   );
 
   return (
-    <HomeFeed
-      kitchens={kitchens}
-      placeLabel={place.label}
-      cityName={city?.name ?? ((d.city?.name as string | undefined) ?? "")}
-      currency={currency}
-      formatLocale={formatLocale}
-      distanceUnit={d.distance_unit ?? country?.distance_unit ?? "km"}
-      timeZone={d.timezone ?? country?.timezone ?? null}
-      cravings={cravings}
-      offers={offerBlock}
-    />
+    <>
+      {/* "<city>, <CC> · Change city": one line above the home content (R6) */}
+      <div className="mx-auto max-w-[1440px] px-5 pt-4 md:px-16 md:pt-6">
+        <LocationLine />
+      </div>
+      <HomeFeed
+        kitchens={kitchens}
+        placeLabel={place.label}
+        cityName={city?.name ?? ((d.city?.name as string | undefined) ?? "")}
+        currency={currency}
+        formatLocale={formatLocale}
+        distanceUnit={d.distance_unit ?? country?.distance_unit ?? "km"}
+        timeZone={d.timezone ?? country?.timezone ?? null}
+        cravings={cravings}
+        offers={offerBlock}
+      />
+    </>
   );
 }

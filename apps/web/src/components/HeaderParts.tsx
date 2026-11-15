@@ -1,5 +1,5 @@
 "use client";
-// The header's interactive parts: country, language, address, search, account, bag.
+// The header's interactive parts: language, address, search, account, bag.
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,43 +9,17 @@ import { api, useBag, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, usePrefs, useT } from "@/lib/i18n";
 import { AddressBox } from "./AddressBox";
 import { BagIcon, Chevron, Close, Globe, Pin, Search } from "./Icons";
-import { MenuNote, MenuRow, MenuTitle, Popover } from "./Popover";
+import { MenuRow, Popover } from "./Popover";
 
-const pill = "flex h-11 shrink-0 items-center gap-2 rounded-full border border-[#E2E7E8] bg-white px-3 text-label text-[#111418]";
-
-export function CountryMenu({ countries, current }: { countries: { code: string; name: string }[]; current: { code: string; name: string } | null }) {
+/**
+ * The language pill (R6, like Uber's): a globe and the language's code ("EN", "HI",
+ * "TE"). It opens a small list anchored to it (on a phone too: no sheet) of the
+ * country's languages, each in its own script. The choice is a cookie (bg_lang), so
+ * the server renders it and it survives reloads.
+ */
+export function LanguageMenu() {
   const t = useT();
-  const { setCountry } = usePrefs();
-  if (!countries.length) return null;
-  return (
-    <Popover
-      label={t("header.country_title")}
-      button={(open, toggle) => (
-        <button type="button" aria-label={t("header.country", { country: current?.name ?? "" })} aria-expanded={open} onClick={toggle} className={pill}>
-          {current && <span className="rounded-[5px] bg-[#111418] px-[5px] py-[2px] text-caption text-white">{current.code}</span>}
-          <span className="hidden lg:inline">{current?.name}</span>
-          <Chevron color="#4C5A5E" />
-        </button>
-      )}
-    >
-      {(close) => (
-        <>
-          <MenuTitle>{t("header.country_title")}</MenuTitle>
-          {countries.map((c) => (
-            <MenuRow key={c.code} selected={c.code === current?.code} onClick={() => { close(); setCountry(c.code); }}>
-              {c.name}
-            </MenuRow>
-          ))}
-          <MenuNote>{t("header.country_note")}</MenuNote>
-        </>
-      )}
-    </Popover>
-  );
-}
-
-export function LanguageMenu({ compact }: { compact?: boolean }) {
-  const t = useT();
-  const { language, languages, country, name } = useLanguage();
+  const { language, list, country, name } = useLanguage();
   const { setLanguage } = usePrefs();
   const signedIn = useSession((s) => !!s.access);
   async function choose(lang: string) {
@@ -57,35 +31,29 @@ export function LanguageMenu({ compact }: { compact?: boolean }) {
   return (
     <Popover
       label={t("header.language")}
+      width={200}
       button={(open, toggle) => (
         <button
           type="button"
-          aria-label={t("header.language")}
+          aria-label={t("header.language_pill", { language: name(language) })}
           aria-expanded={open}
+          aria-haspopup="menu"
           onClick={toggle}
-          className={`flex h-11 shrink-0 items-center gap-2 rounded-full px-[14px] text-label text-[#111418] ${open ? "border-[1.5px] border-[#0B5D66] bg-[#EFF6F6]" : "border border-[#E2E7E8] bg-white"} ${compact ? "h-9 px-[10px]" : ""}`}
+          data-testid="language-pill"
+          className={`flex h-9 shrink-0 items-center gap-[6px] rounded-full px-3 text-label text-[#111418] md:h-10 ${open ? "border-[1.5px] border-[#0B5D66] bg-[#EFF6F6]" : "border border-[#E2E7E8] bg-white"}`}
         >
-          {compact ? (
-            language.toUpperCase()
-          ) : (
-            <>
-              <Globe color="#111418" />
-              {name(language)}
-              <Chevron color="#4C5A5E" />
-            </>
-          )}
+          <Globe size={18} color="#111418" />
+          <span>{language.toUpperCase()}</span>
         </button>
       )}
     >
       {(close) => (
         <>
-          <MenuTitle>{t("header.language_title", { country: country?.name ?? "" })}</MenuTitle>
-          {languages.map((l) => (
-            <MenuRow key={l} selected={l === language} onClick={() => { close(); void choose(l); }}>
-              <span lang={l}>{name(l)}</span>
+          {list.map((l) => (
+            <MenuRow key={l.code} selected={l.code === language} onClick={() => { close(); void choose(l.code); }}>
+              <span lang={l.code}>{l.name}</span>
             </MenuRow>
           ))}
-          <MenuNote>{t("header.language_note")}</MenuNote>
         </>
       )}
     </Popover>

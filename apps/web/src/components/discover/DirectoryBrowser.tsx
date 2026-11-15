@@ -5,12 +5,13 @@
 // chips) and the full directory (WebCities: pill tabs, a card per city).
 
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { type MouseEvent, useId, useMemo, useState } from "react";
 
 import { Search } from "@/components/Icons";
 import { photo } from "@/lib/format";
 import { waitingOf } from "@/lib/contract";
-import { useFormat, useT } from "@/lib/i18n";
+import { useFormat, useLanguage, usePrefs, useT } from "@/lib/i18n";
 import type { DirCity, DirCountry, Directory } from "@/lib/server";
 import { totalsLine } from "./places";
 
@@ -143,12 +144,28 @@ function NoMatch() {
   );
 }
 
-function CityCard({ c, region, cover }: { c: DirCity; region: string; cover: string | null }) {
+/** "Change city" (/cities?choose=1): picking a city remembers it and goes home. */
+export interface Choosing {
+  addressCity: string | null;
+}
+
+function CityCard({ c, region, cover, locales, choosing }: { c: DirCity; region: string; cover: string | null; locales: string[]; choosing?: Choosing | null }) {
   const t = useT();
+  const router = useRouter();
+  const { language } = useLanguage();
+  const { setCity } = usePrefs();
   const live = c.status === "live";
   const img = photo(cover, 400);
+  const pick = choosing
+    ? (e: MouseEvent) => {
+        e.preventDefault();
+        setCity({ code: c.code, locales }, { language, addressCity: choosing.addressCity });
+        router.push("/");
+        router.refresh();
+      }
+    : undefined;
   return (
-    <Link href={c.path} className={`flex items-center gap-[14px] rounded-[18px] border border-[#E2E7E8] p-[14px] text-[#111418] hover:border-[#C9D3D4] hover:text-[#111418] ${live ? "" : "opacity-90"}`}>
+    <Link href={choosing ? "/" : c.path} onClick={pick} data-city={c.code} className={`flex items-center gap-[14px] rounded-[18px] border border-[#E2E7E8] p-[14px] text-[#111418] hover:border-[#C9D3D4] hover:text-[#111418] ${live ? "" : "opacity-90"}`}>
       <span className={`block h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[14px] bg-[#EFF6F6] ${live ? "" : "grayscale-[0.6]"}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
         {img && <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />}
@@ -161,7 +178,7 @@ function CityCard({ c, region, cover }: { c: DirCity; region: string; cover: str
         </span>
         {!live && <Waiting c={c} className="block text-small text-[#7A4F0E]" />}
       </span>
-      {!live && (
+      {!live && !choosing && (
         <span className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418]">
           {t("notify.button")}
         </span>
@@ -171,7 +188,7 @@ function CityCard({ c, region, cover }: { c: DirCity; region: string; cover: str
 }
 
 /** The full directory (WebCities). */
-export function CitiesDirectory({ dir, covers }: { dir: Directory; covers: Record<string, string | null> }) {
+export function CitiesDirectory({ dir, covers, choosing }: { dir: Directory; covers: Record<string, string | null>; choosing?: Choosing | null }) {
   const t = useT();
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
@@ -210,7 +227,7 @@ export function CitiesDirectory({ dir, covers }: { dir: Directory; covers: Recor
               <h3 className={`m-0 text-label ${i ? "mt-[22px]" : "mt-[14px]"}`}>{r.name}</h3>
               <div className="mt-[10px] grid gap-[14px] md:grid-cols-2 lg:grid-cols-3">
                 {r.cities.map((c) => (
-                  <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} />
+                  <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} locales={k.locales ?? []} choosing={choosing} />
                 ))}
               </div>
             </div>

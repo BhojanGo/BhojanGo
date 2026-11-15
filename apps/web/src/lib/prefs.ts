@@ -1,16 +1,26 @@
 // Who is looking, from where, in which language (server side). Order of
-// evidence for the country (WebDataRules.html): the delivery address (cookie,
-// set when the visitor picks one or signs in), then the IP hint (set in the
-// browser from /markets/hint), then the browser's locale. Language is separate:
-// the visitor's choice (cookie), else the browser's, from the country's list.
+// evidence for the country (R6, `detectCountry` in @bhojango/i18n): the delivery
+// address (cookie, set when the visitor picks one or signs in), then the city they
+// chose ("Change city"), then the page's own country, then the IP hint (set in the
+// browser from /markets/hint), then the browser's locale. Currency and the language
+// list follow the country. Language is the visitor's remembered choice (cookie) if
+// the country offers it, else English (`chooseLanguage`).
 
-import { createTranslator, formatLocale, languagesFor, pickLanguage, type Messages } from "@bhojango/i18n";
+import { chooseLanguage, createTranslator, detectCountry, formatLocale, languagesFor, type CountrySource, type Messages } from "@bhojango/i18n";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
+import { flatCities, type FlatCity } from "@/components/discover/places";
 import { directory, type DirCountry, type Directory } from "./server";
 
-export const COOKIE = { address: "bg_addr", language: "bg_lang", hintCountry: "bg_hint", country: "bg_country" } as const;
+/** Cookies (a year, path /; the server reads them, so the first render is right). */
+export const COOKIE = {
+  address: "bg_addr", // the delivery address (Place JSON)
+  language: "bg_lang", // "te": the language the visitor picked in the pill
+  city: "bg_city", // "US-ID-BOI": the city picked with "Change city"
+  hintCountry: "bg_hint", // "IN": the IP hint's country
+  hintCity: "bg_hint_city", // the IP hint's city code, when it names one
+} as const;
 
 /** The delivery address the visitor picked (an area point or a saved address). */
 export interface Place {
@@ -49,19 +59,14 @@ async function loadMessages(language: string): Promise<Messages> {
   }
 }
 
-function countryFromLocale(acceptLanguage: string, dir: Directory): DirCountry | null {
-  for (const part of acceptLanguage.split(",")) {
-    const region = (part.split(";")[0] ?? "").trim().split("-")[1]?.toUpperCase();
-    const hit = region && dir.countries.find((c) => c.code === region);
-    if (hit) return hit;
-  }
-  return null;
-}
+const countryOfCity = (code: string | null | undefined) => (code ? code.split("-")[0]!.toUpperCase() : null);
 
 export interface Context {
   directory: Directory;
   country: DirCountry | null; // decides currency, kitchens and the language list
-  countrySource: "address" | "chosen" | "page" | "ip" | "locale" | "none";
+  countrySource: CountrySource;
+  /** The home page's location line ("<city>, <CC> · Change city"): the visitor's city in that country. */
+  city: FlatCity | null;
   place: Place | null;
   language: string;
   languages: string[];
@@ -75,37 +80,38 @@ export interface Context {
 export const getContext = cache(async (): Promise<Context> => {
   const [jar, hdrs, dir] = await Promise.all([cookies(), headers(), directory()]);
   const place = parsePlace(jar.get(COOKIE.address)?.value);
-  const acceptLanguage = hdrs.get("accept-language") ?? "";
-  const byCode = (code?: string | null) => (code ? dir.countries.find((c) => c.code === code.toUpperCase()) ?? null : null);
-  let country: DirCountry | null = null;
-  let countrySource: Context["countrySource"] = "none";
-  for (const [source, candidate] of [
-    ["address", byCode(place?.country)],
-    ["chosen", byCode(jar.get(COOKIE.country)?.value)],
-    // a city or kitchen page (/{country}/...): its country, before IP or browser hints
-    ["page", byCode((hdrs.get("x-bg-path") ?? "").split("/")[1]?.length === 2 ? (hdrs.get("x-bg-path") ?? "").split("/")[1] : null)],
-    ["ip", byCode(jar.get(COOKIE.hintCountry)?.value)],
-    ["locale", countryFromLocale(acceptLanguage, dir)],
-  ] as const) {
-    if (candidate) {
-      country = candidate;
-      countrySource = source;
-      break;
-    }
-  }
-  // Nothing known: the browser's language picks a country that offers it, else the first.
-  if (!country && dir.countries.length) {
-    const lang = acceptLanguage.split(",")[0]?.split("-")[0]?.trim().toLowerCase();
-    country = dir.countries.find((c) => languagesFor(c.locales).includes(lang as never) && lang !== "en") ?? dir.countries[0] ?? null;
-  }
+  const chosenCity = jar.get(COOKIE.city)?.value ?? null;
+  const hintCity = jar.get(COOKIE.hintCity)?.value ?? null;
+  const pathCountry = (hdrs.get("x-bg-path") ?? "").split("/")[1] ?? "";
+  const { code, source } = detectCountry(
+    {
+      address: place?.country,
+      chosen: countryOfCity(chosenCity),
+      // a city or kitchen page (/{country}/...): its country, before IP or browser hints
+      page: /^[a-z]{2}$/.test(pathCountry) ? pathCountry : null,
+      ip: jar.get(COOKIE.hintCountry)?.value,
+      browser: hdrs.get("accept-language"),
+    },
+    dir.countries,
+  );
+  const country = dir.countries.find((c) => c.code === code) ?? null;
+  const all = flatCities(dir).filter((c) => c.country === country?.code);
+  const city =
+    all.find((c) => c.code === place?.city_code) ??
+    all.find((c) => c.code === chosenCity) ??
+    all.find((c) => c.code === hintCity) ??
+    all.find((c) => c.status === "live") ??
+    all[0] ??
+    null;
   const locales = country?.locales ?? ["en-US"];
-  const language = pickLanguage({ chosen: jar.get(COOKIE.language)?.value, acceptLanguage, locales });
+  const language = chooseLanguage(jar.get(COOKIE.language)?.value, locales);
   const [messages, fallback] = await Promise.all([loadMessages(language), loadMessages("en")]);
   return {
     directory: dir,
     country,
-    countrySource,
-    place: place && byCode(place.country) ? place : null,
+    countrySource: source,
+    city,
+    place: place && dir.countries.some((c) => c.code === place.country.toUpperCase()) ? place : null,
     language,
     languages: languagesFor(locales),
     formatLocale: formatLocale(locales),
