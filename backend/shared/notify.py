@@ -51,6 +51,28 @@ async def deliver(payload: dict) -> bool:
     return False
 
 
+async def publish_event(event_type: str, payload: dict) -> bool:
+    """A domain event from a service with no outbox of its own (realtime's
+    "driver.almost_there") straight to the worker: the event bus's stream, or the
+    worker's notification queue (what ``send`` uses). False if it couldn't go."""
+    from shared import bus
+
+    event = build_event(event_type, payload, get_settings().SERVICE_NAME)
+    try:
+        if bus.is_redis():
+            await asyncio.to_thread(bus.publish, event)
+            return True
+        queue_url = get_settings().worker.SQS_QUEUE_URL_NOTIFICATION
+        if not queue_url:
+            logger.info("event_not_sent_no_queue", event_type=event_type)
+            return False
+        await asyncio.to_thread(_sqs_client().send_message, QueueUrl=queue_url, MessageBody=json.dumps(event))
+        return True
+    except Exception as e:  # noqa: BLE001 - a missed courtesy message never breaks GPS
+        logger.error("event_publish_failed", event_type=event_type, error=str(e))
+        return False
+
+
 async def send(
     channel: Channel, to: str, body: str, *, subject: str = "", country: str = "US",
     template: str = "", params: dict | None = None,

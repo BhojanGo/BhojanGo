@@ -212,7 +212,9 @@ only, in `.railway/railway.ts`); `make dev` turns it on in compose. It runs only
   at 18-25 km/h along a path with a few turns (no routing service), a GPS fix every 4 s to
   `/delivery/driver/location`; the kitchen hands it over as the rider arrives; the rider picks it up and delivers it
   with the PIN from the customer's tracking screen, then goes offline. Tracking, ETA and the usual order
-  notifications follow on their own. Outside the kitchens' and the city's hours there is no order on its way.
+  notifications follow on their own, including "Almost there" (realtime, once per order when the rider carrying
+  it is within `ALMOST_THERE_METERS`, default 400 m, of the door: an `almost_there` message on the order's
+  tracking channel and a `driver.almost_there` event; the worker sends the customer an in-app and push message). Outside the kitchens' and the city's hours there is no order on its way.
 - **The order the demo seed writes** (already picked up) is finished the same way; its fixes reach the tracking page
   through `/delivery/{id}/eta` (its rider was never made busy by dispatch, so no live WebSocket position for that
   first one).

@@ -186,7 +186,42 @@ async def update_location(rider: str, lat: float, lng: float, extra: dict | None
         await r.ltrim(f"trail:{order}", 0, TRAIL_KEEP - 1)
         await r.expire(f"trail:{order}", DAY)
         await _publish(order_tracking_channel(order), "location_update", {**fix, "order_id": order, "eta": eta})
+        await almost_there(order, info, (lat, lng), eta)
     return {**fix, "order_id": order}
+
+
+ALMOST_THERE_EVENT = "driver.almost_there"
+
+
+def almost_there_key(order: str) -> str:
+    return f"almost_there:{order}"
+
+
+def is_almost_there(info: dict | None, at: tuple[float, float]) -> bool:
+    """The rider has the food (picked up) and is within ALMOST_THERE_METERS of the door."""
+    if not info or info.get("status") != "picked_up" or not info.get("dropoff"):
+        return False
+    return haversine_km(at, tuple(info["dropoff"])) * 1000 <= _s().ALMOST_THERE_METERS  # type: ignore[arg-type]
+
+
+async def almost_there(order: str, info: dict | None, at: tuple[float, float], eta: dict | None) -> bool:
+    """Once per order (a Redis key, so every instance agrees): tell the tracker over
+    the order's channel ("almost_there") and the worker, which messages the customer."""
+    if not is_almost_there(info, at):
+        return False
+    r = await get_redis()
+    if not await r.set(almost_there_key(order), "1", nx=True, ex=DAY):
+        return False
+    assert info is not None
+    payload = {"order_id": order, "driver_id": info.get("driver_id"), "customer_id": info.get("customer_id"),
+               "market_city": info.get("market_city"),
+               "distance_m": round(haversine_km(at, tuple(info["dropoff"])) * 1000),  # type: ignore[arg-type]
+               "eta_minutes": eta["to_customer_minutes"] if eta else None}
+    await _publish(order_tracking_channel(order), "almost_there", payload)
+    from shared import notify
+
+    await notify.publish_event(ALMOST_THERE_EVENT, payload)
+    return True
 
 
 async def last_fix(rider: str) -> dict | None:
@@ -594,6 +629,8 @@ DISPATCH_STATES = ("almost_ready", "ready")
 
 async def on_order_event(event: dict) -> None:
     kind = event.get("event_type", "")
+    if kind == ALMOST_THERE_EVENT:  # our own, for the worker (it reaches us on the shared stream)
+        return
     p = event.get("payload", {})
     order = p.get("order_id")
     if not order:

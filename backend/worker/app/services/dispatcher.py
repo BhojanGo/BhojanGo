@@ -41,6 +41,7 @@ POLICY: dict[str, tuple[str, ...]] = {
     "order_preparing": ("push",),
     "driver_assigned": ("push",),
     "order_picked_up": ("push", "sms_fallback"),
+    "order_almost_there": ("push",),  # a courtesy: the SMS-only customer already had "on the way"
     "order_delivered": ("push", "email"),
     "order_cancelled_refunded": ("push", "email", "sms_fallback"),
     "order_cancelled_unpaid": ("push", "sms_fallback"),
@@ -113,6 +114,9 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
             rider = await d.person(order["driver_id"]) if order["driver_id"] else None
             return [to_customer(key, rider=rider.first_name if rider else "Your rider")]
         return [to_customer(key)] if key else []
+    if kind == "driver.almost_there":  # realtime: the rider is a couple of minutes from the door
+        rider = await d.person(order["driver_id"]) if order["driver_id"] else None
+        return [to_customer("order_almost_there", rider=rider.first_name if rider else "Your rider")]
     if kind == "driver.assigned":
         name = (p.get("driver_name") or "").split(" ")[0] or "Your rider"
         return [to_customer("driver_assigned", rider=name)]
