@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 
-import { SITE } from "@/lib/server";
+import { INDEXABLE, SITE } from "@/lib/server";
 
 export default function robots(): MetadataRoute.Robots {
+  if (!INDEXABLE) return { rules: [{ userAgent: "*", disallow: "/" }] };
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/checkout", "/orders", "/sign-in", "/design"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/checkout", "/orders", "/account", "/signin"] }],
     sitemap: `${SITE}/sitemap.xml`,
   };
 }

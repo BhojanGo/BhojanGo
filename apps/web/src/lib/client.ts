@@ -138,3 +138,34 @@ function onHydrated(cb: () => void) {
 export function useHydrated(): boolean {
   return useSyncExternalStore(onHydrated, () => useBag.persist.hasHydrated() && useSession.persist.hasHydrated(), () => false);
 }
+
+/**
+ * A signed-in call to an endpoint the typed client may not list yet (newer
+ * account APIs): Bearer token, one refresh on 401, JSON in and out.
+ */
+export async function authed<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+  const go = (token: string | null) =>
+    fetch(`${urls.core}${path}`, {
+      method,
+      headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body !== undefined ? { "content-type": "application/json" } : {}) },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  let r = await go(useSession.getState().access);
+  if (r.status === 401) {
+    const fresh = await useSession.getState().refresh();
+    if (!fresh) {
+      await useSession.getState().signOut();
+      throw new Error("signed out");
+    }
+    r = await go(fresh);
+  }
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}));
+    const d = (detail as { detail?: unknown }).detail;
+    throw new Error(typeof d === "string" ? d : (d as { message?: string })?.message ?? `HTTP ${r.status}`);
+  }
+  // 204 No Content (saving a favourite, a default address...) may still say "json": no body to read.
+  if (r.status === 204 || r.headers.get("content-length") === "0") return undefined as T;
+  const type = r.headers.get("content-type") ?? "";
+  return (type.includes("json") ? await r.json() : await r.blob()) as T;
+}

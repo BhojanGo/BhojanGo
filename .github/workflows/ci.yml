@@ -35,6 +35,9 @@ jobs:
       - name: Photo credits match docs/design/photos/LICENSES.md
         run: python3 tools/photos/credits.py --check
 
+      - name: Website names no seeded city, state or country (places come from data)
+        run: python3 tools/web/check_templates.py
+
       - name: Build packages
         run: pnpm turbo build --filter='./packages/*'
 

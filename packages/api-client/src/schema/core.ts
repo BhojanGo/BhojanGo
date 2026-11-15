@@ -9197,7 +9197,7 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
-                /** @description Kitchen or item name (any case) */
+                /** @description Kitchen or item name (any case), or the order code (#A9D1F0) */
                 q?: string | null;
                 /** @description delivered | cancelled | active; repeatable */
                 status?: ("delivered" | "cancelled" | "active")[] | null;

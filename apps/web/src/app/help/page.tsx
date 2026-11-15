@@ -31,7 +31,7 @@ export default function Help() {
           <p>Something wrong or missing? Tell us from the order; we refund by item, including the tax on it, to the way you paid. Refunds reach UPI and cards in about 5–7 working days.</p>
         </> },
         { id: "payment", title: "Paying", body: <>
-          <p>India: UPI, cards and wallets through Razorpay. United States: cards, Apple Pay and Google Pay through Stripe. A payment that doesn&apos;t go through isn&apos;t charged; try again while the price is held.</p>
+          <p>Checkout shows the ways to pay that work where your address is (for example UPI, cards, wallets, Apple Pay or Google Pay), through our payment partner there. A payment that doesn&apos;t go through isn&apos;t charged; try again while the price is held.</p>
         </> },
       ]}
     />

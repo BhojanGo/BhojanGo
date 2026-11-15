@@ -7,6 +7,7 @@
 #   make seed    (re)load the Hyderabad + Boise seed data; safe to run again
 #   make test    backend pytest + JS lint/typecheck/test, inside Docker
 #   make ci      everything GitHub CI runs (the merge gate), inside Docker
+#   make web-third-city  launch a 3rd city in admin on a clean stack; the website must follow (not in ci)
 #   make down    stop everything (keeps data)
 #   make reset   wipe all data volumes, then `make dev` again
 #
@@ -17,7 +18,7 @@ PROFILE ?= all
 # Git Bash on Windows rewrites /srv/... arguments into Windows paths; stop it.
 export MSYS_NO_PATHCONV := 1
 
-.PHONY: help dev observe up seed test test-backend test-js ci ci-photos ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps
+.PHONY: help dev observe up seed test test-backend test-js ci ci-photos ci-web-data ci-migrations ci-docker ci-e2e ci-terraform apk down reset logs ps web-third-city
 
 help:
 	@sed -n '1,15p' Makefile
@@ -70,7 +71,7 @@ test-js:
 # backend pytest, migrations up/down/up + alembic check + seed + integration
 # tests, the three service images, the Phase 1 gate (G1) end to end on a
 # throwaway stack, and terraform fmt/validate. Passing `make ci` is the merge gate.
-ci: ci-secrets ci-photos ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
+ci: ci-secrets ci-photos ci-web-data ci-observe test-backend test-js ci-migrations ci-docker ci-e2e ci-railway ci-terraform
 	@echo ""
 	@echo "make ci: all checks passed"
 
@@ -111,9 +112,19 @@ ci-secrets:
 	sh tools/security/scanner-canaries.sh semgrep
 	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:v8.21.2 git /repo --config /repo/.gitleaks.toml --gitleaks-ignore-path /repo/.gitleaksignore --redact --no-banner
 
+# A third city with no code change: a clean stack of its own (bhojango-3c, no host
+# ports), Meridian launched in admin Markets, a kitchen approved; the website's
+# directory, city page, sitemap, personal home and kitchen page must follow. Not in ci.
+web-third-city:
+	sh tools/web/third_city.sh
+
 # Photo credits: apps/web/src/content/photo-credits.json matches docs/design/photos/LICENSES.md.
 ci-photos:
 	python tools/photos/credits.py --check
+
+# The website names no seeded city, state or country: places come from Markets data.
+ci-web-data:
+	python tools/web/check_templates.py
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
 ci-observe:

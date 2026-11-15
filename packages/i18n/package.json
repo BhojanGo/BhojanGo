@@ -1,0 +1,27 @@
+{
+  "name": "@bhojango/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Languages for BhojanGo's website and apps: the language list, messages per language, a translator (web v2)",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./messages/*.json": "./messages/*.json"
+  },
+  "scripts": {
+    "build": "echo 'no build: plain JS and JSON'",
+    "typecheck": "echo 'plain JS with .d.ts'",
+    "lint": "node scripts/check.js",
+    "test": "node --test test/i18n.test.js"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "messages",
+    "REVIEW.md"
+  ]
+}

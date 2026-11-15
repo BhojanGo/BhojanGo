@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web · What comes from data</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 1120px; box-sizing: border-box; padding: 48px 56px; background: #FFFFFF; color: #111418; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+  <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #4C5A5E">Website · rules for the build</div>
+  <div style="font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 36px; letter-spacing: -0.8px; margin-top: 6px">No city, currency or price is ever typed into a page.</div>
+  <div style="margin-top: 8px; font-size: 16px; color: #4C5A5E">Launching city #3 (or country #3) is an admin action in Markets. The website changes by itself.</div>
+
+  <div style="margin-top: 32px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+    <div style="padding: 24px; border-radius: 20px; background: #F4F6F6">
+      <b style="font-size: 17px">How we know where you are</b>
+      <ol style="margin: 12px 0 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #24383B">
+        <li>Saved address (signed in) or last address (cookie)</li>
+        <li>Browser location, only after the visitor taps "Use my location"</li>
+        <li>IP lookup, as a hint only ("Looks like you're near …"), shown only if that place is inside a live zone</li>
+        <li>Nothing known: first-visit page, no city named</li>
+      </ol>
+    </div>
+    <div style="padding: 24px; border-radius: 20px; background: #F4F6F6">
+      <b style="font-size: 17px">Comes from data</b>
+      <ul style="margin: 12px 0 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #24383B">
+        <li>Countries, states, cities and status (live / soon), from Markets</li>
+        <li>Counts ("42 kitchens deliver to …", "2 cities live")</li>
+        <li>Currency, number and date format, from the zone's country</li>
+        <li>Kitchens, cuisines, times and delivery fees, from the zone and the rule engine</li>
+        <li>Example bills: a cached real quote for the visitor's zone</li>
+        <li>Offers and who funds them</li>
+        <li>Greeting by local time; name only when signed in</li>
+        <li><b>Country</b> (header): from address, else IP, else browser locale. It decides currency, kitchens and the language list</li>
+        <li><b>Language</b> (header, separate from country): English by default; the choices come from the country's locales in Markets (India: English, हिन्दी, తెలుగు, தமிழ், ಕನ್ನಡ, मराठी, বাংলা · United States: English, Español). Remembered per visitor; never changes prices</li>
+      </ul>
+    </div>
+    <div style="padding: 24px; border-radius: 20px; background: #F4F6F6">
+      <b style="font-size: 17px">Pages and states</b>
+      <ul style="margin: 12px 0 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #24383B">
+        <li><b>/</b>: first visit, or personal home once an address is set</li>
+        <li><b>/cities</b>: full directory, country tabs, then states, then cities, plus search</li>
+        <li><b>/{country}/{city}</b>: city page, generated for every live city (search engines)</li>
+        <li>Address outside every zone: "Not in your area yet" + "Notify me"</li>
+        <li>"Coming soon" cities collect sign-ups (demand data for Markets)</li>
+        <li>Footer never lists cities; it links to /cities</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px; padding: 20px 24px; border-radius: 20px; background: #111418; color: #F2F5F5; font-size: 15px; line-height: 1.6">
+    <b style="color: #E8A93C">Test that keeps it honest:</b> add a third city in admin Markets (status live, one zone, one kitchen) on a clean database, without changing code. The directory, the city page, the sitemap and the personal home for an address there must all appear. A build check fails if any page template contains a seeded city, state or country name.
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

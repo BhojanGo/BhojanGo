@@ -118,6 +118,7 @@ export default defineRailway((ctx, project) => {
   const coreApi = backend("core-api", "core_api", 8001, "core_api.main:app", {
     SERVICE_NAME: "core-api",
     REDIS_URL: redisDb(0),
+    GEOIP: "1", // build arg: fetch DB-IP's free City Lite for the website's "near you" hint
     JWKS_URL: "", // core_api signs; it publishes the JWKS itself
     JWT_PRIVATE_KEY: preserve(), // sealed; required outside development (docs/security/report.md)
     STORAGE_PROVIDER: "s3",
@@ -161,6 +162,8 @@ export default defineRailway((ctx, project) => {
       deploy: { ...(prod ? {} : { sleepApplication: true }), ...cap(0.5, 0.5) },
       env: {
         APP: pkg, APP_DIR: dir, PORT: "3000",
+        // production only is indexable (robots.txt, meta and X-Robots-Tag); a build arg too
+        APP_ENV: appEnv,
         CORE_API_URL: "http://core-api.railway.internal:8001",
         REALTIME_URL: "http://realtime.railway.internal:8004",
         NEXT_PUBLIC_CORE_URL: `https://\${{core-api.RAILWAY_PUBLIC_DOMAIN}}`,

@@ -28,6 +28,14 @@ COPY migrations migrations
 COPY worker/app/__init__.py worker/app/__init__.py
 COPY worker/app/models worker/app/models
 
+# Optional: the website's "near you" hint from the visitor's IP (shared/geoip.py), from
+# DB-IP's free City Lite database (CC BY 4.0). GEOIP=1 fetches it at build time; without
+# it (or if the download fails) the hint is simply off.
+ARG GEOIP=0
+ENV GEOIP_DB_PATH=/srv/geoip/dbip-city-lite.mmdb
+COPY tools/geoip_fetch.py tools/geoip_fetch.py
+RUN if [ "$GEOIP" = "1" ]; then python tools/geoip_fetch.py "$GEOIP_DB_PATH"; fi
+
 # Security (trivy DS002): run as an unprivileged user, not root.
 RUN useradd --system --uid 10001 --no-create-home --home-dir /srv app && mkdir -p /srv/keys && chown app:app /srv/keys
 USER app

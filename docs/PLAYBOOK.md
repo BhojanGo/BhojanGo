@@ -178,6 +178,18 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 58. **Judge a photo at full frame, not from its thumbnail.**
     Why: two of the library's picks looked clean at 320 px but at full size had a newspaper's print under the tray and part of a person at the edge. `tools/photos/ingest.py` builds the contact sheet only after each original has been looked at whole.
 
+59. **Never pipe a safety check into something that hides its exit status.**
+    Why: `gitleaks-tree.sh | tail -1 && git push` pushed a branch while gitleaks said "leaks found: 1" (a fake test token, but it could have been real): the pipe's status is `tail`'s. Run the check on its own (or `set -o pipefail`) and test `$?` before pushing.
+
+60. **Run `make ci`, rebases and pushes from the main checkout, not a git worktree.**
+    Why: in a worktree `.git` is a file with a Windows path, so `make ci-secrets` (gitleaks scanning history inside a container) fails, and husky's generated hooks there were incomplete, so the pre-rebase hook refused every rebase. Worktrees are fine for building and testing code in parallel; integrate in the main checkout.
+
+61. **Two `docker compose ... --build` runs at once on Windows can fail with "rename ... compose-build-metadataFile".**
+    Why: `make ci`'s Railway stage failed that way while a `make dev` build ran next to it; the stage passed on its own. Rerun the stage before chasing a bug, and don't start big builds next to `make ci`.
+
+62. **A page never names a place: a CI check makes sure.**
+    Why: the website must work for a city launched in admin Markets with no code change (web v2). `tools/web/check_templates.py` (`make ci-web-data`) fails on any seeded city, state or country name in apps/web or the messages, comments included; legal pages describe jurisdictions generically ("the law of the country where you receive the order").
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

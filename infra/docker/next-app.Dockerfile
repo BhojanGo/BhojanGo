@@ -26,10 +26,14 @@ ARG NEXT_PUBLIC_CORE_URL=http://localhost:8001
 ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:8004
 ARG NEXT_PUBLIC_WORKER_URL=http://localhost:8006
 ARG NEXT_PUBLIC_APP_URL=https://bhojango.com
+# Only production is indexable by search engines (robots.txt, meta, X-Robots-Tag); the
+# headers are fixed at build time, so the environment is a build argument too.
+ARG APP_ENV=development
 ENV NEXT_PUBLIC_CORE_URL=${NEXT_PUBLIC_CORE_URL} \
     NEXT_PUBLIC_REALTIME_URL=${NEXT_PUBLIC_REALTIME_URL} \
     NEXT_PUBLIC_WORKER_URL=${NEXT_PUBLIC_WORKER_URL} \
-    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
+    APP_ENV=${APP_ENV}
 ENV USER_SVC_URL=${CORE_API_URL} \
     REALTIME_SVC_URL=${REALTIME_URL} \
     RESTAURANT_SVC_URL=${CORE_API_URL} \

@@ -1,8 +1,8 @@
 #!/bin/sh
 # Playwright run of the admin console against `make dev` (P21).
 #   tools/admin/e2e.sh
-# Opens Hyderabad around the clock for the run (tools/mobile/hours.py), resets
-# OTP send counters, and runs tools/admin/e2e_admin.py in the Playwright image on
+# Opens Hyderabad and Boise around the clock for the run (tools/mobile/hours.py),
+# resets OTP send counters, and runs tools/admin/e2e_admin.py in the Playwright image on
 # the compose network. Screenshots land in docs/screenshots/admin.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))"

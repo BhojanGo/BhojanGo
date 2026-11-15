@@ -61,7 +61,7 @@ async def list_my_orders(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    q: str | None = Query(None, min_length=1, max_length=100, description="Kitchen or item name (any case)"),
+    q: str | None = Query(None, min_length=1, max_length=100, description="Kitchen or item name (any case), or the order code (#A9D1F0)"),
     status_filter: list[HistoryStatus] | None = Query(None, alias="status", description="delivered | cancelled | active; repeatable"),
     date_from: date | None = Query(None, alias="from", description="Placed on or after this day (UTC)"),
     date_to: date | None = Query(None, alias="to", description="Placed on or before this day (UTC)"),
