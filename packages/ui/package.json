@@ -20,6 +20,10 @@
       "types": "./bill.d.ts",
       "default": "./bill.js"
     },
+    "./environment": {
+      "types": "./environment.d.ts",
+      "default": "./environment.js"
+    },
     "./tailwind-preset": "./tailwind-preset.js",
     "./security-headers": "./security-headers.js"
   },
@@ -29,7 +33,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -55,6 +59,8 @@
     "tokens.d.ts",
     "bill.js",
     "bill.d.ts",
+    "environment.js",
+    "environment.d.ts",
     "tailwind-preset.js",
     "security-headers.js"
   ]

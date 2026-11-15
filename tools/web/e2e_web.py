@@ -204,6 +204,14 @@ with sync_playwright() as p:
         [expect(dir_region.get_by_role("link", name=c["name"], exact=True)).to_be_visible() for c in live],
         [expect(dir_region.get_by_role("link", name=f"{c['name']} · soon")).to_be_visible() for c in soon],
         expect(dir_region.get_by_text(f"{len(live)} cities live · {len(soon)} coming soon")).to_be_visible()))
+    # Outside production (make dev, QA, staging) every page says it's a test site; production never does
+    # (packages/ui/environment.js, unit-tested there).
+    TEST_BANNER = "Test site: demo kitchens, no real orders or payments"
+    check("test-site banner: on the landing page, above the header, a note (not an alert)", lambda: (
+        expect(page.get_by_role("note").filter(has_text=TEST_BANNER)).to_be_visible(),
+        expect(page.get_by_role("alert").filter(has_text=TEST_BANNER)).to_have_count(0),
+        _assert(page.get_by_test_id("test-site-banner").bounding_box()["y"] < page.locator("header").first.bounding_box()["y"],
+                "banner is not above the header")))
     shot(page, "01-landing")
 
     # Notify me ("Don't see your city?"), then the demand shows it in Markets (admin API).
@@ -711,6 +719,18 @@ with sync_playwright() as p:
         m.goto(base + path, wait_until="networkidle")
         m.wait_for_timeout(500)
         check(f"phone width {path}: no sideways scroll", lambda: no_sideways_scroll(m))
+    m.goto(base, wait_until="networkidle")
+
+    def banner_scrolls_away() -> None:
+        expect(m.get_by_role("note").filter(has_text=TEST_BANNER)).to_be_visible()
+        m.mouse.wheel(0, 900)
+        m.wait_for_timeout(400)
+        header = m.locator("header").first.bounding_box()
+        _assert(header is not None and abs(header["y"]) < 1, f"sticky header not at the top after scrolling: {header}")
+        banner = m.get_by_test_id("test-site-banner").bounding_box()
+        _assert(banner is None or banner["y"] + banner["height"] <= 1, f"banner still covers the page: {banner}")
+        m.mouse.wheel(0, -900)
+    check("phone width: the test-site banner scrolls away; the sticky header still sticks", banner_scrolls_away)
     m.goto(base + KITCHEN_PATH, wait_until="networkidle")
     m.screenshot(path=f"{OUT}/19-kitchen-phone.png", full_page=False)
     anon_phone = b.new_context(viewport={"width": 390, "height": 844}).new_page()

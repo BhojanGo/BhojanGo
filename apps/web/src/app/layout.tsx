@@ -4,6 +4,7 @@ import { Familjen_Grotesk, Hanken_Grotesk } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TabBar } from "@/components/TabBar";
+import { TestSiteBanner } from "@/components/TestSiteBanner";
 import { I18nProvider } from "@/lib/i18n";
 import { getContext } from "@/lib/prefs";
 import { INDEXABLE, SITE } from "@/lib/server";
@@ -56,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             fallback: ctx.fallback,
           }}
         >
+          <TestSiteBanner text={ctx.t("common.test_site_banner")} />
           <SiteHeader />
           <main id="main" className="min-h-[60vh]">
             {children}
