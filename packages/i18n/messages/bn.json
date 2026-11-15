@@ -805,6 +805,34 @@
     "thanks": "এই অর্ডারটি রেট করার জন্য ধন্যবাদ।"
   },
   "app": {
+    "account": {
+      "title": "অ্যাকাউন্ট",
+      "keep": "আমার অ্যাকাউন্ট রাখুন"
+    },
+    "orders": {
+      "past": "আগের অর্ডার",
+      "when": "{date}, {time} · {code}"
+    },
+    "rating": {
+      "change": "আপনার রেটিং বদলান",
+      "until": "আপনি {date} পর্যন্ত এটি বদলাতে পারবেন।"
+    },
+    "payments": {
+      "saved": "সেভ করা কার্ড",
+      "offered": "পেমেন্টের উপায় · {country}",
+      "offered_note": "চেকআউটে পেমেন্ট করার সময় আপনি একটি বেছে নেবেন।"
+    },
+    "pay": {
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay"
+    },
+    "addresses": {
+      "required": "রাস্তা ও শহর লিখুন।"
+    },
+    "report": {
+      "add_photo": "ছবি যোগ করুন",
+      "uploading": "আপলোড হচ্ছে…"
+    },
     "test_banner": "টেস্ট সাইট: ডেমো কিচেন, কোনো আসল অর্ডার বা পেমেন্ট নেই",
     "units": {
       "km": "{value} কিমি",

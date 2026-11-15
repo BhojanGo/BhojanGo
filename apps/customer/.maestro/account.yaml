@@ -1,14 +1,31 @@
-# Account: sign out and back in (deleting is tested against a throwaway account by the API suite).
+# Account: the delete confirmation opens and is cancelled (deleting is tested
+# against a throwaway account by the API suite), then sign out and back in.
 appId: com.bhojango.app
 ---
 - runFlow: sign-in.yaml
 - tapOn: "Account"
-- assertVisible: "Delete my account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
 - takeScreenshot: docs/screenshots/customer/10-account
-- tapOn: "Delete my account"
+- scrollUntilVisible:
+    element:
+      id: "account-privacy"
+- tapOn:
+    id: "account-privacy"
+- tapOn:
+    id: "delete-account"
 - assertVisible: "Delete your account?"
 - tapOn: "Keep my account"
-- tapOn: "Sign out"
+- assertNotVisible: "Delete your account?"
+- tapOn:
+    id: "back"
+- scrollUntilVisible:
+    element:
+      id: "sign-out"
+- tapOn:
+    id: "sign-out"
 - extendedWaitUntil:
     visible: "Sign in or sign up"
     timeout: 15000

@@ -805,6 +805,34 @@
     "thanks": "Thanks for rating this order."
   },
   "app": {
+    "account": {
+      "title": "Account",
+      "keep": "Keep my account"
+    },
+    "orders": {
+      "past": "Past orders",
+      "when": "{date}, {time} · {code}"
+    },
+    "rating": {
+      "change": "Change your rating",
+      "until": "You can change it until {date}."
+    },
+    "payments": {
+      "saved": "Saved cards",
+      "offered": "Ways to pay in {country}",
+      "offered_note": "You pick one when you pay at checkout."
+    },
+    "pay": {
+      "apple_pay": "Apple Pay",
+      "google_pay": "Google Pay"
+    },
+    "addresses": {
+      "required": "Enter the street and city."
+    },
+    "report": {
+      "add_photo": "Add a photo",
+      "uploading": "Uploading…"
+    },
     "test_banner": "Test site: demo kitchens, no real orders or payments",
     "units": {
       "km": "{value} km",

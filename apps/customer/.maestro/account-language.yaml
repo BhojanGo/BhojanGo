@@ -1,0 +1,38 @@
+# The language picker lists exactly the country's languages (Markets) and
+# switching changes the words; then back to English. The country shown is the
+# delivery address's (or the one chosen). Switching also remembers the language
+# on the account (PATCH /users/me preferred_locale) as the website does: run
+# against a demo account. LANG2 is a second language of the account's country
+# (default "hi" for the seed phones' country).
+appId: com.bhojango.app
+---
+- runFlow: sign-in.yaml
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      id: "account-language"
+- tapOn:
+    id: "account-language"
+- extendedWaitUntil:
+    visible:
+      id: "language-en"
+    timeout: 20000
+- assertVisible: "Language and country"
+- assertVisible:
+    id: 'language-${LANG2 || "hi"}'
+- assertVisible:
+    id: "country-section"
+- takeScreenshot: docs/screenshots/customer/45-language
+- tapOn:
+    id: 'language-${LANG2 || "hi"}'
+- extendedWaitUntil:
+    notVisible: "Language and country"
+    timeout: 5000
+- assertVisible:
+    id: "language-title"
+- takeScreenshot: docs/screenshots/customer/46-language-switched
+- tapOn:
+    id: "language-en"
+- extendedWaitUntil:
+    visible: "Language and country"
+    timeout: 5000

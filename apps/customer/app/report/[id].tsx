@@ -13,17 +13,11 @@ import { uploadPhoto } from "../../lib/upload";
 
 type Order = CoreSchemas["OrderResponse"];
 type Outcome = CoreSchemas["ProblemOut"];
-const REASONS = [
-  { key: "missing_item", label: "Missing" },
-  { key: "wrong_item", label: "Wrong item" },
-  { key: "quality", label: "Not good" },
-  { key: "damaged_in_transit", label: "Spilled or damaged" },
-  { key: "late", label: "Very late" },
-] as const;
-type Reason = (typeof REASONS)[number]["key"];
+const REASONS = ["missing_item", "wrong_item", "quality", "damaged_in_transit", "late"] as const;
+type Reason = (typeof REASONS)[number];
 
 export default function Report() {
-  const { money } = useI18n();
+  const { t, money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [pick, setPick] = useState<Record<string, number>>({});
@@ -37,11 +31,11 @@ export default function Report() {
   useEffect(() => {
     let live = true;
     api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
-      .then((r) => live && setOrder(unwrap(r))).catch(() => live && setError("We couldn't load this order."));
+      .then((r) => live && setOrder(unwrap(r))).catch(() => live && setError(t("account.report.not_found")));
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, t]);
 
   async function addPhoto() {
     setError(null);
@@ -57,7 +51,7 @@ export default function Report() {
       setPhoto({ uri: a.uri, key: await uploadPhoto(a.uri, a.mimeType ?? "image/jpeg") });
     } catch (e) {
       setPhoto(null);
-      setError((e as Error).message);
+      setError((e as Error).message || t("account.report.photo_failed"));
     } finally {
       setBusy(null);
     }
@@ -73,7 +67,7 @@ export default function Report() {
         params: { path: { order_id: id } }, body: { items, reason, note: note.trim() || null, photo_key: photo?.key ?? null },
       })));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't send your report. Try again.");
+      setError(e instanceof ApiError ? e.message : t("account.report.send_failed"));
     } finally {
       setBusy(null);
     }
@@ -82,10 +76,10 @@ export default function Report() {
   if (done) {
     return (
       <SafeAreaView style={[s.screen, { justifyContent: "center", gap: space[4] }]}>
-        <Text accessibilityRole="header" style={s.h1}>{done.outcome === "refunded" ? "Refunded" : "Sent to support"}</Text>
+        <Text accessibilityRole="header" style={s.h1}>{done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}</Text>
         <Text style={[textFont("400"), { fontSize: 17, lineHeight: 25, color: color.kohl }]}>{done.message}</Text>
-        {done.outcome === "ticket" ? <Text style={s.muted}>Refunds above {money(done.limit, done.currency, { whole: true })} on one order are checked by a person first.</Text> : null}
-        <Button title="Back to your order" size="lg" onPress={() => router.replace(`/order/${id}`)} />
+        {done.outcome === "ticket" ? <Text style={s.muted}>{t("account.report.ticket_note", { amount: money(done.limit, done.currency, { whole: true }) })}</Text> : null}
+        <Button testID="back-to-order" title={t("account.report.back_to_order")} size="lg" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/account/receipt/${id}`))} />
       </SafeAreaView>
     );
   }
@@ -95,51 +89,51 @@ export default function Report() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: color.porcelain }}>
       <View style={s.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/order/${id}`))} style={s.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace(`/account/receipt/${id}`))} style={s.back}>
           <Icon name="back" />
         </Pressable>
-        <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 18 }]}>Report a problem</Text>
+        <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 18 }]}>{t("account.report.title")}</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: space[5], gap: space[5], paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <View style={s.card}>
-          <Text style={s.h2}>Which items?</Text>
+          <Text style={s.h2}>{t("account.report.which_items")}</Text>
           {items.map((i) => {
             const n = pick[i.menu_item_id] ?? 0;
             const set = (v: number) => setPick((p) => ({ ...p, [i.menu_item_id]: Math.max(0, Math.min(i.quantity, v)) }));
             return (
               <View key={i.menu_item_id} style={s.row}>
-                <Text style={[textFont("700"), { flex: 1, fontSize: 16 }]}>{i.name} <Text style={s.muted}>· {i.quantity} ordered</Text></Text>
-                <Pressable accessibilityRole="button" accessibilityLabel={`One less ${i.name}`} onPress={() => set(n - 1)} style={s.step}><Text style={s.stepText}>−</Text></Pressable>
-                <Text accessibilityLabel={`${n} ${i.name}`} style={[textFont("800"), { width: 28, textAlign: "center", fontSize: 17 }]}>{n}</Text>
-                <Pressable accessibilityRole="button" accessibilityLabel={`One more ${i.name}`} onPress={() => set(n + 1)} style={s.step}><Text style={s.stepText}>+</Text></Pressable>
+                <Text style={[textFont("700"), { flex: 1, fontSize: 16 }]}>{i.name} <Text style={s.muted}>· {t("account.report.ordered", { count: i.quantity })}</Text></Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.one_less", { name: i.name })} onPress={() => set(n - 1)} style={s.step}><Text style={s.stepText}>−</Text></Pressable>
+                <Text accessibilityLabel={`${t("account.report.how_many", { item: i.name })}: ${n}`} style={[textFont("800"), { width: 28, textAlign: "center", fontSize: 17 }]}>{n}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={t("kitchen.one_more", { name: i.name })} onPress={() => set(n + 1)} style={s.step}><Text style={s.stepText}>+</Text></Pressable>
               </View>
             );
           })}
         </View>
         <View style={s.card}>
-          <Text style={s.h2}>What went wrong?</Text>
+          <Text style={s.h2}>{t("account.report.what_wrong")}</Text>
           <View accessibilityRole="radiogroup" style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {REASONS.map((r) => (
-              <Pressable key={r.key} accessibilityRole="radio" accessibilityState={{ checked: reason === r.key }} onPress={() => setReason(r.key)}
-                style={[s.chip, reason === r.key && { borderColor: color.peacock, backgroundColor: color.peacockMist }]}>
-                <Text style={[textFont(reason === r.key ? "800" : "600"), { fontSize: 15 }]}>{r.label}</Text>
+              <Pressable key={r} testID={`reason-${r}`} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} onPress={() => setReason(r)}
+                style={[s.chip, reason === r && { borderColor: color.peacock, backgroundColor: color.peacockMist }]}>
+                <Text style={[textFont(reason === r ? "800" : "600"), { fontSize: 15 }]}>{t(`account.report.reason_${r}`)}</Text>
               </Pressable>
             ))}
           </View>
-          <TextInput testID="problem-note" accessibilityLabel="Tell us more (optional)" value={note} onChangeText={setNote} maxLength={300}
-            placeholder="Tell us more (optional)" placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
+          <TextInput testID="problem-note" accessibilityLabel={t("account.report.more")} value={note} onChangeText={setNote} maxLength={300}
+            placeholder={t("account.report.more")} placeholderTextColor={color.muted} style={[textFont("600"), s.input]} />
         </View>
         <View style={s.card}>
-          <Text style={s.h2}>A photo helps (optional)</Text>
-          <Pressable accessibilityRole="button" onPress={addPhoto} style={s.photo}>
+          <Text style={s.h2}>{t("account.report.photo")}</Text>
+          <Pressable testID="problem-photo" accessibilityRole="button" accessibilityLabel={t("app.report.add_photo")} onPress={addPhoto} style={s.photo}>
             {photo ? <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-            {busy === "photo" ? <Text style={s.muted}>Uploading…</Text> : photo ? null : <Text style={[textFont("700"), { color: color.peacockDeep }]}>Add a photo</Text>}
+            {busy === "photo" ? <Text style={s.muted}>{t("app.report.uploading")}</Text> : photo ? null : <Text style={[textFont("700"), { color: color.peacockDeep }]}>{t("app.report.add_photo")}</Text>}
           </Pressable>
         </View>
         {error ? <Text style={[textFont("600"), { color: color.chili }]}>{error}</Text> : null}
       </ScrollView>
       <View style={s.footer}>
-        <Button title="Send report" size="lg" block loading={busy === "send"} disabled={!chosen || !reason || busy === "photo"} onPress={send} />
+        <Button testID="send-report" title={busy === "send" ? t("account.report.sending") : t("account.report.send")} size="lg" block loading={busy === "send"} disabled={!chosen || !reason || busy === "photo"} onPress={send} />
       </View>
     </SafeAreaView>
   );

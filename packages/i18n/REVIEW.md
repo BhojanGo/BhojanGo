@@ -68,5 +68,12 @@ on 2026-11-15, needing the same native review:
 - `app.home.banner`, `app.out_of_area.cooking_in` ({cities} is a comma list of
   city names: Telugu/Tamil/Kannada/Bengali suffixes glued to the last name),
   `app.out_of_area.leave_number`.
+- Customer account area (round 4): `app.account.*` ("Keep my account" in the delete
+  confirmation), `app.orders.past`, `app.rating.change` / `app.rating.until` ({date}),
+  `app.payments.saved` / `offered` ({country}: Telugu, Tamil, Kannada and Bengali put
+  the name after a "·" instead of a suffix) / `offered_note`, `app.addresses.required`,
+  `app.report.add_photo` / `uploading`. `app.pay.apple_pay` / `google_pay` are brand
+  names, kept in English. Everything else in the account screens reuses the website's
+  `account.*`, `rating.*` and `bill.*` keys.
 - `rider.earnings.distance`, `partner.offer.amount_off` ({amount} is formatted
   money), `partner.offer.flat_off`.
