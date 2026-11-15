@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.payments.models.payment import PaymentIntent, Refund
 from core_api.modules.payments.service.gateways import gateway_by_name
 from shared import authz, outbox
+from shared.money import format_money
 
 logger = structlog.get_logger(__name__)
 CENT = Decimal("0.01")
@@ -195,7 +196,7 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
         limit = await agent_limit(db, order.market_city, intent.currency)
         given = sum(r.amount for r in previous) + minor
         if Decimal(given) / 100 > limit:
-            raise RefundError(f"Above your refund limit of {intent.currency} {limit:.0f} for one order; "
+            raise RefundError(f"Above your refund limit of {format_money(limit, intent.currency, whole=True)} for one order; "
                               "ask city ops, a country manager or finance")
 
     refund = Refund(order_id=order_id, payment_intent_id=intent.id, amount=minor, currency=intent.currency, kind="items",

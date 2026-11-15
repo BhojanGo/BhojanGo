@@ -18,6 +18,8 @@ from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from shared.money import format_money
+
 TIMEZONE = {"IN": "Asia/Kolkata", "US": "UTC"}
 WHO_FUNDS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
 WHO_COLLECTS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
@@ -41,25 +43,12 @@ FONTS_DIR = Path(__file__).resolve().parent.parent / "fonts"
 BASE_FONT = "NotoSans"
 # Scripts after Latin, in the order fpdf2 tries them for a character Noto Sans lacks.
 FALLBACK_FONTS = ("NotoSansDevanagari", "NotoSansTelugu", "NotoSansTamil", "NotoSansKannada", "NotoSansBengali")
-SYMBOLS = {"INR": "₹", "USD": "$", "EUR": "€", "GBP": "£"}
 
 
 def money(amount: Decimal | float | str, currency: str) -> str:
-    """₹1,24,050.00 (Indian grouping) or $1,240.50; a currency without a symbol here: "AED 12.00"."""
-    value = Decimal(str(amount)).quantize(Decimal("0.01"))
-    sign = "-" if value < 0 else ""
-    whole, cents = f"{abs(value):.2f}".split(".")
-    if currency == "INR" and len(whole) > 3:
-        head, tail = whole[:-3], whole[-3:]
-        groups: list[str] = []
-        while len(head) > 2:
-            groups.insert(0, head[-2:])
-            head = head[:-2]
-        whole = ",".join(([head] if head else []) + groups + [tail])
-    else:
-        whole = f"{int(whole):,}"
-    symbol = SYMBOLS.get(currency)
-    return f"{sign}{symbol}{whole}.{cents}" if symbol else f"{currency} {sign}{whole}.{cents}"
+    """₹1,24,050.00 (Indian grouping) or $1,240.50; a currency without a symbol: "AED 12.00".
+    The one backend formatter (shared.money), so the PDF reads like the app."""
+    return format_money(amount, currency)
 
 
 def _pct(rate: str | None) -> str:

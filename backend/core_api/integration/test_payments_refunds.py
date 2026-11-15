@@ -129,7 +129,7 @@ async def test_refund_by_item_with_tax_and_limits(client: AsyncClient) -> None:
     try:
         r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support, json={
             "items": [{"menu_item_id": biryani, "quantity": 1}], "include_delivery_fee": True, "reason": "late"})
-        assert r.status_code == 403 and "refund limit of INR 200" in r.text
+        assert r.status_code == 403 and "refund limit of ₹200 " in str(r.json())
     finally:
         await client.post(f"/api/v1/rules/{rule['id']}/end", headers=await login(client, "finance.in@example.com", ADMIN), json={})
     ops = await login(client, "ops.hyd@example.com", ADMIN)

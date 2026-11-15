@@ -161,6 +161,33 @@ async def test_quote_has_tip_presets(client: AsyncClient) -> None:  # noqa: F811
     assert [float(a) for a in tips["amounts"]] == [10, 20, 30] and tips["default_index"] == 1
 
 
+async def test_us_bag_under_the_minimum_reads_dollars_and_keeps_us_tips(client: AsyncClient) -> None:  # noqa: F811
+    """Round 6: a Boise bag under Downtown's $15 minimum is refused as MIN_ORDER with
+    the amount for the client to format ("$15", never "USD 15") and the US
+    tip_presets rule's buttons; a bag over it is quoted with the same buttons."""
+    h = await login(client, "customer1.boi@example.com")
+    rest = next(r for r in (await client.get("/api/v1/restaurants", params={"limit": 50})).json()["items"]
+                if r["name"] == "Boise Bowl Co.")
+    menu = (await client.get(f"/api/v1/restaurants/{rest['id']}/menu")).json()
+    tofu = next(i for c in menu["categories"] for i in c["items"] if i["name"] == "Crispy Tofu Bowl")  # $13.00
+    downtown = {"lat": 43.6150, "lng": -116.2023}
+
+    def bag(n: int) -> dict:
+        return {"restaurant_id": rest["id"], "items": [{"menu_item_id": tofu["id"], "quantity": n}], "deliver_to": downtown}
+
+    r = await client.post("/api/v1/pricing/quote", headers=h, json=bag(1))
+    assert r.status_code == 422, r.text
+    d = r.json()["detail"]
+    assert d["code"] == "MIN_ORDER" and d["zone"] == "Downtown"
+    assert (d["amount"], d["currency"]) == ("15.00", "USD")
+    assert d["message"] == "The minimum order in Downtown is $15"
+    assert [float(a) for a in d["tip_presets"]["amounts"]] == [2, 3, 5] and d["tip_presets"]["default_index"] == 1
+
+    q = await client.post("/api/v1/pricing/quote", headers=h, json=bag(2))
+    assert q.status_code == 200, q.text
+    assert [float(a) for a in q.json()["tip_presets"]["amounts"]] == [2, 3, 5]
+
+
 async def test_cuisines_have_two_kitchens_and_their_own_photos(client: AsyncClient) -> None:  # noqa: F811
     from shared.redis import get_redis
 
