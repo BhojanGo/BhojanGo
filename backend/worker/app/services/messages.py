@@ -56,6 +56,11 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "hi": ("रास्ते में है", "{rider} ने आपका ऑर्डर ले लिया है और आपके पास आ रहे हैं। {arriving}"),
         "te": ("దారిలో ఉంది", "{rider} మీ ఆర్డర్ తీసుకుని మీ వద్దకు వస్తున్నారు. {arriving}"),
     },
+    "order_almost_there": {
+        "en": ("Almost there", "{rider} is a couple of minutes away with your order from {restaurant}."),
+        "hi": ("बस पहुंचने वाले हैं", "{rider} {restaurant} से आपका ऑर्डर लेकर बस कुछ मिनट दूर हैं।"),
+        "te": ("దాదాపు వచ్చేశారు", "{rider} {restaurant} నుండి మీ ఆర్డర్‌తో కొన్ని నిమిషాల దూరంలో ఉన్నారు."),
+    },
     "order_message": {
         "en": ("Message from {name}", "{text}"),
         "hi": ("{name} का संदेश", "{text}"),

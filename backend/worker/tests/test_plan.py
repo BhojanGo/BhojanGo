@@ -113,3 +113,21 @@ async def test_quick_message_goes_to_the_other_person_by_push_only() -> None:
     assert r.title == "Imran నుండి సందేశం" and r.body == "I'm outside."
     # Pushed, never kept in the inbox: the conversation is gone once the order is delivered.
     assert POLICY["order_message"] == ("push",) and "order_message" in NO_INBOX
+
+
+async def test_almost_there_tells_the_customer() -> None:
+    """realtime's driver.almost_there (the rider is ~400 m from the door): in-app and push. No SMS
+    (it costs money; "on the way" already went by SMS to anyone without the app), no email."""
+    from app.services import messages as m
+
+    d = FakeDirectory()
+    [out] = await plan(ev("driver.almost_there", driver_id=RIDER, distance_m=320, eta_minutes=2), d)  # type: ignore[arg-type]
+    assert (out.user_id, out.key, out.params["rider"]) == (CUSTOMER, "order_almost_there", "Imran")
+    assert POLICY["order_almost_there"] == ("push",)
+    assert out.total is None, "not a receipt: no email"
+    en = m.render(out.key, "en", **out.params)
+    assert (en.title, en.body) == ("Almost there", "Imran is a couple of minutes away with your order from Spice Route Kitchen.")
+    assert "Imran" in m.render(out.key, "te", **out.params).body and "Spice Route Kitchen" in m.render(out.key, "hi", **out.params).body
+    d.row = {**d.row, "driver_id": None}
+    assert (await plan(ev("driver.almost_there"), d))[0].params["rider"] == "Your rider"  # type: ignore[arg-type]
+    assert await plan({"event_type": "driver.almost_there", "payload": {"order_id": str(uuid.uuid4())}}, d) == []  # type: ignore[arg-type]

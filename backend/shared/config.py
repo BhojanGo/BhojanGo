@@ -146,6 +146,8 @@ class RealtimeSettings(BaseSettings):
     # Live batching (task 43): where a city has it on, a new order waits this long for
     # the batch engine to pair it before it's offered alone.
     BATCH_HOLD_SECONDS: int = 20
+    # "Almost there": once per order, when the rider carrying it comes this close to the door.
+    ALMOST_THERE_METERS: int = 400
     SQS_QUEUE_URL_ORDERS: str = ""  # order events (order topic -> this queue)
 
     SNS_TOPIC_ARN_DELIVERY: str = ""
