@@ -1,0 +1,161 @@
+# READ-ONLY (safe on QA): the floating tab bar never covers the end of a tab.
+# Signs in as the demo customer and, on each tab (home, search, orders, account),
+# scrolls to the very end and checks the last item sits fully above the bar.
+# Nothing is tapped that writes: only the tabs themselves are tapped.
+#   maestro test -e PHONE=<seed phone> apps/customer/.maestro/tabbar-clearance.yaml
+#
+# Why this proves "not covered" (Maestro has no overlap assertion):
+# - Each tab screen ends its scroll with `<tab>-last` (the last real row or card,
+#   or the empty/loading/error note), then `<tab>-end`, an empty strip whose top
+#   edge is at or below the last item's bottom edge, then the clearance padding.
+# - `scrollUntilVisible` on `<tab>-last` with visibilityPercentage 100, after
+#   scrolling to the end: the whole last item is on screen.
+# - `assertVisible` of `<tab>-end` with `above: tab-bar`: Maestro's `above`
+#   compares top edges (element.y < other.y), so the strip's top, and with it the
+#   last item's bottom edge, is above the bar's top edge. Fully on screen and
+#   ending above the bar's top, the last item cannot be under the bar (nothing
+#   else floats over these screens in this flow; the bag pill on home only shows
+#   with something in the bag, and the bag starts empty after sign-in).
+# The screenshots (docs/screenshots/customer/qa/tabbar-<tab>) show each end.
+# PHONE: the demo seed's customer (demo1, +91 90000 00301) has kitchens nearby
+# and a history of orders, so home, search and orders are long enough to scroll.
+appId: com.bhojango.app
+tags:
+  - qa-readonly
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${PHONE || "9000000301"}
+
+# Home: wait for the kitchens (not the loading cards), then go to the end.
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-.*"
+    direction: DOWN
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "home-end"
+    direction: DOWN
+    timeout: 60000
+- repeat:
+    times: 3
+    commands:
+      - scroll
+- scrollUntilVisible:
+    element:
+      id: "home-last"
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 10000
+- assertVisible:
+    id: "tab-bar"
+- assertVisible:
+    id: "home-end"
+    above:
+      id: "tab-bar"
+- takeScreenshot: docs/screenshots/customer/qa/tabbar-home
+
+# Search: every kitchen nearby is listed before typing; the keyboard goes away first.
+- tapOn:
+    id: "tab-search"
+- extendedWaitUntil:
+    visible:
+      id: "search-input"
+    timeout: 20000
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-card-.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "search-end"
+    direction: DOWN
+    timeout: 60000
+- repeat:
+    times: 3
+    commands:
+      - scroll
+- scrollUntilVisible:
+    element:
+      id: "search-last"
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 10000
+- assertVisible:
+    id: "tab-bar"
+- assertVisible:
+    id: "search-end"
+    above:
+      id: "tab-bar"
+- takeScreenshot: docs/screenshots/customer/qa/tabbar-search
+
+# Orders: the list loads (orders on their way, then past ones), then to the end.
+- tapOn:
+    id: "tab-orders"
+- extendedWaitUntil:
+    visible:
+      id: "orders-list"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "(active|past)-order-0"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "orders-end"
+    direction: DOWN
+    timeout: 90000
+- repeat:
+    times: 3
+    commands:
+      - scroll
+- scrollUntilVisible:
+    element:
+      id: "orders-last"
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 10000
+- assertVisible:
+    id: "tab-bar"
+- assertVisible:
+    id: "orders-end"
+    above:
+      id: "tab-bar"
+- takeScreenshot: docs/screenshots/customer/qa/tabbar-orders
+
+# Account: the last item is the sign-out button (looked at, never tapped).
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-profile"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "account-end"
+    direction: DOWN
+    timeout: 30000
+- repeat:
+    times: 3
+    commands:
+      - scroll
+- scrollUntilVisible:
+    element:
+      id: "account-last"
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 10000
+- assertVisible:
+    id: "tab-bar"
+- assertVisible:
+    id: "account-end"
+    above:
+      id: "tab-bar"
+- takeScreenshot: docs/screenshots/customer/qa/tabbar-account
