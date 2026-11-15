@@ -44,6 +44,7 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.51b0",
     "opentelemetry-instrumentation-httpx>=0.51b0",
     "fpdf2>=2.8.3,<3",
+    "maxminddb>=2.6,<3",
 ]
 
 [dependency-groups]

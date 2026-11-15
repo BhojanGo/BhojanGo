@@ -9,6 +9,7 @@ const DOT: Record<MarketStatus, string> = {
   beta: "bg-kesar",
   paused: "bg-danger",
   draft: "border-2 border-dashed border-muted",
+  soon: "border-2 border-peacock",
 };
 
 /** Searchable city picker grouped by state (design board: scope bar). */

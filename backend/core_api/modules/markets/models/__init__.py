@@ -1,7 +1,7 @@
 """Markets: countries, regions (states), cities and zones (docs/specs/01-structure.md, sections 2 and 5).
 
 Every level has a ``code`` (``IN``, ``IN-TG``, ``IN-TG-HYD``) that doubles as the
-admin scope (shared/authz.py), a status (draft, beta, live, paused) and a
+admin scope (shared/authz.py), a status (draft, soon, beta, live, paused) and a
 ``settings`` JSON object whose keys inherit downwards: country -> region ->
 city (the most specific level that sets a key wins).
 """
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from shared.db import Base
 
-STATUSES = ("draft", "beta", "live", "paused")
+STATUSES = ("draft", "soon", "beta", "live", "paused")
 
 
 class _Timestamps:
@@ -107,13 +107,20 @@ __all__ = ["STATUSES", "City", "Country", "Region", "Zone"]
 
 
 class LaunchWaitlist(Base):
-    """People outside a served area who asked to hear when we launch there."""
+    """"Notify me" sign-ups: a coming-soon city, an address outside every zone, or a
+    city the visitor suggests. Markets shows the demand per city (admin)."""
 
     __tablename__ = "launch_waitlist"
-    __table_args__ = (UniqueConstraint("phone", name="uq_launch_waitlist_phone"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    phone: Mapped[str] = mapped_column(String(20), nullable=False)
-    lat: Mapped[float] = mapped_column(Float, nullable=False)
-    lng: Mapped[float] = mapped_column(Float, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(254), nullable=True, index=True)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    city_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)  # a known city
+    city_text: Mapped[str | None] = mapped_column(String(100), nullable=True)  # the visitor's own words
+    country: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    locale: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, server_default="app")
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

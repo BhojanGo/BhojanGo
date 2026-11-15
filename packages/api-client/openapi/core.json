@@ -737,6 +737,59 @@
         "title": "ApprovalOut",
         "type": "object"
       },
+      "Area": {
+        "properties": {
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "city_code": {
+            "title": "City Code",
+            "type": "string"
+          },
+          "city_name": {
+            "title": "City Name",
+            "type": "string"
+          },
+          "city_path": {
+            "title": "City Path",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "served": {
+            "title": "Served",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "area",
+          "city_code",
+          "city_name",
+          "city_path",
+          "country",
+          "lat",
+          "lng",
+          "served"
+        ],
+        "title": "Area",
+        "type": "object"
+      },
       "AuditOut": {
         "properties": {
           "action": {
@@ -977,6 +1030,168 @@
         "title": "CallbackIn",
         "type": "object"
       },
+      "Card": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "cuisine_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cuisine Types",
+            "type": "array"
+          },
+          "delivery_fee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Fee"
+          },
+          "distance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance"
+          },
+          "eta_max": {
+            "title": "Eta Max",
+            "type": "integer"
+          },
+          "eta_min": {
+            "title": "Eta Min",
+            "type": "integer"
+          },
+          "free_delivery": {
+            "title": "Free Delivery",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_new": {
+            "title": "Is New",
+            "type": "boolean"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "offer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Offer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "open_now": {
+            "title": "Open Now",
+            "type": "boolean"
+          },
+          "opens_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opens At"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "number"
+          },
+          "review_count": {
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "path",
+          "cuisine_types",
+          "tags",
+          "area",
+          "cover_url",
+          "logo_url",
+          "rating",
+          "review_count",
+          "is_new",
+          "open_now",
+          "opens_at",
+          "eta_min",
+          "eta_max",
+          "distance",
+          "delivery_fee",
+          "free_delivery",
+          "offer"
+        ],
+        "title": "Card",
+        "type": "object"
+      },
       "CartItem": {
         "properties": {
           "menu_item_id": {
@@ -1198,6 +1413,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -1215,6 +1431,11 @@
               }
             ],
             "title": "Timezone"
+          },
+          "waitlist": {
+            "default": 0,
+            "title": "Waitlist",
+            "type": "integer"
           },
           "zone_count": {
             "title": "Zone Count",
@@ -1290,6 +1511,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -1321,6 +1543,83 @@
           "status"
         ],
         "title": "CityOut",
+        "type": "object"
+      },
+      "CityPage": {
+        "properties": {
+          "beta": {
+            "title": "Beta",
+            "type": "boolean"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country": {
+            "$ref": "#/components/schemas/DirCountry"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Region",
+            "type": "object"
+          },
+          "restaurants": {
+            "title": "Restaurants",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "soon"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/PublicZone"
+            },
+            "title": "Zones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "slug",
+          "status",
+          "beta",
+          "region",
+          "country",
+          "timezone",
+          "restaurants",
+          "lat",
+          "lng",
+          "zones"
+        ],
+        "title": "CityPage",
         "type": "object"
       },
       "CitySummary": {
@@ -1375,6 +1674,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -1392,6 +1692,11 @@
               }
             ],
             "title": "Timezone"
+          },
+          "waitlist": {
+            "default": 0,
+            "title": "Waitlist",
+            "type": "integer"
           },
           "zone_count": {
             "title": "Zone Count",
@@ -1481,6 +1786,7 @@
               {
                 "enum": [
                   "draft",
+                  "soon",
                   "beta",
                   "live",
                   "paused"
@@ -1647,6 +1953,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -1736,6 +2043,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -1843,6 +2151,7 @@
               {
                 "enum": [
                   "draft",
+                  "soon",
                   "beta",
                   "live",
                   "paused"
@@ -1963,6 +2272,426 @@
           "method"
         ],
         "title": "DeliveryProof",
+        "type": "object"
+      },
+      "Demand": {
+        "properties": {
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/DemandCity"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "suggested": {
+            "items": {
+              "$ref": "#/components/schemas/DemandText"
+            },
+            "title": "Suggested",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cities",
+          "suggested"
+        ],
+        "title": "Demand",
+        "type": "object"
+      },
+      "DemandCity": {
+        "properties": {
+          "city_code": {
+            "title": "City Code",
+            "type": "string"
+          },
+          "city_name": {
+            "title": "City Name",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "last_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last At"
+          },
+          "signups": {
+            "title": "Signups",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "with_consent": {
+            "title": "With Consent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "city_code",
+          "city_name",
+          "country",
+          "status",
+          "signups",
+          "with_consent",
+          "last_at"
+        ],
+        "title": "DemandCity",
+        "type": "object"
+      },
+      "DemandText": {
+        "description": "Cities the visitor typed that aren't in Markets yet.",
+        "properties": {
+          "last_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last At"
+          },
+          "signups": {
+            "title": "Signups",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "signups",
+          "last_at"
+        ],
+        "title": "DemandText",
+        "type": "object"
+      },
+      "DirCity": {
+        "properties": {
+          "beta": {
+            "title": "Beta",
+            "type": "boolean"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "restaurants": {
+            "title": "Restaurants",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "soon"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "slug",
+          "path",
+          "status",
+          "beta",
+          "restaurants",
+          "lat",
+          "lng"
+        ],
+        "title": "DirCity",
+        "type": "object"
+      },
+      "DirCountry": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "distance_unit": {
+            "title": "Distance Unit",
+            "type": "string"
+          },
+          "live": {
+            "title": "Live",
+            "type": "integer"
+          },
+          "locales": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Locales",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_methods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Payment Methods",
+            "type": "array"
+          },
+          "payment_providers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Payment Providers",
+            "type": "array"
+          },
+          "phone_code": {
+            "title": "Phone Code",
+            "type": "string"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/DirRegion"
+            },
+            "title": "Regions",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "soon": {
+            "title": "Soon",
+            "type": "integer"
+          },
+          "tax_regime": {
+            "title": "Tax Regime",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "slug",
+          "name",
+          "currency",
+          "locales",
+          "timezone",
+          "distance_unit",
+          "phone_code",
+          "tax_regime",
+          "payment_providers",
+          "payment_methods",
+          "live",
+          "soon",
+          "regions"
+        ],
+        "title": "DirCountry",
+        "type": "object"
+      },
+      "DirRegion": {
+        "properties": {
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/DirCity"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "cities"
+        ],
+        "title": "DirRegion",
+        "type": "object"
+      },
+      "Directory": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/DirCountry"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Totals",
+            "type": "object"
+          }
+        },
+        "required": [
+          "countries",
+          "totals"
+        ],
+        "title": "Directory",
+        "type": "object"
+      },
+      "Discover": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "cuisines": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Cuisines",
+            "type": "array"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "distance_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Unit"
+          },
+          "offers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Offer"
+            },
+            "title": "Offers",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "restaurants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            },
+            "title": "Restaurants",
+            "type": "array"
+          },
+          "served": {
+            "title": "Served",
+            "type": "boolean"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone"
+          }
+        },
+        "required": [
+          "served"
+        ],
+        "title": "Discover",
         "type": "object"
       },
       "DocumentIn": {
@@ -2483,6 +3212,83 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "Hint": {
+        "properties": {
+          "city_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Code"
+          },
+          "city_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Name"
+          },
+          "city_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Path"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "served": {
+            "default": false,
+            "title": "Served",
+            "type": "boolean"
+          }
+        },
+        "title": "Hint",
+        "type": "object"
+      },
       "HoursIn": {
         "properties": {
           "weekly": {
@@ -2840,6 +3646,7 @@
               {
                 "enum": [
                   "draft",
+                  "soon",
                   "beta",
                   "live",
                   "paused"
@@ -3511,6 +4318,105 @@
           }
         },
         "title": "NotificationPreferencesUpdate",
+        "type": "object"
+      },
+      "Offer": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "funded_by": {
+            "enum": [
+              "platform",
+              "restaurant"
+            ],
+            "title": "Funded By",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "max_discount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount"
+          },
+          "min_subtotal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Subtotal"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "restaurant": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restaurant"
+          },
+          "template": {
+            "title": "Template",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "template",
+          "funded_by"
+        ],
+        "title": "Offer",
         "type": "object"
       },
       "OfferIn": {
@@ -6054,6 +6960,31 @@
         "title": "PublicCity",
         "type": "object"
       },
+      "PublicZone": {
+        "properties": {
+          "min_order": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Order"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "min_order"
+        ],
+        "title": "PublicZone",
+        "type": "object"
+      },
       "QuickMessage": {
         "properties": {
           "at": {
@@ -6428,6 +7359,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -6488,6 +7420,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -6549,6 +7482,7 @@
               {
                 "enum": [
                   "draft",
+                  "soon",
                   "beta",
                   "live",
                   "paused"
@@ -9204,33 +10138,115 @@
         "type": "object"
       },
       "WaitlistIn": {
+        "description": "Either the website's form (email + city or the visitor's own words) or the\napps' older form (phone + where they are).",
         "properties": {
+          "city_code": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Code"
+          },
+          "city_text": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Text"
+          },
+          "consent": {
+            "default": false,
+            "description": "Agreed to one email (or SMS) when we launch there",
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "lat": {
-            "maximum": 90.0,
-            "minimum": -90.0,
-            "title": "Lat",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
           },
           "lng": {
-            "maximum": 180.0,
-            "minimum": -180.0,
-            "title": "Lng",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
           },
           "phone": {
+            "anyOf": [
+              {
+                "pattern": "^\\+[1-9]\\d{7,14}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "examples": [
               "+12085550199"
             ],
-            "pattern": "^\\+[1-9]\\d{7,14}$",
-            "title": "Phone",
+            "title": "Phone"
+          },
+          "source": {
+            "default": "app",
+            "enum": [
+              "soon_city",
+              "outside_zone",
+              "suggest_city",
+              "app"
+            ],
+            "title": "Source",
             "type": "string"
           }
         },
-        "required": [
-          "phone",
-          "lat",
-          "lng"
-        ],
         "title": "WaitlistIn",
         "type": "object"
       },
@@ -9492,6 +10508,7 @@
             "default": "draft",
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -9570,6 +10587,7 @@
           "status": {
             "enum": [
               "draft",
+              "soon",
               "beta",
               "live",
               "paused"
@@ -10494,6 +11512,92 @@
         ]
       }
     },
+    "/api/v1/discover": {
+      "get": {
+        "operationId": "discover_api_v1_discover_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lng"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Discover"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discover",
+        "tags": [
+          "Discover"
+        ]
+      }
+    },
     "/api/v1/finance/contribution": {
       "get": {
         "description": "Contribution per order, by city: what the platform keeps after payment fees, rider\npay (tips excluded), platform-funded offers and the refunds it pays.",
@@ -11231,6 +12335,84 @@
         ]
       }
     },
+    "/api/v1/markets/areas": {
+      "get": {
+        "description": "Find a delivery area or city by name, for the address box. A point inside the\narea stands in for the address until the visitor drops a pin or saves one (no\npaid geocoder: zero spend).",
+        "operationId": "areas_api_v1_markets_areas_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 8,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Area"
+                  },
+                  "title": "Response Areas Api V1 Markets Areas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Areas",
+        "tags": [
+          "Markets (public)"
+        ]
+      }
+    },
     "/api/v1/markets/cities": {
       "get": {
         "description": "Cities where BhojanGo delivers (live or beta), for the web's city pages (P20). Public.",
@@ -11416,6 +12598,58 @@
         ]
       }
     },
+    "/api/v1/markets/cities/{country}/{slug}": {
+      "get": {
+        "description": "One public city by its website path (/in/hyderabad). 404 when hidden.",
+        "operationId": "city_page_api_v1_markets_cities__country___slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "City Page",
+        "tags": [
+          "Markets (public)"
+        ]
+      }
+    },
     "/api/v1/markets/countries": {
       "post": {
         "operationId": "create_country_api_v1_markets_countries_post",
@@ -11573,6 +12807,50 @@
         "summary": "Create Region",
         "tags": [
           "Markets"
+        ]
+      }
+    },
+    "/api/v1/markets/directory": {
+      "get": {
+        "description": "Every public city, by country and state: the website's /cities page, the\nlanding page's \"Where we deliver\", the header's country list and the sitemap.",
+        "operationId": "directory_api_v1_markets_directory_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Directory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Directory",
+        "tags": [
+          "Markets (public)"
+        ]
+      }
+    },
+    "/api/v1/markets/hint": {
+      "get": {
+        "description": "Where the visitor seems to be, from their IP: a hint only (\"Looks like you're\nnear ...\"), never a decision. The place is named only when it's inside an open\nzone; otherwise just the country (for the header's country and language).",
+        "operationId": "hint_api_v1_markets_hint_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Hint",
+        "tags": [
+          "Markets (public)"
         ]
       }
     },
@@ -11748,7 +13026,7 @@
     },
     "/api/v1/markets/waitlist": {
       "post": {
-        "description": "\"Tell me when you launch\" from the not-in-your-area screen. Signing up twice is fine.",
+        "description": "\"Notify me\": the demand data Markets shows per city. Signing up twice for the\nsame place updates the first sign-up.",
         "operationId": "join_waitlist_api_v1_markets_waitlist_post",
         "requestBody": {
           "content": {
@@ -11785,6 +13063,33 @@
           }
         },
         "summary": "Join Waitlist",
+        "tags": [
+          "Markets (public)"
+        ]
+      }
+    },
+    "/api/v1/markets/waitlist/demand": {
+      "get": {
+        "description": "\"Notify me\" sign-ups per city (coming-soon cities and unserved addresses), and\nthe cities visitors typed that Markets doesn't have yet.",
+        "operationId": "waitlist_demand_api_v1_markets_waitlist_demand_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Demand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Waitlist Demand",
         "tags": [
           "Markets"
         ]
@@ -14213,7 +15518,7 @@
     },
     "/api/v1/pricing/example": {
       "get": {
-        "description": "An example bill for the web's home page, priced by the real engine with the\ncity's live rules (a typical cart, today at 8 pm local), cached for an hour. Public.",
+        "description": "An example bill for the website: a real recent order's bill in this zone (or\ncity), as the customer saw it; a new city with no orders yet gets a typical cart\nfrom its own menus priced by the engine with live rules. Cached for an hour. Public.",
         "operationId": "example_quote_api_v1_pricing_example_get",
         "parameters": [
           {
@@ -14224,6 +15529,23 @@
               "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
               "title": "City",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "zone",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Zone"
             }
           }
         ],

@@ -108,7 +108,12 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/markets/cities"): public("where we deliver: the web's city pages"),
     ("GET", "/api/v1/pricing/example"): public("the web home page's example bill, from the real engine"),
     ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
-    ("POST", "/api/v1/markets/waitlist"): public("tell me when you launch, from outside served areas"),
+    ("POST", "/api/v1/markets/waitlist"): public("notify me: coming-soon cities and unserved addresses"),
+    ("GET", "/api/v1/markets/directory"): public("where we deliver: countries, states, cities (web v2)"),
+    ("GET", "/api/v1/markets/cities/{country}/{slug}"): public("a city's public page (web v2)"),
+    ("GET", "/api/v1/markets/areas"): public("the address box: find an area by name"),
+    ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
+    ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),
     ("GET", f"{R}/delivery-check"): public("browse"), ("GET", f"{R}/hours"): public("browse"),
@@ -276,6 +281,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/finance/payout-preview/restaurants/{restaurant_id}"): admin(
         "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"country": "IN", "start": "2026-11-09", "end": "2026-11-16"}),
     ("GET", "/api/v1/markets"): admin(),
+    ("GET", "/api/v1/markets/waitlist/demand"): admin(),
     ("POST", "/api/v1/markets/countries"): admin("cm_in", "viewer", body=lambda c: {
         "code": "GB", "name": "United Kingdom", "currency": "GBP", "locales": ["en-GB"], "timezone": "Europe/London",
         "phone_code": "+44", "payment_providers": ["stripe"], "tax_regime": "us_sales_tax"}),

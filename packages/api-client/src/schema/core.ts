@@ -311,6 +311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Discover */
+        get: operations["discover_api_v1_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/contribution": {
         parameters: {
             query?: never;
@@ -588,6 +605,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Areas
+         * @description Find a delivery area or city by name, for the address box. A point inside the
+         *     area stands in for the address until the visitor drops a pin or saves one (no
+         *     paid geocoder: zero spend).
+         */
+        get: operations["areas_api_v1_markets_areas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets/cities": {
         parameters: {
             query?: never;
@@ -643,6 +682,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/cities/{country}/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * City Page
+         * @description One public city by its website path (/in/hyderabad). 404 when hidden.
+         */
+        get: operations["city_page_api_v1_markets_cities__country___slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets/countries": {
         parameters: {
             query?: never;
@@ -688,6 +747,49 @@ export interface paths {
         put?: never;
         /** Create Region */
         post: operations["create_region_api_v1_markets_countries__code__regions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Directory
+         * @description Every public city, by country and state: the website's /cities page, the
+         *     landing page's "Where we deliver", the header's country list and the sitemap.
+         */
+        get: operations["directory_api_v1_markets_directory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/hint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hint
+         * @description Where the visitor seems to be, from their IP: a hint only ("Looks like you're
+         *     near ..."), never a decision. The place is named only when it's inside an open
+         *     zone; otherwise just the country (for the header's country and language).
+         */
+        get: operations["hint_api_v1_markets_hint_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -760,9 +862,31 @@ export interface paths {
         put?: never;
         /**
          * Join Waitlist
-         * @description "Tell me when you launch" from the not-in-your-area screen. Signing up twice is fine.
+         * @description "Notify me": the demand data Markets shows per city. Signing up twice for the
+         *     same place updates the first sign-up.
          */
         post: operations["join_waitlist_api_v1_markets_waitlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/waitlist/demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Waitlist Demand
+         * @description "Notify me" sign-ups per city (coming-soon cities and unserved addresses), and
+         *     the cities visitors typed that Markets doesn't have yet.
+         */
+        get: operations["waitlist_demand_api_v1_markets_waitlist_demand_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1578,8 +1702,9 @@ export interface paths {
         };
         /**
          * Example Quote
-         * @description An example bill for the web's home page, priced by the real engine with the
-         *     city's live rules (a typical cart, today at 8 pm local), cached for an hour. Public.
+         * @description An example bill for the website: a real recent order's bill in this zone (or
+         *     city), as the customer saw it; a new city with no orders yet gets a typical cart
+         *     from its own menus priced by the engine with live rules. Cached for an hour. Public.
          */
         get: operations["example_quote_api_v1_pricing_example_get"];
         put?: never;
@@ -3286,6 +3411,27 @@ export interface components {
              */
             requested_by: string;
         };
+        /** Area */
+        Area: {
+            /** Area */
+            area: string;
+            /** City Code */
+            city_code: string;
+            /** City Name */
+            city_name: string;
+            /** City Path */
+            city_path: string;
+            /** Country */
+            country: string;
+            /** Label */
+            label: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Served */
+            served: boolean;
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -3383,6 +3529,48 @@ export interface components {
              */
             topic: "order" | "payout" | "menu" | "account" | "other";
         };
+        /** Card */
+        Card: {
+            /** Area */
+            area: string | null;
+            /** Cover Url */
+            cover_url: string | null;
+            /** Cuisine Types */
+            cuisine_types: string[];
+            /** Delivery Fee */
+            delivery_fee: string | null;
+            /** Distance */
+            distance: number | null;
+            /** Eta Max */
+            eta_max: number;
+            /** Eta Min */
+            eta_min: number;
+            /** Free Delivery */
+            free_delivery: boolean;
+            /** Id */
+            id: string;
+            /** Is New */
+            is_new: boolean;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Name */
+            name: string;
+            offer: components["schemas"]["Offer"] | null;
+            /** Open Now */
+            open_now: boolean;
+            /** Opens At */
+            opens_at: string | null;
+            /** Path */
+            path: string;
+            /** Rating */
+            rating: number;
+            /** Review Count */
+            review_count: number;
+            /** Slug */
+            slug: string;
+            /** Tags */
+            tags: string[];
+        };
         /** CartItem */
         CartItem: {
             /**
@@ -3474,9 +3662,14 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Timezone */
             timezone: string | null;
+            /**
+             * Waitlist
+             * @default 0
+             */
+            waitlist?: number;
             /** Zone Count */
             zone_count: number;
             /** Zones */
@@ -3506,9 +3699,40 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Timezone */
             timezone: string | null;
+        };
+        /** CityPage */
+        CityPage: {
+            /** Beta */
+            beta: boolean;
+            /** Code */
+            code: string;
+            country: components["schemas"]["DirCountry"];
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Name */
+            name: string;
+            /** Region */
+            region: {
+                [key: string]: string;
+            };
+            /** Restaurants */
+            restaurants: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "live" | "soon";
+            /** Timezone */
+            timezone: string;
+            /** Zones */
+            zones: components["schemas"]["PublicZone"][];
         };
         /** CitySummary */
         CitySummary: {
@@ -3540,9 +3764,14 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Timezone */
             timezone: string | null;
+            /**
+             * Waitlist
+             * @default 0
+             */
+            waitlist?: number;
             /** Zone Count */
             zone_count: number;
         };
@@ -3560,7 +3789,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /** Status */
-            status?: ("draft" | "beta" | "live" | "paused") | null;
+            status?: ("draft" | "soon" | "beta" | "live" | "paused") | null;
             /** Timezone */
             timezone?: string | null;
         };
@@ -3638,7 +3867,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Tax Regime */
             tax_regime: string;
             /** Timezone */
@@ -3675,7 +3904,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Tax Regime */
             tax_regime: string;
             /** Timezone */
@@ -3696,7 +3925,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /** Status */
-            status?: ("draft" | "beta" | "live" | "paused") | null;
+            status?: ("draft" | "soon" | "beta" | "live" | "paused") | null;
             /** Tax Regime */
             tax_regime?: ("gst" | "us_sales_tax") | null;
             /** Timezone */
@@ -3732,6 +3961,153 @@ export interface components {
             photo_key?: string | null;
             /** Pin */
             pin?: string | null;
+        };
+        /** Demand */
+        Demand: {
+            /** Cities */
+            cities: components["schemas"]["DemandCity"][];
+            /** Suggested */
+            suggested: components["schemas"]["DemandText"][];
+        };
+        /** DemandCity */
+        DemandCity: {
+            /** City Code */
+            city_code: string;
+            /** City Name */
+            city_name: string;
+            /** Country */
+            country: string;
+            /** Last At */
+            last_at: string | null;
+            /** Signups */
+            signups: number;
+            /** Status */
+            status: string;
+            /** With Consent */
+            with_consent: number;
+        };
+        /**
+         * DemandText
+         * @description Cities the visitor typed that aren't in Markets yet.
+         */
+        DemandText: {
+            /** Last At */
+            last_at: string | null;
+            /** Signups */
+            signups: number;
+            /** Text */
+            text: string;
+        };
+        /** DirCity */
+        DirCity: {
+            /** Beta */
+            beta: boolean;
+            /** Code */
+            code: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Restaurants */
+            restaurants: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "live" | "soon";
+        };
+        /** DirCountry */
+        DirCountry: {
+            /** Code */
+            code: string;
+            /** Currency */
+            currency: string;
+            /** Distance Unit */
+            distance_unit: string;
+            /** Live */
+            live: number;
+            /** Locales */
+            locales: string[];
+            /** Name */
+            name: string;
+            /** Payment Methods */
+            payment_methods: string[];
+            /** Payment Providers */
+            payment_providers: string[];
+            /** Phone Code */
+            phone_code: string;
+            /** Regions */
+            regions: components["schemas"]["DirRegion"][];
+            /** Slug */
+            slug: string;
+            /** Soon */
+            soon: number;
+            /** Tax Regime */
+            tax_regime: string;
+            /** Timezone */
+            timezone: string;
+        };
+        /** DirRegion */
+        DirRegion: {
+            /** Cities */
+            cities: components["schemas"]["DirCity"][];
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+        };
+        /** Directory */
+        Directory: {
+            /** Countries */
+            countries: components["schemas"]["DirCountry"][];
+            /** Totals */
+            totals: {
+                [key: string]: number;
+            };
+        };
+        /** Discover */
+        Discover: {
+            /** City */
+            city?: {
+                [key: string]: unknown;
+            } | null;
+            /** Country */
+            country?: string | null;
+            /**
+             * Cuisines
+             * @default []
+             */
+            cuisines?: {
+                [key: string]: unknown;
+            }[];
+            /** Currency */
+            currency?: string | null;
+            /** Distance Unit */
+            distance_unit?: string | null;
+            /**
+             * Offers
+             * @default []
+             */
+            offers?: components["schemas"]["Offer"][];
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Restaurants
+             * @default []
+             */
+            restaurants?: components["schemas"]["Card"][];
+            /** Served */
+            served: boolean;
+            /** Timezone */
+            timezone?: string | null;
+            /** Zone */
+            zone?: string | null;
         };
         /** DocumentIn */
         DocumentIn: {
@@ -3943,6 +4319,26 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** Hint */
+        Hint: {
+            /** City Code */
+            city_code?: string | null;
+            /** City Name */
+            city_name?: string | null;
+            /** City Path */
+            city_path?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Place */
+            place?: string | null;
+            /** Region */
+            region?: string | null;
+            /**
+             * Served
+             * @default false
+             */
+            served?: boolean;
+        };
         /** HoursIn */
         HoursIn: {
             /** Weekly */
@@ -4078,7 +4474,7 @@ export interface components {
             /** Serviceable */
             serviceable: boolean;
             /** Status */
-            status?: ("draft" | "beta" | "live" | "paused") | null;
+            status?: ("draft" | "soon" | "beta" | "live" | "paused") | null;
             /**
              * Timezone
              * @description The city's own time zone
@@ -4322,6 +4718,34 @@ export interface components {
             account?: components["schemas"]["ChannelsUpdate"] | null;
             offers?: components["schemas"]["ChannelsUpdate"] | null;
             orders?: components["schemas"]["ChannelsUpdate"] | null;
+        };
+        /** Offer */
+        Offer: {
+            /** Amount */
+            amount?: string | null;
+            /** Code */
+            code?: string | null;
+            /**
+             * Funded By
+             * @enum {string}
+             */
+            funded_by: "platform" | "restaurant";
+            /** Id */
+            id: string;
+            /** Max Discount */
+            max_discount?: string | null;
+            /** Min Subtotal */
+            min_subtotal?: string | null;
+            /** Percent */
+            percent?: string | null;
+            /** Restaurant */
+            restaurant?: {
+                [key: string]: unknown;
+            } | null;
+            /** Template */
+            template: string;
+            /** Title */
+            title: string;
         };
         /** OfferIn */
         OfferIn: {
@@ -5230,6 +5654,13 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** PublicZone */
+        PublicZone: {
+            /** Min Order */
+            min_order: number | null;
+            /** Name */
+            name: string;
+        };
         /** QuickMessage */
         QuickMessage: {
             /**
@@ -5399,7 +5830,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Timezone */
             timezone: string | null;
         };
@@ -5424,7 +5855,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
             /** Timezone */
             timezone: string | null;
         };
@@ -5437,7 +5868,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /** Status */
-            status?: ("draft" | "beta" | "live" | "paused") | null;
+            status?: ("draft" | "soon" | "beta" | "live" | "paused") | null;
             /** Timezone */
             timezone?: string | null;
         };
@@ -6392,17 +6823,41 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** WaitlistIn */
+        /**
+         * WaitlistIn
+         * @description Either the website's form (email + city or the visitor's own words) or the
+         *     apps' older form (phone + where they are).
+         */
         WaitlistIn: {
+            /** City Code */
+            city_code?: string | null;
+            /** City Text */
+            city_text?: string | null;
+            /**
+             * Consent
+             * @description Agreed to one email (or SMS) when we launch there
+             * @default false
+             */
+            consent?: boolean;
+            /** Email */
+            email?: string | null;
             /** Lat */
-            lat: number;
+            lat?: number | null;
             /** Lng */
-            lng: number;
+            lng?: number | null;
+            /** Locale */
+            locale?: string | null;
             /**
              * Phone
              * @example +12085550199
              */
-            phone: string;
+            phone?: string | null;
+            /**
+             * Source
+             * @default app
+             * @enum {string}
+             */
+            source?: "soon_city" | "outside_zone" | "suggest_city" | "app";
         };
         /** WalletBalanceResponse */
         WalletBalanceResponse: {
@@ -6510,7 +6965,7 @@ export interface components {
              * @default draft
              * @enum {string}
              */
-            status?: "draft" | "beta" | "live" | "paused";
+            status?: "draft" | "soon" | "beta" | "live" | "paused";
         };
         /** ZoneOut */
         ZoneOut: {
@@ -6538,7 +6993,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "draft" | "beta" | "live" | "paused";
+            status: "draft" | "soon" | "beta" | "live" | "paused";
         };
         /** ZonePause */
         ZonePause: {
@@ -7089,6 +7544,39 @@ export interface operations {
             };
         };
     };
+    discover_api_v1_discover_get: {
+        parameters: {
+            query?: {
+                lat?: number | null;
+                lng?: number | null;
+                city?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Discover"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     contribution_api_v1_finance_contribution_get: {
         parameters: {
             query: {
@@ -7538,6 +8026,39 @@ export interface operations {
             };
         };
     };
+    areas_api_v1_markets_areas_get: {
+        parameters: {
+            query: {
+                q: string;
+                country?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Area"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     public_cities_api_v1_markets_cities_get: {
         parameters: {
             query?: never;
@@ -7659,6 +8180,38 @@ export interface operations {
             };
         };
     };
+    city_page_api_v1_markets_cities__country___slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                country: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CityPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_country_api_v1_markets_countries_post: {
         parameters: {
             query?: never;
@@ -7758,6 +8311,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    directory_api_v1_markets_directory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Directory"];
+                };
+            };
+        };
+    };
+    hint_api_v1_markets_hint_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Hint"];
                 };
             };
         };
@@ -7895,6 +8488,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    waitlist_demand_api_v1_markets_waitlist_demand_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
                 };
             };
         };
@@ -9342,6 +9955,7 @@ export interface operations {
         parameters: {
             query: {
                 city: string;
+                zone?: string | null;
             };
             header?: never;
             path?: never;
