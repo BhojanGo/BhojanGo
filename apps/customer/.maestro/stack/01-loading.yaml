@@ -1,0 +1,19 @@
+# CustomerLoading.html: home while the kitchens load. The app talks to the core API
+# through tools/mobile/slow_proxy.py, which holds GET /discover until we let it go.
+# Throwaway stack only (.github/workflows/app-screens.yml); never on QA.
+appId: com.bhojango.app
+---
+- runScript: scripts/hold.js
+- runFlow: common/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      text: "Finding kitchens near.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-loading
+- runScript: scripts/release.js
+- extendedWaitUntil:
+    visible:
+      id: "kitchens"
+    timeout: 60000

@@ -1,0 +1,18 @@
+# CustomerOutOfArea.html: a brand-new customer with no saved address, the phone outside
+# every delivery zone (the workflow puts the emulator's GPS there: adb emu geo fix), so
+# home sends them to "We're not in ... yet". Creates an account, so throwaway stack only
+# (.github/workflows/app-screens.yml).
+appId: com.bhojango.app
+---
+- runScript: scripts/new_phone.js
+- runFlow:
+    file: common/sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+- extendedWaitUntil:
+    visible:
+      text: "We.re not in .* yet"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-out-of-area

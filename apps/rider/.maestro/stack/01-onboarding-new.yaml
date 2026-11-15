@@ -1,0 +1,30 @@
+# RiderOnboarding.html, as a brand-new rider sees it: sign up with a new number (name and
+# city), then the onboarding checklist. Creates an account, so throwaway stack only
+# (.github/workflows/app-screens.yml).
+appId: com.bhojango.rider
+---
+- runScript: ../scripts/new_phone.js
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+      INDIA: "true"
+- extendedWaitUntil:
+    visible: "Sign up to ride"
+    timeout: 60000
+- tapOn:
+    id: "name"
+- inputText: "Kiran Rao"
+- hideKeyboard
+- tapOn: "Hyderabad"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-signup
+- tapOn:
+    id: "join-continue"
+- extendedWaitUntil:
+    visible: "Almost ready to ride, Kiran"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-onboarding-new
