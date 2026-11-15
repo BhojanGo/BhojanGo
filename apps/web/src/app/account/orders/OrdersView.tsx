@@ -138,7 +138,7 @@ export function OrdersView() {
   const filtered = !!(q || status !== "all" || from || to);
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
       <div className={chosen ? "hidden lg:block" : ""}>
         <div className="flex items-baseline justify-between">
           <h1 className="text-h1 tracking-[-0.8px]">{t("account.orders.title")}</h1>
