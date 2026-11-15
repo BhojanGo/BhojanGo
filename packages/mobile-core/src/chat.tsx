@@ -10,7 +10,8 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 
 import { useI18n } from "./i18n";
 import { api, wsUrl } from "./session";
-import { color, dark, radius, textFont } from "./ui/theme";
+import { color, dark, radius } from "./ui/theme";
+import { field, type } from "./ui/type";
 
 type Chat = CoreSchemas["QuickMessagesOut"];
 type Message = CoreSchemas["QuickMessage"];
@@ -133,8 +134,8 @@ export function QuickChat({ orderId, tone = "light", render }: {
         <Pressable testID="chat-open" accessibilityRole="button" onPress={open}
           accessibilityLabel={`${t("app.chat.title", { name: chat.other_name })}${unread ? `, ${t("app.chat.new", { count: unread })}` : ""}`}
           style={[s.round, { borderColor: c.line }]}>
-          <Text style={[textFont("800"), { fontSize: 13, color: c.text }]}>{t("track.message")}</Text>
-          {unread ? <View style={s.badge}><Text style={[textFont("800"), { color: color.white, fontSize: 11 }]}>{unread}</Text></View> : null}
+          <Text style={[type.label, { color: c.text }]}>{t("track.message")}</Text>
+          {unread ? <View style={s.badge}><Text style={[type.caption, { color: color.white }]}>{unread}</Text></View> : null}
         </Pressable>
       )}
       <Modal transparent visible={visible} animationType="slide" onRequestClose={() => setVisible(false)}>
@@ -142,21 +143,21 @@ export function QuickChat({ orderId, tone = "light", render }: {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[s.sheet, { backgroundColor: c.bg }]}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
-              <Text accessibilityRole="header" style={[textFont("800"), { fontSize: 20, color: c.text }]}>{t("app.chat.title", { name: chat.other_name })}</Text>
-              <Text style={[textFont("400"), { fontSize: 13, color: c.muted, marginTop: 2 }]}>{t("app.chat.note")}</Text>
+              <Text accessibilityRole="header" style={[type.h3, { color: c.text }]}>{t("app.chat.title", { name: chat.other_name })}</Text>
+              <Text style={[type.small, { color: c.muted, marginTop: 2 }]}>{t("app.chat.note")}</Text>
             </View>
             <Pressable accessibilityRole="button" onPress={() => setVisible(false)} style={{ padding: 8 }}>
-              <Text style={[textFont("700"), { color: c.muted }]}>{t("common.close")}</Text>
+              <Text style={[type.label, { color: c.muted }]}>{t("common.close")}</Text>
             </Pressable>
           </View>
           <ScrollView ref={list as never} style={{ maxHeight: 260 }} contentContainerStyle={{ gap: 8, paddingVertical: 12 }}
             onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}>
             {chat.messages.length === 0 ? (
-              <Text style={[textFont("400"), { color: c.muted, fontSize: 14 }]}>{t("app.chat.empty")}</Text>
+              <Text style={[type.small, { color: c.muted }]}>{t("app.chat.empty")}</Text>
             ) : chat.messages.map((m) => (
               <View key={m.id} accessibilityLabel={`${m.mine ? t("track.you_said") : t("track.they_said", { name: chat.other_name })} ${m.text}`}
                 style={[s.bubble, m.mine ? { alignSelf: "flex-end", backgroundColor: color.peacock } : { alignSelf: "flex-start", backgroundColor: c.theirs }]}>
-                <Text style={[textFont("600"), { fontSize: 15, color: m.mine ? color.white : c.text }]}>{m.text}</Text>
+                <Text style={[type.label, { color: m.mine ? color.white : c.text }]}>{m.text}</Text>
               </View>
             ))}
           </ScrollView>
@@ -164,20 +165,20 @@ export function QuickChat({ orderId, tone = "light", render }: {
             {chat.presets.map((p) => (
               <Pressable key={p.key} accessibilityRole="button" disabled={busy} onPress={() => void go({ preset: p.key })}
                 style={[s.chip, { backgroundColor: c.chip }]}>
-                <Text style={[textFont("700"), { fontSize: 13, color: tone === "dark" ? dark.link : color.peacockDeep }]}>{p.text}</Text>
+                <Text style={[type.label, { color: tone === "dark" ? dark.link : color.peacockDeep }]}>{p.text}</Text>
               </Pressable>
             ))}
           </View>
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <TextInput disableFullscreenUI testID="chat-text" accessibilityLabel={t("track.write")} value={text} maxLength={MAX}
               onChangeText={setText} placeholder={t("track.write")} placeholderTextColor={c.muted}
-              style={[textFont("600"), s.input, { borderColor: c.line, backgroundColor: c.field, color: c.text }]} />
+              style={[field.body, s.input, { borderColor: c.line, backgroundColor: c.field, color: c.text }]} />
             <Pressable testID="chat-send" accessibilityRole="button" accessibilityLabel={t("track.send")} disabled={busy || !text.trim()}
               onPress={() => void go({ text: text.trim() })} style={[s.send, { opacity: busy || !text.trim() ? 0.5 : 1 }]}>
-              <Text style={[textFont("800"), { color: color.white }]}>{t("track.send")}</Text>
+              <Text style={[type.label, { color: color.white }]}>{t("track.send")}</Text>
             </Pressable>
           </View>
-          {error ? <Text style={[textFont("600"), { color: color.chili, marginTop: 8 }]}>{error}</Text> : null}
+          {error ? <Text style={[type.small, { color: color.chili, marginTop: 8 }]}>{error}</Text> : null}
         </KeyboardAvoidingView>
       </Modal>
     </>
@@ -195,6 +196,6 @@ const s = StyleSheet.create({
   bubble: { maxWidth: "80%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingVertical: 4 },
   chip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill },
-  input: { flex: 1, height: 48, borderRadius: radius.pill, borderWidth: 1.5, paddingHorizontal: 16, fontSize: 15 },
+  input: { flex: 1, height: 48, borderRadius: radius.pill, borderWidth: 1.5, paddingHorizontal: 16 },
   send: { height: 48, paddingHorizontal: 20, borderRadius: radius.pill, backgroundColor: color.peacock, alignItems: "center", justifyContent: "center" },
 });

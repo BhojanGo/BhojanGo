@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "lint": "eslint src",
+    "lint": "eslint src eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/*.test.ts\""
   },
