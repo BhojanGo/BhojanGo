@@ -2,12 +2,13 @@
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
   Button, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius,
-  SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
+  SafeAreaView, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { SignInCollage } from "../components/SignInCollage";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
@@ -47,8 +48,10 @@ export default function SignIn() {
             <LanguagePill />
           </View>
           <View style={styles.hero}>
-            <Txt variant="display">{t("common.tagline").replace(". ", ".\n")}</Txt>
+            <Txt variant="display">{t("common.tagline")}</Txt>
             <Txt style={{ color: color.muted, marginTop: space[3] }}>{t("signin.promise_fees")}</Txt>
+            {/* Food photos filling the room down to the sheet (R8: no empty middle on tall phones). */}
+            <SignInCollage />
           </View>
           <View style={styles.sheet} accessibilityLabel={t("signin.title")}>
             <Txt variant="h2" accessibilityRole="header">{t("signin.heading")}</Txt>
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.peacockMist },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: space[5], paddingTop: space[4] },
   word: { color: color.kohl },
-  hero: { paddingHorizontal: space[5], paddingTop: 48, paddingBottom: space[6], flex: 1 },
+  hero: { paddingHorizontal: space[5], paddingTop: space[8], paddingBottom: space[6], flex: 1 },
   sheet: {
     backgroundColor: color.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
     padding: space[6], paddingBottom: space[8], gap: space[3],
