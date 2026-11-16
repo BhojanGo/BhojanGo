@@ -18,7 +18,14 @@ plugin.recommended = {
   files: ["**/*.{js,jsx,ts,tsx}"],
   ignores: ["**/mobile-core/src/ui/type.ts", "src/ui/type.ts"],
   plugins: { "bhojango-native": plugin },
-  rules: { "bhojango-native/no-raw-font-size": "error" },
+  rules: {
+    "bhojango-native/no-raw-font-size": "error",
+    // R8: the native SafeAreaView ignores the test banner's insets and pads the status bar twice.
+    "no-restricted-imports": ["error", { paths: [{
+      name: "react-native-safe-area-context", importNames: ["SafeAreaView"],
+      message: "Use SafeAreaView from @bhojango/mobile-core: it follows the test banner's insets (the native one pads the status bar twice).",
+    }] }],
+  },
 };
 
 module.exports = plugin;

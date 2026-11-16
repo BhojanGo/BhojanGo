@@ -11,6 +11,7 @@ import { AddressBox } from "@/components/AddressBox";
 import { LandingDirectory } from "@/components/discover/DirectoryBrowser";
 import { MoneyBar } from "@/components/FairBill";
 import { HintRow } from "@/components/HintRow";
+import { KitchenPhoto } from "@/components/KitchenPhoto";
 import { NotifyMe } from "@/components/NotifyMe";
 import { cuisineTiles } from "@/lib/contract";
 import { libraryPhoto, money, photo } from "@/lib/format";
@@ -92,8 +93,8 @@ export async function Landing() {
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
             {tiles.map(({ name, photo: src }) => (
               <Link key={name} href={`${city.path}?cuisine=${encodeURIComponent(name)}`} className="relative block aspect-square overflow-hidden rounded-[20px] bg-[#EFF6F6] text-white hover:text-white">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-                <img src={photo(src, 400) ?? undefined} alt="" loading="lazy" className="block h-full w-full object-cover" />
+                {/* the cuisine's photo (the API maps every known cuisine to a library dish), else the branded tile */}
+                <KitchenPhoto src={photo(src, 400)} className="h-full w-full" />
                 <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-label">{name}</span>
               </Link>
             ))}

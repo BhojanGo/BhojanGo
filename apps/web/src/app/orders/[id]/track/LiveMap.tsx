@@ -1,12 +1,13 @@
 "use client";
 // The live map on the tracking page: MapLibre GL with OpenFreeMap's free
 // vector tiles (no key, no account; © OpenStreetMap contributors shown on the
-// map). Markers for the kitchen (pickup), home (drop-off) and the rider; a
-// solid line where the rider has actually been (the trail from the tracking
-// socket: the "connected" snapshot, then each location_update) and a dashed
-// line from the rider to where they're heading next (the kitchen before
-// pickup, home after). No predicted kitchen-to-home route: only real movement.
-// The rider marker moves on every location_update. Loaded in the browser only
+// map). Markers for the kitchen (pickup), home (drop-off) and the delivery
+// partner; a solid line where the partner has actually been on this leg (from
+// the trail the tracking socket sends: the "connected" snapshot, then each
+// location_update; after pickup only from the kitchen on, see lib/route.ts) and
+// a dashed line from the partner to where they're heading next (the kitchen
+// before pickup, home after). No predicted route: only real movement. The
+// partner's marker moves on every location_update. Loaded in the browser only
 // (next/dynamic, ssr: false).
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -14,7 +15,9 @@ import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, LngLatLike } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
-export type Pt = [number, number]; // [lat, lng], as the tracking socket sends them
+import { routeLines, type Pt } from "@/lib/route";
+
+export type { Pt };
 
 const STYLE = "https://tiles.openfreemap.org/styles/liberty";
 // The tiles add "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"; OSM's own wording goes first.
@@ -132,16 +135,13 @@ export default function LiveMap({
     place("home", dropoff, labels.home);
     place("rider", rider, labels.rider);
 
-    // Where the rider has been, up to where they are now.
-    const last = trail[trail.length - 1];
-    const done = rider && (!last || last[0] !== rider[0] || last[1] !== rider[1]) ? [...trail, rider] : trail;
-    (m.getSource("done") as GeoJSONSource | undefined)?.setData(line(done.length > 1 ? done : []));
-    // From the rider to the next stop only.
-    const to = heading === "kitchen" ? pickup : heading === "home" ? dropoff : null;
-    (m.getSource("ahead") as GeoJSONSource | undefined)?.setData(line(rider && to ? [rider, to] : []));
+    // Where the partner has been on this leg, up to where they are now; dashed to the next stop.
+    const { done, ahead } = routeLines({ pickup, dropoff, rider, trail, leg: heading });
+    (m.getSource("done") as GeoJSONSource | undefined)?.setData(line(done));
+    (m.getSource("ahead") as GeoJSONSource | undefined)?.setData(line(ahead));
 
-    // Fit everything in view when the places change (not on every rider step, so panning isn't undone).
-    const pts = [pickup, dropoff, rider, ...trail].filter(Boolean) as Pt[];
+    // Fit what is drawn in view when the places change (not on every step, so panning isn't undone).
+    const pts = [pickup, dropoff, rider, ...done].filter(Boolean) as Pt[];
     if (!pts.length) return;
     const key = JSON.stringify([pickup, dropoff, !!rider]);
     const bounds = pts.reduce((b, p) => b.extend(ll(p) as LngLatLike), new maplibregl.LngLatBounds(ll(pts[0]!), ll(pts[0]!)));

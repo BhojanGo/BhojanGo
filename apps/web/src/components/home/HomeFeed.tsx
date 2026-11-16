@@ -14,7 +14,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { useKitchenBrief } from "@/components/account/shared";
 import { KitchenCard } from "@/components/Cards";
+import { kitchenPhoto, KitchenPhoto } from "@/components/KitchenPhoto";
 import { AddressPill } from "@/components/HeaderParts";
 import { api, authed, useBag, useHydrated, useSession, type Pick } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
@@ -78,14 +80,10 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
   const rider = riderFirstName(order);
   const pin = (order as { pin?: string | null }).pin ?? null;
   const sub = [rider ? t("home.order_rider", { rider }) : null, pin ? t("home.order_pin", { pin }) : null].filter(Boolean).join(" · ");
-  const img = photo(cover, 400);
   return (
     <section aria-label={t("home.active_order")} className="order-1">
       <Link href={`/orders/${order.id}/track`} className="flex items-center gap-3 rounded-[16px] bg-[#111418] px-[14px] py-3 text-[#F2F5F5] hover:text-[#F2F5F5] md:gap-5 md:rounded-[20px] md:px-5 md:py-4">
-        <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-[#24383B] md:h-14 md:w-14 md:rounded-[14px]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-          {img && <img src={img} alt="" className="block h-full w-full object-cover" />}
-        </span>
+        <OrderKitchenPhoto restaurantId={order.restaurant_id} known={cover} className="block h-10 w-10 shrink-0 overflow-hidden rounded-[10px] md:h-14 md:w-14 md:rounded-[14px]" />
         <span className="min-w-0 flex-grow">
           <b className="line-clamp-2 block text-h3 md:line-clamp-none md:truncate">
             {t(onWay ? "home.order_on_way" : "home.order_preparing", { kitchen: order.restaurant_name })}
@@ -114,6 +112,13 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
       </div>
     </section>
   );
+}
+
+/** The kitchen of a past or current order: its photo from this address's kitchens, else
+ * its public page (a kitchen that doesn't deliver here now), else the branded tile. */
+function OrderKitchenPhoto({ restaurantId, known, className }: { restaurantId: string; known: string | null | undefined; className: string }) {
+  const brief = useKitchenBrief(known ? null : restaurantId);
+  return <KitchenPhoto src={photo(known ?? kitchenPhoto(brief), 400)} className={className} />;
 }
 
 function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Record<string, string | null>; cityName: string }) {
@@ -160,14 +165,11 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
       </div>
       <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 md:mx-0 md:mt-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0">
         {past.map((o) => {
-          const img = photo(covers[o.restaurant_id] ?? null, 400);
           const items = (o.items as { name?: string; quantity?: number }[]).map((i) => ((i.quantity ?? 1) > 1 ? `${i.quantity} ${i.name}` : i.name)).join(", ");
           return (
             <div key={o.id} className="flex w-[240px] shrink-0 items-center gap-[10px] rounded-[16px] border border-[#E2E7E8] p-[10px] md:w-auto md:gap-4 md:rounded-[20px] md:p-4">
-              <span className="block h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-[#EFF6F6] md:h-[88px] md:w-[88px] md:rounded-[14px]">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-                {img && <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />}
-              </span>
+              <OrderKitchenPhoto restaurantId={o.restaurant_id} known={covers[o.restaurant_id]}
+                className="block h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[12px] md:h-[88px] md:w-[88px] md:rounded-[14px]" />
               <span className="min-w-0 flex-grow">
                 <b className="block truncate text-label">{o.restaurant_name}</b>
                 <span className="mt-[2px] hidden truncate text-small text-muted md:block">{items}</span>
@@ -226,7 +228,7 @@ export function HomeFeed({
   const { orders, user, hydrated } = useMyOrders();
   const [on, setOn] = useState<Set<Filter>>(new Set());
   const [all, setAll] = useState(false);
-  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, k.cover_url])), [kitchens]);
+  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, kitchenPhoto(k)])), [kitchens]);
   const active = orders?.find((o) => ACTIVE_STATUSES.includes(o.status as OrderStatus)) ?? null;
   const shown = kitchens.filter((k) => [...on].every((f) => TEST[f](k)));
   const pod = hydrated ? partOfDay(timeZone) : null; // the delivery address's clock, not the device's

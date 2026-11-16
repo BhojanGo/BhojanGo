@@ -3,10 +3,9 @@
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
 // On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
 // and tapping an order opens its detail (the same card); Back returns to the list.
-import { api, ApiError, LanguagePill, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
 import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";

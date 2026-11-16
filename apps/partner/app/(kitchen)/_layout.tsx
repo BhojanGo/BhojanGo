@@ -1,9 +1,8 @@
 // The kitchen shell (PartnerOrders.html): the dark rail on the left, the screen on the right.
 // On a phone (portrait, lib/layout.ts) the rail becomes a tab bar along the bottom.
-import { DENSE_FONT_SCALE, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { DENSE_FONT_SCALE, SafeAreaView, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { Redirect, router, Slot, usePathname, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useBoard, useBoardLoop, NEW } from "../../lib/board";
 import { useKitchen } from "../../lib/data";

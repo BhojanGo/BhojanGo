@@ -3,11 +3,10 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, color, FairBill, inZone, num, space, type, useBag, useI18n } from "@bhojango/mobile-core";
+import { Button, color, FairBill, inZone, num, SafeAreaView, space, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   billLines, getBill, getOrder, isActive, itemOptions, orderCode, payLabel, reorder, shareReceipt, statusLabel,

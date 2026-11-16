@@ -6,12 +6,11 @@
 // The screen polls the order and the rider's live state, shows whatever step the
 // server is at, reloads after a refused action instead of insisting, and says so
 // plainly when the order is no longer this rider's.
-import { api, ApiError, field, num, QuickChat, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, num, QuickChat, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
 import { RouteMap } from "../../lib/map";

@@ -1,12 +1,20 @@
-// Photos as the website shows them: a kitchen's own cover, else its initials
-// tile (brand tint, initials, first cuisine); a dish's own photo, else no frame
-// at all (the row is clean text). Never another kitchen's photo, never an empty
-// frame: a photo that fails to load falls back the same way.
-import { color, type } from "@bhojango/mobile-core";
+// Photos as the website shows them (R8): a kitchen's photo_url (its own cover,
+// else its first dish photo, else a photo of its cuisine from the food library:
+// core_api catalog.service.photos), else a plain branded tile (brand tint and a
+// plate glyph, no text, so nothing is drawn over the kitchen's name); a dish's
+// own photo, else no frame at all (the row is clean text). A photo that fails to
+// load falls back the same way.
+import { color } from "@bhojango/mobile-core";
 import { useState, type ReactNode } from "react";
-import { Image, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { Image, View, type StyleProp, type ViewStyle } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
-import { initials, photoUrl } from "./contract";
+import { photoUrl } from "./contract";
+
+/** photo_url, falling back to cover_url for an older API. */
+export function kitchenPhoto(k: { photo_url?: string | null; cover_url?: string | null } | null | undefined): string | null {
+  return k?.photo_url ?? k?.cover_url ?? null;
+}
 
 /** The website's address: library photos ("/food/...") are served from there (tools/mobile/env-profile.sh). */
 export const WEB_URL: string = process.env.EXPO_PUBLIC_WEB_URL || "http://localhost:3000";
@@ -40,50 +48,39 @@ export function Photo({ uri, label, style, fallback = null, testID }: {
   );
 }
 
-/** A kitchen with no photo of its own: its initials and first cuisine on the brand tint. */
-export function NameTile({ name, sub, height, rounded = 0, size = "lg" }: {
-  name: string;
-  sub?: string | null;
-  height: number;
-  rounded?: number;
-  size?: "sm" | "lg";
-}) {
-  const big = size === "lg";
+/** A kitchen with no photo at all: the brand tint and a plate glyph, no text. */
+export function BrandTile({ width, height, rounded = 0 }: { width?: number | `${number}%`; height: number; rounded?: number }) {
+  const glyph = Math.min(56, Math.round(height * 0.42));
   return (
     <View
-      testID="kitchen-initials"
+      testID="kitchen-tile"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ height, borderRadius: rounded, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}
+      style={{ width, height, borderRadius: rounded, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}
     >
-      <Text style={[big ? type.display : type.h3, { color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
-      {sub && big ? (
-        <Text numberOfLines={1} style={[type.caption, { marginTop: 6, color: color.peacock }]}>{sub}</Text>
-      ) : null}
+      <Svg width={glyph} height={glyph} viewBox="0 0 48 48" fill="none" stroke={color.peacock} strokeOpacity={0.55} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+        <Circle cx={24} cy={24} r={12} />
+        <Circle cx={24} cy={24} r={7} strokeOpacity={0.35} />
+        <Path d="M6 10v9a3 3 0 0 0 6 0v-9M9 10v28M42 10c-4 3-4 11 0 14v14" />
+      </Svg>
     </View>
   );
 }
 
-/** A kitchen's cover: its own photo, else its initials tile. */
-export function KitchenCover({ name, cover, cuisine, height, rounded = 0, width = 800, size = "lg" }: {
+/** A kitchen's picture (pass kitchenPhoto(k)), else the branded tile. */
+export function KitchenCover({ name, cover, height, rounded = 0, width = 800 }: {
   name: string;
   cover: string | null | undefined;
-  cuisine?: string | null;
   height: number;
   rounded?: number;
   width?: 400 | 800 | 1600;
-  size?: "sm" | "lg";
 }) {
-  const tile = <NameTile name={name} sub={cuisine} height={height} rounded={rounded} size={size} />;
+  const tile = <BrandTile height={height} rounded={rounded} />;
   return <Photo uri={photo(cover, width)} label={name} style={{ height, borderRadius: rounded }} fallback={tile} testID="kitchen-photo" />;
 }
 
-/** A small square photo for rows (order again, favourites); the initials when there is none. */
+/** A small square photo for rows (order again, favourites); the branded tile when there is none. */
 export function Thumb({ name, uri, size = 52 }: { name: string; uri: string | null | undefined; size?: number }) {
-  const tile = (
-    <View style={{ width: size, height: size, borderRadius: 12, backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}>
-      <Text style={[size >= 72 ? type.h1 : size >= 48 ? type.h2 : type.h3, { color: color.peacockDeep }]}>{initials(name) || "·"}</Text>
-    </View>
-  );
+  const tile = <BrandTile width={size} height={size} rounded={12} />;
   return <Photo uri={photo(uri, 400)} label={name} style={{ width: size, height: size, borderRadius: 12 }} fallback={tile} />;
 }

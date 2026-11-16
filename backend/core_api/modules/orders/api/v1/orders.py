@@ -14,6 +14,7 @@ from shared.redis import get_redis
 from shared.db import get_db
 from core_api.modules.orders.repository.order import OrderRepository
 from core_api.modules.orders.schemas.order import (
+    CustomerCancel,
     FeeBreakdown,
     HistoryStatus,
     OrderCancelRequest,
@@ -231,6 +232,13 @@ async def get_order(
     out = OrderResponse.model_validate(order)
     if order.customer_id == current_user.id and order.status not in ("delivered", "cancelled"):
         out.pin = order.delivery_pin
+    if order.customer_id == current_user.id:
+        from core_api.modules.orders.service.order import customer_cancel, refunded_total
+
+        cancel = await customer_cancel(db, order)
+        out.customer_cancel = CustomerCancel(**cancel) if cancel else None
+        if order.status in ("cancelled", "delivered"):
+            out.refunded = await refunded_total(db, order.id)
     if order.driver_id is not None and order.driver_id == current_user.id:
         await _as_rider_sees_it(db, order, out)
     if order.driver_id:

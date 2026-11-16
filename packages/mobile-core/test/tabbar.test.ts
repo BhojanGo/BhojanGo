@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  aboveTabBar, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance,
+  aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance, tabBarZone,
 } from "../src/tabbar.ts";
 
 test("the bar floats at the design's lift, higher only where the system navigation needs it", () => {
@@ -39,4 +39,16 @@ test("a floating button above the bar sits clear of it and inside the clearance"
     assert.equal(pillBottom, tabBarBottom(inset) + TAB_BAR_HEIGHT + TAB_BAR_GAP);
     assert.ok(pillBottom + pill <= tabBarClearance(inset, [pill]), "the pill's top is within the room the scroll leaves");
   }
+});
+
+test("R8: screens end above the bar's band, so nothing sits under the bar at rest", () => {
+  for (const inset of [0, 16, 24, 34, 48]) {
+    const zone = tabBarZone(inset);
+    assert.equal(zone, tabBarBottom(inset) + TAB_BAR_HEIGHT, "the band reaches the bar's top edge");
+    // The screen's end space plus the band is the same room as before: the last row still ends above the bar.
+    assert.equal(sceneEndSpace() + zone, tabBarClearance(inset));
+    assert.equal(sceneEndSpace([48]) + zone, tabBarClearance(inset, [48]));
+  }
+  assert.equal(sceneEndSpace(), TAB_BAR_BREATHING);
+  assert.equal(sceneEndSpace([48]), TAB_BAR_BREATHING + 48 + TAB_BAR_GAP);
 });

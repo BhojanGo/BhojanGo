@@ -5,11 +5,10 @@
 // simulator on QA, the same rider on another phone), so this tab follows
 // /riders/me (WebSocket + a poll) and shares this phone's GPS only when the
 // rider went online here (lib/location.ts trackingHere).
-import { api, ApiError, LanguagePill, num, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, num, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
 
 import { Checklist } from "../../lib/checklist";
@@ -20,7 +19,7 @@ import { useFormat, useLive, useLiveRider, useOnboarding, useWeek, type Offer } 
 import { night, radius, space, ui } from "../../lib/theme";
 
 export default function Drive() {
-  const { cash, cityName } = useFormat();
+  const { cash, cityName, cityCentre } = useFormat();
   const { t } = useI18n();
   setTrackingNotice(t("rider.drive.notice_title"), t("rider.drive.notice_body"));
   const onboarding = useOnboarding();
@@ -34,6 +33,9 @@ export default function Drive() {
   const [background, setBackground] = useState(true);
   /** Does this phone share its GPS? null until known. */
   const [here, setHere] = useState<boolean | null>(null);
+  // The map fills the screen; the part above the sheet is where the route is fitted.
+  const [screenH, setScreenH] = useState(640);
+  const [panelH, setPanelH] = useState(300);
 
   useFocusEffect(useCallback(() => {
     void onboarding.reload();
@@ -154,9 +156,10 @@ export default function Drive() {
   const today = w ? cash(w.today.total, w.currency) : "–";
   const statusText = online ? (city ? t("rider.drive.online_in", { city }) : t("rider.drive.online")) : t("rider.drive.offline");
   return (
-    <View style={ui.screen}>
-      <RouteMap rider={fix} pickup={now?.offer?.pickup} dropoff={now?.offer?.dropoff} height={status === "offered" ? 400 : 560}
-        visible={status === "offered" ? 370 : 520} label={t("rider.map.label")} />
+    <View style={ui.screen} onLayout={(e) => setScreenH(Math.round(e.nativeEvent.layout.height))}>
+      <RouteMap rider={fix} pickup={now?.offer?.pickup} dropoff={now?.offer?.dropoff} height={screenH}
+        visible={screenH - (status === "offered" && now?.offer ? (now.offer.batch && now.offer.batch.length > 1 ? 540 : 470) : panelH) - 10}
+        center={cityCentre(w?.city)} label={t("rider.map.label")} />
       <SafeAreaView edges={["top"]} style={styles.top}>
         <View testID={online ? "status-online" : "status-offline"} style={ui.pill} accessibilityLabel={statusText}>
           <View style={[styles.dot, { backgroundColor: online ? night.online : night.muted }]} />
@@ -172,7 +175,7 @@ export default function Drive() {
       {status === "offered" && now?.offer ? (
         <OfferSheet key={now.offer.order_id} offer={now.offer} onDone={() => void refresh()} onAccepted={(id) => { opened.current = id; }} />
       ) : (
-        <View testID="drive-panel" style={[ui.sheet, styles.panel]}>
+        <View testID="drive-panel" style={[ui.sheet, styles.panel]} onLayout={(e) => setPanelH(Math.round(e.nativeEvent.layout.height))}>
           <Text testID="drive-title" style={ui.h2}>
             {busyWith ? t("rider.drive.busy_title") : online ? t("rider.drive.looking_title") : t("rider.drive.offline_title")}
           </Text>

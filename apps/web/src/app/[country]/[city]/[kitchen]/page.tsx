@@ -7,7 +7,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
-import { initials, money, number, photo } from "@/lib/format";
+import { BrandTile, kitchenPhoto } from "@/components/KitchenPhoto";
+import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover, menu, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
@@ -114,8 +115,9 @@ export default async function KitchenPage({ params }: { params: Params }) {
     },
   };
 
-  const cover = photo(r.cover_url, 1600);
-  const logo = photo(r.logo_url ?? r.cover_url, 400);
+  // photo_url: its cover, else a dish of its own, else its cuisine's photo (R8); else the branded tile
+  const cover = photo(kitchenPhoto(r), 1600);
+  const logo = photo(r.logo_url ?? kitchenPhoto(r), 400);
   const metaDesktop = [...r.cuisine_types, area, distance].filter(Boolean).join(" · ");
   const metaPhone = [r.cuisine_types[0], distance, !closedNow && closes ? t("kitchen.open_till", { time: closes }) : null].filter(Boolean).join(" · ");
   const cityPath = `/${r.country.toLowerCase()}/${slugify(r.city)}`;
@@ -138,7 +140,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
               {logo ? (
                 <Img src={logo} />
               ) : (
-                <span aria-hidden="true" className="flex h-full w-full items-center justify-center bg-[#DDEBEC] text-h1 text-[#083F46]">{initials(r.name)}</span>
+                <BrandTile className="h-full w-full" />
               )}
             </span>
           </span>

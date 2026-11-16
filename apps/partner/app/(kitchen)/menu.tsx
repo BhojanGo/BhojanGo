@@ -4,11 +4,10 @@
 // will (lib/dish.tsx), then save it as the item's image_url. On a phone (portrait,
 // lib/layout.ts) it is one column: the search under the title, each dish on two
 // lines (name, then price and stock), then the store hours and offers.
-import { api, ApiError, field, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { imageUri, useFormat, useKitchen, useLoad, type Offer } from "../../lib/data";
 import { DishPreview } from "../../lib/dish";

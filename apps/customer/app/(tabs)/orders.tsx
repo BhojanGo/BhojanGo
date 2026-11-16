@@ -1,10 +1,9 @@
 // Your orders (WebOrders): what's on its way first (tap to track), then past
 // orders (tap for the receipt: items, the fair bill, the PDF, rate, report).
-import { color, inZone, num, space, StatusPill, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { color, inZone, num, SafeAreaView, space, StatusPill, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, SectionList, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { isActive, itemsSummary, listOrders, orderCode, statusLabel, type Order } from "../../lib/account";
 import { LinkButton, ui } from "../../lib/account-ui";

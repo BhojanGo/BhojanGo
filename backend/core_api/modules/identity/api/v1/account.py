@@ -28,6 +28,7 @@ class FavouriteRestaurant(BaseModel):
     name: str
     cuisine_types: list[str]
     cover_url: str | None
+    photo_url: str | None = None  # what to show: cover, else first dish photo, else the cuisine's library photo
     city: str
     country: str
     rating: float
