@@ -526,7 +526,7 @@ with sync_playwright() as p:
         expect(bag.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(timeout=20000),
         expect(bag.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
         expect(bag.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible()))
-    check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("link", name="Ride with us")).to_have_count(0))
+    check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("banner").get_by_role("link", name="Deliver with BhojanGo")).to_have_count(0))
 
     # ── Checkout ──────────────────────────────────────────────────────────────
     page.goto(base + "/checkout", wait_until="networkidle")
