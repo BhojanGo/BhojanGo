@@ -57,7 +57,7 @@ We do not use your data for automated decisions that have legal or similarly sig
 ## 4. Location
 
 - **Customers**: your location is used while you choose a delivery address and place an order. We store the addresses you save (with their map position) so you don't need to type them again. You can delete saved addresses at any time.
-- **Delivery partners**: while a delivery partner is online, the BhojanGo Delivery app shares their GPS position so we can offer them nearby orders. During your delivery their position is shown to you on the tracking page. The route of a delivery is kept for one day to help resolve problems, then deleted; their last position expires within minutes when they go offline.
+- **Delivery partners**: while a delivery partner is online, the BhojanGo Delivery app shares their GPS position so we can offer them nearby orders. During your delivery their position is shown to you on the tracking page. The route of a delivery is deleted one day after its last position (we keep it that long to help resolve problems); a delivery partner's last position expires within a minute of their app going offline or stopping.
 
 ## 5. Who we share data with
 
@@ -91,11 +91,11 @@ If you use "Sign in with Google", Google's sign-in script is loaded on the sign-
 ## 7. How long we keep data
 
 - **Account details, addresses and preferences**: while your account is open. When you delete your account they are deleted (see section 8).
-- **Orders, bills and payment records**: for 8 years from the end of the financial year, because tax and accounting laws (including the GST Act and the Companies Act) require it. After account deletion they are kept without your name, phone number, email or street address.
-- **Support tickets and problem reports**: for 3 years, to handle disputes and consumer complaints.
-- **Order messages**: kept with the order for 90 days for safety and support, then deleted.
-- **Delivery routes**: one day.
-- **Server logs**: up to 90 days, and up to one year for security incident investigation where needed.
+- **Orders, bills and payment records**: for at least 8 years from the end of the financial year, because tax and accounting laws (including the GST Act and the Companies Act) require it. After account deletion they are kept without your name, phone number, email or street address. Photos you add to a problem report are kept with the order's records.
+- **Support tickets**: deleted 3 years after they were resolved (we keep them that long to handle disputes and consumer complaints); open tickets are kept until they are resolved.
+- **Order messages** between you and your delivery partner: deleted 90 days after they were sent (until then they help with safety and support).
+- **Delivery routes**: deleted one day after the delivery's last position.
+- **Server logs** (which include IP addresses): kept by our hosting provider for the period its service sets, and used only to keep BhojanGo working and secure. Where a log is needed to investigate a security incident, we keep that part until the investigation ends.
 - **Consent and acceptance records** (which version of these documents you accepted, and when): as long as needed to show we had your consent, and at least as long as the related records above.
 
 ## 8. Your rights

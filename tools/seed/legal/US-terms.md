@@ -5,7 +5,7 @@ summary: First version for the United States.
 key_points:
 - BhojanGo is a marketplace: independent kitchen partners cook your food and independent delivery partners bring it to you. We run the ordering, payments and support.
 - Before you pay you see the whole bill (food, fees, sales tax and tip) and who receives each part. You pay exactly that total.
-- You can cancel free of charge until the kitchen accepts your order, and for a few minutes after (the time is shown in the app). Orders a kitchen does not accept in time are canceled and refunded in full.
+- You can cancel for a full refund any time before the kitchen accepts your order, and after that until 2 minutes after you placed it (unless your city sets another time; your order page shows it). Orders a kitchen does not accept in time are canceled and refunded in full.
 - If something is missing, wrong or not right, report it from the order within the time shown. Small amounts are refunded right away to your original payment; larger ones are reviewed by support within a day.
 - You must be 18 or older and keep your phone number and sign-in safe.
 - 100% of your tip goes to your delivery partner.
@@ -101,8 +101,8 @@ Your order is placed only after the payment is authorized. An order that stays u
 
 ### Canceling an order
 
-- **Before the kitchen accepts it:** you can cancel from your order page and get a full refund.
-- **After the kitchen accepts it:** you can still cancel free of charge for a short time after placing the order (the time for your city is shown on your order page). After that the kitchen has started cooking, so please contact support; we may not be able to refund an order that is already being prepared.
+- **Before the kitchen accepts it:** you can cancel at any time from your order page and get a full refund.
+- **After the kitchen accepts it:** you can still cancel for a full refund until 2 minutes after you placed the order, unless your city sets a different time (your order page shows how long you have), and as long as the kitchen hasn't started cooking. After that the order can't be cancelled from the app; ask us from the order and we'll help where we can, but we may not be able to refund food that is already being prepared.
 - **When we or the kitchen cancel:** if the kitchen cannot make your order, does not accept it in time, or no delivery partner can deliver it, the order is canceled and refunded in full.
 
 ### Something wrong with your order

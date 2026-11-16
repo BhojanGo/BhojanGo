@@ -14,7 +14,7 @@ from shared import bus
 from shared.config import get_settings
 from shared.db import engine
 from app.demo_sim import runner as demo_rider
-from app.services import batching
+from app.services import batching, retention
 from app.services.outbox_relay import run_relay, stop_relay
 from app.services.sqs_consumer import poll_sqs, stop_polling
 
@@ -57,6 +57,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     relay_task = None if settings.APP_ENV == "test" else asyncio.create_task(run_relay())
     # Task 43: the batch engine (shadow everywhere; live where a city turns it on)
     batch_task = None if settings.APP_ENV == "test" else asyncio.create_task(batching.run())
+    # R8 F10: delete what the Privacy notices say we delete, when they say
+    retention_task = None if settings.APP_ENV == "test" else asyncio.create_task(retention.run())
     # The demo rider (make dev and QA only: DEMO_RIDER_SIM=1; it checks and refuses production itself)
     demo_on, demo_status = demo_rider.settings_enabled()
     demo_task = asyncio.create_task(demo_rider.run()) if demo_on else None
@@ -67,8 +69,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     stop_polling()
     stop_relay()
     batching.stop()
+    retention.stop()
     demo_rider.stop()
-    for task in (_sqs_task, relay_task, batch_task, demo_task):
+    for task in (_sqs_task, relay_task, batch_task, retention_task, demo_task):
         if task:
             task.cancel()
     await engine.dispose()
