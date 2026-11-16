@@ -582,7 +582,7 @@ with sync_playwright() as p:
     check("tracking: the kitchen cooking, live", lambda: expect(status).to_contain_text(re.compile(f"{KITCHEN} is cooking|Finding a delivery partner"), timeout=20000))
     api("POST", "/delivery/assign", ops, {"order_id": order_id, "driver_id": sub(rider)}, host=8004)
     api("POST", f"/orders/{order_id}/messages", rider, {"preset": "at_kitchen"})
-    chat = page.get_by_role("region", name=re.compile("^Your rider, "))
+    chat = page.get_by_role("region", name=re.compile("^Your delivery partner, "))
     expect(chat.get_by_role("button", name="Message")).to_be_visible(timeout=20000)
     chat.get_by_role("button", name="Message").click()
     check("messages: the rider's quick message reaches the tracking page, numbers private", lambda: (
