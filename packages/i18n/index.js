@@ -106,6 +106,51 @@ function detectCountry(evidence, countries) {
   return { code: (speaks || list[0]).code, source: "default" };
 }
 
+/**
+ * The location line ("<place>, <code> · Change city") and the home content (R8):
+ * never a city we don't know, never another city's kitchens. In order:
+ *   address  the delivery address (cookie / saved address): its Markets city, else its own label
+ *   chosen   a city picked with "Change city" (a Markets city code)
+ *   ip       the IP's own town, shown as itself ("Meridian", "ID"), served or not;
+ *            `deliversHere` only when the hint says the point is inside an open zone
+ *   none     nothing known: "Set your delivery location"
+ * `cities`: Markets cities [{code, name, country, status}] ("live" | "soon").
+ * Returns {source, place, code, city, served, deliversHere}: `place`/`code` are the
+ * line's two parts (null for none); `city` the Markets city it names (any status);
+ * `served` true only for a live city (its kitchens, its example bill); otherwise the
+ * page shows the landing with "Set your delivery location". There is no fallback
+ * to the country's first live city.
+ */
+function resolveLocation(evidence, cities) {
+  const e = evidence || {};
+  const list = cities || [];
+  const byCode = (code) => (code ? list.find((c) => c.code === code) || null : null);
+  const live = (c) => !!c && c.status === "live";
+  const a = e.address;
+  if (a && a.country) {
+    const city = byCode(a.city_code);
+    const place = city ? city.name : String(a.label || "").trim() || null; // their own address, as they named it
+    if (place) {
+      const served = live(city) && a.served !== false;
+      return { source: "address", place, code: String(a.country).toUpperCase(), city, served, deliversHere: false };
+    }
+  }
+  const chosen = byCode(e.chosen);
+  if (chosen) {
+    return { source: "chosen", place: chosen.name, code: chosen.country, city: chosen, served: live(chosen), deliversHere: false };
+  }
+  const ip = e.ip;
+  if (ip && ip.country && ip.place) {
+    const city = ip.served ? byCode(ip.city_code) : null;
+    const served = live(city) && city.country === String(ip.country).toUpperCase();
+    return {
+      source: "ip", place: String(ip.place), code: String(ip.region_code || ip.country).toUpperCase(),
+      city: served ? city : null, served, deliversHere: served,
+    };
+  }
+  return { source: "none", place: null, code: null, city: null, served: false, deliversHere: false };
+}
+
 /** Money, numbers and dates follow the country (its first Markets locale), never the language. */
 function formatLocale(locales) {
   return (locales && locales[0]) || "en-US";
@@ -165,5 +210,5 @@ function createTranslator(language, messages, fallback) {
 
 module.exports = {
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
-  formatLocale, createTranslator, pluralSelector,
+  resolveLocation, formatLocale, createTranslator, pluralSelector,
 };

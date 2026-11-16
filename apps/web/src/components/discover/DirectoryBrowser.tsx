@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { type MouseEvent, useId, useMemo, useState } from "react";
 
 import { Search } from "@/components/Icons";
-import { photo } from "@/lib/format";
+import { libraryPhoto, photo } from "@/lib/format";
 import { waitingOf } from "@/lib/contract";
 import { useFormat, useLanguage, usePrefs, useT } from "@/lib/i18n";
 import type { DirCity, DirCountry, Directory } from "@/lib/server";
@@ -149,41 +149,137 @@ export interface Choosing {
   addressCity: string | null;
 }
 
-function CityCard({ c, region, cover, locales, choosing }: { c: DirCity; region: string; cover: string | null; locales: string[]; choosing?: Choosing | null }) {
+/**
+ * A city card (WebCities). The photo: the city's first kitchen's cover when it is
+ * live, else its country's hero dish (Markets data), never an empty box. Coming soon:
+ * "Coming soon · N people waiting" from the Notify-me list (the directory's count).
+ */
+function CityCard({ c, region, cover, country, choosing }: { c: DirCity; region: string; cover: string | null; country: DirCountry; choosing?: Choosing | null }) {
   const t = useT();
+  const f = useFormat();
   const router = useRouter();
   const { language } = useLanguage();
   const { setCity } = usePrefs();
   const live = c.status === "live";
-  const img = photo(cover, 400);
+  const img = photo(cover, 400) ?? libraryPhoto(country.hero_photo, 400);
+  const waiting = waitingOf(c);
+  const status = live
+    ? t("cities.kitchens", { count: c.restaurants })
+    : [t("common.coming_soon"), waiting > 0 ? t("common.people_waiting", { count: waiting, n: f.number(waiting) }) : null].filter(Boolean).join(" · ");
   const pick = choosing
     ? (e: MouseEvent) => {
         e.preventDefault();
-        setCity({ code: c.code, locales }, { language, addressCity: choosing.addressCity });
+        setCity({ code: c.code, locales: country.locales ?? [] }, { language, addressCity: choosing.addressCity });
         router.push("/");
         router.refresh();
       }
     : undefined;
+  const notify = !live && !choosing;
   return (
-    <Link href={choosing ? "/" : c.path} onClick={pick} data-city={c.code} className={`flex items-center gap-[14px] rounded-[18px] border border-[#E2E7E8] p-[14px] text-[#111418] hover:border-[#C9D3D4] hover:text-[#111418] ${live ? "" : "opacity-90"}`}>
-      <span className={`block h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[14px] bg-[#EFF6F6] ${live ? "" : "grayscale-[0.6]"}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-        {img && <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />}
-      </span>
-      <span className="min-w-0 flex-grow">
-        <b className="block text-h3">{c.name}</b>
-        <span className="block text-small text-[#4C5A5E]">{region}</span>
-        <span className={`mt-1 block text-label ${live ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
-          {live ? t("cities.kitchens", { count: c.restaurants }) : t("common.coming_soon")}
+    <Link
+      href={choosing ? "/" : c.path}
+      onClick={pick}
+      data-city={c.code}
+      data-status={c.status}
+      className="flex min-w-0 items-center gap-[14px] rounded-[18px] border border-[#E2E7E8] p-[14px] text-[#111418] hover:border-[#C9D3D4] hover:text-[#111418]"
+    >
+      {img ? (
+        <span className="block h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[14px] bg-[#EFF6F6]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
+          <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />
         </span>
-        {!live && <Waiting c={c} className="block text-small text-[#7A4F0E]" />}
+      ) : null}
+      <span className="min-w-0 flex-1">
+        <b className="block break-words text-h3">{c.name}</b>
+        <span className="block break-words text-small text-[#4C5A5E]">{region}</span>
+        <span data-testid="city-status" className={`mt-1 block text-label ${live ? "text-[#0B5D66]" : "text-[#7A4F0E]"}`}>{status}</span>
+        {notify && (
+          <span className="mt-2 inline-flex h-10 items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:hidden">
+            {t("notify.button")}
+          </span>
+        )}
       </span>
-      {!live && !choosing && (
-        <span className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418]">
+      {notify && (
+        <span className="hidden h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:inline-flex">
           {t("notify.button")}
         </span>
       )}
     </Link>
+  );
+}
+
+function CityGrid({ k, covers, choosing }: { k: DirCountry; covers: Record<string, string | null>; choosing?: Choosing | null }) {
+  return (
+    <>
+      {k.regions.map((r, i) => (
+        <div key={r.code}>
+          <h3 className={`m-0 text-label ${i ? "mt-[22px]" : "mt-[14px]"}`}>{r.name}</h3>
+          <div className="mt-[10px] grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-3">
+            {r.cities.map((c) => (
+              <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} country={k} choosing={choosing} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/**
+ * "Change city" (R8): the visitor's country's cities only, with a search that
+ * filters as you type (city or state); every other country behind "Other
+ * countries" (opened by itself when only another country matches the search).
+ */
+export function ChooseCity({ dir, covers, country, choosing }: { dir: Directory; covers: Record<string, string | null>; country: string | null; choosing: Choosing }) {
+  const t = useT();
+  const [q, setQ] = useState("");
+  const [othersOpen, setOthersOpen] = useState(false);
+  const shown = useFiltered(dir, "all", q);
+  const home = shown.find((k) => k.code === country) ?? null;
+  const others = shown.filter((k) => k.code !== country);
+  const homeName = dir.countries.find((k) => k.code === country)?.name ?? null;
+  const open = othersOpen || (!!q.trim() && !home && others.length > 0) || !country;
+  return (
+    <>
+      <div className="mt-6">
+        <SearchField anchor="search" value={q} onChange={setQ} placeholder={t("cities.search")} className="h-[52px] w-full md:w-[480px]" />
+      </div>
+      {home ? (
+        <section aria-label={home.name} data-testid="choose-home" data-country={home.code} className="pt-8">
+          <h2 className="m-0 text-caption text-[#4C5A5E]">{home.name}</h2>
+          <CityGrid k={home} covers={covers} choosing={choosing} />
+        </section>
+      ) : (
+        country && (
+          <p role="status" className="pt-8 text-body text-[#4C5A5E]">
+            {homeName && q.trim() ? t("cities.no_match_in", { country: homeName }) : t("cities.no_match")}
+          </p>
+        )
+      )}
+      {(others.length > 0 || !q.trim()) && dir.countries.some((k) => k.code !== country) && (
+        <details
+          data-testid="other-countries"
+          open={open}
+          onToggle={(e) => setOthersOpen((e.currentTarget as HTMLDetailsElement).open)}
+          className="mt-10 border-t border-[#E2E7E8] pt-6"
+        >
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-label text-[#0B5D66]">
+            {country ? t("cities.other_countries") : t("cities.all_countries")}
+          </summary>
+          {others.map((k) => (
+            <section key={k.code} aria-label={k.name} className="pt-6">
+              <h2 className="m-0 text-caption text-[#4C5A5E]">{k.name}</h2>
+              <CityGrid k={k} covers={covers} choosing={choosing} />
+            </section>
+          ))}
+        </details>
+      )}
+      {!home && !others.length && q.trim() && (
+        <div className="pt-6">
+          <NoMatch />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -222,16 +318,7 @@ export function CitiesDirectory({ dir, covers, choosing }: { dir: Directory; cov
       {shown.map((k) => (
         <section key={k.code} aria-label={k.name} className="pt-10">
           <h2 className="m-0 text-caption text-[#4C5A5E]">{k.name}</h2>
-          {k.regions.map((r, i) => (
-            <div key={r.code}>
-              <h3 className={`m-0 text-label ${i ? "mt-[22px]" : "mt-[14px]"}`}>{r.name}</h3>
-              <div className="mt-[10px] grid gap-[14px] md:grid-cols-2 lg:grid-cols-3">
-                {r.cities.map((c) => (
-                  <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} locales={k.locales ?? []} choosing={choosing} />
-                ))}
-              </div>
-            </div>
-          ))}
+          <CityGrid k={k} covers={covers} choosing={choosing} />
         </section>
       ))}
       {!shown.length && (

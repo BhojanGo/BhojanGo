@@ -3,12 +3,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { api, useBag, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, usePrefs, useT } from "@/lib/i18n";
-import { AddressBox } from "./AddressBox";
-import { BagIcon, Chevron, Close, Globe, Pin, Search } from "./Icons";
+import { AddressDialog } from "./AddressDialog";
+import { BagIcon, Chevron, Globe, Pin, Search } from "./Icons";
 import { MenuRow, Popover } from "./Popover";
 
 /**
@@ -123,6 +123,7 @@ export function BagButton() {
 export function AddressPill({ label, country, mobile, inline }: { label: string; country: string | null; mobile?: boolean; inline?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   return (
     <>
       {inline ? (
@@ -145,17 +146,7 @@ export function AddressPill({ label, country, mobile, inline }: { label: string;
           <Chevron size={14} color="#4C5A5E" />
         </button>
       )}
-      {open && (
-        <div role="dialog" aria-modal="true" aria-label={t("header.change_address")} className="fixed inset-0 z-[60] flex items-start justify-center bg-[rgba(17,20,24,0.4)] p-4 pt-[10vh]" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-[560px] rounded-3xl bg-white p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center">
-              <h2 className="m-0 flex-grow text-h2">{t("header.change_address")}</h2>
-              <button type="button" aria-label={t("common.close")} onClick={() => setOpen(false)}><Close color="#4C5A5E" /></button>
-            </div>
-            <AddressBox size="sheet" country={country} autoFocus onPicked={() => setOpen(false)} />
-          </div>
-        </div>
-      )}
+      {open && <AddressDialog title={t("header.change_address")} country={country} onClose={close} />}
     </>
   );
 }

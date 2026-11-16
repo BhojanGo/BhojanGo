@@ -1,9 +1,9 @@
 "use client";
-// "Looks like you're near …" under the landing page's address box: from the
-// visitor's IP (asked from the browser, so it's their address, not the server's),
-// a hint only, shown only when that place is inside an open zone. The IP's
-// country and city are also remembered (cookies) for the country, the languages
-// and the home page's location line.
+// The IP hint (GET /markets/hint, asked from the browser so it's the visitor's IP,
+// not the server's) and "Use my location" under the landing page's address box.
+// The hint is evidence only (R8): its country (bg_hint) and its own town
+// (bg_hint_place: "Meridian", "ID", served or not) go into cookies, and the server's
+// location line shows that town as itself, unless an address or a chosen city wins.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,35 +17,54 @@ interface Hint {
   country: string | null;
   place: string | null;
   region: string | null;
+  region_code?: string | null;
   city_code: string | null;
   city_name: string | null;
   city_path: string | null;
   served: boolean;
 }
 
-export function HintRow({ currentCountry, countrySource }: { currentCountry: string | null; countrySource: string }) {
+const CACHE = "bg_hint_v2";
+
+function readCookie(name: string): string | null {
+  const hit = document.cookie.split("; ").find((c) => c.startsWith(`${name}=`));
+  return hit ? decodeURIComponent(hit.slice(name.length + 1)) : null;
+}
+
+/** The cookie values for a hint (what the server's getContext reads). */
+export function hintCookies(h: Hint): { country: string | null; place: string | null } {
+  if (!h.country) return { country: null, place: null };
+  const place = h.place
+    ? JSON.stringify({ place: h.place, region_code: h.region_code ?? null, city_code: h.served ? h.city_code : null, served: !!h.served })
+    : null;
+  return { country: h.country, place };
+}
+
+export function HintRow({ currentCountry, countrySource, hintSource }: { currentCountry: string | null; countrySource: string; hintSource: string }) {
   const t = useT();
   const router = useRouter();
-  const [hint, setHint] = useState<Hint | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const locate = useMyLocation(setProblem);
 
   useEffect(() => {
     let cached: Hint | null = null;
     try {
-      cached = JSON.parse(sessionStorage.getItem("bg_hint") ?? "null");
+      cached = JSON.parse(sessionStorage.getItem(CACHE) ?? "null");
     } catch {
       /* private mode */
     }
     const apply = (h: Hint) => {
-      setHint(h);
-      // The IP's country (and city, for the location line) beats the browser locale,
-      // but never an address or a chosen city.
-      if (h.country && (countrySource === "browser" || countrySource === "default" || countrySource === "none")) {
-        setCookie("bg_hint", h.country);
-        setCookie("bg_hint_city", h.city_code);
-        if (h.country !== currentCountry || h.city_code) router.refresh();
-      }
+      const next = hintCookies(h);
+      const changed = readCookie("bg_hint") !== next.country || readCookie("bg_hint_place") !== next.place;
+      if (!changed) return;
+      setCookie("bg_hint", next.country);
+      setCookie("bg_hint_place", next.place);
+      setCookie("bg_hint_city", null); // R6's cookie, replaced by bg_hint_place
+      // Re-render only where the hint decides something: the country (when nothing
+      // stronger did) or the location line (when no address or chosen city did).
+      const countryOpen = countrySource === "browser" || countrySource === "default" || countrySource === "none" || countrySource === "ip";
+      const lineOpen = hintSource === "ip" || hintSource === "none";
+      if ((countryOpen && next.country !== currentCountry) || lineOpen) router.refresh();
     };
     if (cached) return apply(cached);
     fetch(`${urls.core}/api/v1/markets/hint`)
@@ -53,42 +72,22 @@ export function HintRow({ currentCountry, countrySource }: { currentCountry: str
       .then((h: Hint | null) => {
         if (!h) return;
         try {
-          sessionStorage.setItem("bg_hint", JSON.stringify(h));
+          sessionStorage.setItem(CACHE, JSON.stringify(h));
         } catch {
           /* private mode */
         }
         apply(h);
       })
       .catch(() => undefined);
-  }, [currentCountry, countrySource, router]);
+  }, [currentCountry, countrySource, hintSource, router]);
 
-  const near = hint?.served && hint.place ? [hint.place, hint.region].filter(Boolean).join(", ") : null;
-  const locateButton = (
-    <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex items-center gap-2 font-bold text-[#0B5D66] disabled:opacity-60">
-      {!near && <Locate color="#0B5D66" />}
-      {locate.busy ? t("address.locating") : t("address.use_my_location")}
-    </button>
-  );
-  // No hint (or not a place we serve): no box at all, just "Use my location" under the address box.
-  if (!near) {
-    return (
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 text-small">
-        {locateButton}
-        {problem && <span role="status" className="text-[#4C5A5E]">{problem}</span>}
-      </div>
-    );
-  }
   return (
-    <div className="mt-4 flex max-w-[694px] flex-wrap items-center gap-x-3 gap-y-1 rounded-[14px] border border-[#E2E7E8] bg-white px-4 py-3 text-small">
-      <Locate color="#0B5D66" />
-      <span className="flex-grow">
-        <button type="button" className="font-bold text-[#111418]" onClick={() => hint?.city_path && router.push(hint.city_path)}>
-          {t("address.near_hint", { place: near })}
-        </button>{" "}
-        <span className="text-[#4C5A5E]">{t("address.we_deliver_there")}</span>
-      </span>
-      {locateButton}
-      {problem && <span role="status" className="basis-full text-[#4C5A5E]">{problem}</span>}
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 text-small">
+      <button type="button" onClick={locate.run} disabled={locate.busy} className="inline-flex min-h-11 items-center gap-2 font-bold text-[#0B5D66] disabled:opacity-60">
+        <Locate color="#0B5D66" />
+        {locate.busy ? t("address.locating") : t("address.use_my_location")}
+      </button>
+      {problem && <span role="status" className="text-[#4C5A5E]">{problem}</span>}
     </div>
   );
 }
