@@ -205,7 +205,7 @@ with sync_playwright() as p:
     check("dispatch map: OpenStreetMap with riders and the waiting list", lambda: (
         expect(page.get_by_role("img", name="Dispatch map")).to_be_visible(timeout=20000),
         expect(page.locator(".leaflet-tile-pane")).to_have_count(1),
-        expect(page.get_by_role("region", name="Waiting for a rider")).to_be_visible()))
+        expect(page.get_by_role("region", name="Waiting for a delivery partner")).to_be_visible()))
     page.screenshot(path=f"{OUT}/04-dispatch-map.png")
 
     page.goto(f"{BASE}/operations?scope=IN-TG-HYD&tab=support", wait_until="networkidle")

@@ -116,7 +116,7 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
         key = STATUS_MESSAGES.get(p.get("new_status", ""))
         if key == "order_picked_up":
             rider = await d.person(order["driver_id"]) if order["driver_id"] else None
-            return [to_customer(key, rider=rider.first_name if rider else None)]  # None: "Your rider", translated
+            return [to_customer(key, rider=rider.first_name if rider else None)]  # None: "Your delivery partner", translated
         return [to_customer(key)] if key else []
     if kind == "driver.almost_there":  # realtime: the rider is a couple of minutes from the door
         rider = await d.person(order["driver_id"]) if order["driver_id"] else None

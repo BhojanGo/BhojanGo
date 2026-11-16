@@ -81,6 +81,8 @@ def bill_rows(lines: list[dict], currency: str) -> list[tuple[str, str]]:
         elif code == "tax_included":
             rate = f" @ {_pct(detail.get('rate_percent'))}" if detail.get("rate_percent") else ""
             rows.append((f"{label}{rate}: {money(detail.get('included', '0'), currency)}", "included"))
+        elif code == "tip":  # every tip, also on orders priced before Round 8 ("Tip for your rider")
+            rows.append(("Tip for your delivery partner", money(amount, currency)))
         else:
             rows.append((label, money(amount, currency)))
     return rows
@@ -96,7 +98,7 @@ def fallback_lines(subtotal: Decimal, delivery_fee: Decimal, discount: Decimal, 
     if taxes:
         lines.append({"code": "tax", "label": "Taxes", "amount": str(taxes)})
     if tip:
-        lines.append({"code": "tip", "label": "Tip for your rider", "amount": str(tip)})
+        lines.append({"code": "tip", "label": "Tip for your delivery partner", "amount": str(tip)})
     return lines
 
 

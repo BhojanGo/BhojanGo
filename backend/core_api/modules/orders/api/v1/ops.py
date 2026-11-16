@@ -209,13 +209,13 @@ async def overview(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*
                 RiderDocument.status == "submitted", User.country == code))).scalars().all()
             if docs:
                 actions.append(OpsAction(kind="rider_documents", count=len(docs), scope=code,
-                                      label=f"{len(docs)} rider document{'s' if len(docs) > 1 else ''} to check",
+                                      label=f"{len(docs)} delivery partner document{'s' if len(docs) > 1 else ''} to check",
                                       detail="Licences, insurance and background checks waiting for review"))
         waiting = [o for o in all_orders if o.status in WAITING_FOR_RIDER and o.driver_id is None
                    and (o.actual_ready_at or o.updated_at) and now - (o.actual_ready_at or o.updated_at) > RIDER_WAIT_ALERT]
         if waiting:
             actions.append(OpsAction(kind="waiting_for_rider", count=len(waiting), scope=code, urgent=True,
-                                  label=f"{len(waiting)} order{'s' if len(waiting) > 1 else ''} waiting for a rider",
+                                  label=f"{len(waiting)} order{'s' if len(waiting) > 1 else ''} waiting for a delivery partner",
                                   detail=", ".join(sorted({o.market_city for o in waiting}))))
         if totals.late:
             actions.append(OpsAction(kind="late_orders", count=totals.late, scope=code, urgent=True,

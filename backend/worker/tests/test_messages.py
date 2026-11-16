@@ -108,7 +108,7 @@ def test_every_text_has_every_language_with_the_same_placeholders() -> None:
 
 
 def test_a_rider_without_a_name_is_your_rider_in_the_language() -> None:
-    assert m.render("order_picked_up", "en", rider=None).body.startswith("Your rider picked up")
+    assert m.render("order_picked_up", "en", rider=None).body.startswith("Your delivery partner picked up")
     assert m.render("order_picked_up", "es", rider="").body.startswith("Tu repartidor recogió")
 
 
