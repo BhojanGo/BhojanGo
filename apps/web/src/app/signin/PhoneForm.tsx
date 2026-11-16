@@ -44,14 +44,14 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
   return (
     <form onSubmit={send} noValidate>
       <h1 className="m-0 text-h1 leading-[1.1] tracking-[-0.8px] md:tracking-[-1px]">{t("signin.heading")}</h1>
-      <p className="m-0 mt-2 hidden text-body text-[#4C5A5E] md:block">{t("signin.sub")}</p>
+      <p className="m-0 mt-2 hidden text-body text-muted md:block">{t("signin.sub")}</p>
       <div className="mt-6 md:mt-8">
         <label htmlFor={inputId} className="block text-label">{t("signin.mobile")}</label>
         <span className="mt-2 flex h-14 items-center overflow-hidden rounded-[14px] border-2 border-[#0B5D66] text-body-lg focus-within:ring-2 focus-within:ring-[#0B5D66]/30">
           <span className="relative flex h-full shrink-0 items-center gap-[6px] border-r border-[#E2E7E8] px-[14px] font-bold">
             {country && <span className="rounded-[5px] bg-[#111418] px-[5px] py-[2px] text-caption text-white">{country.code}</span>}
             {country?.phone_code}
-            {countries.length > 1 && <Chevron color="#4C5A5E" />}
+            {countries.length > 1 && <Chevron color="#3D4A4E" />}
             {countries.length > 1 && (
               <select aria-label={t("signin.country_code")} value={code ?? ""} onChange={(e) => setCode(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
                 {countries.map((c) => (
@@ -73,7 +73,7 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
             className="h-full min-w-0 flex-grow bg-transparent px-4 outline-none"
           />
         </span>
-        <p id={helpId} className="m-0 mt-[6px] text-small text-[#4C5A5E]">{t("signin.help")}</p>
+        <p id={helpId} className="m-0 mt-[6px] text-small text-muted">{t("signin.help")}</p>
       </div>
       {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
       <button type="submit" disabled={!ok || busy} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
@@ -82,7 +82,7 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
       {/* other ways in (e.g. Google), when set up */}
       {children}
       <div className="mt-7 hidden rounded-2xl bg-[#F4F6F6] p-4 text-small leading-[1.5] md:block">
-        <b>{t("signin.partner_q")}</b> <span className="text-[#4C5A5E]">{t("signin.partner_note")}</span>{" "}
+        <b>{t("signin.partner_q")}</b> <span className="text-muted">{t("signin.partner_note")}</span>{" "}
         <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/ride" className="font-bold">{t("signin.ride")}</Link>
       </div>
     </form>

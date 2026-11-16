@@ -148,8 +148,8 @@ export default async function KitchenPage({ params }: { params: Params }) {
               {/* "New" until 5 ratings, then the average and how many */}
               <RatingBadge x={r} t={t} formatLocale={formatLocale} />
             </span>
-            <span className="hidden text-body text-[#4C5A5E] md:block">{metaDesktop}</span>
-            <span className="block text-body text-[#4C5A5E] md:hidden">{metaPhone}</span>
+            <span className="hidden text-body text-muted md:block">{metaDesktop}</span>
+            <span className="block text-body text-muted md:hidden">{metaPhone}</span>
           </span>
           <span className="hidden md:block md:pb-[10px]">
             <KitchenActions id={r.id} name={r.name} />
@@ -160,7 +160,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
         <div className="mt-[22px] hidden overflow-hidden rounded-[18px] border border-[#E2E7E8] md:grid" style={{ gridTemplateColumns: `repeat(${boxes.length}, minmax(0, 1fr))` }}>
           {boxes.map((b, i) => (
             <div key={b.label} className={`px-[18px] py-[14px] ${i ? "border-l border-[#E2E7E8]" : ""}`}>
-              <span className="text-small text-[#4C5A5E]">{b.label}</span>
+              <span className="text-small text-muted">{b.label}</span>
               <b className="mt-[2px] block truncate text-label">{b.value}</b>
             </div>
           ))}

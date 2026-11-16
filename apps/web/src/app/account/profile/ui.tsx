@@ -12,10 +12,10 @@ export const ghost = "flex h-11 shrink-0 items-center justify-center rounded-ful
 export function Row({ label, children, note, action }: { label: ReactNode; children: ReactNode; note?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[#EEF1F1] py-4 md:flex-nowrap md:py-[18px]">
-      <span className="w-full text-label text-[#4C5A5E] md:w-[200px] md:shrink-0">{label}</span>
+      <span className="w-full text-label text-muted md:w-[200px] md:shrink-0">{label}</span>
       <span className="min-w-0 flex-grow">
         <b className="block break-words text-label">{children}</b>
-        {note && <span className="mt-[2px] block text-small text-[#4C5A5E]">{note}</span>}
+        {note && <span className="mt-[2px] block text-small text-muted">{note}</span>}
       </span>
       {action}
     </div>

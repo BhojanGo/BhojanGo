@@ -39,7 +39,7 @@ export async function Landing() {
             <h1 className="m-0 whitespace-pre-line text-display tracking-[-1.8px] md:tracking-[-2.8px]">
               {t("home.hero_title")}
             </h1>
-            <p className="mt-[22px] max-w-[560px] text-body-lg text-[#4C5A5E]">{t("home.hero_body")}</p>
+            <p className="mt-[22px] max-w-[560px] text-body-lg text-muted">{t("home.hero_body")}</p>
             <div className="mt-9">
               <AddressBox size="hero" country={country?.code ?? null} />
             </div>
@@ -59,11 +59,11 @@ export async function Landing() {
                   className="absolute bottom-0 left-4 w-[320px] max-w-[calc(100%-32px)] rounded-[24px] bg-white p-5 shadow-[0_2px_4px_rgba(17,20,24,0.06),0_24px_48px_rgba(17,20,24,0.14)] md:left-0"
                 >
                   <h2 className="m-0 text-caption text-[#0B5D66]">{t("bill.who_gets")}</h2>
-                  <p className="mb-[14px] mt-1 text-small tabular-nums text-[#4C5A5E]">
+                  <p className="mb-[14px] mt-1 text-small tabular-nums text-muted">
                     {t("bill.example_in", { total: money(bill.total, bill.currency, formatLocale), city: bill.city_name })}
                   </p>
                   <MoneyBar shares={bill.shares} t={t} formatLocale={formatLocale} />
-                  <p className="mt-3 text-small text-[#4C5A5E]">{t("bill.exact_note")}</p>
+                  <p className="mt-3 text-small text-muted">{t("bill.exact_note")}</p>
                 </div>
               )}
             </div>
@@ -77,7 +77,7 @@ export async function Landing() {
             <li key={n} className="rounded-[24px] bg-[#F4F6F6] p-5 md:p-7">
               <div aria-hidden="true" className="text-h1 tracking-[-1px] text-[#0B5D66]">{n}</div>
               <b className="mt-2 block text-h3">{t(`home.step${n}_title`)}</b>
-              <p className="mt-[6px] text-body text-[#4C5A5E]">{t(`home.step${n}_body`)}</p>
+              <p className="mt-[6px] text-body text-muted">{t(`home.step${n}_body`)}</p>
             </li>
           ))}
         </ol>
@@ -87,7 +87,7 @@ export async function Landing() {
         <section aria-labelledby="cooking" className="mx-auto max-w-[1440px] px-5 pt-14 md:px-16 md:pt-[72px]">
           <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
             <h2 id="cooking" className="m-0 text-h1 tracking-[-0.8px]">{t("home.cooking_title")}</h2>
-            <span className="text-body text-[#4C5A5E]">{t("home.cooking_note")}</span>
+            <span className="text-body text-muted">{t("home.cooking_note")}</span>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
             {tiles.map(({ name, photo: src }) => (

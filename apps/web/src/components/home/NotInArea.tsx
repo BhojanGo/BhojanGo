@@ -35,9 +35,9 @@ export async function NotInArea({ place }: { place: Place }) {
   return (
     <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 py-10 md:px-16 md:py-16 lg:grid-cols-[1fr_520px] lg:gap-16">
       <div>
-        <div className="text-caption text-[#4C5A5E]">{place.label}</div>
+        <div className="text-caption text-muted">{place.label}</div>
         <h1 className="mt-3 text-display leading-[1.02] tracking-[-1.2px] md:tracking-[-1.6px]">{t("home.not_in_area_title")}</h1>
-        <p className="mt-[14px] max-w-[560px] text-body-lg leading-[1.5] text-[#4C5A5E]">
+        <p className="mt-[14px] max-w-[560px] text-body-lg leading-[1.5] text-muted">
           {soonCity
             ? t("home.not_in_area_soon", { city: soonCity.name })
             : first
@@ -68,7 +68,7 @@ export async function NotInArea({ place }: { place: Place }) {
                   <Link href={c.path} className="flex h-11 items-center gap-2 rounded-full border border-[#DDEBEC] bg-[#EFF6F6] px-4 font-bold text-[#083F46] hover:text-[#083F46]">
                     <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#0B5D66]" />
                     {c.name}
-                    <span className="font-semibold text-[#4C5A5E]">· {away(c)}</span>
+                    <span className="font-semibold text-muted">· {away(c)}</span>
                   </Link>
                 </li>
               ))}

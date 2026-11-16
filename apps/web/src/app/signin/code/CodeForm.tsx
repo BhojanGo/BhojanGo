@@ -76,7 +76,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
         <span aria-hidden="true">←</span> {t("signin.change_number")}
       </Link>
       <h1 className="m-0 mt-4 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{t("signin.code_heading")}</h1>
-      <p className="m-0 mt-1 text-body text-[#4C5A5E]">
+      <p className="m-0 mt-1 text-body text-muted">
         {t("signin.sent_to")} <b className="text-[#111418]">{phone}</b>
       </p>
       <fieldset className="m-0 mt-7 border-0 p-0">
@@ -114,7 +114,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
           ))}
         </div>
       </fieldset>
-      <p className="m-0 mt-4 text-small text-[#4C5A5E]" aria-live="polite">
+      <p className="m-0 mt-4 text-small text-muted" aria-live="polite">
         {t("signin.didnt_get")}{" "}
         {wait > 0 ? (
           <b className="text-[#111418]">{t("signin.resend_in", { time: `0:${String(wait).padStart(2, "0")}` })}</b>

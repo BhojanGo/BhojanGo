@@ -127,7 +127,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
         {zones.length > 0 && (
           <section aria-labelledby="areas" className="pt-10 md:pt-12">
             <h2 id="areas" className="m-0 text-h2 tracking-[-0.5px]">{t("city.areas_title")}</h2>
-            <p className="mt-1 text-body text-[#4C5A5E]">{t("city.areas_note", { count: zones.length })}</p>
+            <p className="mt-1 text-body text-muted">{t("city.areas_note", { count: zones.length })}</p>
             <ul className="m-0 mt-4 flex list-none flex-wrap gap-[10px] p-0">
               {zones.map((z) => (
                 <li key={z.name} className={`${chip} border-[#E2E7E8] text-[#111418]`}>{z.name}</li>
@@ -142,10 +142,10 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               {cuisine ? t("city.cuisine_kitchens", { cuisine, city: c.name }) : t("city.kitchens_title", { city: c.name })}
             </h2>
             <form id="search" role="search" action={`${base}#kitchens`} className="flex h-12 scroll-mt-[140px] w-full items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] focus-within:border-[#0B5D66] md:w-[360px]">
-              <Search size={18} color="#4C5A5E" />
+              <Search size={18} color="#3D4A4E" />
               {cuisine && <input type="hidden" name="cuisine" value={cuisine} />}
               <label htmlFor="city-q" className="sr-only">{t("city.search_label")}</label>
-              <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-body outline-none placeholder:text-[#4C5A5E]" />
+              <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-body outline-none placeholder:text-muted" />
             </form>
           </div>
           {cuisines.length > 0 && (
@@ -171,7 +171,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               ))}
             </div>
           ) : (
-            <p role="status" className="mt-5 text-body text-[#4C5A5E]">
+            <p role="status" className="mt-5 text-body text-muted">
               {kitchens.length ? t("city.no_match") : t("city.no_kitchens")}{" "}
               {(cuisine || q) && <Link href={`${base}#kitchens`} className="font-bold">{t("city.clear_filters")}</Link>}
             </p>
@@ -181,7 +181,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
         {offers.length > 0 && (
           <section aria-labelledby="city-offers" className="pt-12 md:pt-14">
             <h2 id="city-offers" className="m-0 text-h2 tracking-[-0.5px]">{t("city.offers_title", { city: c.name })}</h2>
-            <p className="mt-1 text-body text-[#4C5A5E]">{t("offers.who_pays")}</p>
+            <p className="mt-1 text-body text-muted">{t("offers.who_pays")}</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {offers.slice(0, 6).map((o, i) => (
                 <OfferCard
@@ -205,7 +205,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               {cityFaq(c, pricing, t, formatLocale).map((f) => (
                 <div key={f.q} className="border-b border-[#E2E7E8] py-5">
                   <dt className="text-h3">{f.q}</dt>
-                  <dd className="m-0 mt-[6px] text-body leading-[1.5] text-[#4C5A5E]">{f.a}</dd>
+                  <dd className="m-0 mt-[6px] text-body leading-[1.5] text-muted">{f.a}</dd>
                 </div>
               ))}
             </dl>
@@ -259,7 +259,7 @@ async function SoonCity({ c }: { c: CityPage }) {
       <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-16 md:py-14">
         <div className="max-w-[640px]">
           <NotifyMe variant="card" source="soon_city" cityCode={c.code} cityName={c.name} />
-          <p className="mt-4 text-body text-[#4C5A5E]">
+          <p className="mt-4 text-body text-muted">
             <Link href="/cities" className="font-bold">{t("home.see_where")}</Link>
           </p>
         </div>

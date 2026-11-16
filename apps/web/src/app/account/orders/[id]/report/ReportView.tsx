@@ -80,7 +80,7 @@ export function ReportView({ id }: { id: string }) {
           {done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}
         </h1>
         <p className="mt-3 text-body-lg">{done.message}</p>
-        {done.outcome === "ticket" && <p className="mt-2 tabular-nums text-[#4C5A5E]">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency, { whole: true }) })}</p>}
+        {done.outcome === "ticket" && <p className="mt-2 tabular-nums text-muted">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency, { whole: true }) })}</p>}
         <Link href={back} className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:bg-[#083F46] hover:text-white">
           {t("account.report.back_to_order")}
         </Link>
@@ -96,16 +96,16 @@ export function ReportView({ id }: { id: string }) {
       <div>
         <Link href={back} className="text-label">← {t("account.report.back")}</Link>
         <h1 id="report-title" className="mt-2 text-h1 tracking-[-0.8px]">{t("account.report.title")}</h1>
-        {loaded?.order && <p className="text-[#4C5A5E]">{loaded.order.restaurant_name}</p>}
-        {!loaded && <p role="status" className="text-[#4C5A5E]">{t("account.loading")}</p>}
-        {loaded && !loaded.order && <p role="alert" className="text-[#4C5A5E]">{t("account.report.not_found")}</p>}
+        {loaded?.order && <p className="text-muted">{loaded.order.restaurant_name}</p>}
+        {!loaded && <p role="status" className="text-muted">{t("account.loading")}</p>}
+        {loaded && !loaded.order && <p role="alert" className="text-muted">{t("account.report.not_found")}</p>}
       </div>
       <fieldset className="space-y-3 rounded-3xl border border-[#E2E7E8] p-5 md:p-6">
         <legend className="px-1 text-h3">{t("account.report.which_items")}</legend>
         {items.map((i) => (
           <label key={i.menu_item_id} className="flex items-center gap-3">
             <span className="flex-1 font-semibold">
-              {i.name} <span className="font-normal text-[#4C5A5E]">· {t("account.report.ordered", { count: i.quantity })}</span>
+              {i.name} <span className="font-normal text-muted">· {t("account.report.ordered", { count: i.quantity })}</span>
             </span>
             <input
               type="number"

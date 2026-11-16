@@ -217,7 +217,7 @@ export default function CityPage() {
             >
               <span
                 className="h-3.5 w-3.5 shrink-0 rounded"
-                style={z.status === "draft" ? { border: "2px dashed #4C5A5E" } : { background: z.color }}
+                style={z.status === "draft" ? { border: "2px dashed #3D4A4E" } : { background: z.color }}
               />
               <span className="flex-grow">
                 <b className="block">{z.name}</b>

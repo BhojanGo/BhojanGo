@@ -1,5 +1,5 @@
 """Every font size a person sees on the website and the admin console, page by page
-(Round 6: the type scale is the only source of sizes).
+(Round 8: the fluid type scale is the only source of sizes).
 
     QA_WEB=https://web-... [QA_ADMIN=https://admin-...] [QA_CORE=https://core-api-...] \\
       [E2E_LOGINS_FILE=/outside/the/repo/logins.txt] [CHROMIUM=/path/to/chrome] \\
@@ -9,9 +9,15 @@ With SHOTS_DIR it also saves a viewport screenshot (JPEG) of every page view it 
 
 Visits every website page at 1440 px and 390 px and every admin page at 1440 px,
 reads the computed font size of each visible text node (and of form fields), and
-prints per page the distinct sizes with how many text nodes use each. Exits 1 when
-any size is outside the type scale (64 44 40 30 28 22 20 18 17 16 15 14 12) or any
-12 px text is not uppercase (12 px is the caption token: uppercase labels and badges).
+prints per page the distinct sizes with how many text nodes use each. The sizes are
+fluid (packages/ui tokens.js typeScale: each role from its min at a 360 px viewport
+to its max at 1440 px, clamp() in between), so a size is checked against its role:
+the nearest type class on the element or an ancestor (text-h1 ... text-caption,
+any responsive variant) names the role(s), and the size must lie in that role's
+[min, max] and match what the role computes at this viewport width. Text with no
+type class must match some role at this width. Exits 1 when any text is off the
+scale, any 12 px text is not uppercase (12 px is only the caption: uppercase labels
+and badges), or any readable text is under 13 px.
 
 Pages are found the way a visitor finds them: the city and kitchen pages from the
 links on /cities and a city page (plus Boise, a US city), the admin tabs from the
@@ -35,14 +41,35 @@ import sys
 import urllib.parse
 import urllib.request
 
-# The type scale (packages/ui/tokens.js typeScale): desktop and phone sizes in px.
-ALLOWED = (64, 44, 40, 30, 28, 22, 20, 18, 17, 16, 15, 14, 12)
+# The type scale (packages/ui/tokens.js typeScale): each role's [min, max] in px,
+# min at a 360 px wide viewport, max at 1440 px, linear between.
+SCALE = {
+    "display": (36, 52), "h1": (28, 36), "h2": (22, 28), "h3": (17, 20), "body-lg": (16, 18),
+    "body": (15, 16), "label": (14, 15), "small": (13, 14), "caption": (12, 12),
+}
+FLUID = (360, 1440)
 CAPTION = 12
+MIN_READABLE = 13
+TOLERANCE = 0.5  # px: rounding of rem/vw in the browser
+
 
 # One pass over the page: visible text nodes (their parent's computed style) and form fields.
-COLLECT_JS = r"""(allowed) => {
+COLLECT_JS = r"""({ scale, fluid, caption, minReadable, tolerance }) => {
   const sizes = {};
   const bad = [];
+  const vw = window.innerWidth;
+  const k = Math.min(1, Math.max(0, (vw - fluid[0]) / (fluid[1] - fluid[0])));
+  const at = (r) => scale[r][0] + (scale[r][1] - scale[r][0]) * k;
+  const ROLE = /(?:^|:)text-(display|h1|h2|h3|body-lg|body|label|small|caption)$/;
+  // The roles named by the nearest element (itself or an ancestor) with a type class.
+  const rolesOf = (el) => {
+    for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+      const cls = typeof e.className === "string" ? e.className : (e.getAttribute && e.getAttribute("class")) || "";
+      const roles = cls.split(/\s+/).map((c) => (ROLE.exec(c) || [])[1]).filter(Boolean);
+      if (roles.length) return roles;
+    }
+    return null;
+  };
   const shown = (el) => el.checkVisibility
     ? el.checkVisibility({ visibilityProperty: true })
     : el.getClientRects().length > 0;
@@ -51,9 +78,15 @@ COLLECT_JS = r"""(allowed) => {
     const px = Math.round(parseFloat(cs.fontSize) * 100) / 100;
     sizes[px] = (sizes[px] || 0) + 1;
     const upper = cs.textTransform === "uppercase" || !/\p{Ll}/u.test(text);
-    if ((!allowed.includes(px) || (px === allowed[allowed.length - 1] && !upper)) && bad.length < 25) {
+    const named = rolesOf(el);
+    const roles = named || Object.keys(scale);
+    const fits = roles.filter((r) => px >= scale[r][0] - tolerance && px <= scale[r][1] + tolerance && Math.abs(px - at(r)) <= tolerance);
+    let why = null;
+    if (!fits.length) why = named ? `${px}px is not ${named.join("/")} at ${vw}px (${named.map((r) => at(r).toFixed(1)).join("/")})` : `${px}px is not on the type scale at ${vw}px`;
+    else if (px < minReadable && !(Math.abs(px - caption) <= 0.01 && upper)) why = px === caption ? `${caption}px text that isn't uppercase` : `${px}px is under ${minReadable}px`;
+    if (why && bad.length < 25) {
       const cls = typeof el.className === "string" ? el.className : "";
-      bad.push({ px, upper, tag: el.tagName.toLowerCase(), text: text.slice(0, 60), cls: cls.slice(0, 140) });
+      bad.push({ px, upper, why, tag: el.tagName.toLowerCase(), text: text.slice(0, 60), cls: cls.slice(0, 140) });
     }
   };
   const skip = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
@@ -68,22 +101,19 @@ COLLECT_JS = r"""(allowed) => {
     const text = (el.value || el.placeholder || "").trim();
     if (text && shown(el)) note(el, text);
   }
-  return { sizes, bad };
+  return { sizes, bad, width: vw };
 }"""
 
 
 def collect(page) -> dict:  # type: ignore[no-untyped-def]
-    """{"sizes": {px: text nodes}, "bad": [samples of text off the scale or lowercase at 12 px]}."""
-    return page.evaluate(COLLECT_JS, sorted(ALLOWED, reverse=True))
+    """{"sizes": {px: text nodes}, "bad": [samples of text off the scale, under 13 px or lowercase at 12 px], "width": vw}."""
+    return page.evaluate(COLLECT_JS, {"scale": {r: list(v) for r, v in SCALE.items()}, "fluid": list(FLUID),
+                                      "caption": CAPTION, "minReadable": MIN_READABLE, "tolerance": TOLERANCE})
 
 
 def problems(result: dict) -> list[str]:
     """What's wrong on the page, in words (empty when every size is on the scale)."""
-    out = []
-    for b in result["bad"]:
-        why = f"{b['px']}px is not on the type scale" if b["px"] not in ALLOWED else f"{CAPTION}px text that isn't uppercase"
-        out.append(f"{why}: <{b['tag']} class=\"{b['cls']}\"> {b['text']!r}")
-    return out
+    return [f"{b['why']}: <{b['tag']} class=\"{b['cls']}\"> {b['text']!r}" for b in result["bad"]]
 
 
 def summary(result: dict) -> str:

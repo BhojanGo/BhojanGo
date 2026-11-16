@@ -20,7 +20,7 @@ export default async function Ride() {
       <div>
         <p className="text-caption text-[#0B5D66]">{t("ride.eyebrow")}</p>
         <h1 className="text-h1 leading-[1.05] tracking-[-1.2px]">{t("ride.title")}</h1>
-        <p className="mt-3 text-body-lg text-[#4C5A5E]">{t("ride.lead")}</p>
+        <p className="mt-3 text-body-lg text-muted">{t("ride.lead")}</p>
       </div>
 
       <section aria-labelledby="pay" className="rounded-[20px] bg-[#F4F6F6] p-6">
@@ -30,12 +30,12 @@ export default async function Ride() {
             <li key={p} className="flex gap-3">
               <span aria-hidden="true" className="mt-[7px] h-2 w-2 shrink-0 rounded-full bg-[#0B5D66]" />
               <span>
-                <b>{t(`ride.pay_${p}_title`)}</b> <span className="text-[#4C5A5E]">{t(`ride.pay_${p}_body`)}</span>
+                <b>{t(`ride.pay_${p}_title`)}</b> <span className="text-muted">{t(`ride.pay_${p}_body`)}</span>
               </span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-small text-[#4C5A5E]">
+        <p className="mt-4 text-small text-muted">
           {t("ride.pay_more")}{" "}
           <Link href="/help" className="font-bold">{t("ride.help_link")}</Link>
         </p>
@@ -51,7 +51,7 @@ export default async function Ride() {
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-small text-[#4C5A5E]">{t("ride.apply_note")}</p>
+        <p className="mt-4 text-small text-muted">{t("ride.apply_note")}</p>
       </section>
     </div>
   );

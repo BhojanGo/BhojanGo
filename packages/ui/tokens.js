@@ -16,7 +16,7 @@ const color = {
   line: "#E2E7E8",
   lineStrong: "#C9D3D4",
   divider: "#EEF1F1",
-  muted: "#4C5A5E", // secondary text
+  muted: "#3D4A4E", // secondary text: 9.4:1 on white, 8.6:1 on porcelain
   faint: "#7A878A", // struck-through prices
   chili: "#B3261E", // alerts only
   plate: "#F6E7CC", // food image ground
@@ -53,8 +53,10 @@ const radius = { chip: 8, card: 16, sheet: 24, pill: 999 };
 const touch = { min: 48, primary: 56, rider: 64 };
 
 const font = {
-  display: "Familjen Grotesk", // display, h1, h2 (weight 600)
-  text: "Hanken Grotesk", // everything else (400, 600, 700), tabular figures for money
+  // Inter (OFL), self-hosted: @fontsource-variable/inter on the web and admin,
+  // @expo-google-fonts/inter in the apps. One family for every role.
+  text: "Inter",
+  display: "Inter", // kept for older imports: the same family as text
   // Indian scripts fall back to Noto Sans <script> (Marathi uses Devanagari).
   scripts: {
     devanagari: "Noto Sans Devanagari",
@@ -65,25 +67,38 @@ const font = {
   },
 };
 
-// The type scale (Round 6): the ONLY font sizes allowed on the web, admin and
-// the apps. px values; `phone` applies below 768 px on the web and always in the
-// apps. Weights: display, h1, h2, h3, label 600; body 400; caption 700.
-// caption is for uppercase labels and badges only; nothing readable under 14.
+// The type scale (Round 8): the ONLY font sizes allowed on the web, admin and the
+// apps. Sizes are fluid: `min` px at a 360 px wide viewport, `max` px at 1440 px,
+// linear in between (CSS clamp() on the web; the screen's shorter side in dp in
+// the apps). Weights: display/h1/h2 700, h3/label 600, body-lg/body/small 400,
+// caption 700. Tracking in px (display -0.8, h1 -0.4), caption 0.06em uppercase.
+// caption is for uppercase labels and badges only; nothing readable under 13.
 // Web: Tailwind classes text-display ... text-caption (tailwind-preset.js).
+const fluid = { minWidth: 360, maxWidth: 1440 };
 const typeScale = {
-  display: { desktop: 64, phone: 44, weight: "600", family: "display", lineHeight: 1.05, tracking: -0.02 },
-  h1: { desktop: 40, phone: 30, weight: "600", family: "display", lineHeight: 1.1, tracking: -0.015 },
-  h2: { desktop: 28, phone: 22, weight: "600", family: "display", lineHeight: 1.2, tracking: -0.01 },
-  h3: { desktop: 20, phone: 18, weight: "600", family: "text", lineHeight: 1.3, tracking: 0 },
-  "body-lg": { desktop: 18, phone: 17, weight: "400", family: "text", lineHeight: 1.5, tracking: 0 },
-  body: { desktop: 16, phone: 16, weight: "400", family: "text", lineHeight: 1.5, tracking: 0 },
-  label: { desktop: 15, phone: 15, weight: "600", family: "text", lineHeight: 1.4, tracking: 0 },
-  small: { desktop: 14, phone: 14, weight: "400", family: "text", lineHeight: 1.45, tracking: 0 },
-  caption: { desktop: 12, phone: 12, weight: "700", family: "text", lineHeight: 1.3, tracking: 0.06, uppercase: true },
+  display: { min: 36, max: 52, weight: "700", lineHeight: 1.1, tracking: -0.8 },
+  h1: { min: 28, max: 36, weight: "700", lineHeight: 1.15, tracking: -0.4 },
+  h2: { min: 22, max: 28, weight: "700", lineHeight: 1.2, tracking: 0 },
+  h3: { min: 17, max: 20, weight: "600", lineHeight: 1.3, tracking: 0 },
+  "body-lg": { min: 16, max: 18, weight: "400", lineHeight: 1.5, tracking: 0 },
+  body: { min: 15, max: 16, weight: "400", lineHeight: 1.5, tracking: 0 },
+  label: { min: 14, max: 15, weight: "600", lineHeight: 1.4, tracking: 0 },
+  small: { min: 13, max: 14, weight: "400", lineHeight: 1.45, tracking: 0 },
+  caption: { min: 12, max: 12, weight: "700", lineHeight: 1.3, tracking: 0, trackingEm: 0.06, uppercase: true },
 };
 
-/** Every allowed font size in px (what the page checks and the lint rule enforce). */
-const fontSizes = [...new Set(Object.values(typeScale).flatMap((t) => [t.desktop, t.phone]))].sort((a, b) => b - a);
+/** A role's size in px at a viewport (or screen) width: min at 360, max at 1440, linear between. */
+function fontSizeAt(role, width) {
+  const t = typeScale[role];
+  const k = Math.min(1, Math.max(0, (width - fluid.minWidth) / (fluid.maxWidth - fluid.minWidth)));
+  return t.min + (t.max - t.min) * k;
+}
+
+/** Each role's [min, max] in px (what the page checks and the lint rules enforce). */
+const fontSizeRanges = Object.fromEntries(Object.entries(typeScale).map(([r, t]) => [r, [t.min, t.max]]));
+
+/** The smallest readable size (small's min); only the uppercase caption is under it. */
+const minReadable = typeScale.small.min;
 
 // Legacy app scale, still read by packages/mobile-core until it moves to typeScale.
 // Do not use on the web.
@@ -108,7 +123,9 @@ const shadow = {
 const layout = {
   phone: { columns: 4, edge: 20, gap: 12 },
   tablet: { columns: 8, edge: 24, gap: 16 },
-  web: { columns: 12, edge: 32, gap: 24, maxWidth: 1280, sideMenu: 248 },
+  web: { columns: 12, edge: 32, gap: 24, maxWidth: 1200, sideMenu: 248 },
+  // Page content (web, admin): at most 1200 px, gutters 16 / 32 / 48 px (phone / tablet from 768 / desktop from 1024).
+  page: { maxWidth: 1200, gutter: { phone: 16, tablet: 32, desktop: 48 } },
 };
 
-module.exports = { color, dark, space, radius, touch, font, typeScale, fontSizes, type, shadow, layout };
+module.exports = { color, dark, space, radius, touch, font, fluid, typeScale, fontSizeAt, fontSizeRanges, minReadable, type, shadow, layout };

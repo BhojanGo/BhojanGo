@@ -51,7 +51,7 @@ export function FairBill({
             return (
               <tr key={`${ln.code}-${i}`}>
                 <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
-                <td className="py-[3px] pr-3 text-right text-small text-[#4C5A5E]">{payeeLabel(ln, t)}</td>
+                <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t)}</td>
                 <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale)}</td>
               </tr>
             );
@@ -62,7 +62,7 @@ export function FairBill({
         <b className="text-h3">{totalLabel ?? t("bill.total")}</b>
         <b className="text-h3 tabular-nums">{money(total, currency, formatLocale)}</b>
       </div>
-      {note && <p className="mt-1 text-small text-[#4C5A5E]">{note}</p>}
+      {note && <p className="mt-1 text-small text-muted">{note}</p>}
     </div>
   );
 }

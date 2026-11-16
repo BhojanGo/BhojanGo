@@ -16,7 +16,7 @@ export async function SiteFooter() {
             <LogoMark size={30} />
             <b className="text-h3">{t("common.brand")}</b>
           </div>
-          <div className="mt-3 leading-normal text-[#4C5A5E]">{t("common.tagline")}</div>
+          <div className="mt-3 leading-normal text-muted">{t("common.tagline")}</div>
         </div>
         <div className={col}>
           <b>{t("footer.where_we_deliver")}</b>

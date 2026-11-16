@@ -191,12 +191,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const defaultMethod = saved.find((m) => m.is_default) ? `saved:${saved.find((m) => m.is_default)!.id}` : methods[0]?.key;
   const chosen = methods.find((m) => m.key === (method ?? defaultMethod)) ?? methods[0];
 
-  if (!hydrated || !user) return <div className="mx-auto max-w-[1440px] px-5 py-14 text-[#4C5A5E] md:px-16">{t("common.loading")}</div>;
+  if (!hydrated || !user) return <div className="mx-auto max-w-[1440px] px-5 py-14 text-muted md:px-16">{t("common.loading")}</div>;
   if (!lines.length || !bag.restaurant) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
         <h1 className="text-h1">{t("checkout.empty_title")}</h1>
-        <p className="mt-2 text-[#4C5A5E]">{t("checkout.empty_body")}</p>
+        <p className="mt-2 text-muted">{t("checkout.empty_body")}</p>
         <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:text-white">{t("checkout.find_food")}</Link>
       </div>
     );
@@ -293,13 +293,13 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   const bill = (
     <>
-      <div className="mb-2 text-caption text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
+      <div className="mb-2 text-caption text-muted">{t("checkout.fair_bill")}</div>
       {q ? (
         <FairBill lines={q.lines} total={q.total} currency={q.currency} formatLocale={f.formatLocale} t={t} distance={distance} totalLabel={t("checkout.you_pay")} compact />
       ) : (
         <div>
           <div className="flex justify-between text-body"><span>{t("bill.line_food")}</span><b className="tabular-nums">{money(subtotal)}</b></div>
-          <p className="mt-2 text-small text-[#4C5A5E]" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
+          <p className="mt-2 text-small text-muted" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
         </div>
       )}
     </>
@@ -311,7 +311,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
         <Link href={kitchenPath} className="inline-flex items-center gap-2 font-bold text-[#0B5D66]">
           <span aria-hidden="true">←</span> {t("checkout.back_to_menu")}
         </Link>
-        <span className="hidden items-center gap-2 text-[#4C5A5E] md:flex">
+        <span className="hidden items-center gap-2 text-muted md:flex">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
           {t("checkout.secure")}
         </span>
@@ -335,7 +335,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                   <span className="mt-[2px] md:hidden"><Pin size={20} color="#0B5D66" /></span>
                   <span>
                     <b className="block text-label">{address ? placeLine(address) : place?.label}</b>
-                    <span className="text-small text-[#4C5A5E]">{[address?.delivery_notes, distance ? t("checkout.from_kitchen", { distance }) : null, arrive].filter(Boolean).join(" · ")}</span>
+                    <span className="text-small text-muted">{[address?.delivery_notes, distance ? t("checkout.from_kitchen", { distance }) : null, arrive].filter(Boolean).join(" · ")}</span>
                   </span>
                 </div>
               ) : (
@@ -345,17 +345,17 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                     <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-4 ${picked === "place" ? "border-[#0B5D66] bg-[#EFF6F6]" : "border-[#E2E7E8]"}`}>
                       <input type="radio" name="where" className="peer sr-only" checked={picked === "place"} onChange={() => { setChoice("place"); setNote(null); }} />
                       <Radio on={picked === "place"} />
-                      <span><b className="block">{place.label}</b><span className="text-small text-[#4C5A5E]">{t("checkout.the_area_you_chose")}</span></span>
+                      <span><b className="block">{place.label}</b><span className="text-small text-muted">{t("checkout.the_area_you_chose")}</span></span>
                     </label>
                   )}
                   {list.map((a) => (
                     <label key={a.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-4 ${picked === a.id ? "border-[#0B5D66] bg-[#EFF6F6]" : "border-[#E2E7E8]"}`}>
                       <input type="radio" name="where" className="peer sr-only" checked={picked === a.id} onChange={() => { setChoice(a.id); setNote(null); }} />
                       <Radio on={picked === a.id} />
-                      <span><b className="block">{placeLine(a)}</b><span className="text-small text-[#4C5A5E]">{[a.city, a.delivery_notes].filter(Boolean).join(" · ")}</span></span>
+                      <span><b className="block">{placeLine(a)}</b><span className="text-small text-muted">{[a.city, a.delivery_notes].filter(Boolean).join(" · ")}</span></span>
                     </label>
                   ))}
-                  {!place && list.length === 0 && addresses !== null && <p className="m-0 text-body text-[#4C5A5E]">{t("checkout.no_address")}</p>}
+                  {!place && list.length === 0 && addresses !== null && <p className="m-0 text-body text-muted">{t("checkout.no_address")}</p>}
                 </fieldset>
               )}
               {usingPlace && (
@@ -379,7 +379,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
             <div className="mt-4 pl-[46px]">
               <div className="flex max-w-[350px] items-center gap-3 rounded-2xl border-2 border-[#0B5D66] bg-[#EFF6F6] px-4 py-3">
                 <Radio on />
-                <span><b className="block">{t("checkout.asap")}</b>{arrive && <span className="text-small text-[#4C5A5E]">{arrive}</span>}</span>
+                <span><b className="block">{t("checkout.asap")}</b>{arrive && <span className="text-small text-muted">{arrive}</span>}</span>
               </div>
             </div>
           </section>
@@ -407,7 +407,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 </label>
               )}
             </div>
-            <p className="m-0 mt-3 text-body text-[#4C5A5E] md:pl-[46px]">{t("checkout.tip_note")}</p>
+            <p className="m-0 mt-3 text-body text-muted md:pl-[46px]">{t("checkout.tip_note")}</p>
           </section>
 
           {/* the bill (phone) */}
@@ -450,14 +450,14 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               </span>
               <span>
                 <b className="block text-h3">{kitchen.name}</b>
-                <span className="text-small text-[#4C5A5E]">{[t("kitchen.items", { count }), area].filter(Boolean).join(" · ")}</span>
+                <span className="text-small text-muted">{[t("kitchen.items", { count }), area].filter(Boolean).join(" · ")}</span>
               </span>
             </div>
             <div className="p-5">
               <ul className="m-0 hidden list-none flex-col gap-2 p-0 text-body md:flex">
                 {lines.map((l) => (
                   <li key={l.key} className="flex gap-3">
-                    <span className="flex-grow">{t("kitchen.line", { count: l.quantity, name: l.name })}{l.summary && <span className="text-[#4C5A5E]"> · {l.summary}</span>}</span>
+                    <span className="flex-grow">{t("kitchen.line", { count: l.quantity, name: l.name })}{l.summary && <span className="text-muted"> · {l.summary}</span>}</span>
                     <b className="tabular-nums">{money(l.unitPrice * l.quantity, true)}</b>
                   </li>
                 ))}
@@ -533,7 +533,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div role="dialog" aria-modal="true" aria-labelledby={id} onClick={(e) => e.stopPropagation()} className="w-full rounded-t-[28px] bg-white p-6 md:w-[480px] md:rounded-[28px]">
         <div className="mb-3 flex items-center">
           <h2 id={id} className="m-0 flex-grow text-h2">{title}</h2>
-          <button type="button" aria-label={t("common.close")} onClick={onClose}><Close color="#4C5A5E" /></button>
+          <button type="button" aria-label={t("common.close")} onClick={onClose}><Close color="#3D4A4E" /></button>
         </div>
         {children}
       </div>
@@ -546,7 +546,7 @@ function FakePay({ amount, onClose, onOutcome }: { amount: string; onClose: () =
   const t = useT();
   return (
     <Modal title={t("checkout.test_title")} onClose={onClose}>
-      <p className="m-0 text-body text-[#4C5A5E]">{t("checkout.test_body")}</p>
+      <p className="m-0 text-body text-muted">{t("checkout.test_body")}</p>
       <div className="mt-6 flex gap-3">
         <button type="button" onClick={() => onOutcome("failed")} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-bold">{t("checkout.test_decline")}</button>
         <button type="button" autoFocus onClick={() => onOutcome("succeeded")} className="h-12 flex-[2] rounded-full bg-[#0B5D66] text-label tabular-nums text-white">{t("checkout.test_approve", { amount })}</button>

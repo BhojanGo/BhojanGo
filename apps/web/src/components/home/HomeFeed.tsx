@@ -170,8 +170,8 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
               </span>
               <span className="min-w-0 flex-grow">
                 <b className="block truncate text-label">{o.restaurant_name}</b>
-                <span className="mt-[2px] hidden truncate text-small text-[#4C5A5E] md:block">{items}</span>
-                <span className="mt-[2px] block text-small tabular-nums text-[#4C5A5E]">
+                <span className="mt-[2px] hidden truncate text-small text-muted md:block">{items}</span>
+                <span className="mt-[2px] block text-small tabular-nums text-muted">
                   <span className="hidden md:inline">{f.zone(o.time_zone).date(o.created_at)} · </span>
                   {f.money(o.total, o.currency)}
                 </span>
@@ -248,7 +248,7 @@ export function HomeFeed({
       <section aria-labelledby="greeting" className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 id="greeting" className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{greeting}</h1>
-          <p className="mt-[6px] text-body text-[#4C5A5E]">
+          <p className="mt-[6px] text-body text-muted">
             {t("home.kitchens_deliver", { count: kitchens.length, place: "\u0000" }).split("\u0000").map((part, i) => (
               <span key={i}>{i > 0 && <AddressPill inline label={placeLabel} country={placeCountry ?? null} />}{part}</span>
             ))}
@@ -282,7 +282,7 @@ export function HomeFeed({
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <h2 id="kitchens-near" className="m-0 text-h2 tracking-[-0.5px]">{t("home.kitchens_near")}</h2>
-            <p className="mt-1 hidden text-body text-[#4C5A5E] md:block">{t("home.kitchens_near_note")}</p>
+            <p className="mt-1 hidden text-body text-muted md:block">{t("home.kitchens_near_note")}</p>
           </div>
           {/* the rest of the same list, here (with the filters on: the rest of what they keep) */}
           {!all && shown.length > SHOWN && (
@@ -304,7 +304,7 @@ export function HomeFeed({
             ))}
           </div>
         ) : (
-          <p role="status" className="mt-4 text-body text-[#4C5A5E]">
+          <p role="status" className="mt-4 text-body text-muted">
             {kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}
           </p>
         )}

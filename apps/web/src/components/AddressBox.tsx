@@ -159,7 +159,7 @@ export function AddressBox({
             if (e.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
           }}
           placeholder={t("address.placeholder")}
-          className="min-w-0 flex-grow bg-transparent text-body-lg text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+          className="min-w-0 flex-grow bg-transparent text-body-lg text-[#111418] outline-none placeholder:text-muted"
         />
         <button
           type="submit"
@@ -178,9 +178,9 @@ export function AddressBox({
                 onClick={() => choose(a)}
                 className={`flex h-12 w-full items-center gap-3 rounded-[10px] px-3 text-left ${i === active ? "bg-[#EFF6F6]" : ""}`}
               >
-                <Pin size={16} color="#4C5A5E" />
+                <Pin size={16} color="#3D4A4E" />
                 <span className="flex-grow font-semibold text-[#111418]">{a.label}</span>
-                <span className={`text-small ${a.served ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
+                <span className={`text-small ${a.served ? "text-[#0B5D66]" : "text-muted"}`}>
                   {a.served ? t("address.served") : t("address.not_served")}
                 </span>
               </button>
@@ -196,7 +196,7 @@ export function AddressBox({
               {locate.busy ? t("address.locating") : t("address.use_my_location")}
             </button>
           )}
-          {problem && <span role="status" className="text-small text-[#4C5A5E]">{problem}</span>}
+          {problem && <span role="status" className="text-small text-muted">{problem}</span>}
         </div>
       )}
     </div>

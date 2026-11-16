@@ -35,7 +35,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
 
   if (!hydrated || !user) {
     return (
-      <div className="mx-auto max-w-[1440px] px-5 py-16 text-[#4C5A5E] md:px-16" role="status">
+      <div className="mx-auto max-w-[1440px] px-5 py-16 text-muted md:px-16" role="status">
         {t("account.loading")}
       </div>
     );
@@ -51,7 +51,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
           </span>
           <span className="min-w-0">
             <b className="block truncate text-h3">{user.full_name}</b>
-            {user.phone && <span className="text-small text-[#4C5A5E]">{user.phone}</span>}
+            {user.phone && <span className="text-small text-muted">{user.phone}</span>}
           </span>
         </div>
         <nav aria-label={t("account.nav.label")} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-col md:gap-[2px] md:overflow-visible md:px-0 md:pb-0">
@@ -79,7 +79,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
               router.push("/");
               router.refresh();
             }}
-            className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-label text-[#4C5A5E] md:mt-4 md:h-12"
+            className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-label text-muted md:mt-4 md:h-12"
           >
             {t("account.nav.sign_out")}
           </button>

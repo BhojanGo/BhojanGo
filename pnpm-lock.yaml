@@ -55,6 +55,9 @@ importers:
       '@bhojango/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@tanstack/react-query':
         specifier: ^5.40.0
         version: 5.96.2(react@19.3.0)
@@ -109,7 +112,7 @@ importers:
         version: 9.39.5(jiti@1.21.7)
       eslint-config-next:
         specifier: 16.4.6
-        version: 16.4.6(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
+        version: 16.4.6(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.18
         version: 8.5.32
@@ -128,12 +131,9 @@ importers:
       '@bhojango/mobile-core':
         specifier: workspace:*
         version: link:../../packages/mobile-core
-      '@expo-google-fonts/familjen-grotesk':
+      '@expo-google-fonts/inter':
         specifier: ^0.4.2
         version: 0.4.2
-      '@expo-google-fonts/hanken-grotesk':
-        specifier: ^0.4.3
-        version: 0.4.3
       '@expo-google-fonts/noto-sans-bengali':
         specifier: ^0.4.4
         version: 0.4.4
@@ -255,12 +255,9 @@ importers:
       '@bhojango/mobile-core':
         specifier: workspace:*
         version: link:../../packages/mobile-core
-      '@expo-google-fonts/familjen-grotesk':
+      '@expo-google-fonts/inter':
         specifier: ^0.4.2
         version: 0.4.2
-      '@expo-google-fonts/hanken-grotesk':
-        specifier: ^0.4.3
-        version: 0.4.3
       '@expo-google-fonts/noto-sans-bengali':
         specifier: ^0.4.4
         version: 0.4.4
@@ -376,12 +373,9 @@ importers:
       '@bhojango/mobile-core':
         specifier: workspace:*
         version: link:../../packages/mobile-core
-      '@expo-google-fonts/familjen-grotesk':
+      '@expo-google-fonts/inter':
         specifier: ^0.4.2
         version: 0.4.2
-      '@expo-google-fonts/hanken-grotesk':
-        specifier: ^0.4.3
-        version: 0.4.3
       '@expo-google-fonts/noto-sans-bengali':
         specifier: ^0.4.4
         version: 0.4.4
@@ -494,6 +488,9 @@ importers:
       '@bhojango/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
       maplibre-gl:
         specifier: 6.15.0
         version: 6.15.0
@@ -530,7 +527,7 @@ importers:
         version: 9.39.5(jiti@1.21.7)
       eslint-config-next:
         specifier: 16.4.6
-        version: 16.4.6(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
+        version: 16.4.6(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.18
         version: 8.5.32
@@ -613,12 +610,9 @@ importers:
       '@bhojango/config':
         specifier: workspace:*
         version: link:../config
-      '@expo-google-fonts/familjen-grotesk':
+      '@expo-google-fonts/inter':
         specifier: ^0.4.2
         version: 0.4.2
-      '@expo-google-fonts/hanken-grotesk':
-        specifier: ^0.4.3
-        version: 0.4.3
       '@expo-google-fonts/noto-sans-bengali':
         specifier: ^0.4.4
         version: 0.4.4
@@ -1307,11 +1301,8 @@ packages:
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@expo-google-fonts/familjen-grotesk@0.4.2':
-    resolution: {integrity: sha512-nQZEXinenR7wYvMCCEm2dxzpGHnFgLSPruXTx5cqfaSYNxsnFWVtS6o/5bNLJaLk5Gp9CBAvWFlAQBiHTrjggw==}
-
-  '@expo-google-fonts/hanken-grotesk@0.4.3':
-    resolution: {integrity: sha512-TZn/Ux+nCxEjG/zAenCFbEhOAPxSXN3lo2YU2jHcPsNBPFeicm8feQStL81igJuAwJLCn62VvEOdTtmVEBDl0g==}
+  '@expo-google-fonts/inter@0.4.2':
+    resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
 
   '@expo-google-fonts/noto-sans-bengali@0.4.4':
     resolution: {integrity: sha512-Ya58tLTEdP4P5EF3ZXTM829/g57mbfW8OrD16MMZr2sC3nIKItl/3J9tZlk1nrtqfFGzIgxb+zt/hLjAaTAQgQ==}
@@ -1535,6 +1526,9 @@ packages:
   '@expo/xcpretty@4.4.7':
     resolution: {integrity: sha512-EbxYllZ7/ozONVZd425cm4XnolfW+AmSFT5aP7Jdno6oc3WrYQcHz2CO20z/2rwWwYgztmV2PXvYH+BQ8YFjqg==}
     hasBin: true
+
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -7063,9 +7057,7 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@expo-google-fonts/familjen-grotesk@0.4.2': {}
-
-  '@expo-google-fonts/hanken-grotesk@0.4.3': {}
+  '@expo-google-fonts/inter@0.4.2': {}
 
   '@expo-google-fonts/noto-sans-bengali@0.4.4': {}
 
@@ -7463,6 +7455,8 @@ snapshots:
       '@babel/code-frame': 7.29.7
       chalk: 4.1.2
       js-yaml: 4.3.2
+
+  '@fontsource-variable/inter@5.3.0': {}
 
   '@hapi/hoek@9.3.0':
     optional: true
@@ -9897,7 +9891,7 @@ snapshots:
       '@next/eslint-plugin-next': 16.4.6(eslint@9.39.5(jiti@1.21.7))
       eslint: 9.39.5(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@1.21.7))
@@ -9940,7 +9934,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3(supports-color@10.2.2)
@@ -9952,6 +9946,21 @@ snapshots:
       unrs-resolver: 1.11.1
     optionalDependencies:
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
+    transitivePeerDependencies:
+      - supports-color
+
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7)):
+    dependencies:
+      '@nolyfill/is-core-module': 1.0.39
+      debug: 4.4.3(supports-color@10.2.2)
+      eslint: 9.39.5(jiti@1.21.7)
+      get-tsconfig: 4.13.7
+      is-bun-module: 2.0.0
+      stable-hash: 0.0.5
+      tinyglobby: 0.2.15
+      unrs-resolver: 1.11.1
+    optionalDependencies:
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
@@ -9976,14 +9985,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.5(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
@@ -10085,7 +10094,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.5(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@1.21.7))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7)))(eslint@9.39.5(jiti@1.21.7))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3

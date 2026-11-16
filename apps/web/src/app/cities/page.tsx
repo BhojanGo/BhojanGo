@@ -29,8 +29,8 @@ export default async function Cities({ searchParams }: { searchParams: Search })
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-16 md:pb-[72px] md:pt-12">
-      <h1 className="m-0 text-h1 tracking-[-1px] md:tracking-[-1.4px]">{choosing ? t("cities.choose_title") : t("cities.title")}</h1>
-      <p className="mt-2 text-body-lg text-[#4C5A5E]">{choosing ? t("cities.choose_note") : totalsLine(t, dir.totals)}</p>
+      <h1 className="m-0 text-h1">{choosing ? t("cities.choose_title") : t("cities.title")}</h1>
+      <p className="mt-2 text-body-lg text-muted">{choosing ? t("cities.choose_note") : totalsLine(t, dir.totals)}</p>
       {choosing ? (
         <ChooseCity dir={dir} covers={covers} country={country?.code ?? null} choosing={choosing} />
       ) : (

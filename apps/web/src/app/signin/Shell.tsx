@@ -57,7 +57,7 @@ export async function Shell({ children }: { children: ReactNode }) {
       </div>
       <div className="flex flex-col px-5 pb-10 pt-6 md:px-[96px] md:py-10">
         <div className="flex max-w-[440px] flex-grow flex-col md:justify-center">{children}</div>
-        <p className="m-0 mt-8 text-small text-[#4C5A5E]">
+        <p className="m-0 mt-8 text-small text-muted">
           {t("signin.agree_before")} <Link href="/terms">{t("signin.terms")}</Link> {t("signin.agree_and")} <Link href="/privacy">{t("signin.privacy")}</Link>.
         </p>
       </div>

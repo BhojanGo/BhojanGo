@@ -70,8 +70,8 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
           <b className="truncate text-label">{o.restaurant_name}</b>
           <b className="shrink-0 text-label tabular-nums">{f.money(o.total, o.currency)}</b>
         </span>
-        <span className="mt-[2px] block truncate text-small text-[#4C5A5E]">{summary}</span>
-        <span className="mt-[6px] flex items-center justify-between gap-2 text-small text-[#4C5A5E]">
+        <span className="mt-[2px] block truncate text-small text-muted">{summary}</span>
+        <span className="mt-[6px] flex items-center justify-between gap-2 text-small text-muted">
           <span className="min-w-0 truncate">
             {z.date(at)}, {z.time(at)} · {orderCode(o.id)}
           </span>
@@ -142,17 +142,17 @@ export function OrdersView() {
       <div className={chosen ? "hidden lg:block" : ""}>
         <div className="flex items-baseline justify-between">
           <h1 className="text-h1 tracking-[-0.8px]">{t("account.orders.title")}</h1>
-          {!loading && !list.error && <span className="text-small text-[#4C5A5E]">{t("account.orders.count", { count: list.total })}</span>}
+          {!loading && !list.error && <span className="text-small text-muted">{t("account.orders.count", { count: list.total })}</span>}
         </div>
         <label className="mt-4 flex h-11 items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 text-small focus-within:border-[#0B5D66]">
-          <Search size={16} color="#4C5A5E" />
+          <Search size={16} color="#3D4A4E" />
           <span className="sr-only">{t("account.orders.search")}</span>
           <input
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder={t("account.orders.search")}
-            className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+            className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-muted"
           />
         </label>
         <div role="group" aria-label={t("account.orders.filters")} className="mt-3 flex gap-2 overflow-x-auto">
@@ -168,7 +168,7 @@ export function OrdersView() {
             </button>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap items-end gap-3 text-small text-[#4C5A5E]">
+        <div className="mt-3 flex flex-wrap items-end gap-3 text-small text-muted">
           <label className="flex flex-col gap-1 font-bold">
             {t("account.orders.from")}
             <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="h-10 rounded-xl border border-[#C9D3D4] px-3 text-small text-[#111418]" />
@@ -185,15 +185,15 @@ export function OrdersView() {
         </div>
 
         <div className="mt-4 flex flex-col gap-[10px]" aria-busy={loading}>
-          {loading && <p role="status" className="py-6 text-[#4C5A5E]">{t("account.loading")}</p>}
+          {loading && <p role="status" className="py-6 text-muted">{t("account.loading")}</p>}
           {!loading && list.error && (
-            <p role="alert" className="py-6 text-[#4C5A5E]">
+            <p role="alert" className="py-6 text-muted">
               {t("account.orders.error")}{" "}
               <button type="button" onClick={() => setRetry((n) => n + 1)} className="font-bold text-[#0B5D66]">{t("common.retry")}</button>
             </p>
           )}
           {!loading && !list.error && !items.length && (
-            <p className="py-6 text-[#4C5A5E]">
+            <p className="py-6 text-muted">
               {filtered ? t("account.orders.empty_filtered") : t("account.orders.empty")}{" "}
               {!filtered && <Link href="/" className="font-bold">{t("account.orders.find_food")}</Link>}
             </p>
@@ -220,7 +220,7 @@ export function OrdersView() {
         {shown ? (
           <Receipt key={shown} id={shown} />
         ) : (
-          !loading && items.length > 0 && <p className="text-[#4C5A5E]">{t("account.receipt.pick_order")}</p>
+          !loading && items.length > 0 && <p className="text-muted">{t("account.receipt.pick_order")}</p>
         )}
       </div>
     </div>

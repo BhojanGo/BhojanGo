@@ -34,7 +34,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
   const offerBlock = offers.length > 0 && (
     <section aria-labelledby="offers-near">
       <h2 id="offers-near" className="m-0 text-h2 tracking-[-0.5px]">{t("offers.near_you")}</h2>
-      <p className="mt-1 text-body text-[#4C5A5E]">{t("offers.who_pays")}</p>
+      <p className="mt-1 text-body text-muted">{t("offers.who_pays")}</p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {offers.slice(0, 3).map((o, i) => (
           <OfferCard key={o.id} o={o} i={i} t={t} currency={currency} formatLocale={formatLocale} fallbackPhoto={cover(o)} />
