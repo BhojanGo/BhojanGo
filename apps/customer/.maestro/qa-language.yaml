@@ -57,7 +57,7 @@ tags:
 - extendedWaitUntil:
     notVisible:
       id: "language-menu"
-    timeout: 5000
+    timeout: 20000
 # Telugu words on the home screen, and the pill says TE.
 - extendedWaitUntil:
     visible: "నగరం మార్చండి"

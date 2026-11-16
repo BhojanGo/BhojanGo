@@ -3,7 +3,9 @@
 
     QA_WEB=https://web-... [QA_ADMIN=https://admin-...] [QA_CORE=https://core-api-...] \\
       [E2E_LOGINS_FILE=/outside/the/repo/logins.txt] [CHROMIUM=/path/to/chrome] \\
-      python tools/web/font_sizes.py
+      [SHOTS_DIR=docs/screenshots/type-v1/web] python tools/web/font_sizes.py
+
+With SHOTS_DIR it also saves a viewport screenshot (JPEG) of every page view it measures.
 
 Visits every website page at 1440 px and 390 px and every admin page at 1440 px,
 reads the computed font size of each visible text node (and of form fields), and
@@ -12,9 +14,10 @@ any size is outside the type scale (64 44 40 30 28 22 20 18 17 16 15 14 12) or a
 12 px text is not uppercase (12 px is the caption token: uppercase labels and badges).
 
 Pages are found the way a visitor finds them: the city and kitchen pages from the
-links on /cities and a city page, the admin tabs from the console's own links. With
-QA_CORE and E2E_LOGINS_FILE it also signs in, as the demo customer (screens_v3.py's
-demo1.hyd: an order on its way, past orders, favourites) for the account, checkout and
+links on /cities and a city page (plus Boise, a US city), the admin tabs from the
+console's own links. With QA_CORE and E2E_LOGINS_FILE it also signs in, as the demo
+customers of Hyderabad and Boise (screens_v3.py's demo1.hyd and demo1.boi: past orders,
+favourites, an order on its way when the city is open) for the account, checkout and
 tracking pages, and as the demo admin for the console.
 
 Read-only, so it runs against any environment, QA included, without the target
@@ -90,10 +93,11 @@ def summary(result: dict) -> str:
 
 # ── the run ───────────────────────────────────────────────────────────────────
 WIDTHS = {1440: 900, 390: 844}
-CUSTOMER = "demo1.hyd@example.com"
+CUSTOMERS = ("demo1.hyd@example.com", "demo1.boi@example.com")  # India and the US
 ADMIN = "admin@example.com"
 WEB_PAGES = ("/", "/signin", "/signin/code?phone=%2B10000000000&next=%2F", "/cities", "/ride", "/partner",
              "/help", "/privacy", "/terms", "/credits")
+EXTRA_CITIES = ("/us/boise",)  # a US city: dollars, the US languages (the /cities list may show only one country)
 ADMIN_SECTIONS = ("/overview", "/operations", "/partners", "/pricing", "/pricing/simulator", "/markets", "/finance", "/settings")
 
 
@@ -134,6 +138,9 @@ def main() -> int:
 
     failures: list[str] = []
     pages = 0
+    shots = os.environ.get("SHOTS_DIR", "")
+    if shots:
+        os.makedirs(shots, exist_ok=True)
 
     def measure(page, label: str) -> None:  # type: ignore[no-untyped-def]
         nonlocal pages
@@ -141,6 +148,9 @@ def main() -> int:
         r = collect(page)
         pages += 1
         bad = problems(r)
+        if shots:  # SHOTS_DIR: a viewport screenshot of the page as measured
+            name = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")[:90] or "page"
+            page.screenshot(path=os.path.join(shots, f"{pages:03d}-{name}.jpg"), type="jpeg", quality=80)
         print(f"{'FAIL' if bad else 'ok  '} {label}: {summary(r)}", flush=True)
         for p in bad:
             print(f"       {p}", flush=True)
@@ -157,8 +167,10 @@ def main() -> int:
                 pg.goto(web + "/cities", wait_until="networkidle")
                 cities = links(pg, r"/[a-z]{2}/[a-z0-9-]+")
                 found += cities[:3]
-                if cities:
-                    pg.goto(web + cities[0], wait_until="networkidle")
+                for city in ([cities[0]] if cities else []) + [c for c in EXTRA_CITIES if c != (cities[:1] or [None])[0]]:
+                    pg.goto(web + city, wait_until="networkidle")
+                    if city not in found:
+                        found.append(city)
                     found += links(pg, r"/[a-z]{2}/[a-z0-9-]+/[a-z0-9-]+")[:2]
                 for path in found:
                     pg.goto(web + path, wait_until="networkidle")
@@ -166,42 +178,43 @@ def main() -> int:
                 pg.context.close()
 
         # ── website, signed in as the demo customer ─────────────────────────
-        if web and core and CUSTOMER in passwords:
-            t = api(core, "POST", "/auth/login", None, {"email": CUSTOMER, "password": passwords[CUSTOMER]})
-            tok = t["access_token"]
-            me = api(core, "GET", "/users/me", tok)
-            session = json.dumps({"state": {"access": tok, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
-            cookies = []
-            home = next((a for a in api(core, "GET", "/me/addresses", tok) if a.get("is_default")), None)
-            if home:
-                loc = api(core, "GET", f"/markets/locate?lat={home['lat']}&lng={home['lng']}")
-                directory = api(core, "GET", "/markets/directory")
-                city_path = next((c["path"] for k in directory["countries"] for r in k["regions"] for c in r["cities"]
-                                  if c.get("code") == loc.get("city_code")), None)
-                place = {"label": f"{loc.get('zone_name')}, {loc.get('city_name')}", "lat": home["lat"], "lng": home["lng"],
-                         "country": loc.get("country_code"), "city_code": loc.get("city_code"), "city_path": city_path,
-                         "zone": loc.get("zone_name"), "served": bool(loc.get("serviceable")), "address_id": home["id"]}
-                cookies = [{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": web}]
-            orders = api(core, "GET", "/orders?limit=50", tok)
-            orders = orders.get("items", orders) if isinstance(orders, dict) else orders
-            account = ["/", "/checkout", "/account/orders", "/account/profile", "/account/favourites"]
-            if orders:
-                active = next((o for o in orders if o["status"] not in ("delivered", "cancelled", "refunded", "rejected")), None)
-                done = next((o for o in orders if o["status"] == "delivered"), None)
-                if active:
-                    account.append(f"/orders/{active['id']}/track")
-                if done:
-                    account += [f"/account/orders?order={done['id']}", f"/account/orders/{done['id']}/report"]
-            for w, h in WIDTHS.items():
-                ctx = b.new_context(viewport={"width": w, "height": h})
-                if cookies:
-                    ctx.add_cookies(cookies)
-                ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
-                pg = ctx.new_page()
-                for path in account:
-                    pg.goto(web + path, wait_until="networkidle")
-                    measure(pg, f"web {w} signed-in {path}")
-                ctx.close()
+        if web and core and any(c in passwords for c in CUSTOMERS):
+            for customer in (c for c in CUSTOMERS if c in passwords):
+                t = api(core, "POST", "/auth/login", None, {"email": customer, "password": passwords[customer]})
+                tok = t["access_token"]
+                me = api(core, "GET", "/users/me", tok)
+                session = json.dumps({"state": {"access": tok, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
+                cookies = []
+                home = next((a for a in api(core, "GET", "/me/addresses", tok) if a.get("is_default")), None)
+                if home:
+                    loc = api(core, "GET", f"/markets/locate?lat={home['lat']}&lng={home['lng']}")
+                    directory = api(core, "GET", "/markets/directory")
+                    city_path = next((c["path"] for k in directory["countries"] for r in k["regions"] for c in r["cities"]
+                                      if c.get("code") == loc.get("city_code")), None)
+                    place = {"label": f"{loc.get('zone_name')}, {loc.get('city_name')}", "lat": home["lat"], "lng": home["lng"],
+                             "country": loc.get("country_code"), "city_code": loc.get("city_code"), "city_path": city_path,
+                             "zone": loc.get("zone_name"), "served": bool(loc.get("serviceable")), "address_id": home["id"]}
+                    cookies = [{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": web}]
+                orders = api(core, "GET", "/orders?limit=50", tok)
+                orders = orders.get("items", orders) if isinstance(orders, dict) else orders
+                account = ["/", "/checkout", "/account/orders", "/account/profile", "/account/favourites"]
+                if orders:
+                    active = next((o for o in orders if o["status"] not in ("delivered", "cancelled", "refunded", "rejected")), None)
+                    done = next((o for o in orders if o["status"] == "delivered"), None)
+                    if active:
+                        account.append(f"/orders/{active['id']}/track")
+                    if done:
+                        account += [f"/account/orders?order={done['id']}", f"/account/orders/{done['id']}/report"]
+                for w, h in WIDTHS.items():
+                    ctx = b.new_context(viewport={"width": w, "height": h})
+                    if cookies:
+                        ctx.add_cookies(cookies)
+                    ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
+                    pg = ctx.new_page()
+                    for path in account:
+                        pg.goto(web + path, wait_until="networkidle")
+                        measure(pg, f"web {w} signed-in {customer.split('@')[0]} {path}")
+                    ctx.close()
         elif web:
             print("(signed-in website pages skipped: set QA_CORE and E2E_LOGINS_FILE)", flush=True)
 
