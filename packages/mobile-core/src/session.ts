@@ -120,6 +120,42 @@ export const useSession = create<SessionState>()((set, get) => ({
   },
 }));
 
+// ── email sign-in (round 8, D5) ──────────────────────────────────────────────
+// The API answers sign-up, "email me a code" and "forgot password" the same whether
+// or not the email has an account; the screens say no more than that either.
+
+async function appLanguage(): Promise<string | undefined> {
+  const chosen = await SecureStore.getItemAsync("bg.language").catch(() => null);
+  const lang = (chosen || deviceLocale() || "").split("-")[0]?.toLowerCase();
+  return lang && /^[a-z]{2}$/.test(lang) ? lang : undefined;
+}
+
+/** An admin account: its second step happens on the admin console, not in the apps. */
+export class AdminAccountError extends Error {}
+
+type SignInAnswer = { access_token: string; refresh_token: string } | { mfa_required: true };
+
+async function adoptAnswer(answer: SignInAnswer): Promise<void> {
+  if ("mfa_required" in answer && answer.mfa_required) throw new AdminAccountError("admin");
+  await useSession.getState().adopt(answer as { access_token: string; refresh_token: string });
+}
+
+export const emailAuth = {
+  signIn: async (email: string, password: string) =>
+    adoptAnswer(unwrap(await api.core.POST("/api/v1/auth/login", { body: { email, password } })) as SignInAnswer),
+  signUp: async (email: string, password: string, country: string) => {
+    unwrap(await api.core.POST("/api/v1/auth/email/sign-up", { body: { email, password, country, language: await appLanguage() } }));
+  },
+  sendCode: async (email: string) => {
+    unwrap(await api.core.POST("/api/v1/auth/email/code", { body: { email, language: await appLanguage() } }));
+  },
+  verify: async (email: string, code: string) =>
+    adoptAnswer(unwrap(await api.core.POST("/api/v1/auth/email/verify", { body: { email, code } })) as SignInAnswer),
+  forgot: async (email: string) => {
+    unwrap(await api.core.POST("/api/v1/auth/password/forgot", { body: { email, language: await appLanguage() } }));
+  },
+};
+
 export const api = createApi({
   coreUrl: urls.core,
   realtimeUrl: urls.realtime,

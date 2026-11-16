@@ -16,6 +16,7 @@ from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.service import oidc
 from core_api.modules.identity.service.security import hash_password
+from core_api.modules.identity.tests.signin import password_sign_in
 from shared import jwt_keys
 from shared.auth import InvalidTokenError, decode_access_token
 
@@ -36,9 +37,8 @@ async def make_user(db: AsyncSession, email: str | None, country: str = "IN", ro
 
 
 async def login(client: AsyncClient, email: str) -> dict:
-    r = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
-    assert r.status_code == 200, r.text
-    return r.json()
+    """Password sign-in; admins pass their second step (enrolling the first time)."""
+    return await password_sign_in(client, email, PASSWORD)
 
 
 def bearer(tokens: dict) -> dict:
@@ -146,11 +146,10 @@ async def test_phone_sign_in_wrong_or_reused_code(client: AsyncClient) -> None:
     assert r.status_code == 400
 
 
-async def test_non_seed_phone_gets_a_random_code(client: AsyncClient, capsys) -> None:
+async def test_non_seed_phone_gets_a_random_code(client: AsyncClient, outbox) -> None:
     phone = "+919876543210"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})
-    out = capsys.readouterr().out
-    code = out.split("verification code is: ")[1][:6]
+    code = outbox[-1]["body"].split("verification code is: ")[1][:6]
     assert code.isdigit()
     r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": code, "country": "IN"})
     assert r.status_code == 200
@@ -170,8 +169,9 @@ async def test_the_code_sms_is_in_the_apps_language(client: AsyncClient, monkeyp
     phone = "+919876500011"
     assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "hi"})).status_code == 200
     assert sent[-1]["template"] == "otp_hi" and "सत्यापन कोड" in sent[-1]["body"]
-    # Spanish isn't one of India's languages: India's default (English).
-    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "es"})).status_code == 200
+    # Spanish isn't one of India's languages: India's default (English). (Another number:
+    # one number gets one code per 30 seconds.)
+    assert (await client.post("/api/v1/auth/send-otp", json={"phone": "+919876500012", "country": "IN", "language": "es"})).status_code == 200
     assert sent[-1]["template"] == "otp_en" and "verification code is: " in sent[-1]["body"]
 
 
@@ -396,7 +396,7 @@ def test_dev_key_only_in_development_and_test(monkeypatch, env) -> None:
 
 
 async def test_new_accounts_accept_the_published_terms_and_privacy(client: AsyncClient, db_session: AsyncSession) -> None:
-    """R8 F10: a new number (phone sign-up) and /auth/register record the current
+    """R8 F10: a new number (phone sign-up) and email sign-up record the current
     published Terms and Privacy of the country, with where they came from."""
     from core_api.modules.legal import service as legal
     from core_api.modules.legal.models import LegalAcceptance
@@ -417,10 +417,16 @@ async def test_new_accounts_accept_the_published_terms_and_privacy(client: Async
     await client.post("/api/v1/auth/phone", json={"phone": SEED_PHONE_IN, "otp": "123456", "country": "IN"})
     assert len((await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()) == 2
 
-    r = await client.post("/api/v1/auth/register", headers={"User-Agent": "okhttp/4.12.0"}, json={
-        "email": "legal.f10@bhojango.com", "password": "Str0ngPassw0rd!", "full_name": "Legal Test", "country": "US",
-        "preferred_currency": "USD", "preferred_locale": "en-US"})
-    assert r.status_code == 201, r.text
+    # Email sign-up (the emailed code creates the account), from an app.
+    email = "legal.f10@example.com"
+    r = await client.post("/api/v1/auth/email/sign-up", headers={"User-Agent": "okhttp/4.12.0"}, json={
+        "email": email, "password": "Long-enough-pass1", "country": "US", "full_name": "Legal Test"})
+    assert r.status_code == 202, r.text
+    from core_api.modules.identity.tests.signin import FIXED_EMAIL_CODE
+
+    r = await client.post("/api/v1/auth/email/verify", headers={"User-Agent": "okhttp/4.12.0"},
+                          json={"email": email, "code": FIXED_EMAIL_CODE})
+    assert r.status_code == 200, r.text
     uid = uuid.UUID(r.json()["user"]["id"])
     rows = (await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()
     assert sorted((a.kind, a.country, a.source) for a in rows) == [("privacy", "US", "app"), ("terms", "US", "app")]

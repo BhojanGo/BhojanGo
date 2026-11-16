@@ -1,9 +1,8 @@
-import re
 import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 # ── Enums as Literals ─────────────────────────────────────────────────────────
@@ -16,40 +15,6 @@ Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$", examples=["INR"])]
 # The web's languages; every backend message is written in each of them
 # (shared/texts.py LANGUAGES, language_for; tools/i18n/check_locales.py).
 Locale = Literal["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN", "en-US", "es-US"]
-
-
-class UserBase(BaseModel):
-    email: EmailStr
-    full_name: str = Field(min_length=2, max_length=255)
-    phone: str | None = None
-    country: Country
-    preferred_currency: Currency = "USD"
-    preferred_locale: Locale = "en-US"
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        cleaned = re.sub(r"[\s\-\(\)]", "", v)
-        if not re.match(r"^\+?[1-9]\d{7,14}$", cleaned):
-            raise ValueError("Invalid phone number format. Must be E.164 format e.g. +14155552671")
-        return cleaned
-
-
-class RegisterRequest(UserBase):
-    password: str = Field(min_length=8, max_length=128)
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one digit")
-        return v
 
 
 class LoginRequest(BaseModel):
@@ -74,18 +39,9 @@ class ResetPasswordRequest(BaseModel):
 
     phone: str = Field(pattern=r"^\+?[1-9]\d{7,14}$")
     otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    new_password: str = Field(min_length=8, max_length=128)
-
-    @field_validator("new_password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one digit")
-        return v
+    # The rules (10+ characters, not breached) are checked by service/passwords.py,
+    # which answers with a code the apps translate.
+    new_password: str = Field(min_length=1, max_length=256)
 
 
 class PhoneSignInRequest(BaseModel):
@@ -108,8 +64,9 @@ class RefreshTokenRequest(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
+    """Name and preferences. Phone and email change through /me/phone and /me/email (verified by a code)."""
+
     full_name: str | None = Field(default=None, min_length=2, max_length=255)
-    phone: str | None = None
     avatar_url: str | None = None
     preferred_currency: Currency | None = None
     preferred_locale: Locale | None = None
@@ -146,6 +103,8 @@ class AuthTokensResponse(BaseModel):
     expires_in: int
     user: UserResponse
     is_new_user: bool = False
+    # Always false here; a sign-in that needs the second step answers MfaChallengeResponse instead.
+    mfa_required: bool = False
     # Admin role assignments, "role@scope" (empty for customers, riders, partners)
     admin_roles: list[str] = []
 
@@ -153,3 +112,143 @@ class AuthTokensResponse(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     success: bool = True
+
+
+# ── email + password sign-in, two-step sign-in, account security (Round 8, D5) ─
+Language = Annotated[str, Field(pattern=r"^[a-z]{2}$", examples=["hi"])]
+Code6 = Annotated[str, Field(pattern=r"^\d{6}$", examples=["123456"])]
+# New passwords: the rules are checked by service/passwords.py (PasswordRejected codes).
+NewPassword = Annotated[str, Field(min_length=1, max_length=256)]
+
+
+class EmailSignUpRequest(BaseModel):
+    """Create an account: a 6-digit code goes to the email; the account exists once it's entered."""
+
+    email: EmailStr
+    password: NewPassword
+    country: Country
+    full_name: str | None = Field(default=None, min_length=2, max_length=255)
+    language: Language | None = None
+
+
+class EmailCodeRequest(BaseModel):
+    email: EmailStr
+    language: Language | None = None
+
+
+class EmailVerifyRequest(BaseModel):
+    email: EmailStr
+    code: Code6
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    language: Language | None = None
+
+
+class ResetTokenRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class ResetTokenStatus(BaseModel):
+    valid: bool
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: NewPassword
+
+
+class MfaChallengeResponse(BaseModel):
+    """The password (or code) was right; an admin account needs its second step.
+    Send ``mfa_token`` with a code from the authenticator app to /auth/mfa/verify
+    (or a recovery code to /auth/mfa/recovery). ``enrolment_required``: no
+    authenticator yet: a code went to the account's email; start at /auth/mfa/enrol/start."""
+
+    mfa_required: Literal[True] = True
+    mfa_token: str
+    enrolment_required: bool
+    email_code_sent: bool = False
+    expires_in: int
+
+
+class MfaCodeRequest(BaseModel):
+    mfa_token: str = Field(min_length=20, max_length=200)
+    code: Code6
+
+
+class MfaRecoveryRequest(BaseModel):
+    mfa_token: str = Field(min_length=20, max_length=200)
+    recovery_code: str = Field(min_length=8, max_length=24)
+
+
+class MfaEnrolStartRequest(BaseModel):
+    mfa_token: str = Field(min_length=20, max_length=200)
+    email_code: Code6
+
+
+class MfaEnrolStartResponse(BaseModel):
+    """Add this to an authenticator app (scan the QR code or type the key)."""
+
+    account: str
+    secret: str
+    otpauth_uri: str
+    qr_svg: str  # data:image/svg+xml;base64,...
+
+
+class MfaEnrolledResponse(AuthTokensResponse):
+    """Signed in. Show the recovery codes once: they are not shown again."""
+
+    recovery_codes: list[str]
+
+
+class RecoveryCodesRenewRequest(BaseModel):
+    code: Code6
+
+
+class RecoveryCodesResponse(BaseModel):
+    recovery_codes: list[str]
+
+
+class ChangePasswordRequest(BaseModel):
+    """Required when the account has a password; leave out to set a first one."""
+
+    current_password: str | None = Field(default=None, max_length=256)
+    new_password: NewPassword
+
+
+class LinkEmailStart(BaseModel):
+    email: EmailStr
+    language: Language | None = None
+
+
+class LinkEmailVerify(BaseModel):
+    email: EmailStr
+    code: Code6
+
+
+class LinkPhoneStart(BaseModel):
+    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$")
+    country: Country
+    language: Language | None = None
+
+
+class LinkPhoneVerify(BaseModel):
+    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$")
+    code: Code6
+
+
+class SecurityOverview(BaseModel):
+    """How this account signs in (Profile > Sign-in and security)."""
+
+    email: str | None
+    email_verified: bool
+    phone: str | None
+    phone_verified: bool
+    has_password: bool
+    password_changed_at: datetime | None
+    google_linked: bool
+    apple_linked: bool
+    mfa_enabled: bool
+    mfa_required: bool  # admins must use two-step sign-in
+    recovery_codes_left: int

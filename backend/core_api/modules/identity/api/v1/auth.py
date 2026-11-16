@@ -15,13 +15,13 @@ from shared.db import get_db
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.schemas.user import (
     AuthTokensResponse,
+    MfaChallengeResponse,
     LoginRequest,
     MessageResponse,
     OtpSendRequest,
     OtpVerifyRequest,
     PhoneSignInRequest,
     RefreshTokenRequest,
-    RegisterRequest,
     ResetPasswordRequest,
     SocialLoginRequest,
 )
@@ -34,25 +34,23 @@ limiter = Limiter(key_func=client_ip)
 security = BearerAuth()
 
 
-@router.post("/register", response_model=AuthTokensResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
-async def register(
-    request: Request,
-    data: RegisterRequest,
-    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> AuthTokensResponse:
-    """Register a new customer account."""
-    return await AuthService(db).register(data, legal.client_info(request))
+SignInResult = AuthTokensResponse | MfaChallengeResponse
 
 
-@router.post("/login", response_model=AuthTokensResponse)
-@limiter.limit("10/minute")
+@router.post("/login", response_model=SignInResult)
+# Per IP only a high ceiling (many people share an IP behind carrier-grade NAT); each
+# account locks after 5 wrong passwords (service/guard.py).
+@limiter.limit("30/minute;300/hour")
 async def login(
     request: Request,
     data: LoginRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> AuthTokensResponse:
-    """Login with email and password."""
+) -> SignInResult:
+    """Sign in with email and password.
+
+    401 INVALID_CREDENTIALS for an unknown email and a wrong password alike;
+    429 ACCOUNT_LOCKED (``retry_after`` seconds) after 5 wrong tries in 15 minutes.
+    Admins get MfaChallengeResponse (``mfa_required``): finish at /auth/mfa/*."""
     return await AuthService(db).login(data)
 
 
@@ -77,24 +75,28 @@ async def logout(
 
 
 @router.post("/send-otp", response_model=MessageResponse)
-@limiter.limit("3/minute")
+# Limited per phone number (1 per 30 s, 5 per hour, 10 per day: 429 TOO_MANY_CODES with
+# retry_after); per IP only a high ceiling against abuse (carrier-grade NAT shares IPs).
+@limiter.limit("30/minute;300/hour")
 async def send_otp(
     request: Request,
     data: OtpSendRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
-    """Send a 6-digit OTP to the given phone number via SMS."""
+    """Send a 6-digit OTP to the given phone number via SMS.
+    429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;
+    503 SEND_FAILED when the SMS provider didn't take it."""
     success = await AuthService(db).send_otp(data)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"code": "OTP_LIMIT_REACHED", "message": "Too many OTP requests. Please wait."},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "SEND_FAILED", "message": "We couldn't send the code. Try again in a moment."},
         )
     return MessageResponse(message="OTP sent successfully")
 
 
 @router.post("/verify-otp", response_model=MessageResponse)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def verify_otp(
     request: Request,
     data: OtpVerifyRequest,
@@ -110,13 +112,13 @@ async def verify_otp(
     return MessageResponse(message="Phone verified successfully")
 
 
-@router.post("/phone", response_model=AuthTokensResponse)
-@limiter.limit("5/minute")
+@router.post("/phone", response_model=SignInResult)
+@limiter.limit("30/minute")
 async def phone_sign_in(
     request: Request,
     data: PhoneSignInRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> AuthTokensResponse:
+) -> SignInResult:
     """Sign in with the SMS code from /auth/send-otp. A new number gets a
     customer account (``is_new_user`` is true; ask for their name next)."""
     return await AuthService(db).phone_sign_in(data, legal.client_info(request))
@@ -140,6 +142,8 @@ async def reset_password(
     """Reset a forgotten password using an OTP sent to the account's phone number.
 
     Flow: client calls /auth/send-otp, then submits the OTP + new password here.
+    422 PASSWORD_* when the new password breaks a rule (service/passwords.py).
+    Ends every session. By email instead: /auth/password/forgot.
     """
     await AuthService(db).reset_password(data)
     return MessageResponse(message="Password reset successfully")
@@ -169,12 +173,13 @@ async def sign_in_providers() -> SignInProviders:
                            apple=ProviderClient(client_id=ident.APPLE_CLIENT_ID) if ident.APPLE_CLIENT_ID else None)
 
 
-@router.post("/social-login", response_model=AuthTokensResponse)
+@router.post("/social-login", response_model=SignInResult)
+@limiter.limit("30/minute")
 async def social_login(
     request: Request,
     data: SocialLoginRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> AuthTokensResponse:
+) -> SignInResult:
     """Sign in with a Google or Apple ID token (the website's Google button sends
     the Google Identity Services credential). The token is verified against the
     provider's public keys, issuer and our client ids; the account is found by

@@ -1,5 +1,5 @@
 // The 6-digit code. Only rider accounts get in: anyone else is signed out again.
-import { errorMessage, SafeAreaView, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { codeSendErrorText, errorMessage, formatPhone, SafeAreaView, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -60,7 +60,7 @@ export default function Code() {
       <View style={styles.body}>
         <Text accessibilityRole="header" style={ui.h1}>{t("rider.code.title")}</Text>
         <Text style={[ui.body, { color: night.muted }]}>
-          {t("rider.code.sent_to")} <Text style={[textFont("700"), { color: night.text }]}>{phone}</Text> ·{" "}
+          {t("rider.code.sent_to")} <Text style={[textFont("700"), { color: night.text }]}>{formatPhone(phone)}</Text> ·{" "}
           <Text style={[textFont("700"), { color: night.link }]} onPress={() => router.back()}>{t("rider.code.edit")}</Text>
         </Text>
         <Pressable accessibilityLabel={t("rider.code.label")} onPress={() => input.current?.focus()} style={styles.boxes}>
@@ -92,7 +92,7 @@ export default function Code() {
           {wait > 0 ? (
             <Text>{t("rider.code.resend_in")} <Text style={[textFont("700"), { color: night.text }]}>0:{String(wait).padStart(2, "0")}</Text></Text>
           ) : (
-            <Text style={[textFont("700"), { color: night.link }]} onPress={() => { void sendCode(phone, country); setWait(RESEND_AFTER); }}>
+            <Text style={[textFont("700"), { color: night.link }]} onPress={() => { setWait(RESEND_AFTER); sendCode(phone, country).catch((e: unknown) => setError(codeSendErrorText(e, t, errorMessage((e as { body?: unknown }).body, t("rider.sign_in.send_failed"))))); }}>
               {t("rider.code.send_again")}
             </Text>
           )}

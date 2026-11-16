@@ -23,7 +23,9 @@ async def test_retention_deletes_what_the_privacy_notices_say() -> None:
     from shared.db import AsyncSessionLocal
     from shared.redis import close_redis, get_redis
 
-    await close_redis()  # a Redis client left by an earlier test belongs to its (closed) event loop
+    import shared.redis
+
+    shared.redis._redis_client = None  # one left by an earlier test belongs to its closed event loop: drop it unclosed
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         order = await new_order(client, await login(client, "customer2.hyd@example.com"))
     oid = uuid.UUID(order["id"])

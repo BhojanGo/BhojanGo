@@ -26,7 +26,7 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]
 from target_guard import ensure_safe_api  # noqa: E402
 
 ensure_safe_api(CORE, RT)
-PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) == 4}
+PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) >= 4}
 SPICE_AT = (17.4486, 78.3908)  # Spice Route Kitchen, Madhapur
 
 

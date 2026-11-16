@@ -6,7 +6,7 @@ appId: com.bhojango.app
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Sign in or sign up"
+    visible: "Sign in or create an account"
     timeout: 120000
 - repeat:
     while:

@@ -11,7 +11,7 @@ On a clean, seeded stack (compose project bhojango-3c), twice:
      and region opened) Markets > <country> > New city, draws one zone on the
      map, makes it live, sets service hours, opens the city;
   2. a partner opens a kitchen there through the APIs the partner app uses
-     (register in that country, apply, hours, five dishes, payout account), and
+     (an email account in that country, apply, hours, five dishes, payout account), and
      the admin approves it in Partners > Applications;
   3. the website, from data alone: /cities lists the city live under its region,
      the city page shows the kitchen, the sitemap has both, the personal home for
@@ -159,7 +159,10 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def token(email: str) -> str:
-    return api("POST", "/auth/login", None, {"email": email, "password": ADMIN_PASSWORD})["access_token"]  # type: ignore[index]
+    from totp_signin import finish  # admins: the second step (seed key)
+
+    body = api("POST", "/auth/login", None, {"email": email, "password": ADMIN_PASSWORD})
+    return finish(lambda path, data: api("POST", path, None, data), email, body)["access_token"]  # type: ignore[index, arg-type]
 
 
 def country_summary(code: str) -> dict:
@@ -183,6 +186,9 @@ def admin_sign_in(page) -> None:  # type: ignore[no-untyped-def]
     page.locator("input[type=email]").fill(ADMIN_EMAIL)
     page.locator("input[type=password]").fill(ADMIN_PASSWORD)
     page.get_by_role("button", name=re.compile("sign in", re.I)).click()
+    from totp_signin import admin_console_second_step  # every admin: the authenticator code (seed key)
+
+    admin_console_second_step(page, ADMIN_EMAIL)
     page.wait_for_url("**/overview**", timeout=30000)
 
 
@@ -344,10 +350,11 @@ def partner_kitchen(m: dict) -> None:
     city = next(c for k in d["countries"] for r in k["regions"] for c in r["cities"] if c["name"] == m["city"])  # type: ignore[index]
     assert city["code"] == st["city_code"] and city["status"] == "live", city
     email = f"partner.{uuid.uuid4().hex[:8]}@example.com"
-    prefix, digits = m["phone"]
-    phone = f"{prefix}{uuid.uuid4().int % 10 ** digits:0{digits}d}"
-    tok = api("POST", "/auth/register", None, {"email": email, "full_name": m["owner"], "country": m["country"],
-                                               "phone": phone, "password": "Kitchen2026x"})["access_token"]  # type: ignore[index]
+    # A kitchen partner's account: email + password, the email confirmed by its code (Round 8;
+    # @example.com gets the fixed code outside production).
+    api("POST", "/auth/email/sign-up", None, {"email": email, "full_name": m["owner"], "country": m["country"],
+                                               "password": "Kitchen2026x-meridian"})
+    tok = api("POST", "/auth/email/verify", None, {"email": email, "code": "123456"})["access_token"]  # type: ignore[index]
     applied = api("POST", "/restaurants/apply", tok, {
         "full_name": m["owner"], "kitchen_name": m["kitchen"], "city_code": city["code"], "street": m["street"],
         "area": m["area"], "zip": m["zip"], "lat": m["lat"] + 0.002, "lng": m["lng"] + 0.002, "cuisines": m["cuisines"]})

@@ -1346,6 +1346,11 @@
             "title": "Is New User",
             "type": "boolean"
           },
+          "mfa_required": {
+            "default": false,
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
           "refresh_token": {
             "title": "Refresh Token",
             "type": "string"
@@ -1764,6 +1769,34 @@
           "quantity"
         ],
         "title": "CartItem",
+        "type": "object"
+      },
+      "ChangePasswordRequest": {
+        "description": "Required when the account has a password; leave out to set a first one.",
+        "properties": {
+          "current_password": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Password"
+          },
+          "new_password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
         "type": "object"
       },
       "Channels": {
@@ -3958,6 +3991,117 @@
         "title": "DocumentOut",
         "type": "object"
       },
+      "EmailCodeRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "EmailCodeRequest",
+        "type": "object"
+      },
+      "EmailSignUpRequest": {
+        "description": "Create an account: a 6-digit code goes to the email; the account exists once it's entered.",
+        "properties": {
+          "country": {
+            "examples": [
+              "IN"
+            ],
+            "pattern": "^[A-Z]{2}$",
+            "title": "Country",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "country"
+        ],
+        "title": "EmailSignUpRequest",
+        "type": "object"
+      },
+      "EmailVerifyRequest": {
+        "properties": {
+          "code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "EmailVerifyRequest",
+        "type": "object"
+      },
       "EndRule": {
         "properties": {
           "at": {
@@ -4330,6 +4474,35 @@
           "fee"
         ],
         "title": "FeeSlab",
+        "type": "object"
+      },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest",
         "type": "object"
       },
       "GeoJsonPolygon": {
@@ -4753,6 +4926,11 @@
             "title": "Is New User",
             "type": "boolean"
           },
+          "mfa_required": {
+            "default": false,
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
           "refresh_token": {
             "title": "Refresh Token",
             "type": "string"
@@ -4984,56 +5162,6 @@
           "accept_terms"
         ],
         "title": "KitchenSignUp",
-        "type": "object"
-      },
-      "KitchenSignedUp": {
-        "properties": {
-          "access_token": {
-            "title": "Access Token",
-            "type": "string"
-          },
-          "admin_roles": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Admin Roles",
-            "type": "array"
-          },
-          "expires_in": {
-            "title": "Expires In",
-            "type": "integer"
-          },
-          "is_new_user": {
-            "default": false,
-            "title": "Is New User",
-            "type": "boolean"
-          },
-          "refresh_token": {
-            "title": "Refresh Token",
-            "type": "string"
-          },
-          "restaurant_id": {
-            "title": "Restaurant Id",
-            "type": "string"
-          },
-          "token_type": {
-            "default": "bearer",
-            "title": "Token Type",
-            "type": "string"
-          },
-          "user": {
-            "$ref": "#/components/schemas/UserResponse"
-          }
-        },
-        "required": [
-          "access_token",
-          "refresh_token",
-          "expires_in",
-          "user",
-          "restaurant_id"
-        ],
-        "title": "KitchenSignedUp",
         "type": "object"
       },
       "KitchenTerms": {
@@ -6013,6 +6141,119 @@
         "title": "LicenceIn",
         "type": "object"
       },
+      "LinkEmailStart": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "LinkEmailStart",
+        "type": "object"
+      },
+      "LinkEmailVerify": {
+        "properties": {
+          "code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "LinkEmailVerify",
+        "type": "object"
+      },
+      "LinkPhoneStart": {
+        "properties": {
+          "country": {
+            "examples": [
+              "IN"
+            ],
+            "pattern": "^[A-Z]{2}$",
+            "title": "Country",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "phone": {
+            "pattern": "^\\+[1-9]\\d{7,14}$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "country"
+        ],
+        "title": "LinkPhoneStart",
+        "type": "object"
+      },
+      "LinkPhoneVerify": {
+        "properties": {
+          "code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "phone": {
+            "pattern": "^\\+[1-9]\\d{7,14}$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "LinkPhoneVerify",
+        "type": "object"
+      },
       "LocateResult": {
         "properties": {
           "city_code": {
@@ -6712,6 +6953,199 @@
           "message"
         ],
         "title": "MessageResponse",
+        "type": "object"
+      },
+      "MfaChallengeResponse": {
+        "description": "The password (or code) was right; an admin account needs its second step.\nSend ``mfa_token`` with a code from the authenticator app to /auth/mfa/verify\n(or a recovery code to /auth/mfa/recovery). ``enrolment_required``: no\nauthenticator yet: a code went to the account's email; start at /auth/mfa/enrol/start.",
+        "properties": {
+          "email_code_sent": {
+            "default": false,
+            "title": "Email Code Sent",
+            "type": "boolean"
+          },
+          "enrolment_required": {
+            "title": "Enrolment Required",
+            "type": "boolean"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "mfa_required": {
+            "const": true,
+            "default": true,
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
+          "mfa_token": {
+            "title": "Mfa Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "enrolment_required",
+          "expires_in"
+        ],
+        "title": "MfaChallengeResponse",
+        "type": "object"
+      },
+      "MfaCodeRequest": {
+        "properties": {
+          "code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "mfa_token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Mfa Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "code"
+        ],
+        "title": "MfaCodeRequest",
+        "type": "object"
+      },
+      "MfaEnrolStartRequest": {
+        "properties": {
+          "email_code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Email Code",
+            "type": "string"
+          },
+          "mfa_token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Mfa Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "email_code"
+        ],
+        "title": "MfaEnrolStartRequest",
+        "type": "object"
+      },
+      "MfaEnrolStartResponse": {
+        "description": "Add this to an authenticator app (scan the QR code or type the key).",
+        "properties": {
+          "account": {
+            "title": "Account",
+            "type": "string"
+          },
+          "otpauth_uri": {
+            "title": "Otpauth Uri",
+            "type": "string"
+          },
+          "qr_svg": {
+            "title": "Qr Svg",
+            "type": "string"
+          },
+          "secret": {
+            "title": "Secret",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account",
+          "secret",
+          "otpauth_uri",
+          "qr_svg"
+        ],
+        "title": "MfaEnrolStartResponse",
+        "type": "object"
+      },
+      "MfaEnrolledResponse": {
+        "description": "Signed in. Show the recovery codes once: they are not shown again.",
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "admin_roles": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Admin Roles",
+            "type": "array"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "is_new_user": {
+            "default": false,
+            "title": "Is New User",
+            "type": "boolean"
+          },
+          "mfa_required": {
+            "default": false,
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recovery Codes",
+            "type": "array"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user",
+          "recovery_codes"
+        ],
+        "title": "MfaEnrolledResponse",
+        "type": "object"
+      },
+      "MfaRecoveryRequest": {
+        "properties": {
+          "mfa_token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Mfa Token",
+            "type": "string"
+          },
+          "recovery_code": {
+            "maxLength": 24,
+            "minLength": 8,
+            "title": "Recovery Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "recovery_code"
+        ],
+        "title": "MfaRecoveryRequest",
         "type": "object"
       },
       "MineOut": {
@@ -8985,6 +9419,28 @@
         "title": "PainPointMetrics",
         "type": "object"
       },
+      "PasswordResetRequest": {
+        "properties": {
+          "new_password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "New Password",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "PasswordResetRequest",
+        "type": "object"
+      },
       "PauseIn": {
         "properties": {
           "minutes": {
@@ -10441,6 +10897,39 @@
         "title": "RecentComment",
         "type": "object"
       },
+      "RecoveryCodesRenewRequest": {
+        "properties": {
+          "code": {
+            "examples": [
+              "123456"
+            ],
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "RecoveryCodesRenewRequest",
+        "type": "object"
+      },
+      "RecoveryCodesResponse": {
+        "properties": {
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recovery Codes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recovery_codes"
+        ],
+        "title": "RecoveryCodesResponse",
+        "type": "object"
+      },
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
@@ -10691,79 +11180,6 @@
         "title": "RegionUpdate",
         "type": "object"
       },
-      "RegisterRequest": {
-        "properties": {
-          "country": {
-            "examples": [
-              "IN"
-            ],
-            "pattern": "^[A-Z]{2}$",
-            "title": "Country",
-            "type": "string"
-          },
-          "email": {
-            "format": "email",
-            "title": "Email",
-            "type": "string"
-          },
-          "full_name": {
-            "maxLength": 255,
-            "minLength": 2,
-            "title": "Full Name",
-            "type": "string"
-          },
-          "password": {
-            "maxLength": 128,
-            "minLength": 8,
-            "title": "Password",
-            "type": "string"
-          },
-          "phone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone"
-          },
-          "preferred_currency": {
-            "default": "USD",
-            "examples": [
-              "INR"
-            ],
-            "pattern": "^[A-Z]{3}$",
-            "title": "Preferred Currency",
-            "type": "string"
-          },
-          "preferred_locale": {
-            "default": "en-US",
-            "enum": [
-              "en-IN",
-              "hi-IN",
-              "te-IN",
-              "ta-IN",
-              "kn-IN",
-              "mr-IN",
-              "bn-IN",
-              "en-US",
-              "es-US"
-            ],
-            "title": "Preferred Locale",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "full_name",
-          "country",
-          "password"
-        ],
-        "title": "RegisterRequest",
-        "type": "object"
-      },
       "Rejection": {
         "properties": {
           "note": {
@@ -10941,8 +11357,8 @@
         "description": "Reset a forgotten password by proving phone ownership via OTP.",
         "properties": {
           "new_password": {
-            "maxLength": 128,
-            "minLength": 8,
+            "maxLength": 256,
+            "minLength": 1,
             "title": "New Password",
             "type": "string"
           },
@@ -10965,6 +11381,34 @@
           "new_password"
         ],
         "title": "ResetPasswordRequest",
+        "type": "object"
+      },
+      "ResetTokenRequest": {
+        "properties": {
+          "token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ResetTokenRequest",
+        "type": "object"
+      },
+      "ResetTokenStatus": {
+        "properties": {
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "ResetTokenStatus",
         "type": "object"
       },
       "ResolveIn": {
@@ -12528,6 +12972,92 @@
         "title": "SearchResults",
         "type": "object"
       },
+      "SecurityOverview": {
+        "description": "How this account signs in (Profile > Sign-in and security).",
+        "properties": {
+          "apple_linked": {
+            "title": "Apple Linked",
+            "type": "boolean"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "google_linked": {
+            "title": "Google Linked",
+            "type": "boolean"
+          },
+          "has_password": {
+            "title": "Has Password",
+            "type": "boolean"
+          },
+          "mfa_enabled": {
+            "title": "Mfa Enabled",
+            "type": "boolean"
+          },
+          "mfa_required": {
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
+          "password_changed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password Changed At"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "phone_verified": {
+            "title": "Phone Verified",
+            "type": "boolean"
+          },
+          "recovery_codes_left": {
+            "title": "Recovery Codes Left",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "email_verified",
+          "phone",
+          "phone_verified",
+          "has_password",
+          "password_changed_at",
+          "google_linked",
+          "apple_linked",
+          "mfa_enabled",
+          "mfa_required",
+          "recovery_codes_left"
+        ],
+        "title": "SecurityOverview",
+        "type": "object"
+      },
       "ServiceFeeSummary": {
         "properties": {
           "max": {
@@ -13441,6 +13971,7 @@
         "type": "object"
       },
       "UserUpdateRequest": {
+        "description": "Name and preferences. Phone and email change through /me/phone and /me/email (verified by a code).",
         "properties": {
           "avatar_url": {
             "anyOf": [
@@ -13476,17 +14007,6 @@
               }
             ],
             "title": "Full Name"
-          },
-          "phone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone"
           },
           "preferred_currency": {
             "anyOf": [
@@ -15011,6 +15531,140 @@
         ]
       }
     },
+    "/api/v1/auth/email/code": {
+      "post": {
+        "description": "Email me a code instead: a sign-in code if the email has an account; the same 202 either way.",
+        "operationId": "email_code_api_v1_auth_email_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Email Code",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/email/sign-up": {
+      "post": {
+        "description": "Start a new account with email + password. A 6-digit code goes to the email;\nthe account exists once /auth/email/verify gets it. The same 202 for an email\nthat already has an account (that mailbox gets a \"you already have an account\" email).\n422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_CODES (retry_after).",
+        "operationId": "email_sign_up_api_v1_auth_email_sign_up_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailSignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Email Sign Up",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/email/verify": {
+      "post": {
+        "description": "The emailed code: finishes a sign-up (``is_new_user``) or signs in.\n400 CODE_INVALID (wrong, expired, or used up after 5 wrong tries).",
+        "operationId": "email_verify_api_v1_auth_email_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthTokensResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaChallengeResponse"
+                    }
+                  ],
+                  "title": "Response Email Verify Api V1 Auth Email Verify Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Email Verify",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/jwks": {
       "get": {
         "description": "Same as /.well-known/jwks.json.",
@@ -15038,7 +15692,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "Login with email and password.",
+        "description": "Sign in with email and password.\n\n401 INVALID_CREDENTIALS for an unknown email and a wrong password alike;\n429 ACCOUNT_LOCKED (``retry_after`` seconds) after 5 wrong tries in 15 minutes.\nAdmins get MfaChallengeResponse (``mfa_required``): finish at /auth/mfa/*.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -15055,7 +15709,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthTokensResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthTokensResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaChallengeResponse"
+                    }
+                  ],
+                  "title": "Response Login Api V1 Auth Login Post"
                 }
               }
             },
@@ -15105,6 +15767,300 @@
         ]
       }
     },
+    "/api/v1/auth/mfa/enrol/confirm": {
+      "post": {
+        "description": "A code from the newly added app turns two-step sign-in on and signs in;\nthe 10 recovery codes are in the answer and never shown again.",
+        "operationId": "mfa_enrol_confirm_api_v1_auth_mfa_enrol_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrolledResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mfa Enrol Confirm",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/enrol/start": {
+      "post": {
+        "description": "First-time set-up: the code emailed with the challenge, then the key to add\nto an authenticator app (QR code and the key as text).",
+        "operationId": "mfa_enrol_start_api_v1_auth_mfa_enrol_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaEnrolStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrolStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mfa Enrol Start",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/recovery": {
+      "post": {
+        "description": "One of the 10 recovery codes instead of the app (each works once).",
+        "operationId": "mfa_recovery_api_v1_auth_mfa_recovery_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mfa Recovery",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "description": "The 6-digit code from the authenticator app. 400 CODE_INVALID; 401 MFA_EXPIRED\n(sign in again); 429 ACCOUNT_LOCKED. A code is never accepted twice.",
+        "operationId": "mfa_verify_api_v1_auth_mfa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mfa Verify",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "description": "Email a link to choose a new password (works once, for 30 minutes; a newer\nlink ends the older one). The same 202 whether or not the email has an account.",
+        "operationId": "password_forgot_api_v1_auth_password_forgot_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Password Forgot",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "description": "Set a new password with the link's token; every session ends (sign in again).\n400 RESET_LINK_INVALID; 422 PASSWORD_* (the link keeps working: try another).",
+        "operationId": "password_reset_api_v1_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Password Reset",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset/check": {
+      "post": {
+        "description": "Whether a reset link still works (the reset page asks before showing the form).",
+        "operationId": "password_reset_check_api_v1_auth_password_reset_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetTokenStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Password Reset Check",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/phone": {
       "post": {
         "description": "Sign in with the SMS code from /auth/send-otp. A new number gets a\ncustomer account (``is_new_user`` is true; ask for their name next).",
@@ -15124,7 +16080,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthTokensResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthTokensResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaChallengeResponse"
+                    }
+                  ],
+                  "title": "Response Phone Sign In Api V1 Auth Phone Post"
                 }
               }
             },
@@ -15211,51 +16175,9 @@
         ]
       }
     },
-    "/api/v1/auth/register": {
-      "post": {
-        "description": "Register a new customer account.",
-        "operationId": "register_api_v1_auth_register_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthTokensResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Register",
-        "tags": [
-          "Authentication"
-        ]
-      }
-    },
     "/api/v1/auth/reset-password": {
       "post": {
-        "description": "Reset a forgotten password using an OTP sent to the account's phone number.\n\nFlow: client calls /auth/send-otp, then submits the OTP + new password here.",
+        "description": "Reset a forgotten password using an OTP sent to the account's phone number.\n\nFlow: client calls /auth/send-otp, then submits the OTP + new password here.\n422 PASSWORD_* when the new password breaks a rule (service/passwords.py).\nEnds every session. By email instead: /auth/password/forgot.",
         "operationId": "reset_password_api_v1_auth_reset_password_post",
         "requestBody": {
           "content": {
@@ -15297,7 +16219,7 @@
     },
     "/api/v1/auth/send-otp": {
       "post": {
-        "description": "Send a 6-digit OTP to the given phone number via SMS.",
+        "description": "Send a 6-digit OTP to the given phone number via SMS.\n429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;\n503 SEND_FAILED when the SMS provider didn't take it.",
         "operationId": "send_otp_api_v1_auth_send_otp_post",
         "requestBody": {
           "content": {
@@ -15356,7 +16278,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthTokensResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthTokensResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaChallengeResponse"
+                    }
+                  ],
+                  "title": "Response Social Login Api V1 Auth Social Login Post"
                 }
               }
             },
@@ -16717,7 +17647,7 @@
     },
     "/api/v1/kitchens/apply": {
       "post": {
-        "description": "Start an application as a new kitchen partner: creates the account (role\nrestaurant_owner) and the kitchen pending approval, signs them in, and emails\nthem what comes next. The application's steps follow (GET /restaurants/{id}/application).",
+        "description": "Start an application as a new kitchen partner, the verified way every account is\nmade (Round 8, D5): a 6-digit code goes to the email, and POST /auth/email/verify\nwith it creates the account (role restaurant_owner) with the kitchen pending approval,\nsigns them in and sends the \"application started\" email. The same 202 whether or not\nthe email already has an account (that mailbox is told to sign in instead).\nThe phone is the kitchen's contact number (kept with the kitchen); to sign in with it,\nthe owner links it in Profile, verified by an SMS code.\n422 TERMS / PASSWORD (reason: PASSWORD_TOO_SHORT, PASSWORD_BREACHED, ...) / CITY /\nPHONE_COUNTRY_MISMATCH; 429 TOO_MANY_CODES.",
         "operationId": "apply_api_v1_kitchens_apply_post",
         "requestBody": {
           "content": {
@@ -16730,11 +17660,11 @@
           "required": true
         },
         "responses": {
-          "201": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/KitchenSignedUp"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             },
@@ -18214,6 +19144,99 @@
         ]
       }
     },
+    "/api/v1/me/email": {
+      "post": {
+        "description": "Send a code to the email to link. 409 EMAIL_IN_USE (another account has it) / ALREADY_LINKED.",
+        "operationId": "link_email_api_v1_me_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkEmailStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Link Email",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/email/verify": {
+      "post": {
+        "operationId": "link_email_verify_api_v1_me_email_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkEmailVerify"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Link Email Verify",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
     "/api/v1/me/export": {
       "get": {
         "description": "Download everything we hold about you as JSON: profile, addresses,\norders with their bills, saved cards (masked), favourites, notification\npreferences, support tickets, refunds and problems, reviews.",
@@ -18455,6 +19478,53 @@
         ]
       }
     },
+    "/api/v1/me/mfa/recovery-codes": {
+      "post": {
+        "description": "Ten new recovery codes (the old ones stop working). Needs a code from the authenticator app.",
+        "operationId": "renew_recovery_codes_api_v1_me_mfa_recovery_codes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryCodesRenewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Renew Recovery Codes",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
     "/api/v1/me/notification-preferences": {
       "get": {
         "operationId": "get_notification_preferences_api_v1_me_notification_preferences_get",
@@ -18520,6 +19590,53 @@
           }
         ],
         "summary": "Set Notification Preferences",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "description": "Set a first password (an email is needed) or change it (with the current one).\nEvery other device is signed out; this one gets the new tokens in the answer.\n400 WRONG_PASSWORD; 409 EMAIL_REQUIRED; 422 PASSWORD_*; 429 ACCOUNT_LOCKED.",
+        "operationId": "change_password_api_v1_me_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Change Password",
         "tags": [
           "Account"
         ]
@@ -18687,6 +19804,125 @@
         "summary": "Set Default Payment Method",
         "tags": [
           "Payment methods"
+        ]
+      }
+    },
+    "/api/v1/me/phone": {
+      "post": {
+        "description": "Send an SMS code to the number to link. 409 PHONE_IN_USE / ALREADY_LINKED.",
+        "operationId": "link_phone_api_v1_me_phone_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPhoneStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Link Phone",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/phone/verify": {
+      "post": {
+        "operationId": "link_phone_verify_api_v1_me_phone_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPhoneVerify"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Link Phone Verify",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/me/security": {
+      "get": {
+        "operationId": "security_overview_api_v1_me_security_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Security Overview",
+        "tags": [
+          "Account"
         ]
       }
     },

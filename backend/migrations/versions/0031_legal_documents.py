@@ -6,14 +6,14 @@ the previous. legal_acceptances: which published version a person accepted, when
 from where (web or app). New tables only; the seed adds the India and US drafts.
 
 Revision ID: 0031_legal_documents
-Revises: 0030_help_centre
+Revises: 0029_account_security
 """
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0031_legal_documents"
-down_revision = "0030_help_centre"
+down_revision = "0029_account_security"
 branch_labels = None
 depends_on = None
 

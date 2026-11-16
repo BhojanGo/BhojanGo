@@ -75,6 +75,22 @@ class IdentitySettings(BaseSettings):
     def apple_audiences(self) -> list[str]:
         return list(dict.fromkeys(c for c in [self.APPLE_CLIENT_ID, *self.APPLE_CLIENT_IDS] if c))
 
+    # Email sign-in and passwords (Round 8, D5; core_api/modules/identity/service).
+    # The website's public address: password-reset links point at <it>/signin/reset.
+    PUBLIC_WEB_URL: str = "http://localhost:3000"
+    PASSWORD_RESET_MINUTES: int = 30
+    # A wrong password (or two-step code) this many times locks the account's
+    # password sign-in for LOCKOUT_MINUTES (email codes and reset still work).
+    LOCKOUT_ATTEMPTS: int = 5
+    LOCKOUT_MINUTES: int = 15
+    # Fernet keys for secrets stored encrypted (admins' two-step secrets). The first
+    # encrypts, all decrypt (rotate by putting a new key first). Generate one with
+    # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())".
+    # Required in production; elsewhere a fixed development key is used when empty.
+    IDENTITY_DATA_KEYS: list[str] = []
+    # Pwned Passwords k-anonymity check for new passwords (fails open when unreachable).
+    PASSWORD_BREACH_CHECK: bool = True
+
     RATE_LIMIT_REGISTER: str = "5/minute"
     RATE_LIMIT_LOGIN: str = "10/minute"
     RATE_LIMIT_OTP: str = "3/minute"
@@ -260,6 +276,8 @@ class ProviderSettings(BaseSettings):
     # needs no SMS. Their phones start with these prefixes.
     OTP_FIXED_CODE: str = "123456"
     OTP_FIXED_CODE_PHONE_PREFIXES: list[str] = ["+9190000", "+12085550"]
+    # ...and seed/test email addresses in these domains get the same fixed email code.
+    OTP_FIXED_CODE_EMAIL_DOMAINS: list[str] = ["example.com"]
     # Orders by customers on the fictional seed numbers get this delivery PIN
     # (not a random one) outside production, so Maestro/e2e runs can hand it
     # over. Everyone else gets a random 4-digit PIN. Empty = always random.

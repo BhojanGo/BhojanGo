@@ -30,6 +30,7 @@ import re
 import socket
 import sys
 import threading
+import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -43,9 +44,12 @@ ERR = int(os.environ.get("E2E_ERR_CHARS", "300"))  # more of each failure's mess
 # Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
 # and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).
 PASSWORDS: dict[str, str] = {}
+TOTP_KEYS: dict[str, str] = {}
 if os.environ.get("E2E_LOGINS_FILE"):
     with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
-        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
+        _rows = [line.rstrip("\n").split("\t") for line in _f]
+    PASSWORDS = {r[2]: r[3] for r in _rows if len(r) >= 4}
+    TOTP_KEYS = {r[2]: r[4] for r in _rows if len(r) >= 5 and r[4]}  # admins' authenticator keys
 QA_WEB, QA_CORE, QA_RT = os.environ.get("QA_WEB", ""), os.environ.get("QA_CORE", ""), os.environ.get("QA_RT", "")
 # The site's own address in canonical links and the sitemap (NEXT_PUBLIC_APP_URL):
 # bhojango.com locally and in production, the QA web domain on QA.
@@ -130,7 +134,11 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def login(email: str, password: str = "BhojanGo123") -> str:
-    return api("POST", "/auth/login", None, {"email": email, "password": PASSWORDS.get(email, password)})["access_token"]
+    """API sign-in; admins pass the second step with the seed's authenticator key (tools/totp_signin.py)."""
+    from totp_signin import finish
+
+    body = api("POST", "/auth/login", None, {"email": email, "password": PASSWORDS.get(email, password)})
+    return finish(lambda path, data: api("POST", path, None, data), email, body, TOTP_KEYS)["access_token"]
 
 
 def sub(token: str) -> str:
@@ -575,6 +583,96 @@ with sync_playwright() as p:
         expect(bag.get_by_text(re.compile("^Sign in and choose your address"))).to_be_visible()))
     shot(page, "08-kitchen-bag")
 
+    # ── Email sign-in (round 8, D5): two equal tabs; password, code, new account, forgot, reset ──
+    em_ctx = b.new_context(viewport={"width": 1366, "height": 900})
+    em = em_ctx.new_page()
+    em.goto(base + "/signin", wait_until="networkidle")
+
+    def equal_tabs() -> None:
+        phone_tab, email_tab = em.get_by_role("tab", name="Phone"), em.get_by_role("tab", name="Email")
+        expect(phone_tab).to_have_attribute("aria-selected", "true")
+        expect(email_tab).to_have_attribute("aria-selected", "false")
+        a, c = phone_tab.bounding_box(), email_tab.bounding_box()
+        _assert(a and c and abs(a["width"] - c["width"]) < 1 and abs(a["height"] - c["height"]) < 1, f"tabs differ: {a} {c}")
+        expect(phone_tab).to_have_css("font-weight", email_tab.evaluate("e => getComputedStyle(e).fontWeight"))
+    check("sign in: Phone and Email are two equal tabs (same size and weight)", equal_tabs)
+    em.get_by_role("tab", name="Phone").focus()
+    em.keyboard.press("ArrowRight")
+    check("sign in: arrow keys move between the tabs; the address keeps the choice", lambda: (
+        expect(em.get_by_role("tab", name="Email")).to_be_focused(),
+        expect(em.get_by_role("tab", name="Email")).to_have_attribute("aria-selected", "true"),
+        _assert("way=email" in em.url, em.url)))
+    check("email tab: email and password, an email code instead, forgot password, a new account", lambda: (
+        expect(em.get_by_role("textbox", name="Email")).to_be_visible(),
+        expect(em.locator("input[name=password]")).to_have_attribute("autocomplete", "current-password"),
+        expect(em.get_by_role("button", name="Email me a code instead")).to_be_visible(),
+        expect(em.get_by_role("link", name="Forgot password?")).to_be_visible(),
+        expect(em.get_by_role("button", name="Create an account")).to_be_visible()))
+    shot(em, "09b-signin-email")
+    wrong_answers = []
+    for who in ("customer2.hyd@example.com", f"nobody.{uuid.uuid4().hex[:8]}@example.com"):
+        em.get_by_role("textbox", name="Email").fill(who)
+        em.locator("input[name=password]").fill("not-the-password-1")
+        em.get_by_role("button", name="Sign in", exact=True).click()
+        expect(em.locator("p[role=alert]")).to_be_visible(timeout=15000)  # (Next's route announcer is an empty alert too)
+        wrong_answers.append(em.locator("p[role=alert]").inner_text())
+    check("email sign-in: a wrong password and an unknown email get the same plain answer", lambda: (
+        _assert(wrong_answers[0] == wrong_answers[1], f"{wrong_answers}"),
+        _assert("don't match" in wrong_answers[0], wrong_answers[0])))
+    em.get_by_role("textbox", name="Email").fill("customer2.hyd@example.com")
+    em.locator("input[name=password]").fill(PASSWORDS.get("customer2.hyd@example.com", "BhojanGo123"))
+    em.get_by_role("button", name="Sign in", exact=True).click()
+    step("email sign-in: the seeded customer's password signs in", lambda: url_is(em, r"^(?!.*/signin).*$"))
+    em_ctx.close()
+
+    em_ctx = b.new_context(viewport={"width": 390, "height": 844})
+    em = em_ctx.new_page()
+    new_email = f"web.e2e.{uuid.uuid4().hex[:8]}@example.com"
+    em.goto(base + "/signin?way=email&mode=create", wait_until="networkidle")
+    check("new account: the Email tab opens on Create your account (?way=email&mode=create)", lambda: (
+        expect(em.get_by_role("heading", name="Create your account")).to_be_visible(),
+        expect(em.locator("input[name=new-password]")).to_have_attribute("autocomplete", "new-password")))
+    em.get_by_role("textbox", name="Email").fill(new_email)
+    em.locator("input[name=new-password]").fill("short")
+    em.get_by_role("button", name="Create account").click()
+    check("new account: a short password is refused before anything is sent", lambda:
+          expect(em.locator("p[role=alert]")).to_contain_text("at least 10 characters"))
+    em.locator("input[name=new-password]").fill("Web-e2e-password-2026")
+    em.get_by_role("button", name="Create account").click()
+    check("new account: a 6-digit code goes to the email first", lambda: (
+        expect(em.get_by_role("heading", name="Check your email")).to_be_visible(timeout=15000),
+        expect(em.get_by_role("textbox", name=re.compile("^Digit "))).to_have_count(6)))
+    shot(em, "09c-signup-code-phone")
+    em.get_by_role("textbox", name="Digit 1").fill(OTP)  # @example.com: the fixed code outside production
+    em.get_by_role("button", name="Continue").click()
+    step("new account: the code signs the new account in", lambda: url_is(em, r"^(?!.*/signin).*$"))
+    em.goto(base + "/account/profile", wait_until="networkidle")
+    check("profile: Sign-in and security shows the verified email and the password", lambda: (
+        expect(em.get_by_role("heading", name="Sign-in and security")).to_be_visible(timeout=15000),
+        expect(em.get_by_text(new_email)).to_be_visible(),
+        expect(em.get_by_text("Verified · you can sign in with it")).to_be_visible(),
+        expect(em.get_by_role("button", name="Add", exact=True)).to_be_visible()))
+    shot(em, "09d-profile-security-phone")
+    em_ctx.close()
+
+    em_ctx = b.new_context(viewport={"width": 1366, "height": 900})
+    em = em_ctx.new_page()
+    forgot_answers = []
+    for who in ("customer3.hyd@example.com", f"nobody.{uuid.uuid4().hex[:8]}@example.com"):
+        em.goto(base + "/signin/forgot", wait_until="networkidle")
+        em.get_by_role("textbox", name="Email").fill(who)
+        em.get_by_role("button", name="Send link").click()
+        expect(em.get_by_role("heading", name="Check your email")).to_be_visible(timeout=15000)
+        forgot_answers.append(em.get_by_role("status").filter(has_text="BhojanGo account").inner_text().replace(who, "<email>"))
+    check("forgot password: the same answer whether or not the email has an account", lambda:
+          _assert(forgot_answers[0] == forgot_answers[1], f"{forgot_answers}"))
+    shot(em, "09e-forgot-sent")
+    em.goto(base + "/signin/reset?token=" + "x" * 43, wait_until="networkidle")
+    check("reset link: an expired or used link says so and offers a new one", lambda: (
+        expect(em.locator("p[role=alert]")).to_contain_text("expired or was already used", timeout=15000),
+        expect(em.get_by_role("link", name="Ask for a new link")).to_have_attribute("href", "/signin/forgot")))
+    em_ctx.close()
+
     # ── Sign in with phone + OTP (/signin, /signin/code) ──────────────────────
     bag.get_by_role("link", name="Go to checkout").click()
     url_is(page, r"/signin\?next=%2Fcheckout|/signin\?next=/checkout")
@@ -977,6 +1075,12 @@ with sync_playwright() as p:
     check("/partner form: a short password is refused before sending", lambda: expect(k.get_by_test_id("partner-form-error")).to_have_text("Fix 1 field to continue."))
     form.get_by_label("Password", exact=True).fill("a long enough password")
     form.get_by_role("button", name="Create account and continue").click()
+    # Round 8 (D5): the account is made once the emailed code is entered (@example.com: the fixed code here).
+    check("/partner: a code goes to the email first; no account yet", lambda: (
+        expect(k.get_by_test_id("partner-code")).to_be_visible(timeout=20000),
+        expect(k.get_by_test_id("partner-code")).to_contain_text(email)))
+    k.get_by_label("6-digit code").fill(OTP)
+    k.get_by_test_id("partner-verify").click()
     check("/partner: submitting creates a kitchen partner and continues to business details", lambda: (
         expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "business", timeout=20000),
         expect(k.get_by_text(f"We've emailed {email}")).to_be_visible(),

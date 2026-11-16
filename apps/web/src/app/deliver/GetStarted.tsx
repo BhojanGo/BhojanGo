@@ -1,4 +1,5 @@
 "use client";
+import { formatPhone } from "@bhojango/i18n";
 // "Get started" on /deliver: name, phone (the country's calling code from Markets)
 // and city -> the code we text (the same OTP as sign-in) -> POST /riders/apply, the
 // call the BhojanGo Delivery app's Join screen makes. Then: get the app (QR code,
@@ -12,6 +13,7 @@ import { Chevron } from "@/components/Icons";
 import { api, useHydrated, useSession } from "@/lib/client";
 import { firstName, qrPath } from "@/lib/deliver";
 import { useT } from "@/lib/i18n";
+import { codeSendError } from "../signin/emailAuth";
 
 type Country = { code: string; name: string; phone_code: string };
 type City = { code: string; name: string; region: string };
@@ -57,7 +59,8 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
   function problem(err: unknown, fallback: string): string {
     const code = err instanceof ApiError ? err.code : (err as { body?: { detail?: { code?: string } } })?.body?.detail?.code;
     if (code && ERRORS[code]) return t(`deliver_page.${ERRORS[code]}`);
-    return errorMessage((err as { body?: unknown })?.body, fallback);
+    // Too many codes for this number (with how long to wait), or the SMS provider down.
+    return codeSendError(err, t, errorMessage((err as { body?: unknown })?.body, fallback));
   }
 
   async function send(e?: React.FormEvent) {
@@ -173,7 +176,7 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
   return (
     <form onSubmit={send} noValidate className="rounded-[20px] bg-[#14201F] p-5 sm:p-6" data-testid="gs-form" aria-label={t("deliver_page.gs_title")}>
       {user && user.phone && (
-        <p className="m-0 mb-4 rounded-[12px] bg-[#1C2B2D] px-4 py-3 text-small text-[#C4D0D2]">{t("deliver_page.gs_signed_in_as", { phone: user.phone })}</p>
+        <p className="m-0 mb-4 rounded-[12px] bg-[#1C2B2D] px-4 py-3 text-small text-[#C4D0D2]">{t("deliver_page.gs_signed_in_as", { phone: formatPhone(user.phone) })}</p>
       )}
       <label htmlFor={ids.name} className="block text-label">{t("deliver_page.gs_name")}</label>
       <input id={ids.name} data-testid="gs-name" autoComplete="name" value={name} maxLength={80} aria-describedby={ids.nameHelp}
@@ -246,7 +249,7 @@ function Done({ name, phone, country, apps, onOther }: { name: string; phone: st
   return (
     <div className="rounded-[20px] bg-white p-5 text-kohl sm:p-6" data-testid="gs-done" role="status">
       <h3 ref={headRef} tabIndex={-1} className="m-0 text-h2 outline-none">{t("deliver_page.done_title", { name })}</h3>
-      <p className="m-0 mt-2 text-body text-muted">{t("deliver_page.done_body", { phone })}</p>
+      <p className="m-0 mt-2 text-body text-muted">{t("deliver_page.done_body", { phone: formatPhone(phone) })}</p>
       <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
         {qr && (
           <figure className="m-0 hidden shrink-0 sm:block">

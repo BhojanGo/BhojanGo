@@ -15,7 +15,10 @@ export { aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEI
   tabBarZone } from "./tabbar";
 
 // P17: generated API client, session and bag.
-export { api, urls, useSession, wsUrl } from "./session";
+export { AdminAccountError, api, emailAuth, urls, useSession, wsUrl } from "./session";
+// Round 8 (D5): Phone and Email as equal ways in; email + password, email codes, forgot password.
+export { authErrorText, codeSendErrorText, EmailSignIn, SignInWays, waitText } from "./ui/signin";
+export type { Way as SignInWay } from "./ui/signin";
 export type { User } from "./session";
 export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
@@ -35,7 +38,7 @@ export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";
 export type { AppEnv } from "./env";
 // Round 6: the header's language pill (globe + "EN"); no country selector. The pure
 // helpers are @bhojango/i18n's, shared with the website.
-export { chooseLanguage, detectCountry, languageList } from "@bhojango/i18n";
+export { chooseLanguage, detectCountry, formatPhone, languageList } from "@bhojango/i18n";
 export { LanguagePicker, LanguagePill, PhoneCountryButton, TestBanner, WithTestBanner } from "./ui/locale";
 export type { Tone } from "./ui/locale";
 // R8: the screens' SafeAreaView (follows the test banner's insets; the native one padded the status bar twice).

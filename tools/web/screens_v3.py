@@ -39,7 +39,7 @@ WIDTHS = {1440: 900, 390: 844}
 PANEL = 520  # each column's width in a side-by-side
 
 with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
-    PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
+    PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) >= 4}
 
 
 def api(method: str, path: str, token: str | None = None, body: dict | None = None):  # type: ignore[no-untyped-def]

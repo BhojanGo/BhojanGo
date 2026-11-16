@@ -89,11 +89,16 @@ def main() -> int:  # noqa: C901 - one walk through the site
     passwords: dict[str, str] = {}
     if os.environ.get("E2E_LOGINS_FILE"):
         with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as f:
-            passwords = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in f) if len(r) == 4}
+            passwords = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in f) if len(r) >= 4}
 
     def session(email: str) -> tuple[str, list[dict], dict]:
         """A signed-in browser for this account: the session in localStorage, its default address as the place."""
-        t = api(core, "POST", "/auth/login", None, {"email": email, "password": passwords[email]})
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from totp_signin import finish, keys_from_logins  # admins: the second step (Round 8)
+
+        keys = keys_from_logins(os.environ["E2E_LOGINS_FILE"]) if os.environ.get("E2E_LOGINS_FILE") else {}
+        t = finish(lambda path, data: api(core, "POST", path, None, data), email,
+                   api(core, "POST", "/auth/login", None, {"email": email, "password": passwords[email]}), keys)
         tok = t["access_token"]
         me = api(core, "GET", "/users/me", tok)
         cookies: list[dict] = []

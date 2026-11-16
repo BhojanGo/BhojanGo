@@ -1,100 +1,48 @@
 import pytest
 from httpx import AsyncClient
 
+from core_api.modules.identity.tests.signin import email_sign_up
 
-REGISTER_DATA = {
-    "email": "test@bhojango.com",
-    "password": "SecurePass1",
-    "full_name": "Test User",
-    "country": "US",
-    "preferred_currency": "USD",
-    "preferred_locale": "en-US",
-}
+PASSWORD = "Secure-pass-2026"
 
 
-@pytest.mark.asyncio
-async def test_register_success(client: AsyncClient) -> None:
-    response = await client.post("/api/v1/auth/register", json=REGISTER_DATA)
-    assert response.status_code == 201
-    data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["user"]["email"] == REGISTER_DATA["email"]
-    assert data["user"]["role"] == "customer"
+async def test_sign_up_then_sign_in_with_the_password(client: AsyncClient) -> None:
+    data = await email_sign_up(client, "test@example.com", PASSWORD)
+    assert data["access_token"] and data["refresh_token"] and data["is_new_user"] is True
+    assert data["user"]["email"] == "test@example.com" and data["user"]["role"] == "customer"
+    assert data["user"]["is_verified"] is True
+
+    r = await client.post("/api/v1/auth/login", json={"email": "test@example.com", "password": PASSWORD})
+    assert r.status_code == 200, r.text
+    assert r.json()["token_type"] == "bearer" and r.json()["mfa_required"] is False
 
 
-@pytest.mark.asyncio
-async def test_register_duplicate_email(client: AsyncClient) -> None:
-    await client.post("/api/v1/auth/register", json=REGISTER_DATA)
-    response = await client.post("/api/v1/auth/register", json=REGISTER_DATA)
-    assert response.status_code == 409
-    assert response.json()["detail"]["code"] == "EMAIL_ALREADY_EXISTS"
+async def test_register_is_gone(client: AsyncClient) -> None:
+    """Accounts are made by /auth/email/sign-up (email verified first), not /auth/register."""
+    r = await client.post("/api/v1/auth/register", json={"email": "x@example.com", "password": PASSWORD})
+    assert r.status_code in (404, 405)
 
 
-@pytest.mark.asyncio
-async def test_register_weak_password(client: AsyncClient) -> None:
-    data = {**REGISTER_DATA, "email": "weak@bhojango.com", "password": "weak"}
-    response = await client.post("/api/v1/auth/register", json=data)
-    assert response.status_code == 422
+async def test_login_wrong_password_and_unknown_email_answer_alike(client: AsyncClient) -> None:
+    await email_sign_up(client, "wrongpw@example.com", PASSWORD)
+    wrong = await client.post("/api/v1/auth/login", json={"email": "wrongpw@example.com", "password": "Wrong-pass-1"})
+    nobody = await client.post("/api/v1/auth/login", json={"email": "nobody@example.com", "password": "Wrong-pass-1"})
+    assert wrong.status_code == nobody.status_code == 401
+    assert wrong.json() == nobody.json()
 
 
-@pytest.mark.asyncio
-async def test_login_success(client: AsyncClient) -> None:
-    register_data = {**REGISTER_DATA, "email": "login@bhojango.com"}
-    await client.post("/api/v1/auth/register", json=register_data)
-
-    response = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "login@bhojango.com", "password": "SecurePass1"},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
-
-
-@pytest.mark.asyncio
-async def test_login_wrong_password(client: AsyncClient) -> None:
-    register_data = {**REGISTER_DATA, "email": "wrongpw@bhojango.com"}
-    await client.post("/api/v1/auth/register", json=register_data)
-
-    response = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "wrongpw@bhojango.com", "password": "WrongPass1"},
-    )
-    assert response.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_login_nonexistent_user(client: AsyncClient) -> None:
-    response = await client.post(
-        "/api/v1/auth/login",
-        json={"email": "nobody@bhojango.com", "password": "SomePass1"},
-    )
-    assert response.status_code == 401
-
-
-@pytest.mark.asyncio
 async def test_get_me_authenticated(client: AsyncClient) -> None:
-    reg_data = {**REGISTER_DATA, "email": "me@bhojango.com"}
-    reg_resp = await client.post("/api/v1/auth/register", json=reg_data)
-    token = reg_resp.json()["access_token"]
-
-    response = await client.get(
-        "/api/v1/users/me",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    token = (await email_sign_up(client, "me@example.com", PASSWORD))["access_token"]
+    response = await client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
-    assert response.json()["email"] == "me@bhojango.com"
+    assert response.json()["email"] == "me@example.com"
 
 
-@pytest.mark.asyncio
 async def test_get_me_unauthenticated(client: AsyncClient) -> None:
     response = await client.get("/api/v1/users/me")
     assert response.status_code == 403  # HTTPBearer returns 403 when no credentials
 
 
-@pytest.mark.asyncio
 async def test_health_check(client: AsyncClient) -> None:
     response = await client.get("/health")
     assert response.status_code == 200
@@ -104,19 +52,16 @@ async def test_health_check(client: AsyncClient) -> None:
     assert "checks" in data
 
 
-@pytest.mark.asyncio
-async def test_update_me(client: AsyncClient) -> None:
-    reg_data = {**REGISTER_DATA, "email": "update@bhojango.com"}
-    reg_resp = await client.post("/api/v1/auth/register", json=reg_data)
-    token = reg_resp.json()["access_token"]
-
+async def test_update_me_changes_the_name_but_never_the_phone(client: AsyncClient) -> None:
+    token = (await email_sign_up(client, "update@example.com", PASSWORD))["access_token"]
     response = await client.put(
         "/api/v1/users/me",
-        json={"full_name": "Updated Name"},
+        json={"full_name": "Updated Name", "phone": "+14155550111"},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
     assert response.json()["full_name"] == "Updated Name"
+    assert response.json()["phone"] is None  # a phone is linked with a code (/me/phone), not set here
 
 
 @pytest.mark.asyncio

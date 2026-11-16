@@ -262,6 +262,16 @@ town from their IP), `cities.other_countries` (the "Other countries" disclosure 
 city), `cities.no_match_in` ("No city in {country} by that name yet.": `{country}` is the
 country's Markets name in English; Indian languages glue a case suffix to it).
 
+## Sign-in emails (round 8, D5)
+
+Machine-translated on 2026-11-15, all eight languages, in `backend/shared/texts.py`
+`AUTH_EMAILS`: the 6-digit code email (`code.subject`, `code.body`), "you already
+have an account" (`exists.*`), the password-reset link (`reset.*`), "your password
+was changed" (`changed.*`) and "the email on your account was changed"
+(`email_replaced.*`). Check that the reset and changed emails read as calm and
+trustworthy (no alarm, no blame), and that "code" / "password" use the words people
+know from other apps in each language.
+
 ## Deliver with BhojanGo (round 8, F8: `deliver_page.*`)
 
 Every `deliver_page.*` key (the website's /deliver and /deliver/app pages: pay, requirements,

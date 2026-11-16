@@ -145,12 +145,13 @@ async def test_every_sign_up_path_records_acceptance(client: AsyncClient) -> Non
     # Phone sign-up (a new number), from a browser.
     h = await new_number(client, ua="Mozilla/5.0 (X11; Linux x86_64)")
     assert await acceptances(h["id"]) == [("privacy", "IN", privacy_in, "web"), ("terms", "IN", terms_in, "web")]
-    # /auth/register (email and password), from an app.
+    # Email sign-up (the emailed code creates the account), from an app.
     email = f"legal.{random.randint(10000, 99999)}@example.com"
-    r = await client.post("/api/v1/auth/register", headers={"User-Agent": "okhttp/4.12.0"}, json={
-        "email": email, "password": "Str0ngPassw0rd!", "full_name": "Legal Register", "country": "US",
-        "preferred_currency": "USD", "preferred_locale": "en-US"})
-    assert r.status_code == 201, r.text
+    r = await client.post("/api/v1/auth/email/sign-up", headers={"User-Agent": "okhttp/4.12.0"}, json={
+        "email": email, "password": "Long-enough-pass1", "full_name": "Legal Email", "country": "US"})
+    assert r.status_code == 202, r.text
+    r = await client.post("/api/v1/auth/email/verify", headers={"User-Agent": "okhttp/4.12.0"}, json={"email": email, "code": "123456"})
+    assert r.status_code == 200, r.text
     assert [(k, c, s) for k, c, _, s in await acceptances(r.json()["user"]["id"])] == [("privacy", "US", "app"), ("terms", "US", "app")]
 
     # Delivery and kitchen partner terms, once published for India, are accepted when applying.
@@ -169,6 +170,15 @@ async def test_every_sign_up_path_records_acceptance(client: AsyncClient) -> Non
     assert r.status_code == 201, r.text
     assert ("kitchen_partner_terms", "IN", kp, "app") in await acceptances(kitchen["id"])
     assert len(await acceptances(kitchen["id"])) == 3
+    # A new kitchen by email (/kitchens/apply, then the emailed code): Terms, Privacy and the kitchen partner terms, once each.
+    from core_api.integration.test_signup import _signup
+
+    body = _signup()
+    assert (await client.post("/api/v1/kitchens/apply", json=body, headers={"User-Agent": "Mozilla/5.0"})).status_code == 202
+    r = await client.post("/api/v1/auth/email/verify", json={"email": body["email"], "code": "123456"}, headers={"User-Agent": "Mozilla/5.0"})
+    assert r.status_code == 200, r.text
+    got = await acceptances(r.json()["user"]["id"])
+    assert sorted(k for k, *_ in got) == ["kitchen_partner_terms", "privacy", "terms"] and {s for *_, s in got} == {"web"}, got
 
 
 async def test_updated_terms_notice_once(client: AsyncClient) -> None:

@@ -1,0 +1,47 @@
+# Round 8 (D5): sign in on the Email tab with an email and a password (a seeded kitchen partner; the Kitchen app opens on Email).
+# EMAIL / PASSWORD override the seed account; on hosted QA the password comes from
+# QA_PASSWORDS (tools/railway/maestro-qa.sh). Checks the other ways in are offered:
+# "Email me a code instead", "Forgot password?" and "Create an account".
+appId: com.bhojango.partner
+tags:
+  - qa-readonly
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: "way-email"
+    timeout: 120000
+- tapOn:
+    id: "way-email"
+- assertVisible: "Email me a code instead"
+- assertVisible: "Forgot password?"
+- assertVisible: "Create an account"
+- takeScreenshot: docs/screenshots/partner/01b-sign-in-email
+# A wrong password says so in words (the same words for an email with no account).
+- tapOn:
+    id: "email"
+- inputText: ${EMAIL || "partner.hyd@example.com"}
+- tapOn:
+    id: "password"
+- inputText: "not-the-password-1"
+- hideKeyboard
+- tapOn:
+    id: "email-sign-in"
+- extendedWaitUntil:
+    visible: "That email and password don't match.*"
+    timeout: 15000
+- tapOn:
+    id: "password"
+- eraseText: 40
+- inputText: ${PASSWORD || (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS ? JSON.parse(QA_PASSWORDS)[EMAIL || "partner.hyd@example.com"] : "BhojanGo123")}
+- hideKeyboard
+- tapOn:
+    id: "email-sign-in"
+# Signed in: the sign-in screen goes.
+- extendedWaitUntil:
+    notVisible:
+      id: "email-sign-in"
+    timeout: 60000

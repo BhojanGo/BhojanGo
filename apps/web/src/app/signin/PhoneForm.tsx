@@ -1,18 +1,18 @@
 "use client";
-// The phone number (WebSignIn): the country's calling code comes from Markets
+// The Phone tab of /signin (WebSignIn): the country's calling code comes from Markets
 // (the directory), the code is sent by SMS, then /signin/code.
 import { errorMessage } from "@bhojango/api-client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Chevron } from "@/components/Icons";
 import { useSession } from "@/lib/client";
 import { useT } from "@/lib/i18n";
+import { codeSendError } from "./emailAuth";
 
 type Country = { code: string; name: string; phone_code: string };
 
-export function PhoneForm({ countries, initial, next, children }: { countries: Country[]; initial: string | null; next: string; children?: React.ReactNode }) {
+export function PhoneForm({ countries, initial, next }: { countries: Country[]; initial: string | null; next: string }) {
   const t = useT();
   const router = useRouter();
   const sendCode = useSession((s) => s.sendCode);
@@ -36,16 +36,14 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
       await sendCode(phone, country.code);
       router.push(`/signin/code?${new URLSearchParams({ phone, country: country.code, next })}`);
     } catch (err) {
-      setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));
+      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed"))));
       setBusy(false);
     }
   }
 
   return (
     <form onSubmit={send} noValidate>
-      <h1 className="m-0 text-h1 leading-[1.1]">{t("signin.heading")}</h1>
-      <p className="m-0 mt-2 hidden text-body text-muted md:block">{t("signin.sub")}</p>
-      <div className="mt-6 md:mt-8">
+      <div className="mt-6">
         <label htmlFor={inputId} className="block text-label">{t("signin.mobile")}</label>
         <span className="mt-2 flex h-14 items-center overflow-hidden rounded-[14px] border-2 border-[#0B5D66] text-body-lg focus-within:ring-2 focus-within:ring-[#0B5D66]/30">
           <span className="relative flex h-full shrink-0 items-center gap-[6px] border-r border-[#E2E7E8] px-[14px] font-bold">
@@ -79,12 +77,6 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
       <button type="submit" disabled={!ok || busy} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
         {busy ? t("signin.sending") : t("signin.send_code")}
       </button>
-      {/* other ways in (e.g. Google), when set up */}
-      {children}
-      <div className="mt-7 hidden rounded-2xl bg-[#F4F6F6] p-4 text-small leading-[1.5] md:block">
-        <b>{t("signin.partner_q")}</b> <span className="text-muted">{t("signin.partner_note")}</span>{" "}
-        <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/deliver" className="font-bold">{t("signin.ride")}</Link>
-      </div>
     </form>
   );
 }

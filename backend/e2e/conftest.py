@@ -17,6 +17,14 @@ from typing import Any
 import httpx
 import pytest
 
+# tools/ (the repo's, or /repo/tools in the test images): totp_signin.py
+for _root in (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools"), "/repo/tools"):
+    if os.path.isdir(_root):
+        import sys
+
+        sys.path.insert(0, os.path.abspath(_root))
+        break
+
 CORE = os.environ.get("E2E_CORE_API", "")
 RT = os.environ.get("E2E_REALTIME", "http://localhost:8004")
 WK = os.environ.get("E2E_WORKER", "http://localhost:8006")
@@ -27,9 +35,13 @@ PASSWORD, ADMIN_PASSWORD = "BhojanGo123", "BhojanGoAdmin1"
 # Hosted QA seeds random passwords (tools/seed: SEED_PASSWORDS=random); point
 # E2E_LOGINS_FILE at the logins file it wrote (outside the repo).
 LOGINS: dict[str, str] = {}
+TOTP_KEYS: dict[str, str] = {}
 if os.environ.get("E2E_LOGINS_FILE"):
     with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as f:
-        LOGINS = {row[2]: row[3] for row in (line.rstrip("\n").split("\t") for line in f) if len(row) == 4}
+        _rows = [line.rstrip("\n").split("\t") for line in f]
+    LOGINS = {row[2]: row[3] for row in _rows if len(row) >= 4}
+    # Admins' authenticator keys: the fifth column (Round 8 two-step sign-in).
+    TOTP_KEYS.update({row[2]: row[4] for row in _rows if len(row) >= 5 and row[4]})
 
 pytestmark = pytest.mark.skipif(not CORE, reason="needs a running stack (set E2E_CORE_API)")
 
@@ -46,6 +58,12 @@ class Api:
                 break
             time.sleep(5)  # login is limited to 10/minute
         assert r.status_code == 200, r.text
+        if r.json().get("mfa_required"):  # an admin: the second step (tools/totp_signin.py)
+            from totp_signin import next_code
+
+            r = self.client.post(f"{CORE}/api/v1/auth/mfa/verify", json={
+                "mfa_token": r.json()["mfa_token"], "code": next_code(email, TOTP_KEYS.get(email))})
+            assert r.status_code == 200, r.text
         self.user = r.json()["user"]
         self.headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
 

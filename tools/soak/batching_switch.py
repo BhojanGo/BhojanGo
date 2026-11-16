@@ -25,9 +25,15 @@ def main(state: str, city: str = "US-ID-BOI") -> None:
     live = state == "on"
     admin, approver = ADMINS[city[:2]]
     with httpx.Client(timeout=30) as c:
-        r = c.post(f"{CORE}/auth/login", json={"email": admin[0], "password": admin[1]})
-        r.raise_for_status()
-        h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+        from totp_signin import finish  # admins: the second step (seed key)
+
+        def post(path: str, data: dict) -> dict:
+            res = c.post(f"{CORE}{path}", json=data)
+            res.raise_for_status()
+            return res.json()
+
+        body = finish(post, admin[0], post("/auth/login", {"email": admin[0], "password": admin[1]}))
+        h = {"Authorization": f"Bearer {body['access_token']}"}
         rules = c.get(f"{CORE}/rules", headers=h, params={"family": "business"}).json()
         rule = next(x for x in rules if x["template"] == "batching" and x["market_scope"] == city
                     and x["status"] == "published" and not x.get("effective_to"))
@@ -40,9 +46,8 @@ def main(state: str, city: str = "US-ID-BOI") -> None:
         r = c.post(f"{CORE}/rules/{vid}/submit", headers=h)  # batching changes rider pay: a second admin approves
         r.raise_for_status()
         if r.json()["status"] == "pending_approval":
-            fin = c.post(f"{CORE}/auth/login", json={"email": approver[0], "password": approver[1]})
-            fin.raise_for_status()
-            r = c.post(f"{CORE}/rules/{vid}/approve", headers={"Authorization": f"Bearer {fin.json()['access_token']}"},
+            fin = finish(post, approver[0], post("/auth/login", {"email": approver[0], "password": approver[1]}))
+            r = c.post(f"{CORE}/rules/{vid}/approve", headers={"Authorization": f"Bearer {fin['access_token']}"},
                        json={"note": "soak run"})
             r.raise_for_status()
         print(f"batching in {city}: {state} (rule version {r.json().get('version')}, {r.json().get('status')})")

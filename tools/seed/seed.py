@@ -14,10 +14,10 @@ import os
 import secrets
 import sys
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from passlib.context import CryptContext
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -30,12 +30,24 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
         break
 from legal_docs import seed_legal  # noqa: E402
 from data import (  # noqa: E402
-    ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, TIERS, covers, dish_photo,
-    menu_dishes, photo_url,
+    ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, SEED_TOTP_SECRET, TIERS, covers,
+    dish_photo, menu_dishes, photo_url,
 )
+from core_api.modules.identity.service import passwords as _passwords, totp as _totp  # noqa: E402
+from shared.config import get_settings  # noqa: E402
 
 NS = uuid.UUID("6f1d3c52-6b0e-4a63-9a0d-5b7f6a2b8a11")  # fixed namespace for seed ids
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class _Hasher:
+    """Argon2id, like the API (identity.service.passwords)."""
+
+    @staticmethod
+    def hash(password: str) -> str:
+        return _passwords.hash_password(password)
+
+
+pwd = _Hasher()
 
 
 def sid(*parts: str) -> uuid.UUID:
@@ -322,13 +334,24 @@ ON CONFLICT (id) DO UPDATE SET
 # account gets its own random password, written only to SEED_LOGINS_FILE (outside
 # the repo) and never printed. Locally and in CI the fixed ones stay.
 RANDOM_PASSWORDS = os.environ.get("SEED_PASSWORDS", "") == "random"
-_passwords: dict[str, str] = {}
+_random_passwords: dict[str, str] = {}
+_totp_secrets: dict[str, str] = {}
 
 
 def password_for(email: str, admin: bool = False) -> str:
     if RANDOM_PASSWORDS:
-        return _passwords.setdefault(email, secrets.token_urlsafe(15))
+        return _random_passwords.setdefault(email, secrets.token_urlsafe(15))
     return ADMIN_PASSWORD if admin else PASSWORD
+
+
+def totp_secret_for(email: str) -> str | None:
+    """Seeded admins' authenticator key: none in production (admins enrol themselves
+    at their first sign-in), random per admin on hosted QA, the fixed one elsewhere."""
+    if get_settings().production_named:
+        return None
+    if RANDOM_PASSWORDS:
+        return _totp_secrets.setdefault(email, _totp.generate_secret())
+    return SEED_TOTP_SECRET
 
 
 async def upsert_user(conn, email, name, role, market, phone, password=None) -> uuid.UUID:
@@ -343,9 +366,9 @@ async def upsert_user(conn, email, name, role, market, phone, password=None) -> 
     return row.scalar_one()
 
 
-async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
+async def seed(database_url: str) -> list[tuple[str, ...]]:
     engine = create_async_engine(database_url)
-    logins: list[tuple[str, str, str, str]] = []
+    logins: list[tuple[str, ...]] = []
     restaurant_ids: dict = {}
     async with engine.begin() as conn:
         await seed_markets(conn)
@@ -465,7 +488,14 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
                 await conn.execute(UPSERT_ADMIN_ROLE, {
                     "id": sid("admin_role", email, role, scope), "user_id": user_id, "role": role, "scope": scope,
                 })
-            logins.append(("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, password_for(email, admin=True)))
+            key = totp_secret_for(email)
+            # Two-step sign-in (Round 8): enrolled with the seed's key, or (production) not at all.
+            await conn.execute(text(
+                "UPDATE users SET totp_secret = :s, totp_enabled_at = :at, totp_last_step = NULL WHERE id = :id"),
+                {"s": _totp.encrypt_secret(key) if key else None, "at": datetime.now(UTC) if key else None, "id": user_id})
+            await conn.execute(text("DELETE FROM recovery_codes WHERE user_id = :id"), {"id": user_id})
+            row = ("Admin console", ", ".join(f"{r} @ {s}" for r, s in roles), email, password_for(email, admin=True))
+            logins.append((*row, key) if key else row)
 
         await seed_rules(conn, sid("user", "admin@example.com"))
         await seed_hours_and_licences(conn, restaurant_ids)
@@ -497,19 +527,22 @@ def main() -> None:
         out = os.environ.get("SEED_LOGINS_FILE")
         if not out:
             sys.exit("SEED_PASSWORDS=random needs SEED_LOGINS_FILE (a path outside the repo)")
-        rows = ["where\twho\temail\tpassword", *("\t".join(row) for row in logins)]
+        # Admin rows have a fifth column: the authenticator key (two-step sign-in).
+        rows = ["where\twho\temail\tpassword\ttotp_secret", *("\t".join(row) for row in logins)]
         Path(out).write_text("\n".join(rows) + "\n", encoding="utf-8")
         os.chmod(out, 0o600)
         print(f"{len(logins)} test logins with random passwords written to {out} (passwords not printed).")
         return
     print("\nTest logins (local/staging only):")
-    width = max(len(e) for _, _, e, _ in logins)
+    width = max(len(row[2]) for row in logins)
     current = None
-    for where, who, email, password in logins:
+    for where, who, email, password, *key in logins:
         if where != current:
             print(f"\n  {where}")
             current = where
         print(f"    {email:<{width}}  {password:<15} {who}")
+    if any(len(row) > 4 for row in logins):
+        print(f"\n  Admins: two-step codes from an authenticator app with the key {SEED_TOTP_SECRET}")
     print()
 
 
