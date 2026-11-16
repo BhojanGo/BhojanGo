@@ -185,7 +185,9 @@ export function TestBanner({ tone = "light" }: { tone?: Tone }) {
 /**
  * Wrap the root Stack: in every environment but production (EXPO_PUBLIC_APP_ENV) a
  * thin banner sits under the status bar, and the screens below it see no top inset
- * (their SafeAreaView/useSafeAreaInsets don't pad twice). Tab bars and the bottom
+ * through useSafeAreaInsets() and mobile-core's SafeAreaView (not the native
+ * SafeAreaView of react-native-safe-area-context: it measures the window itself,
+ * ignores this context and padded the status bar twice; ui/safe-area.tsx). Tab bars and the bottom
  * inset are untouched. In production it renders the children only.
  */
 export function WithTestBanner({ children, tone = "light", env = appEnv() }: { children: ReactNode; tone?: Tone; env?: AppEnv }) {

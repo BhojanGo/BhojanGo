@@ -1,22 +1,26 @@
-// The room the floating tab bar needs (one shared value, from mobile-core's
-// tabBarClearance): every tab screen (home, search, orders, account) ends its
-// scroll with this much paddingBottom in every state (list, empty, loading,
-// error), so nothing is ever hidden behind the bar. Floating things stacked
-// above the bar (the bag pill on home) add their height.
-import { aboveTabBar, tabBarBottom, tabBarClearance } from "@bhojango/mobile-core";
+// The room the floating tab bar needs (mobile-core's tabbar.ts, one place).
+// R8: the tabs layout ends every tab screen above the band the bar floats in
+// (tabBarZone), so nothing sits under the bar at rest; each tab screen still
+// ends its scroll with useTabBarSpace() (breathing room, plus floating things
+// stacked above the bar: the bag pill on home) in every state (list, empty,
+// loading, error).
+import { sceneEndSpace, TAB_BAR_GAP, tabBarBottom, tabBarZone } from "@bhojango/mobile-core";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** paddingBottom for a tab screen's scroll; `stacked`: heights of floating buttons above the bar. */
 export function useTabBarSpace(stacked: readonly number[] = []): number {
-  const insets = useSafeAreaInsets();
-  return tabBarClearance(insets.bottom, stacked);
+  return sceneEndSpace(stacked);
 }
 
-/** The bar's own bottom offset (the tabs layout) and a floating button's, just above it. */
-export function useTabBarOffsets(): { bar: number; above: number } {
+/**
+ * The tabs layout's numbers: `bar`, the bar's bottom offset in the window; `zone`, the band
+ * every tab screen ends above; `above`, a floating button's bottom offset inside a tab screen
+ * (just above the bar).
+ */
+export function useTabBarOffsets(): { bar: number; zone: number; above: number } {
   const insets = useSafeAreaInsets();
-  return { bar: tabBarBottom(insets.bottom), above: aboveTabBar(insets.bottom) };
+  return { bar: tabBarBottom(insets.bottom), zone: tabBarZone(insets.bottom), above: TAB_BAR_GAP };
 }
 
 /**

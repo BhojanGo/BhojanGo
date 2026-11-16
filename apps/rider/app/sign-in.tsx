@@ -1,11 +1,10 @@
 // Riders sign in with their phone and a code by SMS (dark, like the rest of the app).
 import {
-  e164, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+  e164, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, SafeAreaView, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RiderMark } from "../lib/icons";
 import { night, radius, space, ui } from "../lib/theme";

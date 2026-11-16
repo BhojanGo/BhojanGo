@@ -1,10 +1,9 @@
 // Upload a licence or insurance photo for review (from the onboarding checklist).
-import { api, ApiError, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { night, radius, space, ui } from "../lib/theme";

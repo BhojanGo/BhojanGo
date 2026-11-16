@@ -1,4 +1,4 @@
-import { TabBar, useI18n, useSession } from "@bhojango/mobile-core";
+import { color, TabBar, useI18n, useSession } from "@bhojango/mobile-core";
 import { Redirect, router, Tabs } from "expo-router";
 import { View } from "react-native";
 
@@ -16,12 +16,13 @@ const ITEMS: { key: "home" | "search" | "orders" | "account"; icon: IconName }[]
 export default function TabsLayout() {
   const status = useSession((s) => s.status);
   const { t } = useI18n();
-  const { bar } = useTabBarOffsets();
+  const { bar, zone } = useTabBarOffsets();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
-      // The bar floats over the screens (each one leaves useTabBarSpace() at the end of its scroll).
+      // Every tab screen ends above the band the bar floats in (R8: nothing under the bar at rest);
+      // each one leaves useTabBarSpace() at the end of its scroll.
+      screenOptions={{ headerShown: false, sceneStyle: { paddingBottom: zone, backgroundColor: color.porcelain } }}
       tabBar={({ state }) => (
         <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: bar, alignItems: "center" }}>
           <TabBar

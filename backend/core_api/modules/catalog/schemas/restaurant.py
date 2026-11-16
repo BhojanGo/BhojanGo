@@ -123,7 +123,9 @@ class PublicRestaurant(BaseModel):
     description: str
     cuisine_types: list[str]
     logo_url: str | None
-    cover_url: str | None
+    cover_url: str | None  # the kitchen's own photo (what the kitchen app edits)
+    # What customers are shown (catalog.service.photos): the cover, else the first dish photo, else the cuisine's library photo.
+    photo_url: str | None = None
     address: dict[str, Any]
     lat: float | None
     lng: float | None

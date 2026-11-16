@@ -1,9 +1,8 @@
 // Notifications (WebProfile): order updates, receipts and account, offers, each
 // by push, SMS and email. A switch saves at once (and goes back if it fails).
-import { color, type, useI18n } from "@bhojango/mobile-core";
+import { color, SafeAreaView, type, useI18n } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Switch, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getPrefs, NOTIFY_CHANNELS, NOTIFY_KINDS, setPref, type NotifyChannel, type NotifyKind, type Prefs } from "../../lib/account";
 import { ScreenBar, Section, Status, ui } from "../../lib/account-ui";

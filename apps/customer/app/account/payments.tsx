@@ -3,10 +3,11 @@
 // payment_methods). Card numbers never touch BhojanGo: real cards are added in
 // the payment provider's form at checkout. On a test site you can save a test
 // card here (a fake token with the brand, last 4 digits and expiry).
-import { appEnv, Button, Chip, color, Input, isTestEnvironment, space, type, useCountry, useI18n } from "@bhojango/mobile-core";
+import {
+  appEnv, Button, Chip, color, Input, isTestEnvironment, SafeAreaView, space, type, useCountry, useI18n,
+} from "@bhojango/mobile-core";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   addTestCard, brandName, listPaymentMethods, makeDefaultPaymentMethod, payLabel, removePaymentMethod,

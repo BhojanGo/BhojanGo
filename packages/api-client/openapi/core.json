@@ -1176,6 +1176,17 @@
             "title": "Path",
             "type": "string"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "rating": {
             "title": "Rating",
             "type": "number"
@@ -2384,6 +2395,37 @@
         "title": "CountryUpdate",
         "type": "object"
       },
+      "CustomerCancel": {
+        "description": "The customer may cancel this order now (R8): GET /orders/{id}, to its customer only,\nabsent when they can't. The rule is the service's (customer_cancel_window): before the\nkitchen accepts, and for the business rule's cancel window after the order was placed.",
+        "properties": {
+          "refund": {
+            "title": "Refund",
+            "type": "number"
+          },
+          "refund_to": {
+            "title": "Refund To",
+            "type": "string"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        "required": [
+          "refund",
+          "refund_to"
+        ],
+        "title": "CustomerCancel",
+        "type": "object"
+      },
       "DeliveryCheckResponse": {
         "properties": {
           "currency": {
@@ -3435,6 +3477,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "rating": {
             "title": "Rating",
@@ -6253,6 +6306,16 @@
             ],
             "title": "Customer"
           },
+          "customer_cancel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustomerCancel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "customer_id": {
             "format": "uuid",
             "title": "Customer Id",
@@ -6513,6 +6576,17 @@
                 "type": "null"
               }
             ]
+          },
+          "refunded": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refunded"
           },
           "restaurant_accepted_at": {
             "anyOf": [
@@ -7819,6 +7893,17 @@
               }
             ],
             "title": "Paused Reason"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "rating": {
             "title": "Rating",
@@ -9358,6 +9443,17 @@
               }
             ],
             "title": "Paused Reason"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "pricing_model": {
             "default": "percentage_commission",

@@ -1,8 +1,7 @@
 // A partner with several kitchens picks the one this tablet runs (remembered).
-import { useI18n } from "@bhojango/mobile-core";
+import { SafeAreaView, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen } from "../lib/data";
 import { color, Icon, Mark, radius, t } from "../lib/ui";

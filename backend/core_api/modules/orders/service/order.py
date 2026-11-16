@@ -99,6 +99,47 @@ async def business_rules(db: AsyncSession, order: Order | None = None, context: 
     }
 
 
+CUSTOMER_CANCEL_STATES = ("pending_payment", "placed", "accepted")
+
+
+def customer_cancel_window(status: str, placed_at: datetime | None, window_minutes: int,
+                           now: datetime) -> tuple[bool, datetime | None]:
+    """May the customer cancel now, and until when (R8; the one rule, used by the cancel
+    itself and by GET /orders/{id}). Before the kitchen accepts: yes (no time limit of its
+    own: the kitchen's accept timeout cancels it anyway). Accepted: for window_minutes
+    after the order was placed, while the kitchen hasn't started cooking. Later: no."""
+    if status not in CUSTOMER_CANCEL_STATES:
+        return False, None
+    if status != "accepted":
+        return True, None
+    if placed_at is None:
+        return True, None
+    until = placed_at + timedelta(minutes=window_minutes)
+    return now <= until, until
+
+
+async def customer_cancel(db: AsyncSession, order: Order, now: datetime | None = None) -> dict | None:
+    """What the customer's "Cancel order" needs (OrderResponse.customer_cancel), or None."""
+    if order.status not in CUSTOMER_CANCEL_STATES:
+        return None
+    window = (await business_rules(db, order))["cancel_window_minutes"] if order.status == "accepted" else 0
+    allowed, until = customer_cancel_window(order.status, order.placed_at, window, now or datetime.now(UTC))
+    if not allowed:
+        return None
+    paid = order.status in sm.PAID_STATES
+    return {"until": until, "refund": float(order.total) if paid else 0.0, "refund_to": order.payment_method}
+
+
+async def refunded_total(db: AsyncSession, order_id: uuid.UUID) -> float | None:
+    """Everything refunded on an order (major units), or None when nothing was."""
+    from sqlalchemy import func
+
+    from core_api.modules.payments.models.payment import Refund
+
+    minor = (await db.execute(select(func.sum(Refund.amount)).where(Refund.order_id == order_id))).scalar()
+    return float(minor) / 100 if minor else None
+
+
 class OrderService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -319,9 +360,10 @@ class OrderService:
             raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"This order can't be cancelled now ({order.status})")
         if actor == "customer" and order.status == "accepted":
             window = (await business_rules(self.db, order))["cancel_window_minutes"]
-            if order.placed_at and datetime.now(UTC) > order.placed_at + timedelta(minutes=window):
+            allowed, _ = customer_cancel_window(order.status, order.placed_at, window, datetime.now(UTC))
+            if not allowed:
                 raise _err(status.HTTP_409_CONFLICT, "CANCEL_WINDOW_PASSED",
-                           "The restaurant has started on your order; contact support to cancel")
+                           "The kitchen has started on your order, so it can't be cancelled now. Ask us from the order for help")
         return await self._cancel(order, actor, data.reason, data.note)
 
     # ── dispatch (called by realtime over the internal API) ──────────────────

@@ -34,9 +34,9 @@ def _live(r: Restaurant) -> bool:
     return r.is_active and r.status == "active" and r.deleted_at is None
 
 
-def _restaurant_card(r: Restaurant) -> dict:
+def _restaurant_card(r: Restaurant, photo_url: str | None = None) -> dict:
     return {"id": str(r.id), "slug": r.slug, "name": r.name, "cuisine_types": list(r.cuisine_types or []),
-            "cover_url": r.cover_url, "city": r.city, "country": r.country, "rating": r.rating,
+            "cover_url": r.cover_url, "photo_url": photo_url, "city": r.city, "country": r.country, "rating": r.rating,
             "review_count": r.review_count, "delivery_time_min": r.delivery_time_min,
             "delivery_time_max": r.delivery_time_max, "delivery_fee": float(r.delivery_fee), "currency": r.currency,
             "rating_display": rating_display(r.rating, r.review_count).model_dump()}
@@ -48,8 +48,11 @@ async def restaurant_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.
 
     if not ids:
         return {}
-    rows = (await db.execute(select(Restaurant).where(Restaurant.id.in_(ids)))).scalars()
-    return {r.id: _restaurant_card(r) for r in rows if _live(r)}
+    from core_api.modules.catalog.service.photos import photos_for
+
+    rows = [r for r in (await db.execute(select(Restaurant).where(Restaurant.id.in_(ids)))).scalars() if _live(r)]
+    shown = await photos_for(db, rows)
+    return {r.id: _restaurant_card(r, shown.get(str(r.id))) for r in rows}
 
 
 async def item_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:
