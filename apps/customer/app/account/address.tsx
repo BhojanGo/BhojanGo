@@ -3,11 +3,10 @@
 // where the phone is ("Use my location", asked only when tapped); the country
 // is the pin's (Markets). Then the street, city, state, postal code, a name
 // (Home, Work) and delivery notes for the rider.
-import { Button, color, Input, radius, space, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, Input, radius, SafeAreaView, space, type, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Switch, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { followAddress, listAddresses, pinHere, saveAddress, searchAreas, type Address, type Area, type Pin } from "../../lib/account";
 import { ScreenBar, Section, ui } from "../../lib/account-ui";

@@ -1,9 +1,8 @@
 // The 6-digit code. Only rider accounts get in: anyone else is signed out again.
-import { errorMessage, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { errorMessage, SafeAreaView, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { night, radius, space, textFont, ui } from "../lib/theme";

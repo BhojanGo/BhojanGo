@@ -1,16 +1,16 @@
-// The kitchen: its own cover (or initials tile), "New" or its rating, the offer
+// The kitchen: its photo (photo_url, or the branded tile), "New" or its rating, the offer
 // and who pays, then the menu by section. A dish shows a photo only when it has
 // its own (image_url); otherwise a clean text row. Tap a dish to customise it.
-import { color, radius, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
+import { color, radius, SafeAreaView, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FavouriteHeart } from "../../components/Heart";
 import { RatingBadge } from "../../components/KitchenCard";
 import { offerBadge } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
-import { KitchenCover, photo, Photo } from "../../lib/plate";
+import { kitchenPhoto, KitchenCover, photo, Photo } from "../../lib/plate";
 import { useKitchenCard, useMenu, type MenuItem } from "../../lib/restaurants";
 
 export default function RestaurantScreen() {
@@ -18,6 +18,8 @@ export default function RestaurantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { menu, error } = useMenu(id);
   const card = useKitchenCard(id);
+  // Over the cover: below the status bar in production; under the test banner (which has it) the inset is 0.
+  const floatTop = useSafeAreaInsets().top + space[3];
   const bag = useBag();
   const inBag = bag.restaurantId === id ? bag.lines.reduce((n, l) => n + l.quantity, 0) : 0;
 
@@ -41,7 +43,7 @@ export default function RestaurantScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         ListHeaderComponent={
           <View>
-            <KitchenCover name={r.name} cover={r.cover_url} cuisine={r.cuisine_types[0]} height={220} width={1600} />
+            <KitchenCover name={r.name} cover={kitchenPhoto(r)} height={220} width={1600} />
             <View style={styles.head}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <Txt variant="h1" accessibilityRole="header" style={{ flex: 1 }}>{r.name}</Txt>
@@ -65,10 +67,10 @@ export default function RestaurantScreen() {
         )}
         renderItem={({ item }) => <DishRow item={item} restaurantId={r.id} currency={r.currency} />}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} style={[styles.round, { left: 16 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} style={[styles.round, { left: 16, top: floatTop }]}>
         <Icon name="back" />
       </Pressable>
-      <View style={{ position: "absolute", right: 16, top: 48 }}>
+      <View style={{ position: "absolute", right: 16, top: floatTop }}>
         <FavouriteHeart kind="restaurant" id={r.id} name={r.name} size={44} testID="kitchen-heart" />
       </View>
       {inBag > 0 ? (
@@ -134,7 +136,7 @@ const styles = StyleSheet.create({
   dishPhoto: { width: 104, height: 96, borderRadius: radius.card },
   add: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
   round: {
-    position: "absolute", top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
+    position: "absolute", width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",
   },
   bagBar: {

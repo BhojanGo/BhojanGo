@@ -80,7 +80,7 @@ export interface WeekLine {
  */
 export function useFormat() {
   const { money, distance, date, time } = useI18n();
-  const { countries } = useCountry();
+  const { countries, country } = useCountry();
   return useMemo(() => ({
     /** cash(12.5, order.currency): decimals 0 drops ".00" from whole amounts (never rounds cents away). */
     cash: (v: string | number | null | undefined, currency?: string | null, decimals = 2) =>
@@ -91,9 +91,14 @@ export function useFormat() {
     unitFor: (currency: string | null | undefined) => countryForCurrency(countries, currency)?.distance_unit ?? null,
     /** A city's name from its Markets code ("XX-RR-CCC"), else the code. */
     cityName: (code: string | null | undefined) => (code ? findCity(countries, code)?.city.name ?? code : null),
+    /** The map's centre with no GPS fix (R8): the partner's city (Markets), else the current country's first live city. */
+    cityCentre: (code: string | null | undefined): [number, number] | null => {
+      const c = findCity(countries, code)?.city ?? country?.regions.flatMap((r) => r.cities).find((x) => x.status === "live") ?? null;
+      return c ? [c.lat, c.lng] : null;
+    },
     date,
     time,
-  }), [money, distance, date, time, countries]);
+  }), [money, distance, date, time, countries, country]);
 }
 
 // ── live rider state ─────────────────────────────────────────────────────────

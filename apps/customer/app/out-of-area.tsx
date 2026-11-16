@@ -1,11 +1,10 @@
 // CustomerOutOfArea.html: we don't deliver here yet; leave a number to hear when we do.
 import {
-  api, Button, color, e164, errorMessage, Input, liveCityNames, space, Txt, type, unwrap, useCountry, useI18n,
+  api, Button, color, e164, errorMessage, Input, liveCityNames, SafeAreaView, space, Txt, type, unwrap, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { useWhere } from "../lib/where";

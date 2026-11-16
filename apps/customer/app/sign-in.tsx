@@ -1,12 +1,12 @@
 // CustomerSignIn.html: phone number, a code by SMS, no password.
 import {
-  Button, color, e164, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius, space, Txt, type,
-  useCountry, useI18n, useSession,
+  Button, color, e164, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius, SafeAreaView, space, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { SignInCollage } from "../components/SignInCollage";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
@@ -43,9 +43,11 @@ export default function SignIn() {
           <Text style={[type.h2, styles.word, { flex: 1 }]}>bhojango</Text>
           <LanguagePill />
         </View>
+        {/* The headline, then food photos filling the room down to the sheet (R8: no empty middle on tall phones). */}
         <View style={styles.hero}>
-          <Txt variant="display">Real food.{"\n"}Fair prices.</Txt>
-          <Txt style={{ color: color.muted, marginTop: space[3] }}>Every fee shown before you pay.</Txt>
+          <Txt variant="display">{t("common.tagline")}</Txt>
+          <Txt style={{ color: color.muted, marginTop: space[3] }}>{t("signin.promise_fees")}</Txt>
+          <SignInCollage />
         </View>
         <View style={styles.sheet} accessibilityLabel="Sign in">
           <Txt variant="h2" accessibilityRole="header">Sign in or sign up</Txt>
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.peacockMist },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: space[5], paddingTop: space[4] },
   word: { color: color.kohl },
-  hero: { paddingHorizontal: space[5], paddingTop: 48, flex: 1 },
+  hero: { paddingHorizontal: space[5], paddingTop: space[8], flex: 1 },
   sheet: {
     backgroundColor: color.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
     padding: space[6], paddingBottom: space[8], gap: space[3],

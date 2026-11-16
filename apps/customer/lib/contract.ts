@@ -28,6 +28,21 @@ export function photoUrl(url: string | null | undefined, webBase: string | null 
   return `${webBase.replace(/\/+$/, "")}${sized}`;
 }
 
+/**
+ * The sign-in screen's photos (R8, as the website's sign-in): the country's hero dish
+ * (Markets' hero_photo, a library slug), then the photos of kitchens in its first
+ * live city (photo_url, else cover_url), each photo once, at most `n`.
+ */
+export function signInPhotos(heroSlug: string | null | undefined, kitchens: readonly { photo_url?: string | null; cover_url?: string | null }[], n = 4): string[] {
+  const out: string[] = [];
+  const add = (u: string | null | undefined) => {
+    if (u && !out.includes(u) && out.length < n) out.push(u);
+  };
+  if (heroSlug && /^[a-z0-9-]+$/.test(heroSlug)) add(`/food/${heroSlug}-800.webp`);
+  for (const k of kitchens) add(k.photo_url ?? k.cover_url);
+  return out;
+}
+
 /** "Royal Paneer Kitchen" -> "RP" (letters only; the initials tile of a kitchen with no photo). */
 export function initials(name: string | null | undefined): string {
   return (name ?? "")

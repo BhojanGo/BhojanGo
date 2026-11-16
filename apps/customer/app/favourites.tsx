@@ -1,16 +1,15 @@
 // Favourites (GET /me/favourites): saved kitchens and dishes, as on the website's
 // account favourites. Reached from home (the heart) and from Account (link to /favourites).
-import { Button, color, num, radius, space, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, num, radius, SafeAreaView, space, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FavouriteHeart } from "../components/Heart";
 import { RatingBadge } from "../components/KitchenCard";
 import { Icon } from "../lib/icons";
 import { useFavourites } from "../lib/favourites";
-import { KitchenCover, Thumb } from "../lib/plate";
+import { kitchenPhoto, KitchenCover, Thumb } from "../lib/plate";
 
 export default function FavouritesScreen() {
   const { t, money } = useI18n();
@@ -51,7 +50,7 @@ export default function FavouritesScreen() {
         {kitchens.map((k) => (
           <View key={k.id} testID={`fav-kitchen-${k.slug}`}>
             <Pressable accessibilityRole="button" accessibilityLabel={k.name} onPress={() => router.push(`/restaurant/${k.id}`)} style={styles.kitchen}>
-              <KitchenCover name={k.name} cover={k.cover_url} cuisine={k.cuisine_types[0]} height={120} width={800} />
+              <KitchenCover name={k.name} cover={kitchenPhoto(k)} height={120} width={800} />
               <View style={{ padding: space[4], gap: 4 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>{k.name}</Txt>
