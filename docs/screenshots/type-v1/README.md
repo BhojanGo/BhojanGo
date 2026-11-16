@@ -17,7 +17,8 @@ body 16 · label 15 · small 14 · caption 12 (uppercase labels and badges only)
   sizes it renders (`FONT_AUDIT <route> <sizes>` in Metro); `tools/mobile/font_sizes.py`
   collects them while the QA Maestro flows walk the app on an Android emulator.
   Screenshots from those flows: [customer/hyderabad/](customer/hyderabad/),
-  [customer/boise/](customer/boise/), [rider/](rider/), [partner/](partner/).
+  [customer/boise/](customer/boise/), [rider/](rider/), [partner/](partner/) (phone) and
+  [partner/tablet/](partner/tablet/) (a 2560 × 1600 tablet, landscape: the kitchen's main device).
 
 ## Apps: every font size found on screen
 
@@ -78,6 +79,23 @@ small 14 · caption 12. Every size below is one of those nine.
 | `/sign-in` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 44:display |
 
 **All sizes in the rider app: 12, 14, 15, 16, 17, 18, 22, 30, 44** (9 of 9 allowed, nothing else).
+
+### partner, tablet (7 screens)
+
+Android tablet emulator, 2560 × 1600 landscape, QA flows 01–04 (orders, rating summary,
+menu and dish photo, language): 4/4 passed.
+
+| Screen | Sizes (px:token) |
+|---|---|
+| `/` | 12:caption |
+| `/code` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 30:h1 44:display |
+| `/help` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 22:h2 30:h1 44:display |
+| `/kitchens` | 14:small 18:h3 30:h1 |
+| `/menu` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 22:h2 |
+| `/orders` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 22:h2 30:h1 44:display |
+| `/sign-in` | 12:caption 14:small 15:label 16:body 17:bodyLg 18:h3 30:h1 44:display |
+
+**All sizes in the partner app on a tablet: 12, 14, 15, 16, 17, 18, 22, 30, 44** (9 of 9 allowed, nothing else).
 
 ## Website and admin: every font size found on screen
 
