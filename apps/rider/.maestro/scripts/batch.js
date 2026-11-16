@@ -89,9 +89,12 @@ function nextTotp(email) {
 // The sign-in answer -> tokens: an admin's answer asks for a code from the authenticator.
 function secondStep(email, body) {
   if (!body || !body.mfa_required) return body;
-  var r = call("POST", API + "/auth/mfa/verify", null, { mfa_token: body.mfa_token, code: nextTotp(email) });
-  if (r.status !== 200) throw new Error("second step " + email + " -> " + r.status);
-  return r.body;
+  // A step another run already used is refused (never twice): try the next one, at most three times.
+  for (var i = 0; i < 3; i++) {
+    var r = call("POST", API + "/auth/mfa/verify", null, { mfa_token: body.mfa_token, code: nextTotp(email) });
+    if (r.status === 200) return r.body;
+  }
+  throw new Error("second step " + email + " -> " + r.status);
 }
 
 function waitFor(check, tries) {

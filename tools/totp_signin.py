@@ -54,17 +54,38 @@ def keys_from_logins(path: str) -> dict[str, str]:
 
 def finish(post, email: str, body: dict, keys: dict[str, str] | None = None) -> dict:  # type: ignore[no-untyped-def]
     """Turn a sign-in answer into tokens. ``post(path, json) -> dict`` calls the API
-    (path under /api/v1). An admin's answer asks for the second step: send a code."""
+    (path under /api/v1). An admin's answer asks for the second step: send a code.
+
+    Another process (hours.py before e2e_admin.py, say) may have used this 30-second
+    step already, and a code is never accepted twice: then try the next step (at most
+    three tries, well under the challenge's five and the account's lockout)."""
     if not body.get("mfa_required"):
         return body
     if body.get("enrolment_required"):
         raise RuntimeError(f"{email} has no authenticator yet: sign in once in the admin console to set it up")
-    return post("/auth/mfa/verify", {"mfa_token": body["mfa_token"], "code": next_code(email, (keys or {}).get(email))})
+    answer: dict = {}
+    for _ in range(3):
+        answer = post("/auth/mfa/verify", {"mfa_token": body["mfa_token"], "code": next_code(email, (keys or {}).get(email))})
+        if answer.get("access_token"):
+            return answer
+    raise RuntimeError(f"{email}: the second step failed: {answer}")
 
 
 def admin_console_second_step(page, email: str, keys: dict[str, str] | None = None) -> None:  # type: ignore[no-untyped-def]
-    """Playwright: after "Sign in" on the admin console's /login, type the authenticator code."""
+    """Playwright: after "Sign in" on the admin console's /login, type the authenticator code
+    (the next step if another process already used this one; at most three tries)."""
     box = page.get_by_label("6-digit code")
     box.wait_for(timeout=20000)
-    box.fill(next_code(email, (keys or {}).get(email)))
-    page.get_by_role("button", name="Continue").click()
+    for _ in range(3):
+        box.fill(next_code(email, (keys or {}).get(email)))
+        page.get_by_role("button", name="Continue").click()
+        page.wait_for_timeout(300)  # the previous try's message goes as the page sends this one
+        for _ in range(100):
+            if "/login" not in page.url:
+                return
+            alert = page.locator("p[role=alert]")
+            if alert.count() and "didn't work" in alert.inner_text():
+                break
+            page.wait_for_timeout(100)
+        else:
+            return  # still loading: the caller waits for the URL
