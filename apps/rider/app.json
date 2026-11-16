@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BhojanGo Rider",
+    "name": "BhojanGo Delivery",
     "slug": "bhojango-rider",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,13 +13,13 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.bhojango.rider",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BhojanGo Rider uses your location to show nearby deliveries and share your position with customers.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Rider shares your location during an active delivery.",
+        "NSLocationWhenInUseUsageDescription": "BhojanGo Delivery uses your location to show nearby deliveries and share your position with customers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Delivery shares your location during an active delivery.",
         "UIBackgroundModes": [
           "location"
         ],
-        "NSCameraUsageDescription": "BhojanGo Rider uses the camera for photos at the door and of your documents.",
-        "NSPhotoLibraryUsageDescription": "BhojanGo Rider lets you choose a photo of your documents."
+        "NSCameraUsageDescription": "BhojanGo Delivery uses the camera for photos at the door and of your documents.",
+        "NSPhotoLibraryUsageDescription": "BhojanGo Delivery lets you choose a photo of your documents."
       }
     },
     "android": {
@@ -48,7 +48,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "BhojanGo Rider shares your location while you are online, even with the screen off, so you get nearby offers and customers can follow their order.",
+          "locationAlwaysAndWhenInUsePermission": "BhojanGo Delivery shares your location while you are online, even with the screen off, so you get nearby offers and customers can follow their order.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -75,8 +75,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "BhojanGo Rider uses the camera for photos at the door and of your documents.",
-          "photosPermission": "BhojanGo Rider lets you choose a photo of your documents."
+          "cameraPermission": "BhojanGo Delivery uses the camera for photos at the door and of your documents.",
+          "photosPermission": "BhojanGo Delivery lets you choose a photo of your documents."
         }
       ]
     ],

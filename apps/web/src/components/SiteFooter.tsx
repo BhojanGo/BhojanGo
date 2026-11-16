@@ -26,7 +26,7 @@ export async function SiteFooter() {
         <div className={col}>
           <b>{t("footer.work_with_us")}</b>
           <Link href="/partner">{t("footer.add_kitchen")}</Link>
-          <Link href="/ride">{t("footer.ride")}</Link>
+          <Link href="/deliver">{t("footer.ride")}</Link>
         </div>
         <div className={col}>
           <b>{t("footer.help")}</b>

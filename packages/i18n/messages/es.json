@@ -54,7 +54,7 @@
   "header": {
     "where_we_deliver": "Dónde entregamos",
     "add_your_kitchen": "Registra tu cocina",
-    "ride_with_us": "Reparte con nosotros",
+    "ride_with_us": "Reparte con BhojanGo",
     "country": "País: {country}",
     "country_title": "País",
     "country_note": "Los precios, las cocinas y los idiomas dependen del país de tu dirección.",
@@ -258,7 +258,7 @@
     "faq_cost_q": "¿Cuánto cuesta el envío en {city}?",
     "faq_cost_a": "La tarifa de envío depende de qué tan lejos esté la cocina, más una pequeña tarifa de servicio; en horas de alta demanda puede haber una tarifa extra. Cada una aparece en su propia línea antes de pagar.",
     "faq_tip_q": "¿Quién recibe mi propina?",
-    "faq_tip_a": "Tu repartidor, completa. BhojanGo no se queda con nada de las propinas.",
+    "faq_tip_a": "Toda para tu repartidor. BhojanGo no se queda con nada de las propinas.",
     "faq_tax_q": "¿Los impuestos están incluidos?",
     "faq_tax_a": "Los impuestos aparecen en sus propias líneas de la cuenta, con la tasa, para que veas lo que va al gobierno.",
     "bill_real": "Una cuenta real de {city}",
@@ -508,9 +508,9 @@
     "sending": "Enviando…",
     "send_failed": "No pudimos enviar el código. Revisa el número e inténtalo de nuevo.",
     "partner_q": "¿Tienes una cocina o quieres repartir?",
-    "partner_note": "Los socios y repartidores usan sus propias apps.",
+    "partner_note": "Las cocinas usan BhojanGo Kitchen; los repartidores, BhojanGo Delivery.",
     "add_kitchen": "Registra tu cocina",
-    "ride": "Reparte con nosotros",
+    "ride": "Reparte con BhojanGo",
     "agree_before": "Al continuar, aceptas los",
     "terms": "Términos",
     "agree_and": "y la",
@@ -781,7 +781,7 @@
     "who_pays": "Cada oferta dice quién la paga."
   },
   "ride": {
-    "meta_title": "Reparte con nosotros",
+    "meta_title": "Reparte con BhojanGo",
     "eyebrow": "Para repartidores",
     "title": "Reparte con BhojanGo",
     "lead": "Entrega pedidos de cocinas locales en tu ciudad, en tu propio horario, y ve cuánto paga un viaje antes de aceptarlo.",
@@ -794,10 +794,10 @@
     "pay_tips_body": "Los clientes pueden dar propina antes o después de la entrega, y no nos quedamos con nada.",
     "pay_weekly_title": "Pago cada semana.",
     "pay_weekly_body": "Tus ganancias, viaje por viaje, llegan a tu cuenta bancaria cada semana.",
-    "pay_more": "Los montos de tu ciudad aparecen en la app de repartidores antes de empezar. ¿Preguntas?",
+    "pay_more": "Los montos de tu ciudad aparecen en la app BhojanGo Delivery antes de empezar. ¿Preguntas?",
     "help_link": "Visita el centro de ayuda",
     "apply_title": "Cómo postularte",
-    "apply_step1": "Instala la app BhojanGo Rider en tu teléfono.",
+    "apply_step1": "Instala la app BhojanGo Delivery en tu teléfono.",
     "apply_step2": "Inicia sesión con tu número de teléfono y agrega tu vehículo y tus documentos.",
     "apply_step3": "Los revisamos y activamos tu cuenta. Después, conéctate cuando quieras.",
     "apply_note": "Los repartidores se postulan solo en la app; nunca cobramos una cuota por unirse."
@@ -861,7 +861,7 @@
     },
     "bill": {
       "kitchens_treat": "Invita la cocina",
-      "on_us": "Invitamos nosotros"
+      "on_us": "Invita BhojanGo"
     },
     "phone": {
       "country_code": "Código de país, {country} {code}",
@@ -936,7 +936,7 @@
     }
   },
   "rider": {
-    "brand": "BhojanGo Repartidor",
+    "brand": "BhojanGo Delivery",
     "tabs": {
       "drive": "Conducir",
       "earnings": "Ganancias",
@@ -967,7 +967,7 @@
       "send_again": "Enviarlo de nuevo",
       "verify": "Verificar",
       "checking": "Comprobando…",
-      "wrong_account": "Este número es de una cuenta de socio o de administración. Usa otro número para repartir.",
+      "wrong_account": "Este número es de una cuenta de cocina o de administración. Usa otro número para repartir.",
       "failed": "Ese código no funcionó. Revísalo e inténtalo de nuevo."
     },
     "join": {
@@ -1226,7 +1226,7 @@
     }
   },
   "partner": {
-    "brand": "BhojanGo Socios",
+    "brand": "BhojanGo Kitchen",
     "rail": {
       "orders": "Pedidos",
       "menu": "Menú",
@@ -1245,7 +1245,7 @@
     },
     "sign_in": {
       "title": "Inicia sesión en tu cocina",
-      "sub": "Usa el número de teléfono de tu cuenta de socio. Te enviaremos un código.",
+      "sub": "Usa el número de teléfono de tu cuenta de cocina asociada. Te enviaremos un código.",
       "mobile": "Número de celular",
       "send": "Enviar código",
       "send_failed": "No pudimos enviar un código. Revisa el número e inténtalo de nuevo.",
@@ -1288,7 +1288,7 @@
       "send": "Enviar solicitud"
     },
     "apply": {
-      "title": "Solicitud de socio",
+      "title": "Solicitud de cocina asociada",
       "save_exit": "Guardar y salir",
       "steps_label": "Pasos de la solicitud",
       "progress": "Tu avance",
@@ -1296,7 +1296,7 @@
       "terms": "Tus condiciones",
       "terms_body": "Comisión solo sobre la comida. Pagos semanales. Tú pones tus precios y ofertas.",
       "step_of": "Paso {n} de {total}",
-      "menu_note": "Agrega platillos, precios y fotos con tu gerente de socios de BhojanGo; esta tableta los muestra cuando estés activo.",
+      "menu_note": "Agrega platillos, precios y fotos con tu gerente de cuenta de BhojanGo; esta tableta los muestra cuando estés activo.",
       "go_live_note": "Cuando todos los pasos estén hechos revisamos tus datos y activamos tu cocina. Entonces esta tableta suena con los pedidos nuevos.",
       "done": "Hecho",
       "not_done": "Pendiente",
@@ -1549,7 +1549,7 @@
       "sign_out": "Cerrar sesión",
       "sign_out_note": "Cerrar sesión aquí la cierra en todos los dispositivos de esta cuenta.",
       "language": "Idioma",
-      "support": "Soporte para socios",
+      "support": "Soporte para cocinas asociadas",
       "call_back_title": "Te llamaremos",
       "call_back_body": "Al número con el que inició sesión esta tableta, normalmente en 15 minutos en horario de apertura.",
       "about": "Tema: {topic}",

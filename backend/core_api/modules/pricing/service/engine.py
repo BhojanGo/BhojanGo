@@ -324,7 +324,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     # ── 6 tip ────────────────────────────────────────────────────────────────
     tip = money(inp.tip)
     if tip > 0:
-        add("tip", "Tip for your rider", tip)
+        add("tip", "Tip for your delivery partner", tip)
 
     # ── 7 total ──────────────────────────────────────────────────────────────
     total = money(sum((bl.amount for bl in lines), ZERO))

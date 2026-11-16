@@ -83,7 +83,7 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
       {children}
       <div className="mt-7 hidden rounded-2xl bg-[#F4F6F6] p-4 text-small leading-[1.5] md:block">
         <b>{t("signin.partner_q")}</b> <span className="text-[#4C5A5E]">{t("signin.partner_note")}</span>{" "}
-        <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/ride" className="font-bold">{t("signin.ride")}</Link>
+        <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/deliver" className="font-bold">{t("signin.ride")}</Link>
       </div>
     </form>
   );
