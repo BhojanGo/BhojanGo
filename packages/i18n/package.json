@@ -29,5 +29,8 @@
     "all-messages.d.ts",
     "messages",
     "REVIEW.md"
-  ]
+  ],
+  "dependencies": {
+    "libphonenumber-js": "1.12.10"
+  }
 }

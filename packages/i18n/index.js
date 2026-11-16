@@ -208,7 +208,22 @@ function createTranslator(language, messages, fallback) {
   };
 }
 
+/** A phone number for people to read, from the E.164 the API stores ("+919000000101" ->
+ * "+91 90000 00101", "+12085550301" -> "+1 208 555 0301"): each country's own grouping
+ * (libphonenumber's data, no country list here). Anything it can't parse comes back as is. */
+function formatPhone(e164) {
+  if (!e164) return "";
+  try {
+    const { parsePhoneNumberFromString } = require("libphonenumber-js/min");
+    const parsed = parsePhoneNumberFromString(String(e164));
+    return parsed ? parsed.formatInternational() : String(e164);
+  } catch {
+    return String(e164);
+  }
+}
+
 module.exports = {
+  formatPhone,
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
   resolveLocation, formatLocale, createTranslator, pluralSelector,
 };

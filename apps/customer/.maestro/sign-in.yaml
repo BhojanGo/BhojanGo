@@ -1,12 +1,17 @@
-# Sign in with a phone number and the code (seed phones always get 123456).
+# Sign in with a phone number and the code (seed phones always get 123456). Phone is the
+# first of the two equal tabs (Phone | Email, round 8); sign-in-email.yaml does the Email tab.
 appId: com.bhojango.app
 ---
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Sign in or sign up"
+    visible: "Sign in or create an account"
     timeout: 60000
 - takeScreenshot: docs/screenshots/customer/01-sign-in
+- assertVisible:
+    id: "way-email"
+- tapOn:
+    id: "way-phone"
 # The phone's country starts from the device's region (Markets countries); step to
 # ${COUNTRY || "IN"} (the seed phones are Indian unless COUNTRY says otherwise).
 - repeat:

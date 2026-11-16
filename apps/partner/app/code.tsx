@@ -1,5 +1,5 @@
 // The 6-digit code. Only partner accounts get in.
-import { errorMessage, num, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { errorMessage, formatPhone, num, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -52,7 +52,7 @@ export default function Code() {
     <Split>
       <Text accessibilityRole="header" style={t.big}>{tr("partner.code.title")}</Text>
       <Text style={t.muted}>
-        {tr("partner.code.sent_to")} <Text style={textFont("700")}>{phone}</Text> ·{" "}
+        {tr("partner.code.sent_to")} <Text style={textFont("700")}>{formatPhone(phone)}</Text> ·{" "}
         <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>{tr("partner.code.edit")}</Text>
       </Text>
       <Pressable accessibilityLabel={tr("partner.code.label")} onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: narrow ? 8 : 10 }}>

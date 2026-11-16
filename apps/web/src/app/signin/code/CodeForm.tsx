@@ -1,4 +1,5 @@
 "use client";
+import { formatPhone } from "@bhojango/i18n";
 // Six boxes for the code (WebOTP): typing moves on, pasting fills them all,
 // Backspace goes back. Resend after a short wait. Then back to where they were.
 import { errorMessage } from "@bhojango/api-client";
@@ -9,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/client";
 import { useT } from "@/lib/i18n";
 import { placeFromDefaultAddress } from "../afterSignIn";
+import { codeSendError } from "../emailAuth";
 
 const WAIT = 30; // seconds before "Resend"
 const EMPTY = ["", "", "", "", "", ""];
@@ -66,7 +68,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
       await sendCode(phone, country);
       setSentAt(Date.now());
     } catch (err) {
-      setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));
+      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed"))));
     }
   }
 
@@ -77,7 +79,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
       </Link>
       <h1 className="m-0 mt-4 text-h1">{t("signin.code_heading")}</h1>
       <p className="m-0 mt-1 text-body text-muted">
-        {t("signin.sent_to")} <b className="text-[#111418]">{phone}</b>
+        {t("signin.sent_to")} <b className="text-[#111418]">{formatPhone(phone)}</b>
       </p>
       <fieldset className="m-0 mt-7 border-0 p-0">
         <legend className="sr-only">{t("signin.code_label")}</legend>

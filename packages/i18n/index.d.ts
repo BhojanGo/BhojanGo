@@ -36,3 +36,6 @@ export declare function resolveLocation<C extends LocationCity>(evidence: Locati
 export declare function formatLocale(locales: string[] | null | undefined): string;
 export declare function createTranslator(language: string, messages: Messages, fallback: Messages): Translate;
 export declare function pluralSelector(language: string): (count: number) => string;
+
+/** "+919000000101" -> "+91 90000 00101" (each country's grouping); unparseable input as is. */
+export function formatPhone(e164: string | null | undefined): string;
