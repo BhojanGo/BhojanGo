@@ -130,8 +130,8 @@ async def test_almost_there_tells_the_customer() -> None:
     assert "Imran" in m.render(out.key, "te", **out.params).body and "Spice Route Kitchen" in m.render(out.key, "hi", **out.params).body
     d.row = {**d.row, "driver_id": None}
     out = await plan(ev("driver.almost_there"), d)  # type: ignore[arg-type]
-    assert out[0].params["rider"] is None  # the message says "Your rider" in the customer's language
-    assert m.render(out[0].key, "en", **out[0].params).body.startswith("Your rider is a couple of minutes away")
+    assert out[0].params["rider"] is None  # the message says "Your delivery partner" in the customer's language
+    assert m.render(out[0].key, "en", **out[0].params).body.startswith("Your delivery partner is a couple of minutes away")
     assert await plan({"event_type": "driver.almost_there", "payload": {"order_id": str(uuid.uuid4())}}, d) == []  # type: ignore[arg-type]
 
 
@@ -143,4 +143,4 @@ async def test_a_preset_quick_message_reaches_the_other_person_in_their_language
                         text="I'm outside.", message_id="m2"), FakeDirectory())
     assert out[0].params == {"name": "", "text": "I'm outside.", "preset": "outside", "from_role": "rider"}
     r = m.render("order_message", "te", **out[0].params)
-    assert (r.title, r.body) == ("మీ రైడర్ నుండి సందేశం", "నేను బయట ఉన్నాను.")
+    assert (r.title, r.body) == ("మీ డెలివరీ పార్ట్‌నర్ నుండి సందేశం", "నేను బయట ఉన్నాను.")

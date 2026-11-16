@@ -441,7 +441,7 @@ RULES = [
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "IN",
      {"tiers": {"A": 18, "B": 15, "C": 12}, "default_tier": "B"}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "IN",
+    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "IN",
      {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "IN-TG-HYD", {"per_active_hour": 120}),
     ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "IN-TG-HYD", {"per_extra_order": 10}),
@@ -467,7 +467,7 @@ RULES = [
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "US",
+    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",
      {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "US-ID-BOI", {"per_active_hour": 15}),
     # Item 2: a later drop-off of a batch pays no base, but distance + waiting + this.
@@ -489,7 +489,7 @@ RULES = [
     ("business", "unpaid_auto_cancel", None, "Unpaid orders cancel", "platform", "*", {"minutes": 10}),
     ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
-    ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
+    ("business", "dispatch_offer_timeout", None, "Delivery partner offer timeout", "platform", "*", {"seconds": 30}),
     # What payment providers keep (item 1): Stripe in the US (2.9% + $0.30, Stripe Tax 0.5%),
     # Razorpay in India (2% on cards, wallets and net banking; UPI free). Editable in admin.
     ("business", "payment_fees", None, "Payment fees (Stripe)", "country", "US",
@@ -498,8 +498,8 @@ RULES = [
      {"methods": {"card": {"percent": 2, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0},
                   "net_banking": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}}, "tax_service_percent": 0}),
     # Task 43: live batching is a per-city switch, off; the engine runs in shadow everywhere.
-    ("business", "batching", None, "Batching (one rider, two orders)", "city", "IN-TG-HYD", {"live": False}),
-    ("business", "batching", None, "Batching (one rider, two orders)", "city", "US-ID-BOI", {"live": False}),
+    ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "IN-TG-HYD", {"live": False}),
+    ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "US-ID-BOI", {"live": False}),
 ]
 
 

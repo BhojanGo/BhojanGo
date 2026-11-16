@@ -606,7 +606,7 @@ async def accept(rider: str, order: str) -> dict:
     raw = await r.get(offer_key(order))
     offer = json.loads(raw) if raw else None
     if not offer or offer["rider_id"] != rider:
-        raise NotYourOffer("This offer has expired or went to another rider")
+        raise NotYourOffer("This offer has expired or went to another delivery partner")
     if not await r.zrem(OFFER_EXPIRY, order):  # the timeout got there first
         raise LookupError("This offer has expired")
     batch_ids = [b["order_id"] for b in offer.get("batch") or []]

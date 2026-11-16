@@ -2,7 +2,7 @@
 
 The languages every backend text is written in, the locale → language rule, and
 the texts core_api sends or shows itself: the sign-in code (SMS), the welcome
-email, the quick messages between customer and rider (B2) and the names used
+email, the quick messages between customer and delivery partner (B2) and the names used
 when someone has none. The worker's order and payout messages are in
 ``worker/app/services/messages.py`` and follow the same rules.
 
@@ -144,8 +144,9 @@ def preset_text(side: str, key: str | None, language: str) -> str | None:
 # When someone has no name on their account (a message title, the chat header).
 NAMES: dict[str, dict[str, str]] = {
     "your_rider": {
-        "en": "Your rider", "hi": "आपका राइडर", "te": "మీ రైడర్", "ta": "உங்கள் ரைடர்",
-        "kn": "ನಿಮ್ಮ ರೈಡರ್", "mr": "तुमचा रायडर", "bn": "আপনার রাইডার", "es": "Tu repartidor",
+        "en": "Your delivery partner", "hi": "आपका डिलीवरी पार्टनर", "te": "మీ డెలివరీ పార్ట్‌నర్",
+        "ta": "உங்கள் டெலிவரி பார்ட்னர்", "kn": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್", "mr": "तुमचा डिलिव्हरी पार्टनर",
+        "bn": "আপনার ডেলিভারি পার্টনার", "es": "Tu repartidor",
     },
     "the_customer": {
         "en": "The customer", "hi": "ग्राहक", "te": "కస్టమర్", "ta": "வாடிக்கையாளர்",
@@ -155,8 +156,29 @@ NAMES: dict[str, dict[str, str]] = {
 
 
 def fallback_name(role: str, language: str) -> str:
-    """"Your rider" for a rider, "The customer" for a customer, in ``language``."""
+    """"Your delivery partner" for a delivery partner (role "rider"), "The customer" for a customer, in ``language``."""
     return pick(NAMES["your_rider" if role == "rider" else "the_customer"], language)
+
+
+# ── fair-bill lines named by code (core_api) ─────────────────────────────────
+# A bill line stored in an order's pricing snapshot keeps the label it was priced
+# with ("Tip for your rider" before Round 8). Lines named here are relabelled by
+# code whenever a bill goes out (pricing.service.lookup.customer_lines), so every
+# client shows today's words, in the reader's language, for every order.
+BILL_LINES: dict[str, dict[str, str]] = {
+    "tip": {
+        "en": "Tip for your delivery partner", "hi": "आपके डिलीवरी पार्टनर के लिए टिप",
+        "te": "మీ డెలివరీ పార్ట్‌నర్‌కు టిప్", "ta": "உங்கள் டெலிவரி பார்ட்னருக்கு டிப்",
+        "kn": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್‌ಗೆ ಟಿಪ್", "mr": "तुमच्या डिलिव्हरी पार्टनरसाठी टिप",
+        "bn": "আপনার ডেলিভারি পার্টনারের জন্য টিপ", "es": "Propina para tu repartidor",
+    },
+}
+
+
+def bill_line_label(code: str | None, label: str, language: str = "en") -> str:
+    """Today's label for a bill line with this code, in ``language``; else ``label`` as stored."""
+    texts = BILL_LINES.get(code or "")
+    return pick(texts, language) if texts else label
 
 
 # ── sign-in code (SMS, core_api) ─────────────────────────────────────────────
@@ -220,6 +242,8 @@ def entries() -> dict[str, dict[str, str]]:
     for key, texts in NAMES.items():
         out[f"names.{key}"] = texts
     out["otp_sms"] = OTP_SMS
+    for key, texts in BILL_LINES.items():
+        out[f"bill.{key}"] = texts
     for key, texts in WELCOME.items():
         out[f"welcome.{key}"] = texts
     return out

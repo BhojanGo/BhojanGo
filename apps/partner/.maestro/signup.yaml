@@ -37,7 +37,7 @@ appId: com.bhojango.partner
 - takeScreenshot: docs/screenshots/partner/14-signup
 - tapOn: "Send application"
 - extendedWaitUntil:
-    visible: "Partner application"
+    visible: "Kitchen partner application"
     timeout: 30000
 - assertVisible: "1 of 5 done"
 - takeScreenshot: docs/screenshots/partner/15-signup-application

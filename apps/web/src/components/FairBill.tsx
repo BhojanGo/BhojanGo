@@ -69,7 +69,7 @@ export function FairBill({
 
 /**
  * "Who gets your money" (landing page): the engine's split of a real bill (the
- * country's example quote): kitchen, rider (pay + tip), tax, BhojanGo, as whole
+ * country's example quote): kitchen, delivery partner (pay + tip), tax, BhojanGo, as whole
  * percentages that add up to 100.
  */
 export function MoneyBar({ shares, t, formatLocale }: { shares: Shares | null | undefined; t: T; formatLocale: string }) {

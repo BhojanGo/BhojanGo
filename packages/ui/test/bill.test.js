@@ -24,8 +24,8 @@ test("each row says who gets the money", () => {
     { code: "tip", label: "Tip", amount: "20.00" },
   ];
   assert.deepEqual(billRows(lines, "INR").map((r) => [r.label, r.payee, r.amount]), [
-    ["Food", "KITCHEN", "₹560.00"], ["Code BHOJAN10", "US", "−₹50.00"], ["Packaging", "KITCHEN", "₹10.00"],
-    ["Service fee", "US", "₹11.20"], ["GST", "GOVT", "₹30.72"], ["Tip", "RIDER", "₹20.00"],
+    ["Food", "KITCHEN", "₹560.00"], ["Code BHOJAN10", "BHOJANGO", "−₹50.00"], ["Packaging", "KITCHEN", "₹10.00"],
+    ["Service fee", "BHOJANGO", "₹11.20"], ["GST", "TAX", "₹30.72"], ["Tip", "DELIVERY PARTNER", "₹20.00"],
   ]);
   assert.equal(billRows(lines, "INR")[1].accent, true);
 });
@@ -41,10 +41,10 @@ test("free delivery the kitchen pays is one row, struck through", () => {
   assert.equal(billTotal(lines), 0);
 });
 
-test("the delivery fee is ours, not the rider's: only the tip is RIDER", () => {
+test("the delivery fee is BhojanGo's, not the delivery partner's: only the tip is DELIVERY PARTNER", () => {
   const lines = [
     { code: "delivery_fee", label: "Delivery · 4.2 km", amount: "35.00" },
-    { code: "tip", label: "Tip for your rider", amount: "20.00" },
+    { code: "tip", label: "Tip for your delivery partner", amount: "20.00" },
   ];
-  assert.deepEqual(billRows(lines, "INR").map((r) => r.payee), ["US", "RIDER"]);
+  assert.deepEqual(billRows(lines, "INR").map((r) => r.payee), ["BHOJANGO", "DELIVERY PARTNER"]);
 });

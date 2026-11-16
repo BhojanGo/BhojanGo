@@ -70,7 +70,7 @@ def test_hyderabad_worked_example_to_the_paisa() -> None:
         ("Busy-hour fee", Decimal("15.00")),
         ("GST on food", Decimal("26.00")),
         ("GST on platform fees", Decimal("11.02")),
-        ("Tip for your rider", Decimal("20.00")),
+        ("Tip for your delivery partner", Decimal("20.00")),
     ]
     assert q.total == Decimal("638.22")
     assert q.split.restaurant == Decimal("486.00")
