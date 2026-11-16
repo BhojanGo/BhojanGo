@@ -71,7 +71,9 @@ async def email_code(request: Request, data: EmailCodeRequest, db: DB) -> Messag
 async def email_verify(request: Request, data: EmailVerifyRequest, db: DB) -> SignInResult:
     """The emailed code: finishes a sign-up (``is_new_user``) or signs in.
     400 CODE_INVALID (wrong, expired, or used up after 5 wrong tries)."""
-    return await EmailAuthService(db).verify(data)
+    from core_api.modules.legal import service as legal
+
+    return await EmailAuthService(db).verify(data, legal.client_info(request))
 
 
 @router.post("/password/forgot", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)

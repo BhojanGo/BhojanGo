@@ -14,6 +14,7 @@ from core_api.modules.identity.models.address import Address
 from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.recovery_code import RecoveryCode
 from core_api.modules.identity.models.user import User
+from core_api.modules.legal.models import LegalAcceptance, LegalDocument
 from core_api.modules.payments.models.payment_method import PaymentMethod
 from shared.db import Base, get_db
 from core_api.main import app
@@ -33,7 +34,8 @@ TestSessionLocal = async_sessionmaker(
 # Base.metadata is shared by every core_api module (some use Postgres-only
 # types), so only create identity's tables in SQLite.
 IDENTITY_TABLES = [User.__table__, Address.__table__, AdminRoleAssignment.__table__, PaymentMethod.__table__,
-                   Favourite.__table__, NotificationPreference.__table__, RecoveryCode.__table__]
+                   Favourite.__table__, NotificationPreference.__table__, RecoveryCode.__table__,
+                   LegalDocument.__table__, LegalAcceptance.__table__]
 
 
 class FakeBreaches:

@@ -20,6 +20,7 @@ from core_api.modules.catalog.main import register as register_catalog
 from core_api.modules.content.main import register as register_content
 from core_api.modules.finance.main import register as register_finance
 from core_api.modules.identity.main import register as register_identity
+from core_api.modules.legal.main import register as register_legal
 from core_api.modules.markets.main import register as register_markets
 from core_api.modules.pricing.main import register as register_pricing
 from core_api.modules.rules.main import register as register_rules
@@ -47,6 +48,7 @@ MODULES = [
     register_orders,
     register_payments,
     register_support,
+    register_legal,
     register_content,
 ]
 

@@ -36,7 +36,10 @@ const SECTIONS = [
  * per country inside the page, so they don't take the console's scope.
  */
 export const SECTION_GROUPS: { label: string; items: { href: string; label: string; perm: string }[] }[] = [
-  { label: "Content", items: [{ href: "/content/help", label: "Help", perm: "content.view" }] },
+  { label: "Content", items: [
+    { href: "/content/help", label: "Help", perm: "content.view" },
+    { href: "/content/legal", label: "Legal", perm: "legal.view" },  // F10: Terms and Privacy per country
+  ] },
 ];
 
 /** "IN-TG-HYD" → { country: "IN", region: "IN-TG", city: "IN-TG-HYD" }; "*" → ALL. */

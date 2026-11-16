@@ -205,7 +205,7 @@ async def apply(request: Request, data: KitchenSignUp, db: DB) -> MessageRespons
 
 
 async def open_applied_kitchen(db: AsyncSession, user, kitchen: dict) -> None:  # type: ignore[no-untyped-def]
-    """After the emailed code: the kitchen pending approval, the accepted terms and the
+    """After the emailed code (the terms were recorded by email_auth._create): the kitchen pending approval and the
     "application started" email (identity.service.email_auth calls this)."""
     from core_api.modules.catalog.service.applications import kitchen_city, open_kitchen
     from shared import notify
@@ -217,7 +217,6 @@ async def open_applied_kitchen(db: AsyncSession, user, kitchen: dict) -> None:  
         # The kitchen's contact number, not a sign-in (it isn't verified).
         r.address = {**(r.address or {}), "phone": kitchen["phone"]}
         await db.flush()
-    await _record_acceptance(db, user.id, country.code)
     language = (user.preferred_locale or "en").split("-")[0]
     body = (f"<p>{pick(KITCHEN_APPLIED['body'], language).format(kitchen=_esc(r.name))}</p>"
             f"<p>{_esc(pick(KITCHEN_APPLIED['next'], language))}</p>")
@@ -228,13 +227,3 @@ def _esc(text: str) -> str:
     import html
 
     return html.escape(text)
-
-
-async def _record_acceptance(db: AsyncSession, user_id, country: str) -> None:  # type: ignore[no-untyped-def]
-    """Record the Terms and Privacy versions they accepted (workstream F10's legal
-    module, once it exists; until then the account's creation is the record)."""
-    try:
-        from core_api.modules.legal.service import record_acceptance  # type: ignore[import-not-found]
-    except ImportError:
-        return
-    await record_acceptance(db, user_id, country, kinds=("terms", "privacy"))

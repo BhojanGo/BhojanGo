@@ -28,6 +28,7 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
     if (_backend / "core_api").is_dir():
         sys.path.insert(1, str(_backend))
         break
+from legal_docs import seed_legal  # noqa: E402
 from data import (  # noqa: E402
     ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, SEED_TOTP_SECRET, TIERS, covers,
     dish_photo, menu_dishes, photo_url,
@@ -498,6 +499,8 @@ async def seed(database_url: str) -> list[tuple[str, ...]]:
 
         await seed_rules(conn, sid("user", "admin@example.com"))
         await seed_hours_and_licences(conn, restaurant_ids)
+        # Terms and Privacy drafts (R8 F10): test environments only; production's are published in the admin console.
+        legal_docs = 0 if os.environ.get("APP_ENV", "").strip().lower() == "production" else await seed_legal(conn, sid)
         help_articles = await seed_help(conn)
 
         counts = (await conn.execute(text(
@@ -509,7 +512,7 @@ async def seed(database_url: str) -> list[tuple[str, ...]]:
         ), {"slugs": [r["slug"] for m in MARKETS for r in m["restaurants"]]})).one()
     await engine.dispose()
     print(f"Seeded {counts[3]} cities with {counts[4]} zones, {counts[5]} published rules, {counts[0]} restaurants, "
-          f"{counts[1]} menu items, {counts[2]} users, {help_articles} help articles.")
+          f"{counts[1]} menu items, {counts[2]} users, {help_articles} help articles, {legal_docs} legal documents.")
     return logins
 
 

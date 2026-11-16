@@ -186,6 +186,9 @@ class WorkerSettings(BaseSettings):
     # Batch engine (task 43, app/batching): how often it looks at the orders waiting
     # for a rider, and where realtime takes its suggestions and live batches.
     BATCH_CYCLE_SECONDS: float = 5
+    # Data retention (R8 F10, app/services/retention.py): how often it deletes what the
+    # Privacy notices say we delete (order messages after 90 days, resolved tickets after 3 years).
+    RETENTION_CYCLE_SECONDS: float = 6 * 3600
     REALTIME_INTERNAL_URL: str = "http://localhost:8004"
 
     # The demo rider simulator (worker/app/demo_sim): make dev and QA only. Also needs

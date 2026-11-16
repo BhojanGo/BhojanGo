@@ -9,7 +9,7 @@ export async function SiteFooter() {
   const { t } = await getContext();
   const col = "flex flex-col gap-[10px]";
   return (
-    <footer className="mt-[72px] bg-[#F4F6F6]">
+    <footer className="mt-[72px] bg-[#F4F6F6] print:hidden">
       <div className="grid container-page grid-cols-2 gap-8 py-12 text-body md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-[10px]">

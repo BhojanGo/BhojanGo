@@ -26,6 +26,7 @@ from core_api.modules.identity.schemas.user import (
     SocialLoginRequest,
 )
 from core_api.modules.identity.service.auth import AuthService
+from core_api.modules.legal import service as legal
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = structlog.get_logger(__name__)
@@ -120,7 +121,7 @@ async def phone_sign_in(
 ) -> SignInResult:
     """Sign in with the SMS code from /auth/send-otp. A new number gets a
     customer account (``is_new_user`` is true; ask for their name next)."""
-    return await AuthService(db).phone_sign_in(data)
+    return await AuthService(db).phone_sign_in(data, legal.client_info(request))
 
 
 @router.get("/jwks", tags=["Authentication"])
@@ -184,4 +185,4 @@ async def social_login(
     provider's public keys, issuer and our client ids; the account is found by
     provider id, else linked by a verified email, else created (customer).
     401 INVALID_GOOGLE_TOKEN / INVALID_APPLE_TOKEN, also when the provider isn't configured."""
-    return await AuthService(db).social_login(data)
+    return await AuthService(db).social_login(data, legal.client_info(request))

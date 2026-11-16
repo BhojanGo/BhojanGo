@@ -18,6 +18,8 @@ Redis:
   pwreset:{sha256(token)}        user id                                                (30 minutes)
   pwreset_user:{user id}         the user's current reset token hash (a new link ends the old one)
 """
+from typing import TYPE_CHECKING
+
 import hashlib
 import json
 import secrets
@@ -44,6 +46,9 @@ from core_api.modules.identity.service.sessions import revoke_all_sessions
 from core_api.modules.markets.service import countries
 from shared.config import get_settings
 from shared.redis import get_redis
+
+if TYPE_CHECKING:
+    from core_api.modules.legal.service import ClientInfo
 
 logger = structlog.get_logger(__name__)
 
@@ -151,7 +156,7 @@ class EmailAuthService:
             await _same_work()
         return SENT
 
-    async def verify(self, data: EmailVerifyRequest) -> AuthTokensResponse | MfaChallengeResponse:
+    async def verify(self, data: EmailVerifyRequest, client: "ClientInfo | None" = None) -> AuthTokensResponse | MfaChallengeResponse:
         """The code from sign-up (creates the account) or from "email me a code"."""
         email = _norm(data.email)
         redis = await get_redis()
@@ -160,7 +165,7 @@ class EmailAuthService:
             if not await email_codes.check("signup", email, data.code):
                 raise code_invalid()
             await redis.delete(_signup_key(email))
-            return await self._create(json.loads(raw))
+            return await self._create(json.loads(raw), client)
         if not await email_codes.check("signin", email, data.code):
             raise code_invalid()
         user = await self.repo.get_by_email(email)
@@ -172,7 +177,7 @@ class EmailAuthService:
         await guard.clear(email)
         return await finish_sign_in(self.db, user, "email_code")
 
-    async def _create(self, pending: dict) -> AuthTokensResponse | MfaChallengeResponse:
+    async def _create(self, pending: dict, client: "ClientInfo | None" = None) -> AuthTokensResponse | MfaChallengeResponse:
         email = pending["email"]
         if await self.repo.email_exists(email):  # taken while the code was on its way
             raise code_invalid()
@@ -183,6 +188,12 @@ class EmailAuthService:
             role="restaurant_owner" if kitchen else "customer", country=pending["country"],
             preferred_currency=pending["currency"], preferred_locale=pending["locale"], is_verified=True,
         )
+        # Signing up is accepting the country's Terms and Privacy (and, for a kitchen, the kitchen partner terms).
+        from core_api.modules.legal import service as legal
+
+        await legal.record_acceptance(self.db, user.id, user.country,
+                                      legal.ROLE_KINDS["restaurant_owner"] if kitchen else legal.SIGN_UP_KINDS,
+                                      language=user.preferred_locale, client=client)
         if kitchen:
             # The kitchen pending approval, the accepted terms, the "application started" email.
             from core_api.modules.catalog.api.v1.kitchens import open_applied_kitchen
@@ -193,8 +204,6 @@ class EmailAuthService:
             await events.record(self.db, user.id, "auth.password_set")
             logger.info("user_registered", user_id=str(user.id), method="email", role="restaurant_owner")
             return await finish_sign_in(self.db, user, "email_code", is_new_user=True)
-        # TODO(F10): record_acceptance(db, user.id, country, kinds=("terms", "privacy")) once
-        # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
         await events.record(self.db, user.id, "auth.signed_up", method="email")
         await events.record(self.db, user.id, "auth.email_verified")
         await events.record(self.db, user.id, "auth.password_set")

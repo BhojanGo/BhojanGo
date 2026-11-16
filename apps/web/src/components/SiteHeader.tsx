@@ -23,7 +23,7 @@ export async function SiteHeader() {
 
   if (!place) {
     return (
-      <header className="relative z-30 border-b border-[#E2E7E8] bg-white">
+      <header className="relative z-30 border-b border-[#E2E7E8] bg-white print:hidden">
         <div className="flex h-[64px] container-page items-center gap-3 md:h-[76px] md:gap-5">
           {brand}
           <span className="flex-grow" />
@@ -44,7 +44,7 @@ export async function SiteHeader() {
   const top = ((near?.cuisines ?? []) as { name: string }[]).slice(0, 2).map((c) => c.name.toLowerCase());
   const placeholder = top.length === 2 ? t("common.search_placeholder_near", { a: top[0]!, b: top[1]! }) : t("common.search_placeholder");
   return (
-    <header className="sticky top-0 z-30 border-b border-[#E2E7E8] bg-white">
+    <header className="sticky top-0 z-30 border-b border-[#E2E7E8] bg-white print:hidden">
       {/* desktop */}
       <div className="hidden h-[76px] container-page items-center gap-4 md:flex">
         {brand}

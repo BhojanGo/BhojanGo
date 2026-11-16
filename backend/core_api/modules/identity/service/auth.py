@@ -30,6 +30,7 @@ from core_api.modules.identity.schemas.user import (
 from core_api.modules.identity.service import events, guard, oidc, passwords
 from core_api.modules.identity.service.email_auth import rejected
 from core_api.modules.identity.service.mfa import finish_sign_in, locked_error
+from core_api.modules.legal import service as legal
 from core_api.modules.identity.service.otp import send_otp, verify_otp
 from core_api.modules.identity.service.redis_keys import refresh_families_key, refresh_family_key
 from core_api.modules.identity.service.security import decode_token
@@ -94,7 +95,7 @@ class AuthService:
         logger.info("user_logged_in", user_id=str(user.id), method="password")
         return await finish_sign_in(self.db, user, "password")
 
-    async def phone_sign_in(self, data: PhoneSignInRequest) -> SignInResult:
+    async def phone_sign_in(self, data: PhoneSignInRequest, client: legal.ClientInfo | None = None) -> SignInResult:
         """Sign in with an SMS code; creates a customer account for a new number."""
         country = await countries.require_open(self.db, data.country)
         countries.require_phone_in(country, data.phone)
@@ -116,10 +117,10 @@ class AuthService:
                 preferred_locale=country.default_locale,
                 is_phone_verified=True,
             )
-            # TODO(F10): record_acceptance(db, user.id, country.code, kinds=("terms", "privacy")) once
-            # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
             await events.record(self.db, user.id, "auth.signed_up", method="phone")
             logger.info("user_registered", user_id=str(user.id), method="phone")
+            # Signing in with a new number creates the account: "By continuing you agree to the Terms and Privacy".
+            await legal.record_acceptance(self.db, user.id, user.country, language=user.preferred_locale, client=client)
         else:
             self._require_active(user)
             if not user.is_phone_verified:
@@ -207,7 +208,7 @@ class AuthService:
                 await self.repo.update(user.id, is_phone_verified=True)
         return verified
 
-    async def social_login(self, data: SocialLoginRequest) -> SignInResult:
+    async def social_login(self, data: SocialLoginRequest, client: legal.ClientInfo | None = None) -> SignInResult:
         """Sign in with Apple or Google: verify the provider's ID token, then
         find the account by provider id, or by a *verified* email, or create one."""
         audiences = (
@@ -246,10 +247,9 @@ class AuthService:
                 is_verified=ident.email_verified,
                 **{id_field: ident.subject},
             )
-            # TODO(F10): record_acceptance(db, user.id, country.code, kinds=("terms", "privacy")) once
-            # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
             await events.record(self.db, user.id, "auth.signed_up", method=data.provider)
             is_new = True
+            await legal.record_acceptance(self.db, user.id, user.country, language=user.preferred_locale, client=client)
         self._require_active(user)
         logger.info("user_logged_in", user_id=str(user.id), method=data.provider)
         return await finish_sign_in(self.db, user, data.provider, is_new_user=is_new)

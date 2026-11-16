@@ -340,3 +340,19 @@ review. Points to check:
   doesn't change; Bengali uses "১০" in `form_invalid`.
 - **Spanish:** "tú" throughout; kitchen partners are "Cocinas asociadas", delivery
   partners "Socios repartidores".
+
+## Terms and Privacy pages (round 8, F10)
+
+Machine-translated 2026-11-15: the whole `legal.*` group, the chrome around the Terms of use
+and Privacy notice (the documents themselves are English for now; other languages show
+`legal.english_only`). Check first:
+
+- `legal.draft_banner` "Draft: pending legal review": shown on every legal page outside
+  production; it must read as "not final, a lawyer still has to approve it".
+- `legal.unavailable` "{country}: we're preparing our {document}. ...": {document} is
+  `legal.terms` or `legal.privacy` (Indian languages may need a case suffix on it).
+- `legal.notice_updated` / `legal.notice_agree`: the strip a signed-in person sees once after
+  a new version is published; "By continuing to use BhojanGo you agree to the new versions" is
+  legal wording.
+- `legal.older`, `legal.history_replaced`, `legal.history_effective`: {date} is formatted by the
+  country ("20 November 2026"); check the word order around it.

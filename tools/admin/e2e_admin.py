@@ -561,6 +561,42 @@ with sync_playwright() as p:
         expect(page.get_by_text("ops.hyd@example.com")).to_be_visible()))
     page.screenshot(path=f"{OUT}/10-settings.png", full_page=True)
 
+    # Content → Legal (R8 F10): edit a draft of the US Terms and publish it as the next version.
+    page.goto(f"{BASE}/content/legal?scope=US", wait_until="networkidle")
+    legal_list = page.get_by_test_id("legal-list")
+    check("legal: the Content group in the nav, the US documents listed with their live version", lambda: (
+        expect(page.get_by_role("navigation", name="Admin sections").get_by_role("link", name="Legal")).to_be_visible(),
+        expect(page.get_by_role("group", name="Content").get_by_role("link", name="Legal")).to_be_visible(),
+        expect(legal_list.get_by_role("row", name=re.compile("Terms of use.*Live · v\d+"))).not_to_have_count(0, timeout=15000)))
+    live_before = api.get(f"{CORE}/legal/terms?country=US").json()["version"]
+    form = page.get_by_role("form", name="Start a draft")
+    form.get_by_label("Document").select_option("terms")
+    form.get_by_label("Country").select_option("US")
+    form.get_by_role("button", name="Start a draft").click()
+    editor = page.get_by_test_id("legal-editor")
+    check("legal: a new draft starts from the live text", lambda: (
+        expect(editor.get_by_role("heading", name="Terms of use · US · EN")).to_be_visible(timeout=15000),
+        expect(editor.get_by_test_id("legal-body")).to_have_value(re.compile("## 1. About these terms"))))
+    point = f"Plain words about tips (e2e {uuid.uuid4().hex[:6]})"
+    pts = editor.get_by_test_id("legal-points")
+    pts.fill(pts.input_value() + "\n" + point)
+    editor.get_by_label(re.compile("What changed")).fill("A key point about tips")
+    editor.get_by_test_id("legal-save").click()
+    check("legal: the draft saves", lambda: expect(editor.get_by_test_id("legal-msg")).to_have_text("Draft saved.", timeout=15000))
+    editor.get_by_role("tab", name="Preview").click()
+    check("legal: the preview reads the Markdown like the website", lambda: expect(
+        editor.get_by_test_id("legal-preview").get_by_role("heading", name="1. About these terms")).to_be_visible())
+    editor.get_by_test_id("legal-publish").click()
+    check("legal: publishing asks once, naming the version", lambda: expect(editor.get_by_role("alertdialog")).to_contain_text(
+        f"Publish version {live_before + 1} of Terms of use for US"))
+    editor.get_by_test_id("legal-publish-confirm").click()
+    check("legal: published as the next version, the old one replaced, audited", lambda: (
+        expect(editor.get_by_test_id("legal-msg")).to_have_text(f"Published version {live_before + 1}.", timeout=15000),
+        expect(editor.get_by_test_id("legal-audit")).to_contain_text("Published"),
+        _ok(api.get(f"{CORE}/legal/terms?country=US").json()["version"] == live_before + 1),
+        _ok(point in api.get(f"{CORE}/legal/terms?country=US").json()["key_points"]),
+        _ok(api.get(f"{CORE}/legal/terms/versions/{live_before}?country=US").json()["status"] == "superseded")))
+    page.screenshot(path=f"{OUT}/10b-legal.png", full_page=True)
     # Content -> Help (F9): India's country manager writes an article, publishes it, edits and publishes again.
     cm = b.new_page(viewport={"width": 1440, "height": 1000})
     sign_in(cm, "cm.in@example.com")
@@ -620,7 +656,7 @@ with sync_playwright() as p:
              "/operations?scope=IN-TG-HYD&tab=attention", "/operations?scope=IN-TG-HYD&tab=dispatch", "/operations?scope=IN-TG-HYD&tab=support",
              "/partners?scope=IN-TG-HYD&tab=kitchens", "/partners?scope=IN-TG-HYD&tab=applications", "/partners?scope=IN&tab=riders",
              "/markets", "/markets/IN", "/markets/IN/IN-TG-HYD", "/pricing/simulator?city=IN-TG-HYD", "/finance?scope=IN", "/finance?scope=US",
-             "/settings", "/content/help"] + [f"/pricing?scope=IN-TG-HYD&tab={f}" for f in
+             "/settings", "/content/help", "/content/legal", "/content/legal?scope=IN"] + [f"/pricing?scope=IN-TG-HYD&tab={f}" for f in
                              ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "business", "promotion", "approvals")]
     dirty: list[str] = []
     for path in pages:
