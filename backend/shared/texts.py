@@ -160,6 +160,27 @@ def fallback_name(role: str, language: str) -> str:
     return pick(NAMES["your_rider" if role == "rider" else "the_customer"], language)
 
 
+# ── fair-bill lines named by code (core_api) ─────────────────────────────────
+# A bill line stored in an order's pricing snapshot keeps the label it was priced
+# with ("Tip for your rider" before Round 8). Lines named here are relabelled by
+# code whenever a bill goes out (pricing.service.lookup.customer_lines), so every
+# client shows today's words, in the reader's language, for every order.
+BILL_LINES: dict[str, dict[str, str]] = {
+    "tip": {
+        "en": "Tip for your delivery partner", "hi": "आपके डिलीवरी पार्टनर के लिए टिप",
+        "te": "మీ డెలివరీ పార్ట్‌నర్‌కు టిప్", "ta": "உங்கள் டெலிவரி பார்ட்னருக்கு டிப்",
+        "kn": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್‌ಗೆ ಟಿಪ್", "mr": "तुमच्या डिलिव्हरी पार्टनरसाठी टिप",
+        "bn": "আপনার ডেলিভারি পার্টনারের জন্য টিপ", "es": "Propina para tu repartidor",
+    },
+}
+
+
+def bill_line_label(code: str | None, label: str, language: str = "en") -> str:
+    """Today's label for a bill line with this code, in ``language``; else ``label`` as stored."""
+    texts = BILL_LINES.get(code or "")
+    return pick(texts, language) if texts else label
+
+
 # ── sign-in code (SMS, core_api) ─────────────────────────────────────────────
 # Sent as is (no "BhojanGo: " prefix: the brand is in the sentence). India: the
 # DLT template key is "otp_<language>" with the variables otp, minutes.
@@ -221,6 +242,8 @@ def entries() -> dict[str, dict[str, str]]:
     for key, texts in NAMES.items():
         out[f"names.{key}"] = texts
     out["otp_sms"] = OTP_SMS
+    for key, texts in BILL_LINES.items():
+        out[f"bill.{key}"] = texts
     for key, texts in WELCOME.items():
         out[f"welcome.{key}"] = texts
     return out
