@@ -121,7 +121,13 @@ def main() -> int:  # noqa: C901 - one walk through the site
         directory = api(core, "GET", "/markets/directory") if core else {"countries": []}
         for path, name in [("/", "home"), ("/signin", "sign-in"), ("/signin/code?phone=%2B12085550199&next=%2F", "sign-in-code"),
                            ("/cities", "cities"), ("/partner", "add-your-kitchen"), ("/deliver", "deliver"), ("/help", "help"),
-                           ("/terms", "terms"), ("/privacy", "privacy"), ("/credits", "credits"), ("/no-such-page", "not-found")]:
+                           ("/terms", "terms"), ("/privacy", "privacy"), ("/credits", "credits"), ("/no-such-page", "not-found"),
+                           # Round 8: the rest of the public site
+                           ("/deliver/app", "deliver-app"), ("/help/payments-refunds", "help-topic"),
+                           ("/help/payments-refunds/fair-bill-who-gets-your-money", "help-article"),
+                           ("/terms/history", "terms-history"), ("/privacy?country=US", "privacy-us"),
+                           ("/signin?way=email", "sign-in-email"), ("/signin?way=email&mode=create", "sign-up-email"),
+                           ("/signin/forgot", "forgot-password"), ("/signin/reset?token=expired", "reset-password-expired")]:
             pages.append((name, "visitor", web + path, None))
         for k in directory["countries"]:
             for r in k["regions"]:
@@ -153,7 +159,7 @@ def main() -> int:  # noqa: C901 - one walk through the site
             pages.append(("add-your-kitchen-applying", "kitchen partner", web + "/partner", "applicant.hyd@example.com"))
     if admin:
         for path in ("/login", "/overview", "/operations", "/partners", "/pricing", "/pricing/simulator", "/markets",
-                     "/markets/IN", "/markets/IN/IN-TG-HYD", "/finance", "/settings"):
+                     "/markets/IN", "/markets/IN/IN-TG-HYD", "/finance", "/settings", "/content/help", "/content/legal"):
             pages.append((f"admin{slug(path) and '-' + slug(path)}", "admin", admin + path, None if path == "/login" else "admin@example.com"))
     if only:
         pages = [p for p in pages if any(o in p[0] for o in only)]
@@ -184,6 +190,9 @@ def main() -> int:  # noqa: C901 - one walk through the site
                     pg.locator("input[type=email]").fill(email)
                     pg.locator("input[type=password]").fill(passwords[email])
                     pg.get_by_role("button", name="Sign in").click()
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                    from totp_signin import admin_console_second_step, keys_from_logins  # the authenticator code (Round 8)
+                    admin_console_second_step(pg, email, keys_from_logins(os.environ["E2E_LOGINS_FILE"]))
                     pg.wait_for_url(re.compile(r".*/overview.*"), timeout=30000)
                     admin_state = ctx.storage_state()
                 try:

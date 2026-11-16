@@ -4,9 +4,10 @@ appId: com.bhojango.app
 ---
 - launchApp:
     clearState: true
+# A cold start with cleared state (the first bundle from Metro, fonts, Markets) can take over a minute on an emulator.
 - extendedWaitUntil:
     visible: "Sign in or create an account"
-    timeout: 60000
+    timeout: 120000
 - takeScreenshot: docs/screenshots/customer/01-sign-in
 - assertVisible:
     id: "way-email"

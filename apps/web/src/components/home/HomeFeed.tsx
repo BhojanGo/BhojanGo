@@ -163,7 +163,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
         <h2 id="order-again" className="m-0 text-h2">{t("home.order_again")}</h2>
         <Link href="/account/orders" className="font-bold">{t("home.all_orders")}</Link>
       </div>
-      <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 md:mx-0 md:mt-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0">
+      <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 md:mx-0 md:mt-4 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 xl:grid-cols-3">
         {past.map((o) => {
           const items = (o.items as { name?: string; quantity?: number }[]).map((i) => ((i.quantity ?? 1) > 1 ? `${i.quantity} ${i.name}` : i.name)).join(", ");
           return (
@@ -177,19 +177,18 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
                   <span className="hidden md:inline">{f.zone(o.time_zone).date(o.created_at)} · </span>
                   {f.money(o.total, o.currency)}
                 </span>
-                <button type="button" onClick={() => void again(o)} disabled={busy !== null} className="text-label text-[#0B5D66] disabled:opacity-60 md:hidden">
-                  {t("home.order_again_button")}
+                {/* One compact action at every width: a big button beside the text left the kitchen's
+                    name a few letters wide in a 3-up row (R8 audit, 1366 px at 125 %). */}
+                <button
+                  type="button"
+                  onClick={() => void again(o)}
+                  disabled={busy !== null}
+                  aria-label={t("home.order_again_from", { kitchen: o.restaurant_name })}
+                  className="mt-1 inline-flex min-h-[44px] items-center text-label text-[#0B5D66] hover:underline disabled:opacity-60 md:min-h-0"
+                >
+                  {busy === o.id ? t("common.loading") : t("home.order_again_button")}
                 </button>
               </span>
-              <button
-                type="button"
-                onClick={() => void again(o)}
-                disabled={busy !== null}
-                aria-label={t("home.order_again_from", { kitchen: o.restaurant_name })}
-                className="hidden h-11 shrink-0 items-center rounded-full bg-[#0B5D66] px-[18px] text-label text-white hover:bg-[#083F46] disabled:opacity-60 md:flex"
-              >
-                {busy === o.id ? t("common.loading") : t("home.order_again_button")}
-              </button>
             </div>
           );
         })}

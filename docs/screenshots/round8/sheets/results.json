@@ -1,0 +1,277 @@
+{
+ "home": {
+  "who": "visitor",
+  "url": "/",
+  "layout_fails": {}
+ },
+ "sign-in": {
+  "who": "visitor",
+  "url": "/signin",
+  "layout_fails": {}
+ },
+ "sign-in-code": {
+  "who": "visitor",
+  "url": "/signin/code?phone=%2B12085550199&next=%2F",
+  "layout_fails": {}
+ },
+ "cities": {
+  "who": "visitor",
+  "url": "/cities",
+  "layout_fails": {}
+ },
+ "add-your-kitchen": {
+  "who": "visitor",
+  "url": "/partner",
+  "layout_fails": {}
+ },
+ "deliver": {
+  "who": "visitor",
+  "url": "/deliver",
+  "layout_fails": {}
+ },
+ "help": {
+  "who": "visitor",
+  "url": "/help",
+  "layout_fails": {}
+ },
+ "terms": {
+  "who": "visitor",
+  "url": "/terms",
+  "layout_fails": {}
+ },
+ "privacy": {
+  "who": "visitor",
+  "url": "/privacy",
+  "layout_fails": {}
+ },
+ "credits": {
+  "who": "visitor",
+  "url": "/credits",
+  "layout_fails": {}
+ },
+ "not-found": {
+  "who": "visitor",
+  "url": "/no-such-page",
+  "layout_fails": {}
+ },
+ "deliver-app": {
+  "who": "visitor",
+  "url": "/deliver/app",
+  "layout_fails": {}
+ },
+ "help-topic": {
+  "who": "visitor",
+  "url": "/help/payments-refunds",
+  "layout_fails": {}
+ },
+ "help-article": {
+  "who": "visitor",
+  "url": "/help/payments-refunds/fair-bill-who-gets-your-money",
+  "layout_fails": {}
+ },
+ "terms-history": {
+  "who": "visitor",
+  "url": "/terms/history",
+  "layout_fails": {}
+ },
+ "privacy-us": {
+  "who": "visitor",
+  "url": "/privacy?country=US",
+  "layout_fails": {}
+ },
+ "sign-in-email": {
+  "who": "visitor",
+  "url": "/signin?way=email",
+  "layout_fails": {}
+ },
+ "sign-up-email": {
+  "who": "visitor",
+  "url": "/signin?way=email&mode=create",
+  "layout_fails": {}
+ },
+ "forgot-password": {
+  "who": "visitor",
+  "url": "/signin/forgot",
+  "layout_fails": {}
+ },
+ "reset-password-expired": {
+  "who": "visitor",
+  "url": "/signin/reset?token=expired",
+  "layout_fails": {}
+ },
+ "city-in-tg-hyd": {
+  "who": "visitor",
+  "url": "/in/hyderabad",
+  "layout_fails": {}
+ },
+ "city-us-id-boi": {
+  "who": "visitor",
+  "url": "/us/boise",
+  "layout_fails": {}
+ },
+ "home-signed-in-in": {
+  "who": "customer",
+  "url": "/",
+  "layout_fails": {}
+ },
+ "checkout-empty-in": {
+  "who": "customer",
+  "url": "/checkout",
+  "layout_fails": {}
+ },
+ "orders-in": {
+  "who": "customer",
+  "url": "/account/orders",
+  "layout_fails": {}
+ },
+ "profile-in": {
+  "who": "customer",
+  "url": "/account/profile",
+  "layout_fails": {}
+ },
+ "favourites-in": {
+  "who": "customer",
+  "url": "/account/favourites",
+  "layout_fails": {}
+ },
+ "help-signed-in-in": {
+  "who": "customer",
+  "url": "/help",
+  "layout_fails": {}
+ },
+ "order-receipt-in": {
+  "who": "customer",
+  "url": "/orders/f7dc8424-914c-5254-9a87-27dc96ddddc2",
+  "layout_fails": {}
+ },
+ "report-problem-in": {
+  "who": "customer",
+  "url": "/account/orders/f7dc8424-914c-5254-9a87-27dc96ddddc2/report",
+  "layout_fails": {}
+ },
+ "tracking-in": {
+  "who": "customer",
+  "url": "/orders/74dd217f-f5ad-5ad3-b735-c3b895185616/track",
+  "layout_fails": {}
+ },
+ "kitchen-in": {
+  "who": "customer",
+  "url": "/in/hyderabad",
+  "layout_fails": {}
+ },
+ "home-signed-in-us": {
+  "who": "customer",
+  "url": "/",
+  "layout_fails": {}
+ },
+ "checkout-empty-us": {
+  "who": "customer",
+  "url": "/checkout",
+  "layout_fails": {}
+ },
+ "orders-us": {
+  "who": "customer",
+  "url": "/account/orders",
+  "layout_fails": {}
+ },
+ "profile-us": {
+  "who": "customer",
+  "url": "/account/profile",
+  "layout_fails": {}
+ },
+ "favourites-us": {
+  "who": "customer",
+  "url": "/account/favourites",
+  "layout_fails": {}
+ },
+ "help-signed-in-us": {
+  "who": "customer",
+  "url": "/help",
+  "layout_fails": {}
+ },
+ "order-receipt-us": {
+  "who": "customer",
+  "url": "/orders/f53e293b-f5cb-5c48-a4e8-1377034c5412",
+  "layout_fails": {}
+ },
+ "report-problem-us": {
+  "who": "customer",
+  "url": "/account/orders/f53e293b-f5cb-5c48-a4e8-1377034c5412/report",
+  "layout_fails": {}
+ },
+ "kitchen-us": {
+  "who": "customer",
+  "url": "/us/boise",
+  "layout_fails": {}
+ },
+ "add-your-kitchen-applying": {
+  "who": "kitchen partner",
+  "url": "/partner",
+  "layout_fails": {}
+ },
+ "admin-login": {
+  "who": "admin",
+  "url": "admin:/login",
+  "layout_fails": {}
+ },
+ "admin-overview": {
+  "who": "admin",
+  "url": "admin:/overview",
+  "layout_fails": {}
+ },
+ "admin-operations": {
+  "who": "admin",
+  "url": "admin:/operations",
+  "layout_fails": {}
+ },
+ "admin-partners": {
+  "who": "admin",
+  "url": "admin:/partners",
+  "layout_fails": {}
+ },
+ "admin-pricing": {
+  "who": "admin",
+  "url": "admin:/pricing",
+  "layout_fails": {}
+ },
+ "admin-pricing-simulator": {
+  "who": "admin",
+  "url": "admin:/pricing/simulator",
+  "layout_fails": {}
+ },
+ "admin-markets": {
+  "who": "admin",
+  "url": "admin:/markets",
+  "layout_fails": {}
+ },
+ "admin-markets-in": {
+  "who": "admin",
+  "url": "admin:/markets/IN",
+  "layout_fails": {}
+ },
+ "admin-markets-in-in-tg-hyd": {
+  "who": "admin",
+  "url": "admin:/markets/IN/IN-TG-HYD",
+  "layout_fails": {}
+ },
+ "admin-finance": {
+  "who": "admin",
+  "url": "admin:/finance",
+  "layout_fails": {}
+ },
+ "admin-settings": {
+  "who": "admin",
+  "url": "admin:/settings",
+  "layout_fails": {}
+ },
+ "admin-content-help": {
+  "who": "admin",
+  "url": "admin:/content/help",
+  "layout_fails": {}
+ },
+ "admin-content-legal": {
+  "who": "admin",
+  "url": "admin:/content/legal",
+  "layout_fails": {}
+ }
+}
