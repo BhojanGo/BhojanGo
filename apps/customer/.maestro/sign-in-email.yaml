@@ -16,12 +16,24 @@ tags:
     id: "way-email"
 - assertVisible: "Email me a code instead"
 - assertVisible: "Forgot password?"
+# On a tall phone the photos push the form down: the link is below the fold.
+- scrollUntilVisible:
+    element:
+      id: "to-create"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Create an account"
 - takeScreenshot: docs/screenshots/customer/01b-sign-in-email
+- scrollUntilVisible:
+    element:
+      id: "email"
+    direction: UP
+    timeout: 10000
 # A wrong password says so in words (the same words for an email with no account).
 - tapOn:
     id: "email"
 - inputText: ${EMAIL || "customer1.hyd@example.com"}
+- hideKeyboard
 - tapOn:
     id: "password"
 - inputText: "not-the-password-1"
@@ -34,7 +46,8 @@ tags:
 - tapOn:
     id: "password"
 - eraseText: 40
-- inputText: ${PASSWORD || (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS ? JSON.parse(QA_PASSWORDS)[EMAIL || "customer1.hyd@example.com"] : "BhojanGo123")}
+- runScript: scripts/email-password.js
+- inputText: ${output.password}
 - hideKeyboard
 - tapOn:
     id: "email-sign-in"
