@@ -242,28 +242,34 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
           </p>
         </div>
       </form>
-      <NextSteps />
+      <NextSteps documents={terms.documents} />
     </div>
   );
 }
 
-/** Beside the form: what happens after "Create account" (the same four steps as above, short). */
-function NextSteps() {
+/** Beside the form: what happens right after "Create account" (true of the product today). */
+function NextSteps({ documents }: { documents: { key: string; title: string }[] }) {
   const t = useT();
+  const items = [t("kitchen_join.next_email"), t("kitchen_join.next_saved"), t("kitchen_join.next_review")];
   return (
-    <aside aria-label={t("kitchen_join.how_title")} className="hidden rounded-[24px] bg-porcelain p-6 lg:block lg:self-start">
-      <h3 className="m-0 text-h3">{t("kitchen_join.how_title")}</h3>
-      <ol className="m-0 mt-4 list-none space-y-4 p-0">
-        {[1, 2, 3, 4].map((n) => (
-          <li key={n} className="flex gap-3">
-            <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-pill text-small font-semibold ${n === 1 ? "bg-peacock text-white" : "border-[1.5px] border-line-strong text-muted"}`}>{n}</span>
-            <span>
-              <b className="block text-label">{t(`kitchen_join.how_${n}_title`)}</b>
-              <span className="block text-small text-muted">{t(`kitchen_join.how_${n}_body`)}</span>
-            </span>
+    <aside aria-labelledby="next-title" data-testid="partner-next" className="rounded-[24px] bg-porcelain p-5 md:p-6 lg:self-start">
+      <h3 id="next-title" className="m-0 text-h3">{t("kitchen_join.next_title")}</h3>
+      <ul className="m-0 mt-4 list-none space-y-3 p-0">
+        {items.map((x) => (
+          <li key={x} className="flex gap-3 text-body">
+            <span aria-hidden="true" className="mt-[9px] h-2 w-2 shrink-0 rounded-pill bg-peacock" />
+            <span>{x}</span>
           </li>
         ))}
-      </ol>
+      </ul>
+      {documents.length > 0 && (
+        <>
+          <p className="m-0 mt-5 text-label">{t("kitchen_join.next_docs")}</p>
+          <ul className="m-0 mt-2 flex list-none flex-wrap gap-2 p-0">
+            {documents.map((d) => <li key={d.key} className="rounded-pill border border-line-strong bg-white px-3 py-1 text-small">{d.title}</li>)}
+          </ul>
+        </>
+      )}
     </aside>
   );
 }

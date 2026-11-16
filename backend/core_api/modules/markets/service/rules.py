@@ -78,7 +78,7 @@ def check_country_payouts(status: str, payout_provider: str, *, production: bool
     if payout_provider == "fake" and production:
         raise MarketRuleError("The fake payout provider moves no money: production needs Stripe Connect or Razorpay Route")
     if status in OPEN and payout_provider == "none":
-        raise MarketRuleError("Can't open this country: it has no payout provider, so kitchens and riders couldn't be "
+        raise MarketRuleError("Can't open this country: it has no payout provider, so kitchens and delivery partners couldn't be "
                               "paid. Choose one (Payout provider) first")
 
 
@@ -107,7 +107,7 @@ def check_parent_open(new_status: str, parent_status: str, parent_label: str) ->
 # ``settings`` JSON can override any key (None removes an override).
 COUNTRY_COLUMNS = ("currency", "locales", "timezone", "distance_unit", "phone_code", "payment_providers", "tax_regime")
 # hero_photo: the website's landing hero is per country (service/photos.py)
-LOCKED_BELOW_COUNTRY = frozenset({"currency", "phone_code", "tax_regime", "hero_photo", "kitchen_documents"})
+LOCKED_BELOW_COUNTRY = frozenset({"currency", "phone_code", "tax_regime", "hero_photo", "delivery_partner", "kitchen_documents"})
 
 
 def effective_settings(country: Any, region: Any, city: Any) -> list[dict]:

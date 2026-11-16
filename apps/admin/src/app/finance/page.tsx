@@ -29,7 +29,7 @@ interface Contribution {
 
 const CONTRIBUTION_ROWS: [string, string, number][] = [
   ["commission", "Commission", 1], ["customer_fees", "Customer fees", 1], ["platform_promos", "Offers we fund", -1],
-  ["rider_pay", "Rider pay (tips excluded)", -1], ["payment_fees", "Payment fees", -1], ["refunds", "Refunds we pay", -1],
+  ["rider_pay", "Delivery partner pay (tips excluded)", -1], ["payment_fees", "Payment fees", -1], ["refunds", "Refunds we pay", -1],
 ];
 
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
@@ -98,7 +98,7 @@ function FinancePage() {
         </div>
         {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
         <table className="w-full text-left text-small tabular-nums">
-          <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Kitchens</th><th>Riders</th><th /></tr></thead>
+          <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Kitchens</th><th>Delivery partners</th><th /></tr></thead>
           <tbody className="divide-y divide-line">
             {(runs.data ?? []).map((r) => (
               <tr key={r.id} className={open === r.id ? "bg-peacock-wash" : ""}>
@@ -126,7 +126,7 @@ function FinancePage() {
             <thead className="text-caption text-muted"><tr><th className="py-2">Payee</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody className="divide-y divide-line">
               {run.data.statements.map((s) => (
-                <tr key={s.id}><td className="py-2.5 font-semibold">{s.payee_name}</td><td>{s.payee_type === "restaurant" ? "Kitchen" : "Rider"}</td>
+                <tr key={s.id}><td className="py-2.5 font-semibold">{s.payee_name}</td><td>{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
                   <td>{money(s.amount / 100, s.currency, 2)}</td><td>{s.status}{s.error ? <span className="text-muted"> · {s.error}</span> : null}</td></tr>
               ))}
             </tbody>
@@ -136,7 +136,7 @@ function FinancePage() {
       {contribution.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
           <h2 className="m-0 mb-1 text-h3">Contribution per order · {start} → {end}</h2>
-          <p className="mb-3 text-small text-muted">What the platform keeps of an average delivered order, after payment fees, rider pay (tips are the rider&apos;s), the offers we fund and the refunds we pay.
+          <p className="mb-3 text-small text-muted">What the platform keeps of an average delivered order, after payment fees, delivery partner pay (tips are the delivery partner&apos;s), the offers we fund and the refunds we pay.
             {contribution.data.fees_estimated ? ` ${contribution.data.fees_estimated} older orders had no payment fee recorded; it's worked out from today's rule.` : ""}</p>
           <div className="overflow-x-auto"><table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted"><tr><th className="py-2">Per order</th>
@@ -155,7 +155,7 @@ function FinancePage() {
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
           <h2 className="m-0 mb-3 text-h3">Reconciliation · {start} → {end}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            {[["Captured", recon.data.money.captured], ["Refunded", recon.data.money.refunded], ["Kitchens are owed", recon.data.money.restaurant_payable], ["Riders are owed", recon.data.money.rider_payable],
+            {[["Captured", recon.data.money.captured], ["Refunded", recon.data.money.refunded], ["Kitchens are owed", recon.data.money.restaurant_payable], ["Delivery partners are owed", recon.data.money.rider_payable],
               ["Tax owed", recon.data.money.tax_owed], ["Platform revenue", recon.data.money.platform_revenue], ["Payment fees", recon.data.money.payment_fees],
               ["Platform after payment fees", recon.data.money.platform_after_payment_fees], ["Delivered GMV", recon.data.money.delivered_gmv], ["Net collected", recon.data.money.net_collected]]
               .map(([l, v]) => <div key={l as string} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div><div className="text-h3 tabular-nums">{money(Number(v ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}

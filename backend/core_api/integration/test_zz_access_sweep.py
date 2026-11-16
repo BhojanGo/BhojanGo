@@ -117,6 +117,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
     ("GET", "/api/v1/kitchens/terms"): public("Add your kitchen: commission, payouts, documents and cities, from live data"),
     ("POST", "/api/v1/kitchens/apply"): public("Add your kitchen: a new kitchen partner signs up with email and password (rate-limited)"),
+    ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),

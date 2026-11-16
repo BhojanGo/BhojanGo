@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.identity.api.dependencies import AdminContext, require_permission
 from core_api.modules.payments.api.dependencies import CurrentUser, get_current_user
 from core_api.modules.pricing.schemas import QuoteOut, QuoteRequest, SimulateOut, SimulateRequest
+from core_api.modules.pricing.service.lookup import relabel
 from core_api.modules.pricing.service.quotes import QuoteError, QuoteService
 from shared.db import get_db
 
@@ -56,9 +57,10 @@ async def order_bill(order_id: uuid.UUID, user: Annotated[CurrentUser, Depends(g
     snap = await QuoteService(db).snapshot(order_id)
     if snap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="This order has no itemised bill")
+    from core_api.modules.identity.service.profile import user_profile
     from core_api.modules.pricing.service.lookup import customer_lines
 
-    lines = customer_lines(snap.lines)
+    lines = customer_lines(snap.lines, ((await user_profile(db, user.id)) or {}).get("locale"))
     taxes = [ln for ln in lines if ln["code"] in ("tax", "tax_included")]
     return {"order_id": str(order_id), "currency": snap.currency, "total": str(snap.total), "lines": lines,
             "taxes": taxes, "zone": snap.context.get("zone"), "distance": snap.context.get("distance"),
@@ -78,7 +80,7 @@ async def order_snapshot(
     admin.require("orders.view", snap.context.get("city", "*"))
     return {
         "order_id": str(snap.order_id), "quote_id": str(snap.quote_id), "currency": snap.currency,
-        "total": str(snap.total), "lines": snap.lines, "rule_versions": snap.rule_versions, "split": snap.split,
+        "total": str(snap.total), "lines": relabel(snap.lines), "rule_versions": snap.rule_versions, "split": snap.split,
         "context": snap.context, "created_at": snap.created_at.isoformat(),
     }
 
@@ -155,7 +157,7 @@ async def _real_bill(db: AsyncSession, city: str, zone: uuid.UUID | None) -> dic
                    Order.status.notin_(("pending_payment", "cancelled", "payment_failed")))
             .order_by(OrderPricingSnapshot.created_at.desc()).limit(1))).scalar_one_or_none()
         if snap is not None:
-            lines = [{**ln, "label": "Food" if ln.get("code") == "food" else ln.get("label")} for ln in snap.lines]
+            lines = relabel([{**ln, "label": "Food" if ln.get("code") == "food" else ln.get("label")} for ln in snap.lines])
             ctx = snap.context or {}
             return {"city": city, "city_name": c.name, "currency": snap.currency, "lines": lines, "total": str(snap.total),
                     "shares": _shares(snap.split, snap.total), "source": "order", "assumptions": {"distance": str(ctx.get("distance", "")),

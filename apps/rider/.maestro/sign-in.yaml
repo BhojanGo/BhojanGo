@@ -8,7 +8,7 @@ appId: com.bhojango.rider
       all: allow
 # A cold start with cleared state (fonts, Markets) can take over a minute on an emulator.
 - extendedWaitUntil:
-    visible: "Ride on your.*"
+    visible: "Deliver on your.*"
     timeout: 120000
 - takeScreenshot: docs/screenshots/rider/01-sign-in
 # The phone's country starts from the device's region (Markets countries); step to

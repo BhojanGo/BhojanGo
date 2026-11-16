@@ -69,7 +69,7 @@ export default function Gallery() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {["Biryani", "Dosa", "Thali", "Pizza"].map((c) => <Chip key={c} label={c} selected={chip === c} onPress={() => setChip(c)} />)}
         </View>
-        <Segmented label="Tip your rider" value={tip} onChange={setTip}
+        <Segmented label="Tip your delivery partner" value={tip} onChange={setTip}
           options={[{ value: "0", label: "None" }, ...[10, 20, 30].map((n) => ({ value: String(n), label: money(n, cur, { whole: true }) }))]} />
       </View>
 
@@ -103,7 +103,7 @@ export default function Gallery() {
       </View>
 
       <Card tone="dark" style={{ gap: 12 }}>
-        <Txt variant="h3" style={{ color: dark.text }}>Rider (dark)</Txt>
+        <Txt variant="h3" style={{ color: dark.text }}>BhojanGo Delivery (dark)</Txt>
         <Input dark label="Vehicle number" placeholder="TS 09 AB 7316" />
         <Button title="Go online" variant="rider" block />
       </Card>

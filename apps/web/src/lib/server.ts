@@ -90,6 +90,25 @@ export async function kitchenTerms(country: string, language: string): Promise<K
   return get<KitchenTerms>(`/kitchens/terms?country=${encodeURIComponent(country)}&language=${encodeURIComponent(language)}`, 300);
 }
 export type KitchenTerms = CoreSchemas["KitchenTerms"];
+export type DeliveryTerms = CoreSchemas["DeliveryTerms"];
+
+/**
+ * A live city's delivery partner pay (example trip priced by the engine, hourly
+ * minimum, batch bonus, tips, payout cadence) and its country's requirements and
+ * app links (Markets). null: not a live city. "error": the API didn't answer.
+ */
+export async function deliveryTerms(city: string): Promise<DeliveryTerms | null | "error"> {
+  try {
+    const r = await fetch(`${CORE}/api/v1/delivery/terms?city=${encodeURIComponent(city)}`, { next: { revalidate: 300 } });
+    if (r.status === 404 || r.status === 422) return null;
+    if (!r.ok) throw new Error(`terms: ${r.status}`);
+    return (await r.json()) as DeliveryTerms;
+  } catch (e) {
+    console.warn("core_api unavailable", (e as Error).message);
+    noStore();
+    return "error";
+  }
+}
 
 /** Which social sign-ins are configured ({google: {client_id} | null, apple: null}); null on an older API. */
 export async function authProviders(): Promise<{ google?: { client_id: string } | null; apple?: { client_id: string } | null } | null> {

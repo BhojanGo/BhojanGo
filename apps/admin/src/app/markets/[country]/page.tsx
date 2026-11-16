@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
+import { DeliveryPartners } from "@/components/markets/DeliveryPartners";
 import { HeroDish } from "@/components/markets/HeroDish";
 import { KitchenDocuments } from "@/components/markets/KitchenDocuments";
 import { PayoutProvider } from "@/components/markets/PayoutProvider";
@@ -115,6 +116,7 @@ function CountryView() {
           <PayoutProvider country={country} />
           <HeroDish country={country} />
           <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
+          <DeliveryPartners key={country.code} country={country} />
         </>
       )}
     </ConsoleShell>
