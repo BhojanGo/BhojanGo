@@ -15,7 +15,9 @@ export function SignInTabs({ initial, phone, email, after }: { initial: Way; pho
 
   function choose(next: Way, focus = false) {
     setWay(next);
-    if (focus) tabs.current[next]?.focus();
+    // Arrow keys keep focus on the tab (WAI-ARIA tabs); the new panel's first field
+    // autofocuses as it mounts, so focus the tab again once it has.
+    if (focus) window.setTimeout(() => tabs.current[next]?.focus(), 0);
     // Keep the choice in the address (a link or a reload opens the same tab).
     const url = new URL(window.location.href);
     url.searchParams.set("way", next);
