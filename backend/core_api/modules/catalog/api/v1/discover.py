@@ -8,6 +8,7 @@ Public (no sign-in): prices are the same for everyone at an address.
                             per-address fees, the city's kitchens and offers
 """
 import json
+import re
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal
@@ -17,6 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.catalog.service.photos import cuisine_photo, photos_for
 from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
 from shared.db import get_db
 
@@ -39,7 +41,7 @@ class Offer(BaseModel):
     max_discount: str | None = None
     min_subtotal: str | None = None
     code: str | None = None  # None: applies by itself
-    restaurant: dict | None = None  # {id, slug, name, path, cover_url} for a kitchen's own offer
+    restaurant: dict | None = None  # {id, slug, name, path, cover_url, photo_url} for a kitchen's own offer
 
 
 class Card(BaseModel):
@@ -50,7 +52,9 @@ class Card(BaseModel):
     cuisine_types: list[str]
     tags: list[str]
     area: str | None
-    cover_url: str | None
+    cover_url: str | None  # the kitchen's own photo
+    # What to show (catalog.service.photos): the cover, else its first dish photo, else its cuisine's library photo.
+    photo_url: str | None = None
     logo_url: str | None
     rating: float
     review_count: int
@@ -149,6 +153,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     from zoneinfo import ZoneInfo
 
     local = now.astimezone(ZoneInfo(tz))
+    shown = await photos_for(db, kitchens)
     cards: list[Card] = []
     offers: dict[str, Offer] = {}
     for k in kitchens:
@@ -165,7 +170,8 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             continue
         if not a.listed:
             continue
-        ref = {"id": str(k.id), "slug": k.slug, "name": k.name, "path": f"{city_path}/{k.slug}", "cover_url": k.cover_url}
+        ref = {"id": str(k.id), "slug": k.slug, "name": k.name, "path": f"{city_path}/{k.slug}", "cover_url": k.cover_url,
+               "photo_url": shown.get(str(k.id))}
         resolved = await rules_svc.resolve(Context(country=country.code, region=region.code, city=city.code,
                                                    zone_id=str(zone_id) if zone_id else None, restaurant_id=str(k.id)), now)
         promos = [c for slot, c in resolved.items() if slot.startswith("promotion:") and not c.params.get("code")
@@ -189,7 +195,8 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
         created = getattr(k, "created_at", None)
         cards.append(Card(
             id=str(k.id), slug=k.slug, name=k.name, path=ref["path"], cuisine_types=list(k.cuisine_types or []),
-            tags=list(k.tags or []), area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url, logo_url=k.logo_url,
+            tags=list(k.tags or []), area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url,
+            photo_url=shown.get(str(k.id)), logo_url=k.logo_url,
             rating=float(k.rating or 0), review_count=int(getattr(k, "review_count", 0) or 0),
             rating_display=rating_display(k.rating, getattr(k, "review_count", 0)),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
@@ -213,8 +220,11 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
 
 async def _photo_candidates(db: AsyncSession, names: list[str], kitchens: list, on_cards: set[str]) -> dict[str, list[str]]:  # type: ignore[type-arg]
     """Each cuisine's photos, best first: covers of the city's kitchens of that
-    cuisine that aren't on a card in this response, then dish photos from the
-    cuisine's kitchens, then covers that are already on a card (repeats a card)."""
+    cuisine that aren't on a card in this response, then the food library's photo
+    of that cuisine (R8: catalog.service.photos, e.g. Japanese -> sushi, so every
+    mapped cuisine has a fitting photo even when its kitchens have none), then
+    dish photos from the cuisine's kitchens, then covers that are already on a
+    card (repeats a card)."""
     from core_api.modules.catalog.models.menu import MenuItem
 
     if not names:
@@ -230,15 +240,22 @@ async def _photo_candidates(db: AsyncSession, names: list[str], kitchens: list, 
         for rid, url in rows:
             by_kitchen.setdefault(str(rid), []).append(url)
     card_covers = {k.cover_url for k in kitchens if str(k.id) in on_cards and k.cover_url}
+    card_keys = {photo_key(u) for u in card_covers}
     out: dict[str, list[str]] = {}
     for name in names:
         mine = sorted((k for k in kitchens if name.lower() in {c.lower() for c in (k.cuisine_types or [])}),
                       key=lambda k: (-(k.review_count or 0), k.name))
         covers = [k.cover_url for k in mine if k.cover_url]
         dishes = [u for k in mine for u in by_kitchen.get(str(k.id), [])]
-        out[name] = ([u for u in covers if u not in card_covers] + [u for u in dishes if u not in card_covers]
+        library = [u for u in [cuisine_photo([name])] if u and photo_key(u) not in card_keys]
+        out[name] = ([u for u in covers if u not in card_covers] + library + [u for u in dishes if u not in card_covers]
                      + [u for u in covers if u in card_covers])
     return out
+
+
+def photo_key(url: str) -> str:
+    """The same library photo at any width is one photo ("/food/tacos-800.webp" = "/food/tacos-1600.webp")."""
+    return re.sub(r"-(400|800|1600)\.webp$", "", url)
 
 
 def pick_cuisine_photos(names: list[str], candidates: dict[str, list[str]]) -> dict[str, str]:
@@ -250,8 +267,8 @@ def pick_cuisine_photos(names: list[str], candidates: dict[str, list[str]]) -> d
     out: dict[str, str] = {}
     order = sorted(names, key=lambda n: (len(dict.fromkeys(candidates.get(n, []))), names.index(n)))
     for name in order:
-        photo = next((u for u in candidates.get(name, []) if u not in used), None)
+        photo = next((u for u in candidates.get(name, []) if photo_key(u) not in used), None)
         if photo:
-            used.add(photo)
+            used.add(photo_key(photo))
             out[name] = photo
     return out

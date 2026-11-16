@@ -2,6 +2,7 @@
 // cuisines and offers for that address from /discover. No marketing here.
 import { CuisineTile, OfferCard } from "@/components/Cards";
 import { flatCities } from "@/components/discover/places";
+import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { cuisineTiles } from "@/lib/contract";
 import { getContext, type Place } from "@/lib/prefs";
 import type { Discover } from "@/lib/server";
@@ -18,7 +19,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
   // Cuisines with 2+ kitchens, each with a photo of its own (never the same photo twice).
   const cuisines = cuisineTiles(d);
   const cover = (o: (typeof offers)[number]) =>
-    kitchens.find((k) => k.id === (o.restaurant?.id as string | undefined))?.cover_url ?? kitchens[0]?.cover_url ?? null;
+    kitchenPhoto(kitchens.find((k) => k.id === (o.restaurant?.id as string | undefined))) ?? kitchenPhoto(kitchens[0]);
 
   const cravings = cuisines.length > 0 && (
     <section aria-labelledby="craving">

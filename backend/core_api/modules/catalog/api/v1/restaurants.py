@@ -31,12 +31,22 @@ from core_api.modules.catalog.schemas.restaurant import (
     SearchRequest,
 )
 from core_api.modules.catalog.service import geo, search as search_svc
+from core_api.modules.catalog.service.photos import photos_for
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 logger = structlog.get_logger(__name__)
 
 CACHE_KEY_LIST = "restaurants:list:{city}:{cuisine}:{page}:{limit}"
 CACHE_KEY_RESTAURANT = "restaurants:{id}"
+
+
+async def _public(db: AsyncSession, restaurants: list) -> list[PublicRestaurant]:  # type: ignore[type-arg]
+    """Public kitchens with the photo customers are shown (photo_url: catalog.service.photos)."""
+    shown = await photos_for(db, restaurants)
+    out = [PublicRestaurant.model_validate(r) for r in restaurants]
+    for p in out:
+        p.photo_url = shown.get(str(p.id))
+    return out
 
 
 @router.get("", response_model=PublicRestaurantList)
@@ -69,7 +79,7 @@ async def list_restaurants(
     )
 
     response = PublicRestaurantList(
-        items=[PublicRestaurant.model_validate(r) for r in restaurants],
+        items=await _public(db, restaurants),
         total=total,
         page=page,
         limit=limit,
@@ -107,7 +117,7 @@ async def search_restaurants(
             restaurants.append(r)
 
     return PublicRestaurantList(
-        items=[PublicRestaurant.model_validate(r) for r in restaurants],
+        items=await _public(db, restaurants),
         total=result["total"],
         page=page,
         limit=limit,
@@ -128,7 +138,7 @@ async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, s
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     from core_api.modules.catalog.service.menu import restaurant_market
 
-    out = PublicRestaurant.model_validate(r)
+    out = (await _public(db, [r]))[0]
     out.time_zone = str((await restaurant_market(db, r))[1])
     return out
 
@@ -148,7 +158,7 @@ async def get_restaurant(
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-    response = PublicRestaurant.model_validate(restaurant)
+    response = (await _public(db, [restaurant]))[0]
     await cache_set(cache_key, response.model_dump(), ttl=300)
     return response
 
@@ -188,7 +198,7 @@ async def get_restaurant_menu(
     ]
 
     return RestaurantMenuResponse(
-        restaurant=PublicRestaurant.model_validate(restaurant),
+        restaurant=(await _public(db, [restaurant]))[0],
         categories=categories,
         uncategorized_items=uncategorized,
     )

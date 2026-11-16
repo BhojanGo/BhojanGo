@@ -1148,6 +1148,17 @@
             "title": "Path",
             "type": "string"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "rating": {
             "title": "Rating",
             "type": "number"
@@ -3240,6 +3251,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "rating": {
             "title": "Rating",
@@ -7603,6 +7625,17 @@
             ],
             "title": "Paused Reason"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "rating": {
             "title": "Rating",
             "type": "number"
@@ -9106,6 +9139,17 @@
               }
             ],
             "title": "Paused Reason"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "pricing_model": {
             "default": "percentage_commission",

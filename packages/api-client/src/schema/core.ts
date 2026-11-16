@@ -3688,6 +3688,8 @@ export interface components {
             opens_at: string | null;
             /** Path */
             path: string;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             rating_display: components["schemas"]["RatingDisplay"];
@@ -4450,6 +4452,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             rating_display?: components["schemas"]["RatingDisplay"] | null;
@@ -6039,6 +6043,8 @@ export interface components {
             opens_at: string | null;
             /** Paused Reason */
             paused_reason?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             /** @description Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}. */
@@ -6637,6 +6643,8 @@ export interface components {
             owner_id: string;
             /** Paused Reason */
             paused_reason?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
             /**
              * Pricing Model
              * @default percentage_commission
