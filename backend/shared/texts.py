@@ -2,7 +2,7 @@
 
 The languages every backend text is written in, the locale → language rule, and
 the texts core_api sends or shows itself: the sign-in code (SMS), the welcome
-email, the quick messages between customer and rider (B2) and the names used
+email, the quick messages between customer and delivery partner (B2) and the names used
 when someone has none. The worker's order and payout messages are in
 ``worker/app/services/messages.py`` and follow the same rules.
 
@@ -144,8 +144,9 @@ def preset_text(side: str, key: str | None, language: str) -> str | None:
 # When someone has no name on their account (a message title, the chat header).
 NAMES: dict[str, dict[str, str]] = {
     "your_rider": {
-        "en": "Your rider", "hi": "आपका राइडर", "te": "మీ రైడర్", "ta": "உங்கள் ரைடர்",
-        "kn": "ನಿಮ್ಮ ರೈಡರ್", "mr": "तुमचा रायडर", "bn": "আপনার রাইডার", "es": "Tu repartidor",
+        "en": "Your delivery partner", "hi": "आपका डिलीवरी पार्टनर", "te": "మీ డెలివరీ పార్ట్‌నర్",
+        "ta": "உங்கள் டெலிவரி பார்ட்னர்", "kn": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್", "mr": "तुमचा डिलिव्हरी पार्टनर",
+        "bn": "আপনার ডেলিভারি পার্টনার", "es": "Tu repartidor",
     },
     "the_customer": {
         "en": "The customer", "hi": "ग्राहक", "te": "కస్టమర్", "ta": "வாடிக்கையாளர்",
@@ -155,7 +156,7 @@ NAMES: dict[str, dict[str, str]] = {
 
 
 def fallback_name(role: str, language: str) -> str:
-    """"Your rider" for a rider, "The customer" for a customer, in ``language``."""
+    """"Your delivery partner" for a delivery partner (role "rider"), "The customer" for a customer, in ``language``."""
     return pick(NAMES["your_rider" if role == "rider" else "the_customer"], language)
 
 

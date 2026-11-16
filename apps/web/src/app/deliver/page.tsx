@@ -1,5 +1,5 @@
-// Ride with BhojanGo: what the pay looks like (in words: the figures live in
-// the rider app and differ per city), and how to apply (the rider app).
+// Deliver with BhojanGo (/deliver; /ride redirects here): what the pay looks like (in words:
+// the figures live in BhojanGo Delivery and differ per city), and how to apply (in that app).
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -8,7 +8,7 @@ import { SITE } from "@/lib/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getContext();
-  return { title: t("ride.meta_title"), description: t("ride.lead"), alternates: { canonical: `${SITE}/ride` } };
+  return { title: t("ride.meta_title"), description: t("ride.lead"), alternates: { canonical: `${SITE}/deliver` } };
 }
 
 export default async function Ride() {

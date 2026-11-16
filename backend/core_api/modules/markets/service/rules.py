@@ -78,7 +78,7 @@ def check_country_payouts(status: str, payout_provider: str, *, production: bool
     if payout_provider == "fake" and production:
         raise MarketRuleError("The fake payout provider moves no money: production needs Stripe Connect or Razorpay Route")
     if status in OPEN and payout_provider == "none":
-        raise MarketRuleError("Can't open this country: it has no payout provider, so kitchens and riders couldn't be "
+        raise MarketRuleError("Can't open this country: it has no payout provider, so kitchens and delivery partners couldn't be "
                               "paid. Choose one (Payout provider) first")
 
 

@@ -40,7 +40,7 @@ appId: com.bhojango.partner
 - tapOn:
     id: "send-application"
 - extendedWaitUntil:
-    visible: "Partner application"
+    visible: "Kitchen partner application"
     timeout: 60000
 - extendedWaitUntil:
     visible: "FSSAI food licence"

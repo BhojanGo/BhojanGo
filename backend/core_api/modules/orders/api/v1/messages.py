@@ -161,7 +161,7 @@ async def send_message(
     order, me = await _load(db, order_id, current_user)
     if not is_open(order):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail={"code": "CHAT_CLOSED", "message": "Messages are open while a rider is bringing the order."})
+                            detail={"code": "CHAT_CLOSED", "message": "Messages are open while a delivery partner is bringing the order."})
     if data.preset:
         text = PRESETS[me].get(data.preset)
         if text is None:
@@ -181,7 +181,7 @@ async def send_message(
     await db.flush()
     await db.refresh(msg)
     to = order.driver_id if me == "customer" else order.customer_id
-    name = await _first_name(db, uuid.UUID(current_user.user_id))  # "": the worker says "Your rider" in the reader's language
+    name = await _first_name(db, uuid.UUID(current_user.user_id))  # "": the worker says "Your delivery partner" in the reader's language
     # Push to the other person (worker, via the outbox), who reads a preset in their own language ...
     await outbox.add(db, "order.message", "order", order.id,
                      {"order_id": str(order.id), "message_id": str(msg.id), "to_user_id": str(to),

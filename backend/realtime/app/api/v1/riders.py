@@ -21,7 +21,7 @@ class Point(BaseModel):
 
 def _rider(user: CurrentUser) -> str:
     if user.role != "driver":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Delivery partners only")
     return user.user_id
 
 

@@ -30,7 +30,7 @@ export async function SiteHeader() {
           <nav aria-label={t("header.where_we_deliver")} className="hidden items-center gap-5 lg:flex">
             <Link href="/cities" className="text-label text-[#111418]">{t("header.where_we_deliver")}</Link>
             <Link href="/partner" className="text-label text-[#111418]">{t("header.add_your_kitchen")}</Link>
-            <Link href="/ride" className="text-label text-[#111418]">{t("header.ride_with_us")}</Link>
+            <Link href="/deliver" className="text-label text-[#111418]">{t("header.ride_with_us")}</Link>
           </nav>
           <LanguageMenu />
           <AccountButton />
