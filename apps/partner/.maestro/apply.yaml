@@ -5,7 +5,7 @@ env:
 ---
 - runFlow: sign-in.yaml
 - extendedWaitUntil:
-    visible: "Partner application"
+    visible: "Kitchen partner application"
     timeout: 30000
 - tapOn: "FSSAI licence"
 - assertVisible: "Your terms"

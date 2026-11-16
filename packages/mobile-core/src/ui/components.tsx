@@ -150,15 +150,15 @@ export function Card({ tone = "flat", padded = true, style, children }: {
   );
 }
 
-// Who gets it, in the website's words (bill.*): the kitchen, BhojanGo, tax, the rider.
-const PAYEE_KEY: Record<string, string> = { KITCHEN: "bill.kitchen", US: "bill.bhojango", GOVT: "bill.tax", RIDER: "bill.rider" };
+// Who gets it, in the website's words (bill.*): the kitchen, BhojanGo, tax, the delivery partner.
+const PAYEE_KEY: Record<string, string> = { KITCHEN: "bill.kitchen", BHOJANGO: "bill.bhojango", TAX: "bill.tax", "DELIVERY PARTNER": "bill.rider" };
 
 interface FairRow { label: string; payee: string; amount: string; accent?: boolean; struck?: string }
 
 /**
  * The fair bill: every line with who gets the money, then the total. Amounts are
  * formatted by the country (useI18n().money), payees and headings translated.
- * - discounts show who funded them (US or KITCHEN) in Peacock
+ * - discounts show who funded them (BHOJANGO or KITCHEN) in Peacock
  * - free delivery (a delivery fee plus an offer of minus that fee) is one row:
  *   the usual fee struck through, then 0, paid by the kitchen or by us
  */
@@ -176,10 +176,10 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
       rows.push({ label: ln.label, payee: t(free.funded_by === "restaurant" ? "app.bill.kitchens_treat" : "app.bill.on_us"),
                   amount: money(0, currency, { whole: true }), struck: money(amount, currency, { whole: true }) });
     } else if (ln.code === "promotion") {
-      const by = ln.funded_by === "restaurant" ? "KITCHEN" : "US"; // data-ok: payee codes, not countries
+      const by = ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO";
       rows.push({ label: ln.label, payee: payee(by), amount: money(amount, currency), accent: true });
     } else {
-      const to = PAYEE[ln.code] ?? "US"; // data-ok: payee code, not a country
+      const to = PAYEE[ln.code] ?? "BHOJANGO";
       rows.push({ label: ln.label, payee: payee(to), amount: money(amount, currency) });
     }
   }

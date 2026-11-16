@@ -125,7 +125,7 @@ def summary(result: dict) -> str:
 WIDTHS = {1440: 900, 390: 844}
 CUSTOMERS = ("demo1.hyd@example.com", "demo1.boi@example.com")  # India and the US
 ADMIN = "admin@example.com"
-WEB_PAGES = ("/", "/signin", "/signin/code?phone=%2B10000000000&next=%2F", "/cities", "/ride", "/partner",
+WEB_PAGES = ("/", "/signin", "/signin/code?phone=%2B10000000000&next=%2F", "/cities", "/deliver", "/partner",
              "/help", "/privacy", "/terms", "/credits")
 EXTRA_CITIES = ("/us/boise",)  # a US city: dollars, the US languages (the /cities list may show only one country)
 ADMIN_SECTIONS = ("/overview", "/operations", "/partners", "/pricing", "/pricing/simulator", "/markets", "/finance", "/settings")

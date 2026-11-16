@@ -33,6 +33,15 @@ def D(v: Any) -> Decimal:
     return Decimal(str(v))
 
 
+def rider_base_pay(params: dict, distance: Any, wait_minutes: Any = 0) -> Decimal:
+    """What a delivery partner earns for one trip before the tip (rider_pay
+    base_distance_wait): base + per km/mi from kitchen to customer + per minute
+    waited at the kitchen after the free minutes. The quote's split and the
+    website's example trip (GET /delivery/terms) both use this."""
+    wait = max(ZERO, D(wait_minutes) - D(params.get("free_wait_minutes", 0)))
+    return money(D(params["base"]) + D(params["per_unit"]) * D(distance) + D(params.get("per_wait_minute", 0)) * wait)
+
+
 class NotDeliverable(ValueError):
     """The order can't be quoted (too far, outside the zone...). Message is for customers."""
 
@@ -315,7 +324,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     # ── 6 tip ────────────────────────────────────────────────────────────────
     tip = money(inp.tip)
     if tip > 0:
-        add("tip", "Tip for your rider", tip)
+        add("tip", "Tip for your delivery partner", tip)
 
     # ── 7 total ──────────────────────────────────────────────────────────────
     total = money(sum((bl.amount for bl in lines), ZERO))
@@ -340,9 +349,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     rider_base = ZERO
     rp = rules.get("rider_pay:base_distance_wait")
     if rp:
-        rpp = rp.params
-        wait = max(ZERO, inp.wait_minutes - D(rpp.get("free_wait_minutes", 0)))
-        rider_base = money(D(rpp["base"]) + D(rpp["per_unit"]) * inp.distance + D(rpp.get("per_wait_minute", 0)) * wait)
+        rider_base = rider_base_pay(rp.params, inp.distance, inp.wait_minutes)
         used.append(rp)
     rider = money(rider_base + tip)
 

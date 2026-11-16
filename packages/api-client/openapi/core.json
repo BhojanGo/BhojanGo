@@ -526,6 +526,34 @@
         "title": "AdminMeResponse",
         "type": "object"
       },
+      "AppLinks": {
+        "properties": {
+          "android": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Android"
+          },
+          "ios": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ios"
+          }
+        },
+        "title": "AppLinks",
+        "type": "object"
+      },
       "ApplicationOut": {
         "properties": {
           "area": {
@@ -2517,6 +2545,103 @@
         "title": "DeliveryProof",
         "type": "object"
       },
+      "DeliveryTerms": {
+        "properties": {
+          "apps": {
+            "$ref": "#/components/schemas/AppLinks"
+          },
+          "batch_bonus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Bonus"
+          },
+          "cities": {
+            "description": "The country's live cities (the page's city picker)",
+            "items": {
+              "$ref": "#/components/schemas/TermsCity"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "city": {
+            "$ref": "#/components/schemas/TermsCity"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "distance_unit": {
+            "title": "Distance Unit",
+            "type": "string"
+          },
+          "example": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExampleTrip"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hourly_floor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Floor"
+          },
+          "pay_schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Payout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone_code": {
+            "title": "Phone Code",
+            "type": "string"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/Requirements"
+          },
+          "tips_percent": {
+            "default": 100,
+            "description": "The share of every tip the delivery partner gets (the engine's split: rider = pay + the whole tip)",
+            "title": "Tips Percent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "city",
+          "cities",
+          "country",
+          "currency",
+          "distance_unit",
+          "phone_code",
+          "requirements",
+          "apps"
+        ],
+        "title": "DeliveryTerms",
+        "type": "object"
+      },
       "Demand": {
         "properties": {
           "cities": {
@@ -2965,6 +3090,30 @@
         "title": "Discover",
         "type": "object"
       },
+      "Document": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "step": {
+            "enum": [
+              "licence",
+              "insurance",
+              "payout",
+              "background_check"
+            ],
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "step"
+        ],
+        "title": "Document",
+        "type": "object"
+      },
       "DocumentIn": {
         "properties": {
           "file_key": {
@@ -3084,6 +3233,52 @@
           }
         },
         "title": "EndRule",
+        "type": "object"
+      },
+      "ExampleTrip": {
+        "description": "One trip as the engine pays it (rider_pay base_distance_wait), before tips.",
+        "properties": {
+          "base": {
+            "title": "Base",
+            "type": "string"
+          },
+          "distance": {
+            "description": "Kitchen to customer, in the country's distance unit",
+            "title": "Distance",
+            "type": "string"
+          },
+          "distance_pay": {
+            "title": "Distance Pay",
+            "type": "string"
+          },
+          "free_wait_minutes": {
+            "title": "Free Wait Minutes",
+            "type": "integer"
+          },
+          "per_unit": {
+            "title": "Per Unit",
+            "type": "string"
+          },
+          "per_wait_minute": {
+            "title": "Per Wait Minute",
+            "type": "string"
+          },
+          "total": {
+            "description": "base + distance_pay (no waiting, no tip)",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "distance",
+          "base",
+          "per_unit",
+          "distance_pay",
+          "per_wait_minute",
+          "free_wait_minutes",
+          "total"
+        ],
+        "title": "ExampleTrip",
         "type": "object"
       },
       "FakeCompleteRequest": {
@@ -7121,6 +7316,28 @@
         "title": "PaymentResponse",
         "type": "object"
       },
+      "Payout": {
+        "properties": {
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "frequency": {
+            "enum": [
+              "weekly",
+              "biweekly"
+            ],
+            "title": "Frequency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "frequency",
+          "day"
+        ],
+        "title": "Payout",
+        "type": "object"
+      },
       "PhoneSignInRequest": {
         "description": "Sign in (or sign up) with the code from /auth/send-otp.",
         "properties": {
@@ -8594,6 +8811,41 @@
           "currency"
         ],
         "title": "ReorderRestaurant",
+        "type": "object"
+      },
+      "Requirements": {
+        "properties": {
+          "min_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Age"
+          },
+          "papers": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "title": "Papers",
+            "type": "array"
+          },
+          "vehicles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Vehicles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vehicles",
+          "papers"
+        ],
+        "title": "Requirements",
         "type": "object"
       },
       "ResetPasswordRequest": {
@@ -10766,6 +11018,29 @@
         "title": "StatusTimelineEntry",
         "type": "object"
       },
+      "TermsCity": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "region"
+        ],
+        "title": "TermsCity",
+        "type": "object"
+      },
       "TicketOut": {
         "properties": {
           "created_at": {
@@ -12551,6 +12826,50 @@
         "summary": "Verify Otp",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/api/v1/delivery/terms": {
+      "get": {
+        "description": "A live city's delivery partner pay (an example trip priced by the engine, the\nhourly floor, the batch bonus, tips, payout cadence) and the country's\nrequirements and app links. Public; 404 for a city that isn't live.",
+        "operationId": "terms_api_v1_delivery_terms_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
+              "title": "City",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryTerms"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Terms",
+        "tags": [
+          "Delivery partners (public)"
         ]
       }
     },

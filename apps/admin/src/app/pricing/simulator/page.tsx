@@ -21,8 +21,8 @@ type Rule = { id: string; family: string; template: string; name: string | null;
 type Restaurant = { id: string; name: string; city: string };
 
 const SPLIT_ROWS: [keyof Split, string][] = [
-  ["restaurant", "Restaurant gets"],
-  ["rider", "Rider gets"],
+  ["restaurant", "Kitchen gets"],
+  ["rider", "Delivery partner gets"],
   ["tax", "Tax"],
   ["platform", "Platform keeps"],
 ];

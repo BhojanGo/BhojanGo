@@ -162,7 +162,7 @@ async def my_earnings(user: User, db: DB) -> dict:
     """A rider's week so far: what the next weekly payout will pay, by day, with
     the hourly-floor top-up (engaged time: from accepting an offer to drop-off)."""
     if user.role != "driver":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Delivery partners only")
     try:
         return await payouts.rider_week(db, user.id, user.country)
     except FinanceError as e:
@@ -197,7 +197,7 @@ async def open_account(data: AccountCreate, user: User, db: DB) -> dict:
         payee_id, country, profile = r.id, r.country, {**profile, "name": r.name}
     else:
         if user.role != "driver":
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Delivery partners only")
         payee_id, country = user.id, user.country
     try:
         acct, url = await payouts.open_account(db, data.payee_type, payee_id, country, profile, data.return_url)

@@ -349,7 +349,13 @@ COUNTRIES = [
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali",
-                     "emergency_number": "112"},  # the rider app's SOS button
+                     "emergency_number": "112",  # the rider app's SOS button
+                     # the website's /deliver page (Markets -> India -> Delivery partners); documents are
+                     # the delivery app's onboarding steps (markets/service/delivery.py APP_STEP)
+                     "delivery_partner": {"min_age": 18, "vehicles": ["motorcycle", "scooter", "electric_scooter"],
+                                          "documents": ["driving_licence", "vehicle_rc_insurance", "bank_account",
+                                                        "background_check"],
+                                          "example_trip": {"distance": 3}, "app_links": {"android": None, "ios": None}}},
         "regions": [
             {
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
@@ -389,7 +395,11 @@ COUNTRIES = [
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
-                     "emergency_number": "911"},
+                     "emergency_number": "911",
+                     "delivery_partner": {"min_age": 18, "vehicles": ["car", "motorcycle", "scooter"],
+                                          "documents": ["drivers_license", "vehicle_insurance", "payout_account",
+                                                        "background_check"],
+                                          "example_trip": {"distance": 2}, "app_links": {"android": None, "ios": None}}},
         "regions": [
             {
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},
@@ -431,7 +441,7 @@ RULES = [
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "IN",
      {"tiers": {"A": 18, "B": 15, "C": 12}, "default_tier": "B"}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "IN",
+    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "IN",
      {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "IN-TG-HYD", {"per_active_hour": 120}),
     ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "IN-TG-HYD", {"per_extra_order": 10}),
@@ -457,7 +467,7 @@ RULES = [
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Rider pay", "country", "US",
+    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",
      {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
     ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "US-ID-BOI", {"per_active_hour": 15}),
     # Item 2: a later drop-off of a batch pays no base, but distance + waiting + this.
@@ -479,7 +489,7 @@ RULES = [
     ("business", "unpaid_auto_cancel", None, "Unpaid orders cancel", "platform", "*", {"minutes": 10}),
     ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
-    ("business", "dispatch_offer_timeout", None, "Rider offer timeout", "platform", "*", {"seconds": 30}),
+    ("business", "dispatch_offer_timeout", None, "Delivery partner offer timeout", "platform", "*", {"seconds": 30}),
     # What payment providers keep (item 1): Stripe in the US (2.9% + $0.30, Stripe Tax 0.5%),
     # Razorpay in India (2% on cards, wallets and net banking; UPI free). Editable in admin.
     ("business", "payment_fees", None, "Payment fees (Stripe)", "country", "US",
@@ -488,8 +498,8 @@ RULES = [
      {"methods": {"card": {"percent": 2, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0},
                   "net_banking": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}}, "tax_service_percent": 0}),
     # Task 43: live batching is a per-city switch, off; the engine runs in shadow everywhere.
-    ("business", "batching", None, "Batching (one rider, two orders)", "city", "IN-TG-HYD", {"live": False}),
-    ("business", "batching", None, "Batching (one rider, two orders)", "city", "US-ID-BOI", {"live": False}),
+    ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "IN-TG-HYD", {"live": False}),
+    ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "US-ID-BOI", {"live": False}),
 ]
 
 

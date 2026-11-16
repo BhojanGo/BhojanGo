@@ -47,16 +47,16 @@ export function DispatchMap({ centre, riders, waiting, sos }: { centre: [number,
     g.clearLayers();
     for (const r of riders) {
       m.circleMarker([r.lat, r.lng], { radius: 8, color: "#fff", weight: 2, fillColor: COLOUR[r.status] ?? "#0B5D66", fillOpacity: 1 })
-        .bindTooltip(`Rider ${r.rider_id.slice(0, 4)} · ${r.status}${r.order_id ? ` · order #${r.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}`)
+        .bindTooltip(`Delivery partner ${r.rider_id.slice(0, 4)} · ${r.status}${r.order_id ? ` · order #${r.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}`)
         .addTo(g);
     }
     for (const w of waiting) {
       m.rectangle([[w.lat - 0.0012, w.lng - 0.0016], [w.lat + 0.0012, w.lng + 0.0016]], { color: "#D4932A", weight: 2, fillOpacity: 0.6 })
-        .bindTooltip(`${w.code} waiting for a rider · ${w.label}`).addTo(g);
+        .bindTooltip(`${w.code} waiting for a delivery partner · ${w.label}`).addTo(g);
     }
     for (const a of sos) {
       if (a.lat == null || a.lng == null) continue;
-      m.circleMarker([a.lat, a.lng], { radius: 16, color: "#B3261E", weight: 4, fillOpacity: 0 }).bindTooltip(`SOS · rider ${a.rider_id.slice(0, 4)}`).addTo(g);
+      m.circleMarker([a.lat, a.lng], { radius: 16, color: "#B3261E", weight: 4, fillOpacity: 0 }).bindTooltip(`SOS · delivery partner ${a.rider_id.slice(0, 4)}`).addTo(g);
     }
   }, [ready, riders, waiting, sos]);
 

@@ -15,7 +15,7 @@ import { ago, apiMessage, DOC_LABELS, useScope, type Kitchen, type RiderDoc } fr
 const TABS = [
   { key: "kitchens", label: "Kitchens" },
   { key: "applications", label: "Applications" },
-  { key: "riders", label: "Rider documents" },
+  { key: "riders", label: "Delivery partner documents" },
 ] as const;
 
 interface Application {
@@ -240,7 +240,7 @@ function Riders({ scope }: { scope: string }) {
   }
   return (
     <section className="space-y-3">
-      <p className="text-small text-muted">Riders work across a country, so their documents are reviewed by country. A rider goes online once their licence, insurance and background check are approved.</p>
+      <p className="text-small text-muted">Delivery partners work across a country, so their documents are reviewed by country. A delivery partner goes online once their licence, insurance and background check are approved.</p>
       {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
       {(docs.data ?? []).length === 0 ? <p className="rounded-2xl bg-white p-6 text-muted">Nothing to review.</p> : null}
       {(docs.data ?? []).map((d) => (

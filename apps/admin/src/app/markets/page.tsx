@@ -94,7 +94,7 @@ function NewCountry() {
       <p className="mt-1 text-small text-muted">
         A new country starts as a draft: nobody can sign up or open a kitchen there yet. Add its states, cities and zones, then
         open it. Its currency, phone code and tax regime apply to every state and city in it; it opens only once it has a payout
-        provider (who pays its kitchens and riders).
+        provider (who pays its kitchens and delivery partners).
       </p>
       {open && (
         <form

@@ -243,3 +243,38 @@ async def test_account_deletion_keeps_orders_for_tax_without_personal_details(cl
         for table in ("payment_methods", "favourites", "notification_preferences", "addresses"):
             n = (await db.execute(text(f"SELECT count(*) FROM {table} WHERE user_id = :u"), {"u": me})).scalar()
             assert n == 0, table
+
+
+async def test_an_order_priced_before_round_8_reads_delivery_partner_everywhere(client: AsyncClient) -> None:  # noqa: F811
+    """R8: a pricing snapshot that still says "Tip for your rider" goes out with today's
+    words: the bill (in the customer's language, te-IN), the receipt PDF, the data export
+    and the admin snapshot."""
+    import json
+
+    from sqlalchemy import text
+
+    from core_api.integration.test_pricing import login as admin_login
+    from shared.db import AsyncSessionLocal
+
+    h = await sign_up(client, "Kiran Rao")
+    order = await new_order(client, h)
+    await pay(client, h, order)
+    old = {"code": "tip", "label": "Tip for your rider", "amount": "20.00"}
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("UPDATE order_pricing_snapshots SET lines = lines || CAST(:ln AS jsonb) WHERE order_id = :o"),
+                         {"ln": json.dumps([old]), "o": order["id"]})
+        await db.commit()
+
+    bill = (await client.get(f"/api/v1/pricing/orders/{order['id']}/bill", headers=h)).json()
+    tip = next(ln for ln in bill["lines"] if ln["code"] == "tip")
+    assert tip["label"] == "మీ డెలివరీ పార్ట్‌నర్‌కు టిప్" and tip["amount"] == "20.00"  # te-IN, as the customer reads
+
+    pdf = pdf_text((await client.get(f"/api/v1/orders/{order['id']}/receipt.pdf", headers=h)).content)
+    assert "Tip for your delivery partner" in pdf and "rider" not in pdf.lower()
+
+    export = (await client.get("/api/v1/me/export", headers=h)).text
+    assert "Tip for your rider" not in export
+
+    admin, _ = await admin_login(client, "ops.hyd@example.com", "BhojanGoAdmin1")
+    snap = (await client.get(f"/api/v1/pricing/orders/{order['id']}/snapshot", headers=admin)).json()
+    assert [ln["label"] for ln in snap["lines"] if ln["code"] == "tip"] == ["Tip for your delivery partner"]

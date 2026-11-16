@@ -79,13 +79,13 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "es": ("Cocinando", "{restaurant} está cocinando tu pedido. {arriving}"),
     },
     "driver_assigned": {
-        "en": ("Rider on the way to the kitchen", "{rider} will bring your order from {restaurant}. {arriving}"),
-        "hi": ("राइडर तय हो गया", "{rider} {restaurant} से आपका ऑर्डर लाएंगे। {arriving}"),
-        "te": ("రైడర్ ఖరారయ్యారు", "{rider} {restaurant} నుండి మీ ఆర్డర్ తెస్తారు. {arriving}"),
-        "ta": ("ரைடர் உறுதியானார்", "{rider} {restaurant}-இலிருந்து உங்கள் ஆர்டரைக் கொண்டு வருவார். {arriving}"),
-        "kn": ("ರೈಡರ್ ನಿಗದಿಯಾಗಿದ್ದಾರೆ", "{rider} {restaurant}ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ತರುತ್ತಾರೆ. {arriving}"),
-        "mr": ("रायडर ठरला", "{rider} {restaurant} मधून तुमची ऑर्डर आणतील. {arriving}"),
-        "bn": ("রাইডার ঠিক হয়েছে", "{rider} {restaurant} থেকে আপনার অর্ডার নিয়ে আসবেন। {arriving}"),
+        "en": ("Delivery partner on the way to the kitchen", "{rider} will bring your order from {restaurant}. {arriving}"),
+        "hi": ("डिलीवरी पार्टनर तय हो गया", "{rider} {restaurant} से आपका ऑर्डर लाएंगे। {arriving}"),
+        "te": ("డెలివరీ పార్ట్‌నర్ ఖరారయ్యారు", "{rider} {restaurant} నుండి మీ ఆర్డర్ తెస్తారు. {arriving}"),
+        "ta": ("டெலிவரி பார்ட்னர் உறுதியானார்", "{rider} {restaurant}-இலிருந்து உங்கள் ஆர்டரைக் கொண்டு வருவார். {arriving}"),
+        "kn": ("ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್ ನಿಗದಿಯಾಗಿದ್ದಾರೆ", "{rider} {restaurant}ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ತರುತ್ತಾರೆ. {arriving}"),
+        "mr": ("डिलिव्हरी पार्टनर ठरला", "{rider} {restaurant} मधून तुमची ऑर्डर आणतील. {arriving}"),
+        "bn": ("ডেলিভারি পার্টনার ঠিক হয়েছে", "{rider} {restaurant} থেকে আপনার অর্ডার নিয়ে আসবেন। {arriving}"),
         "es": ("Repartidor en camino a la cocina", "{rider} llevará tu pedido de {restaurant}. {arriving}"),
     },
     "order_picked_up": {
@@ -251,7 +251,7 @@ class Rendered:
 def render(key: str, language: str, **params: object) -> Rendered:
     """Fill a message. ``eta`` (a formatted time) becomes the "Arriving around"
     sentence; without it the sentence is left out. A missing ``rider`` name reads
-    "Your rider" in the language. A quick message (``order_message``) sent as a
+    "Your delivery partner" in the language. A quick message (``order_message``) sent as a
     ``preset`` by ``from_role`` is shown in the reader's language; free text as written."""
     language = language if language in LANGUAGES else "en"
     texts = CATALOGUE[key]
