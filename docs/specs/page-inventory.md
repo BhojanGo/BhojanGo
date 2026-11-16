@@ -39,8 +39,8 @@ Who: V visitor (signed out), C customer, K kitchen partner, D delivery partner, 
 | Add your kitchen | `/partner` | V K | **Fail** [1.1–1.4, 2.2, 2.3] | A sign-in wall; its only button links to `/sign-in` (does not exist); no commission, documents, steps or FAQ | F7 |
 | Deliver with BhojanGo | `/ride` → `/deliver` | V D | **Fail** [1.2, 1.3, 2.2] | "Install the app" with no link; no real pay numbers; no way to start | F8, E |
 | Help | `/help` | all | **Fail** [2.3, 1.2, 6] | A wall of text; says the rider gets only the tip (wrong since round 7); no search, topics, articles or contact | F9 |
-| Terms | `/terms` | all | **Fail** [2.2, 2.4] | Plain text, one version for every country, no versions, no draft notice | F10 |
-| Privacy | `/privacy` | all | **Fail** [2.2, 2.4] | As terms; no grievance officer (India) or state rights (US) | F10 |
+| Terms | `/terms` | all | **Pass** (F10, lead review) | Per country from Content → Legal, versions + `/terms/history`, key points, contents, print; draft banner outside production. [Screens](../screenshots/round8/legal/) | F10 |
+| Privacy | `/privacy` | all | **Pass** (F10, lead review) | As terms; India: Grievance Officer (name and address placeholders until appointed), DPDP rights; US: CCPA and state rights. [Screens](../screenshots/round8/legal/) | F10 |
 | Photo credits | `/credits` | all | Layout pass · review pending | — | — |
 | Not found | any unknown URL | all | **Fail** [1.3, 6.3] | Next.js default "404 · This page could not be found", unbranded, no way back | P |
 
@@ -60,7 +60,7 @@ Who: V visitor (signed out), C customer, K kitchen partner, D delivery partner, 
 | Finance | `/finance` | Layout pass · review pending | — | — |
 | Settings | `/settings` | **Fail** [3.3] | The admins table is 68 px too wide on a phone | B |
 | Content → Help | new | **Missing** | Help articles are hard-coded | F9 |
-| Content → Legal | new | **Missing** | Terms and privacy are hard-coded | F10 |
+| Content → Legal | `/content/legal` | **Pass** (F10, lead review) | Drafts, Markdown preview, publish as the next version, audit log; country managers edit their country. [Screens](../screenshots/round8/legal/) | F10 |
 
 ## BhojanGo (customer app, apps/customer)
 
