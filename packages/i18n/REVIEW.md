@@ -228,3 +228,24 @@ was changed" (`changed.*`) and "the email on your account was changed"
 (`email_replaced.*`). Check that the reset and changed emails read as calm and
 trustworthy (no alarm, no blame), and that "code" / "password" use the words people
 know from other apps in each language.
+
+## Deliver with BhojanGo (round 8, F8: `deliver_page.*`)
+
+Every `deliver_page.*` key (the website's /deliver and /deliver/app pages: pay, requirements,
+how it works, the get-started form, FAQ) was machine-translated on 2026-11-15 in all seven
+languages and needs native review. Look at these first:
+
+- `pay_cadence_body`, `pay_weekly_title`: `{day}` is a weekday name already in the page's
+  language (Intl, e.g. "సోమవారం"); check the case ending around it.
+- `pay_trip_body`, `faq_pay_a`: `{unit}` is the short unit Intl writes ("km", "mi" or the
+  script's own form); `{base}`, `{per_unit}`, `{per_minute}` are formatted money.
+- `hero_card_title`, `pay_title`, `pay_note`, `req_sub`, `req_age_body`, `faq_vehicle_a`:
+  `{city}` / `{country}` come from Markets in English ("Hyderabad", "India"); Telugu, Tamil,
+  Bengali and Marathi glue a case ending to them, Kannada writes "{city} ನಗರದಲ್ಲಿ".
+- `doc_*`: the document names must match the BhojanGo Delivery app's checklist words.
+  "Driving licence" (India) and "Driver's license" (US) translate the same in the Indian
+  languages; Tamil avoids ஓட்டுநர் உரிமம் (it contains the word for "driver").
+- `gs_terms`: "{terms}" and "{privacy}" become links named by `gs_terms_link` and
+  `gs_privacy_link`; Spanish matches their gender ("los Términos…", "la Política…").
+- `gs_err_*`: the sign-up refusals (a number that orders food, a kitchen or admin account,
+  a city we don't serve).

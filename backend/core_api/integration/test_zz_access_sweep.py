@@ -121,6 +121,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/markets/cities/{country}/{slug}"): public("a city's public page (web v2)"),
     ("GET", "/api/v1/markets/areas"): public("the address box: find an area by name"),
     ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
+    ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),

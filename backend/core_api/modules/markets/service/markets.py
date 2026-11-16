@@ -33,7 +33,7 @@ from core_api.modules.markets.schemas import (
     ZonePause,
     ZoneUpdate,
 )
-from core_api.modules.markets.service import photos, rules
+from core_api.modules.markets.service import delivery, photos, rules
 from core_api.modules.markets.service.rules import MarketRuleError, ZoneState
 from shared import authz
 from shared.providers.routing import haversine_km
@@ -157,6 +157,7 @@ class MarketService:
         if await self.repo.country(data.code):
             raise Conflict(f"Country {data.code} already exists")
         photos.check_settings(data.settings)
+        delivery.check_settings(data.settings)
         rules.check_country_payouts("draft", data.payout_provider, production=_production())
         c = await self.repo.add(Country(**data.model_dump(), status="draft"))
         return CountryOut.model_validate(c)
@@ -169,6 +170,7 @@ class MarketService:
         if "settings" in patch:
             s = patch.pop("settings") or {}
             photos.check_settings(s)
+            delivery.check_settings(s)
             c.settings = rules.merge_settings(c.settings, s)
         if "status" in patch or "payout_provider" in patch:
             rules.check_country_payouts(patch.get("status", c.status), patch.get("payout_provider", c.payout_provider),

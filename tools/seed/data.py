@@ -354,7 +354,13 @@ COUNTRIES = [
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali",
-                     "emergency_number": "112"},  # the rider app's SOS button
+                     "emergency_number": "112",  # the rider app's SOS button
+                     # the website's /deliver page (Markets -> India -> Delivery partners); documents are
+                     # the delivery app's onboarding steps (markets/service/delivery.py APP_STEP)
+                     "delivery_partner": {"min_age": 18, "vehicles": ["motorcycle", "scooter", "electric_scooter"],
+                                          "documents": ["driving_licence", "vehicle_rc_insurance", "bank_account",
+                                                        "background_check"],
+                                          "example_trip": {"distance": 3}, "app_links": {"android": None, "ios": None}}},
         "regions": [
             {
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
@@ -394,7 +400,11 @@ COUNTRIES = [
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
-                     "emergency_number": "911"},
+                     "emergency_number": "911",
+                     "delivery_partner": {"min_age": 18, "vehicles": ["car", "motorcycle", "scooter"],
+                                          "documents": ["drivers_license", "vehicle_insurance", "payout_account",
+                                                        "background_check"],
+                                          "example_trip": {"distance": 2}, "app_links": {"android": None, "ios": None}}},
         "regions": [
             {
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},

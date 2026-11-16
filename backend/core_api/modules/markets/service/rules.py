@@ -107,7 +107,7 @@ def check_parent_open(new_status: str, parent_status: str, parent_label: str) ->
 # ``settings`` JSON can override any key (None removes an override).
 COUNTRY_COLUMNS = ("currency", "locales", "timezone", "distance_unit", "phone_code", "payment_providers", "tax_regime")
 # hero_photo: the website's landing hero is per country (service/photos.py)
-LOCKED_BELOW_COUNTRY = frozenset({"currency", "phone_code", "tax_regime", "hero_photo"})
+LOCKED_BELOW_COUNTRY = frozenset({"currency", "phone_code", "tax_regime", "hero_photo", "delivery_partner"})
 
 
 def effective_settings(country: Any, region: Any, city: Any) -> list[dict]:
