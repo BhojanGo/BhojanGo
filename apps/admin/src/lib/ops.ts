@@ -90,6 +90,9 @@ export const TICKET_TOPIC: Record<string, string> = {
   order: "an order", payout: "a payout", menu: "the menu", account: "the account", other: "something else",
   missing_item: "missing items", wrong_item: "a wrong item", quality: "food that wasn't good", damaged_in_transit: "spilled or damaged food",
   late: "a very late order",
+  // Help (F9): the topic a customer or visitor picked when writing to us
+  orders: "an order", "payments-refunds": "payments or a refund", delivery: "a delivery", "kitchen-partners": "a kitchen partner question",
+  "delivery-partners": "a delivery partner question",
 };
 
 export function useTickets(scope: string, state: "open" | "resolved") {

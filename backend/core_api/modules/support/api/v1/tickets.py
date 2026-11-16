@@ -124,13 +124,16 @@ async def list_tickets(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"
     q = q.order_by(SupportTicket.created_at if state == "open" else SupportTicket.created_at.desc()).limit(500)
     rows = [t for t in (await db.execute(q)).scalars()
             if authz.covers(scope, t.market_city or t.country) and admin.can("orders.view", t.market_city or t.country)][:limit]
-    people = {u.id: u for u in (await db.execute(select(UserRow).where(UserRow.id.in_({t.requester_id for t in rows})))).scalars()} if rows else {}
+    people = {u.id: u for u in (await db.execute(select(UserRow).where(UserRow.id.in_({t.requester_id for t in rows if t.requester_id})))).scalars()} if rows else {}
     kitchens = {k.id: k.name for k in (await db.execute(select(Restaurant).where(
         Restaurant.id.in_({t.restaurant_id for t in rows if t.restaurant_id})))).scalars()} if rows else {}
     out = []
     for t in rows:
         u = people.get(t.requester_id)
-        out.append(OpsTicket(**_out(t).model_dump(), city=t.market_city, requester_name=(u.full_name if u else "") or "Unknown",
+        d = t.details or {}
+        # The Help contact form (F9): a visitor who isn't signed in; their name and email are in details.
+        name = (u.full_name if u else "") or str(d.get("name") or "") or "Unknown"
+        out.append(OpsTicket(**_out(t).model_dump(), city=t.market_city, requester_name=name,
                              requester_phone=u.phone if u else None, requester_role=t.requester_role,
                              restaurant_id=t.restaurant_id, restaurant_name=kitchens.get(t.restaurant_id) if t.restaurant_id else None,
                              order_id=t.order_id, order_code=("#" + t.order_id.hex[:6].upper()) if t.order_id else None,

@@ -20,7 +20,7 @@ from slowapi import Limiter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core_api.modules.identity.schemas.user import AuthTokensResponse
+from core_api.modules.identity.schemas.user import MessageResponse
 from shared.client_ip import client_ip
 from shared.db import get_db
 
@@ -150,10 +150,6 @@ class KitchenSignUp(BaseModel):
     language: str | None = Field(default=None, pattern=r"^[a-z]{2}$", description="The page's language: emails use it when the country offers it")
 
 
-class KitchenSignedUp(AuthTokensResponse):
-    restaurant_id: str
-
-
 def _refuse(code: str, message: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT) -> HTTPException:
     return HTTPException(http, detail={"code": code, "message": message})
 
@@ -177,18 +173,21 @@ def _hash(password: str) -> str:
     return hash_password(password)
 
 
-@router.post("/apply", response_model=KitchenSignedUp, status_code=status.HTTP_201_CREATED)
-@limiter.limit("10/minute")
-async def apply(request: Request, data: KitchenSignUp, db: DB) -> KitchenSignedUp:
-    """Start an application as a new kitchen partner: creates the account (role
-    restaurant_owner) and the kitchen pending approval, signs them in, and emails
-    them what comes next. The application's steps follow (GET /restaurants/{id}/application)."""
-    from core_api.modules.catalog.service.applications import kitchen_city, open_kitchen
-    from core_api.modules.identity.repository.user import UserRepository
-    from core_api.modules.identity.service.auth import issue_tokens
+@router.post("/apply", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("30/minute;300/hour")
+async def apply(request: Request, data: KitchenSignUp, db: DB) -> MessageResponse:
+    """Start an application as a new kitchen partner, the verified way every account is
+    made (Round 8, D5): a 6-digit code goes to the email, and POST /auth/email/verify
+    with it creates the account (role restaurant_owner) with the kitchen pending approval,
+    signs them in and sends the "application started" email. The same 202 whether or not
+    the email already has an account (that mailbox is told to sign in instead).
+    The phone is the kitchen's contact number (kept with the kitchen); to sign in with it,
+    the owner links it in Profile, verified by an SMS code.
+    422 TERMS / PASSWORD (reason: PASSWORD_TOO_SHORT, PASSWORD_BREACHED, ...) / CITY /
+    PHONE_COUNTRY_MISMATCH; 429 TOO_MANY_CODES."""
+    from core_api.modules.catalog.service.applications import kitchen_city
+    from core_api.modules.identity.service.email_auth import EmailAuthService
     from core_api.modules.markets.service import countries
-    from shared import notify
-    from shared.texts import KITCHEN_APPLIED, pick
 
     if not data.accept_terms:
         raise _refuse("TERMS", "Agree to the Terms and the Privacy policy to apply")
@@ -197,24 +196,32 @@ async def apply(request: Request, data: KitchenSignUp, db: DB) -> KitchenSignedU
     city, region, country = await kitchen_city(db, data.city_code)
     info = await countries.require_open(db, country.code)
     countries.require_phone_in(info, data.phone)
-    repo = UserRepository(db)
-    if await repo.email_exists(email) or await repo.phone_exists(data.phone):
-        # The same answer for either, and no hint which: sign in instead.
-        raise _refuse("ACCOUNT_EXISTS", "There's already an account with this email or phone. Sign in to continue.",
-                      status.HTTP_409_CONFLICT)
     wanted = f"{data.language}-{country.code}" if data.language else None
     locale = wanted if wanted in info.locales else info.default_locale
-    user = await repo.create(email=email, phone=data.phone, full_name=data.full_name.strip(), hashed_password=_hash(data.password),
-                             role="restaurant_owner", country=country.code, preferred_currency=country.currency,
-                             preferred_locale=locale)
-    r = await open_kitchen(db, user.id, data.kitchen_name, city, region, country)
+    message = await EmailAuthService(db).start_sign_up(
+        email, data.password, info, full_name=data.full_name.strip(), language=data.language, locale=locale,
+        kitchen={"name": data.kitchen_name.strip(), "city_code": data.city_code, "phone": data.phone})
+    return MessageResponse(message=message)
+
+
+async def open_applied_kitchen(db: AsyncSession, user, kitchen: dict) -> None:  # type: ignore[no-untyped-def]
+    """After the emailed code: the kitchen pending approval, the accepted terms and the
+    "application started" email (identity.service.email_auth calls this)."""
+    from core_api.modules.catalog.service.applications import kitchen_city, open_kitchen
+    from shared import notify
+    from shared.texts import KITCHEN_APPLIED, pick
+
+    city, region, country = await kitchen_city(db, kitchen["city_code"])
+    r = await open_kitchen(db, user.id, kitchen["name"], city, region, country)
+    if kitchen.get("phone"):
+        # The kitchen's contact number, not a sign-in (it isn't verified).
+        r.address = {**(r.address or {}), "phone": kitchen["phone"]}
+        await db.flush()
     await _record_acceptance(db, user.id, country.code)
-    language = locale.split("-")[0]
+    language = (user.preferred_locale or "en").split("-")[0]
     body = (f"<p>{pick(KITCHEN_APPLIED['body'], language).format(kitchen=_esc(r.name))}</p>"
             f"<p>{_esc(pick(KITCHEN_APPLIED['next'], language))}</p>")
-    await notify.send("email", email, body, subject=pick(KITCHEN_APPLIED["subject"], language), country=country.code)
-    tokens = await issue_tokens(db, user, is_new_user=True)
-    return KitchenSignedUp(**tokens.model_dump(), restaurant_id=str(r.id))
+    await notify.send("email", user.email, body, subject=pick(KITCHEN_APPLIED["subject"], language), country=country.code)
 
 
 def _esc(text: str) -> str:

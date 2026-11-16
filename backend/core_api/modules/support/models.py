@@ -3,6 +3,8 @@
 - callback: a kitchen asks us to call it back (partner tablet, Help).
 - problem: a customer reported a problem with an order above what we refund
   automatically (B5).
+- message: a signed-in customer wrote to support from Help (F9).
+- contact: someone not signed in used the Help contact form (F9).
 
 Tickets show in the admin support console for the city; whoever deals with one
 resolves it with a note (audited).
@@ -26,8 +28,9 @@ class SupportTicket(Base):
     status: Mapped[str] = mapped_column(String(12), nullable=False, default="open")  # open | resolved
     market_city: Mapped[str | None] = mapped_column(String(20), nullable=True)
     country: Mapped[str] = mapped_column(String(2), nullable=False)
-    requester_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    requester_role: Mapped[str] = mapped_column(String(20), nullable=False)  # partner | customer
+    # NULL for the Help contact form (someone not signed in: name and email in details).
+    requester_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    requester_role: Mapped[str] = mapped_column(String(20), nullable=False)  # partner | customer | visitor
     restaurant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     topic: Mapped[str] = mapped_column(String(40), nullable=False)

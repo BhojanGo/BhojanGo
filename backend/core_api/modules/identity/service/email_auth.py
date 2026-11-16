@@ -112,18 +112,26 @@ class EmailAuthService:
         except passwords.PasswordRejected as e:
             raise rejected(e) from e
         country = await countries.require_open(self.db, data.country)
+        return await self.start_sign_up(email, data.password, country, full_name=data.full_name, language=data.language)
+
+    async def start_sign_up(self, email: str, password: str, country: countries.CountryInfo, *, full_name: str | None,
+                            language: str | None, locale: str | None = None, kitchen: dict | None = None) -> str:
+        """The password was already checked. A code goes to a new email; the account is made
+        when it's entered (_create). ``kitchen``: a kitchen partner's application
+        (catalog /kitchens/apply): the account becomes theirs, with the kitchen pending."""
+        email = _norm(email)
         await self._send_allowed("email_send", email)
         # Hash for every request (also for an existing email): the same work either way.
-        password_hash = passwords.hash_password(data.password)
+        password_hash = passwords.hash_password(password)
         existing = await self.repo.get_by_email(email)
-        lang = mailer.language(data.language, country.default_locale)
+        lang = mailer.language(language, locale or country.default_locale)
         if existing is not None:
             background.spawn(mailer.send(email, "exists", lang, link=forgot_link()), name="mail:exists")
             logger.info("email_sign_up_existing")
             return SENT
         pending = {"email": email, "password_hash": password_hash, "country": country.code,
-                   "currency": country.currency, "locale": country.default_locale,
-                   "language": lang, "full_name": (data.full_name or "").strip() or None}
+                   "currency": country.currency, "locale": locale or country.default_locale,
+                   "language": lang, "full_name": (full_name or "").strip() or None, "kitchen": kitchen}
         redis = await get_redis()
         await redis.setex(_signup_key(email), email_codes.ttl_minutes() * 60, json.dumps(pending))
         code = await email_codes.issue("signup", email)
@@ -168,12 +176,23 @@ class EmailAuthService:
         email = pending["email"]
         if await self.repo.email_exists(email):  # taken while the code was on its way
             raise code_invalid()
+        kitchen = pending.get("kitchen")
         user = await self.repo.create(
             email=email, phone=None, full_name=pending.get("full_name") or "BhojanGo customer",
             hashed_password=pending["password_hash"], password_changed_at=datetime.now(UTC),
-            role="customer", country=pending["country"], preferred_currency=pending["currency"],
-            preferred_locale=pending["locale"], is_verified=True,
+            role="restaurant_owner" if kitchen else "customer", country=pending["country"],
+            preferred_currency=pending["currency"], preferred_locale=pending["locale"], is_verified=True,
         )
+        if kitchen:
+            # The kitchen pending approval, the accepted terms, the "application started" email.
+            from core_api.modules.catalog.api.v1.kitchens import open_applied_kitchen
+
+            await open_applied_kitchen(self.db, user, kitchen)
+            await events.record(self.db, user.id, "auth.signed_up", method="email", kitchen=True)
+            await events.record(self.db, user.id, "auth.email_verified")
+            await events.record(self.db, user.id, "auth.password_set")
+            logger.info("user_registered", user_id=str(user.id), method="email", role="restaurant_owner")
+            return await finish_sign_in(self.db, user, "email_code", is_new_user=True)
         # TODO(F10): record_acceptance(db, user.id, country, kinds=("terms", "privacy")) once
         # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
         await events.record(self.db, user.id, "auth.signed_up", method="email")

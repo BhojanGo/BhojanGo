@@ -15,7 +15,6 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { api, urls, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, useT } from "@/lib/i18n";
 import { apiProblem, applicationState, cityOptions, defaultCity, e164, splitLinks, validate, type FieldKey, type SignUpFields, type Terms } from "@/lib/kitchenJoin";
-import { authError } from "../signin/emailAuth";
 
 type T = ReturnType<typeof useT>;
 type Step = { key: string; title: string; done: boolean; detail: string };
@@ -117,6 +116,9 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [show, setShow] = useState(false);
+  // Round 8 (D5): the account is made once the emailed code is entered (sentTo: that email).
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const summary = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -138,34 +140,103 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
     }
     setBusy(true);
     try {
-      const r = unwrap(await api.core.POST("/api/v1/kitchens/apply", {
-        body: {
-          kitchen_name: f.kitchen_name.trim(), city_code: f.city_code, full_name: f.full_name.trim(), phone: e164(terms.phone_code, f.phone),
-          email: f.email.trim(), password: f.password, accept_terms: true, language,
-        },
-      }));
-      onCreated(f.email.trim());
-      await adopt(r as { access_token: string; refresh_token: string });
+      await sendApplication();
+      setCode("");
+      setSentTo(f.email.trim());
     } catch (err) {
-      if (err instanceof ApiError) {
-        const p = apiProblem(err.code);
-        if (p.field) setErrors({ [p.field]: p.key });
-        // A refused password says which rule (too short, in a data breach, the email itself).
-        const reason = (err.body as { detail?: { reason?: string } } | undefined)?.detail?.reason;
-        setProblem(err.code === "PASSWORD" && reason ? authError(new ApiError(err.status, "", reason, err.body), t)
-          : err.code === "TOO_MANY_CODES" ? authError(err, t) : t(`kitchen_join.errors.${p.key}`));
-      } else {
-        setProblem(t("kitchen_join.errors.network"));
-      }
-      window.setTimeout(() => summary.current?.focus(), 0);
+      showProblem(err);
     } finally {
       setBusy(false);
     }
   }
 
+  async function sendApplication() {
+    // 202 whether or not the email has an account: a code goes to it (or an email saying "sign in").
+    unwrap(await api.core.POST("/api/v1/kitchens/apply", {
+      body: {
+        kitchen_name: f.kitchen_name.trim(), city_code: f.city_code, full_name: f.full_name.trim(), phone: e164(terms.phone_code, f.phone),
+        email: f.email.trim(), password: f.password, accept_terms: true, language,
+      },
+    }));
+  }
+
+  function showProblem(err: unknown) {
+    if (err instanceof ApiError) {
+      const p = apiProblem(err.code);
+      if (p.field) setErrors({ [p.field]: p.key });
+      const reason = (err.body as { detail?: { reason?: string } } | undefined)?.detail?.reason;
+      const key = err.code === "PASSWORD" && reason === "PASSWORD_BREACHED" ? "password_breached"
+        : err.code === "PASSWORD" && reason === "PASSWORD_LIKE_EMAIL" ? "password_email"
+          : err.code === "TOO_MANY_CODES" || err.status === 429 ? "too_many"
+            : err.code === "CODE_INVALID" ? "code" : p.key;
+      setProblem(t(`kitchen_join.errors.${key}`));
+    } else {
+      setProblem(t("kitchen_join.errors.network"));
+    }
+    window.setTimeout(() => summary.current?.focus(), 0);
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sentTo || code.length !== 6) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const r = unwrap(await api.core.POST("/api/v1/auth/email/verify", { body: { email: sentTo, code } })) as {
+        access_token: string; refresh_token: string;
+      };
+      onCreated(sentTo);
+      await adopt(r);
+    } catch (err) {
+      setCode("");
+      showProblem(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await sendApplication();
+    } catch (err) {
+      showProblem(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
   const count = Object.keys(errors).length;
   const err = (k: FieldKey) => (errors[k] ? t(`kitchen_join.errors.${errors[k]}`) : null);
   const consent = splitLinks(t("kitchen_join.consent", { terms: "{terms}", privacy: "{privacy}" }), ["terms", "privacy"]);
+
+  if (sentTo) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:gap-10">
+        <form noValidate onSubmit={verify} className={card} aria-labelledby="apply-title" data-testid="partner-code">
+          <h2 id="apply-title" tabIndex={-1} className="m-0 text-h2 outline-none">{t("kitchen_join.code_title")}</h2>
+          <p className="m-0 mt-2 max-w-[640px] text-body text-muted">{t("kitchen_join.code_sent", { email: sentTo })}</p>
+          <div ref={summary} tabIndex={-1} role="alert" aria-live="assertive" className="outline-none">
+            {problem && <p data-testid="partner-form-error" className="m-0 mt-5 rounded-card bg-[#FCEDEA] p-3 text-label text-chili">{problem}</p>}
+          </div>
+          <div className="mt-6 max-w-[320px]">
+            <Field id={`${id}-code`} label={t("kitchen_join.code_label")} error={null}>
+              {(a) => <input {...a} name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6} value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} className={`${field} tracking-[0.3em]`} />}
+            </Field>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <Button type="submit" size="lg" loading={busy} disabled={code.length !== 6} data-testid="partner-verify">{t("kitchen_join.code_submit")}</Button>
+            <button type="button" onClick={() => void resend()} disabled={busy} className="min-h-[44px] font-semibold text-peacock">{t("kitchen_join.code_resend")}</button>
+            <button type="button" onClick={() => { setSentTo(null); setProblem(null); }} className="min-h-[44px] font-semibold text-peacock">{t("kitchen_join.code_back")}</button>
+          </div>
+        </form>
+        <NextSteps documents={terms.documents} />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:gap-10">

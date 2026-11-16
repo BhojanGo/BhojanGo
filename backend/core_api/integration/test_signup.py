@@ -94,9 +94,18 @@ async def test_terms_come_from_the_live_rules_and_markets(client: AsyncClient) -
 async def test_a_new_kitchen_partner_signs_up_and_continues(client: AsyncClient) -> None:
     body = _signup()
     r = await client.post("/api/v1/kitchens/apply", json=body)
-    assert r.status_code == 201, r.text
+    assert r.status_code == 202, r.text
+    sent = r.json()
+    # No account yet: it is made when the emailed code is entered (@example.com: the fixed code here).
+    assert (await client.post("/api/v1/auth/login", json={"email": body["email"], "password": body["password"]})).status_code == 401
+    r = await client.post("/api/v1/auth/email/verify", json={"email": body["email"], "code": "123456"})
+    assert r.status_code == 200, r.text
+    assert r.json()["is_new_user"] and r.json()["user"]["is_verified"]
     assert r.json()["user"]["role"] == "restaurant_owner" and r.json()["user"]["preferred_locale"] == "te-IN"
-    rid = r.json()["restaurant_id"]
+    assert r.json()["user"]["phone"] is None  # the phone is the kitchen's contact number, not a sign-in
+    first = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    [kitchen] = (await client.get("/api/v1/restaurants/mine", headers=first)).json()
+    rid = kitchen["id"]
     # Save and continue later: they sign in again with the email and password
     again = await client.post("/api/v1/auth/login", json={"email": body["email"].upper(), "password": body["password"]})
     assert again.status_code == 200, again.text
@@ -108,10 +117,13 @@ async def test_a_new_kitchen_partner_signs_up_and_continues(client: AsyncClient)
     a = (await client.put(f"/api/v1/restaurants/{rid}/business", headers=h, json={
         "street": "Plot 4, Road 2", "area": "Madhapur", "zip": "500081", "cuisines": ["Andhra"], "lat": 17.45, "lng": 78.39})).json()
     assert a["current"] == "fssai" and a["street"] == "Plot 4, Road 2" and a["cuisines"] == ["Andhra"]
-    # The same email or phone again, in any case: one answer, no hint which
+    # The same email again (any case) or the same phone: the same answer as a new one, no hint
+    # (the email's owner is told by email to sign in instead); no second account appears.
     for dup in (_signup(email=body["email"].upper()), _signup(phone=body["phone"])):
         r = await client.post("/api/v1/kitchens/apply", json=dup)
-        assert r.status_code == 409 and r.json()["detail"]["code"] == "ACCOUNT_EXISTS", r.text
+        assert (r.status_code, r.json()) == (202, sent), r.text
+    r = await client.post("/api/v1/auth/email/verify", json={"email": body["email"], "code": "123456"})
+    assert r.status_code == 400  # no new account to make for an existing email
 
 
 async def test_kitchen_signup_is_checked(client: AsyncClient) -> None:
@@ -142,7 +154,7 @@ async def test_kitchen_signup_is_checked(client: AsyncClient) -> None:
     assert await code(phone="+12085550199") == "PHONE_COUNTRY_MISMATCH"
     # A coming-soon city takes applications (kitchens join before it opens)
     r = await client.post("/api/v1/kitchens/apply", json=_signup(city_code="IN-AP-VSKP"))
-    assert r.status_code == 201, r.text
+    assert r.status_code == 202, r.text
 
 
 async def test_a_signed_in_customer_applies_with_just_the_name_and_city(client: AsyncClient) -> None:

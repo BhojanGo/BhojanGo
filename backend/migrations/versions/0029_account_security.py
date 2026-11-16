@@ -7,14 +7,14 @@ No backfill: existing passwords (bcrypt) keep working and become Argon2id at the
 next sign-in; admins enrol at their next sign-in.
 
 Revision ID: 0029_account_security
-Revises: 0028_user_dispatch_pool
+Revises: 0030_help_centre
 """
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0029_account_security"
-down_revision = "0028_user_dispatch_pool"
+down_revision = "0030_help_centre"
 branch_labels = None
 depends_on = None
 
