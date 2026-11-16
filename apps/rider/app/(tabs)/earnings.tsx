@@ -1,10 +1,9 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
 // deliveries and the next payout. Money and dates by the country (Markets).
-import { inZone, num, type, useI18n } from "@bhojango/mobile-core";
+import { inZone, num, SafeAreaView, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
 import { useFormat, useWeek, type Week } from "../../lib/rider";
@@ -51,7 +50,8 @@ export default function Earnings() {
 
   return (
     <SafeAreaView testID="earnings-screen" style={ui.screen} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+      {/* The scroll ends above the payout card (R8: the card sat over "Today" when it floated over the list). */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: space[6] }}>
         <View style={styles.head}>
           <Text testID="earnings-title" accessibilityRole="header" style={[type.h2, { color: night.text, letterSpacing: -0.3 }]}>
             {t("rider.earnings.title")}
@@ -175,6 +175,6 @@ const styles = StyleSheet.create({
   floor: { padding: 16, borderRadius: 16, backgroundColor: night.info, borderWidth: 1, borderColor: night.doneBg, flexDirection: "row", gap: 12, alignItems: "center" },
   line: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, gap: space[3] },
   lineBorder: { borderBottomWidth: 1, borderBottomColor: night.raised },
-  footer: { position: "absolute", left: 20, right: 20, bottom: 16, flexDirection: "row", gap: 12 },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, flexDirection: "row", gap: 12, borderTopWidth: 1, borderTopColor: night.raised, backgroundColor: night.ground },
   payout: { flex: 1, minHeight: 64, paddingHorizontal: 16, paddingVertical: 8, gap: 2, borderRadius: radius.card, borderWidth: 1.5, borderColor: night.lineStrong, alignItems: "center", justifyContent: "center", backgroundColor: night.ground },
 });

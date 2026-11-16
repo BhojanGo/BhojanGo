@@ -2,9 +2,8 @@
 // locales, each in its own script). There is no country selector: the country
 // follows the delivery address ("Change city" on the home screen). Prices and
 // dates keep the country's format whatever the language.
-import { LanguagePicker, useCountry, useI18n, type Language } from "@bhojango/mobile-core";
+import { type Language, LanguagePicker, SafeAreaView, useCountry, useI18n } from "@bhojango/mobile-core";
 import { ScrollView, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updateMe } from "../../lib/account";
 import { ScreenBar, Section, ui } from "../../lib/account-ui";

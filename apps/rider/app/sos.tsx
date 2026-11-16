@@ -2,11 +2,10 @@
 // The emergency number is the rider's country's (Markets settings
 // `emergency_number`, in GET /markets/directory); a country without one gets
 // "your local emergency number" and no call button rather than a guess.
-import { api, ApiError, type, unwrap, useCountry, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, SafeAreaView, type, unwrap, useCountry, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { currentFix } from "../lib/location";

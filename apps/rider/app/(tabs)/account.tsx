@@ -1,9 +1,8 @@
 // Account: who you are, your language (the country's, from Markets), documents,
 // payouts, safety and sign-out.
-import { LanguagePicker, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { LanguagePicker, SafeAreaView, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon, type IconName } from "../../lib/icons";
 import { stopTracking } from "../../lib/location";

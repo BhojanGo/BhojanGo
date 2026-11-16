@@ -6,15 +6,17 @@
 // page, one line above the greeting: "<City>, <CC> · Change city" (the delivery
 // address's or the phone's city, R8); where neither is known, "Set your delivery
 // location" (it opens Change city). Never a city we guessed.
-import { Button, color, LanguagePill, radius, space, Txt, type, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import {
+  Button, color, LanguagePill, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { HeartIcon } from "../../components/Heart";
 import { ActiveOrderBar, CuisineRow, OfferRow, OrderAgain } from "../../components/HomeSections";
 import { KitchenCard } from "../../components/KitchenCard";
+import { kitchenPhoto } from "../../lib/plate";
 import { activeOrder, cuisineTiles, greetingZone, ofCuisine } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
 import { useMyOrders } from "../../lib/orders";
@@ -44,7 +46,7 @@ export default function Home() {
   const { data, kitchens, loading, error, reload } = useDiscover(served ? point : null);
   const orders = useMyOrders();
   const active = activeOrder(orders);
-  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, k.cover_url])), [kitchens]);
+  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, kitchenPhoto(k)])), [kitchens]);
   const tiles = useMemo(() => cuisineTiles(data?.cuisines, kitchens), [data, kitchens]);
   const shown = ofCuisine(kitchens, cuisine);
   const currency = data?.currency ?? market?.currency;

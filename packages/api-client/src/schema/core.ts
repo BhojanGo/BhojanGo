@@ -3890,6 +3890,8 @@ export interface components {
             opens_at: string | null;
             /** Path */
             path: string;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             rating_display: components["schemas"]["RatingDisplay"];
@@ -4316,6 +4318,20 @@ export interface components {
             /** Timezone */
             timezone?: string | null;
         };
+        /**
+         * CustomerCancel
+         * @description The customer may cancel this order now (R8): GET /orders/{id}, to its customer only,
+         *     absent when they can't. The rule is the service's (customer_cancel_window): before the
+         *     kitchen accepts, and for the business rule's cancel window after the order was placed.
+         */
+        CustomerCancel: {
+            /** Refund */
+            refund: number;
+            /** Refund To */
+            refund_to: string;
+            /** Until */
+            until?: string | null;
+        };
         /** DeliveryCheckResponse */
         DeliveryCheckResponse: {
             /** Currency */
@@ -4719,6 +4735,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             rating_display?: components["schemas"]["RatingDisplay"] | null;
@@ -6001,6 +6019,7 @@ export interface components {
             customer?: {
                 [key: string]: unknown;
             } | null;
+            customer_cancel?: components["schemas"]["CustomerCancel"] | null;
             /**
              * Customer Id
              * Format: uuid
@@ -6079,6 +6098,8 @@ export interface components {
             /** Rated */
             rated?: boolean | null;
             rating?: components["schemas"]["OrderRating"] | null;
+            /** Refunded */
+            refunded?: number | null;
             /** Restaurant Accepted At */
             restaurant_accepted_at?: string | null;
             /**
@@ -6579,6 +6600,8 @@ export interface components {
             opens_at: string | null;
             /** Paused Reason */
             paused_reason?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
             /** Rating */
             rating: number;
             /** @description Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}. */
@@ -7186,6 +7209,8 @@ export interface components {
             owner_id: string;
             /** Paused Reason */
             paused_reason?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
             /**
              * Pricing Model
              * @default percentage_commission

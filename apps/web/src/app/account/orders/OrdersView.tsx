@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { isActive, orderCode, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
+import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { Search } from "@/components/Icons";
 import { authed } from "@/lib/client";
 import { photo } from "@/lib/format";
@@ -64,7 +65,7 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
         selected ? "bg-[#EFF6F6] shadow-[inset_0_0_0_1.5px_#0B5D66]" : "border border-[#E2E7E8] hover:bg-[#F4F6F6]"
       }`}
     >
-      <Thumb src={photo(kitchen?.cover_url, 400)} name={o.restaurant_name} className="h-16 w-16 shrink-0 rounded-xl" />
+      <Thumb src={photo(kitchenPhoto(kitchen), 400)} className="h-16 w-16 shrink-0 rounded-xl" />
       <span className="min-w-0 flex-grow">
         <span className="flex justify-between gap-2">
           <b className="truncate text-label">{o.restaurant_name}</b>

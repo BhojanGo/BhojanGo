@@ -1,9 +1,8 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
-import { Button, color, errorMessage, num, radius, Sheet, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, errorMessage, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { paymentStatus, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";

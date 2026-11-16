@@ -1,9 +1,8 @@
 // Payouts: where the money goes (payout account) and past weekly statements.
-import { api, ApiError, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { useFormat } from "../lib/rider";
