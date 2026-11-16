@@ -26,8 +26,8 @@ export function SignInTabs({ initial, phone, email, after }: { initial: Way; pho
 
   return (
     <div>
-      <h1 className="m-0 text-h1 leading-[1.1] tracking-[-0.8px] md:tracking-[-1px]">{t("signin.heading")}</h1>
-      <p className="m-0 mt-2 hidden text-body text-[#3D4A4E] md:block">{t("signin.sub")}</p>
+      <h1 className="m-0 text-h1 leading-[1.1]">{t("signin.heading")}</h1>
+      <p className="m-0 mt-2 hidden text-body text-muted md:block">{t("signin.sub")}</p>
       <div role="tablist" aria-label={t("auth.ways_label")} className="mt-6 grid grid-cols-2 gap-1 rounded-full bg-[#EEF1F1] p-1 md:mt-8">
         {WAYS.map((w) => {
           const on = w === way;
@@ -51,7 +51,7 @@ export function SignInTabs({ initial, phone, email, after }: { initial: Way; pho
                   choose(WAYS[(i + (e.key === "ArrowRight" ? 1 : WAYS.length - 1)) % WAYS.length] as Way, true);
                 }
               }}
-              className={`h-11 rounded-full text-label font-bold transition-colors ${on ? "bg-white text-[#111418] shadow-[0_1px_3px_rgba(17,20,24,0.16)]" : "text-[#3D4A4E] hover:text-[#111418]"}`}
+              className={`h-11 rounded-full text-label font-bold transition-colors ${on ? "bg-white text-[#111418] shadow-[0_1px_3px_rgba(17,20,24,0.16)]" : "text-muted hover:text-[#111418]"}`}
             >
               {t(w === "phone" ? "auth.tab_phone" : "auth.tab_email")}
             </button>

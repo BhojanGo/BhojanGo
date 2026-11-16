@@ -41,9 +41,9 @@ export function ForgotForm({ initialEmail }: { initialEmail: string }) {
     return (
       <div>
         {back}
-        <h1 className="m-0 mt-2 text-h1 tracking-[-0.8px]">{t("auth.link_sent_heading")}</h1>
-        <p role="status" className="m-0 mt-3 text-body text-[#3D4A4E]">{t("auth.link_sent", { email: email.trim() })}</p>
-        <p className="m-0 mt-3 text-small text-[#3D4A4E]">{t("auth.check_spam")}</p>
+        <h1 className="m-0 mt-2 text-h1">{t("auth.link_sent_heading")}</h1>
+        <p role="status" className="m-0 mt-3 text-body text-muted">{t("auth.link_sent", { email: email.trim() })}</p>
+        <p className="m-0 mt-3 text-small text-muted">{t("auth.check_spam")}</p>
         <button type="button" onClick={() => setSent(false)} className={`${textBtn} mt-4`}>{t("auth.use_other_email")}</button>
       </div>
     );
@@ -52,8 +52,8 @@ export function ForgotForm({ initialEmail }: { initialEmail: string }) {
   return (
     <form onSubmit={submit} noValidate>
       {back}
-      <h1 className="m-0 mt-2 text-h1 tracking-[-0.8px]">{t("auth.forgot_heading")}</h1>
-      <p className="m-0 mt-2 text-body text-[#3D4A4E]">{t("auth.forgot_sub")}</p>
+      <h1 className="m-0 mt-2 text-h1">{t("auth.forgot_heading")}</h1>
+      <p className="m-0 mt-2 text-body text-muted">{t("auth.forgot_sub")}</p>
       <EmailField value={email} onChange={setEmail} autoFocus />
       {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
       <button type="submit" disabled={busy} className={primaryBtn}>{busy ? t("auth.sending") : t("auth.send_link")}</button>

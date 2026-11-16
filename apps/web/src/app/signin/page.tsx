@@ -36,7 +36,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
           <>
             {google && <GoogleSignIn clientId={google} country={initial} next={to} hasPlace={!!place} />}
             <div className="mt-7 hidden rounded-2xl bg-[#F4F6F6] p-4 text-small leading-[1.5] md:block">
-              <b>{t("signin.partner_q")}</b> <span className="text-[#3D4A4E]">{t("signin.partner_note")}</span>{" "}
+              <b>{t("signin.partner_q")}</b> <span className="text-muted">{t("signin.partner_note")}</span>{" "}
               <Link href="/partner" className="font-bold">{t("signin.add_kitchen")}</Link> · <Link href="/deliver" className="font-bold">{t("signin.ride")}</Link>
             </div>
           </>

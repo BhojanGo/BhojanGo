@@ -1825,6 +1825,12 @@
     "reset_done": "Se cerró tu sesión en todos los dispositivos. Inicia sesión con tu contraseña nueva.",
     "reset_invalid": "Este enlace caducó o ya se usó. Pide uno nuevo.",
     "ask_new_link": "Pedir un enlace nuevo",
-    "checking_link": "Comprobando tu enlace…"
+    "checking_link": "Comprobando tu enlace…",
+    "err_too_many_codes": "Demasiados códigos para este número. Vuelve a intentarlo en {time}.",
+    "err_too_many_codes_email": "Demasiados códigos para este correo. Vuelve a intentarlo en {time}.",
+    "wait_seconds": "{n} s",
+    "wait_minutes": "{n} min",
+    "wait_hours": "{n} h",
+    "err_send_failed": "No pudimos enviar el código. Inténtalo de nuevo en un momento."
   }
 }

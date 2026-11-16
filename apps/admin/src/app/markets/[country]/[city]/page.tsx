@@ -121,8 +121,8 @@ export default function CityPage() {
           <Link href={`/markets/${country}?state=${city.region.code}`} className="text-muted">{city.region.name}</Link>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="m-0 text-h1 tracking-[-0.8px]">{city.name}</h1>
-          <div role="radiogroup" aria-label="City status" className="flex rounded-full border border-line bg-white p-1">
+          <h1 className="m-0 text-h1">{city.name}</h1>
+          <div role="radiogroup" aria-label="City status" className="flex max-w-full overflow-x-auto rounded-full border border-line bg-white p-1">
             {STATUSES.map((s) => (
               <button
                 key={s}
@@ -131,7 +131,7 @@ export default function CityPage() {
                 aria-checked={city.status === s}
                 disabled={!canEdit || run.isPending}
                 onClick={() => city.status !== s && act(() => marketsApi.updateCity(code, { status: s }))}
-                className={`h-10 rounded-full px-4 capitalize ${city.status === s ? "bg-peacock font-bold text-white" : "font-semibold text-muted"} disabled:cursor-not-allowed`}
+                className={`h-10 shrink-0 whitespace-nowrap rounded-full px-4 capitalize ${city.status === s ? "bg-peacock font-bold text-white" : "font-semibold text-muted"} disabled:cursor-not-allowed`}
               >
                 {s}
               </button>
@@ -217,7 +217,7 @@ export default function CityPage() {
             >
               <span
                 className="h-3.5 w-3.5 shrink-0 rounded"
-                style={z.status === "draft" ? { border: "2px dashed #4C5A5E" } : { background: z.color }}
+                style={z.status === "draft" ? { border: "2px dashed #3D4A4E" } : { background: z.color }}
               />
               <span className="flex-grow">
                 <b className="block">{z.name}</b>

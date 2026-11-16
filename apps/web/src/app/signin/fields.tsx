@@ -45,7 +45,7 @@ export const PasswordField = forwardRef<HTMLInputElement, {
           {shown ? t("auth.hide") : t("auth.show")}
         </button>
       </span>
-      {hint && <p id={hintId} className="m-0 mt-[6px] text-small text-[#3D4A4E]">{hint}</p>}
+      {hint && <p id={hintId} className="m-0 mt-[6px] text-small text-muted">{hint}</p>}
     </div>
   );
 });

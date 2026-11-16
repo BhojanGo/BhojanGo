@@ -1,7 +1,7 @@
 // Kitchen partners sign in with their email (first: the kitchen's account is an email
 // and a password) or the kitchen's phone and a code by SMS (round 8, D5).
 import {
-  e164, EmailSignIn, errorMessage, field, type MarketCountry, PhoneCountryButton, SignInWays, type SignInWay, type, useCountry,
+  codeSendErrorText, e164, EmailSignIn, errorMessage, field, type MarketCountry, PhoneCountryButton, SignInWays, type SignInWay, type, useCountry,
   useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -36,7 +36,7 @@ export default function SignIn() {
       await sendCode(phone, country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed")));
+      setError(codeSendErrorText(e, tr, errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed"))));
     } finally {
       setBusy(false);
     }

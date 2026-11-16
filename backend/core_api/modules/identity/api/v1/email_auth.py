@@ -14,7 +14,8 @@ Admins, after the first step answered ``mfa_required`` (public: the mfa_token is
   POST /auth/mfa/enrol/start      first time: the emailed code -> the authenticator key + QR code
   POST /auth/mfa/enrol/confirm    a code from the app -> tokens + 10 recovery codes (shown once)
 
-Each route has a per-IP limit here and per-email limits in the service.
+Each route has a per-IP ceiling here (high: carrier-grade NAT puts many people behind one
+IP) and per-email limits in the service (codes: 1 per 30 s, 5 per hour, 10 per day).
 """
 from typing import Annotated
 
@@ -49,24 +50,24 @@ SignInResult = AuthTokensResponse | MfaChallengeResponse
 
 
 @router.post("/email/sign-up", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute;300/hour")
 async def email_sign_up(request: Request, data: EmailSignUpRequest, db: DB) -> MessageResponse:
     """Start a new account with email + password. A 6-digit code goes to the email;
     the account exists once /auth/email/verify gets it. The same 202 for an email
     that already has an account (that mailbox gets a "you already have an account" email).
-    422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_EMAILS."""
+    422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_CODES (retry_after)."""
     return MessageResponse(message=await EmailAuthService(db).sign_up(data))
 
 
 @router.post("/email/code", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute;300/hour")
 async def email_code(request: Request, data: EmailCodeRequest, db: DB) -> MessageResponse:
     """Email me a code instead: a sign-in code if the email has an account; the same 202 either way."""
     return MessageResponse(message=await EmailAuthService(db).send_code(data))
 
 
 @router.post("/email/verify", response_model=SignInResult)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def email_verify(request: Request, data: EmailVerifyRequest, db: DB) -> SignInResult:
     """The emailed code: finishes a sign-up (``is_new_user``) or signs in.
     400 CODE_INVALID (wrong, expired, or used up after 5 wrong tries)."""
@@ -74,7 +75,7 @@ async def email_verify(request: Request, data: EmailVerifyRequest, db: DB) -> Si
 
 
 @router.post("/password/forgot", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute;300/hour")
 async def password_forgot(request: Request, data: ForgotPasswordRequest, db: DB) -> MessageResponse:
     """Email a link to choose a new password (works once, for 30 minutes; a newer
     link ends the older one). The same 202 whether or not the email has an account."""

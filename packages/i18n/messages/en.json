@@ -1825,6 +1825,12 @@
     "reset_done": "You were signed out on every device. Sign in with your new password.",
     "reset_invalid": "This link has expired or was already used. Ask for a new one.",
     "ask_new_link": "Ask for a new link",
-    "checking_link": "Checking your link…"
+    "checking_link": "Checking your link…",
+    "err_too_many_codes": "Too many codes for this number. Try again in {time}.",
+    "err_too_many_codes_email": "Too many codes for this email address. Try again in {time}.",
+    "wait_seconds": "{n} s",
+    "wait_minutes": "{n} min",
+    "wait_hours": "{n} h",
+    "err_send_failed": "We couldn't send the code. Try again in a moment."
   }
 }

@@ -47,9 +47,6 @@ from shared.redis import get_redis
 
 logger = structlog.get_logger(__name__)
 
-# Per email address (any account or none), on top of the per-IP limits on the routes.
-SENDS_PER_WINDOW = 5
-SEND_WINDOW_SECONDS = 15 * 60
 
 SENT = "If that email can be used, we've sent a message to it. Check your inbox and spam folder."
 
@@ -57,12 +54,6 @@ SENT = "If that email can be used, we've sent a message to it. Check your inbox 
 def rejected(e: passwords.PasswordRejected) -> HTTPException:
     return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                          detail={"code": e.code, "message": e.message})
-
-
-def too_many() -> HTTPException:
-    return HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                         detail={"code": "TOO_MANY_EMAILS", "message": "Too many emails asked for. Try again in 15 minutes."},
-                         headers={"Retry-After": str(SEND_WINDOW_SECONDS)})
 
 
 def code_invalid() -> HTTPException:
@@ -106,8 +97,12 @@ class EmailAuthService:
         self.repo = UserRepository(db)
 
     async def _send_allowed(self, action: str, email: str) -> None:
-        if not await guard.hit(action, email, limit=SENDS_PER_WINDOW, window_seconds=SEND_WINDOW_SECONDS):
-            raise too_many()
+        """Per email address (any account or none, so the answer is the same): 1 per 30 s,
+        5 per hour, 10 per day (guard.code_send_wait). The seed's @example.com is exempt
+        outside production (it always gets the fixed code)."""
+        wait = await guard.code_send_wait(action, email, exempt=bool(email_codes.fixed_code_for(email)))
+        if wait:
+            raise guard.too_many_codes(wait, "email address")
 
     # ── sign-up ──────────────────────────────────────────────────────────────
     async def sign_up(self, data: EmailSignUpRequest) -> str:

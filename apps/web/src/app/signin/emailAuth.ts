@@ -55,11 +55,26 @@ export async function resetPassword(token: string, newPassword: string): Promise
 export const MIN_PASSWORD = 10;
 export const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
 
+/** "28 s", "12 min", "3 h" in the page's language. */
+export function waitText(seconds: number, t: T): string {
+  if (seconds < 120) return t("auth.wait_seconds", { n: Math.max(1, Math.round(seconds)) });
+  if (seconds < 7200) return t("auth.wait_minutes", { n: Math.ceil(seconds / 60) });
+  return t("auth.wait_hours", { n: Math.ceil(seconds / 3600) });
+}
+
+/** A failed "send a code" in words: too many codes for this number/email (with how long to
+ * wait), the provider down, else the page's own message. */
+export function codeSendError(err: unknown, t: T, fallback: string): string {
+  const code = err instanceof ApiError ? err.code : undefined;
+  if (code === "TOO_MANY_CODES" || code === "SEND_FAILED" || (err instanceof ApiError && err.status === 429)) return authError(err, t);
+  return fallback;
+}
+
 /** The API's answer in the visitor's words (never the raw message, never a stack trace). */
 export function authError(err: unknown, t: T): string {
   if (err instanceof AdminAccountError) return t("auth.err_admin");
   const code = err instanceof ApiError ? err.code : undefined;
-  const body = err instanceof ApiError ? (err.body as { detail?: { retry_after?: number } } | undefined) : undefined;
+  const body = err instanceof ApiError ? (err.body as { detail?: { retry_after?: number; message?: string } } | undefined) : undefined;
   switch (code) {
     case "INVALID_CREDENTIALS": return t("auth.err_invalid");
     case "ACCOUNT_LOCKED": return t("auth.err_locked", { minutes: Math.max(1, Math.ceil((body?.detail?.retry_after ?? 900) / 60)) });
@@ -68,7 +83,13 @@ export function authError(err: unknown, t: T): string {
     case "PASSWORD_LIKE_EMAIL": return t("auth.err_like_email");
     case "PASSWORD_BREACHED": return t("auth.err_breached");
     case "CODE_INVALID": case "OTP_INVALID": return t("auth.err_code");
-    case "TOO_MANY_EMAILS": case "TOO_MANY_REQUESTS": case "OTP_LIMIT_REACHED": return t("auth.err_too_many");
+    case "TOO_MANY_CODES": {
+      const d = body?.detail as { retry_after?: number; message?: string } | undefined;
+      const time = waitText(d?.retry_after ?? 30, t);
+      return t(d?.message?.includes("email") ? "auth.err_too_many_codes_email" : "auth.err_too_many_codes", { time });
+    }
+    case "SEND_FAILED": return t("auth.err_send_failed");
+    case "TOO_MANY_REQUESTS": return t("auth.err_too_many");
     case "RESET_LINK_INVALID": return t("auth.reset_invalid");
     case "ACCOUNT_INACTIVE": return t("auth.err_inactive");
     case "EMAIL_IN_USE": return t("account.security.err_email_in_use");

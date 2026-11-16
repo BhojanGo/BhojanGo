@@ -64,7 +64,7 @@ export function Security({ countries }: { countries: Country[] }) {
   return (
     <section id="security" aria-labelledby="security-title" className={card}>
       <h2 id="security-title" className={h2}>{t("account.security.title")}</h2>
-      <p className="mt-1 text-small text-[#3D4A4E]">{t("account.security.sub")}</p>
+      <p className="mt-1 text-small text-muted">{t("account.security.sub")}</p>
       {!info && !failed && (
         <div className="mt-4 space-y-3" aria-busy="true" aria-label={t("account.security.loading")}>
           {[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-[#EEF1F1]" />)}
@@ -178,13 +178,13 @@ function LinkEmail({ replacing, onDone, onCancel }: { replacing: boolean; onDone
   return (
     <FormShell title={t(replacing ? "account.security.email_change_title" : "account.security.email_title")} onSubmit={submit}>
       {!sent ? (
-        <label htmlFor={id} className="mt-3 block text-label text-[#3D4A4E]">
+        <label htmlFor={id} className="mt-3 block text-label text-muted">
           {t("auth.email")}
           <input id={id} type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} className={input} />
         </label>
       ) : (
         <>
-          <p className="mt-2 text-body text-[#3D4A4E]">{t("account.security.code_sent_to", { to: email.trim() })}</p>
+          <p className="mt-2 text-body text-muted">{t("account.security.code_sent_to", { to: email.trim() })}</p>
           <CodeBoxes onChange={setCode} legend={t("auth.code_label")} />
         </>
       )}
@@ -229,13 +229,13 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
     <FormShell title={t(replacing ? "account.security.phone_change_title" : "account.security.phone_title")} onSubmit={submit}>
       {!sent ? (
         <div className="mt-3 flex flex-wrap gap-3">
-          <label htmlFor={ccId} className="text-label text-[#3D4A4E]">
+          <label htmlFor={ccId} className="text-label text-muted">
             {t("signin.country_code")}
             <select id={ccId} value={cc} onChange={(e) => setCc(e.target.value)} className={`${input} w-auto pr-8`}>
               {countries.map((c) => <option key={c.code} value={c.code}>{`${c.name} ${c.phone_code}`}</option>)}
             </select>
           </label>
-          <label htmlFor={id} className="min-w-[200px] flex-grow text-label text-[#3D4A4E]">
+          <label htmlFor={id} className="min-w-[200px] flex-grow text-label text-muted">
             {t("signin.mobile")}
             <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" autoFocus value={number}
               onChange={(e) => setNumber(e.target.value.replace(/[^\d ()-]/g, ""))} className={input} />
@@ -243,7 +243,7 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
         </div>
       ) : (
         <>
-          <p className="mt-2 text-body text-[#3D4A4E]">{t("account.security.code_sent_to", { to: phone })}</p>
+          <p className="mt-2 text-body text-muted">{t("account.security.code_sent_to", { to: phone })}</p>
           <CodeBoxes onChange={setCode} legend={t("auth.code_label")} />
         </>
       )}
@@ -282,7 +282,7 @@ function ChangePassword({ hasPassword, onDone, onCancel }: { hasPassword: boolea
     <FormShell title={hasPassword ? t("account.security.change_password") : t("account.security.set_password")} onSubmit={submit}>
       {hasPassword && <PasswordField label={t("account.security.current_password")} value={current} onChange={setCurrent} autoFocus />}
       <PasswordField label={t("auth.new_password")} value={next} onChange={setNext} isNew autoFocus={!hasPassword} hint={t("auth.password_hint")} />
-      <p className="mt-2 text-small text-[#3D4A4E]">{t("account.security.signs_out_others")}</p>
+      <p className="mt-2 text-small text-muted">{t("account.security.signs_out_others")}</p>
       {error && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{error}</p>}
       <div className="mt-4 flex flex-wrap gap-3">
         <button type="submit" disabled={busy} className={primary}>{busy ? t("auth.saving") : t("auth.save_password")}</button>

@@ -37,7 +37,9 @@ SignInResult = AuthTokensResponse | MfaChallengeResponse
 
 
 @router.post("/login", response_model=SignInResult)
-@limiter.limit("10/minute")
+# Per IP only a high ceiling (many people share an IP behind carrier-grade NAT); each
+# account locks after 5 wrong passwords (service/guard.py).
+@limiter.limit("30/minute;300/hour")
 async def login(
     request: Request,
     data: LoginRequest,
@@ -72,24 +74,28 @@ async def logout(
 
 
 @router.post("/send-otp", response_model=MessageResponse)
-@limiter.limit("3/minute")
+# Limited per phone number (1 per 30 s, 5 per hour, 10 per day: 429 TOO_MANY_CODES with
+# retry_after); per IP only a high ceiling against abuse (carrier-grade NAT shares IPs).
+@limiter.limit("30/minute;300/hour")
 async def send_otp(
     request: Request,
     data: OtpSendRequest,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> MessageResponse:
-    """Send a 6-digit OTP to the given phone number via SMS."""
+    """Send a 6-digit OTP to the given phone number via SMS.
+    429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;
+    503 SEND_FAILED when the SMS provider didn't take it."""
     success = await AuthService(db).send_otp(data)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"code": "OTP_LIMIT_REACHED", "message": "Too many OTP requests. Please wait."},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "SEND_FAILED", "message": "We couldn't send the code. Try again in a moment."},
         )
     return MessageResponse(message="OTP sent successfully")
 
 
 @router.post("/verify-otp", response_model=MessageResponse)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def verify_otp(
     request: Request,
     data: OtpVerifyRequest,
@@ -106,7 +112,7 @@ async def verify_otp(
 
 
 @router.post("/phone", response_model=SignInResult)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def phone_sign_in(
     request: Request,
     data: PhoneSignInRequest,
@@ -167,7 +173,7 @@ async def sign_in_providers() -> SignInProviders:
 
 
 @router.post("/social-login", response_model=SignInResult)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def social_login(
     request: Request,
     data: SocialLoginRequest,

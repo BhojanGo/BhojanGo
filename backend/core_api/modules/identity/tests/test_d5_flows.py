@@ -140,17 +140,83 @@ async def test_wrong_password_and_unknown_email_do_the_same_work(client, db_sess
     assert len(checked) == 2 and checked[1] == passwords.DUMMY_HASH
 
 
-async def test_per_email_limit_applies_to_unknown_emails_too(client, db_session) -> None:
-    known, unknown = uniq("known"), uniq("unknown")
-    await make_user(db_session, known)
-    from core_api.modules.identity.api.v1.auth import limiter
+async def _clear_window(client, kind: str, ident: str, window: int) -> None:  # type: ignore[no-untyped-def]
+    """= that window has passed."""
+    from core_api.modules.identity.service.guard import ident_hash
 
+    await client.redis.delete(f"rl:{kind}:{window}:{ident_hash(ident)}")
+
+
+async def test_email_codes_are_limited_per_address_known_or_not(client, db_session) -> None:
+    """1 per 30 s, 5 per hour, 10 per day; the same answer for an address with no account."""
+    known, unknown = uniq("known", "bhojango.com"), uniq("unknown", "bhojango.com")
+    await make_user(db_session, known)
     for email in (known, unknown):
-        statuses = []
-        for _ in range(6):
-            limiter.reset()  # the per-IP limit is not what this tests
-            statuses.append((await client.post("/api/v1/auth/email/code", json={"email": email})).status_code)
-        assert statuses == [202] * 5 + [429], (email, statuses)
+        first = await client.post("/api/v1/auth/email/code", json={"email": email})
+        again = await client.post("/api/v1/auth/email/code", json={"email": email})
+        assert (first.status_code, again.status_code) == (202, 429), email
+        detail = again.json()["detail"]
+        assert detail["code"] == "TOO_MANY_CODES" and 1 <= detail["retry_after"] <= 30
+        assert again.headers["Retry-After"] == str(detail["retry_after"])
+        for _ in range(4):  # the rest of the hour's five, 30 s apart
+            await _clear_window(client, "email_send", email, 30)
+            assert (await client.post("/api/v1/auth/email/code", json={"email": email})).status_code == 202
+        await _clear_window(client, "email_send", email, 30)
+        r = await client.post("/api/v1/auth/email/code", json={"email": email})
+        assert r.status_code == 429 and 3000 < r.json()["detail"]["retry_after"] <= 3600
+    assert first.json() == (await client.post("/api/v1/auth/email/code", json={"email": uniq("third", "bhojango.com")})).json()
+
+
+async def test_ten_email_codes_a_day_at_most(client) -> None:
+    email = uniq("daily", "bhojango.com")
+    statuses = []
+    for _ in range(11):
+        await _clear_window(client, "email_send", email, 30)
+        await _clear_window(client, "email_send", email, 3600)
+        statuses.append((await client.post("/api/v1/auth/email/code", json={"email": email})).status_code)
+    assert statuses == [202] * 10 + [429]
+
+
+async def test_sms_codes_are_limited_per_number_not_per_ip(client) -> None:
+    """Many people share an IP behind carrier-grade NAT: different numbers from one IP all
+    get their code; the same number again within 30 s doesn't."""
+    numbers = [f"+91987654{i:04d}" for i in range(12)]
+    for phone in numbers:  # 12 numbers from one IP in a minute (the old limit was 3)
+        r = await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})
+        assert r.status_code == 200, r.text
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": numbers[0], "country": "IN"})
+    assert r.status_code == 429 and r.json()["detail"]["code"] == "TOO_MANY_CODES"
+    assert "Try again in" in r.json()["detail"]["message"] and 1 <= r.json()["detail"]["retry_after"] <= 30
+    for _ in range(4):
+        await _clear_window(client, "sms", numbers[1], 30)
+        assert (await client.post("/api/v1/auth/send-otp", json={"phone": numbers[1], "country": "IN"})).status_code == 200
+    await _clear_window(client, "sms", numbers[1], 30)
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": numbers[1], "country": "IN"})
+    assert r.status_code == 429  # five an hour
+
+
+async def test_the_per_ip_ceiling_still_stops_a_flood(client) -> None:
+    codes = [(await client.post("/api/v1/auth/send-otp", json={"phone": f"+91987650{i:04d}", "country": "IN"})).status_code
+             for i in range(31)]
+    assert codes[:30] == [200] * 30 and codes[30] == 429
+
+
+async def test_seed_numbers_and_example_com_are_not_limited_outside_production(client) -> None:
+    for _ in range(3):
+        assert (await client.post("/api/v1/auth/send-otp", json={"phone": "+919000000101", "country": "IN"})).status_code == 200
+        assert (await client.post("/api/v1/auth/email/code", json={"email": "seed.limit@example.com"})).status_code == 202
+
+
+async def test_a_phone_code_is_burnt_after_five_wrong_tries(client) -> None:
+    phone = "+919876500999"
+    await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})
+    code = await client.redis.get(f"otp:{phone}")
+    wrong = "000000" if code != "000000" else "111111"
+    for _ in range(5):
+        r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": wrong, "country": "IN"})
+        assert r.status_code == 400
+    r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": code, "country": "IN"})
+    assert r.status_code == 400  # burnt: ask for a new one
 
 
 # ── sign in with a code ──────────────────────────────────────────────────────

@@ -169,8 +169,9 @@ async def test_the_code_sms_is_in_the_apps_language(client: AsyncClient, monkeyp
     phone = "+919876500011"
     assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "hi"})).status_code == 200
     assert sent[-1]["template"] == "otp_hi" and "सत्यापन कोड" in sent[-1]["body"]
-    # Spanish isn't one of India's languages: India's default (English).
-    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "es"})).status_code == 200
+    # Spanish isn't one of India's languages: India's default (English). (Another number:
+    # one number gets one code per 30 seconds.)
+    assert (await client.post("/api/v1/auth/send-otp", json={"phone": "+919876500012", "country": "IN", "language": "es"})).status_code == 200
     assert sent[-1]["template"] == "otp_en" and "verification code is: " in sent[-1]["body"]
 
 

@@ -49,11 +49,27 @@ export function SignInWays({ value, onChange, order = ["phone", "email"], tone =
   );
 }
 
+/** "28 s", "12 min", "3 h" in the app's language. */
+export function waitText(seconds: number, t: Translate): string {
+  if (seconds < 120) return t("auth.wait_seconds", { n: Math.max(1, Math.round(seconds)) });
+  if (seconds < 7200) return t("auth.wait_minutes", { n: Math.ceil(seconds / 60) });
+  return t("auth.wait_hours", { n: Math.ceil(seconds / 3600) });
+}
+
+/** A failed "send a code": too many codes for this number or email (and how long to wait),
+ * the SMS/email provider down, else ``fallback``. */
+export function codeSendErrorText(err: unknown, t: Translate, fallback: string): string {
+  const code = err instanceof ApiError ? err.code : undefined;
+  if (code === "TOO_MANY_CODES" || code === "SEND_FAILED" || (err instanceof ApiError && err.status === 429)) return authErrorText(err, t);
+  return fallback;
+}
+
 /** The API's answer in the person's words (never a raw message or a stack trace). */
 export function authErrorText(err: unknown, t: Translate): string {
   if (err instanceof AdminAccountError) return t("auth.err_admin");
   const code = err instanceof ApiError ? err.code : undefined;
-  const retry = err instanceof ApiError ? (err.body as { detail?: { retry_after?: number } } | undefined)?.detail?.retry_after : undefined;
+  const detail = err instanceof ApiError ? (err.body as { detail?: { retry_after?: number; message?: string } } | undefined)?.detail : undefined;
+  const retry = detail?.retry_after;
   switch (code) {
     case "INVALID_CREDENTIALS": return t("auth.err_invalid");
     case "ACCOUNT_LOCKED": return t("auth.err_locked", { minutes: Math.max(1, Math.ceil((retry ?? 900) / 60)) });
@@ -62,7 +78,9 @@ export function authErrorText(err: unknown, t: Translate): string {
     case "PASSWORD_LIKE_EMAIL": return t("auth.err_like_email");
     case "PASSWORD_BREACHED": return t("auth.err_breached");
     case "CODE_INVALID": return t("auth.err_code");
-    case "TOO_MANY_EMAILS": return t("auth.err_too_many");
+    case "TOO_MANY_CODES":
+      return t(detail?.message?.includes("email") ? "auth.err_too_many_codes_email" : "auth.err_too_many_codes", { time: waitText(retry ?? 30, t) });
+    case "SEND_FAILED": return t("auth.err_send_failed");
     case "ACCOUNT_INACTIVE": return t("auth.err_inactive");
     default:
       if (err instanceof ApiError && err.status === 429) return t("auth.err_too_many");

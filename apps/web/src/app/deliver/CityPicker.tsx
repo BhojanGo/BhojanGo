@@ -26,7 +26,7 @@ export function CityPicker({ cities, value, label }: { cities: { code: string; n
             <option key={c.code} value={c.code}>{`${c.name}, ${c.region}`}</option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"><Chevron color="#4C5A5E" /></span>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"><Chevron color="#3D4A4E" /></span>
       </span>
     </div>
   );

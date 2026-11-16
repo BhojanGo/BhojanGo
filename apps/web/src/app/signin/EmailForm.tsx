@@ -117,9 +117,9 @@ export function EmailForm({ country, next, hasPlace, initialMode = "signin" }: {
           <span aria-hidden="true">←</span> {t("auth.use_other_email")}
         </button>
         <h2 id="email-code-heading" className="m-0 mt-2 text-h2">{t("auth.code_heading")}</h2>
-        <p className="m-0 mt-1 text-body text-[#3D4A4E]">{t("auth.code_sent", { email: email.trim() })}</p>
+        <p className="m-0 mt-1 text-body text-muted">{t("auth.code_sent", { email: email.trim() })}</p>
         <CodeBoxes key={boxesKey} onChange={setCode} legend={t("auth.code_label")} />
-        <p className="m-0 mt-4 text-small text-[#3D4A4E]" aria-live="polite">
+        <p className="m-0 mt-4 text-small text-muted" aria-live="polite">
           {t("auth.check_spam")}{" "}
           {wait > 0 ? (
             <b className="text-[#111418]">{t("signin.resend_in", { time: `0:${String(wait).padStart(2, "0")}` })}</b>
@@ -143,7 +143,7 @@ export function EmailForm({ country, next, hasPlace, initialMode = "signin" }: {
         <PasswordField label={t("auth.create_password")} value={password} onChange={setPassword} isNew hint={t("auth.password_hint")} />
         {errorBox}
         <button type="submit" disabled={busy} className={primaryBtn}>{busy ? t("auth.creating") : t("auth.create")}</button>
-        <p className="m-0 mt-4 text-small text-[#3D4A4E]">
+        <p className="m-0 mt-4 text-small text-muted">
           {t("auth.have_account")}{" "}
           <button type="button" onClick={() => { setMode("signin"); setError(null); }} className={textBtn}>{t("auth.sign_in")}</button>
         </p>
@@ -162,7 +162,7 @@ export function EmailForm({ country, next, hasPlace, initialMode = "signin" }: {
       </div>
       {errorBox}
       <button type="submit" disabled={busy} className={primaryBtn}>{busy ? t("auth.signing_in") : t("auth.sign_in")}</button>
-      <p className="m-0 mt-4 text-small text-[#3D4A4E]">
+      <p className="m-0 mt-4 text-small text-muted">
         {t("auth.new_here")}{" "}
         <button type="button" onClick={() => { setMode("create"); setError(null); }} className={textBtn}>{t("auth.create_account")}</button>
       </p>

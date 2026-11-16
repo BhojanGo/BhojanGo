@@ -1,5 +1,5 @@
 // CustomerOTP.html: six boxes, filled from the SMS where the phone allows.
-import { Button, color, errorMessage, radius, SafeAreaView, space, textFont, Txt, type, useSession } from "@bhojango/mobile-core";
+import { Button, codeSendErrorText, color, errorMessage, radius, SafeAreaView, space, textFont, Txt, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -12,6 +12,7 @@ export default function Code() {
   const { phone, country } = useLocalSearchParams<{ phone: string; country: string }>();
   const verify = useSession((s) => s.verifyCode);
   const sendCode = useSession((s) => s.sendCode);
+  const { t } = useI18n();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function Code() {
           {wait > 0 ? (
             <Text>Resend in <Text style={textFont("700")}>0:{String(wait).padStart(2, "0")}</Text></Text>
           ) : (
-            <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => { void sendCode(phone, country); setWait(RESEND_AFTER); }}>
+            <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => { setWait(RESEND_AFTER); sendCode(phone, country).catch((e: unknown) => setError(codeSendErrorText(e, t, errorMessage((e as { body?: unknown }).body, t("signin.send_failed"))))); }}>
               Send it again
             </Text>
           )}

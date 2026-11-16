@@ -8,6 +8,7 @@ import { useId, useState } from "react";
 import { Chevron } from "@/components/Icons";
 import { useSession } from "@/lib/client";
 import { useT } from "@/lib/i18n";
+import { codeSendError } from "./emailAuth";
 
 type Country = { code: string; name: string; phone_code: string };
 
@@ -35,7 +36,7 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
       await sendCode(phone, country.code);
       router.push(`/signin/code?${new URLSearchParams({ phone, country: country.code, next })}`);
     } catch (err) {
-      setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));
+      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed"))));
       setBusy(false);
     }
   }
@@ -48,7 +49,7 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
           <span className="relative flex h-full shrink-0 items-center gap-[6px] border-r border-[#E2E7E8] px-[14px] font-bold">
             {country && <span className="rounded-[5px] bg-[#111418] px-[5px] py-[2px] text-caption text-white">{country.code}</span>}
             {country?.phone_code}
-            {countries.length > 1 && <Chevron color="#4C5A5E" />}
+            {countries.length > 1 && <Chevron color="#3D4A4E" />}
             {countries.length > 1 && (
               <select aria-label={t("signin.country_code")} value={code ?? ""} onChange={(e) => setCode(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
                 {countries.map((c) => (
@@ -70,7 +71,7 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
             className="h-full min-w-0 flex-grow bg-transparent px-4 outline-none"
           />
         </span>
-        <p id={helpId} className="m-0 mt-[6px] text-small text-[#4C5A5E]">{t("signin.help")}</p>
+        <p id={helpId} className="m-0 mt-[6px] text-small text-muted">{t("signin.help")}</p>
       </div>
       {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
       <button type="submit" disabled={!ok || busy} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">

@@ -94,8 +94,8 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
   const shown = q.trim().length >= 2 && hits?.q === q.trim() ? hits.list : [];
   return (
     <div className="sm:col-span-2">
-      <span className="text-label text-[#4C5A5E]">{t("account.addresses.location")}</span>
-      <p className="text-small text-[#4C5A5E]">{t("account.addresses.location_hint")}</p>
+      <span className="text-label text-muted">{t("account.addresses.location")}</span>
+      <p className="text-small text-muted">{t("account.addresses.location_hint")}</p>
       <div className="relative mt-2">
         <label className="flex h-11 items-center gap-2 rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 focus-within:border-[#0B5D66]">
           <Pin size={16} color="#0B5D66" />
@@ -108,7 +108,7 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("account.addresses.search_area")}
-            className="min-w-0 flex-grow bg-transparent text-body text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+            className="min-w-0 flex-grow bg-transparent text-body text-[#111418] outline-none placeholder:text-muted"
           />
         </label>
         {shown.length > 0 && (
@@ -123,7 +123,7 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
                   }}
                   className="flex h-11 w-full items-center gap-3 rounded-[10px] px-3 text-left font-semibold text-[#111418] hover:bg-[#EFF6F6]"
                 >
-                  <Pin size={16} color="#4C5A5E" />
+                  <Pin size={16} color="#3D4A4E" />
                   {a.label}
                 </button>
               </li>
@@ -137,7 +137,7 @@ function AreaPicker({ point, onPoint }: { point: Point | null; onPoint: (p: Poin
           {locating ? t("address.locating") : t("address.use_my_location")}
         </button>
         {point && <span className="text-label text-[#24383B]">{t("account.addresses.location_set", { place: point.label })}</span>}
-        {problem && <span role="status" className="text-small text-[#4C5A5E]">{problem}</span>}
+        {problem && <span role="status" className="text-small text-muted">{problem}</span>}
       </div>
     </div>
   );
@@ -195,27 +195,27 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
             if (p.city && !city.trim()) setCity(p.city);
           }}
         />
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.addresses.label")}
           <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={50} className={input} />
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.addresses.street")}
           <input value={street} onChange={(e) => setStreet(e.target.value)} required maxLength={500} autoComplete="street-address" className={input} />
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.addresses.city")}
           <input value={city} onChange={(e) => setCity(e.target.value)} required maxLength={100} autoComplete="address-level2" className={input} />
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.addresses.state")}
           <input value={state} onChange={(e) => setState(e.target.value)} required maxLength={100} autoComplete="address-level1" className={input} />
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.addresses.postal_code")}
           <input value={postal} onChange={(e) => setPostal(e.target.value)} required maxLength={20} autoComplete="postal-code" className={input} />
         </label>
-        <label className="text-label text-[#4C5A5E] sm:col-span-2">
+        <label className="text-label text-muted sm:col-span-2">
           {t("account.addresses.notes")}
           <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={input} />
         </label>
@@ -279,8 +279,8 @@ export function Addresses() {
   return (
     <section id="addresses" aria-labelledby="addresses-title" className={card}>
       <h2 id="addresses-title" className={h2}>{t("account.addresses.title")}</h2>
-      {list === null && <p role="status" className="mt-3 text-[#4C5A5E]">{t("account.loading")}</p>}
-      {list === "error" && <p className="mt-3 text-[#4C5A5E]">{t("account.addresses.unavailable")}</p>}
+      {list === null && <p role="status" className="mt-3 text-muted">{t("account.loading")}</p>}
+      {list === "error" && <p className="mt-3 text-muted">{t("account.addresses.unavailable")}</p>}
       {list !== null && list !== "error" && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((a) => (
@@ -294,7 +294,7 @@ export function Addresses() {
                 )}
               </div>
               <div className="mt-1 text-small text-[#24383B]">{[a.street, a.city, a.state].filter(Boolean).join(", ")} {a.postal_code}</div>
-              {a.delivery_notes && <div className="mt-1 text-small text-[#4C5A5E]">{a.delivery_notes}</div>}
+              {a.delivery_notes && <div className="mt-1 text-small text-muted">{a.delivery_notes}</div>}
               <div className="mt-auto flex gap-4 pt-3 text-small">
                 <button type="button" onClick={() => setEditing(a)} className={link}>{t("account.addresses.edit")}</button>
                 <button type="button" onClick={() => void remove(a)} className="font-bold text-[#B3261E]">{t("account.addresses.delete")}</button>

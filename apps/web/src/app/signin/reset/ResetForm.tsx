@@ -44,7 +44,7 @@ export function ResetForm({ token }: { token: string }) {
 
   if (state === "checking") {
     return (
-      <div role="status" aria-live="polite" className="flex items-center gap-3 text-body text-[#3D4A4E]">
+      <div role="status" aria-live="polite" className="flex items-center gap-3 text-body text-muted">
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#C9D3D4] border-t-[#0B5D66]" aria-hidden="true" />
         {t("auth.checking_link")}
       </div>
@@ -54,7 +54,7 @@ export function ResetForm({ token }: { token: string }) {
   if (state === "invalid") {
     return (
       <div>
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">{t("auth.reset_title")}</h1>
+        <h1 className="m-0 text-h1">{t("auth.reset_title")}</h1>
         <p role="alert" className="m-0 mt-3 text-body text-[#8C1D18]">{t("auth.reset_invalid")}</p>
         <Link href="/signin/forgot" className={`${primaryBtn} flex items-center justify-center no-underline`}>{t("auth.ask_new_link")}</Link>
       </div>
@@ -64,8 +64,8 @@ export function ResetForm({ token }: { token: string }) {
   if (state === "done") {
     return (
       <div>
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">{t("auth.reset_done_heading")}</h1>
-        <p role="status" className="m-0 mt-3 text-body text-[#3D4A4E]">{t("auth.reset_done")}</p>
+        <h1 className="m-0 text-h1">{t("auth.reset_done_heading")}</h1>
+        <p role="status" className="m-0 mt-3 text-body text-muted">{t("auth.reset_done")}</p>
         <Link href="/signin?way=email" className={`${primaryBtn} flex items-center justify-center no-underline`}>{t("auth.sign_in")}</Link>
       </div>
     );
@@ -73,8 +73,8 @@ export function ResetForm({ token }: { token: string }) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="m-0 text-h1 tracking-[-0.8px]">{t("auth.reset_title")}</h1>
-      <p className="m-0 mt-2 text-body text-[#3D4A4E]">{t("auth.reset_sub")}</p>
+      <h1 className="m-0 text-h1">{t("auth.reset_title")}</h1>
+      <p className="m-0 mt-2 text-body text-muted">{t("auth.reset_sub")}</p>
       <PasswordField label={t("auth.new_password")} value={password} onChange={setPassword} isNew autoFocus hint={t("auth.password_hint")} />
       {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
       <button type="submit" disabled={busy} className={primaryBtn}>{busy ? t("auth.saving") : t("auth.save_password")}</button>

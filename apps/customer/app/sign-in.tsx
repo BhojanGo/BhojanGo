@@ -1,7 +1,7 @@
 // CustomerSignIn.html: Phone and Email as two equal ways in (round 8, D5). Phone: a code by
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
-  Button, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius,
+  Button, codeSendErrorText, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius,
   SafeAreaView, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -32,7 +32,7 @@ export default function SignIn() {
       await sendCode(phone, country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
-      setError(errorMessage((e as { body?: unknown }).body, t("signin.send_failed")));
+      setError(codeSendErrorText(e, t, errorMessage((e as { body?: unknown }).body, t("signin.send_failed"))));
     } finally {
       setBusy(false);
     }

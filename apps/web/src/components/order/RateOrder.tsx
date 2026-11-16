@@ -58,8 +58,8 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
           <Stars value={rating.stars} />
           <span className="sr-only">{t("rating.stars", { count: rating.stars })}</span>
         </div>
-        {rating.comment && <p className="m-0 mt-2 text-body text-[#4C5A5E]">“{rating.comment}”</p>}
-        <p className="m-0 mt-2 text-small text-[#4C5A5E]">{t("rating.thanks")}</p>
+        {rating.comment && <p className="m-0 mt-2 text-body text-muted">“{rating.comment}”</p>}
+        <p className="m-0 mt-2 text-small text-muted">{t("rating.thanks")}</p>
       </section>
     );
   }
@@ -84,7 +84,7 @@ export function RateOrder({ orderId, order, compact }: { orderId: string; order:
   return (
     <section className={box} aria-labelledby={titleId}>
       <h2 id={titleId} className={compact ? "m-0 text-label" : "m-0 text-h3"}>{t("rating.title")}</h2>
-      <p className="m-0 mt-1 text-small text-[#4C5A5E]">{t("rating.sub")}</p>
+      <p className="m-0 mt-1 text-small text-muted">{t("rating.sub")}</p>
       <form onSubmit={submit} className="mt-3">
         <div role="radiogroup" aria-label={t("rating.stars_label")} className="flex gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (

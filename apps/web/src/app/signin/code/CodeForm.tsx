@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/client";
 import { useT } from "@/lib/i18n";
 import { placeFromDefaultAddress } from "../afterSignIn";
+import { codeSendError } from "../emailAuth";
 
 const WAIT = 30; // seconds before "Resend"
 const EMPTY = ["", "", "", "", "", ""];
@@ -66,7 +67,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
       await sendCode(phone, country);
       setSentAt(Date.now());
     } catch (err) {
-      setError(errorMessage((err as { body?: unknown }).body, t("signin.send_failed")));
+      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed"))));
     }
   }
 
@@ -75,8 +76,8 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
       <Link href={`/signin?next=${encodeURIComponent(next)}`} className="inline-flex items-center gap-[6px] text-label">
         <span aria-hidden="true">←</span> {t("signin.change_number")}
       </Link>
-      <h1 className="m-0 mt-4 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{t("signin.code_heading")}</h1>
-      <p className="m-0 mt-1 text-body text-[#4C5A5E]">
+      <h1 className="m-0 mt-4 text-h1">{t("signin.code_heading")}</h1>
+      <p className="m-0 mt-1 text-body text-muted">
         {t("signin.sent_to")} <b className="text-[#111418]">{phone}</b>
       </p>
       <fieldset className="m-0 mt-7 border-0 p-0">
@@ -114,7 +115,7 @@ export function CodeForm({ phone, country, next, hasPlace }: { phone: string; co
           ))}
         </div>
       </fieldset>
-      <p className="m-0 mt-4 text-small text-[#4C5A5E]" aria-live="polite">
+      <p className="m-0 mt-4 text-small text-muted" aria-live="polite">
         {t("signin.didnt_get")}{" "}
         {wait > 0 ? (
           <b className="text-[#111418]">{t("signin.resend_in", { time: `0:${String(wait).padStart(2, "0")}` })}</b>

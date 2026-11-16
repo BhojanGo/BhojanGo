@@ -12,6 +12,7 @@ import { Chevron } from "@/components/Icons";
 import { api, useHydrated, useSession } from "@/lib/client";
 import { firstName, qrPath } from "@/lib/deliver";
 import { useT } from "@/lib/i18n";
+import { codeSendError } from "../signin/emailAuth";
 
 type Country = { code: string; name: string; phone_code: string };
 type City = { code: string; name: string; region: string };
@@ -57,7 +58,8 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
   function problem(err: unknown, fallback: string): string {
     const code = err instanceof ApiError ? err.code : (err as { body?: { detail?: { code?: string } } })?.body?.detail?.code;
     if (code && ERRORS[code]) return t(`deliver_page.${ERRORS[code]}`);
-    return errorMessage((err as { body?: unknown })?.body, fallback);
+    // Too many codes for this number (with how long to wait), or the SMS provider down.
+    return codeSendError(err, t, errorMessage((err as { body?: unknown })?.body, fallback));
   }
 
   async function send(e?: React.FormEvent) {

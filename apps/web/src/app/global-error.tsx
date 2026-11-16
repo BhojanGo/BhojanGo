@@ -46,7 +46,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
     <html lang={words?.lang ?? "en"}>
       <body className={`${fontVariables} bg-white font-sans text-[#111418] antialiased`}>
         <header className="border-b border-[#E2E7E8]">
-          <div className="mx-auto flex h-16 max-w-[1200px] items-center px-4 md:h-[76px] md:px-8 lg:px-12">
+          <div className="container-page flex h-16 items-center md:h-[76px]">
             <Link href="/" aria-label={t ? t("common.home") : "BhojanGo"} className="flex items-center gap-[10px] text-[#111418]">
               <LogoMark />
               <span className="text-h2 tracking-[-0.4px]">BhojanGo</span>

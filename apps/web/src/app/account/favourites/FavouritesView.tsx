@@ -68,7 +68,7 @@ function KitchenFav({ k }: { k: FavKitchen }) {
           <b className="truncate text-h3">{k.name}</b>
           {k.is_new && <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-caption text-[#083F46]">{t("common.new")}</span>}
         </div>
-        <div className="mt-1 truncate text-small text-[#4C5A5E]">{[...k.cuisine_types.slice(0, 2), k.city].filter(Boolean).join(" · ")}</div>
+        <div className="mt-1 truncate text-small text-muted">{[...k.cuisine_types.slice(0, 2), k.city].filter(Boolean).join(" · ")}</div>
         <div className="mt-1 text-small">
           <b>{t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })}</b>
           {fee !== null && (
@@ -94,7 +94,7 @@ function DishFav({ d, href }: { d: FavDish; href: string | null }) {
       <Thumb src={photo(d.image_url, 400)} className="h-[72px] w-[72px] shrink-0 rounded-[14px] md:h-[84px] md:w-[84px]" />
       <span className="min-w-0 flex-grow">
         <b className="block truncate text-label">{d.name}</b>
-        <span className="block truncate text-small text-[#4C5A5E]">{d.restaurant.name}</span>
+        <span className="block truncate text-small text-muted">{d.restaurant.name}</span>
         <b className="mt-1 block tabular-nums">{f.money(d.price, d.currency, { whole: true })}</b>
       </span>
     </>
@@ -117,7 +117,7 @@ function DishFav({ d, href }: { d: FavDish; href: string | null }) {
             {t("favourites.add")}
           </Link>
         ) : (
-          !d.available && <span className="text-label text-[#4C5A5E]">{t("favourites.sold_out")}</span>
+          !d.available && <span className="text-label text-muted">{t("favourites.sold_out")}</span>
         )}
       </span>
     </div>
@@ -148,12 +148,12 @@ export function FavouritesView() {
   }, [user, load]);
   const kept = (kind: string, id: string) => loaded !== user?.id || ids.has(`${kind}:${id}`);
 
-  if (data === null) return <p role="status" className="text-[#4C5A5E]">{t("account.loading")}</p>;
+  if (data === null) return <p role="status" className="text-muted">{t("account.loading")}</p>;
   if (data === "error") {
     return (
       <div>
-        <h1 className="text-h1 tracking-[-0.8px]">{t("favourites.title")}</h1>
-        <p role="alert" className="mt-4 text-[#4C5A5E]">
+        <h1 className="text-h1">{t("favourites.title")}</h1>
+        <p role="alert" className="mt-4 text-muted">
           {t("favourites.error")}{" "}
           <button type="button" onClick={() => { setData(null); setRetry((n) => n + 1); }} className="font-bold text-[#0B5D66]">{t("common.retry")}</button>
         </p>
@@ -183,9 +183,9 @@ export function FavouritesView() {
 
   return (
     <div>
-      <h1 className="text-h1 tracking-[-0.8px]">{t("favourites.title")}</h1>
+      <h1 className="text-h1">{t("favourites.title")}</h1>
       {!kitchens.length && !dishes.length ? (
-        <p className="mt-4 text-[#4C5A5E]">
+        <p className="mt-4 text-muted">
           {t("favourites.empty")} <Link href="/" className="font-bold">{t("favourites.find_food")}</Link>
         </p>
       ) : (
@@ -197,23 +197,23 @@ export function FavouritesView() {
           {show !== "dishes" && (
             <section aria-label={t("favourites.kitchens", { count: kitchens.length })} className="mt-5">
               {kitchens.length ? (
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                   {kitchens.map((k) => <KitchenFav key={k.id} k={k} />)}
                 </div>
               ) : (
-                <p className="text-[#4C5A5E]">{t("favourites.empty_kitchens")}</p>
+                <p className="text-muted">{t("favourites.empty_kitchens")}</p>
               )}
             </section>
           )}
           {show !== "kitchens" && (
             <section aria-labelledby="saved-dishes" className="mt-9">
-              <h2 id="saved-dishes" className="text-h2 tracking-[-0.5px]">{t("favourites.saved_dishes")}</h2>
+              <h2 id="saved-dishes" className="text-h2">{t("favourites.saved_dishes")}</h2>
               {dishes.length ? (
                 <div className="mt-[14px] grid gap-3 xl:grid-cols-2">
                   {dishes.map((d) => <DishFav key={d.id} d={d} href={dishHref(d)} />)}
                 </div>
               ) : (
-                <p className="mt-3 text-[#4C5A5E]">{t("favourites.empty_dishes")}</p>
+                <p className="mt-3 text-muted">{t("favourites.empty_dishes")}</p>
               )}
             </section>
           )}

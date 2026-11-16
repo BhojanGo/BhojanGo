@@ -142,7 +142,7 @@ export interface paths {
          * @description Start a new account with email + password. A 6-digit code goes to the email;
          *     the account exists once /auth/email/verify gets it. The same 202 for an email
          *     that already has an account (that mailbox gets a "you already have an account" email).
-         *     422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_EMAILS.
+         *     422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_CODES (retry_after).
          */
         post: operations["email_sign_up_api_v1_auth_email_sign_up_post"];
         delete?: never;
@@ -480,6 +480,8 @@ export interface paths {
         /**
          * Send Otp
          * @description Send a 6-digit OTP to the given phone number via SMS.
+         *     429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;
+         *     503 SEND_FAILED when the SMS provider didn't take it.
          */
         post: operations["send_otp_api_v1_auth_send_otp_post"];
         delete?: never;

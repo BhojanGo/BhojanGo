@@ -7,9 +7,9 @@ import type { ReactNode } from "react";
 /** The shared frame of the not-found and error pages: text and actions, a food photo beside them on wide screens. */
 export function ErrorFrame({ photo, title, body, children }: { photo: string | null; title: string; body: string; children: ReactNode }) {
   return (
-    <div className="mx-auto grid max-w-[1200px] items-center gap-8 px-4 pb-16 pt-10 md:px-8 md:pt-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16 lg:px-12 lg:pb-24">
+    <div className="container-page grid grid-cols-1 items-center gap-8 pb-16 pt-10 md:pt-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16 lg:pb-24">
       <div className="min-w-0 max-w-[560px]">
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">{title}</h1>
+        <h1 className="m-0 text-h1">{title}</h1>
         <p className="mt-3 text-body-lg text-[#3D4A4E]">{body}</p>
         <div className="mt-8 flex flex-col gap-6">{children}</div>
       </div>

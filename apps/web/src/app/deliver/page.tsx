@@ -17,7 +17,7 @@ import { CityPicker } from "./CityPicker";
 import { GetStarted } from "./GetStarted";
 
 const HERO = "delivery-partner-scooter"; // the photo library (docs/design/photos/LICENSES.md)
-const WRAP = "mx-auto w-full max-w-[1200px] px-4 md:px-8 lg:px-12";
+const WRAP = "container-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getContext();
@@ -50,7 +50,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
         <div className={`${WRAP} grid items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-14 lg:grid-cols-[1fr_520px] lg:gap-12`}>
           <div>
             <p className="m-0 text-caption text-peacock">{t("deliver_page.eyebrow")}</p>
-            <h1 className="m-0 mt-3 text-display tracking-[-1.2px] md:tracking-[-2px]">{t("deliver_page.title")}</h1>
+            <h1 className="m-0 mt-3 text-display">{t("deliver_page.title")}</h1>
             <p className="m-0 mt-4 max-w-[560px] text-body-lg text-muted">{t("deliver_page.lead")}</p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <a href="#get-started" className="inline-flex h-[52px] items-center rounded-full bg-peacock px-7 text-label text-white hover:bg-peacock-deep hover:text-white">
@@ -91,7 +91,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
       {/* Pay */}
       <section id="pay" aria-labelledby="pay-title" className={`${WRAP} scroll-mt-24 pt-12 md:pt-16`}>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <h2 id="pay-title" className="m-0 text-h1 tracking-[-0.8px]">{cityName ? t("deliver_page.pay_title", { city: cityName }) : t("deliver_page.how_pay_works")}</h2>
+          <h2 id="pay-title" className="m-0 text-h1">{cityName ? t("deliver_page.pay_title", { city: cityName }) : t("deliver_page.how_pay_works")}</h2>
           {ok && ok.cities.length > 1 && <CityPicker cities={ok.cities} value={ok.city.code} label={t("deliver_page.city_label")} />}
         </div>
         {terms === "error" ? (
@@ -117,7 +117,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
 
       {/* How it works */}
       <section aria-labelledby="how-title" className={`${WRAP} pt-12 md:pt-16`}>
-        <h2 id="how-title" className="m-0 text-h1 tracking-[-0.8px]">{t("deliver_page.how_title")}</h2>
+        <h2 id="how-title" className="m-0 text-h1">{t("deliver_page.how_title")}</h2>
         <ol className="m-0 mt-6 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-6">
           {([1, 2, 3] as const).map((n) => (
             <li key={n} className="rounded-[24px] bg-porcelain p-5 md:p-7">
@@ -131,9 +131,9 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
 
       {/* Get started */}
       <section id="get-started" aria-labelledby="gs-title" className={`${WRAP} scroll-mt-24 pt-12 md:pt-16`}>
-        <div className="grid gap-8 rounded-[28px] bg-[#0C1416] p-5 text-[#F2F5F5] sm:p-8 lg:grid-cols-[1fr_480px] lg:p-12">
+        <div className="grid grid-cols-1 gap-8 rounded-[28px] bg-[#0C1416] p-5 text-[#F2F5F5] sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:p-12">
           <div>
-            <h2 id="gs-title" className="m-0 text-h1 tracking-[-0.8px]">{t("deliver_page.gs_title")}</h2>
+            <h2 id="gs-title" className="m-0 text-h1">{t("deliver_page.gs_title")}</h2>
             <p className="m-0 mt-3 text-body-lg text-[#C4D0D2]">{t("deliver_page.gs_sub")}</p>
             <ol className="m-0 mt-6 hidden list-none space-y-3 p-0 lg:block">
               {([1, 2, 3] as const).map((n) => (
@@ -218,7 +218,7 @@ function Requirements({ ok, t, language, countryName }: { ok: DeliveryTerms; t: 
   ];
   return (
     <section id="requirements" aria-labelledby="req-title" className={`${WRAP} pt-12 md:pt-16`}>
-      <h2 id="req-title" className="m-0 text-h1 tracking-[-0.8px]">{t("deliver_page.req_title")}</h2>
+      <h2 id="req-title" className="m-0 text-h1">{t("deliver_page.req_title")}</h2>
       <p className="m-0 mt-1 text-body text-muted">{t("deliver_page.req_sub", { country: countryName })}</p>
       <ul className="m-0 mt-6 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3" data-testid="requirements" data-country={ok.country}>
         {items.map((i) => (
@@ -257,7 +257,7 @@ function Faq({ ok, t, m, loc, language, countryName }: { ok: DeliveryTerms; t: T
   ];
   return (
     <section aria-labelledby="faq-title" className={`${WRAP} pt-12 md:pt-16`}>
-      <h2 id="faq-title" className="m-0 text-h1 tracking-[-0.8px]">{t("deliver_page.faq_title")}</h2>
+      <h2 id="faq-title" className="m-0 text-h1">{t("deliver_page.faq_title")}</h2>
       <div className="mt-6 divide-y divide-line rounded-[24px] border border-line bg-white" data-testid="faq">
         {qa.map((x) => (
           <details key={x.id} className="group px-5 md:px-6">
