@@ -1,13 +1,15 @@
 // The fair bill (P8 bill lines → what each row says and who gets the money).
 // Shared by web and the apps; no DOM, no React Native.
 
-// A line is RIDER only when all of it goes to the rider (the tip). The delivery
-// fee is ours: riders are paid separately (base, distance, waiting, the floor).
+// Who gets each line, in the words people read: KITCHEN, DELIVERY PARTNER, TAX,
+// BHOJANGO. A line is DELIVERY PARTNER only when all of it goes to them (the tip).
+// The delivery fee is BhojanGo's: delivery partners are paid separately (base,
+// distance, waiting, the floor).
 const PAYEE = {
   food: "KITCHEN", packaging: "KITCHEN",
-  delivery_fee: "US",
-  service_fee: "US", small_order_fee: "US", surge: "US", late_night_fee: "US",
-  tax: "GOVT", tip: "RIDER",
+  delivery_fee: "BHOJANGO",
+  service_fee: "BHOJANGO", small_order_fee: "BHOJANGO", surge: "BHOJANGO", late_night_fee: "BHOJANGO",
+  tax: "TAX", tip: "DELIVERY PARTNER",
 };
 
 const SYMBOL = { INR: "₹", USD: "$" };
@@ -27,7 +29,7 @@ function money(amount, currency, { decimals = 2 } = {}) {
 /**
  * Rows for the fair bill from the API's bill lines ({code, label, amount,
  * funded_by, detail}). Each row: {label, payee, amount, accent, struck}.
- * - discounts show who funded them (US or KITCHEN) in Peacock
+ * - discounts show who funded them (BHOJANGO or KITCHEN) in Peacock
  * - free delivery (a delivery fee plus an offer of minus that fee) is one row:
  *   the usual fee struck through, then 0, paid by the kitchen or by us
  */
@@ -40,13 +42,13 @@ function billRows(lines, currency) {
     if (ln === freeDelivery) continue;
     const amount = Number(ln.amount);
     if (ln === delivery && freeDelivery) {
-      rows.push({ label: ln.label, payee: freeDelivery.funded_by === "restaurant" ? "KITCHEN'S TREAT" : "ON US",
+      rows.push({ label: ln.label, payee: freeDelivery.funded_by === "restaurant" ? "KITCHEN'S TREAT" : "BHOJANGO'S TREAT",
                   amount: money(0, currency, { decimals: 0 }), struck: money(amount, currency, { decimals: 0 }) });
     } else if (ln.code === "promotion") {
-      rows.push({ label: ln.label, payee: ln.funded_by === "restaurant" ? "KITCHEN" : "US",
+      rows.push({ label: ln.label, payee: ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO",
                   amount: money(amount, currency), accent: true });
     } else {
-      rows.push({ label: ln.label, payee: PAYEE[ln.code] ?? "US", amount: money(amount, currency) });
+      rows.push({ label: ln.label, payee: PAYEE[ln.code] ?? "BHOJANGO", amount: money(amount, currency) });
     }
   }
   return rows;

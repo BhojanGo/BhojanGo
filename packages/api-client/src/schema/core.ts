@@ -410,6 +410,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/delivery/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Terms
+         * @description A live city's delivery partner pay (an example trip priced by the engine, the
+         *     hourly floor, the batch bonus, tips, payout cadence) and the country's
+         *     requirements and app links. Public; 404 for a city that isn't live.
+         */
+        get: operations["terms_api_v1_delivery_terms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discover": {
         parameters: {
             query?: never;
@@ -3656,6 +3678,13 @@ export interface components {
              */
             user_id: string;
         };
+        /** AppLinks */
+        AppLinks: {
+            /** Android */
+            android?: string | null;
+            /** Ios */
+            ios?: string | null;
+        };
         /** ApplicationOut */
         ApplicationOut: {
             /** Area */
@@ -4348,6 +4377,37 @@ export interface components {
             /** Pin */
             pin?: string | null;
         };
+        /** DeliveryTerms */
+        DeliveryTerms: {
+            apps: components["schemas"]["AppLinks"];
+            /** Batch Bonus */
+            batch_bonus?: string | null;
+            /**
+             * Cities
+             * @description The country's live cities (the page's city picker)
+             */
+            cities: components["schemas"]["TermsCity"][];
+            city: components["schemas"]["TermsCity"];
+            /** Country */
+            country: string;
+            /** Currency */
+            currency: string;
+            /** Distance Unit */
+            distance_unit: string;
+            example?: components["schemas"]["ExampleTrip"] | null;
+            /** Hourly Floor */
+            hourly_floor?: string | null;
+            pay_schedule?: components["schemas"]["Payout"] | null;
+            /** Phone Code */
+            phone_code: string;
+            requirements: components["schemas"]["Requirements"];
+            /**
+             * Tips Percent
+             * @description The share of every tip the delivery partner gets (the engine's split: rider = pay + the whole tip)
+             * @default 100
+             */
+            tips_percent?: number;
+        };
         /** Demand */
         Demand: {
             /** Cities */
@@ -4513,6 +4573,16 @@ export interface components {
             /** Zone */
             zone?: string | null;
         };
+        /** Document */
+        Document: {
+            /** Key */
+            key: string;
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "licence" | "insurance" | "payout" | "background_check";
+        };
         /** DocumentIn */
         DocumentIn: {
             /** File Key */
@@ -4553,6 +4623,32 @@ export interface components {
         EndRule: {
             /** At */
             at?: string | null;
+        };
+        /**
+         * ExampleTrip
+         * @description One trip as the engine pays it (rider_pay base_distance_wait), before tips.
+         */
+        ExampleTrip: {
+            /** Base */
+            base: string;
+            /**
+             * Distance
+             * @description Kitchen to customer, in the country's distance unit
+             */
+            distance: string;
+            /** Distance Pay */
+            distance_pay: string;
+            /** Free Wait Minutes */
+            free_wait_minutes: number;
+            /** Per Unit */
+            per_unit: string;
+            /** Per Wait Minute */
+            per_wait_minute: string;
+            /**
+             * Total
+             * @description base + distance_pay (no waiting, no tip)
+             */
+            total: string;
         };
         /**
          * FakeCompleteRequest
@@ -6292,6 +6388,16 @@ export interface components {
              */
             user_id: string;
         };
+        /** Payout */
+        Payout: {
+            /** Day */
+            day: string;
+            /**
+             * Frequency
+             * @enum {string}
+             */
+            frequency: "weekly" | "biweekly";
+        };
         /**
          * PhoneSignInRequest
          * @description Sign in (or sign up) with the code from /auth/send-otp.
@@ -6863,6 +6969,15 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** Requirements */
+        Requirements: {
+            /** Min Age */
+            min_age?: number | null;
+            /** Papers */
+            papers: components["schemas"]["Document"][];
+            /** Vehicles */
+            vehicles: string[];
         };
         /**
          * ResetPasswordRequest
@@ -7655,6 +7770,15 @@ export interface components {
             at?: string | null;
             /** Status */
             status: string;
+        };
+        /** TermsCity */
+        TermsCity: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
         };
         /** TicketOut */
         TicketOut: {
@@ -8701,6 +8825,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    terms_api_v1_delivery_terms_get: {
+        parameters: {
+            query: {
+                city: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryTerms"];
                 };
             };
             /** @description Validation Error */

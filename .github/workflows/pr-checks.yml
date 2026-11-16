@@ -66,7 +66,7 @@ jobs:
         run: make ci-photos
       - name: Website names no seeded place (make ci-web-data)
         run: make ci-web-data
-      - name: Every text in every language a live country lists (make ci-i18n)
+      - name: Every text in every language a live country lists; no "rider" in user text (make ci-i18n)
         run: make ci-i18n
       - name: Alert rules and their unit tests (make ci-observe)
         run: make ci-observe

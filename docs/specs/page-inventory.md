@@ -37,7 +37,8 @@ Who: V visitor (signed out), C customer, K kitchen partner, D delivery partner, 
 | Tracking | `/orders/[id]/track` | C | **Fail** [2.1, 2.5] | The drawn route leaves the kitchen in the wrong direction and ends in empty map; "Your rider" | P, E |
 | Report (tracking) | `/orders/[id]/report` | C | Review pending | — | — |
 | Add your kitchen | `/partner` | V K | **Fail** [1.1–1.4, 2.2, 2.3] | A sign-in wall; its only button links to `/sign-in` (does not exist); no commission, documents, steps or FAQ | F7 |
-| Deliver with BhojanGo | `/ride` → `/deliver` | V D | **Fail** [1.2, 1.3, 2.2] | "Install the app" with no link; no real pay numbers; no way to start | F8, E |
+| Deliver with BhojanGo | `/ride` → `/deliver` | V D | Built in F8 · review pending (was **Fail** [1.2, 1.3, 2.2]) | Pay from the city's rules (GET /delivery/terms), requirements from Markets, sign-up with phone + code, QR code to the app; screenshots `docs/screenshots/round8/deliver-*.png` | F8, E |
+| Get BhojanGo Delivery | `/deliver/app` | V D | Built in F8 · review pending | Store links from Markets once published; until then says plainly the app isn't in the stores | F8 |
 | Help | `/help` | all | **Fail** [2.3, 1.2, 6] | A wall of text; says the rider gets only the tip (wrong since round 7); no search, topics, articles or contact | F9 |
 | Terms | `/terms` | all | **Pass** (F10, lead review) | Per country from Content → Legal, versions + `/terms/history`, key points, contents, print; draft banner outside production. [Screens](../screenshots/round8/legal/) | F10 |
 | Privacy | `/privacy` | all | **Pass** (F10, lead review) | As terms; India: Grievance Officer (name and address placeholders until appointed), DPDP rights; US: CCPA and state rights. [Screens](../screenshots/round8/legal/) | F10 |

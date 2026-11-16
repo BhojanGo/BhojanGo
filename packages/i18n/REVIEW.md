@@ -211,6 +211,49 @@ spoken name), `location.label`, `location.place` ("{city}, {country}": the count
 `bill.example_in` ("On a {total} order in {city}": Indian languages glue a case suffix to
 `{city}` and `{total}`; check with a city name ending in a consonant).
 
+## Round 8 wording: delivery partner, kitchen partner, app names (E6)
+
+People who deliver are **delivery partners** (never "rider", "driver" or "courier" in text a
+person reads); restaurants are **kitchen partners** (or just "kitchen" where natural); the
+apps are **BhojanGo**, **BhojanGo Kitchen** (was Partner) and **BhojanGo Delivery** (was
+Rider). App names are brand names and stay in English in every language. Keys keep their
+code names (`bill.rider`, `track.your_rider`, `ride.*`, `rider.*`); only the values changed.
+`python tools/i18n/check_wording.py` (make ci-i18n) fails on "rider" (and its spellings
+below) or an old app name in any message value, backend text, app name or app UI string.
+
+| Language | delivery partner | to deliver | kitchen partner | was ("rider") |
+|---|---|---|---|---|
+| Hindi | डिलीवरी पार्टनर | डिलीवरी करें | किचन पार्टनर | राइडर |
+| Telugu | డెలివరీ పార్ట్‌నర్ (-ల, -కు) | డెలివరీ చేయండి | కిచెన్ పార్ట్‌నర్ | రైడర్ |
+| Tamil | டெலிவரி பார்ட்னர் (-கள், -ருக்கு) | டெலிவரி செய்யுங்கள் | கிச்சன் பார்ட்னர் | ரைடர் |
+| Kannada | ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್ (-ಗಳು, -ಗೆ) | ಡೆಲಿವರಿ ಮಾಡಿ | ಕಿಚನ್ ಪಾರ್ಟ್ನರ್ | ರೈಡರ್ |
+| Marathi | डिलिव्हरी पार्टनर (-ला) | डिलिव्हरी करा | किचन पार्टनर | रायडर |
+| Bengali | ডেলিভারি পার্টনার (-রা, -কে, -এর) | ডেলিভারি করুন | কিচেন পার্টনার | রাইডার |
+| Spanish | repartidor (already in use: natural, and not "rider") | repartir | cocina asociada | rider |
+
+Machine-translated 2026-11-15, all languages (needs native review): `header.ride_with_us`,
+`footer.ride`, `signin.ride`, `home.riders_title`, `ride.meta_title`, `ride.title` ("Deliver
+with BhojanGo"), `home.riders_eyebrow`, `ride.eyebrow` ("For delivery partners"),
+`home.riders_cta` ("Start delivering"), `bill.rider` ("Delivery partner"), `bill.rider_tip`
+("Delivery partner + tip", the "Who gets your money" card), `bill.line_tip`,
+`home.step3_body`, `home.order_rider`, `city.faq_tip_a`, `city.faq_tip_presets`,
+`city.soon_body`, `checkout.rider_note`, `checkout.tip_title`, `checkout.tip_note`,
+`track.pin_long`, `track.s_finding`, `track.your_rider`, `track.rider_card`,
+`track.map_rider`, `signin.partner_q`, `signin.partner_note` ("Kitchens use BhojanGo
+Kitchen; delivery partners use BhojanGo Delivery."), `signin.promise_tip`,
+`account.addresses.location_hint`, `meta.description`, `ride.pay_more`, `ride.apply_step1`,
+`ride.apply_note`, `app.track.pin_a11y`, `app.bill.on_us` ("BhojanGo's treat": free delivery
+BhojanGo pays for, next to "Kitchen's treat"), `rider.brand` / `partner.brand` (the app
+names, English everywhere), `rider.sign_in.hero`, `rider.code.wrong_account`,
+`rider.join.title`, `rider.join.city`, `rider.checklist.ready_title`,
+`rider.checklist.almost_title`, `rider.document.private`, `rider.drive.notice_body` ("ride"
+became "deliver"), `partner.split.sub`, `partner.sign_in.sub`, `partner.code.wrong_account`,
+`partner.apply.title` ("Kitchen partner application"), `partner.apply.menu_note` ("account
+manager"), `partner.orders.ready_note`, `partner.orders.finding_rider`, `partner.help.support`
+("Kitchen partner support"). Backend: `names.your_rider` ("Your delivery partner", the name
+in push/SMS/chat when a delivery partner has none) and `driver_assigned.title` ("Delivery
+partner on the way to the kitchen").
+
 ## Round 8 (location line and Change city)
 
 Machine-translated 2026-11-15: `location.set` ("Set your delivery location": a button that
@@ -218,6 +261,27 @@ opens the address box), `location.delivers_here` ("We deliver here", after the v
 town from their IP), `cities.other_countries` (the "Other countries" disclosure on Change
 city), `cities.no_match_in` ("No city in {country} by that name yet.": `{country}` is the
 country's Markets name in English; Indian languages glue a case suffix to it).
+
+## Deliver with BhojanGo (round 8, F8: `deliver_page.*`)
+
+Every `deliver_page.*` key (the website's /deliver and /deliver/app pages: pay, requirements,
+how it works, the get-started form, FAQ) was machine-translated on 2026-11-15 in all seven
+languages and needs native review. Look at these first:
+
+- `pay_cadence_body`, `pay_weekly_title`: `{day}` is a weekday name already in the page's
+  language (Intl, e.g. "సోమవారం"); check the case ending around it.
+- `pay_trip_body`, `faq_pay_a`: `{unit}` is the short unit Intl writes ("km", "mi" or the
+  script's own form); `{base}`, `{per_unit}`, `{per_minute}` are formatted money.
+- `hero_card_title`, `pay_title`, `pay_note`, `req_sub`, `req_age_body`, `faq_vehicle_a`:
+  `{city}` / `{country}` come from Markets in English ("Hyderabad", "India"); Telugu, Tamil,
+  Bengali and Marathi glue a case ending to them, Kannada writes "{city} ನಗರದಲ್ಲಿ".
+- `doc_*`: the document names must match the BhojanGo Delivery app's checklist words.
+  "Driving licence" (India) and "Driver's license" (US) translate the same in the Indian
+  languages; Tamil avoids ஓட்டுநர் உரிமம் (it contains the word for "driver").
+- `gs_terms`: "{terms}" and "{privacy}" become links named by `gs_terms_link` and
+  `gs_privacy_link`; Spanish matches their gender ("los Términos…", "la Política…").
+- `gs_err_*`: the sign-up refusals (a number that orders food, a kitchen or admin account,
+  a city we don't serve).
 
 ## Terms and Privacy pages (round 8, F10)
 

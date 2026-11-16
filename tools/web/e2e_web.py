@@ -16,7 +16,8 @@ the fake payment provider, tracking to "delivered" (kitchen, ops and rider via
 their APIs), the account area (orders, receipt, PDF, order again, report a
 problem, addresses, a test card, notifications, data export, favourites), the
 receipt seen from a browser in a US time zone (the order's city time, not the device's), no
-marketing when signed in, a US kitchen in dollars, SEO files and headers, and
+marketing when signed in, a US kitchen in dollars, Deliver with BhojanGo (/deliver: each seed
+city's real pay and requirements; locally, signing up a new phone), SEO files and headers, and
 no sideways scroll at 390 px, and only the type scale's font sizes on the
 kitchen page, home, receipt and (at 390) checkout (font_sizes.py); Terms and Privacy per
 country (key points, contents, versions, the draft banner, a country without documents)
@@ -599,7 +600,7 @@ with sync_playwright() as p:
         expect(bag.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(timeout=20000),
         expect(bag.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
         expect(bag.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible()))
-    check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("link", name="Ride with us")).to_have_count(0))
+    check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("banner").get_by_role("link", name="Deliver with BhojanGo")).to_have_count(0))
 
     # ── Checkout ──────────────────────────────────────────────────────────────
     page.goto(base + "/checkout", wait_until="networkidle")
@@ -610,7 +611,7 @@ with sync_playwright() as p:
         expect(bill.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(),
         expect(bill.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
-    tips = page.get_by_role("radiogroup", name="Tip your rider").get_by_role("radio")
+    tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
     # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
     check("tip: choices from the tip_presets rule, its default preselected", lambda: (
         _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10", "₹20", "₹30", "Other"],
@@ -619,7 +620,7 @@ with sync_playwright() as p:
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
-        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your rider Rider"))).to_contain_text(re.sub(r"\D", "", tip_label), timeout=15000)))
+        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(re.sub(r"\D", "", tip_label), timeout=15000)))
     shot(page, "11-checkout")
     page.get_by_role("button", name=re.compile(r"^Pay ")).click()
     pay = page.get_by_role("dialog", name="Pay (test mode)")
@@ -641,9 +642,9 @@ with sync_playwright() as p:
     check("signed-in home: active order bar, no marketing sections", lambda: (
         expect(page.get_by_role("region", name="Your order").get_by_role("link", name=re.compile(f"^Your order from {KITCHEN}.*Track order$"))).to_be_visible(timeout=20000),
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0),
-        expect(page.get_by_role("heading", name="Ride with BhojanGo")).to_have_count(0),
+        expect(page.get_by_role("heading", name="Deliver with BhojanGo")).to_have_count(0),
         expect(page.get_by_role("region", name="Work with us")).to_have_count(0),
-        expect(page.get_by_role("contentinfo").get_by_role("link", name="Ride with BhojanGo")).to_be_visible()))
+        expect(page.get_by_role("contentinfo").get_by_role("link", name="Deliver with BhojanGo")).to_be_visible()))
     check("type scale: the signed-in home uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "13-home-signed-in")
 
@@ -652,10 +653,10 @@ with sync_playwright() as p:
     partner, ops, rider = login("partner.hyd@example.com"), login("ops.hyd@example.com", "BhojanGoAdmin1"), login("rider3.hyd@example.com")
     for st in ("accepted", "preparing", "ready"):
         api("PUT", f"/orders/{order_id}/status", partner, {"status": st})
-    check("tracking: the kitchen cooking, live", lambda: expect(status).to_contain_text(re.compile(f"{KITCHEN} is cooking|Finding a rider"), timeout=20000))
+    check("tracking: the kitchen cooking, live", lambda: expect(status).to_contain_text(re.compile(f"{KITCHEN} is cooking|Finding a delivery partner"), timeout=20000))
     api("POST", "/delivery/assign", ops, {"order_id": order_id, "driver_id": sub(rider)}, host=8004)
     api("POST", f"/orders/{order_id}/messages", rider, {"preset": "at_kitchen"})
-    chat = page.get_by_role("region", name=re.compile("^Your rider, "))
+    chat = page.get_by_role("region", name=re.compile("^Your delivery partner, "))
     expect(chat.get_by_role("button", name="Message")).to_be_visible(timeout=20000)
     chat.get_by_role("button", name="Message").click()
     check("messages: the rider's quick message reaches the tracking page, numbers private", lambda: (
@@ -681,7 +682,7 @@ with sync_playwright() as p:
         "lat": a[0] + (z[0] - a[0]) * f, "lng": a[1] + (z[1] - a[1]) * f, "order_id": order_id}, host=8004)
     fix(0.3)
     route_map = page.get_by_role("region", name="Map of your order's route")
-    marker = route_map.get_by_role("img", name=re.compile("your rider$"))
+    marker = route_map.get_by_role("img", name=re.compile("your delivery partner$"))
     check("tracking map: kitchen, home and the rider's live position, OSM credited", lambda: (
         expect(route_map.get_by_role("img", name=re.compile(r"\(pickup\)$"))).to_be_visible(timeout=20000),
         expect(route_map.get_by_role("img", name="Your address (drop-off)")).to_be_visible(),
@@ -789,7 +790,7 @@ with sync_playwright() as p:
         expect(receipt.get_by_role("heading", name=KITCHEN)).to_be_visible(timeout=15000),
         expect(receipt.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(),
         expect(receipt.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible(),
-        expect(receipt.get_by_role("row", name=re.compile("^Tip for your rider Rider"))).to_be_visible(),
+        expect(receipt.get_by_role("row", name=re.compile("^Tip for your delivery partner Delivery partner"))).to_be_visible(),
         expect(receipt.get_by_text("You paid")).to_be_visible()))
     check("type scale: the receipt uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "16-receipt")
@@ -1106,6 +1107,63 @@ with sync_playwright() as p:
         us.wait_for_timeout(1500)
         expect(us.get_by_test_id("legal-updated-notice")).to_have_count(0)
     check("updated privacy notice: shown once to a signed-in customer, gone after Got it", updated_notice)
+
+    # ── Deliver with BhojanGo (/deliver, R8 F8): real pay for each seed city ───
+    symbols = {"INR": "₹", "USD": "$"}  # the test may know the seed's currencies
+
+    def whole(v: str) -> str:
+        return v[:-3] if v.endswith(".00") else v
+
+    dl = b.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    for code in ("IN-TG-HYD", "US-ID-BOI"):
+        terms = api("GET", f"/delivery/terms?city={code}")
+
+        def deliver_page(code: str = code, terms: dict = terms) -> None:
+            dl.goto(f"{base}/deliver?city={code}", wait_until="networkidle")
+            sym = symbols[terms["currency"]]
+            expect(dl.get_by_role("heading", level=1)).to_have_text("Deliver from local kitchens, on your own hours")
+            expect(dl.get_by_test_id("pay-cards")).to_have_attribute("data-city", code)
+            expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['total'])}")
+            expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['base'])}")
+            expect(dl.get_by_test_id("pay-floor")).to_contain_text(f"{sym}{whole(terms['hourly_floor'])} an hour")
+            expect(dl.get_by_test_id("pay-tips")).to_contain_text("100%")
+            expect(dl.get_by_test_id("pay-weekly")).to_contain_text("Monday")
+            expect(dl.get_by_test_id("requirements")).to_have_attribute("data-country", terms["country"])
+            for d in terms["requirements"]["papers"]:
+                expect(dl.get_by_test_id("requirements").locator(f'[data-key="{d["key"]}"]')).to_have_count(1)
+            expect(dl.get_by_test_id("no-fee")).to_be_visible()
+            other = "$" if sym == "₹" else "₹"
+            _assert(other not in dl.get_by_test_id("pay-cards").inner_text(), "the other country's money on the page")
+        check(f"/deliver?city={code}: the city's real pay and its country's requirements", deliver_page)
+        shot(dl, f"30-deliver-{code.lower()}")
+
+    def deliver_phone() -> None:
+        m390 = b.new_context(viewport={"width": 390, "height": 844}).new_page()
+        m390.goto(base + "/deliver", wait_until="networkidle")
+        no_sideways_scroll(m390)
+        expect(m390.get_by_test_id("pay-trip")).to_be_visible()
+        m390.screenshot(path=f"{OUT}/31-deliver-phone.png", full_page=True)
+    check("phone width /deliver: no sideways scroll", deliver_phone)
+
+    if not QA_WEB:  # signing up writes an account: local only (tests never write to QA)
+        def deliver_sign_up() -> None:
+            dl.goto(f"{base}/deliver?city=IN-TG-HYD#get-started", wait_until="networkidle")
+            form = dl.get_by_test_id("gs-form")
+            form.get_by_label("Your full name").fill("Kiran Rao")
+            form.get_by_label("Country code").select_option("IN")
+            form.get_by_label("Mobile number").fill(f"90000{random.randint(10000, 99999)}")
+            form.get_by_label("City you'll deliver in").select_option("IN-TG-HYD")
+            form.get_by_role("button", name="Send code").click()
+            dl.get_by_label("6-digit code").fill(OTP)
+            dl.get_by_role("button", name="Verify and sign up").click()
+            done = dl.get_by_test_id("gs-done")
+            expect(done).to_contain_text("You're signed up, Kiran", timeout=20000)
+            expect(done.get_by_test_id("gs-qr")).to_have_attribute("data-url", re.compile(r"/deliver/app\?country=IN$"))
+            shot(dl, "32-deliver-signed-up")
+            done.get_by_test_id("gs-app-link").click()
+            url_is(dl, r"/deliver/app\?country=IN")
+            expect(dl.get_by_test_id("app-not-yet")).to_contain_text("isn't in Google Play or the App Store yet")
+        check("/deliver: get started with a new phone -> a delivery partner account -> the app's QR code", deliver_sign_up)
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")

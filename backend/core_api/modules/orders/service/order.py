@@ -335,9 +335,9 @@ class OrderService:
         if order.driver_id == rider_id:
             return order
         if order.driver_id is not None:
-            raise _err(status.HTTP_409_CONFLICT, "ALREADY_ASSIGNED", "Another rider has this order")
+            raise _err(status.HTTP_409_CONFLICT, "ALREADY_ASSIGNED", "Another delivery partner has this order")
         if order.status not in ("accepted", "preparing", "almost_ready", "ready"):
-            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't assign a rider to a {order.status} order")
+            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't assign a delivery partner to a {order.status} order")
         order.driver_id, order.rider_assigned_at = rider_id, datetime.now(UTC)
         if batch_id is not None and batch_position:
             order.batch_id, order.batch_position = batch_id, batch_position
@@ -353,7 +353,7 @@ class OrderService:
 
         profile = await user_profile(self.db, rider_id) or {}
         await outbox.add(self.db, "driver.assigned", "order", order.id,
-                         _event_payload(order, driver_name=profile.get("name", "your rider")), SOURCE)
+                         _event_payload(order, driver_name=profile.get("name", "your delivery partner")), SOURCE)
         logger.info("rider_assigned", order_id=str(order.id), rider_id=str(rider_id))
         await self.db.refresh(order)
         return order
