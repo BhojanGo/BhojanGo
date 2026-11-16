@@ -108,6 +108,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/email/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email Code
+         * @description Email me a code instead: a sign-in code if the email has an account; the same 202 either way.
+         */
+        post: operations["email_code_api_v1_auth_email_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email Sign Up
+         * @description Start a new account with email + password. A 6-digit code goes to the email;
+         *     the account exists once /auth/email/verify gets it. The same 202 for an email
+         *     that already has an account (that mailbox gets a "you already have an account" email).
+         *     422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_CODES (retry_after).
+         */
+        post: operations["email_sign_up_api_v1_auth_email_sign_up_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email Verify
+         * @description The emailed code: finishes a sign-up (``is_new_user``) or signs in.
+         *     400 CODE_INVALID (wrong, expired, or used up after 5 wrong tries).
+         */
+        post: operations["email_verify_api_v1_auth_email_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/jwks": {
         parameters: {
             query?: never;
@@ -139,7 +203,11 @@ export interface paths {
         put?: never;
         /**
          * Login
-         * @description Login with email and password.
+         * @description Sign in with email and password.
+         *
+         *     401 INVALID_CREDENTIALS for an unknown email and a wrong password alike;
+         *     429 ACCOUNT_LOCKED (``retry_after`` seconds) after 5 wrong tries in 15 minutes.
+         *     Admins get MfaChallengeResponse (``mfa_required``): finish at /auth/mfa/*.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -162,6 +230,151 @@ export interface paths {
          * @description Logout — invalidates the current access token and all refresh tokens.
          */
         post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/enrol/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mfa Enrol Confirm
+         * @description A code from the newly added app turns two-step sign-in on and signs in;
+         *     the 10 recovery codes are in the answer and never shown again.
+         */
+        post: operations["mfa_enrol_confirm_api_v1_auth_mfa_enrol_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/enrol/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mfa Enrol Start
+         * @description First-time set-up: the code emailed with the challenge, then the key to add
+         *     to an authenticator app (QR code and the key as text).
+         */
+        post: operations["mfa_enrol_start_api_v1_auth_mfa_enrol_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mfa Recovery
+         * @description One of the 10 recovery codes instead of the app (each works once).
+         */
+        post: operations["mfa_recovery_api_v1_auth_mfa_recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mfa Verify
+         * @description The 6-digit code from the authenticator app. 400 CODE_INVALID; 401 MFA_EXPIRED
+         *     (sign in again); 429 ACCOUNT_LOCKED. A code is never accepted twice.
+         */
+        post: operations["mfa_verify_api_v1_auth_mfa_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Password Forgot
+         * @description Email a link to choose a new password (works once, for 30 minutes; a newer
+         *     link ends the older one). The same 202 whether or not the email has an account.
+         */
+        post: operations["password_forgot_api_v1_auth_password_forgot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Password Reset
+         * @description Set a new password with the link's token; every session ends (sign in again).
+         *     400 RESET_LINK_INVALID; 422 PASSWORD_* (the link keeps working: try another).
+         */
+        post: operations["password_reset_api_v1_auth_password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/reset/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Password Reset Check
+         * @description Whether a reset link still works (the reset page asks before showing the form).
+         */
+        post: operations["password_reset_check_api_v1_auth_password_reset_check_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -231,26 +444,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register
-         * @description Register a new customer account.
-         */
-        post: operations["register_api_v1_auth_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/reset-password": {
         parameters: {
             query?: never;
@@ -265,6 +458,8 @@ export interface paths {
          * @description Reset a forgotten password using an OTP sent to the account's phone number.
          *
          *     Flow: client calls /auth/send-otp, then submits the OTP + new password here.
+         *     422 PASSWORD_* when the new password breaks a rule (service/passwords.py).
+         *     Ends every session. By email instead: /auth/password/forgot.
          */
         post: operations["reset_password_api_v1_auth_reset_password_post"];
         delete?: never;
@@ -285,6 +480,8 @@ export interface paths {
         /**
          * Send Otp
          * @description Send a 6-digit OTP to the given phone number via SMS.
+         *     429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;
+         *     503 SEND_FAILED when the SMS provider didn't take it.
          */
         post: operations["send_otp_api_v1_auth_send_otp_post"];
         delete?: never;
@@ -777,9 +974,15 @@ export interface paths {
         put?: never;
         /**
          * Apply
-         * @description Start an application as a new kitchen partner: creates the account (role
-         *     restaurant_owner) and the kitchen pending approval, signs them in, and emails
-         *     them what comes next. The application's steps follow (GET /restaurants/{id}/application).
+         * @description Start an application as a new kitchen partner, the verified way every account is
+         *     made (Round 8, D5): a 6-digit code goes to the email, and POST /auth/email/verify
+         *     with it creates the account (role restaurant_owner) with the kitchen pending approval,
+         *     signs them in and sends the "application started" email. The same 202 whether or not
+         *     the email already has an account (that mailbox is told to sign in instead).
+         *     The phone is the kitchen's contact number (kept with the kitchen); to sign in with it,
+         *     the owner links it in Profile, verified by an SMS code.
+         *     422 TERMS / PASSWORD (reason: PASSWORD_TOO_SHORT, PASSWORD_BREACHED, ...) / CITY /
+         *     PHONE_COUNTRY_MISMATCH; 429 TOO_MANY_CODES.
          */
         post: operations["apply_api_v1_kitchens_apply_post"];
         delete?: never;
@@ -1232,6 +1435,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Email
+         * @description Send a code to the email to link. 409 EMAIL_IN_USE (another account has it) / ALREADY_LINKED.
+         */
+        post: operations["link_email_api_v1_me_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Email Verify */
+        post: operations["link_email_verify_api_v1_me_email_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/export": {
         parameters: {
             query?: never;
@@ -1295,6 +1535,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/mfa/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew Recovery Codes
+         * @description Ten new recovery codes (the old ones stop working). Needs a code from the authenticator app.
+         */
+        post: operations["renew_recovery_codes_api_v1_me_mfa_recovery_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notification-preferences": {
         parameters: {
             query?: never;
@@ -1307,6 +1567,28 @@ export interface paths {
         /** Set Notification Preferences */
         put: operations["set_notification_preferences_api_v1_me_notification_preferences_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Set a first password (an email is needed) or change it (with the current one).
+         *     Every other device is signed out; this one gets the new tokens in the answer.
+         *     400 WRONG_PASSWORD; 409 EMAIL_REQUIRED; 422 PASSWORD_*; 429 ACCOUNT_LOCKED.
+         */
+        post: operations["change_password_api_v1_me_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1365,6 +1647,60 @@ export interface paths {
         put?: never;
         /** Set Default Payment Method */
         post: operations["set_default_payment_method_api_v1_me_payment_methods__payment_method_id__default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Phone
+         * @description Send an SMS code to the number to link. 409 PHONE_IN_USE / ALREADY_LINKED.
+         */
+        post: operations["link_phone_api_v1_me_phone_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/phone/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Phone Verify */
+        post: operations["link_phone_verify_api_v1_me_phone_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Security Overview */
+        get: operations["security_overview_api_v1_me_security_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4070,6 +4406,11 @@ export interface components {
              * @default false
              */
             is_new_user?: boolean;
+            /**
+             * Mfa Required
+             * @default false
+             */
+            mfa_required?: boolean;
             /** Refresh Token */
             refresh_token: string;
             /**
@@ -4211,6 +4552,16 @@ export interface components {
             options?: components["schemas"]["OptionPick"][];
             /** Quantity */
             quantity: number;
+        };
+        /**
+         * ChangePasswordRequest
+         * @description Required when the account has a password; leave out to set a first one.
+         */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password?: string | null;
+            /** New Password */
+            new_password: string;
         };
         /** Channels */
         Channels: {
@@ -5015,6 +5366,51 @@ export interface components {
              */
             submitted_at: string;
         };
+        /** EmailCodeRequest */
+        EmailCodeRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Language */
+            language?: string | null;
+        };
+        /**
+         * EmailSignUpRequest
+         * @description Create an account: a 6-digit code goes to the email; the account exists once it's entered.
+         */
+        EmailSignUpRequest: {
+            /**
+             * Country
+             * @example IN
+             */
+            country: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Full Name */
+            full_name?: string | null;
+            /** Language */
+            language?: string | null;
+            /** Password */
+            password: string;
+        };
+        /** EmailVerifyRequest */
+        EmailVerifyRequest: {
+            /**
+             * Code
+             * @example 123456
+             */
+            code: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
         /** EndRule */
         EndRule: {
             /** At */
@@ -5170,6 +5566,16 @@ export interface components {
              * @description Distance up to and including this, in the country's unit
              */
             up_to: string;
+        };
+        /** ForgotPasswordRequest */
+        ForgotPasswordRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Language */
+            language?: string | null;
         };
         /**
          * GeoJsonPolygon
@@ -5346,6 +5752,11 @@ export interface components {
              * @default false
              */
             is_new_user?: boolean;
+            /**
+             * Mfa Required
+             * @default false
+             */
+            mfa_required?: boolean;
             /** Refresh Token */
             refresh_token: string;
             /** Restaurant Id */
@@ -5436,33 +5847,6 @@ export interface components {
              */
             phone: string;
         };
-        /** KitchenSignedUp */
-        KitchenSignedUp: {
-            /** Access Token */
-            access_token: string;
-            /**
-             * Admin Roles
-             * @default []
-             */
-            admin_roles?: string[];
-            /** Expires In */
-            expires_in: number;
-            /**
-             * Is New User
-             * @default false
-             */
-            is_new_user?: boolean;
-            /** Refresh Token */
-            refresh_token: string;
-            /** Restaurant Id */
-            restaurant_id: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type?: string;
-            user: components["schemas"]["UserResponse"];
-        };
         /** KitchenTerms */
         KitchenTerms: {
             /** Cities */
@@ -5497,6 +5881,51 @@ export interface components {
             fssai_expires_on: string;
             /** Fssai Number */
             fssai_number: string;
+        };
+        /** LinkEmailStart */
+        LinkEmailStart: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Language */
+            language?: string | null;
+        };
+        /** LinkEmailVerify */
+        LinkEmailVerify: {
+            /**
+             * Code
+             * @example 123456
+             */
+            code: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /** LinkPhoneStart */
+        LinkPhoneStart: {
+            /**
+             * Country
+             * @example IN
+             */
+            country: string;
+            /** Language */
+            language?: string | null;
+            /** Phone */
+            phone: string;
+        };
+        /** LinkPhoneVerify */
+        LinkPhoneVerify: {
+            /**
+             * Code
+             * @example 123456
+             */
+            code: string;
+            /** Phone */
+            phone: string;
         };
         /** LocateResult */
         LocateResult: {
@@ -5750,6 +6179,108 @@ export interface components {
              * @default true
              */
             success?: boolean;
+        };
+        /**
+         * MfaChallengeResponse
+         * @description The password (or code) was right; an admin account needs its second step.
+         *     Send ``mfa_token`` with a code from the authenticator app to /auth/mfa/verify
+         *     (or a recovery code to /auth/mfa/recovery). ``enrolment_required``: no
+         *     authenticator yet: a code went to the account's email; start at /auth/mfa/enrol/start.
+         */
+        MfaChallengeResponse: {
+            /**
+             * Email Code Sent
+             * @default false
+             */
+            email_code_sent?: boolean;
+            /** Enrolment Required */
+            enrolment_required: boolean;
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Mfa Required
+             * @default true
+             * @constant
+             */
+            mfa_required?: true;
+            /** Mfa Token */
+            mfa_token: string;
+        };
+        /** MfaCodeRequest */
+        MfaCodeRequest: {
+            /**
+             * Code
+             * @example 123456
+             */
+            code: string;
+            /** Mfa Token */
+            mfa_token: string;
+        };
+        /** MfaEnrolStartRequest */
+        MfaEnrolStartRequest: {
+            /**
+             * Email Code
+             * @example 123456
+             */
+            email_code: string;
+            /** Mfa Token */
+            mfa_token: string;
+        };
+        /**
+         * MfaEnrolStartResponse
+         * @description Add this to an authenticator app (scan the QR code or type the key).
+         */
+        MfaEnrolStartResponse: {
+            /** Account */
+            account: string;
+            /** Otpauth Uri */
+            otpauth_uri: string;
+            /** Qr Svg */
+            qr_svg: string;
+            /** Secret */
+            secret: string;
+        };
+        /**
+         * MfaEnrolledResponse
+         * @description Signed in. Show the recovery codes once: they are not shown again.
+         */
+        MfaEnrolledResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Admin Roles
+             * @default []
+             */
+            admin_roles?: string[];
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Is New User
+             * @default false
+             */
+            is_new_user?: boolean;
+            /**
+             * Mfa Required
+             * @default false
+             */
+            mfa_required?: boolean;
+            /** Recovery Codes */
+            recovery_codes: string[];
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type?: string;
+            user: components["schemas"]["UserResponse"];
+        };
+        /** MfaRecoveryRequest */
+        MfaRecoveryRequest: {
+            /** Mfa Token */
+            mfa_token: string;
+            /** Recovery Code */
+            recovery_code: string;
         };
         /** MineOut */
         MineOut: {
@@ -6518,6 +7049,13 @@ export interface components {
             /** Total Platform Revenue */
             total_platform_revenue: number;
         };
+        /** PasswordResetRequest */
+        PasswordResetRequest: {
+            /** New Password */
+            new_password: string;
+            /** Token */
+            token: string;
+        };
         /** PauseIn */
         PauseIn: {
             /**
@@ -7103,6 +7641,19 @@ export interface components {
             /** Stars */
             stars: number;
         };
+        /** RecoveryCodesRenewRequest */
+        RecoveryCodesRenewRequest: {
+            /**
+             * Code
+             * @example 123456
+             */
+            code: string;
+        };
+        /** RecoveryCodesResponse */
+        RecoveryCodesResponse: {
+            /** Recovery Codes */
+            recovery_codes: string[];
+        };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
             /** Refresh Token */
@@ -7198,37 +7749,6 @@ export interface components {
             /** Timezone */
             timezone?: string | null;
         };
-        /** RegisterRequest */
-        RegisterRequest: {
-            /**
-             * Country
-             * @example IN
-             */
-            country: string;
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** Full Name */
-            full_name: string;
-            /** Password */
-            password: string;
-            /** Phone */
-            phone?: string | null;
-            /**
-             * Preferred Currency
-             * @default USD
-             * @example INR
-             */
-            preferred_currency?: string;
-            /**
-             * Preferred Locale
-             * @default en-US
-             * @enum {string}
-             */
-            preferred_locale?: "en-IN" | "hi-IN" | "te-IN" | "ta-IN" | "kn-IN" | "mr-IN" | "bn-IN" | "en-US" | "es-US";
-        };
         /** Rejection */
         Rejection: {
             /** Note */
@@ -7310,6 +7830,16 @@ export interface components {
             otp: string;
             /** Phone */
             phone: string;
+        };
+        /** ResetTokenRequest */
+        ResetTokenRequest: {
+            /** Token */
+            token: string;
+        };
+        /** ResetTokenStatus */
+        ResetTokenStatus: {
+            /** Valid */
+            valid: boolean;
         };
         /** ResolveIn */
         ResolveIn: {
@@ -7863,6 +8393,34 @@ export interface components {
             /** Results */
             results: components["schemas"]["ArticleCard"][];
         };
+        /**
+         * SecurityOverview
+         * @description How this account signs in (Profile > Sign-in and security).
+         */
+        SecurityOverview: {
+            /** Apple Linked */
+            apple_linked: boolean;
+            /** Email */
+            email: string | null;
+            /** Email Verified */
+            email_verified: boolean;
+            /** Google Linked */
+            google_linked: boolean;
+            /** Has Password */
+            has_password: boolean;
+            /** Mfa Enabled */
+            mfa_enabled: boolean;
+            /** Mfa Required */
+            mfa_required: boolean;
+            /** Password Changed At */
+            password_changed_at: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Phone Verified */
+            phone_verified: boolean;
+            /** Recovery Codes Left */
+            recovery_codes_left: number;
+        };
         /** ServiceFeeSummary */
         ServiceFeeSummary: {
             /** Max */
@@ -8211,7 +8769,10 @@ export interface components {
              */
             updated_at: string;
         };
-        /** UserUpdateRequest */
+        /**
+         * UserUpdateRequest
+         * @description Name and preferences. Phone and email change through /me/phone and /me/email (verified by a code).
+         */
         UserUpdateRequest: {
             /** Avatar Url */
             avatar_url?: string | null;
@@ -8219,8 +8780,6 @@ export interface components {
             fcm_token?: string | null;
             /** Full Name */
             full_name?: string | null;
-            /** Phone */
-            phone?: string | null;
             /** Preferred Currency */
             preferred_currency?: string | null;
             /** Preferred Locale */
@@ -8704,6 +9263,105 @@ export interface operations {
             };
         };
     };
+    email_code_api_v1_auth_email_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_sign_up_api_v1_auth_email_sign_up_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailSignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_verify_api_v1_auth_email_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"] | components["schemas"]["MfaChallengeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     jwks_alias_api_v1_auth_jwks_get: {
         parameters: {
             query?: never;
@@ -8745,7 +9403,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
+                    "application/json": components["schemas"]["AuthTokensResponse"] | components["schemas"]["MfaChallengeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8779,6 +9437,237 @@ export interface operations {
             };
         };
     };
+    mfa_enrol_confirm_api_v1_auth_mfa_enrol_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaEnrolledResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_enrol_start_api_v1_auth_mfa_enrol_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaEnrolStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaEnrolStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_recovery_api_v1_auth_mfa_recovery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_verify_api_v1_auth_mfa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_forgot_api_v1_auth_password_forgot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_reset_api_v1_auth_password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    password_reset_check_api_v1_auth_password_reset_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetTokenStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     phone_sign_in_api_v1_auth_phone_post: {
         parameters: {
             query?: never;
@@ -8798,7 +9687,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
+                    "application/json": components["schemas"]["AuthTokensResponse"] | components["schemas"]["MfaChallengeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8847,39 +9736,6 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    register_api_v1_auth_register_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8983,7 +9839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
+                    "application/json": components["schemas"]["AuthTokensResponse"] | components["schemas"]["MfaChallengeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -9780,12 +10636,12 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            201: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["KitchenSignedUp"];
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10586,6 +11442,72 @@ export interface operations {
             };
         };
     };
+    link_email_api_v1_me_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkEmailStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_email_verify_api_v1_me_email_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkEmailVerify"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_my_data_api_v1_me_export_get: {
         parameters: {
             query?: never;
@@ -10686,6 +11608,39 @@ export interface operations {
             };
         };
     };
+    renew_recovery_codes_api_v1_me_mfa_recovery_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoveryCodesRenewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_notification_preferences_api_v1_me_notification_preferences_get: {
         parameters: {
             query?: never;
@@ -10726,6 +11681,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationPreferencesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_v1_me_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10848,6 +11836,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_phone_api_v1_me_phone_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPhoneStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_phone_verify_api_v1_me_phone_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPhoneVerify"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    security_overview_api_v1_me_security_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityOverview"];
                 };
             };
         };

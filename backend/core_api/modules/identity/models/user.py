@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -38,6 +38,14 @@ class User(Base):
     # Social login
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     apple_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+
+    # Passwords and two-step sign-in (Round 8, D5; service/passwords.py, service/totp.py).
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Admins: the authenticator secret, Fernet-encrypted; set once enrolment is confirmed.
+    totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The last accepted 30-second step: a code is never accepted twice (RFC 6238 5.2).
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     # Push notifications
     fcm_token: Mapped[str | None] = mapped_column(Text, nullable=True)

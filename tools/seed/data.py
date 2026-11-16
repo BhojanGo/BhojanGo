@@ -9,6 +9,11 @@ import re
 
 PASSWORD = "BhojanGo123"  # every seeded account; local and staging only
 ADMIN_PASSWORD = "BhojanGoAdmin1"
+# Seeded admins sign in with two-step codes (Round 8, D5). Outside production the
+# seed gives them an authenticator key: this fixed one locally and in CI (the
+# tests and e2e compute codes from it; backend/core_api/modules/identity/tests/signin.py),
+# a random one per admin on hosted QA (written to the logins file only). Never in production.
+SEED_TOTP_SECRET = "BHOJANGOSEEDADMINTOTPKEY234567AB"  # gitleaks:allow (non-production seed key)
 
 MARKETS = [
     {

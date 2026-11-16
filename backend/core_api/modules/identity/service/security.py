@@ -4,23 +4,22 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from passlib.context import CryptContext
 
+from core_api.modules.identity.service import passwords
 from shared.auth import decode_jwt, encode_jwt
 from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
+# Argon2id since Round 8 (service/passwords.py); these names stay for older callers.
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return passwords.hash_password(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str | None) -> bool:
+    return passwords.verify_password(plain_password, hashed_password)
 
 
 def create_access_token(
@@ -29,11 +28,14 @@ def create_access_token(
     role: str,
     country: str,
     admin: list[str] | None = None,
+    mfa: bool = False,
 ) -> tuple[str, int]:
     """Returns (token, expires_in_seconds). RS256, 15 minutes by default.
 
     ``admin`` holds the user's admin role assignments as "role@scope" so other
-    deployables can authorise without a database call (shared/authz.py)."""
+    deployables can authorise without a database call (shared/authz.py).
+    ``mfa``: the sign-in passed the second step; admin rights need it
+    (api/dependencies.get_admin), so only such tokens carry ``adm``."""
     expire_seconds = settings.identity.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     now = datetime.now(UTC)
     payload = {
@@ -46,12 +48,14 @@ def create_access_token(
         "exp": now + timedelta(seconds=expire_seconds),
         "jti": str(uuid.uuid4()),
     }
-    if admin:
+    if mfa:
+        payload["mfa"] = True
+    if admin and mfa:
         payload["adm"] = admin
     return encode_jwt(payload), expire_seconds
 
 
-def create_refresh_token(user_id: str, family: str | None = None) -> tuple[str, str, str, int]:
+def create_refresh_token(user_id: str, family: str | None = None, mfa: bool = False) -> tuple[str, str, str, int]:
     """Returns (token, jti, family, expires_in_seconds).
 
     Refresh tokens rotate: each use returns a new one in the same family, and
@@ -68,6 +72,8 @@ def create_refresh_token(user_id: str, family: str | None = None) -> tuple[str, 
         "exp": now + timedelta(seconds=expire_seconds),
         "jti": jti,
     }
+    if mfa:
+        payload["mfa"] = True
     return encode_jwt(payload), jti, family, expire_seconds
 
 

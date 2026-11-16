@@ -72,7 +72,9 @@ class CurrentUser:
             email=payload.get("email", ""),
             role=payload.get("role", "customer"),
             country=payload.get("country", "US"),
-            admin=payload.get("adm", []),
+            # Admin rights only from a session that passed the second step (Round 8, D5):
+            # core_api issues "adm" only then, and this keeps it so for any token.
+            admin=payload.get("adm", []) if payload.get("mfa") is True else [],
         )
 
 

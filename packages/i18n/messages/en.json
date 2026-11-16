@@ -1833,7 +1833,11 @@
       "summary": {
         "one": "Fix {count} field to continue.",
         "other": "Fix {count} fields to continue."
-      }
+      },
+      "code": "That code is wrong or has expired. Check the email, or send a new code.",
+      "too_many": "Too many codes for this email address. Try again in a few minutes.",
+      "password_breached": "This password has appeared in a data breach. Choose a different one.",
+      "password_email": "Choose a password that isn't your email address."
     },
     "no_country": "We're not taking kitchens in your country yet. Kitchens can join in: {countries}.",
     "unavailable": "We couldn't load the cities right now. Refresh the page or try again in a minute.",
@@ -1880,7 +1884,13 @@
     "next_email": "We email you to confirm your account and say what comes next.",
     "next_saved": "You go straight to your application. Every step is saved, so you can stop and come back any time.",
     "next_docs": "Keep these at hand:",
-    "next_review": "When every step is done, we review your application. This page always shows where it stands."
+    "next_review": "When every step is done, we review your application. This page always shows where it stands.",
+    "code_title": "Check your email",
+    "code_sent": "We sent a 6-digit code to {email} to confirm it's yours. Enter it to create your account and continue your application. (Already have an account? The email says so: sign in instead.)",
+    "code_label": "6-digit code",
+    "code_submit": "Create account and continue",
+    "code_resend": "Send a new code",
+    "code_back": "Change my details"
   },
   "helpcentre": {
     "title": "Help centre",

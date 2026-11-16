@@ -19,7 +19,7 @@ export MSYS_NO_PATHCONV=1
 status=0
 for suite in web admin; do
   docker run --rm -e QA_WEB -e QA_ADMIN -e QA_CORE -e QA_RT -e E2E_LOGINS_FILE="/secrets/$LOGINS_NAME" \
-    -v "$ROOT/tools/$suite:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$LOGINS_DIR/$LOGINS_NAME:/secrets/$LOGINS_NAME:ro" -v "$OUT_W/$suite:/out" \
+    -v "$ROOT/tools/$suite:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/tools/totp_signin.py:/guard/totp_signin.py:ro" -v "$LOGINS_DIR/$LOGINS_NAME:/secrets/$LOGINS_NAME:ro" -v "$OUT_W/$suite:/out" \
     mcr.microsoft.com/playwright/python:v1.49.0-jammy \
     sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/e2e_$suite.py" || status=1
 done

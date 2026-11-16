@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from core_api import errors
-from core_api.modules.identity.api.v1 import account, addresses, admin, auth, riders, signup, users
+from core_api.modules.identity.api.v1 import account, addresses, admin, auth, credentials, email_auth, riders, signup, users
 from shared import jwt_keys
 
 
@@ -26,6 +26,8 @@ def register(app: FastAPI) -> None:
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(email_auth.router, prefix="/api/v1")
+    app.include_router(credentials.router, prefix="/api/v1")
     app.include_router(users.router, prefix="/api/v1")
     app.include_router(addresses.router, prefix="/api/v1")
     app.include_router(account.router, prefix="/api/v1")

@@ -26,7 +26,9 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]
 from target_guard import ensure_safe_api  # noqa: E402
 
 ensure_safe_api(CORE, RT)
-PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")) if len(r) == 4}
+_ROWS = [line.rstrip("\n").split("\t") for line in open(LOGINS, encoding="utf-8")]
+PASSWORDS = {r[2]: r[3] for r in _ROWS if len(r) >= 4}
+TOTP_KEYS = {r[2]: r[4] for r in _ROWS if len(r) >= 5 and r[4]}  # admins' authenticator keys
 ORDER = ["postgres", "redis", "core-api", "realtime", "worker", "web", "admin"]
 # The order moves one step during each backend's restart; each event must reach the customer.
 # (Realtime keeps no backlog for a socket that's down with it; the app refetches on reconnect,
@@ -42,7 +44,15 @@ async def login(c: httpx.AsyncClient, email: str) -> dict:
             break
         await asyncio.sleep(6)
     r.raise_for_status()
-    return r.json()
+    body = r.json()
+    if body.get("mfa_required"):  # an admin: the second step with the key from the logins file
+        from totp_signin import next_code
+
+        r = await c.post(f"{CORE}/api/v1/auth/mfa/verify", json={
+            "mfa_token": body["mfa_token"], "code": next_code(email, TOTP_KEYS.get(email))})
+        r.raise_for_status()
+        body = r.json()
+    return body
 
 
 async def until_ok(c: httpx.AsyncClient, url: str, timeout: float = 300) -> float:

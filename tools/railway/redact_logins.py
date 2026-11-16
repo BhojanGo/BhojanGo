@@ -1,7 +1,7 @@
 """Remove the QA seed passwords from local test logs.
 
-Maestro records every `-e` value (QA_PASSWORDS among them) in its run logs and
-commands.json under ~/.maestro/tests. Replace each password with <redacted>.
+Maestro records every `-e` value (QA_PASSWORDS and QA_TOTP_KEYS among them) in its run logs and
+commands.json under ~/.maestro/tests. Replace each password and authenticator key with <redacted>.
 Prints counts only.
 
     python tools/railway/redact_logins.py <logins file> <dir> [<dir> ...]
@@ -10,8 +10,9 @@ import os
 import sys
 
 logins, dirs = sys.argv[1], sys.argv[2:]
-passwords = [r[3] for r in (line.rstrip("\n").split("\t") for line in open(logins, encoding="utf-8"))
-             if len(r) == 4 and "@" in r[2] and len(r[3]) >= 12]
+rows = [line.rstrip("\n").split("\t") for line in open(logins, encoding="utf-8")]
+passwords = [r[3] for r in rows if len(r) >= 4 and "@" in r[2] and len(r[3]) >= 12]
+passwords += [r[4] for r in rows if len(r) >= 5 and "@" in r[2] and len(r[4]) >= 16]  # admins' authenticator keys
 changed = scanned = 0
 for d in dirs:
     for root, _, files in os.walk(d):

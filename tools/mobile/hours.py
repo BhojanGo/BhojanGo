@@ -37,7 +37,10 @@ def login(email, pw):
     for _ in range(30):
         r = c.post(f"{API}/auth/login", json={"email": email, "password": pw})
         if r.status_code != 429:
-            return {"Authorization": f"Bearer {r.json()['access_token']}"}
+            from totp_signin import finish  # admins: the second step (seed key)
+
+            body = finish(lambda path, data: c.post(f"{API}{path}", json=data).json(), email, r.json())
+            return {"Authorization": f"Bearer {body['access_token']}"}
         time.sleep(5)
 
 

@@ -16,6 +16,7 @@ from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.service import oidc
 from core_api.modules.identity.service.security import hash_password
+from core_api.modules.identity.tests.signin import password_sign_in
 from shared import jwt_keys
 from shared.auth import InvalidTokenError, decode_access_token
 
@@ -36,9 +37,8 @@ async def make_user(db: AsyncSession, email: str | None, country: str = "IN", ro
 
 
 async def login(client: AsyncClient, email: str) -> dict:
-    r = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
-    assert r.status_code == 200, r.text
-    return r.json()
+    """Password sign-in; admins pass their second step (enrolling the first time)."""
+    return await password_sign_in(client, email, PASSWORD)
 
 
 def bearer(tokens: dict) -> dict:
@@ -146,11 +146,10 @@ async def test_phone_sign_in_wrong_or_reused_code(client: AsyncClient) -> None:
     assert r.status_code == 400
 
 
-async def test_non_seed_phone_gets_a_random_code(client: AsyncClient, capsys) -> None:
+async def test_non_seed_phone_gets_a_random_code(client: AsyncClient, outbox) -> None:
     phone = "+919876543210"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})
-    out = capsys.readouterr().out
-    code = out.split("verification code is: ")[1][:6]
+    code = outbox[-1]["body"].split("verification code is: ")[1][:6]
     assert code.isdigit()
     r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": code, "country": "IN"})
     assert r.status_code == 200
@@ -170,8 +169,9 @@ async def test_the_code_sms_is_in_the_apps_language(client: AsyncClient, monkeyp
     phone = "+919876500011"
     assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "hi"})).status_code == 200
     assert sent[-1]["template"] == "otp_hi" and "सत्यापन कोड" in sent[-1]["body"]
-    # Spanish isn't one of India's languages: India's default (English).
-    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN", "language": "es"})).status_code == 200
+    # Spanish isn't one of India's languages: India's default (English). (Another number:
+    # one number gets one code per 30 seconds.)
+    assert (await client.post("/api/v1/auth/send-otp", json={"phone": "+919876500012", "country": "IN", "language": "es"})).status_code == 200
     assert sent[-1]["template"] == "otp_en" and "verification code is: " in sent[-1]["body"]
 
 
