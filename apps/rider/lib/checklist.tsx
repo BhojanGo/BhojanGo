@@ -1,10 +1,9 @@
 // RiderOnboarding.html: "Almost ready to ride", five steps, one action.
 // The API sends each step's key and status; the words are the app's (rider.checklist.*,
 // in the rider's language). A reviewer's note on a rejected document is shown as written.
-import { type Translate, type, useI18n } from "@bhojango/mobile-core";
+import { SafeAreaView, type Translate, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon, RiderMark } from "./icons";
 import type { Onboarding } from "./rider";

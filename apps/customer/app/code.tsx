@@ -1,9 +1,8 @@
 // CustomerOTP.html: six boxes, filled from the SMS where the phone allows.
-import { Button, color, errorMessage, radius, space, textFont, Txt, type, useSession } from "@bhojango/mobile-core";
+import { Button, color, errorMessage, radius, SafeAreaView, space, textFont, Txt, type, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 

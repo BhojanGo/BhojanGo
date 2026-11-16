@@ -115,6 +115,16 @@ class OrderRating(BaseModel):
     editable: bool
 
 
+class CustomerCancel(BaseModel):
+    """The customer may cancel this order now (R8): GET /orders/{id}, to its customer only,
+    absent when they can't. The rule is the service's (customer_cancel_window): before the
+    kitchen accepts, and for the business rule's cancel window after the order was placed."""
+
+    until: datetime | None = None  # when the chance ends (None: until the kitchen accepts)
+    refund: float  # what comes back, in full (0 when nothing was charged yet)
+    refund_to: str  # the way they paid (the payment method), where the refund goes
+
+
 class OrderResponse(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -179,6 +189,10 @@ class OrderResponse(BaseModel):
     actual_delivery_time: datetime | None
     cancellation_reason: str | None
     cancellation_note: str | None
+    # GET /orders/{id}, the customer only (R8): may they cancel now, and what comes back.
+    customer_cancel: CustomerCancel | None = None
+    # GET /orders/{id}, the customer only, once refunds were made: the total refunded.
+    refunded: float | None = None
     special_instructions: str | None
     promo_code: str | None
     loyalty_points_earned: int

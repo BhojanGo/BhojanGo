@@ -5,11 +5,12 @@
 // inside one of its areas; the bag asks for a real address); a coming-soon city says
 // "Coming soon · N people waiting". The choice decides the home's location line and
 // so the country: its currency, its kitchens and the languages on the pill.
-import { Button, color, filterCities, formatNumber, Input, radius, space, type, useCountry, useI18n, type MarketCountry } from "@bhojango/mobile-core";
+import {
+  Button, color, filterCities, formatNumber, Input, radius, SafeAreaView, space, type, useCountry, useI18n, type MarketCountry,
+} from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenBar, Section, ui } from "../lib/account-ui";
 import { Icon } from "../lib/icons";

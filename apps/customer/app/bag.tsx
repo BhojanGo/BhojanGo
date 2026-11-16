@@ -1,12 +1,10 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, quoteRefusal, radius, Segmented, Sheet, space,
-  textFont, Txt, type, type QuoteRefusal, unwrap, useBag, useCountry, useI18n,
+  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, Txt, type, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../lib/icons";
 import { startPayment, waitForPayment, type PayOutcome } from "../lib/pay";

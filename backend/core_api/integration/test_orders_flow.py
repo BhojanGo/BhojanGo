@@ -276,6 +276,49 @@ async def test_customer_cancel_rules(client: AsyncClient) -> None:
     assert r.status_code == 200 and r.json()["cancelled_by"] == "restaurant"
 
 
+async def test_customer_sees_when_they_may_cancel_and_what_comes_back(client: AsyncClient) -> None:
+    """R8: GET /orders/{id} tells the customer (only) whether they may cancel now and what
+    comes back; the button follows it, and a cancel that lost the race gets a clear 409."""
+    cust = await login(client, "customer1.hyd@example.com")
+    partner = await login(client, "partner.hyd@example.com")
+
+    order = await new_order(client, cust)
+    unpaid = (await get(client, cust, order["id"]))["customer_cancel"]
+    assert unpaid == {"until": None, "refund": 0.0, "refund_to": order["payment_method"]}  # nothing charged yet
+    await pay(client, cust, order)
+    placed = await get(client, cust, order["id"])
+    assert placed["customer_cancel"]["refund"] == placed["total"] and placed["customer_cancel"]["until"] is None
+    # The kitchen and anyone else never see it.
+    r = await client.get(f"/api/v1/orders/{order['id']}", headers=partner)
+    assert r.status_code == 200 and r.json()["customer_cancel"] is None
+
+    await move(client, partner, order["id"], "accepted")
+    accepted = await get(client, cust, order["id"])
+    until = datetime.fromisoformat(accepted["customer_cancel"]["until"])
+    assert until == datetime.fromisoformat(accepted["placed_at"]) + timedelta(minutes=2)
+
+    from sqlalchemy import update
+
+    from core_api.modules.orders.models.order import Order
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:  # the window passes while the page is open
+        await db.execute(update(Order).where(Order.id == uuid.UUID(order["id"]))
+                         .values(placed_at=datetime.now(UTC) - timedelta(minutes=5)))
+        await db.commit()
+    assert (await get(client, cust, order["id"]))["customer_cancel"] is None
+    r = await client.post(f"/api/v1/orders/{order['id']}/cancel", headers=cust, json={"reason": "customer_cancelled"})
+    assert r.status_code == 409 and "CANCEL_WINDOW_PASSED" in r.text
+
+    again = await new_order(client, cust)
+    await pay(client, cust, again)
+    r = await client.post(f"/api/v1/orders/{again['id']}/cancel", headers=cust, json={"reason": "customer_cancelled"})
+    assert r.status_code == 200
+    done = await get(client, cust, again["id"])
+    assert done["status"] == "cancelled" and done["customer_cancel"] is None
+    assert done["refunded"] == done["total"]  # the refund line on the tracking page
+
+
 async def test_outbox_relay_publishes_each_event_once() -> None:
     from worker.app.services.outbox_relay import relay_once
 

@@ -100,3 +100,18 @@ test("tracking: the next stop, distance left from the ETA (else the straight lin
   assert.deepEqual(boundsOf([kitchen, null, home], 0), [20, 10, 20.01, 10.01]);
   assert.equal(boundsOf([null]), null);
 });
+
+test("R8 sign-in photos: the country's hero dish first, then kitchens' photos, each once", async () => {
+  const { signInPhotos } = await import("../lib/contract.ts");
+  const kitchens = [
+    { photo_url: "/food/tacos-800.webp", cover_url: null },
+    { photo_url: null, cover_url: "/food/sushi-800.webp" },
+    { photo_url: "/food/poke-bowl-800.webp", cover_url: "/food/poke-bowl-800.webp" },
+    { photo_url: "/food/tacos-800.webp" },
+    { photo_url: null, cover_url: null },
+    { photo_url: "/food/ramen-800.webp" },
+  ];
+  assert.deepEqual(signInPhotos("cheeseburger", kitchens), ["/food/cheeseburger-800.webp", "/food/tacos-800.webp", "/food/sushi-800.webp", "/food/poke-bowl-800.webp"]);
+  assert.deepEqual(signInPhotos(null, kitchens, 2), ["/food/tacos-800.webp", "/food/sushi-800.webp"]);
+  assert.deepEqual(signInPhotos("../evil", []), []);
+});

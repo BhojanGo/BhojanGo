@@ -11,7 +11,8 @@ export type { Script, TypeRole } from "./ui/type";
 export { FontAudit } from "./ui/font-audit";
 export { billTotal } from "@bhojango/ui/bill";
 // Round 5: the floating tab bar's geometry and the room every tab screen leaves for it.
-export { aboveTabBar, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance } from "./tabbar";
+export { aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance,
+  tabBarZone } from "./tabbar";
 
 // P17: generated API client, session and bag.
 export { AdminAccountError, api, emailAuth, urls, useSession, wsUrl } from "./session";
@@ -40,3 +41,5 @@ export type { AppEnv } from "./env";
 export { chooseLanguage, detectCountry, languageList } from "@bhojango/i18n";
 export { LanguagePicker, LanguagePill, PhoneCountryButton, TestBanner, WithTestBanner } from "./ui/locale";
 export type { Tone } from "./ui/locale";
+// R8: the screens' SafeAreaView (follows the test banner's insets; the native one padded the status bar twice).
+export { SafeAreaView, type SafeAreaEdge } from "./ui/safe-area";
