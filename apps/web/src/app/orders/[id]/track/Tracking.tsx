@@ -223,7 +223,7 @@ export function Tracking({ id }: { id: string }) {
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">
             <span>
-              <span className="text-small text-[#4C5A5E]">{t("track.arriving")}</span>
+              <span className="text-small text-[#4C5A5E]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
               <b className="block text-h1 leading-none tracking-[-1.2px]" data-testid="eta">{bigEta}</b>
             </span>
             {pin && (
