@@ -31,7 +31,7 @@ DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 def rider_only(user: Annotated[CurrentUser, Depends(get_current_user)]) -> CurrentUser:
     """Refused before the body is read, so a non-rider never gets a validation error."""
     if user.role != "driver":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Riders only")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Delivery partners only")
     return user
 
 
@@ -146,7 +146,7 @@ async def onboarding(db: AsyncSession, rider_id: uuid.UUID) -> OnboardingOut:
 
     user = await db.get(User, rider_id)
     if user is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Rider not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Delivery partner not found")
     docs = {d.kind: d for d in (await db.execute(select(RiderDocument).where(RiderDocument.rider_id == rider_id))).scalars()}
     accounts = (await db.execute(select(PayoutAccount).where(
         PayoutAccount.payee_type == "rider", PayoutAccount.payee_id == rider_id))).scalars().all()
@@ -183,7 +183,7 @@ async def onboarding(db: AsyncSession, rider_id: uuid.UUID) -> OnboardingOut:
     elif bg.status == "approved":
         add("background_check", "done", "Cleared")
     elif bg.status == "rejected":
-        add("background_check", "rejected", bg.note or "Contact rider support")
+        add("background_check", "rejected", bg.note or "Contact delivery partner support")
     else:
         add("background_check", "in_review", "In progress · usually 2–5 days")
     done = sum(1 for s in steps if s.status == "done")
@@ -264,7 +264,7 @@ async def review(document_id: uuid.UUID, data: ReviewIn, admin: Annotated[AdminC
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Document not found")
     admin.require("riders.edit", u.country, within=True)
     if data.decision == "reject" and not data.note:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOTE_REQUIRED", "message": "Tell the rider what to fix"})
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOTE_REQUIRED", "message": "Tell the delivery partner what to fix"})
     d.status = "approved" if data.decision == "approve" else "rejected"
     d.note, d.reviewed_by, d.reviewed_at = data.note, admin.user.id, datetime.now(UTC)
     from core_api.modules.audit import service as audit

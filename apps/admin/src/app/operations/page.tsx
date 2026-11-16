@@ -50,7 +50,7 @@ function Flags({ o }: { o: OpsOrder }) {
   return (
     <span className="flex flex-wrap gap-1">
       {o.flags.includes("late") ? <span className="rounded-md bg-danger-tint px-1.5 py-0.5 text-caption text-danger-ink">{o.minutes_late} min late</span> : null}
-      {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">no rider · {o.waiting_for_rider_min} min</span> : null}
+      {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">no delivery partner · {o.waiting_for_rider_min} min</span> : null}
       {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">kitchen not answering</span> : null}
     </span>
   );
@@ -62,7 +62,7 @@ function OrdersTable({ orders, onOpen }: { orders: OpsOrder[]; onOpen: (id: stri
     <div className="overflow-x-auto rounded-2xl bg-white">
       <table className="w-full text-left text-small tabular-nums">
         <thead className="text-caption text-muted"><tr>
-          <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Rider</th><th>Placed</th><th>Due</th><th>Total</th><th />
+          <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Delivery partner</th><th>Placed</th><th>Due</th><th>Total</th><th />
         </tr></thead>
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
@@ -87,12 +87,12 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
   const [msg, setMsg] = useState<string | null>(null);
   const waiting = (waitingQ.data ?? []).filter((o) => o.flags.includes("waiting_for_rider"));
   const free = (map.data?.riders ?? []).filter((r) => r.status === "available");
-  if (!city) return <p className="rounded-2xl bg-white p-6 text-muted">Pick a city above to see its riders on the map.</p>;
+  if (!city) return <p className="rounded-2xl bg-white p-6 text-muted">Pick a city above to see its delivery partners on the map.</p>;
   async function assign(orderId: string, riderId: string) {
     setMsg(null);
     try {
       await adminApi.post("/realtime/delivery/assign", { order_id: orderId, driver_id: riderId });
-      setMsg("Assigned. The rider sees it at once.");
+      setMsg("Assigned. The delivery partner sees it at once.");
       await Promise.all([waitingQ.refetch(), map.refetch()]);
     } catch (e) {
       setMsg(apiMessage(e));
@@ -106,28 +106,28 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
             waiting={waiting.filter((o) => o.pickup).map((o) => ({ id: o.id, code: o.code, lat: o.pickup![0], lng: o.pickup![1], label: o.restaurant_name }))} />
         ) : <div className="h-[460px] rounded-2xl bg-white p-6 text-muted">{map.error ? "Can't load the map for this city." : "Loading the map…"}</div>}
         <p className="text-small text-muted">
-          <span className="font-bold text-peacock">●</span> free · <span className="font-bold text-kesar">●</span> offered · <span className="font-bold">●</span> on a delivery · <span className="font-bold text-kesar">■</span> waiting for a rider · <span className="font-bold text-chili">○</span> SOS
-          {map.data ? ` · ${map.data.riders.length} riders online` : ""}
+          <span className="font-bold text-peacock">●</span> free · <span className="font-bold text-kesar">●</span> offered · <span className="font-bold">●</span> on a delivery · <span className="font-bold text-kesar">■</span> waiting for a delivery partner · <span className="font-bold text-chili">○</span> SOS
+          {map.data ? ` · ${map.data.riders.length} delivery partners online` : ""}
         </p>
       </div>
       <aside className="space-y-4">
         {(map.data?.sos.length ?? 0) > 0 ? (
           <section className="rounded-2xl bg-danger-tint p-4 text-danger-ink" aria-label="SOS">
-            <h2 className="m-0 mb-2 text-label">SOS · call the rider now</h2>
-            {map.data!.sos.map((a) => <p key={a.id} className="text-small">Rider {a.rider_id.slice(0, 4)} · {clock(a.at)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
+            <h2 className="m-0 mb-2 text-label">SOS · call the delivery partner now</h2>
+            {map.data!.sos.map((a) => <p key={a.id} className="text-small">Delivery partner {a.rider_id.slice(0, 4)} · {clock(a.at)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
           </section>
         ) : null}
-        <section className="rounded-2xl bg-white p-4" aria-label="Waiting for a rider">
-          <h2 className="m-0 mb-2 text-label">Waiting for a rider · {waiting.length}</h2>
-          {waiting.length === 0 ? <p className="text-small text-muted">Every ready order has a rider.</p> : null}
+        <section className="rounded-2xl bg-white p-4" aria-label="Waiting for a delivery partner">
+          <h2 className="m-0 mb-2 text-label">Waiting for a delivery partner · {waiting.length}</h2>
+          {waiting.length === 0 ? <p className="text-small text-muted">Every ready order has a delivery partner.</p> : null}
           {waiting.map((o) => (
             <div key={o.id} className="space-y-2 border-t border-line py-3">
               <div className="text-small"><b>{o.code}</b> · {o.restaurant_name} · {o.waiting_for_rider_min} min</div>
               {can(me, "dispatch.edit", city) ? (
-                <select aria-label={`Give ${o.code} to a rider`} defaultValue="" onChange={(e) => e.target.value && void assign(o.id, e.target.value)}
+                <select aria-label={`Give ${o.code} to a delivery partner`} defaultValue="" onChange={(e) => e.target.value && void assign(o.id, e.target.value)}
                   className="h-9 w-full rounded-lg border border-line px-2 text-small">
-                  <option value="">{free.length ? "Give it to a free rider…" : "No free rider online"}</option>
-                  {free.map((r) => <option key={r.rider_id} value={r.rider_id}>Rider {r.rider_id.slice(0, 4)} · {r.km} km from the centre</option>)}
+                  <option value="">{free.length ? "Give it to a free delivery partner…" : "No free delivery partner online"}</option>
+                  {free.map((r) => <option key={r.rider_id} value={r.rider_id}>Delivery partner {r.rider_id.slice(0, 4)} · {r.km} km from the centre</option>)}
                 </select>
               ) : null}
             </div>
@@ -327,7 +327,7 @@ function OrderCase({ id }: { id: string }) {
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Order ${code}`}>
       <div>
         <h2 className="m-0 text-h2">{STATUS[order.status] ?? order.status} · {code}</h2>
-        <p className="text-small text-muted">{order.restaurant_name} → {order.delivery_address.area ?? order.delivery_address.city} · {money(order.total, order.currency, 2)}{order.rider?.first_name ? ` · rider ${order.rider.first_name}` : ""}</p>
+        <p className="text-small text-muted">{order.restaurant_name} → {order.delivery_address.area ?? order.delivery_address.city} · {money(order.total, order.currency, 2)}{order.rider?.first_name ? ` · delivery partner ${order.rider.first_name}` : ""}</p>
         {order.special_instructions ? <p className="mt-2 rounded-xl bg-kesar-tint p-3 text-small text-kesar-ink">Note: {order.special_instructions}</p> : null}
       </div>
       <ol className="flex flex-wrap gap-2 text-small" aria-label="Order timeline">

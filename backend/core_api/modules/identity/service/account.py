@@ -96,7 +96,7 @@ async def export(db: AsyncSession, user: User) -> dict:
     addresses = (await db.execute(select(Address).where(Address.user_id == user.id).order_by(Address.created_at))).scalars()
     orders = await orders_for_export(db, user.id)
     order_ids = await customer_order_ids(db, user.id)
-    bills = await order_bills(db, order_ids)
+    bills = await order_bills(db, order_ids, user.preferred_locale)
     for o in orders:
         o["bill"] = bills.get(uuid.UUID(o["id"]))
     favs = await favourites(db, user.id)

@@ -50,6 +50,8 @@ const nextConfig = {
       { source: "/sign-in", destination: "/signin", permanent: true },
       { source: "/orders", destination: "/account/orders", permanent: true },
       { source: "/cart", destination: "/checkout", permanent: true },
+      // Round 8: delivery partners "Deliver with BhojanGo" at /deliver.
+      { source: "/ride", destination: "/deliver", permanent: true },
     ];
   },
 };

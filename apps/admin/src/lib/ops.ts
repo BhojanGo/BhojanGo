@@ -119,7 +119,7 @@ export const REFUND_REASONS: { value: string; label: string; fault: string }[] =
   { value: "quality", label: "Quality", fault: "kitchen" },
   { value: "late", label: "Late", fault: "delivery" },
   { value: "damaged_in_transit", label: "Damaged in transit", fault: "delivery" },
-  { value: "rider_issue", label: "Rider issue", fault: "delivery" },
+  { value: "rider_issue", label: "Delivery partner issue", fault: "delivery" },
   { value: "goodwill", label: "Goodwill", fault: "platform" },
 ];
 
@@ -166,7 +166,7 @@ export const FAMILIES: { key: string; label: string }[] = [
   { key: "customer_fee", label: "Customer fees" },
   { key: "tax", label: "Taxes" },
   { key: "commission", label: "Commissions" },
-  { key: "rider_pay", label: "Rider pay" },
+  { key: "rider_pay", label: "Delivery partner pay" },
   { key: "business", label: "Business rules" },
   { key: "promotion", label: "Promotions" },
 ];
