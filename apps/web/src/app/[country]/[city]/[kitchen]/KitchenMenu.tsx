@@ -494,7 +494,7 @@ function BagSheet({ onClose, children }: { onClose: () => void; children: ReactN
         aria-modal="true"
         aria-label={t("kitchen.your_bag")}
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[88svh] w-full overflow-y-auto rounded-t-[28px] bg-white p-4 pt-12 md:mb-6 md:max-w-[560px] md:rounded-[28px]"
+        className="relative max-h-[88svh] w-full overflow-y-auto rounded-t-[28px] bg-white p-4 pt-16 md:mb-6 md:max-w-[560px] md:rounded-[28px]"
       >
         <button type="button" autoFocus aria-label={t("common.close")} onClick={onClose} className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#F4F6F6]">
           <Close />
