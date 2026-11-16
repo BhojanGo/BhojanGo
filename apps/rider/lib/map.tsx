@@ -80,13 +80,9 @@ function NativeMap({ ML, rider, pickup, dropoff, height, visible, done = false, 
   const stops = [done ? null : pickup, dropoff].filter(ok);
   const pts = [rider, ...stops].filter(ok);
   // Fit the stops (and the partner) when there are stops; else follow the partner, else the city.
-  const camera = stops.length
-    ? { bounds: bounds(pts), padding: { top: TOP, right: 48, bottom: covered + 48, left: 48 }, duration: 600 }
-    : ok(rider)
-      ? { center: ll(rider), zoom: 14.5, padding: { top: TOP, right: 0, bottom: covered, left: 0 }, duration: 600 }
-      : ok(center)
-        ? { center: ll(center), zoom: 11.5, padding: { top: TOP, right: 0, bottom: covered, left: 0 }, duration: 0 }
-        : { zoom: 1 };
+  const me = ok(rider) ? rider : null;
+  const city = ok(center) ? center : null;
+  const camera = cameraFor(stops.length ? bounds(pts) : null, me, city, covered);
   return (
     <View style={{ flex: 1 }}>
       <Map style={{ flex: 1 }} mapStyle={STYLE} attribution={false} logo={false} compass={false} touchRotate={false} touchPitch={false}
@@ -128,6 +124,14 @@ function NativeMap({ ML, rider, pickup, dropoff, height, visible, done = false, 
       </Text>
     </View>
   );
+}
+
+function cameraFor(fit: [number, number, number, number] | null, me: [number, number] | null, city: [number, number] | null, covered: number) {
+  const padding = { top: TOP, right: 0, bottom: covered, left: 0 };
+  if (fit) return { bounds: fit, padding: { top: TOP, right: 48, bottom: covered + 48, left: 48 }, duration: 600 };
+  if (me) return { center: ll(me), zoom: 14.5, padding, duration: 600 };
+  if (city) return { center: ll(city), zoom: 11.5, padding, duration: 0 };
+  return { zoom: 1 };
 }
 
 function bounds(pts: [number, number][]): [number, number, number, number] {
