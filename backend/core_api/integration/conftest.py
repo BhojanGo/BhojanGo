@@ -17,10 +17,28 @@ def _reset_login_rate_limit():
 
 
 @pytest.fixture(autouse=True)
-async def _fresh_db_pool():
-    """Each test has its own event loop; drop pooled connections bound to it."""
+def _no_breach_lookups():
+    """New passwords are checked against Pwned Passwords; never over the network in tests."""
+    from core_api.modules.identity.service import passwords
+
+    class Never:
+        async def times_seen(self, password: str) -> int:
+            return 0
+
+    previous = passwords.set_breach_checker(Never())
     yield
+    passwords.set_breach_checker(previous)
+
+
+@pytest.fixture(autouse=True)
+async def _fresh_db_pool():
+    """Each test has its own event loop; drop pooled connections bound to it
+    (after the identity module's background work: emails, audit rows)."""
+    yield
+    from core_api.modules.identity.service import background
     from shared.db import engine
+
+    await background.drain()
 
     await engine.dispose()
 

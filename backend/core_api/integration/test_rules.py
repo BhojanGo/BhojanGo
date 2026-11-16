@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from core_api.modules.identity.tests.signin import login_response
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -30,7 +31,7 @@ async def client():
 
 
 async def auth(client: AsyncClient, email: str) -> dict:
-    r = await client.post("/api/v1/auth/login", json={"email": email, "password": PW})
+    r = await login_response(client, email, PW)
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 

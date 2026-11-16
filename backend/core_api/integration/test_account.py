@@ -22,11 +22,14 @@ CARD = {"provider": "fake", "brand": "visa", "last4": "4242", "exp_month": 12, "
 
 
 async def sign_up(client: AsyncClient, name: str = "Asha Rao") -> dict:  # noqa: F811
-    r = await client.post("/api/v1/auth/register", json={
-        "email": f"acct-{uuid.uuid4().hex[:10]}@example.com", "password": "BhojanGo123", "full_name": name,
-        "country": "IN", "preferred_currency": "INR", "preferred_locale": "te-IN"})
-    assert r.status_code == 201, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    from core_api.modules.identity.tests.signin import email_sign_up
+
+    t = await email_sign_up(client, f"acct-{uuid.uuid4().hex[:10]}@example.com", "BhojanGo-test-pw1", country="IN",
+                            full_name=name)
+    h = {"Authorization": f"Bearer {t['access_token']}"}
+    r = await client.patch("/api/v1/users/me", headers=h, json={"preferred_locale": "te-IN"})
+    assert r.status_code == 200, r.text
+    return h
 
 
 async def spice_and_biryani(client: AsyncClient) -> tuple[dict, dict]:  # noqa: F811

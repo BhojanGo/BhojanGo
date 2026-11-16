@@ -210,3 +210,13 @@ spoken name), `location.label`, `location.place` ("{city}, {country}": the count
 2-letter code, kept as is), `location.change_city`, `cities.choose_title`, `cities.choose_note`,
 `bill.example_in` ("On a {total} order in {city}": Indian languages glue a case suffix to
 `{city}` and `{total}`; check with a city name ending in a consonant).
+
+## Sign-in emails (round 8, D5)
+
+Machine-translated on 2026-11-15, all eight languages, in `backend/shared/texts.py`
+`AUTH_EMAILS`: the 6-digit code email (`code.subject`, `code.body`), "you already
+have an account" (`exists.*`), the password-reset link (`reset.*`), "your password
+was changed" (`changed.*`) and "the email on your account was changed"
+(`email_replaced.*`). Check that the reset and changed emails read as calm and
+trustworthy (no alarm, no blame), and that "code" / "password" use the words people
+know from other apps in each language.

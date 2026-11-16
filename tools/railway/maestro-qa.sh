@@ -34,7 +34,12 @@ fi
 QA_PASSWORDS="$(python -c "
 import json, sys
 rows = [l.rstrip('\n').split('\t') for l in open(sys.argv[1], encoding='utf-8')]
-print(json.dumps({r[2]: r[3] for r in rows if len(r) == 4 and '@' in r[2]}))" "$E2E_LOGINS_FILE")"
+print(json.dumps({r[2]: r[3] for r in rows if len(r) >= 4 and '@' in r[2]}))" "$E2E_LOGINS_FILE")"
+# Admins' authenticator keys (the logins file's fifth column) for their second step.
+QA_TOTP_KEYS="$(python -c "
+import json, sys
+rows = [l.rstrip('\n').split('\t') for l in open(sys.argv[1], encoding='utf-8')]
+print(json.dumps({r[2]: r[4] for r in rows if len(r) >= 5 and '@' in r[2] and r[4]}))" "$E2E_LOGINS_FILE")"
 timeout 10 adb -s "$DEVICE" shell settings put global hide_error_dialogs 1 >/dev/null 2>&1
 adb -s "$DEVICE" reverse tcp:8081 tcp:8081 >/dev/null   # Metro only; the APIs are public URLs
 fail=0
@@ -63,7 +68,7 @@ for app in $APPS; do
     flows="$(for f in $flows; do case " $ONLY " in *" $f "*) echo "$f";; esac; done)"
   fi
   for f in $flows; do
-    if maestro --device "$DEVICE" test -e QA_CORE="$QA_CORE" -e QA_RT="$QA_RT" -e QA_PASSWORDS="$QA_PASSWORDS" \
+    if maestro --device "$DEVICE" test -e QA_CORE="$QA_CORE" -e QA_RT="$QA_RT" -e QA_PASSWORDS="$QA_PASSWORDS" -e QA_TOTP_KEYS="$QA_TOTP_KEYS" \
          "$ROOT/apps/$app/.maestro/$f.yaml" > "$OUT/$app-$(echo "$f" | tr / -).log" 2>&1; then
       echo "PASS $app/$f"
     else

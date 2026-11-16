@@ -46,6 +46,8 @@ dependencies = [
     "fpdf2>=2.8.3,<3",
     "maxminddb>=2.6,<3",
     "uharfbuzz>=0.50,<1",
+    "argon2-cffi>=25.1.0,<26",
+    "segno>=1.6.6,<2",
 ]
 
 [dependency-groups]

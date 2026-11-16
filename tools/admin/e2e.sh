@@ -12,7 +12,7 @@ mkdir -p "$ROOT/docs/screenshots/admin"
 python "$ROOT/tools/mobile/hours.py" open >/dev/null
 $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_attempts:*' | xargs -r redis-cli -n 0 del" >/dev/null
 docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
-  -v "$ROOT/tools/admin:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/docs/screenshots/admin:/out" \
+  -v "$ROOT/tools/admin:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/tools/totp_signin.py:/guard/totp_signin.py:ro" -v "$ROOT/docs/screenshots/admin:/out" \
   mcr.microsoft.com/playwright/python:v1.49.0-jammy \
   sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/e2e_admin.py"
 status=$?

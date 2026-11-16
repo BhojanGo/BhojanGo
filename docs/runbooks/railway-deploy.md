@@ -148,6 +148,10 @@ You need:
 - Providers are `live`; it needs the provider keys from
   [11_Integration_Setup_Guide.md](../11_Integration_Setup_Guide.md).
 - `OTP_FIXED_CODE` and `DELIVERY_PIN_FIXED` are `""`.
+- `IDENTITY_DATA_KEYS` is set (generate with
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) and `PUBLIC_WEB_URL`
+  is the website's address. Admins have no authenticator yet: each enrols at their first sign-in
+  (a code to their email, then the QR code, then 10 recovery codes shown once).
 - No seed data, and no sleeping.
 - Custom domains (Settings → Networking).
 - Postgres backups on: daily, keep 7. Do the restore drill from [backup-restore.md](backup-restore.md) once.
@@ -308,7 +312,9 @@ The config sets every variable below. Values in *italics* are sealed secrets (st
 | `CORE_API_URL`, `JWKS_URL` | realtime, worker, web, admin | `http://core-api.railway.internal:8001` | same |
 | `CORS_ORIGINS` | backends | `["https://${{web.RAILWAY_PUBLIC_DOMAIN}}","https://${{admin.RAILWAY_PUBLIC_DOMAIN}}"]` | *the custom domains* |
 | `PAYMENT_PROVIDER` / `PAYOUT_PROVIDER` / `SMS_PROVIDER` / `PUSH_PROVIDER` / `EMAIL_PROVIDER` | backends | `fake` / `fake` / `log` / `log` / `log` | `live` / `live` / `live` / `live` / `sendgrid` |
-| `OTP_FIXED_CODE` | backends | default (`123456`, seed phones only) | `""` |
+| `OTP_FIXED_CODE` | backends | default (`123456`, seed phones and `@example.com` emails only) | `""` |
+| `PUBLIC_WEB_URL` | core-api | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (password-reset links point at `<it>/signin/reset`) | `https://bhojango.com` |
+| `IDENTITY_DATA_KEYS` | core-api | a Fernet key (`["<key>"]`); unset = a fixed development key | **required**: `["<key>"]`, new key first to rotate (admins' authenticator secrets are encrypted with it) |
 | `DELIVERY_PIN_FIXED` | backends | default (`1234`, seed phones only) | `""` |
 | `DEMO_RIDER_SIM` | worker | `1` in QA only (the demo rider); unset in staging | unset (refused if set) |
 | `STORAGE_PROVIDER` | core-api | `s3` (the bucket) | `s3` |

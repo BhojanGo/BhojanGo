@@ -40,9 +40,12 @@ ERR = int(os.environ.get("E2E_ERR_CHARS", "300"))  # more of each failure's mess
 # Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
 # and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).
 PASSWORDS: dict[str, str] = {}
+TOTP_KEYS: dict[str, str] = {}
 if os.environ.get("E2E_LOGINS_FILE"):
     with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
-        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
+        _rows = [line.rstrip("\n").split("\t") for line in _f]
+    PASSWORDS = {r[2]: r[3] for r in _rows if len(r) >= 4}
+    TOTP_KEYS = {r[2]: r[4] for r in _rows if len(r) >= 5 and r[4]}  # admins' authenticator keys
 QA_WEB, QA_CORE, QA_RT = os.environ.get("QA_WEB", ""), os.environ.get("QA_CORE", ""), os.environ.get("QA_RT", "")
 # The site's own address in canonical links and the sitemap (NEXT_PUBLIC_APP_URL):
 # bhojango.com locally and in production, the QA web domain on QA.
@@ -127,7 +130,11 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def login(email: str, password: str = "BhojanGo123") -> str:
-    return api("POST", "/auth/login", None, {"email": email, "password": PASSWORDS.get(email, password)})["access_token"]
+    """API sign-in; admins pass the second step with the seed's authenticator key (tools/totp_signin.py)."""
+    from totp_signin import finish
+
+    body = api("POST", "/auth/login", None, {"email": email, "password": PASSWORDS.get(email, password)})
+    return finish(lambda path, data: api("POST", path, None, data), email, body, TOTP_KEYS)["access_token"]
 
 
 def sub(token: str) -> str:

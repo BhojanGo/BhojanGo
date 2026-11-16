@@ -1,16 +1,9 @@
 """Sign-in, tokens and account deletion.
 
-Tokens (P5): RS256 access tokens for 15 minutes and rotating refresh tokens.
-Every sign-in starts a refresh-token *family*; each refresh returns a new
-token in that family and retires the old one. Presenting a retired token
-means it leaked, so the whole family is revoked (the thief and the user both
-have to sign in again).
-
-Redis keys (service/redis_keys.py):
-  refresh_family:{user}:{family} -> current jti   (TTL = refresh lifetime)
-  refresh_families:{user}        -> set of family ids (for sign-out everywhere)
+Sessions and tokens: service/sessions.py (re-exported here for older imports).
+Every sign-in ends in mfa.finish_sign_in: tokens, or an admin's second step.
+Email sign-up, email codes and password reset: service/email_auth.py.
 """
-import html
 import uuid
 from datetime import UTC, datetime
 
@@ -20,99 +13,49 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.identity.models.address import Address
+from core_api.modules.identity.models.recovery_code import RecoveryCode
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.repository.admin_role import AdminRoleRepository
 from core_api.modules.identity.repository.user import UserRepository
 from core_api.modules.identity.schemas.user import (
     AuthTokensResponse,
     LoginRequest,
+    MfaChallengeResponse,
     OtpSendRequest,
     OtpVerifyRequest,
     PhoneSignInRequest,
-    RegisterRequest,
     ResetPasswordRequest,
     SocialLoginRequest,
-    UserResponse,
 )
-from core_api.modules.identity.service import oidc
+from core_api.modules.identity.service import events, guard, oidc, passwords
+from core_api.modules.identity.service.email_auth import rejected
+from core_api.modules.identity.service.mfa import finish_sign_in, locked_error
 from core_api.modules.identity.service.otp import send_otp, verify_otp
-from core_api.modules.identity.service.redis_keys import blacklist_key, refresh_families_key, refresh_family_key
-from core_api.modules.markets.service import countries
-from core_api.modules.identity.service.security import (
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-    hash_password,
-    verify_password,
+from core_api.modules.identity.service.redis_keys import refresh_families_key, refresh_family_key
+from core_api.modules.identity.service.security import decode_token
+from core_api.modules.identity.service.sessions import (  # noqa: F401 - re-exported
+    blacklist_access_token,
+    issue_tokens,
+    requires_mfa,
+    revoke_all_sessions,
 )
-from shared import notify
+from core_api.modules.markets.service import countries
 from shared.auth import InvalidTokenError
 from shared.config import get_settings
 from shared.redis import get_redis
-from shared.texts import WELCOME, language_for, pick
+from shared.texts import language_for
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
-# Dummy hash to prevent timing attacks — always run bcrypt even if user not found
-_DUMMY_HASH = hash_password("dummy-never-matches-any-password")
-
 # A new account's currency and language come from its country in Markets
 # (markets.service.countries), not from a list here.
+
+SignInResult = AuthTokensResponse | MfaChallengeResponse
 
 
 def _unauthorized(code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"code": code, "message": message})
-
-
-def _welcome_html(name: str, language: str = "en") -> str:
-    """The welcome email in the person's language (shared/texts.py WELCOME)."""
-    first = (name or "").strip()
-    hello = pick(WELCOME["hello"], language).format(name=html.escape(first)) if first else pick(WELCOME["hello_anon"], language)
-    return (f'<p>{hello}</p><p>{html.escape(pick(WELCOME["body"], language))}</p>'
-            f'<p>{html.escape(pick(WELCOME["signoff"], language))}</p>')
-
-
-async def issue_tokens(db: AsyncSession, user: User, *, family: str | None = None, is_new_user: bool = False) -> AuthTokensResponse:
-    """Access + refresh token pair; starts a new refresh family unless one is given."""
-    admin = [f"{a.role}@{a.scope}" for a in await AdminRoleRepository(db).for_user(user.id)]
-    access_token, expires_in = create_access_token(str(user.id), user.email, user.role, user.country, admin)
-    refresh_token, jti, family, ttl = create_refresh_token(str(user.id), family)
-    redis = await get_redis()
-    uid = str(user.id)
-    pipe = redis.pipeline()
-    pipe.setex(refresh_family_key(uid, family), ttl, jti)
-    pipe.sadd(refresh_families_key(uid), family)
-    pipe.expire(refresh_families_key(uid), ttl)
-    await pipe.execute()
-    return AuthTokensResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=expires_in,
-        user=UserResponse.model_validate(user),
-        is_new_user=is_new_user,
-        admin_roles=admin,
-    )
-
-
-async def revoke_all_sessions(user_id: str) -> None:
-    """Sign out everywhere: drop every refresh family of the user."""
-    redis = await get_redis()
-    families = await redis.smembers(refresh_families_key(user_id))
-    keys = [refresh_family_key(user_id, f) for f in families] + [refresh_families_key(user_id)]
-    await redis.delete(*keys)
-
-
-async def blacklist_access_token(access_token: str) -> None:
-    try:
-        payload = decode_token(access_token)
-    except InvalidTokenError:
-        return
-    ttl = max(0, int(payload.get("exp", 0) - datetime.now(UTC).timestamp()))
-    if ttl > 0:
-        redis = await get_redis()
-        await redis.setex(blacklist_key(payload.get("jti", "")), ttl, "1")
 
 
 class AuthService:
@@ -120,51 +63,38 @@ class AuthService:
         self.db = db
         self.repo = UserRepository(db)
 
-    async def register(self, data: RegisterRequest) -> AuthTokensResponse:
-        country = await countries.require_open(self.db, data.country)
-        countries.require_phone_in(country, data.phone)
-        await countries.require_known_currency(self.db, data.preferred_currency)
-        if await self.repo.email_exists(data.email):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "EMAIL_ALREADY_EXISTS", "message": "Email is already registered"},
-            )
-        if data.phone and await self.repo.phone_exists(data.phone):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "PHONE_ALREADY_EXISTS", "message": "Phone number is already registered"},
-            )
-
-        user = await self.repo.create(
-            email=data.email.lower().strip(),
-            phone=data.phone,
-            full_name=data.full_name,
-            hashed_password=hash_password(data.password),
-            role="customer",
-            country=data.country,
-            preferred_currency=data.preferred_currency,
-            preferred_locale=data.preferred_locale,
-        )
-        logger.info("user_registered", user_id=str(user.id))
-        language = language_for(user.preferred_locale)
-        await notify.send("email", user.email or "", _welcome_html(user.full_name, language),
-                          subject=pick(WELCOME["subject"], language))
-        return await issue_tokens(self.db, user, is_new_user=True)
-
-    async def login(self, data: LoginRequest) -> AuthTokensResponse:
-        user = await self.repo.get_by_email(data.email)
-        # Always run bcrypt to prevent timing-based user enumeration
-        password_valid = verify_password(
-            data.password,
-            user.hashed_password if user and user.hashed_password else _DUMMY_HASH,
-        )
-        if not user or not password_valid:
-            raise _unauthorized("INVALID_CREDENTIALS", "Invalid email or password")
+    async def login(self, data: LoginRequest) -> SignInResult:
+        """Email + password. Wrong answers are the same for an unknown email and a
+        wrong password (and take as long: a hash is always checked); five in a row
+        lock password sign-in for that email for 15 minutes, account or not."""
+        email = data.email.strip().lower()
+        left = await guard.locked_for(email)
+        if left:
+            raise locked_error(left)
+        user = await self.repo.get_by_email(email)
+        stored = user.hashed_password if user and user.hashed_password else passwords.DUMMY_HASH
+        valid = passwords.verify_password(data.password, stored) and user is not None and bool(user.hashed_password)
+        if not valid:
+            locked = await guard.failure(email)
+            if user is not None:
+                events.record_later(user.id, "auth.sign_in_failed", method="password")
+                if locked:
+                    events.record_later(user.id, "auth.locked", minutes=locked // 60)
+            if locked:
+                raise locked_error(locked)
+            raise _unauthorized("INVALID_CREDENTIALS",
+                                "That email and password don't match. Try again, or sign in with an email code.")
+        assert user is not None
+        await guard.clear(email)
         self._require_active(user)
+        if passwords.needs_rehash(user.hashed_password):
+            # bcrypt (or older Argon2 settings) -> Argon2id, now that we have the password.
+            user = await self.repo.update(user.id, hashed_password=passwords.hash_password(data.password)) or user
+            logger.info("password_rehashed", user_id=str(user.id))
         logger.info("user_logged_in", user_id=str(user.id), method="password")
-        return await issue_tokens(self.db, user)
+        return await finish_sign_in(self.db, user, "password")
 
-    async def phone_sign_in(self, data: PhoneSignInRequest) -> AuthTokensResponse:
+    async def phone_sign_in(self, data: PhoneSignInRequest) -> SignInResult:
         """Sign in with an SMS code; creates a customer account for a new number."""
         country = await countries.require_open(self.db, data.country)
         countries.require_phone_in(country, data.phone)
@@ -186,13 +116,16 @@ class AuthService:
                 preferred_locale=country.default_locale,
                 is_phone_verified=True,
             )
+            # TODO(F10): record_acceptance(db, user.id, country.code, kinds=("terms", "privacy")) once
+            # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
+            await events.record(self.db, user.id, "auth.signed_up", method="phone")
             logger.info("user_registered", user_id=str(user.id), method="phone")
         else:
             self._require_active(user)
             if not user.is_phone_verified:
                 user = await self.repo.update(user.id, is_phone_verified=True) or user
         logger.info("user_logged_in", user_id=str(user.id), method="phone")
-        return await issue_tokens(self.db, user, is_new_user=is_new)
+        return await finish_sign_in(self.db, user, "phone", is_new_user=is_new)
 
     async def refresh(self, refresh_token: str) -> AuthTokensResponse:
         try:
@@ -217,7 +150,14 @@ class AuthService:
         user = await self.repo.get_by_id(uuid.UUID(user_id))
         if not user or not user.is_active:
             raise _unauthorized("USER_INACTIVE", "User not found or inactive")
-        return await issue_tokens(self.db, user, family=family)
+        mfa = payload.get("mfa") is True
+        if not mfa and await requires_mfa(self.db, user):
+            # A session from before two-step sign-in (or before admin roles were
+            # granted): the second step is needed now.
+            await redis.delete(refresh_family_key(user_id, family))
+            await redis.srem(refresh_families_key(user_id), family)
+            raise _unauthorized("MFA_REQUIRED", "Sign in again with your authenticator code")
+        return await issue_tokens(self.db, user, family=family, mfa=mfa)
 
     async def logout(self, access_token: str, user_id: str) -> None:
         await blacklist_access_token(access_token)
@@ -240,21 +180,24 @@ class AuthService:
         return language_for(country.default_locale)
 
     async def reset_password(self, data: ResetPasswordRequest) -> None:
-        """Verify the OTP, set a new password, and revoke existing sessions."""
-        if not await verify_otp(data.phone, data.otp):
+        """Choose a new password by proving the phone with its code; ends every session."""
+        user = await self.repo.get_by_phone(data.phone)
+        try:
+            await passwords.validate_new_password(data.new_password, email=user.email if user else None)
+        except passwords.PasswordRejected as e:
+            raise rejected(e) from e
+        if not await verify_otp(data.phone, data.otp) or user is None or not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "OTP_INVALID", "message": "Invalid or expired OTP"},
+                detail={"code": "OTP_INVALID", "message": "Invalid or expired code"},
             )
-        user = await self.repo.get_by_phone(data.phone)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"code": "USER_NOT_FOUND", "message": "No account found for this phone number"},
-            )
-        await self.repo.update(user.id, hashed_password=hash_password(data.new_password))
+        await self.repo.update(user.id, hashed_password=passwords.hash_password(data.new_password),
+                               password_changed_at=datetime.now(UTC))
         await revoke_all_sessions(str(user.id))
-        logger.info("password_reset", user_id=str(user.id))
+        if user.email:
+            await guard.clear(user.email)
+        await events.record(self.db, user.id, "auth.password_reset", method="phone")
+        logger.info("password_reset", user_id=str(user.id), method="phone")
 
     async def verify_otp_and_update(self, data: OtpVerifyRequest) -> bool:
         verified = await verify_otp(data.phone, data.otp)
@@ -264,7 +207,7 @@ class AuthService:
                 await self.repo.update(user.id, is_phone_verified=True)
         return verified
 
-    async def social_login(self, data: SocialLoginRequest) -> AuthTokensResponse:
+    async def social_login(self, data: SocialLoginRequest) -> SignInResult:
         """Sign in with Apple or Google: verify the provider's ID token, then
         find the account by provider id, or by a *verified* email, or create one."""
         audiences = (
@@ -283,7 +226,14 @@ class AuthService:
             # Link to an existing account only when the provider vouches for the email.
             user = await self.repo.get_by_email(ident.email)
             if user is not None:
-                user = await self.repo.update(user.id, **{id_field: ident.subject}) or user
+                changes: dict = {id_field: ident.subject}
+                if not user.is_verified:
+                    # Nobody proved this mailbox before: a password set by whoever made the
+                    # account (maybe not the mailbox's owner) must not survive the link.
+                    changes.update(is_verified=True, hashed_password=None)
+                    await revoke_all_sessions(str(user.id))
+                    await events.record(self.db, user.id, "auth.email_verified", method=data.provider)
+                user = await self.repo.update(user.id, **changes) or user
         if user is None:
             country = await countries.require_open(self.db, data.country)
             user = await self.repo.create(
@@ -296,10 +246,13 @@ class AuthService:
                 is_verified=ident.email_verified,
                 **{id_field: ident.subject},
             )
+            # TODO(F10): record_acceptance(db, user.id, country.code, kinds=("terms", "privacy")) once
+            # core_api.modules.legal lands on dev (legal acceptance contract, Round 8 brief).
+            await events.record(self.db, user.id, "auth.signed_up", method=data.provider)
             is_new = True
         self._require_active(user)
         logger.info("user_logged_in", user_id=str(user.id), method=data.provider)
-        return await issue_tokens(self.db, user, is_new_user=is_new)
+        return await finish_sign_in(self.db, user, data.provider, is_new_user=is_new)
 
     async def delete_account(self, user: User, access_token: str | None = None) -> None:
         """Account deletion (app store requirement, GDPR/DPDP): remove personal
@@ -319,7 +272,11 @@ class AuthService:
             is_active=False,
             is_verified=False,
             is_phone_verified=False,
+            totp_secret=None,
+            totp_enabled_at=None,
+            totp_last_step=None,
         )
+        await self.db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
         await AdminRoleRepository(self.db).delete_for_user(user.id)
         await self.db.execute(delete(Address).where(Address.user_id == user.id))
         # Saved cards, favourites and preferences go; orders and reviews stay

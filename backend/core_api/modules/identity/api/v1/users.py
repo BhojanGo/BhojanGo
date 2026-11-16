@@ -54,18 +54,7 @@ async def update_me(
     if not update_data:
         return UserResponse.model_validate(current_user)
 
-    # Phone uniqueness check
-    if "phone" in update_data:
-        existing = await repo.get_by_phone(update_data["phone"])
-        if existing and existing.id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "PHONE_ALREADY_EXISTS", "message": "Phone number is already in use"},
-            )
-
-    if "phone" in update_data and update_data["phone"] != current_user.phone:
-        update_data["is_phone_verified"] = False  # a new number must be verified by OTP
-
+    # Phone and email change only through /me/phone and /me/email, verified by a code.
     updated = await repo.update(current_user.id, **update_data)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

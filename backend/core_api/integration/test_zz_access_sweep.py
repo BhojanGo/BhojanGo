@@ -22,6 +22,7 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from core_api.modules.identity.tests.signin import login_response
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -99,7 +100,12 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/health"): public("probe"), ("GET", "/health/live"): public("probe"),
     ("GET", "/health/ready"): public("probe"), ("GET", "/metrics"): public("scraped inside the VPC"),
     **{("POST", f"/api/v1/auth/{p}"): public("signing in")
-       for p in ("login", "phone", "refresh", "register", "reset-password", "send-otp", "social-login", "verify-otp")},
+       for p in ("login", "phone", "refresh", "reset-password", "send-otp", "social-login", "verify-otp",
+                 "email/sign-up", "email/code", "email/verify", "password/forgot", "password/reset/check",
+                 "password/reset")},
+    # An admin's second step: the mfa_token from a right password is the proof (service/mfa.py).
+    **{("POST", f"/api/v1/auth/mfa/{p}"): public("signing in: an admin's second step, with the mfa_token")
+       for p in ("verify", "recovery", "enrol/start", "enrol/confirm")},
     ("POST", "/api/v1/finance/stripe/connect/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/fake/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
@@ -145,6 +151,14 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/me/notification-preferences"): user(),
     ("PUT", "/api/v1/me/notification-preferences"): user(body=lambda c: {"offers": {"email": False}}),
     ("GET", "/api/v1/me/export"): user(),
+    # Sign-in and security (Round 8, D5): always the signed-in person's own account.
+    ("GET", "/api/v1/me/security"): user(),
+    ("POST", "/api/v1/me/password"): user(body=lambda c: {"new_password": "Sweep-password-1"}),
+    ("POST", "/api/v1/me/email"): user(body=lambda c: {"email": "sweep@example.com"}),
+    ("POST", "/api/v1/me/email/verify"): user(body=lambda c: {"email": "sweep@example.com", "code": "123456"}),
+    ("POST", "/api/v1/me/phone"): user(body=lambda c: {"phone": "+919000099999", "country": "IN"}),
+    ("POST", "/api/v1/me/phone/verify"): user(body=lambda c: {"phone": "+919000099999", "code": "123456"}),
+    ("POST", "/api/v1/me/mfa/recovery-codes"): user(body=lambda c: {"code": "123456"}),
     ("GET", "/api/v1/wallet/balance"): user(), ("GET", "/api/v1/wallet/transactions"): user(),
     ("POST", "/api/v1/wallet/topup"): user(body=lambda c: {"amount": 1, "currency": "INR", "payment_method_id": "pm_x"}),
     ("POST", "/api/v1/pricing/quote"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c),
@@ -438,7 +452,7 @@ async def _build() -> Ctx:
         tokens = {}
         for name, (email, pw) in ACTORS.items():
             limiter.reset()
-            r = await client.post("/api/v1/auth/login", json={"email": email, "password": pw})
+            r = await login_response(client, email, pw)
             assert r.status_code == 200, (email, r.text)
             tokens[name] = {"Authorization": f"Bearer {r.json()['access_token']}", "_id": r.json()["user"]["id"]}
         c = Ctx(tokens)
@@ -566,6 +580,21 @@ async def test_wrong_role_or_someone_elses_resource_is_refused(client: AsyncClie
                                                                actor: str) -> None:
     r = await call(client, ctx, method, path, actor)
     assert r.status_code in REFUSED, f"{method} {path} as {actor} → {r.status_code} {r.text[:300]}"
+
+
+ADMIN_ROUTES = [k for k, p in POLICY.items() if p.kind == "admin"]
+
+
+@pytest.mark.parametrize(("method", "path"), ADMIN_ROUTES, ids=[f"{m} {p}" for m, p in ADMIN_ROUTES])
+async def test_admin_routes_need_the_second_step(client: AsyncClient, ctx: Ctx, method: str, path: str) -> None:
+    """Round 8 D5: an admin's token made without the second step (e.g. one from before
+    two-step sign-in shipped) opens no admin route, whatever roles it names."""
+    from core_api.modules.identity.service.security import create_access_token
+
+    token, _ = create_access_token(ctx.tokens["ops_hyd"]["_id"], "ops.hyd@example.com", "admin", "IN",
+                                   ["city_ops@IN-TG-HYD", "super_admin@*"], mfa=False)
+    r = await call(client, ctx, method, path, None, headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code in REFUSED, f"{method} {path} without the second step → {r.status_code} {r.text[:200]}"
 
 
 def test_public_routes_are_deliberate() -> None:

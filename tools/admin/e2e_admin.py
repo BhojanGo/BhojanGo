@@ -32,7 +32,7 @@ ensure_safe_api(CORE)
 PASSWORDS: dict[str, str] = {}
 if os.environ.get("E2E_LOGINS_FILE"):
     with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
-        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) == 4}
+        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) >= 4}
 results: list[tuple[str, bool, str]] = []
 
 

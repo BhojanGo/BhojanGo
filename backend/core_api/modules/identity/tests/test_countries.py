@@ -20,8 +20,8 @@ async def test_a_draft_or_unknown_country_is_refused(client: AsyncClient) -> Non
     for country in ("FR", "ZZ"):
         r = await client.post("/api/v1/auth/send-otp", json={"phone": "+33612345678", "country": country})
         assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text
-        r = await client.post("/api/v1/auth/register", json={
-            "email": f"x.{country.lower()}@example.com", "password": "SecurePass1", "full_name": "Test User",
+        r = await client.post("/api/v1/auth/email/sign-up", json={
+            "email": f"x.{country.lower()}@example.com", "password": "Long-enough-pass1", "full_name": "Test User",
             "country": country})
         assert r.status_code == 422, r.text
 
@@ -33,17 +33,16 @@ async def test_a_phone_number_must_carry_its_countrys_code(client: AsyncClient) 
     assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_COUNTRY_MISMATCH", r.text
 
 
-async def test_register_currency_must_be_one_we_charge_in(client: AsyncClient) -> None:
-    base = {"password": "SecurePass1", "full_name": "Test User", "country": "IN"}
-    r = await client.post("/api/v1/auth/register", json={**base, "email": "eur@example.com", "preferred_currency": "EUR"})
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "CURRENCY_NOT_AVAILABLE", r.text
-    r = await client.post("/api/v1/auth/register", json={**base, "email": "inr@example.com", "preferred_currency": "INR"})
-    assert r.status_code == 201, r.text
+async def test_email_sign_up_takes_currency_and_language_from_the_country(client: AsyncClient) -> None:
+    from core_api.modules.identity.tests.signin import email_sign_up
+
+    u = (await email_sign_up(client, "inr@example.com", country="IN"))["user"]
+    assert (u["country"], u["preferred_currency"], u["preferred_locale"]) == ("IN", "INR", "en-IN")
 
 
 async def test_openapi_types_country_and_currency_as_strings(client: AsyncClient) -> None:
     schemas = (await client.get("/openapi.json")).json()["components"]["schemas"]
-    for name, field in (("OtpSendRequest", "country"), ("PhoneSignInRequest", "country"), ("RegisterRequest", "country"),
-                        ("RegisterRequest", "preferred_currency"), ("RestaurantCreateRequest", "currency")):
+    for name, field in (("OtpSendRequest", "country"), ("PhoneSignInRequest", "country"), ("EmailSignUpRequest", "country"),
+                        ("RestaurantCreateRequest", "currency")):
         prop = schemas[name]["properties"][field]
         assert prop.get("type") == "string" and "enum" not in prop, (name, field, prop)

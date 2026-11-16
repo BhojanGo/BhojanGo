@@ -134,7 +134,7 @@ def main() -> int:
     passwords: dict[str, str] = {}
     if os.environ.get("E2E_LOGINS_FILE"):
         with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as f:
-            passwords = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in f) if len(r) == 4}
+            passwords = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in f) if len(r) >= 4}
 
     failures: list[str] = []
     pages = 0

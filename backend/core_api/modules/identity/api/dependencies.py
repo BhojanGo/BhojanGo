@@ -84,6 +84,7 @@ class AdminContext:
 
 async def get_admin(
     current_user: Annotated[User, Depends(get_current_active_user)],
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> AdminContext:
     from core_api.modules.identity.repository.admin_role import AdminRoleRepository
@@ -91,6 +92,15 @@ async def get_admin(
     rows = await AdminRoleRepository(db).for_user(current_user.id)
     if not rows:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    # Admin rights need a session that passed the second step (service/mfa.py): a
+    # token from before (or from before the roles were granted) doesn't count.
+    try:
+        mfa = decode_token(credentials.credentials).get("mfa") is True
+    except InvalidTokenError:
+        mfa = False
+    if not mfa:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail={"code": "MFA_REQUIRED", "message": "Sign in again with your authenticator code"})
     return AdminContext(current_user, [authz.Assignment(r.role, r.scope) for r in rows])
 
 

@@ -29,7 +29,7 @@ ROLES = {"customer": ("customer", []), "other_customer": ("customer", []), "part
 def token(actor: str) -> dict:
     role, adm = ROLES[actor]
     now = int(time.time())
-    t = encode_jwt({"sub": IDS[actor], "type": "access", "role": role, "country": "IN", "adm": adm,
+    t = encode_jwt({"sub": IDS[actor], "type": "access", "role": role, "country": "IN", "adm": adm, "mfa": True,
                     "iat": now, "exp": now + 900})
     return {"Authorization": f"Bearer {t}"}
 

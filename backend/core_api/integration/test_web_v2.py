@@ -9,6 +9,7 @@ import string
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from core_api.modules.identity.tests.signin import login_response
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -33,7 +34,7 @@ async def client():  # type: ignore[no-untyped-def]
 
 
 async def admin(client: AsyncClient) -> dict:
-    r = await client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": ADMIN_PW})
+    r = await login_response(client, "admin@example.com", ADMIN_PW)
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 

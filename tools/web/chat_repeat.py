@@ -76,7 +76,10 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def login(email: str, password: str = "BhojanGo123") -> dict:
-    return api("POST", "/auth/login", None, {"email": email, "password": password})
+    from totp_signin import finish  # admins: the second step (seed key)
+
+    return finish(lambda path, data: api("POST", path, None, data), email,
+                  api("POST", "/auth/login", None, {"email": email, "password": password}))
 
 
 def sub(token: str) -> str:

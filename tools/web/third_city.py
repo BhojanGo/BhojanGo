@@ -159,7 +159,10 @@ def api(method: str, path: str, token: str | None = None, body: dict | None = No
 
 
 def token(email: str) -> str:
-    return api("POST", "/auth/login", None, {"email": email, "password": ADMIN_PASSWORD})["access_token"]  # type: ignore[index]
+    from totp_signin import finish  # admins: the second step (seed key)
+
+    body = api("POST", "/auth/login", None, {"email": email, "password": ADMIN_PASSWORD})
+    return finish(lambda path, data: api("POST", path, None, data), email, body)["access_token"]  # type: ignore[index, arg-type]
 
 
 def country_summary(code: str) -> dict:
