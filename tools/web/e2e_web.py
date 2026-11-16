@@ -16,7 +16,8 @@ the fake payment provider, tracking to "delivered" (kitchen, ops and rider via
 their APIs), the account area (orders, receipt, PDF, order again, report a
 problem, addresses, a test card, notifications, data export, favourites), the
 receipt seen from a browser in a US time zone (the order's city time, not the device's), no
-marketing when signed in, a US kitchen in dollars, SEO files and headers, and
+marketing when signed in, a US kitchen in dollars, Deliver with BhojanGo (/deliver: each seed
+city's real pay and requirements; locally, signing up a new phone), SEO files and headers, and
 no sideways scroll at 390 px, and only the type scale's font sizes on the
 kitchen page, home, receipt and (at 390) checkout (font_sizes.py).
 """
@@ -1043,6 +1044,63 @@ with sync_playwright() as p:
         expect(us_bill.get_by_text(re.compile(r"^\$\d+\.\d{2}$")).first).to_be_visible(),
         expect(us_bill.get_by_text("₹")).to_have_count(0)))
     shot(us, "20-us-checkout")
+
+    # ── Deliver with BhojanGo (/deliver, R8 F8): real pay for each seed city ───
+    symbols = {"INR": "₹", "USD": "$"}  # the test may know the seed's currencies
+
+    def whole(v: str) -> str:
+        return v[:-3] if v.endswith(".00") else v
+
+    dl = b.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    for code in ("IN-TG-HYD", "US-ID-BOI"):
+        terms = api("GET", f"/delivery/terms?city={code}")
+
+        def deliver_page(code: str = code, terms: dict = terms) -> None:
+            dl.goto(f"{base}/deliver?city={code}", wait_until="networkidle")
+            sym = symbols[terms["currency"]]
+            expect(dl.get_by_role("heading", level=1)).to_have_text("Deliver from local kitchens, on your own hours")
+            expect(dl.get_by_test_id("pay-cards")).to_have_attribute("data-city", code)
+            expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['total'])}")
+            expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['base'])}")
+            expect(dl.get_by_test_id("pay-floor")).to_contain_text(f"{sym}{whole(terms['hourly_floor'])} an hour")
+            expect(dl.get_by_test_id("pay-tips")).to_contain_text("100%")
+            expect(dl.get_by_test_id("pay-weekly")).to_contain_text("Monday")
+            expect(dl.get_by_test_id("requirements")).to_have_attribute("data-country", terms["country"])
+            for d in terms["requirements"]["papers"]:
+                expect(dl.get_by_test_id("requirements").locator(f'[data-key="{d["key"]}"]')).to_have_count(1)
+            expect(dl.get_by_test_id("no-fee")).to_be_visible()
+            other = "$" if sym == "₹" else "₹"
+            _assert(other not in dl.get_by_test_id("pay-cards").inner_text(), "the other country's money on the page")
+        check(f"/deliver?city={code}: the city's real pay and its country's requirements", deliver_page)
+        shot(dl, f"30-deliver-{code.lower()}")
+
+    def deliver_phone() -> None:
+        m390 = b.new_context(viewport={"width": 390, "height": 844}).new_page()
+        m390.goto(base + "/deliver", wait_until="networkidle")
+        no_sideways_scroll(m390)
+        expect(m390.get_by_test_id("pay-trip")).to_be_visible()
+        m390.screenshot(path=f"{OUT}/31-deliver-phone.png", full_page=True)
+    check("phone width /deliver: no sideways scroll", deliver_phone)
+
+    if not QA_WEB:  # signing up writes an account: local only (tests never write to QA)
+        def deliver_sign_up() -> None:
+            dl.goto(f"{base}/deliver?city=IN-TG-HYD#get-started", wait_until="networkidle")
+            form = dl.get_by_test_id("gs-form")
+            form.get_by_label("Your full name").fill("Kiran Rao")
+            form.get_by_label("Country code").select_option("IN")
+            form.get_by_label("Mobile number").fill(f"90000{random.randint(10000, 99999)}")
+            form.get_by_label("City you'll deliver in").select_option("IN-TG-HYD")
+            form.get_by_role("button", name="Send code").click()
+            dl.get_by_label("6-digit code").fill(OTP)
+            dl.get_by_role("button", name="Verify and sign up").click()
+            done = dl.get_by_test_id("gs-done")
+            expect(done).to_contain_text("You're signed up, Kiran", timeout=20000)
+            expect(done.get_by_test_id("gs-qr")).to_have_attribute("data-url", re.compile(r"/deliver/app\?country=IN$"))
+            shot(dl, "32-deliver-signed-up")
+            done.get_by_test_id("gs-app-link").click()
+            url_is(dl, r"/deliver/app\?country=IN")
+            expect(dl.get_by_test_id("app-not-yet")).to_contain_text("isn't in Google Play or the App Store yet")
+        check("/deliver: get started with a new phone -> a delivery partner account -> the app's QR code", deliver_sign_up)
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")
