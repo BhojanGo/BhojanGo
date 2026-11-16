@@ -1833,7 +1833,11 @@
       "summary": {
         "one": "Corrige {count} campo para continuar.",
         "other": "Corrige {count} campos para continuar."
-      }
+      },
+      "code": "Ese código es incorrecto o ya caducó. Revisa el correo o pide uno nuevo.",
+      "too_many": "Demasiados códigos para este correo. Vuelve a intentarlo en unos minutos.",
+      "password_breached": "Esta contraseña apareció en una filtración de datos. Elige otra.",
+      "password_email": "Elige una contraseña que no sea tu correo."
     },
     "no_country": "Todavía no aceptamos cocinas en tu país. Las cocinas pueden unirse en: {countries}.",
     "unavailable": "No pudimos cargar las ciudades. Actualiza la página o inténtalo en un minuto.",
@@ -1880,6 +1884,12 @@
     "next_email": "Te enviamos un correo para confirmar tu cuenta y contarte lo que sigue.",
     "next_saved": "Pasas directo a tu solicitud. Cada paso se guarda, así que puedes parar y volver cuando quieras.",
     "next_docs": "Ten esto a mano:",
-    "next_review": "Cuando completes todos los pasos, revisamos tu solicitud. Esta página siempre muestra en qué punto está."
+    "next_review": "Cuando completes todos los pasos, revisamos tu solicitud. Esta página siempre muestra en qué punto está.",
+    "code_title": "Revisa tu correo",
+    "code_sent": "Enviamos un código de 6 dígitos a {email} para confirmar que es tuyo. Escríbelo para crear tu cuenta y seguir con tu solicitud. (¿Ya tienes cuenta? El correo te lo dirá: inicia sesión.)",
+    "code_label": "Código de 6 dígitos",
+    "code_submit": "Crear cuenta y continuar",
+    "code_resend": "Enviar un código nuevo",
+    "code_back": "Cambiar mis datos"
   }
 }

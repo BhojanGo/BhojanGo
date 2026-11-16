@@ -982,6 +982,12 @@ with sync_playwright() as p:
     check("/partner form: a short password is refused before sending", lambda: expect(k.get_by_test_id("partner-form-error")).to_have_text("Fix 1 field to continue."))
     form.get_by_label("Password", exact=True).fill("a long enough password")
     form.get_by_role("button", name="Create account and continue").click()
+    # Round 8 (D5): the account is made once the emailed code is entered (@example.com: the fixed code here).
+    check("/partner: a code goes to the email first; no account yet", lambda: (
+        expect(k.get_by_test_id("partner-code")).to_be_visible(timeout=20000),
+        expect(k.get_by_test_id("partner-code")).to_contain_text(email)))
+    k.get_by_label("6-digit code").fill(OTP)
+    k.get_by_test_id("partner-verify").click()
     check("/partner: submitting creates a kitchen partner and continues to business details", lambda: (
         expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "business", timeout=20000),
         expect(k.get_by_text(f"We've emailed {email}")).to_be_visible(),
