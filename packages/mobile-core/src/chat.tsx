@@ -38,14 +38,19 @@ export function useQuickMessages(orderId: string | undefined) {
     c.messages.forEach((m) => seen.current.add(m.id));
     setChat(c);
   }, []);
+  // Fetches can finish out of order (a poll, a status change, a quick message): only
+  // the newest one applies, so an older list never replaces a newer one.
+  const latest = useRef(0);
   const load = useCallback(async () => {
-    if (orderId) apply(await fetchChat(orderId, language));
+    if (!orderId) return;
+    const n = ++latest.current;
+    const c = await fetchChat(orderId, language);
+    if (n === latest.current) apply(c);
   }, [orderId, language, apply]);
 
   useEffect(() => {
     if (!orderId) return;
-    let live = true;
-    fetchChat(orderId, language).then((c) => live && apply(c)).catch(() => undefined);
+    load().catch(() => undefined);
     const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
     ws.onmessage = (e) => {
       const m = JSON.parse(String(e.data)) as {
@@ -73,7 +78,7 @@ export function useQuickMessages(orderId: string | undefined) {
     };
     const poll = setInterval(() => void load(), 30000); // the socket can drop on mobile networks
     return () => {
-      live = false;
+      latest.current++; // a fetch still in flight no longer applies
       clearInterval(poll);
       ws.close();
     };

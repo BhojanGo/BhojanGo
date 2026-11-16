@@ -343,12 +343,17 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
   const seen = useRef(new Set<string>());
   useEffect(() => {
     let alive = true;
-    const refresh = () =>
-      fetchChat(orderId, language).then((c) => {
-        if (!alive || !c) return;
+    // Fetches can finish out of order (a poll, a status change, a quick message): only
+    // the newest one applies, so an older list never replaces a newer one.
+    let latest = 0;
+    const refresh = () => {
+      const n = ++latest;
+      return fetchChat(orderId, language).then((c) => {
+        if (!alive || !c || n !== latest) return;
         c.messages.forEach((m) => seen.current.add(m.id));
         setChat(c);
       });
+    };
     void refresh();
     const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
     ws.onmessage = (e) => {
