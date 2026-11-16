@@ -131,7 +131,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
 
       {/* Get started */}
       <section id="get-started" aria-labelledby="gs-title" className={`${WRAP} scroll-mt-24 pt-12 md:pt-16`}>
-        <div className="grid gap-8 rounded-[28px] bg-[#0C1416] p-5 text-[#F2F5F5] sm:p-8 lg:grid-cols-[1fr_480px] lg:p-12">
+        <div className="grid grid-cols-1 gap-8 rounded-[28px] bg-[#0C1416] p-5 text-[#F2F5F5] sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:p-12">
           <div>
             <h2 id="gs-title" className="m-0 text-h1">{t("deliver_page.gs_title")}</h2>
             <p className="m-0 mt-3 text-body-lg text-[#C4D0D2]">{t("deliver_page.gs_sub")}</p>
