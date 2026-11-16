@@ -22,6 +22,7 @@ ROLES = ("super_admin", "country_manager", "city_ops", "support_agent", "finance
 VIEW = {
     "markets.view", "rules.view", "partners.view", "riders.view", "orders.view",
     "customers.view", "finance.view", "reports.view", "admins.view",
+    "legal.view",  # Content → Legal: every admin reads the Terms and Privacy drafts and versions
 }
 
 PERMISSIONS: dict[str, frozenset[str]] = {
@@ -30,18 +31,20 @@ PERMISSIONS: dict[str, frozenset[str]] = {
         "markets.edit", "rules.edit", "rules.approve", "pricing.simulate",
         "partners.edit", "riders.edit", "orders.edit", "dispatch.edit",
         "customers.edit", "refunds.issue", "admins.grant", "zones.pause",
+        "legal.edit",  # write and publish the country's Terms and Privacy (Content → Legal)
     }),
     "city_ops": frozenset({
         "markets.view", "rules.view", "pricing.simulate", "partners.view", "partners.edit",
         "riders.view", "riders.edit", "orders.view", "orders.edit", "dispatch.edit",
-        "customers.view", "refunds.issue", "reports.view", "zones.pause",
+        "customers.view", "refunds.issue", "reports.view", "zones.pause", "legal.view",
     }),
     "support_agent": frozenset({
         "orders.view", "customers.view", "customers.edit", "refunds.issue", "partners.view", "riders.view",
+        "legal.view",
     }),
     "finance": frozenset({
         "finance.view", "finance.edit", "payouts.approve", "refunds.issue", "rules.view", "pricing.simulate",
-        "rules.approve", "orders.view", "reports.view", "partners.view", "riders.view",
+        "rules.approve", "orders.view", "reports.view", "partners.view", "riders.view", "legal.view",
     }),
     "viewer": frozenset(VIEW - {"admins.view"}),
 }

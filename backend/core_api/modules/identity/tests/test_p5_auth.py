@@ -393,3 +393,54 @@ def test_dev_key_only_in_development_and_test(monkeypatch, env) -> None:
         assert not jwt_keys._has_signing_key()
     finally:
         jwt_keys.signing_key.cache_clear()
+
+
+async def test_new_accounts_accept_the_published_terms_and_privacy(client: AsyncClient, db_session: AsyncSession) -> None:
+    """R8 F10: a new number (phone sign-up) and /auth/register record the current
+    published Terms and Privacy of the country, with where they came from."""
+    from core_api.modules.legal import service as legal
+    from core_api.modules.legal.models import LegalAcceptance
+
+    for country in ("IN", "US"):
+        for kind in ("terms", "privacy"):
+            d = await legal.create_draft(db_session, None, kind=kind, country=country, language="en", title=kind,
+                                         body="## Section\n\nEnough words to publish this document.")
+            await legal.publish(db_session, d, None)
+    await client.post("/api/v1/auth/send-otp", json={"phone": SEED_PHONE_IN, "country": "IN"})
+    r = await client.post("/api/v1/auth/phone", json={"phone": SEED_PHONE_IN, "otp": "123456", "country": "IN"},
+                          headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0)"})
+    uid = uuid.UUID(r.json()["user"]["id"])
+    rows = (await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()
+    assert sorted((a.kind, a.country, a.version, a.source) for a in rows) == [("privacy", "IN", 1, "web"), ("terms", "IN", 1, "web")]
+    # Signing in again doesn't add more.
+    await client.post("/api/v1/auth/send-otp", json={"phone": SEED_PHONE_IN, "country": "IN"})
+    await client.post("/api/v1/auth/phone", json={"phone": SEED_PHONE_IN, "otp": "123456", "country": "IN"})
+    assert len((await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()) == 2
+
+    r = await client.post("/api/v1/auth/register", headers={"User-Agent": "okhttp/4.12.0"}, json={
+        "email": "legal.f10@bhojango.com", "password": "Str0ngPassw0rd!", "full_name": "Legal Test", "country": "US",
+        "preferred_currency": "USD", "preferred_locale": "en-US"})
+    assert r.status_code == 201, r.text
+    uid = uuid.UUID(r.json()["user"]["id"])
+    rows = (await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()
+    assert sorted((a.kind, a.country, a.source) for a in rows) == [("privacy", "US", "app"), ("terms", "US", "app")]
+
+
+async def test_social_first_sign_in_accepts_the_terms_once(client: AsyncClient, db_session: AsyncSession, provider_keys) -> None:
+    """R8 F10: the first Google/Apple sign-in creates the account and records the
+    country's published Terms and Privacy; signing in again adds nothing."""
+    from core_api.modules.legal import service as legal
+    from core_api.modules.legal.models import LegalAcceptance
+
+    for kind in ("terms", "privacy"):
+        d = await legal.create_draft(db_session, None, kind=kind, country="US", language="en", title=kind,
+                                     body="## Section\n\nEnough words to publish this document.")
+        await legal.publish(db_session, d, None)
+    token = id_token("google", "g-legal", email="legal.social@example.com", verified=True, aud="google-web-client")
+    r = await client.post("/api/v1/auth/social-login", json={"provider": "google", "token": token, "country": "US"},
+                          headers={"User-Agent": "Mozilla/5.0"})
+    assert r.status_code == 200 and r.json()["is_new_user"] is True, r.text
+    await client.post("/api/v1/auth/social-login", json={"provider": "google", "token": token, "country": "US"})
+    uid = uuid.UUID(r.json()["user"]["id"])
+    rows = (await db_session.execute(select(LegalAcceptance).where(LegalAcceptance.user_id == uid))).scalars().all()
+    assert sorted((a.kind, a.source) for a in rows) == [("privacy", "web"), ("terms", "web")]

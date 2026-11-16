@@ -56,7 +56,7 @@ export function TabBar({ cityPath }: { cityPath: string | null }) {
   return (
     <>
       <div aria-hidden="true" className="h-[calc(64px+env(safe-area-inset-bottom))] md:hidden" />
-      <nav aria-label={t("tabs.label")} className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E2E7E8] bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav aria-label={t("tabs.label")} className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E2E7E8] bg-white pb-[env(safe-area-inset-bottom)] md:hidden print:hidden">
         <ul className="m-0 grid h-16 list-none grid-cols-4 p-0">
           {tabs.map((x) => {
             const on = x.key === tab;

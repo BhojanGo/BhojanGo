@@ -32,3 +32,14 @@
 :root .maplibregl-ctrl-attrib {
   @apply text-small;
 }
+
+/* Print / Save as PDF (R8 F10: Terms and Privacy). The page chrome hides itself with
+   print:hidden; this keeps the document readable on paper. */
+@media print {
+  @page { margin: 16mm 14mm; }
+  html, body { background: #fff !important; }
+  main { min-height: 0 !important; }
+  .legal-body a { color: inherit; }
+  .legal-body h2, .legal-body h3 { break-after: avoid; page-break-after: avoid; }
+  .legal-body li, .legal-body tr, .legal-body p { break-inside: avoid; page-break-inside: avoid; }
+}

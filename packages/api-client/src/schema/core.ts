@@ -21,6 +21,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/legal/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Documents
+         * @description Every document you can see (drafts, published, superseded), newest first per document.
+         */
+        get: operations["admin_documents_api_v1_admin_legal_documents_get"];
+        put?: never;
+        /**
+         * Admin New Draft
+         * @description Start a draft (a copy of the published version unless a body is sent).
+         */
+        post: operations["admin_new_draft_api_v1_admin_legal_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Document
+         * @description One document in full, with its audit history.
+         */
+        get: operations["admin_document_api_v1_admin_legal_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Admin Discard Draft
+         * @description Throw a draft away (published versions are kept forever).
+         */
+        delete: operations["admin_discard_draft_api_v1_admin_legal_documents__doc_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Admin Edit Draft
+         * @description Edit a draft: title, key points, Markdown body, effective date, what changed.
+         */
+        patch: operations["admin_edit_draft_api_v1_admin_legal_documents__doc_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/legal/documents/{doc_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Publish
+         * @description Publish the draft as the next version; the previous version is superseded
+         *     and stays in the history. Signed-in people see "We updated our Terms" once.
+         */
+        post: operations["admin_publish_api_v1_admin_legal_documents__doc_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/me": {
         parameters: {
             query?: never;
@@ -612,6 +685,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/legal/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current Document
+         * @description The published version for the country (language falls back to English).
+         */
+        get: operations["current_document_api_v1_legal__kind__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/legal/{kind}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Document Versions
+         * @description Every published version, newest first (empty for a country with none).
+         */
+        get: operations["document_versions_api_v1_legal__kind__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/legal/{kind}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Document Version
+         * @description One published version (current or superseded).
+         */
+        get: operations["document_version_api_v1_legal__kind__versions__number__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets": {
         parameters: {
             query?: never;
@@ -1094,6 +1227,46 @@ export interface paths {
         post?: never;
         /** Remove Favourite */
         delete: operations["remove_favourite_api_v1_me_favourites__kind___target_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/legal/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept
+         * @description Accept the current versions of these kinds (dismissing or continuing past the notice).
+         */
+        post: operations["accept_api_v1_me_legal_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/legal/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Pending
+         * @description Documents published since you last accepted them (show "We updated our Terms" once).
+         */
+        get: operations["my_pending_api_v1_me_legal_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4690,6 +4863,267 @@ export interface components {
             /** Zip */
             zip: string;
         };
+        /** LegalAcceptIn */
+        LegalAcceptIn: {
+            /** Kinds */
+            kinds: ("terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms")[];
+        };
+        /** LegalAccepted */
+        LegalAccepted: {
+            /** Kind */
+            kind: string;
+            /** Version */
+            version: number;
+        };
+        /** LegalAdminDetail */
+        LegalAdminDetail: {
+            document: components["schemas"]["LegalAdminDocumentFull"];
+            /** History */
+            history: components["schemas"]["LegalAuditEntry"][];
+        };
+        /** LegalAdminDocument */
+        LegalAdminDocument: {
+            /** Can Edit */
+            can_edit: boolean;
+            /** Country */
+            country: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Effective Date */
+            effective_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key Points */
+            key_points: string[];
+            /** Kind */
+            kind: string;
+            /** Language */
+            language: string;
+            /** Published At */
+            published_at: string | null;
+            /** Status */
+            status: string;
+            /** Summary Of Changes */
+            summary_of_changes: string | null;
+            /** Superseded At */
+            superseded_at: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number | null;
+        };
+        /** LegalAdminDocumentFull */
+        LegalAdminDocumentFull: {
+            /** Body */
+            body: string;
+            /** Can Edit */
+            can_edit: boolean;
+            /** Country */
+            country: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Name */
+            created_by_name: string | null;
+            /** Effective Date */
+            effective_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key Points */
+            key_points: string[];
+            /** Kind */
+            kind: string;
+            /** Language */
+            language: string;
+            /** Published At */
+            published_at: string | null;
+            /** Published By Name */
+            published_by_name: string | null;
+            /** Status */
+            status: string;
+            /** Summary Of Changes */
+            summary_of_changes: string | null;
+            /** Superseded At */
+            superseded_at: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number | null;
+        };
+        /** LegalAuditEntry */
+        LegalAuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** LegalDraftIn */
+        LegalDraftIn: {
+            /** Body */
+            body?: string | null;
+            /** Country */
+            country: string;
+            /** Effective Date */
+            effective_date?: string | null;
+            /** Key Points */
+            key_points?: string[] | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms";
+            /**
+             * Language
+             * @default en
+             */
+            language?: string;
+            /** Summary Of Changes */
+            summary_of_changes?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** LegalDraftPatch */
+        LegalDraftPatch: {
+            /** Body */
+            body?: string | null;
+            /** Effective Date */
+            effective_date?: string | null;
+            /** Key Points */
+            key_points?: string[] | null;
+            /** Summary Of Changes */
+            summary_of_changes?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** LegalHistory */
+        LegalHistory: {
+            /** Available Countries */
+            available_countries: string[];
+            /** Country */
+            country: string;
+            /** Kind */
+            kind: string;
+            /** Language */
+            language: string;
+            /** Versions */
+            versions: components["schemas"]["LegalVersion"][];
+        };
+        /** LegalPage */
+        LegalPage: {
+            /**
+             * Available Countries
+             * @default []
+             */
+            available_countries?: string[];
+            /**
+             * Body
+             * @default
+             */
+            body?: string;
+            /** Country */
+            country: string;
+            /** Current Version */
+            current_version?: number | null;
+            /** Effective Date */
+            effective_date?: string | null;
+            /**
+             * Key Points
+             * @default []
+             */
+            key_points?: string[];
+            /** Kind */
+            kind: string;
+            /** Language */
+            language: string;
+            /** Notice */
+            notice?: string | null;
+            /** Published At */
+            published_at?: string | null;
+            /** Requested Language */
+            requested_language: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "published" | "superseded" | "draft" | "unavailable";
+            /** Summary Of Changes */
+            summary_of_changes?: string | null;
+            /** Superseded At */
+            superseded_at?: string | null;
+            /**
+             * Title
+             * @default
+             */
+            title?: string;
+            /** Version */
+            version?: number | null;
+        };
+        /** LegalPending */
+        LegalPending: {
+            /** Country */
+            country: string;
+            /** Effective Date */
+            effective_date: string | null;
+            /** Kind */
+            kind: string;
+            /** Summary Of Changes */
+            summary_of_changes: string | null;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** LegalVersion */
+        LegalVersion: {
+            /** Effective Date */
+            effective_date: string | null;
+            /** Published At */
+            published_at: string | null;
+            /** Status */
+            status: string;
+            /** Summary Of Changes */
+            summary_of_changes: string | null;
+            /** Superseded At */
+            superseded_at: string | null;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
         /** LicenceIn */
         LicenceIn: {
             /** Document Key */
@@ -7615,6 +8049,198 @@ export interface operations {
             };
         };
     };
+    admin_documents_api_v1_admin_legal_documents_get: {
+        parameters: {
+            query?: {
+                country?: string | null;
+                kind?: ("terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms") | null;
+                language?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAdminDocument"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_new_draft_api_v1_admin_legal_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAdminDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_document_api_v1_admin_legal_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAdminDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_discard_draft_api_v1_admin_legal_documents__doc_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_edit_draft_api_v1_admin_legal_documents__doc_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalDraftPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAdminDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_publish_api_v1_admin_legal_documents__doc_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAdminDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_me_api_v1_admin_me_get: {
         parameters: {
             query?: never;
@@ -8550,6 +9176,112 @@ export interface operations {
             };
         };
     };
+    current_document_api_v1_legal__kind__get: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: string;
+                language?: string;
+            };
+            header?: never;
+            path: {
+                kind: "terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    document_versions_api_v1_legal__kind__versions_get: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: string;
+                language?: string;
+            };
+            header?: never;
+            path: {
+                kind: "terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    document_version_api_v1_legal__kind__versions__number__get: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: string;
+                language?: string;
+            };
+            header?: never;
+            path: {
+                kind: "terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_terms";
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     overview_api_v1_markets_get: {
         parameters: {
             query?: never;
@@ -9401,6 +10133,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_api_v1_me_legal_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalAcceptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalAccepted"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_pending_api_v1_me_legal_pending_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalPending"][];
                 };
             };
         };

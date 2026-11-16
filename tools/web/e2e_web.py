@@ -18,7 +18,9 @@ problem, addresses, a test card, notifications, data export, favourites), the
 receipt seen from a browser in a US time zone (the order's city time, not the device's), no
 marketing when signed in, a US kitchen in dollars, SEO files and headers, and
 no sideways scroll at 390 px, and only the type scale's font sizes on the
-kitchen page, home, receipt and (at 390) checkout (font_sizes.py).
+kitchen page, home, receipt and (at 390) checkout (font_sizes.py); Terms and Privacy per
+country (key points, contents, versions, the draft banner, a country without documents)
+and the "updated policies" notice after an admin publishes a new version (R8 F10).
 """
 import json
 import os
@@ -1043,6 +1045,67 @@ with sync_playwright() as p:
         expect(us_bill.get_by_text(re.compile(r"^\$\d+\.\d{2}$")).first).to_be_visible(),
         expect(us_bill.get_by_text("₹")).to_have_count(0)))
     shot(us, "20-us-checkout")
+
+    # ── Terms and Privacy (R8 F10): per country, published in the admin console ──
+    lp = b.new_context(viewport={"width": 1440, "height": 900}).new_page()
+    lp.goto(f"{base}/terms?country=IN", wait_until="networkidle")
+    check("terms: India's document, key points first, contents from its headings, version and history", lambda: (
+        expect(lp.get_by_role("heading", level=1)).to_have_text("Terms of use"),
+        _assert(lp.get_by_test_id("legal-key-points").get_by_role("listitem").count() >= 3, "key points"),
+        _assert(lp.get_by_test_id("legal-toc").get_by_role("link").count() >= 10, "table of contents"),
+        expect(lp.get_by_test_id("legal-meta")).to_contain_text(re.compile(r"Last updated .+Version \d+")),
+        expect(lp.get_by_test_id("legal-meta").get_by_role("link", name="Version history")).to_be_visible(),
+        expect(lp.get_by_role("button", name="Print / Save as PDF")).to_be_visible()))
+    check("legal pages outside production say Draft: pending legal review", lambda:
+          expect(lp.get_by_test_id("legal-draft-banner")).to_have_text("Draft: pending legal review"))
+    def toc_jumps() -> None:
+        link = lp.get_by_test_id("legal-toc").get_by_role("link", name=re.compile("Cancellations and refunds"))
+        link.click()
+        url_is(lp, r"#cancellations-and-refunds$")
+        expect(lp.get_by_role("heading", name=re.compile("Cancellations and refunds"), level=2)).to_be_in_viewport()
+    check("terms: a contents link goes to its section", toc_jumps)
+    shot(lp, "22-terms-in")
+    lp.goto(f"{base}/privacy?country=IN", wait_until="networkidle")
+    check("privacy (India): the Grievance Officer, data principal rights, nomination", lambda: (
+        expect(lp.get_by_role("heading", name=re.compile("Grievance Officer"), level=2)).to_be_visible(),
+        expect(lp.get_by_text(re.compile("Nominate"))).not_to_have_count(0)))
+    lp.goto(f"{base}/privacy?country=US", wait_until="networkidle")
+    check("privacy (US): state privacy rights and Do Not Sell or Share", lambda: (
+        expect(lp.get_by_role("heading", name="Do Not Sell or Share My Personal Information")).to_be_visible(),
+        expect(lp.get_by_test_id("legal-countries").get_by_role("link", name="India", exact=True)).to_be_visible()))
+    lp.goto(f"{base}/terms/history?country=US", wait_until="networkidle")
+    check("terms: version history with the current version", lambda: (
+        expect(lp.get_by_test_id("legal-history").get_by_text("Current version")).to_be_visible()))
+    lp.goto(f"{base}/terms?country=GB", wait_until="networkidle")
+    check("terms: a country without documents says they're being prepared", lambda: (
+        expect(lp.get_by_test_id("legal-unavailable")).to_contain_text("we're preparing our Terms of use"),
+        expect(lp.get_by_test_id("legal-draft-banner")).to_be_visible(),
+        expect(lp.get_by_role("link", name="India", exact=True).first).to_be_visible()))
+    lp.set_viewport_size({"width": 390, "height": 844})
+    lp.goto(f"{base}/privacy?country=IN", wait_until="networkidle")
+    def phone_contents() -> None:
+        no_sideways_scroll(lp)
+        expect(lp.get_by_test_id("legal-toc")).to_be_hidden()
+        lp.get_by_test_id("legal-toc-mobile").locator("summary").click()
+        expect(lp.get_by_test_id("legal-toc-mobile").get_by_role("link", name=re.compile("Your rights"))).to_be_visible()
+    check("privacy at 390: contents fold open, no sideways scroll", phone_contents)
+    lp.screenshot(path=f"{OUT}/23-privacy-in-phone.png", full_page=False)
+
+    # Publishing a new version: a signed-in customer is told once (here the US privacy notice).
+    def updated_notice() -> None:
+        cm = login("cm.us@example.com", "BhojanGoAdmin1")
+        d = api("POST", "/admin/legal/documents", cm, {"kind": "privacy", "country": "US", "language": "en",
+                                                        "summary_of_changes": f"e2e {RUN}"})["document"]
+        api("POST", f"/admin/legal/documents/{d['id']}/publish", cm)
+        us.goto(base, wait_until="networkidle")
+        notice = us.get_by_test_id("legal-updated-notice")
+        expect(notice).to_contain_text("Privacy notice", timeout=15000)
+        notice.get_by_role("button", name="Got it").click()
+        expect(notice).to_have_count(0)
+        us.reload(wait_until="networkidle")
+        us.wait_for_timeout(1500)
+        expect(us.get_by_test_id("legal-updated-notice")).to_have_count(0)
+    check("updated privacy notice: shown once to a signed-in customer, gone after Got it", updated_notice)
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")

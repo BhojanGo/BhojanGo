@@ -111,6 +111,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/restaurants/by-slug/{slug}"): public("browse: the web's restaurant pages"),
     ("POST", "/api/v1/markets/waitlist"): public("notify me: coming-soon cities and unserved addresses"),
     ("GET", "/api/v1/markets/directory"): public("where we deliver: countries, states, cities (web v2)"),
+    # Terms and Privacy per country (R8 F10): published versions only, never drafts
+    ("GET", "/api/v1/legal/{kind}"): public("the website's /terms and /privacy"),
+    ("GET", "/api/v1/legal/{kind}/versions"): public("the documents' version history"),
+    ("GET", "/api/v1/legal/{kind}/versions/{number}"): public("an older published version"),
     ("GET", "/api/v1/uploads/menu-photo/{owner}/{name}"): public("dish photos the menu shows customers (menu_photo uploads only)"),
     ("GET", "/api/v1/markets/cities/{country}/{slug}"): public("a city's public page (web v2)"),
     ("GET", "/api/v1/markets/areas"): public("the address box: find an area by name"),
@@ -145,6 +149,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/me/notification-preferences"): user(),
     ("PUT", "/api/v1/me/notification-preferences"): user(body=lambda c: {"offers": {"email": False}}),
     ("GET", "/api/v1/me/export"): user(),
+    # "We updated our Terms" (R8 F10): your own acceptances only
+    ("GET", "/api/v1/me/legal/pending"): user(),
+    ("POST", "/api/v1/me/legal/accept"): user(body=lambda c: {"kinds": ["terms"]}),
     ("GET", "/api/v1/wallet/balance"): user(), ("GET", "/api/v1/wallet/transactions"): user(),
     ("POST", "/api/v1/wallet/topup"): user(body=lambda c: {"amount": 1, "currency": "INR", "payment_method_id": "pm_x"}),
     ("POST", "/api/v1/pricing/quote"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c),
@@ -307,6 +314,15 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/markets/zones/{zone_id}/pause"): admin("ops_boi", "cm_us", "viewer", body=lambda c: {"reason": "sweep"}),
     ("POST", "/api/v1/markets/zones/{zone_id}/resume"): admin("ops_boi", "cm_us", "viewer"),
     ("GET", "/api/v1/audit"): admin(),
+    # Content → Legal (R8 F10): every admin reads; country managers edit and publish their country's
+    ("GET", "/api/v1/admin/legal/documents"): admin(),
+    ("GET", "/api/v1/admin/legal/documents/{doc_id}"): admin("ops_boi", "cm_us", "finance_us"),
+    ("POST", "/api/v1/admin/legal/documents"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us",
+                                                    body=lambda c: {"kind": "terms", "country": "IN"}),
+    ("PATCH", "/api/v1/admin/legal/documents/{doc_id}"): admin("viewer", "ops_hyd", "finance_in", "cm_us",
+                                                             body=lambda c: {"title": "Sweep"}),
+    ("POST", "/api/v1/admin/legal/documents/{doc_id}/publish"): admin("viewer", "ops_hyd", "finance_in", "cm_us"),
+    ("DELETE", "/api/v1/admin/legal/documents/{doc_id}"): admin("viewer", "ops_hyd", "finance_in", "cm_us"),
     # admin console (P21): cut to your scopes; another city's scope is refused
     ("GET", "/api/v1/ops/overview"): admin("ops_boi", params=lambda c: {"scope": "IN-TG-HYD"}),
     ("GET", "/api/v1/ops/orders"): admin("ops_boi", "finance_us", params=lambda c: {"scope": "IN-TG-HYD"}),
@@ -358,6 +374,7 @@ class Ctx:
     rider_id: str = ""
     ticket: str = ""
     payment_method: str = ""
+    legal_doc: str = ""
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
@@ -367,6 +384,7 @@ class Ctx:
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
                   "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": str(uuid.UUID(int=9)),
                   "payment_method_id": self.payment_method, "kind": "restaurant", "target_id": self.spice,
+                  "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
@@ -482,6 +500,9 @@ async def _build() -> Ctx:
                 "SELECT d.id, d.file_key FROM rider_documents d JOIN users u ON u.id = d.rider_id "
                 "WHERE u.email = 'rider1.hyd@example.com' AND d.kind = 'licence'"))).one()
             c.rider_doc, c.rider_doc_key = str(row[0]), row[1]
+            c.legal_doc = str((await db.execute(text(  # India's seeded Terms (R8 F10)
+                "SELECT id FROM legal_documents WHERE country = 'IN' AND kind = 'terms' AND language = 'en' "
+                "ORDER BY version DESC NULLS LAST LIMIT 1"))).scalar())
             c.assignment = str((await db.execute(text(
                 "SELECT a.id FROM admin_role_assignments a JOIN users u ON u.id = a.user_id "
                 "WHERE u.email = 'ops.hyd@example.com' LIMIT 1"))).scalar())

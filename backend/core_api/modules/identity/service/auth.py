@@ -35,6 +35,7 @@ from core_api.modules.identity.schemas.user import (
     UserResponse,
 )
 from core_api.modules.identity.service import oidc
+from core_api.modules.legal import service as legal
 from core_api.modules.identity.service.otp import send_otp, verify_otp
 from core_api.modules.identity.service.redis_keys import blacklist_key, refresh_families_key, refresh_family_key
 from core_api.modules.markets.service import countries
@@ -120,7 +121,7 @@ class AuthService:
         self.db = db
         self.repo = UserRepository(db)
 
-    async def register(self, data: RegisterRequest) -> AuthTokensResponse:
+    async def register(self, data: RegisterRequest, client: legal.ClientInfo | None = None) -> AuthTokensResponse:
         country = await countries.require_open(self.db, data.country)
         countries.require_phone_in(country, data.phone)
         await countries.require_known_currency(self.db, data.preferred_currency)
@@ -146,6 +147,7 @@ class AuthService:
             preferred_locale=data.preferred_locale,
         )
         logger.info("user_registered", user_id=str(user.id))
+        await legal.record_acceptance(self.db, user.id, user.country, language=user.preferred_locale, client=client)
         language = language_for(user.preferred_locale)
         await notify.send("email", user.email or "", _welcome_html(user.full_name, language),
                           subject=pick(WELCOME["subject"], language))
@@ -164,7 +166,7 @@ class AuthService:
         logger.info("user_logged_in", user_id=str(user.id), method="password")
         return await issue_tokens(self.db, user)
 
-    async def phone_sign_in(self, data: PhoneSignInRequest) -> AuthTokensResponse:
+    async def phone_sign_in(self, data: PhoneSignInRequest, client: legal.ClientInfo | None = None) -> AuthTokensResponse:
         """Sign in with an SMS code; creates a customer account for a new number."""
         country = await countries.require_open(self.db, data.country)
         countries.require_phone_in(country, data.phone)
@@ -187,6 +189,8 @@ class AuthService:
                 is_phone_verified=True,
             )
             logger.info("user_registered", user_id=str(user.id), method="phone")
+            # Signing in with a new number creates the account: "By continuing you agree to the Terms and Privacy".
+            await legal.record_acceptance(self.db, user.id, user.country, language=user.preferred_locale, client=client)
         else:
             self._require_active(user)
             if not user.is_phone_verified:
@@ -264,7 +268,7 @@ class AuthService:
                 await self.repo.update(user.id, is_phone_verified=True)
         return verified
 
-    async def social_login(self, data: SocialLoginRequest) -> AuthTokensResponse:
+    async def social_login(self, data: SocialLoginRequest, client: legal.ClientInfo | None = None) -> AuthTokensResponse:
         """Sign in with Apple or Google: verify the provider's ID token, then
         find the account by provider id, or by a *verified* email, or create one."""
         audiences = (
@@ -297,6 +301,7 @@ class AuthService:
                 **{id_field: ident.subject},
             )
             is_new = True
+            await legal.record_acceptance(self.db, user.id, user.country, language=user.preferred_locale, client=client)
         self._require_active(user)
         logger.info("user_logged_in", user_id=str(user.id), method=data.provider)
         return await issue_tokens(self.db, user, is_new_user=is_new)

@@ -9,15 +9,16 @@
  */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 
 import { CityPicker } from "@/components/console/CityPicker";
 import { Logo } from "@bhojango/ui";
 import { ROLE_LABELS, useAdminMe, useMarkets } from "@/lib/markets";
 import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 
-/** Sections and the permission that shows each (anywhere in your scopes). */
-const SECTIONS = [
+/** Sections and the permission that shows each (anywhere in your scopes). Sections
+ * with a group are listed under its heading (Content: Help and Legal pages). */
+const SECTIONS: { href: string; label: string; perm: string; group?: string }[] = [
   { href: "/overview", label: "Overview", perm: "orders.view" },
   { href: "/operations", label: "Operations", perm: "orders.view" },
   { href: "/partners", label: "Partners", perm: "partners.view" },
@@ -25,6 +26,7 @@ const SECTIONS = [
   { href: "/markets", label: "Markets", perm: "markets.view" },
   { href: "/finance", label: "Finance", perm: "finance.view" },
   { href: "/settings", label: "Settings", perm: "admins.view" },
+  { href: "/content/legal", label: "Legal", perm: "legal.view", group: "Content" },
 ];
 
 /** "IN-TG-HYD" → { country: "IN", region: "IN-TG", city: "IN-TG-HYD" }; "*" → ALL. */
@@ -137,18 +139,22 @@ export function ConsoleShell({
 
       <div className="flex flex-grow flex-wrap">
         <nav aria-label="Admin sections" className="box-border flex flex-[1_1_248px] flex-col gap-1 border-r border-line bg-white px-4 py-6">
-          {sections.map((s) => {
+          {sections.map((s, i) => {
             const scope = city ?? region ?? (country !== "ALL" ? country : null);
             const href = s.href === "/markets" ? s.href : scope ? `${s.href}?scope=${scope}` : s.href;
+            const heading = s.group && s.group !== sections[i - 1]?.group;
             return (
-              <Link key={s.href} href={href} aria-current={s.label === section ? "page" : undefined}
-                className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
-                {s.label}
-              </Link>
+              <Fragment key={s.href}>
+                {heading ? <p className="mb-1 mt-4 px-4 text-caption text-muted">{s.group}</p> : null}
+                <Link href={href} aria-current={s.label === section ? "page" : undefined}
+                  className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
+                  {s.label}
+                </Link>
+              </Fragment>
             );
           })}
         </nav>
-        <main className="box-border min-w-0 flex-[999_1_560px] p-4 sm:p-8">
+        <main className="box-border min-w-0 flex-[999_1_320px] p-4 sm:p-8">
           <div className="flex max-w-[1280px] flex-col gap-6">{children}</div>
         </main>
       </div>

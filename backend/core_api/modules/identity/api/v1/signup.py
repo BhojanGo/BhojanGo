@@ -15,7 +15,7 @@ import re
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.schemas.user import AuthTokensResponse
 from core_api.modules.identity.service.auth import issue_tokens
+from core_api.modules.legal import service as legal
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
 from shared.db import get_db
 
@@ -84,13 +85,16 @@ async def _switch(db: AsyncSession, me: CurrentUser, to: str) -> User:
 
 
 @router.post("/riders/apply", response_model=AuthTokensResponse)
-async def rider_apply(data: RiderApply, me: Me, db: DB) -> AuthTokensResponse:
+async def rider_apply(data: RiderApply, request: Request, me: Me, db: DB) -> AuthTokensResponse:
     """Become a rider applicant: then the onboarding checklist (licence, insurance,
     payout account, background check). Admins review in Partners → Rider documents."""
     _, _, country = await _city(db, data.city_code)
     user = await _switch(db, me, "driver")
     user.full_name, user.country = data.full_name.strip(), country.code
     await db.flush()
+    # Applying is agreeing to the Terms, Privacy and (once the country publishes them) the delivery partner terms.
+    await legal.record_acceptance(db, user.id, country.code, legal.ROLE_KINDS["driver"], language=user.preferred_locale,
+                                  client=legal.client_info(request))
     await db.refresh(user)  # updated_at is set by the database
     return await issue_tokens(db, user)
 
@@ -101,7 +105,7 @@ def _slug(name: str, area: str) -> str:
 
 
 @router.post("/restaurants/apply", response_model=KitchenApplied, status_code=status.HTTP_201_CREATED)
-async def kitchen_apply(data: KitchenApply, me: Me, db: DB) -> KitchenApplied:
+async def kitchen_apply(data: KitchenApply, request: Request, me: Me, db: DB) -> KitchenApplied:
     """Apply with a kitchen: it's created pending approval and the partner
     application (FSSAI, GST and bank, menu) follows. Admins approve it in
     Partners → Applications."""
@@ -133,6 +137,8 @@ async def kitchen_apply(data: KitchenApply, me: Me, db: DB) -> KitchenApplied:
         r.commission_rate = commission_percent(rate.template, rate.params, None) / 100
     db.add(r)
     await db.flush()
+    await legal.record_acceptance(db, user.id, country.code, legal.ROLE_KINDS["restaurant_owner"],
+                                  language=user.preferred_locale, client=legal.client_info(request))
     await db.refresh(user)
     tokens = await issue_tokens(db, user)
     return KitchenApplied(**tokens.model_dump(), restaurant_id=str(r.id))

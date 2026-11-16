@@ -93,3 +93,48 @@ export async function authProviders(): Promise<{ google?: { client_id: string } 
 export const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://bhojango.com";
 /** Search engines index production only (APP_ENV=production); QA, staging and local are noindex. */
 export const INDEXABLE = process.env.APP_ENV === "production";
+
+// ── Terms and Privacy (R8 F10): admin-managed, per country, versioned ─────────
+export type LegalKind = "terms" | "privacy";
+export interface LegalPage {
+  kind: string;
+  country: string;
+  status: "published" | "superseded" | "draft" | "unavailable";
+  language: string;
+  requested_language: string;
+  version?: number | null;
+  current_version?: number | null;
+  title: string;
+  key_points: string[];
+  body: string;
+  effective_date?: string | null;
+  published_at?: string | null;
+  superseded_at?: string | null;
+  summary_of_changes?: string | null;
+  available_countries: string[];
+  notice?: string | null;
+}
+export interface LegalHistory {
+  kind: string;
+  country: string;
+  language: string;
+  versions: { version: number; status: string; title: string; effective_date?: string | null; published_at?: string | null;
+    superseded_at?: string | null; summary_of_changes?: string | null }[];
+  available_countries: string[];
+}
+
+const legalQuery = (country: string, language: string) =>
+  `country=${encodeURIComponent(country)}&language=${encodeURIComponent(language)}`;
+
+/** The published document for a country (English when the language has none; status "unavailable" when the country has none). */
+export async function legalDocument(kind: LegalKind, country: string, language: string): Promise<LegalPage | null> {
+  return get<LegalPage>(`/legal/${kind}?${legalQuery(country, language)}`, 60);
+}
+
+export async function legalHistory(kind: LegalKind, country: string, language: string): Promise<LegalHistory | null> {
+  return get<LegalHistory>(`/legal/${kind}/versions?${legalQuery(country, language)}`, 60);
+}
+
+export async function legalVersion(kind: LegalKind, country: string, version: number, language: string): Promise<LegalPage | null> {
+  return get<LegalPage>(`/legal/${kind}/versions/${version}?${legalQuery(country, language)}`, 300);
+}
