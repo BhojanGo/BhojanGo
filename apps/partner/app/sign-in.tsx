@@ -1,21 +1,27 @@
-// Partners sign in with the kitchen's phone number and a code by SMS.
+// Kitchen partners sign in with their email (first: the kitchen's account is an email
+// and a password) or the kitchen's phone and a code by SMS (round 8, D5).
 import {
-  e164, errorMessage, field, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+  e164, EmailSignIn, errorMessage, field, type MarketCountry, PhoneCountryButton, SignInWays, type SignInWay, type, useCountry,
+  useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
+import { useKitchen } from "../lib/data";
 import { Split } from "../lib/split";
 import { Btn, color, radius, t } from "../lib/ui";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
+  const signOut = useSession((s) => s.signOut);
+  const loadKitchen = useKitchen((s) => s.load);
   const { t: tr } = useI18n();
   // The phone number's country code (not a site country: there is none to choose): Markets' countries, from the detected one.
   const { country: current, countries } = useCountry();
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
+  const [way, setWay] = useState<SignInWay>("email");
   const [number, setNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,20 +42,46 @@ export default function SignIn() {
     }
   }
 
+  // Signed in by email: a new account applies with a kitchen; only kitchen accounts get in.
+  async function signedIn() {
+    const role = useSession.getState().user?.role;
+    if (role === "customer") {
+      router.replace("/join");
+      return;
+    }
+    if (role !== "restaurant_owner") {
+      await signOut();
+      setError(tr("partner.code.wrong_account"));
+      return;
+    }
+    await loadKitchen();
+    router.replace("/");
+  }
+
   return (
     <Split>
       <Text testID="sign-in-title" accessibilityRole="header" style={t.big}>{tr("partner.sign_in.title")}</Text>
-      <Text style={t.muted}>{tr("partner.sign_in.sub")}</Text>
-      <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.sign_in.mobile")}</Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <PhoneCountryButton value={country} onChange={setPicked} />
-        <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
-          placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
-          style={[field.bodyLg, s.number]} />
-      </View>
-      {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
-      <Btn testID="send-code" title={tr("partner.sign_in.send")} kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
-      <Text style={t.muted}>{tr("partner.sign_in.new")}</Text>
+      <SignInWays value={way} onChange={(w) => { setWay(w); setError(null); }} order={["email", "phone"]} />
+      {way === "email" ? (
+        <>
+          <EmailSignIn country={country?.code ?? null} onSignedIn={() => void signedIn()} />
+          {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
+        </>
+      ) : (
+        <>
+          <Text style={t.muted}>{tr("partner.sign_in.sub")}</Text>
+          <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.sign_in.mobile")}</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <PhoneCountryButton value={country} onChange={setPicked} />
+            <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
+              placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
+              style={[field.bodyLg, s.number]} />
+          </View>
+          {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
+          <Btn testID="send-code" title={tr("partner.sign_in.send")} kind="primary" height={56} busy={busy} disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
+          <Text style={t.muted}>{tr("partner.sign_in.new")}</Text>
+        </>
+      )}
     </Split>
   );
 }

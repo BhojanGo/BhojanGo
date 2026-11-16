@@ -14,7 +14,10 @@ export { billTotal } from "@bhojango/ui/bill";
 export { aboveTabBar, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance } from "./tabbar";
 
 // P17: generated API client, session and bag.
-export { api, urls, useSession, wsUrl } from "./session";
+export { AdminAccountError, api, emailAuth, urls, useSession, wsUrl } from "./session";
+// Round 8 (D5): Phone and Email as equal ways in; email + password, email codes, forgot password.
+export { authErrorText, EmailSignIn, SignInWays } from "./ui/signin";
+export type { Way as SignInWay } from "./ui/signin";
 export type { User } from "./session";
 export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.

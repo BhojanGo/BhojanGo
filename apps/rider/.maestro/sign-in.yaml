@@ -11,6 +11,9 @@ appId: com.bhojango.rider
     visible: "Ride on your.*"
     timeout: 120000
 - takeScreenshot: docs/screenshots/rider/01-sign-in
+# Phone is the first tab in the Delivery app (round 8); sign-in-email.yaml does Email.
+- tapOn:
+    id: "way-phone"
 # The phone's country starts from the device's region (Markets countries); step to
 # ${INDIA == "true" ? "IN" : (COUNTRY || "US")} (INDIA=true or COUNTRY=<code>; the US by default).
 - repeat:

@@ -1,10 +1,12 @@
-// Riders sign in with their phone and a code by SMS (dark, like the rest of the app).
+// Delivery partners sign in with their phone and a code by SMS (first), or their email
+// (round 8, D5); dark, like the rest of the app.
 import {
-  e164, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, type, useCountry, useI18n, useSession,
+  e164, EmailSignIn, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, SignInWays, type SignInWay, type,
+  useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RiderMark } from "../lib/icons";
@@ -12,7 +14,9 @@ import { night, radius, space, ui } from "../lib/theme";
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
+  const signOut = useSession((s) => s.signOut);
   const { t } = useI18n();
+  const [way, setWay] = useState<SignInWay>("phone");
   // The phone number's country code (not a site country: there is none to choose): Markets' countries, from the detected one.
   const { country: current, countries } = useCountry();
   const [picked, setPicked] = useState<MarketCountry | null>(null);
@@ -38,9 +42,25 @@ export default function SignIn() {
     }
   }
 
+  // Signed in by email: a new account signs up to deliver; only delivery accounts get in.
+  async function signedIn() {
+    const role = useSession.getState().user?.role;
+    if (role === "customer") {
+      router.replace("/join");
+      return;
+    }
+    if (role !== "driver") {
+      await signOut();
+      setError(t("rider.code.wrong_account"));
+      return;
+    }
+    router.replace("/drive");
+  }
+
   return (
     <SafeAreaView testID="sign-in-screen" style={ui.screen}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.body}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
           <RiderMark />
           <Text style={[ui.bold, { flex: 1 }]}>{t("rider.brand")}</Text>
@@ -48,7 +68,15 @@ export default function SignIn() {
         </View>
         <Text accessibilityRole="header" style={[ui.display, { marginTop: 48 }]}>{t("rider.sign_in.hero")}</Text>
         <Text style={[ui.body, { color: night.muted, marginTop: space[3] }]}>{t("rider.sign_in.sub")}</Text>
-        <View style={{ flex: 1 }} />
+        <View style={{ flex: 1, minHeight: space[6] }} />
+        <SignInWays value={way} onChange={(w) => { setWay(w); setError(null); }} tone="dark" />
+        {way === "email" ? (
+          <>
+            <EmailSignIn country={country?.code ?? null} onSignedIn={() => void signedIn()} tone="dark" buttonVariant="rider" />
+            {error ? <Text accessibilityRole="alert" style={[type.small, { color: night.sosText }]}>{error}</Text> : null}
+          </>
+        ) : (
+        <>
         <Text style={ui.bold}>{t("rider.sign_in.mobile")}</Text>
         <View style={styles.phone}>
           <PhoneCountryButton tone="dark" value={country} onChange={setPicked} style={styles.cc} />
@@ -70,13 +98,16 @@ export default function SignIn() {
           <Text style={ui.ctaText}>{busy ? t("rider.sign_in.sending") : t("rider.sign_in.send")}</Text>
         </Pressable>
         <Text style={[ui.muted, { textAlign: "center" }]}>{t("rider.sign_in.hint")}</Text>
+        </>
+        )}
+      </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, padding: space[5], gap: space[3] },
+  body: { flexGrow: 1, padding: space[5], gap: space[3] },
   brand: { flexDirection: "row", alignItems: "center", gap: 8, height: 44 },
   phone: { flexDirection: "row", gap: space[2] },
   cc: {
