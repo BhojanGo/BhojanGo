@@ -226,7 +226,9 @@
     "suggest_link": "Tell us where you are.",
     "not_listed": "Not on the list? Tell us your city. The most-requested cities open first.",
     "choose_title": "Choose your city",
-    "choose_note": "Prices, kitchens and languages follow the city you pick."
+    "choose_note": "Prices, kitchens and languages follow the city you pick.",
+    "other_countries": "Other countries",
+    "no_match_in": "No city in {country} by that name yet."
   },
   "city": {
     "breadcrumb": "Breadcrumb",
@@ -1562,6 +1564,8 @@
   "location": {
     "label": "Your city",
     "place": "{city}, {country}",
-    "change_city": "Change city"
+    "change_city": "Change city",
+    "set": "Set your delivery location",
+    "delivers_here": "We deliver here"
   }
 }

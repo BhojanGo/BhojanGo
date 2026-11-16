@@ -176,6 +176,23 @@ def type_scale_only(page) -> None:  # type: ignore[no-untyped-def]
     _assert(not bad, f"{len(bad)} off the scale: " + "; ".join(bad[:4]))
 
 
+def no_sideways_scroll_at(page, width: int) -> None:  # type: ignore[no-untyped-def]
+    w = page.evaluate("document.documentElement.scrollWidth")
+    assert w <= width + 2, f"page is {w}px wide at {width}"
+
+
+HINT_NONE = {"country": None, "place": None, "region": None, "region_code": None, "city_code": None, "city_name": None,
+             "city_path": None, "served": False}
+
+
+def fake_hint(ctx, hint: dict) -> None:  # type: ignore[no-untyped-def]
+    """The browser's GET /markets/hint answers `hint` (the visitor's IP place), so the run doesn't depend on
+    where the test machine is (QA has GeoIP on; make dev has none)."""
+    body = json.dumps({**HINT_NONE, **hint})
+    ctx.route(re.compile(r".*/api/v1/markets/hint$"), lambda route: route.fulfill(
+        status=200, content_type="application/json", body=body, headers={"Access-Control-Allow-Origin": "*"}))
+
+
 def url_is(page, pattern: str, timeout: int = 20000) -> None:  # type: ignore[no-untyped-def]
     """Client-side navigations (router.push) never fire "load": wait on the URL itself."""
     expect(page).to_have_url(re.compile(pattern), timeout=timeout)
@@ -209,6 +226,7 @@ with sync_playwright() as p:
 
     # ── First visit: no address, no account ───────────────────────────────────
     ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    fake_hint(ctx, {})  # an IP we can't place
     page = ctx.new_page()
     page.goto(base, wait_until="networkidle")
     directory = api("GET", "/markets/directory")
@@ -219,8 +237,22 @@ with sync_playwright() as p:
     check("landing: hero with the address box, no address yet", lambda: (
         expect(page.get_by_role("heading", name="Real food. Fair prices.", level=1)).to_be_visible(),
         expect(page.get_by_role("combobox", name="Delivery address")).to_be_visible(),
-        expect(page.get_by_role("button", name="Find food")).to_be_visible(),
-        expect(page.get_by_role("img", name=re.compile(r"^Kitchen \d+%"))).to_be_visible()))
+        expect(page.get_by_role("button", name="Find food")).to_be_visible()))
+    # R8: nothing known about the visitor's place -> no city named, no city's kitchens or example bill.
+    check("location line, nothing known: Set your delivery location · Change city; no other city's bill", lambda: (
+        expect(page.get_by_test_id("location-line")).to_have_text("Set your delivery location · Change city"),
+        expect(page.get_by_test_id("location-line")).to_have_attribute("data-source", "none"),
+        expect(page.get_by_test_id("who-gets")).to_have_count(0),
+        expect(page.get_by_role("heading", name="What's cooking near you")).to_have_count(0)))
+
+    def set_location_opens_the_address_box() -> None:
+        page.get_by_test_id("set-location").click()
+        dialog = page.get_by_role("dialog", name="Set your delivery location")
+        expect(dialog).to_be_visible()
+        expect(dialog.get_by_role("combobox", name="Delivery address")).to_be_focused()
+        page.keyboard.press("Escape")
+        expect(dialog).to_have_count(0)
+    check("location line: Set your delivery location opens the address box (Escape closes it)", set_location_opens_the_address_box)
     check("landing: the directory lists every live and coming-soon city from Markets", lambda: (
         _assert(bool(live) and bool(soon), "seed has live and soon cities"),
         [expect(dir_region.get_by_role("link", name=c["name"], exact=True)).to_be_visible() for c in live],
@@ -271,9 +303,12 @@ with sync_playwright() as p:
 
     def choose_city(pg, city: dict) -> None:  # type: ignore[no-untyped-def]
         """The location line's "Change city" -> /cities?choose=1 -> the city -> home."""
-        pg.get_by_test_id("location-line").get_by_role("link").click()
+        pg.get_by_test_id("change-city").click()
         url_is(pg, r"/cities\?choose=1$")
-        pg.locator(f'main a[data-city="{city["code"]}"]').click()
+        card = pg.locator(f'main a[data-city="{city["code"]}"]')
+        if not card.is_visible():  # another country: behind "Other countries"
+            pg.get_by_test_id("other-countries").locator("summary").click()
+        card.click()
         expect(pg.get_by_test_id("location-line")).to_contain_text(city["name"], timeout=15000)
 
     def split_matches_api(pg) -> None:  # type: ignore[no-untyped-def]
@@ -296,7 +331,43 @@ with sync_playwright() as p:
         for txt in card.locator("li[data-payee] b").all_inner_texts():
             _assert(re.fullmatch(r"\d+\s?%", txt.strip()) is not None, txt)
 
+    # Change city (R8): the visitor's country's cities only, a search, other countries behind a disclosure.
+    page.get_by_test_id("change-city").click()
+    url_is(page, r"/cities\?choose=1$")
+    home_cc = page.get_by_test_id("choose-home").get_attribute("data-country")
+    others = page.get_by_test_id("other-countries")
+    home_cities = [c for k in directory["countries"] if k["code"] == home_cc for r in k["regions"] for c in r["cities"]]
+    away_cities = [c for k in directory["countries"] if k["code"] != home_cc for r in k["regions"] for c in r["cities"]]
+
+    def waiting_text(c: dict) -> str:
+        n = c.get("waiting") or 0
+        return "Coming soon" + (f" · {n:,} {'person' if n == 1 else 'people'} waiting" if n > 0 else "")
+
+    def choose_page_country_first() -> None:
+        home = page.get_by_test_id("choose-home")
+        for c in home_cities:
+            card = home.locator(f'a[data-city="{c["code"]}"]')
+            expect(card).to_be_visible()
+            expect(card.locator("img")).to_have_count(1)  # a photo, never an empty box
+            if c["status"] == "soon":
+                expect(card.get_by_test_id("city-status")).to_have_text(waiting_text(c))
+        for c in away_cities:
+            expect(page.locator(f'main a[data-city="{c["code"]}"]')).to_be_hidden()
+        _assert(others.get_attribute("open") is None, "Other countries should start closed")
+    check("change city: only the visitor's country, coming soon with the waiting count, other countries closed", choose_page_country_first)
+
+    def choose_page_search() -> None:
+        box = page.get_by_role("searchbox", name="Search a city or state")
+        box.fill(hyd_city["name"][:4].lower())
+        expect(page.locator('main a[data-city="IN-TG-HYD"]')).to_be_visible()
+        box.fill(boise_city["name"][:3].lower())  # only another country has it: the disclosure opens by itself
+        expect(page.locator('main a[data-city="US-ID-BOI"]')).to_be_visible()
+        box.fill("")
+    check("change city: search filters as you type; a match abroad opens Other countries", choose_page_search)
+    page.goto(base, wait_until="networkidle")
     choose_city(page, hyd_city)
+    check("landing in a served city: the example bill is there", lambda: expect(
+        page.get_by_role("img", name=re.compile(r"^Kitchen \d+%"))).to_be_visible())
     check("location line: Hyderabad, IN · Change city (above the hero)", lambda: (
         expect(page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change city"),
         _assert(cookie(ctx, "bg_city") == "IN-TG-HYD", ctx.cookies()),
@@ -918,6 +989,42 @@ with sync_playwright() as p:
         _assert(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 390 and box["height"] < 600, box)
         anon_phone.keyboard.press("Escape")
     check("phone width: the same language pill (a small dropdown) and the location line", phone_pill_and_line)
+
+    # R8: the IP's own town, shown as itself; "We deliver here" only inside a live zone, and only then that
+    # city's kitchens and example bill. Never the country's first live city.
+    def ip_visit(hint: dict, width: int = 1440):  # type: ignore[no-untyped-def]
+        c = b.new_context(viewport={"width": width, "height": 900})
+        fake_hint(c, hint)
+        pg = c.new_page()
+        pg.goto(base, wait_until="networkidle")
+        expect(pg.get_by_test_id("location-line")).to_have_attribute("data-source", "ip", timeout=15000)  # after the hint's refresh
+        return c, pg
+
+    c_in, pg_in = ip_visit({"country": "US", "place": "Meridian", "region": "Idaho", "region_code": "ID",
+                            "city_code": "US-ID-BOI", "city_name": "Boise", "city_path": "/us/boise", "served": True})
+    check("IP place inside a live zone: Meridian, ID · We deliver here · Change city; Boise's bill in dollars", lambda: (
+        expect(pg_in.get_by_test_id("location-line")).to_have_text("Meridian, ID · We deliver here · Change city"),
+        expect(pg_in.get_by_test_id("who-gets")).to_have_attribute("data-city", "US-ID-BOI"),
+        expect(pg_in.get_by_test_id("who-gets")).to_contain_text("$")))
+    c_in.close()
+    c_out, pg_out = ip_visit({"country": "US", "place": "Challis", "region": "Idaho", "region_code": "ID", "served": False})
+    check("IP place we don't serve: Challis, ID · Set your delivery location; no other city's kitchens or bill", lambda: (
+        expect(pg_out.get_by_test_id("location-line")).to_have_text("Challis, ID · Set your delivery location · Change city"),
+        expect(pg_out.get_by_test_id("who-gets")).to_have_count(0),
+        expect(pg_out.get_by_role("heading", name="What's cooking near you")).to_have_count(0),
+        expect(pg_out.get_by_test_id("landing-hero")).to_have_attribute("src", re.compile(
+            "/food/" + re.escape(hero_of["US"]) + r"-\d+\.webp$"))))  # the IP's country's hero and currency
+    c_out.close()
+
+    # R8: /cities and Change city at 360 px: no sideways scroll (coming-soon cards used to push it)
+    narrow = b.new_context(viewport={"width": 360, "height": 780})
+    fake_hint(narrow, {})
+    nar = narrow.new_page()
+    for path in ("/cities", "/cities?choose=1"):
+        nar.goto(base + path, wait_until="networkidle")
+        check(f"360 px {path}: no sideways scroll", lambda: no_sideways_scroll_at(nar, 360))
+    nar.screenshot(path=f"{OUT}/22-change-city-360.png", full_page=True)
+    narrow.close()
 
     # ── US: Boise in dollars, a US number ─────────────────────────────────────
     us_ctx = b.new_context(viewport={"width": 1440, "height": 900})

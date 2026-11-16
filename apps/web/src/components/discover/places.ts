@@ -22,12 +22,6 @@ export function km(a: { lat: number; lng: number }, b: { lat: number; lng: numbe
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
-/** The first live city of a country (directory order), for examples on the landing page. */
-export function firstLiveCity(dir: Directory, country: string | null | undefined): FlatCity | null {
-  if (!country) return null;
-  return flatCities(dir).find((c) => c.country === country && c.status === "live") ?? null;
-}
-
 /** "2 countries · 2 cities live · 3 coming soon" (plural rules per language). */
 export function totalsLine(t: (k: string, v?: Record<string, string | number>) => string, totals: Directory["totals"]): string {
   return [

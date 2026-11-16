@@ -81,8 +81,37 @@ async def test_areas_find_open_zones_and_soon_cities(client: AsyncClient) -> Non
 
 async def test_hint_without_a_database_is_empty(client: AsyncClient) -> None:
     assert (await client.get("/api/v1/markets/hint")).json() == {
-        "country": None, "place": None, "region": None, "city_code": None, "city_name": None, "city_path": None,
-        "served": False}
+        "country": None, "place": None, "region": None, "region_code": None, "city_code": None, "city_name": None,
+        "city_path": None, "served": False}
+
+
+async def test_hint_names_the_ip_place_served_or_not(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """R8: the IP's own town is shown as itself ("Meridian, ID"); "served" and the city only
+    inside an open zone; a country we don't list names nothing."""
+    from shared import client_ip as cip
+    from shared import geoip
+
+    boise = (await client.get("/api/v1/markets/areas", params={"q": "boise", "country": "US"})).json()
+    inside = next(a for a in boise if a["served"])
+    spots = {
+        "203.0.113.1": geoip.Place("US", "Boise", "Idaho", inside["lat"], inside["lng"]),
+        "203.0.113.2": geoip.Place("US", "Challis", "Idaho", 44.50, -114.23),  # Idaho, far from every zone
+        "203.0.113.3": geoip.Place("GB", "London", "England", 51.5, -0.12),
+    }
+    monkeypatch.setattr(geoip, "lookup", lambda ip: spots.get(ip))
+    monkeypatch.setattr(cip, "client_ip", lambda request: request.headers.get("x-test-ip", ""))
+
+    def at(ip: str) -> dict:
+        return {"x-test-ip": ip}
+
+    served = (await client.get("/api/v1/markets/hint", headers=at("203.0.113.1"))).json()
+    assert served["place"] == "Boise" and served["region_code"] == "ID" and served["served"] is True
+    assert served["city_code"] == inside["city_code"] and served["city_path"] == inside["city_path"]
+    away = (await client.get("/api/v1/markets/hint", headers=at("203.0.113.2"))).json()
+    assert away["country"] == "US" and away["place"] == "Challis" and away["region_code"] == "ID"
+    assert away["served"] is False and away["city_code"] is None and away["city_path"] is None
+    abroad = (await client.get("/api/v1/markets/hint", headers=at("203.0.113.3"))).json()
+    assert abroad["country"] is None and abroad["place"] is None and abroad["served"] is False
 
 
 async def test_waitlist_and_demand(client: AsyncClient) -> None:

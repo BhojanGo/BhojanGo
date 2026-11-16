@@ -3740,6 +3740,7 @@
                 "type": "null"
               }
             ],
+            "description": "The IP's own town, shown as itself (\"Meridian\"), served or not; None outside every public country",
             "title": "Place"
           },
           "region": {
@@ -3752,6 +3753,18 @@
               }
             ],
             "title": "Region"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its state's short code (\"ID\"), when known: the location line's \"Meridian, ID\"",
+            "title": "Region Code"
           },
           "served": {
             "default": false,
@@ -14843,7 +14856,7 @@
     },
     "/api/v1/markets/hint": {
       "get": {
-        "description": "Where the visitor seems to be, from their IP: a hint only (\"Looks like you're\nnear ...\"), never a decision. The place is named only when it's inside an open\nzone; otherwise just the country (for the header's country and language).",
+        "description": "Where the visitor seems to be, from their IP: a hint only, never a decision (an\naddress or a chosen city always wins). The IP's own town and state are named when\nit is in a public country (\"Meridian, ID\"), served or not; ``served`` (and the\ncity) only when the point is inside an open zone of a live city. Outside every\npublic country: nothing but None (the website then says \"Set your delivery location\").",
         "operationId": "hint_api_v1_markets_hint_get",
         "responses": {
           "200": {

@@ -1,7 +1,7 @@
 """Web v2 public markets helpers that need no database."""
 from types import SimpleNamespace
 
-from core_api.modules.markets.api.v1.public import emergency_number, public_status, slugify
+from core_api.modules.markets.api.v1.public import emergency_number, public_status, short_region_code, slugify
 from shared import geoip
 
 
@@ -30,6 +30,18 @@ def test_geoip_parse() -> None:
     assert geoip.parse(rec) == geoip.Place("US", "Meridian", "Idaho", 43.61, -116.39)
     assert geoip.parse({"country": {"iso_code": "IN"}}) == geoip.Place("IN")
     assert geoip.parse(None) is None and geoip.parse({"country": {}}) is None
+    # a MaxMind-layout file names the state's ISO code too
+    rec["subdivisions"] = [{"iso_code": "ID", "names": {"en": "Idaho"}}]
+    assert geoip.parse(rec) == geoip.Place("US", "Meridian", "Idaho", 43.61, -116.39, region_code="ID")
+
+
+def test_short_region_code() -> None:
+    regions = [("US-ID", "Idaho"), ("US-WA", "Washington")]
+    assert short_region_code("ID", "Idaho", "US", []) == "ID"  # the file's own code wins
+    assert short_region_code("US-OR", None, "US", []) == "OR"
+    assert short_region_code(None, " idaho ", "US", regions) == "ID"  # else the Markets state of that name
+    assert short_region_code(None, "Ohio", "US", regions) is None  # unknown: the line uses the country code
+    assert short_region_code(None, None, "US", regions) is None
 
 
 def test_geoip_private_and_missing() -> None:
