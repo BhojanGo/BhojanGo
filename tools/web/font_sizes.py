@@ -227,6 +227,11 @@ def main() -> int:
                 pg.locator("input[type=email]").fill(ADMIN)
                 pg.locator("input[type=password]").fill(passwords[ADMIN])
                 pg.get_by_role("button", name=re.compile("sign in", re.I)).click()
+                import sys as _sys
+                _sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tools/
+                from totp_signin import admin_console_second_step, keys_from_logins  # the authenticator code
+
+                admin_console_second_step(pg, ADMIN, keys_from_logins(os.environ["E2E_LOGINS_FILE"]))
                 pg.wait_for_url(re.compile(r"/overview"), timeout=30000)
                 visited: set[str] = set()
                 queue = list(ADMIN_SECTIONS)

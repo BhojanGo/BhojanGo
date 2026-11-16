@@ -104,7 +104,7 @@ class PwnedPasswords:
     TIMEOUT_SECONDS = 2.0
 
     async def times_seen(self, password: str) -> int | None:
-        digest = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()  # noqa: S324 - the API's format
+        digest = hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()  # the API's format
         prefix, suffix = digest[:5], digest[5:]
         try:
             async with httpx.AsyncClient(timeout=self.TIMEOUT_SECONDS) as client:

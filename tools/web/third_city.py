@@ -186,6 +186,9 @@ def admin_sign_in(page) -> None:  # type: ignore[no-untyped-def]
     page.locator("input[type=email]").fill(ADMIN_EMAIL)
     page.locator("input[type=password]").fill(ADMIN_PASSWORD)
     page.get_by_role("button", name=re.compile("sign in", re.I)).click()
+    from totp_signin import admin_console_second_step  # every admin: the authenticator code (seed key)
+
+    admin_console_second_step(page, ADMIN_EMAIL)
     page.wait_for_url("**/overview**", timeout=30000)
 
 
