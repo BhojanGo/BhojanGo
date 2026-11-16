@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
+import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { FairBill } from "@/components/FairBill";
 import { RateOrder } from "@/components/order/RateOrder";
 import { authed, useBag } from "@/lib/client";
@@ -143,7 +144,7 @@ export function Receipt({ id }: { id: string }) {
   return (
     <article aria-label={t("account.receipt.label", { code })} className="overflow-hidden rounded-3xl border border-[#E2E7E8]">
       <div className="relative h-[140px] md:h-[160px]">
-        <Thumb src={photo(kitchen?.cover_url, 800)} name={order.restaurant_name} className="h-full w-full" />
+        <Thumb src={photo(kitchenPhoto(kitchen), 800)} glyph={false} className="h-full w-full" />
         <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_30%,rgba(17,20,24,0.75)_100%)]" />
         <div className="absolute bottom-[18px] left-5 right-5 text-white md:left-6">
           <h2 className="text-h2">{order.restaurant_name}</h2>

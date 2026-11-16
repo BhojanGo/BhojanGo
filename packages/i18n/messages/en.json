@@ -482,7 +482,20 @@
     "map_kitchen": "{kitchen} (pickup)",
     "map_home": "Your address (drop-off)",
     "map_rider": "{rider}, your delivery partner",
-    "map_failed": "The map can't load here. Your order is still being tracked."
+    "map_failed": "The map can't load here. Your order is still being tracked.",
+    "cancel": "Cancel order",
+    "cancel_until": "You can cancel until {time}.",
+    "cancel_before_accept": "You can cancel until the kitchen starts cooking.",
+    "cancel_title": "Cancel this order?",
+    "cancel_refund": "You'll get {amount} back to your {method}, the way you paid.",
+    "cancel_nothing": "Nothing has been charged yet, so there's nothing to refund.",
+    "cancel_yes": "Yes, cancel order",
+    "cancel_keep": "Keep my order",
+    "cancelling": "Cancelling…",
+    "cancel_too_late": "The kitchen has already started cooking, so this order can't be cancelled now. If something is wrong, ask us from the order.",
+    "cancel_failed": "We couldn't cancel the order. Try again.",
+    "refunded": "{amount} refunded to your {method}.",
+    "refund_pending": "Your refund of {amount} to your {method} is on its way."
   },
   "signin": {
     "title": "Sign in",
@@ -1700,6 +1713,17 @@
     "gs_err_has_orders": "This number orders food on BhojanGo. Use another number to deliver.",
     "gs_err_role": "This number already has a kitchen partner or admin account. Use another number to deliver.",
     "gs_err_city": "We're not delivering in that city yet. Pick another city."
+  },
+  "errors": {
+    "title_404": "We can't find that page",
+    "body_404": "The link may be old, or the page has moved. Search for a dish or a kitchen, or start from one of these.",
+    "title_error": "Something went wrong on our side",
+    "body_error": "It's not you. Try again in a moment. If it keeps happening, the help centre has answers and a way to reach us.",
+    "try_again": "Try again",
+    "go_home": "Go to the home page",
+    "where_we_deliver": "Where we deliver",
+    "help": "Help centre",
+    "popular": "Popular pages"
   },
   "helpcentre": {
     "title": "Help centre",

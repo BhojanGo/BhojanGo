@@ -283,6 +283,23 @@ languages and needs native review. Look at these first:
 - `gs_err_*`: the sign-up refusals (a number that orders food, a kitchen or admin account,
   a city we don't serve).
 
+## Round 8: not-found and error pages (workstream P)
+
+Machine-translated 2026-11-15: `errors.title_404`, `errors.body_404`, `errors.title_error`,
+`errors.body_error`, `errors.try_again`, `errors.go_home`, `errors.where_we_deliver`,
+`errors.help`, `errors.popular` (the website's 404 and error pages). The tone is informal
+and reassuring ("It's not you"); check Hindi/Marathi/Bengali read as polite, and that
+`errors.help` matches the footer's "Help centre" wording in each language.
+
+## Round 8: cancelling an order (workstream P)
+
+Machine-translated 2026-11-15: `track.cancel`, `track.cancel_until` ({time} is a clock time),
+`track.cancel_before_accept`, `track.cancel_title`, `track.cancel_refund` ({amount} is formatted
+money, {method} the payment method's label from `account.pay.*`: "UPI", "Card"; Indian languages
+glue a case suffix to `{method}`), `track.cancel_nothing`, `track.cancel_yes`, `track.cancel_keep`,
+`track.cancelling`, `track.cancel_too_late`, `track.cancel_failed`, `track.refunded`,
+`track.refund_pending`. Check the confirmation reads as a calm question, not a warning.
+
 ## Help centre (round 8 F9)
 
 Machine-translated 2026-11-15: all `helpcentre.*` keys (the /help page: search, topics,

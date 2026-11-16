@@ -1,11 +1,10 @@
 // Apply with a kitchen (B1): your name, the kitchen, where it is. The kitchen is
 // created pending approval and the partner application (FSSAI, GST and bank,
 // menu) follows. BhojanGo checks it and switches the kitchen on.
-import { api, ApiError, field as input, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field as input, SafeAreaView, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen } from "../lib/data";
 import { useLayout } from "../lib/layout";

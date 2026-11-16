@@ -1,11 +1,10 @@
 // Privacy and your data (WebProfile): download everything the account holds
 // (a JSON file through the share sheet), or delete the account after a clear
 // confirmation that says what goes and what stays.
-import { Button, color, Sheet, space, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, SafeAreaView, Sheet, space, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { shareMyData } from "../../lib/account";
 import { ScreenBar, Section, ui } from "../../lib/account-ui";

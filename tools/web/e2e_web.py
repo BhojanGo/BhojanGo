@@ -804,6 +804,24 @@ with sync_playwright() as p:
     check("order again: fills the bag and goes to checkout", lambda: (
         url_is(page, r"/checkout$"),
         expect(page.get_by_role("complementary", name="Your order").get_by_text(re.compile(rf"1 × {DISH}"))).to_be_visible(timeout=20000)))
+    # R8: the customer cancels the new order before the kitchen accepts: one confirmation that
+    # says what comes back and where, then the cancelled state and the refund line.
+    page.get_by_role("button", name=re.compile(r"^Pay ")).click()
+    page.get_by_role("dialog", name="Pay (test mode)").get_by_role("button", name=re.compile("^Approve")).click()
+    url_is(page, r"/orders/[0-9a-f-]{36}/track$", 40000)
+    cancel_box = page.get_by_test_id("cancel-order")
+    check("cancel: offered while the kitchen hasn't started, with the API's rule", lambda: (
+        expect(cancel_box.get_by_text("You can cancel until the kitchen starts cooking.")).to_be_visible(timeout=20000),
+        expect(cancel_box.get_by_role("button", name="Cancel order")).to_be_visible()))
+    cancel_box.get_by_role("button", name="Cancel order").click()
+    check("cancel: asks once and says what comes back, to where", lambda: (
+        expect(cancel_box.get_by_role("heading", name="Cancel this order?")).to_be_visible(),
+        expect(cancel_box).to_contain_text(re.compile(r"You'll get ₹[\d,.]+ back to your \w+"))))
+    cancel_box.get_by_role("button", name="Yes, cancel order").click()
+    check("cancel: the order is cancelled and the refund line shows", lambda: (
+        expect(page.locator('[data-testid="eta"]:visible')).to_have_text("Cancelled", timeout=20000),
+        expect(page.get_by_test_id("refund-line")).to_contain_text(re.compile(r"₹[\d,.]+ (refunded to your|to your .* is on its way)")),
+        expect(page.get_by_test_id("cancel-order")).to_have_count(0)))
     page.goto(f"{base}/account/orders/{order_id}/report", wait_until="networkidle")
     check("report a problem from the account opens", lambda: expect(page.get_by_role("heading", name="Report a problem", level=1)).to_be_visible(timeout=15000))
 

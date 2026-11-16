@@ -1,12 +1,11 @@
 // PartnerOnboarding.html: the partner application. Steps on the left (and
 // your terms), the current step on the right: FSSAI licence, GST and bank,
 // menu, then we check everything and switch the kitchen on.
-import { api, ApiError, field, type Translate, type, unwrap, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field, SafeAreaView, type Translate, type, unwrap, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useKitchen, useLoad, type Application } from "../lib/data";
 import { useLayout } from "../lib/layout";
