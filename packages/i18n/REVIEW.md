@@ -239,3 +239,21 @@ languages and needs native review. Look at these first:
   `gs_privacy_link`; Spanish matches their gender ("los Términos…", "la Política…").
 - `gs_err_*`: the sign-up refusals (a number that orders food, a kitchen or admin account,
   a city we don't serve).
+
+## Help centre (round 8 F9)
+
+Machine-translated 2026-11-15: all `helpcentre.*` keys (the /help page: search, topics,
+article pages, the "Was this helpful?" vote and the contact-support form). Needs native
+review. Points to check:
+- **Terms:** "article" is लेख / కథనం / கட்டுரை / ಲೇಖನ / लेख / আর্টিকেল / artículo;
+  "support" follows the existing `account.report.ticket` wording (सपोर्ट, సపోర్ట్,
+  உதவிக் குழு, ಸಪೋರ್ಟ್, सपोर्ट, সাপোর্ট, soporte); "payouts" is transliterated
+  (पेआउट, పేఅవుట్, ...), Spanish "pagos".
+- **Suffixes after {placeholders}:** `in_topic`, `fallback_note` ({language}),
+  `results_for` / `no_results_title` ({query} in quotes) glue case suffixes in
+  Telugu/Bengali (`{topic}లో`, `{topic}-এ`, `“{query}”-এর`); check with real topic and
+  language names.
+- **Plurals:** Hindi/Marathi/Bengali use the same form for one and other where the noun
+  doesn't change; Bengali uses "১০" in `form_invalid`.
+- **Spanish:** "tú" throughout; kitchen partners are "Cocinas asociadas", delivery
+  partners "Socios repartidores".

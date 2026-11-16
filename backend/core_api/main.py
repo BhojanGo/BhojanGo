@@ -17,6 +17,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from core_api import errors, health
 from core_api.modules.catalog.main import register as register_catalog
+from core_api.modules.content.main import register as register_content
 from core_api.modules.finance.main import register as register_finance
 from core_api.modules.identity.main import register as register_identity
 from core_api.modules.markets.main import register as register_markets
@@ -46,6 +47,7 @@ MODULES = [
     register_orders,
     register_payments,
     register_support,
+    register_content,
 ]
 
 

@@ -528,13 +528,66 @@ with sync_playwright() as p:
         expect(page.get_by_text("ops.hyd@example.com")).to_be_visible()))
     page.screenshot(path=f"{OUT}/10-settings.png", full_page=True)
 
+    # Content -> Help (F9): India's country manager writes an article, publishes it, edits and publishes again.
+    cm = b.new_page(viewport={"width": 1440, "height": 1000})
+    sign_in(cm, "cm.in@example.com")
+    cm.goto(f"{BASE}/content/help?country=IN", wait_until="networkidle")
+    check("help: Content > Help lists India's articles, filtered", lambda: (
+        expect(cm.get_by_role("group", name="Content").get_by_role("link", name="Help")).to_be_visible(timeout=15000),
+        expect(cm.get_by_role("region", name="Articles").get_by_role("link").first).to_be_visible(timeout=15000)))
+    cm.screenshot(path=f"{OUT}/12-help-list.png", full_page=True)
+    slug = f"e2e-help-{uuid.uuid4().hex[:6]}"
+    cm.goto(f"{BASE}/content/help/new", wait_until="networkidle")
+    cm.get_by_label("Slug (the address)").fill(slug)
+    cm.get_by_label("Country").select_option("IN")
+    cm.get_by_label("Language").select_option("en")
+    cm.get_by_label("Topic").select_option("orders")
+    cm.get_by_label("Title").fill("E2E: how help articles work")
+    cm.get_by_label("Summary").fill("Written by the admin end-to-end run.")
+    cm.get_by_test_id("help-body").fill("## First\n\nThe **first** version.\n\n- one\n- two")
+    check("help editor: the preview shows the Markdown as the website will", lambda: (
+        expect(cm.get_by_role("article", name="Preview").get_by_role("heading", name="First")).to_be_visible(),
+        expect(cm.get_by_role("article", name="Preview").locator("strong", has_text="first")).to_be_visible()))
+    cm.get_by_test_id("help-publish").click()
+    expect(cm).to_have_url(re.compile(r"/content/help/[0-9a-f-]{36}$"), timeout=20000)
+
+    def public_title() -> str:
+        import json as _json
+        import urllib.request
+        with urllib.request.urlopen(f"{CORE}/help/articles/{slug}?country=IN&language=en", timeout=20) as r:
+            return _json.loads(r.read())["title"]
+    check("help: published, the website's API serves it", lambda: (
+        expect(cm.get_by_text("Published", exact=True).first).to_be_visible(timeout=15000),
+        _ok(public_title() == "E2E: how help articles work")))
+    cm.get_by_label("Title").fill("E2E: how help articles work, edited")
+    cm.get_by_test_id("help-save").click()
+    check("help: a saved edit waits; the website still shows the live title", lambda: (
+        expect(cm.get_by_text("Published · changes not live").first).to_be_visible(timeout=15000),
+        _ok(public_title() == "E2E: how help articles work")))
+    cm.get_by_test_id("help-publish").click()
+    check("help: publishing the changes makes them live", lambda: (
+        expect(cm.get_by_role("status").filter(has_text="Published.")).to_be_visible(timeout=15000),
+        _ok(public_title() == "E2E: how help articles work, edited")))
+    cm.screenshot(path=f"{OUT}/12b-help-editor.png", full_page=True)
+    cm.get_by_role("tab", name="History").click()
+    check("help: history lists every version with who made it", lambda: (
+        expect(cm.get_by_role("list", name="Versions").get_by_role("listitem")).to_have_count(4, timeout=15000),
+        expect(cm.get_by_role("list", name="Versions")).to_contain_text("India Country Manager")))
+    hsup = b.new_page(viewport={"width": 1440, "height": 1000})
+    sign_in(hsup, "support.hyd@example.com")
+    hsup.goto(f"{BASE}/content/help?country=IN", wait_until="networkidle")
+    hsup.get_by_role("region", name="Articles").get_by_role("link").first.click()
+    check("help: support reads articles but can't edit or publish", lambda: (
+        expect(hsup.get_by_role("tab", name="Read")).to_be_visible(timeout=15000),
+        expect(hsup.get_by_test_id("help-publish")).to_have_count(0)))
+
     # No raw data on any page: JSON-like text, "null", "undefined" or "NaN" fail the run.
     RAW = re.compile(r'[{\[]\s*"[A-Za-z_]+"\s*:|\bnull\b|\bundefined\b|\bNaN\b')
     pages = ["/overview", "/overview?scope=IN", "/overview?scope=US-ID-BOI", "/operations?scope=IN-TG-HYD&tab=live",
              "/operations?scope=IN-TG-HYD&tab=attention", "/operations?scope=IN-TG-HYD&tab=dispatch", "/operations?scope=IN-TG-HYD&tab=support",
              "/partners?scope=IN-TG-HYD&tab=kitchens", "/partners?scope=IN-TG-HYD&tab=applications", "/partners?scope=IN&tab=riders",
              "/markets", "/markets/IN", "/markets/IN/IN-TG-HYD", "/pricing/simulator?city=IN-TG-HYD", "/finance?scope=IN", "/finance?scope=US",
-             "/settings"] + [f"/pricing?scope=IN-TG-HYD&tab={f}" for f in
+             "/settings", "/content/help"] + [f"/pricing?scope=IN-TG-HYD&tab={f}" for f in
                              ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "business", "promotion", "approvals")]
     dirty: list[str] = []
     for path in pages:

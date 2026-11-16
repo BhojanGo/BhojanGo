@@ -22,6 +22,7 @@ ROLES = ("super_admin", "country_manager", "city_ops", "support_agent", "finance
 VIEW = {
     "markets.view", "rules.view", "partners.view", "riders.view", "orders.view",
     "customers.view", "finance.view", "reports.view", "admins.view",
+    "content.view",  # Help articles (F9): read in the console
 }
 
 PERMISSIONS: dict[str, frozenset[str]] = {
@@ -30,6 +31,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
         "markets.edit", "rules.edit", "rules.approve", "pricing.simulate",
         "partners.edit", "riders.edit", "orders.edit", "dispatch.edit",
         "customers.edit", "refunds.issue", "admins.grant", "zones.pause",
+        "content.edit",  # write and publish their country's Help articles (F9); global ones are the super admin's
     }),
     "city_ops": frozenset({
         "markets.view", "rules.view", "pricing.simulate", "partners.view", "partners.edit",
@@ -38,6 +40,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     }),
     "support_agent": frozenset({
         "orders.view", "customers.view", "customers.edit", "refunds.issue", "partners.view", "riders.view",
+        "content.view",  # read Help articles to point people at them (F9)
     }),
     "finance": frozenset({
         "finance.view", "finance.edit", "payouts.approve", "refunds.issue", "rules.view", "pricing.simulate",

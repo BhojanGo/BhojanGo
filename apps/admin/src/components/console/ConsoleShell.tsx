@@ -27,6 +27,15 @@ const SECTIONS = [
   { href: "/settings", label: "Settings", perm: "admins.view" },
 ];
 
+/**
+ * Grouped sections under a heading. Content: what the website shows that admins
+ * write (Help in F9; Legal joins it in F10: add an item here). These are
+ * per country inside the page, so they don't take the console's scope.
+ */
+export const SECTION_GROUPS: { label: string; items: { href: string; label: string; perm: string }[] }[] = [
+  { label: "Content", items: [{ href: "/content/help", label: "Help", perm: "content.view" }] },
+];
+
 /** "IN-TG-HYD" → { country: "IN", region: "IN-TG", city: "IN-TG-HYD" }; "*" → ALL. */
 export function parseScope(scope: string | null | undefined): { country: string; region: string | null; city: string | null } {
   if (!scope || scope === "*") return { country: "ALL", region: null, city: null };
@@ -42,6 +51,7 @@ export function ConsoleShell({
   cityHref,
   countryHref,
   scopeHref,
+  hideScope = false,
   children,
 }: {
   section: string;
@@ -55,6 +65,8 @@ export function ConsoleShell({
   cityHref?: (country: string, city: string) => string;
   /** Markets/simulator: where a country tab goes. Setting it hides the state chips. */
   countryHref?: (country: string) => string;
+  /** Sections that pick their country inside the page (Content): no country tabs or state chips. */
+  hideScope?: boolean;
   children: React.ReactNode;
 }) {
   const { isAuthenticated, user, logout } = useAdminAuth();
@@ -93,7 +105,7 @@ export function ConsoleShell({
         </div>
       </header>
 
-      <nav aria-label="Country" className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-line bg-white px-4 sm:px-8">
+      {hideScope ? null : <nav aria-label="Country" className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-line bg-white px-4 sm:px-8">
         {isGlobal && (
           <Link href={scopeHref ? scopeHref("*") : "/markets"} aria-current={country === "ALL" ? "page" : undefined}
             className={`box-border flex h-[52px] items-center border-b-[3px] px-4 text-label ${country === "ALL" ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
@@ -108,9 +120,9 @@ export function ConsoleShell({
           </Link>
         ))}
         {!isGlobal && markets?.length === 1 ? <span className="ml-auto text-label text-muted">You can see {markets[0]!.name} only</span> : null}
-      </nav>
+      </nav>}
 
-      {current && (
+      {current && !hideScope && (
         <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 sm:px-8">
           {showStates && <span className="mr-1 text-label text-muted">State</span>}
           {showStates && (
@@ -145,6 +157,21 @@ export function ConsoleShell({
                 className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
                 {s.label}
               </Link>
+            );
+          })}
+          {SECTION_GROUPS.map((g) => {
+            const items = g.items.filter((s) => !me || (me.permissions[s.perm] ?? []).length > 0);
+            if (!items.length) return null;
+            return (
+              <div key={g.label} role="group" aria-label={g.label} className="mt-4 flex flex-col gap-1 border-t border-line pt-4">
+                <span className="px-4 pb-1 text-caption text-muted">{g.label}</span>
+                {items.map((s) => (
+                  <Link key={s.href} href={s.href} aria-current={s.label === section ? "page" : undefined}
+                    className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
+                    {s.label}
+                  </Link>
+                ))}
+              </div>
             );
           })}
         </nav>

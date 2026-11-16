@@ -1700,5 +1700,101 @@
     "gs_err_has_orders": "Este número pide comida en BhojanGo. Usa otro número para repartir.",
     "gs_err_role": "Este número ya tiene una cuenta de cocina asociada o de administrador. Usa otro número para repartir.",
     "gs_err_city": "Todavía no repartimos en esa ciudad. Elige otra ciudad."
+  },
+  "helpcentre": {
+    "title": "Centro de ayuda",
+    "meta_description": "Respuestas sobre pedidos, pagos y reembolsos, entregas, tu cuenta y cómo trabajar con BhojanGo como cocina asociada o socio repartidor.",
+    "hero_title": "¿Cómo podemos ayudarte?",
+    "hero_body": "Busca en nuestras respuestas o elige un tema. Si aún nos necesitas, puedes escribirle a nuestro equipo de soporte al final de la página.",
+    "search_label": "Buscar artículos de ayuda",
+    "search_placeholder": "Busca: reembolsos, PIN de entrega, pagos…",
+    "search_clear": "Borrar búsqueda",
+    "results": {
+      "one": "{count} artículo encontrado",
+      "other": "{count} artículos encontrados"
+    },
+    "results_for": "Resultados para “{query}”",
+    "no_results_title": "Ningún artículo coincide con “{query}”",
+    "no_results_body": "Prueba con otras palabras o empieza con uno de estos. También puedes contactarnos abajo.",
+    "search_error": "La búsqueda no funciona en este momento. Explora los temas.",
+    "contact_us": "Contáctanos",
+    "topics_title": "Explorar por tema",
+    "topic_count": {
+      "one": "{count} artículo",
+      "other": "{count} artículos"
+    },
+    "topics": {
+      "orders": {
+        "title": "Pedidos",
+        "body": "Hacer, seguir, cancelar y calificar pedidos"
+      },
+      "payments-refunds": {
+        "title": "Pagos y reembolsos",
+        "body": "La cuenta justa, formas de pago, ofertas y reembolsos"
+      },
+      "delivery": {
+        "title": "Entrega",
+        "body": "El PIN de entrega, tarifas, propinas y dónde entregamos"
+      },
+      "account": {
+        "title": "Cuenta e inicio de sesión",
+        "body": "Iniciar sesión, direcciones, idioma y tus datos"
+      },
+      "kitchen-partners": {
+        "title": "Cocinas asociadas",
+        "body": "Registro, documentos, la app BhojanGo Kitchen y pagos"
+      },
+      "delivery-partners": {
+        "title": "Socios repartidores",
+        "body": "Registro, pago y propinas, y la app BhojanGo Delivery"
+      }
+    },
+    "popular_title": "Artículos populares",
+    "topic_empty": "Todavía no hay artículos en este tema. Busca arriba o contáctanos abajo.",
+    "breadcrumb": "Ruta de navegación",
+    "in_topic": "Más en {topic}",
+    "all_in_topic": "Ver todo el tema",
+    "related_title": "Artículos relacionados",
+    "updated": "Actualizado el {date}",
+    "fallback_note": "Este artículo todavía no está disponible en {language}, así que se muestra en inglés.",
+    "helpful_question": "¿Te resultó útil?",
+    "yes": "Sí",
+    "no": "No",
+    "helpful_thanks": "Gracias por avisarnos.",
+    "unhelpful_thanks": "Gracias. Lamentamos que esto no haya respondido tu pregunta.",
+    "unhelpful_body": "Cuéntanos qué buscabas y nuestro equipo de soporte te ayudará.",
+    "unhelpful_contact": "Contáctanos",
+    "vote_error": "No pudimos guardar tu respuesta. Inténtalo de nuevo.",
+    "contact_title": "¿Aún necesitas ayuda?",
+    "contact_body_signed_in": "Elige un pedido para reportar un problema o preguntar sobre él, o escríbele a nuestro equipo de soporte sobre otro tema.",
+    "contact_body_signed_out": "Envíanos un mensaje y nuestro equipo de soporte te responderá por correo.",
+    "recent_orders": "Tus pedidos recientes",
+    "no_orders": "Todavía no has hecho ningún pedido.",
+    "orders_error": "No pudimos cargar tus pedidos. Aun así, puedes escribirnos.",
+    "report_problem": "Reportar un problema",
+    "track_order": "Seguir este pedido",
+    "message_support": "Escribir a soporte",
+    "message_about_order": "Escribir a soporte sobre este pedido",
+    "about_order": "Sobre el pedido {order}",
+    "form_name": "Tu nombre",
+    "form_email": "Correo electrónico",
+    "form_topic": "Tema",
+    "form_message": "¿Cómo podemos ayudarte?",
+    "form_message_hint": "Cuéntanos qué pasó. Si es sobre un pedido, agrega el número de pedido que aparece en tu recibo.",
+    "form_send": "Enviar mensaje",
+    "form_sending": "Enviando…",
+    "form_invalid": "Revisa tu nombre, correo y mensaje (al menos 10 caracteres) e inténtalo de nuevo.",
+    "sent_title": "Mensaje enviado",
+    "sent_body_email": "Gracias, {name}. Nuestro equipo de soporte te responderá a {email}.",
+    "sent_body_signed_in": "Gracias. Nuestro equipo de soporte lo revisará y se comunicará contigo.",
+    "send_another": "Enviar otro mensaje",
+    "too_many": "Enviaste varios mensajes en poco tiempo. Espera unos minutos e inténtalo de nuevo.",
+    "send_error": "No pudimos enviar tu mensaje. Revisa tu conexión e inténtalo de nuevo.",
+    "sign_in_orders": "Inicia sesión para obtener ayuda con un pedido",
+    "error_title": "No se cargaron los artículos de ayuda",
+    "error_body": "No pudimos cargar los artículos de ayuda. Inténtalo de nuevo en un momento o escríbenos abajo.",
+    "not_found_title": "No encontramos ese artículo",
+    "not_found_body": "Puede que se haya movido o le hayan cambiado el nombre. Búscalo o explora los temas.",
+    "back_to_help": "Volver al Centro de ayuda"
   }
 }
