@@ -13,7 +13,7 @@ DEVICE="${DEVICE:-emulator-5554}"
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bhojango}" MSYS_NO_PATHCONV=1
 COMPOSE="docker compose -f $ROOT/infra/docker/compose.yaml"
 # sign-in.yaml is a sub-flow the others start with.
-FLOWS="${*:-$(cd "$ROOT/apps/$APP/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')}"
+FLOWS="${*:-$(cd "$ROOT/apps/$APP/.maestro" && ls *.yaml | grep -v '^sign-in.yaml$' | grep -v '^offline-' | sed 's/\.yaml$//')}"
 
 python "$ROOT/tools/mobile/hours.py" open >/dev/null
 if [ "$APP" = rider ]; then

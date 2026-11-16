@@ -1,6 +1,6 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, Txt, type, unwrap, useBag, useCountry, useI18n,
+  api, ApiError, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, FIRST_LOAD_TIMEOUT_MS, LoadError, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, timeoutFetch, Txt, type, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,12 +12,18 @@ import { useWhere } from "../lib/where";
 
 type Quote = CoreSchemas["QuoteOut"];
 
+// The price quote is a POST that only reads: it gives up on time like a GET (R9).
+const quoteFetch = timeoutFetch(FIRST_LOAD_TIMEOUT_MS, undefined, true);
+
 export default function Bag() {
   const bag = useBag();
   const { point, market } = useWhere();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<QuoteRefusal | null>(null);
+  /** The quote got no answer (offline, our servers): LoadError and Retry instead of a spinner. */
+  const [unreachable, setUnreachable] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
   // The city's tip buttons: from the quote, or from a refusal that knows them (a bag
   // under the minimum still tips by the city's tip_presets rule); kept while re-pricing.
   const [presets, setPresets] = useState<CoreSchemas["TipPresetsOut"] | null>(null);
@@ -36,6 +42,7 @@ export default function Bag() {
     let live = true;
     api.core
       .POST("/api/v1/pricing/quote", {
+        fetch: quoteFetch,
         body: {
           restaurant_id: bag.restaurantId, items: cartItems(lines), tip: bag.tip,
           deliver_to: point.addressId ? { address_id: point.addressId } : { lat: point.lat, lng: point.lng },
@@ -45,12 +52,19 @@ export default function Bag() {
         if (!live) return;
         const q = unwrap(r);
         setQuote(q);
+        setUnreachable(null);
         setPresets(q.tip_presets ?? null);
         setError(null);
         setRefusal(null);
       })
       .catch((e) => {
         if (!live) return;
+        if (!(e instanceof ApiError)) {
+          setQuote(null);
+          setUnreachable(e);
+          return;
+        }
+        setUnreachable(null);
         const body = (e as { body?: unknown }).body;
         const why = quoteRefusal(body);
         setQuote(null);
@@ -61,7 +75,7 @@ export default function Bag() {
     return () => {
       live = false;
     };
-  }, [bag.restaurantId, lines, bag.tip, point]);
+  }, [bag.restaurantId, lines, bag.tip, point, attempt]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -156,7 +170,9 @@ export default function Bag() {
             options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency, { whole: true }) }))}
           />
         </View>
-        {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View> : error ? null : <ActivityIndicator color={color.peacock} />}
+        {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View>
+          : unreachable ? <LoadError error={unreachable} onRetry={() => setAttempt((a) => a + 1)} />
+          : error ? null : <ActivityIndicator color={color.peacock} />}
         {shownError ? <Text style={[type.label, { color: color.chili }]}>{shownError}</Text> : null}
       </ScrollView>
       <View style={styles.footer}>

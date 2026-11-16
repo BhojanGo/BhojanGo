@@ -1,7 +1,7 @@
 // CustomerSignIn.html: Phone and Email as two equal ways in (round 8, D5). Phone: a code by
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
-  Button, codeSendErrorText, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LogoMark, type MarketCountry, PhoneCountryButton, radius,
+  Button, codeSendErrorText, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, LogoMark, type MarketCountry, PhoneCountryButton, radius,
   SafeAreaView, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -14,7 +14,9 @@ export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
   const { t } = useI18n();
   // The phone number's country code (not the site's country): Markets' countries, starting from the detected one (tap the box for the next).
-  const { country: current, countries } = useCountry();
+  const { country: current, countries, error: marketsDown, failure, reload } = useCountry();
+  // R9: no countries (the API can't be reached): the error state and Retry, never a form that can't send.
+  const unreachable = marketsDown && !countries.length;
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
   const [way, setWay] = useState<SignInWay>("phone");
@@ -24,9 +26,9 @@ export default function SignIn() {
   const digits = number.replace(/\D/g, "");
 
   async function send() {
+    if (!country) return;
     setBusy(true);
     setError(null);
-    if (!country) return;
     const phone = e164(country.phone_code, number);
     try {
       await sendCode(phone, country.code);
@@ -39,7 +41,7 @@ export default function SignIn() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView testID="sign-in-screen" style={styles.screen}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
@@ -51,12 +53,13 @@ export default function SignIn() {
             <Txt variant="display">{t("common.tagline")}</Txt>
             <Txt style={{ color: color.muted, marginTop: space[3] }}>{t("signin.promise_fees")}</Txt>
             {/* Food photos filling the room down to the sheet (R8: no empty middle on tall phones). */}
-            <SignInCollage />
+            {unreachable ? <View style={{ flex: 1 }} /> : <SignInCollage />}
           </View>
           <View style={styles.sheet} accessibilityLabel={t("signin.title")}>
             <Txt variant="h2" accessibilityRole="header">{t("signin.heading")}</Txt>
-            <SignInWays value={way} onChange={setWay} />
-            {way === "email" ? (
+            {unreachable ? <LoadError error={failure} onRetry={reload} style={{ paddingHorizontal: 0 }} /> : null}
+            {unreachable ? null : <SignInWays value={way} onChange={setWay} />}
+            {unreachable ? null : way === "email" ? (
               <EmailSignIn country={country?.code ?? current?.code ?? null} onSignedIn={() => router.replace("/home")} />
             ) : (
               <>
@@ -81,9 +84,9 @@ export default function SignIn() {
                   disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
               </>
             )}
-            <Txt variant="small" style={{ color: color.muted, textAlign: "center", marginTop: space[2] }}>
+            {unreachable ? null : <Txt variant="small" style={{ color: color.muted, textAlign: "center", marginTop: space[2] }}>
               {`${t("signin.agree_before")} ${t("signin.terms")} ${t("signin.agree_and")} ${t("signin.privacy")}.`}
-            </Txt>
+            </Txt>}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

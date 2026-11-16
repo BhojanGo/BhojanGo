@@ -1,5 +1,7 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
-import { Button, color, errorMessage, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
+import {
+  Button, color, errorMessage, LoadError, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n,
+} from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -8,18 +10,25 @@ import { Icon } from "../lib/icons";
 import { paymentStatus, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
 
 export default function PaymentFailed() {
-  const { money } = useI18n();
+  const { money, t } = useI18n();
   const { orderId, method } = useLocalSearchParams<{ orderId: string; method: "upi" | "card" }>();
   const [status, setStatus] = useState<PayStatus | null>(null);
+  /** The payment's status didn't load (offline, our servers): Retry, not a "0:00 left" timer. */
+  const [failure, setFailure] = useState<unknown>(null);
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"upi" | "card" | null>(null);
 
+  const loadStatus = () => paymentStatus(orderId).then((s) => {
+    setStatus(s);
+    setFailure(null);
+  }, setFailure);
   useEffect(() => {
-    void paymentStatus(orderId).then(setStatus);
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    void loadStatus();
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   const left = status?.price_held_until ? Math.max(0, Math.floor((new Date(status.price_held_until).getTime() - now) / 1000)) : 0;
@@ -45,38 +54,37 @@ export default function PaymentFailed() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.sheet}>
         <View style={styles.icon}><Icon name="alert" size={28} stroke={color.chili} /></View>
-        <Txt variant="h1" accessibilityRole="header">Payment didn&apos;t go through</Txt>
+        <Txt variant="h1" accessibilityRole="header">{t("app.payment_failed.title")}</Txt>
         <Txt style={{ color: color.muted }}>
-          {method === "upi" ? "Your UPI app declined the request." : "Your bank declined the payment."}{" "}
-          <Text style={[textFont("700"), { color: color.kohl }]}>
-            You have not been charged. If money left your account, your bank reverses it automatically, usually by the next working day.
-          </Text>
+          {method === "upi" ? t("app.payment_failed.declined_upi") : t("app.payment_failed.declined_card")}{" "}
+          <Text style={[textFont("700"), { color: color.kohl }]}>{t("app.payment_failed.not_charged")}</Text>
         </Txt>
-        <View style={styles.held}>
-          <Text style={type.small}>Your price is still held</Text>
-          <Text style={[type.label, num]}>
-            {total} · {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} left
-          </Text>
-        </View>
-        {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
-        {left > 0 && status?.can_retry !== false ? (
+        {status ? (
+          <View style={styles.held}>
+            <Text style={type.small}>{t("app.payment_failed.held")}</Text>
+            <Text style={[type.label, num]}>
+              {t("app.payment_failed.left", { total, time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` })}
+            </Text>
+          </View>
+        ) : failure ? <LoadError error={failure} onRetry={loadStatus} style={{ backgroundColor: color.porcelain }} /> : null}
+        {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
+        {!status ? null : left > 0 && status.can_retry !== false ? (
           <View style={{ gap: space[2] }}>
-            <Button title={method === "upi" ? "Try UPI again" : "Try the card again"} size="lg" block loading={busy} onPress={() => setSheet(method)} />
-            <Button title="Pay another way" variant="secondary" block disabled={busy} onPress={() => setSheet(method === "upi" ? "card" : "upi")} />
+            <Button title={method === "upi" ? t("app.payment_failed.try_upi") : t("app.payment_failed.try_card")} size="lg" block loading={busy} onPress={() => setSheet(method)} />
+            <Button title={t("app.payment_failed.another_way")} variant="secondary" block disabled={busy} onPress={() => setSheet(method === "upi" ? "card" : "upi")} />
           </View>
         ) : (
-          <Button title="Back to your bag" size="lg" block onPress={() => router.replace("/bag")} />
+          <Button title={t("app.payment_failed.back_to_bag")} size="lg" block onPress={() => router.replace("/bag")} />
         )}
-        <Text style={[type.label, { color: color.peacock, textAlign: "center", marginTop: space[2] }]}>Chat with support</Text>
       </View>
-      <Sheet visible={sheet != null} onClose={() => setSheet(null)} title={sheet === "card" ? "Pay with card" : "Pay with UPI"}
+      <Sheet visible={sheet != null} onClose={() => setSheet(null)} title={sheet === "card" ? t("app.payment_failed.sheet_card") : t("app.payment_failed.sheet_upi")}
         footer={
           <View style={{ gap: space[2] }}>
-            <Button title={`Approve ${total}`} size="lg" block onPress={() => sheet && retry(sheet, "approve")} />
-            <Button title="Decline" variant="secondary" block onPress={() => sheet && retry(sheet, "decline")} />
+            <Button title={t("app.payment_failed.approve", { total })} size="lg" block onPress={() => sheet && retry(sheet, "approve")} />
+            <Button title={t("app.payment_failed.decline")} variant="secondary" block onPress={() => sheet && retry(sheet, "decline")} />
           </View>
         }>
-        <Txt variant="small" style={{ color: color.muted }}>Test payments: nothing is charged.</Txt>
+        <Txt variant="small" style={{ color: color.muted }}>{t("app.payment_failed.test_note")}</Txt>
       </Sheet>
     </SafeAreaView>
   );

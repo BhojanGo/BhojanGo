@@ -3,7 +3,7 @@
 // where the phone is ("Use my location", asked only when tapped); the country
 // is the pin's (Markets). Then the street, city, state, postal code, a name
 // (Home, Work) and delivery notes for the rider.
-import { Button, color, Input, radius, SafeAreaView, space, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, Input, LoadError, radius, SafeAreaView, space, type, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Switch, Text, View } from "react-native";
@@ -149,16 +149,27 @@ export default function AddressScreen() {
   const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [address, setAddress] = useState<Address | null | "missing">(id ? null : "missing");
+  // The address to edit didn't load: Retry (never an empty "new address" form for an edit, which would save a copy).
+  const [failure, setFailure] = useState<unknown>(null);
 
+  const load = () => {
+    if (!id) return Promise.resolve();
+    return listAddresses().then((all) => {
+      setAddress(all.find((a) => a.id === id) ?? "missing");
+      setFailure(null);
+    }, setFailure);
+  };
   useEffect(() => {
-    if (!id) return;
-    listAddresses().then((all) => setAddress(all.find((a) => a.id === id) ?? "missing")).catch(() => setAddress("missing"));
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   return (
     <SafeAreaView style={ui.screen} edges={["top", "left", "right", "bottom"]}>
       <ScreenBar title={id ? t("account.addresses.edit_title") : t("account.addresses.new_title")} fallback="/account/addresses" testID="address-form-title" />
-      {id && address === null ? <Text style={[ui.muted, { padding: space[5] }]}>{t("account.loading")}</Text> : (
+      {id && address === null && failure ? (
+        <View style={{ padding: space[5] }}><LoadError error={failure} onRetry={load} /></View>
+      ) : id && address === null ? <Text style={[ui.muted, { padding: space[5] }]}>{t("account.loading")}</Text> : (
         <AddressForm key={address === "missing" ? "new" : address?.id} address={address === "missing" ? null : address} />
       )}
     </SafeAreaView>

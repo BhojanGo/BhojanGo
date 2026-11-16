@@ -1,9 +1,9 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
-import { api, ApiError, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useFormat, useKitchen, useLoad } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
@@ -47,7 +47,7 @@ export default function Payouts() {
       if (r.onboarding_url) await Linking.openURL(r.onboarding_url);
       await data.reload();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : (e as Error).message);
+      setMsg(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     } finally {
       setBusy(false);
     }
@@ -57,6 +57,12 @@ export default function Payouts() {
   return (
     <SafeAreaView testID="payouts-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <View style={[s.header, narrow && { height: 64, paddingHorizontal: 16 }]}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
+      {/* R9: until the account and statements load, a spinner (or the error and Retry), never "Set up payouts" for an account we haven't read. */}
+      {!data.data ? (
+        <View style={{ flex: 1, padding: 24, justifyContent: "center" }}>
+          {data.failure ? <LoadError error={data.failure} onRetry={data.reload} /> : <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} />}
+        </View>
+      ) : (
       <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
         <View testID="payout-account" style={[s.panel, { flex: width < 760 ? undefined : 1 }, narrow && { padding: 16 }]}>
           <Text style={type.h3}>{tr("partner.payouts.where")}</Text>
@@ -85,6 +91,7 @@ export default function Payouts() {
           ))}
         </View>
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

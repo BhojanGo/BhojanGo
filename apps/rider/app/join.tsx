@@ -1,10 +1,10 @@
 // Sign up to ride: your name and city, then the onboarding checklist (licence,
 // insurance, payout account, background check). A number that already orders
 // food on BhojanGo can't also ride.
-import { api, ApiError, field, SafeAreaView, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field, LoadError, SafeAreaView, type, unwrap, useFirstLoad, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { RiderMark } from "../lib/icons";
 import { night, radius, space, ui } from "../lib/theme";
@@ -15,19 +15,15 @@ export default function Join() {
   const adopt = useSession((s) => s.adopt);
   const signOut = useSession((s) => s.signOut);
   const { t } = useI18n();
-  const [cities, setCities] = useState<City[]>([]);
-  const [city, setCity] = useState<string | null>(null);
+  // Markets' cities (R9: a spinner while they load, the error and Retry if they can't).
+  const cityList = useFirstLoad(async () => unwrap(await api.core.GET("/api/v1/markets/cities")) as City[], []);
+  const cities = cityList.data ?? [];
+  const [picked, setCity] = useState<string | null>(null);
+  const city = picked ?? cities[0]?.code ?? null;
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.core.GET("/api/v1/markets/cities").then((r) => {
-      const list = unwrap(r) as City[];
-      setCities(list);
-      setCity((c) => c ?? list[0]?.code ?? null);
-    }).catch(() => setError(t("rider.join.cities_failed")));
-  }, [t]);
 
   async function apply() {
     if (!city) return;
@@ -55,6 +51,8 @@ export default function Join() {
         <TextInput testID="name" accessibilityLabel={t("rider.join.name")} value={name} onChangeText={setName} autoCapitalize="words"
           placeholder={t("rider.join.name_hint")} placeholderTextColor={night.muted} style={[field.bodyLg, s.input]} />
         <Text style={ui.bold}>{t("rider.join.city")}</Text>
+        {cityList.status === "error" && !cities.length ? <LoadError error={cityList.error} onRetry={cityList.retry} title={t("rider.join.cities_failed")} tone="dark" /> : null}
+        {cityList.status === "loading" && !cities.length ? <ActivityIndicator accessibilityLabel={t("common.loading")} color={night.kesar} /> : null}
         <View style={{ gap: 8 }}>
           {cities.map((c) => (
             <Pressable key={c.code} accessibilityRole="radio" accessibilityState={{ checked: city === c.code }} accessibilityLabel={c.name}

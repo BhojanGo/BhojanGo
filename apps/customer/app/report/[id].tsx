@@ -2,12 +2,12 @@
 // Up to the city's limit it's refunded at once to the original payment;
 // above it, support looks at it and gets back to you.
 import {
-  api, ApiError, Button, color, type CoreSchemas, field, radius, SafeAreaView, space, textStyles, type, unwrap, useI18n,
+  api, ApiError, Button, color, type CoreSchemas, field, LoadError, radius, SafeAreaView, space, textStyles, type, unwrap, useFirstLoad, useI18n,
 } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Icon } from "../../lib/icons";
 import { uploadPhoto } from "../../lib/upload";
@@ -20,7 +20,9 @@ type Reason = (typeof REASONS)[number];
 export default function Report() {
   const { t, money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [order, setOrder] = useState<Order | null>(null);
+  // The order's dishes to pick from (R9: loading, and an error with Retry, instead of an empty form).
+  const loaded = useFirstLoad(async () => unwrap(await api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })) as Order, [id]);
+  const order = loaded.data;
   const [pick, setPick] = useState<Record<string, number>>({});
   const [reason, setReason] = useState<Reason | null>(null);
   const [note, setNote] = useState("");
@@ -28,15 +30,6 @@ export default function Report() {
   const [busy, setBusy] = useState<"photo" | "send" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Outcome | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
-      .then((r) => live && setOrder(unwrap(r))).catch(() => live && setError(t("account.report.not_found")));
-    return () => {
-      live = false;
-    };
-  }, [id, t]);
 
   async function addPhoto() {
     setError(null);
@@ -52,7 +45,8 @@ export default function Report() {
       setPhoto({ uri: a.uri, key: await uploadPhoto(a.uri, a.mimeType ?? "image/jpeg") });
     } catch (e) {
       setPhoto(null);
-      setError((e as Error).message || t("account.report.photo_failed"));
+      // A TypeError is fetch's "Network request failed": never shown raw.
+      setError((!(e instanceof TypeError) && (e as Error).message) || t("account.report.photo_failed"));
     } finally {
       setBusy(null);
     }
@@ -95,6 +89,15 @@ export default function Report() {
         </Pressable>
         <Text accessibilityRole="header" style={type.h3}>{t("account.report.title")}</Text>
       </View>
+      {!order ? (
+        <View style={{ flex: 1, padding: space[5], justifyContent: "center" }}>
+          {loaded.status === "error" ? (
+            <LoadError error={loaded.error} onRetry={loaded.retry}
+              title={loadedRefused(loaded.error) ? t("account.report.not_found") : undefined} />
+          ) : <ActivityIndicator accessibilityLabel={t("common.loading")} color={color.peacock} />}
+        </View>
+      ) : (
+      <>
       <ScrollView contentContainerStyle={{ padding: space[5], gap: space[5], paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <View style={s.card}>
           <Text style={s.h2}>{t("account.report.which_items")}</Text>
@@ -131,13 +134,20 @@ export default function Report() {
             {busy === "photo" ? <Text style={s.muted}>{t("app.report.uploading")}</Text> : photo ? null : <Text style={[type.label, { color: color.peacockDeep }]}>{t("app.report.add_photo")}</Text>}
           </Pressable>
         </View>
-        {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
       </ScrollView>
       <View style={s.footer}>
         <Button testID="send-report" title={busy === "send" ? t("account.report.sending") : t("account.report.send")} size="lg" block loading={busy === "send"} disabled={!chosen || !reason || busy === "photo"} onPress={send} />
       </View>
+      </>
+      )}
     </SafeAreaView>
   );
+}
+
+/** The API said no (not this person's order, or no such order): "not found", not "can't reach". */
+function loadedRefused(error: unknown): boolean {
+  return error instanceof ApiError && error.status < 500;
 }
 
 const s = textStyles(StyleSheet.create({
@@ -146,7 +156,7 @@ const s = textStyles(StyleSheet.create({
   back: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.card, padding: space[4], gap: space[3] },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
-  step: { width: 40, height: 40, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
+  step: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
   chip: { paddingHorizontal: 16, height: 44, justifyContent: "center", borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white },
   input: { height: 52, borderRadius: radius.card, borderWidth: 1.5, borderColor: color.lineStrong, paddingHorizontal: 16 },
   photo: { height: 120, borderRadius: radius.card, borderWidth: 1.5, borderStyle: "dashed", borderColor: color.lineStrong, alignItems: "center", justifyContent: "center", overflow: "hidden" },

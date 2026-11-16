@@ -356,3 +356,15 @@ and Privacy notice (the documents themselves are English for now; other language
   legal wording.
 - `legal.older`, `legal.history_replaced`, `legal.history_effective`: {date} is formatted by the
   country ("20 November 2026"); check the word order around it.
+
+## Apps: can't reach BhojanGo (round 9)
+
+Machine-translated 2026-11-16: `app.load_error.*`, the error state every app screen shows when
+its data can't load (no connection, our servers too slow or down), with its Retry button.
+Check first: `title` names the brand ("Can't reach BhojanGo"); `offline` must not blame the
+person ("we couldn't connect"); `retry` is a button label, short enough for a 160 px button.
+Spanish uses "Reintentar" for the button and "tú" in the sentences.
+
+Also machine-translated 2026-11-16: `app.payment_failed.*`, the customer app's "Payment didn't go
+through" screen (it was English-only). `not_charged` is a promise about money: check it says
+"you have not been charged" and that the bank reverses any hold, nothing more. "UPI" stays as is.

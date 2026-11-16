@@ -1,5 +1,5 @@
 import {
-  FontAudit, fontAuditEnabled, I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
+  FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
@@ -20,6 +20,7 @@ export default function RootLayout() {
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
+  const failure = useSession((s) => s.failure);
   useKnownCountry(useSession((s) => s.user?.country)); // the rider's account country (Markets)
 
   useEffect(() => {
@@ -43,10 +44,13 @@ export default function RootLayout() {
       <StatusBar style="light" />
       {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner tone="dark">
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: night.ground } }}>
-          <Stack.Screen name="sos" options={{ presentation: "modal" }} />
-          <Stack.Screen name="document" options={{ presentation: "modal" }} />
-        </Stack>
+        {/* Signed in, but the API didn't answer at start: say so, Retry (the person stays signed in). */}
+        {status === "unreachable" ? <UnreachableScreen error={failure} onRetry={initialize} tone="dark" /> : (
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: night.ground } }}>
+            <Stack.Screen name="sos" options={{ presentation: "modal" }} />
+            <Stack.Screen name="document" options={{ presentation: "modal" }} />
+          </Stack>
+        )}
       </WithTestBanner>
     </I18nProvider>
   );

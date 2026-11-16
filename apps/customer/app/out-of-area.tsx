@@ -4,7 +4,7 @@ import {
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "../lib/icons";
 import { useWhere } from "../lib/where";
@@ -55,9 +55,10 @@ export default function OutOfArea() {
             <Button title={t("app.out_of_area.notify")} size="lg" block disabled={phone.replace(/\D/g, "").length < 8} onPress={join} />
           </>
         )}
-        <Text style={[type.label, { color: color.peacock, textAlign: "center", marginTop: space[4] }]} onPress={() => router.replace("/home")}>
-          {t("home.try_another")}
-        </Text>
+        <Pressable testID="try-another" accessibilityRole="link" onPress={() => router.replace("/home")}
+          style={{ minHeight: 44, justifyContent: "center", marginTop: space[3] }}>
+          <Text style={[type.label, { color: color.peacock, textAlign: "center" }]}>{t("home.try_another")}</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

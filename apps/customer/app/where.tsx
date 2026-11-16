@@ -6,7 +6,7 @@
 // "Coming soon · N people waiting". The choice decides the home's location line and
 // so the country: its currency, its kitchens and the languages on the pill.
 import {
-  Button, color, filterCities, formatNumber, Input, radius, SafeAreaView, space, type, useCountry, useI18n, type MarketCountry,
+  Button, color, filterCities, formatNumber, Input, LoadError, radius, SafeAreaView, space, type, useCountry, useI18n, type MarketCountry,
 } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -20,18 +20,20 @@ type City = MarketCountry["regions"][number]["cities"][number];
 
 export default function Where() {
   const { t } = useI18n();
-  const { country, countries } = useCountry();
+  const { country, countries, error: marketsDown, failure: marketsFailure, reload: reloadMarkets } = useCountry();
   const { point, market, saved, setPoint, goHere, pickCity } = useWhere();
   const [list, setList] = useState<DropPoint[] | null | "error">(null);
+  const [listFailure, setListFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [othersOpen, setOthersOpen] = useState(false);
 
-  const load = useCallback(() => {
-    saved().then(setList).catch(() => setList("error"));
-  }, [saved]);
-  useFocusEffect(load);
+  const load = useCallback(() => saved().then(setList).catch((e: unknown) => {
+    setListFailure(e);
+    setList("error");
+  }), [saved]);
+  useFocusEffect(useCallback(() => void load(), [load]));
 
   const shown = useMemo(() => filterCities(countries, q), [countries, q]);
   const home = shown.find((k) => k.code === country?.code) ?? null;
@@ -70,7 +72,7 @@ export default function Where() {
         <Text style={ui.muted}>{t("cities.choose_note")}</Text>
         <Section title={t("account.addresses.title")} testID="where-saved">
           {list === null ? <ActivityIndicator color={color.peacock} /> : null}
-          {list === "error" ? <Text style={ui.muted}>{t("account.addresses.unavailable")}</Text> : null}
+          {list === "error" ? <LoadError testID="where-saved-error" title={t("account.addresses.unavailable")} error={listFailure} onRetry={load} /> : null}
           {Array.isArray(list) && !list.length ? <Text style={ui.muted}>{t("account.addresses.empty")}</Text> : null}
           {Array.isArray(list) ? list.map((p, i) => {
             const on = !!point?.addressId && point.addressId === p.addressId;
@@ -97,7 +99,7 @@ export default function Where() {
         <Section title={home?.name ?? country?.name ?? t("cities.title")} testID="where-cities">
           <Input testID="where-city-search" shape="pill" value={q} onChangeText={setQ} placeholder={t("cities.search")}
             accessibilityLabel={t("cities.search")} autoCorrect={false} />
-          {home ? cityRows(home) : (
+          {marketsDown && !countries.length ? <LoadError error={marketsFailure} onRetry={reloadMarkets} /> : home ? cityRows(home) : (
             <Text style={ui.muted}>{q.trim() && country ? t("cities.no_match_in", { country: country.name }) : t("cities.no_match")}</Text>
           )}
         </Section>

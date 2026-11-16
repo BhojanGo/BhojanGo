@@ -30,6 +30,8 @@ export interface ApiConfig {
   refreshAccessToken?: () => Promise<string | null>;
   /** Called when the session can't be refreshed (sign the person out). */
   onSignedOut?: () => void;
+  /** The fetch to send requests with (the apps' gives up a GET that hangs: mobile-core timeoutFetch). */
+  fetch?: (input: Request) => Promise<Response>;
 }
 
 export interface Api {
@@ -109,12 +111,13 @@ export function createApi(config: ApiConfig): Api {
       const retry = new Request(request, { headers: new Headers(request.headers) });
       retry.headers.set("Authorization", `Bearer ${token}`);
       retry.headers.set("X-Retried", "1");
-      return fetch(retry);
+      return (config.fetch ?? fetch)(retry);
     },
   };
-  const core = createClient<CorePaths>({ baseUrl: config.coreUrl });
-  const realtime = createClient<RealtimePaths>({ baseUrl: config.realtimeUrl });
-  const worker = createClient<WorkerPaths>({ baseUrl: config.workerUrl });
+  const custom = config.fetch ? { fetch: config.fetch } : {};
+  const core = createClient<CorePaths>({ baseUrl: config.coreUrl, ...custom });
+  const realtime = createClient<RealtimePaths>({ baseUrl: config.realtimeUrl, ...custom });
+  const worker = createClient<WorkerPaths>({ baseUrl: config.workerUrl, ...custom });
   for (const c of [core, realtime, worker] as Client<never>[]) c.use(auth);
   return { core, realtime, worker };
 }

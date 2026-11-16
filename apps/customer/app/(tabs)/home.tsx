@@ -7,7 +7,7 @@
 // address's or the phone's city, R8); where neither is known, "Set your delivery
 // location" (it opens Change city). Never a city we guessed.
 import {
-  Button, color, LanguagePill, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
+  Button, color, LanguagePill, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -30,7 +30,7 @@ export default function Home() {
   const user = useSession((s) => s.user);
   const { t } = useI18n();
   const { country } = useCountry();
-  const { point, market, status, locate } = useWhere();
+  const { point, market, status, locate, apiFailure } = useWhere();
   const [cuisine, setCuisine] = useState<string | null>(null);
   const bagCount = useBag((s) => s.lines.reduce((n, l) => n + l.quantity, 0));
 
@@ -43,7 +43,7 @@ export default function Home() {
   }, [status, market]);
 
   const served = status === "ready" && !!market?.serviceable;
-  const { data, kitchens, loading, error, reload } = useDiscover(served ? point : null);
+  const { data, kitchens, loading, error, failure, reload } = useDiscover(served ? point : null);
   const orders = useMyOrders();
   const active = activeOrder(orders);
   const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, kitchenPhoto(k)])), [kitchens]);
@@ -121,7 +121,11 @@ export default function Home() {
           ) : null}
         </View>
 
-        {status === "failed" ? (
+        {status === "failed" && apiFailure ? (
+          <View testID="home-last" style={{ paddingHorizontal: space[5] }}>
+            <LoadError error={apiFailure} onRetry={locate} />
+          </View>
+        ) : status === "failed" ? (
           <View testID="home-last" style={{ paddingHorizontal: space[5], gap: space[3] }}>
             <Txt style={{ color: color.muted }}>{t("app.home.locate_failed")}</Txt>
             <Button title={t("app.home.choose_address")} variant="secondary" onPress={changeCity} />
@@ -129,9 +133,8 @@ export default function Home() {
         ) : status !== "ready" || loading ? (
           <Loading near={market?.zone_name ?? point?.label?.split("· ")[1] ?? (point?.label || null)} />
         ) : error && !kitchens.length ? (
-          <View testID="home-last" style={{ paddingHorizontal: space[5], gap: space[3] }}>
-            <Txt style={{ color: color.muted }}>{t("common.error")}</Txt>
-            <Button title={t("common.retry")} variant="secondary" onPress={() => void reload()} />
+          <View testID="home-last" style={{ paddingHorizontal: space[5] }}>
+            <LoadError error={failure} onRetry={reload} />
           </View>
         ) : (
           <View testID="kitchens" style={{ gap: space[4], paddingHorizontal: space[5] }}>

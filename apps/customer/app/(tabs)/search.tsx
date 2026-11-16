@@ -1,8 +1,8 @@
 // Search the kitchens that deliver to the drop point (names, cuisines, areas),
 // from the same /discover answer as home; the cuisine row filters too.
-import { color, Input, SafeAreaView, space, Txt, useI18n } from "@bhojango/mobile-core";
+import { color, Input, LoadError, SafeAreaView, space, Txt, useI18n } from "@bhojango/mobile-core";
 import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
+import { ActivityIndicator, FlatList, View } from "react-native";
 
 import { CuisineRow } from "../../components/HomeSections";
 import { KitchenCard } from "../../components/KitchenCard";
@@ -16,7 +16,7 @@ export default function Search() {
   const bottom = useTabBarSpace();
   const point = useWhere((s) => s.point);
   const market = useWhere((s) => s.market);
-  const { data, kitchens } = useDiscover(market?.serviceable ? point : null);
+  const { data, kitchens, loading, error, failure, reload } = useDiscover(market?.serviceable ? point : null);
   const [q, setQ] = useState("");
   const [cuisine, setCuisine] = useState<string | null>(null);
   const tiles = useMemo(() => cuisineTiles(data?.cuisines, kitchens), [data, kitchens]);
@@ -39,7 +39,10 @@ export default function Search() {
         contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
         ListEmptyComponent={
           <View testID="search-last">
-            <Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>
+            {/* R9: the kitchens didn't load (offline, our servers): say so and Retry, not "no kitchens". */}
+            {error && !kitchens.length ? <LoadError error={failure} onRetry={reload} />
+              : loading ? <ActivityIndicator color={color.peacock} />
+              : <Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>}
           </View>
         }
         ListFooterComponent={<TabEnd tab="search" />}

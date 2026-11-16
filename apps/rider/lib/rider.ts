@@ -158,6 +158,8 @@ export function useLiveRider(enabled: boolean) {
 function useLoad<T>(load: () => Promise<T>, key = "") {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** What the last load threw (R9: <LoadError error={failure} onRetry={reload} tone="dark" />); null after a good one. */
+  const [failure, setFailure] = useState<unknown>(null);
   /** The HTTP status of the last failed load (403/404: not yours, or gone), else null. */
   const [status, setStatus] = useState<number | null>(null);
   const live = useRef(true);
@@ -171,12 +173,14 @@ function useLoad<T>(load: () => Promise<T>, key = "") {
       if (live.current) {
         setData(v);
         setError(null);
+        setFailure(null);
         setStatus(null);
       }
       return v;
     } catch (e) {
       if (live.current) {
         setError((e as Error).message);
+        setFailure(e);
         setStatus(e instanceof ApiError ? e.status : null);
       }
       return null;
@@ -191,7 +195,7 @@ function useLoad<T>(load: () => Promise<T>, key = "") {
       live.current = false;
     };
   }, [reload]);
-  return { data, error, status, reload, setData };
+  return { data, error, failure, status, reload, setData };
 }
 
 export function useOnboarding() {
