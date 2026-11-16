@@ -476,6 +476,106 @@
         "title": "AddressUpdate",
         "type": "object"
       },
+      "AdminArticle": {
+        "properties": {
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Content"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "helpful_no": {
+            "title": "Helpful No",
+            "type": "integer"
+          },
+          "helpful_yes": {
+            "title": "Helpful Yes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "live": {
+            "$ref": "#/components/schemas/Content"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By Name"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "country",
+          "language",
+          "status",
+          "version",
+          "live",
+          "draft",
+          "helpful_yes",
+          "helpful_no",
+          "published_at",
+          "updated_at",
+          "updated_by_name",
+          "can_edit"
+        ],
+        "title": "AdminArticle",
+        "type": "object"
+      },
       "AdminMeResponse": {
         "properties": {
           "assignments": {
@@ -868,6 +968,286 @@
           "served"
         ],
         "title": "Area",
+        "type": "object"
+      },
+      "Article": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "fallback": {
+            "title": "Fallback",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "related": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleCard"
+            },
+            "title": "Related",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "topic",
+          "title",
+          "summary",
+          "language",
+          "country",
+          "id",
+          "body",
+          "updated_at",
+          "related",
+          "fallback"
+        ],
+        "title": "Article",
+        "type": "object"
+      },
+      "ArticleCard": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "topic",
+          "title",
+          "summary",
+          "language",
+          "country"
+        ],
+        "title": "ArticleCard",
+        "type": "object"
+      },
+      "ArticleIn": {
+        "properties": {
+          "body": {
+            "default": "",
+            "maxLength": 40000,
+            "title": "Body",
+            "type": "string"
+          },
+          "country": {
+            "pattern": "^(\\*|[A-Z]{2})$",
+            "title": "Country",
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "hi",
+              "te",
+              "ta",
+              "kn",
+              "mr",
+              "bn",
+              "es"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "popular": {
+            "default": 0,
+            "maximum": 99.0,
+            "minimum": 0.0,
+            "title": "Popular",
+            "type": "integer"
+          },
+          "related": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Related",
+            "type": "array"
+          },
+          "slug": {
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Title",
+            "type": "string"
+          },
+          "topic": {
+            "enum": [
+              "orders",
+              "payments-refunds",
+              "delivery",
+              "account",
+              "kitchen-partners",
+              "delivery-partners"
+            ],
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "country",
+          "language",
+          "topic",
+          "title"
+        ],
+        "title": "ArticleIn",
+        "type": "object"
+      },
+      "ArticlePatch": {
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 40000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "popular": {
+            "anyOf": [
+              {
+                "maximum": 99.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popular"
+          },
+          "related": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "enum": [
+                  "orders",
+                  "payments-refunds",
+                  "delivery",
+                  "account",
+                  "kitchen-partners",
+                  "delivery-partners"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          }
+        },
+        "title": "ArticlePatch",
         "type": "object"
       },
       "AuditOut": {
@@ -2143,6 +2523,145 @@
           "starting_percent"
         ],
         "title": "CommissionTerms",
+        "type": "object"
+      },
+      "ContactIn": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The visitor's city code, when the website knows it",
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "topic": {
+            "enum": [
+              "orders",
+              "payments-refunds",
+              "delivery",
+              "account",
+              "kitchen-partners",
+              "delivery-partners"
+            ],
+            "title": "Topic",
+            "type": "string"
+          },
+          "website": {
+            "default": "",
+            "description": "Leave empty (a field people never see; bots fill it in)",
+            "maxLength": 200,
+            "title": "Website",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "topic",
+          "message"
+        ],
+        "title": "ContactIn",
+        "type": "object"
+      },
+      "ContactOut": {
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "ContactOut",
+        "type": "object"
+      },
+      "Content": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "popular": {
+            "title": "Popular",
+            "type": "integer"
+          },
+          "related": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "body",
+          "topic",
+          "popular",
+          "related"
+        ],
+        "title": "Content",
         "type": "object"
       },
       "CountryCreate": {
@@ -3940,6 +4459,30 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HelpHome": {
+        "properties": {
+          "popular": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleCard"
+            },
+            "title": "Popular",
+            "type": "array"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicCount"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "topics",
+          "popular"
+        ],
+        "title": "HelpHome",
+        "type": "object"
+      },
       "Hint": {
         "properties": {
           "city_code": {
@@ -4028,6 +4571,51 @@
           }
         },
         "title": "Hint",
+        "type": "object"
+      },
+      "HistoryEntry": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Name"
+          },
+          "content": {
+            "$ref": "#/components/schemas/Content"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "action",
+          "status",
+          "at",
+          "by_name",
+          "content"
+        ],
+        "title": "HistoryEntry",
         "type": "object"
       },
       "HoursIn": {
@@ -5150,6 +5738,83 @@
           }
         },
         "title": "MenuItemUpdateRequest",
+        "type": "object"
+      },
+      "MessageIn": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Message",
+            "type": "string"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "topic": {
+            "enum": [
+              "orders",
+              "payments-refunds",
+              "delivery",
+              "account",
+              "kitchen-partners",
+              "delivery-partners"
+            ],
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "message"
+        ],
+        "title": "MessageIn",
+        "type": "object"
+      },
+      "MessageOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "MessageOut",
         "type": "object"
       },
       "MessageResponse": {
@@ -10963,6 +11628,27 @@
         "title": "RunCreate",
         "type": "object"
       },
+      "SearchResults": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleCard"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "SearchResults",
+        "type": "object"
+      },
       "ServiceFeeSummary": {
         "properties": {
           "max": {
@@ -11717,6 +12403,45 @@
         "title": "TipPresetsOut",
         "type": "object"
       },
+      "TopicCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "count"
+        ],
+        "title": "TopicCount",
+        "type": "object"
+      },
+      "TopicPage": {
+        "properties": {
+          "articles": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleCard"
+            },
+            "title": "Articles",
+            "type": "array"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "articles"
+        ],
+        "title": "TopicPage",
+        "type": "object"
+      },
       "UserResponse": {
         "properties": {
           "avatar_url": {
@@ -11963,6 +12688,32 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VoteIn": {
+        "properties": {
+          "article_id": {
+            "format": "uuid",
+            "title": "Article Id",
+            "type": "string"
+          },
+          "helpful": {
+            "title": "Helpful",
+            "type": "boolean"
+          },
+          "voter": {
+            "default": "",
+            "description": "A random id the browser keeps, so a second click changes the vote",
+            "maxLength": 64,
+            "title": "Voter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "article_id",
+          "helpful"
+        ],
+        "title": "VoteIn",
         "type": "object"
       },
       "WaitlistIn": {
@@ -14288,6 +15039,464 @@
         ]
       }
     },
+    "/api/v1/help": {
+      "get": {
+        "operationId": "help_home_api_v1_help_get",
+        "parameters": [
+          {
+            "description": "The visitor's country (IN, US)",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's country (IN, US)",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "The visitor's language (en, hi, es, ...)",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 5,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's language (en, hi, es, ...)",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelpHome"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Home",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/articles/{slug}": {
+      "get": {
+        "operationId": "help_article_api_v1_help_articles__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The visitor's country (IN, US)",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's country (IN, US)",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "The visitor's language (en, hi, es, ...)",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 5,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's language (en, hi, es, ...)",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Article"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Article",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/contact": {
+      "post": {
+        "description": "The Help contact form, for someone who isn't signed in: a support ticket\nfor the country (or their city) that support answers by email. Bots that\nfill in the hidden field, or messages that are mostly links, are thanked\nand dropped.",
+        "operationId": "help_contact_api_v1_help_contact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Contact",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/messages": {
+      "post": {
+        "description": "A signed-in customer writes to support from Help, about one of their\norders or not. The ticket goes to the order's city (else their country).",
+        "operationId": "help_message_api_v1_help_messages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Help Message",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/search": {
+      "get": {
+        "operationId": "help_search_api_v1_help_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The visitor's country (IN, US)",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's country (IN, US)",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "The visitor's language (en, hi, es, ...)",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 5,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's language (en, hi, es, ...)",
+              "title": "Language"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 25,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Search",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/topics/{topic}": {
+      "get": {
+        "operationId": "help_topic_api_v1_help_topics__topic__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic",
+            "required": true,
+            "schema": {
+              "title": "Topic",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The visitor's country (IN, US)",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's country (IN, US)",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "The visitor's language (en, hi, es, ...)",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 5,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The visitor's language (en, hi, es, ...)",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Topic",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
+    "/api/v1/help/votes": {
+      "post": {
+        "description": "Anonymous: we keep a hash of the browser's random id, never who it is.",
+        "operationId": "help_vote_api_v1_help_votes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Help Vote Api V1 Help Votes Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Help Vote",
+        "tags": [
+          "Help"
+        ]
+      }
+    },
     "/api/v1/kitchens/apply": {
       "post": {
         "description": "Start an application as a new kitchen partner: creates the account (role\nrestaurant_owner) and the kitchen pending approval, signs them in, and emails\nthem what comes next. The application's steps follow (GET /restaurants/{id}/application).",
@@ -16021,6 +17230,453 @@
         "summary": "List Alerts",
         "tags": [
           "Operations"
+        ]
+      }
+    },
+    "/api/v1/ops/help/articles": {
+      "get": {
+        "description": "Every article you may see, filtered. status=changes: published with unpublished changes.",
+        "operationId": "list_articles_api_v1_ops_help_articles_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(\\*|[A-Z]{2})$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "en",
+                    "hi",
+                    "te",
+                    "ta",
+                    "kn",
+                    "mr",
+                    "bn",
+                    "es"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Language"
+            }
+          },
+          {
+            "in": "query",
+            "name": "topic",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "orders",
+                    "payments-refunds",
+                    "delivery",
+                    "account",
+                    "kitchen-partners",
+                    "delivery-partners"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Topic"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "published",
+                    "changes"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminArticle"
+                  },
+                  "title": "Response List Articles Api V1 Ops Help Articles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Articles",
+        "tags": [
+          "Help (admin)"
+        ]
+      },
+      "post": {
+        "description": "A new article (a draft), or a new language or country version of a slug.",
+        "operationId": "create_article_api_v1_ops_help_articles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Create Article",
+        "tags": [
+          "Help (admin)"
+        ]
+      }
+    },
+    "/api/v1/ops/help/articles/{article_id}": {
+      "get": {
+        "operationId": "get_article_api_v1_ops_help_articles__article_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Article Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Article",
+        "tags": [
+          "Help (admin)"
+        ]
+      },
+      "patch": {
+        "description": "Save. A published article keeps showing its live text until you publish.",
+        "operationId": "save_article_api_v1_ops_help_articles__article_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Article Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticlePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Save Article",
+        "tags": [
+          "Help (admin)"
+        ]
+      }
+    },
+    "/api/v1/ops/help/articles/{article_id}/history": {
+      "get": {
+        "description": "Newest first: every version with who made it and when.",
+        "operationId": "article_history_api_v1_ops_help_articles__article_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Article Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  },
+                  "title": "Response Article History Api V1 Ops Help Articles  Article Id  History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Article History",
+        "tags": [
+          "Help (admin)"
+        ]
+      }
+    },
+    "/api/v1/ops/help/articles/{article_id}/publish": {
+      "post": {
+        "operationId": "publish_article_api_v1_ops_help_articles__article_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Article Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Publish Article",
+        "tags": [
+          "Help (admin)"
+        ]
+      }
+    },
+    "/api/v1/ops/help/articles/{article_id}/unpublish": {
+      "post": {
+        "operationId": "unpublish_article_api_v1_ops_help_articles__article_id__unpublish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "article_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Article Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Unpublish Article",
+        "tags": [
+          "Help (admin)"
         ]
       }
     },
