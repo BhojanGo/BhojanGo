@@ -145,7 +145,11 @@ function waited(iso: string): string {
 }
 
 function ticketTitle(t: OpsTicket): string {
-  return t.kind === "callback" ? `Call back · ${t.restaurant_name ?? t.requester_name}` : `Problem · ${t.order_code ?? ""} · ${t.requester_name}`;
+  if (t.kind === "callback") return `Call back · ${t.restaurant_name ?? t.requester_name}`;
+  // From Help (F9): a signed-in customer's message, or the contact form (not signed in).
+  if (t.kind === "message") return `Message · ${t.order_code ? `${t.order_code} · ` : ""}${t.requester_name}`;
+  if (t.kind === "contact") return `Contact form · ${t.requester_name}`;
+  return `Problem · ${t.order_code ?? ""} · ${t.requester_name}`;
 }
 
 function Support({ scope, openId, setOpenId }: { scope: string; openId: string | null; setOpenId: (id: string | null) => void }) {
@@ -223,11 +227,15 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={ticketTitle(t)}>
       <div>
         <h2 className="m-0 text-h2">{ticketTitle(t)}</h2>
-        <p className="text-small text-muted">{t.kind === "callback" ? "Asked for a call back" : "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
+        <p className="text-small text-muted">{({ callback: "Asked for a call back", message: "Wrote to support from Help", contact: "Used the Help contact form" } as Record<string, string>)[t.kind] ?? "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
       </div>
       <dl className="grid gap-3 text-small sm:grid-cols-2">
         <div><dt className="font-bold">Who</dt><dd>{t.requester_name}{t.requester_role === "partner" && t.restaurant_name ? ` · ${t.restaurant_name}` : ""}</dd></div>
-        <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-bold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
+        {t.kind === "contact" ? (
+          <div><dt className="font-bold">Reply to</dt><dd>{typeof t.details.email === "string" ? <a href={`mailto:${t.details.email}`} className="font-bold text-peacock">{t.details.email}</a> : <span className="text-muted">No email</span>}</dd></div>
+        ) : (
+          <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-bold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
+        )}
         <div><dt className="font-bold">About</dt><dd>{TICKET_TOPIC[t.topic] ?? t.topic}</dd></div>
         <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>
       </dl>

@@ -1,6 +1,6 @@
-// Renders the tree from @bhojango/ui/markdown (admin-written Terms and Privacy)
+// Renders the tree from @bhojango/ui/legal-markdown (admin-written Terms and Privacy)
 // as React: no HTML strings, so nothing in a document can inject markup.
-import type { Block, Inline } from "@bhojango/ui/markdown";
+import type { Block, Inline } from "@bhojango/ui/legal-markdown";
 import Link from "next/link";
 import type { ReactNode } from "react";
 

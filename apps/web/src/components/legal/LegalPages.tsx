@@ -5,7 +5,7 @@
 // history and a print stylesheet. Every environment but production, and any draft,
 // carries "Draft: pending legal review". Documents are English for now; the page
 // chrome follows the visitor's language and says so.
-import { parse, toc as contents, type Block } from "@bhojango/ui/markdown";
+import { parse, toc as contents, type Block } from "@bhojango/ui/legal-markdown";
 import { isProduction } from "@bhojango/ui/environment";
 import type { Metadata } from "next";
 import Link from "next/link";

@@ -20,13 +20,17 @@
       "types": "./bill.d.ts",
       "default": "./bill.js"
     },
-    "./environment": {
-      "types": "./environment.d.ts",
-      "default": "./environment.js"
-    },
     "./markdown": {
       "types": "./markdown.d.ts",
       "default": "./markdown.js"
+    },
+    "./legal-markdown": {
+      "types": "./legal-markdown.d.ts",
+      "default": "./legal-markdown.js"
+    },
+    "./environment": {
+      "types": "./environment.d.ts",
+      "default": "./environment.js"
     },
     "./tailwind-preset": "./tailwind-preset.js",
     "./security-headers": "./security-headers.js"
@@ -37,7 +41,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -64,10 +68,12 @@
     "bill.js",
     "bill.d.ts",
     "environment.js",
-    "environment.d.ts",
     "markdown.js",
     "markdown.d.ts",
+    "environment.d.ts",
     "tailwind-preset.js",
-    "security-headers.js"
+    "security-headers.js",
+    "legal-markdown.js",
+    "legal-markdown.d.ts"
   ]
 }

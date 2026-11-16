@@ -123,6 +123,13 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/kitchens/apply"): public("Add your kitchen: a new kitchen partner signs up with email and password (rate-limited)"),
     ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
+    # the Help centre (F9): published articles for everyone; votes and the contact form are rate-limited
+    ("GET", "/api/v1/help"): public("Help: topics and popular articles"),
+    ("GET", "/api/v1/help/topics/{topic}"): public("Help: a topic's articles"),
+    ("GET", "/api/v1/help/search"): public("Help: search published articles"),
+    ("GET", "/api/v1/help/articles/{slug}"): public("Help: one published article"),
+    ("POST", "/api/v1/help/votes"): public("Help: was this helpful (anonymous, rate-limited)"),
+    ("POST", "/api/v1/help/contact"): public("Help: the contact form for people not signed in (rate-limited, honeypot)"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
     ("GET", R): public("browse"), ("GET", f"{R}/availability"): public("browse"),
     ("GET", f"{R}/delivery-check"): public("browse"), ("GET", f"{R}/hours"): public("browse"),
@@ -194,6 +201,18 @@ POLICY: dict[tuple[str, str], Policy] = {
     # call-back requests (B3): the kitchen's owner asks; admins see and resolve them in their city
     ("POST", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd", body=lambda c: {"topic": "other"}),
     ("GET", f"{R}/callback"): user("other_partner", "customer", "rider", "ops_hyd"),
+    # Help from a signed-in customer (F9): their own orders only (others' are 404, see test_help_centre.py)
+    ("POST", "/api/v1/help/messages"): user(body=lambda c: {"topic": "orders", "message": "Access sweep message"}),
+    # Content -> Help in the console (F9): content.view reads (global ones too), content.edit writes its country
+    ("GET", "/api/v1/ops/help/articles"): admin("ops_hyd", "finance_in"),
+    ("POST", "/api/v1/ops/help/articles"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us", body=lambda c: {
+        "slug": "access-sweep", "country": "IN", "language": "en", "topic": "orders", "title": "Access sweep"}),
+    ("GET", "/api/v1/ops/help/articles/{article_id}"): admin("ops_hyd", "finance_in", "cm_us"),
+    ("GET", "/api/v1/ops/help/articles/{article_id}/history"): admin("ops_hyd", "finance_in", "cm_us"),
+    ("PATCH", "/api/v1/ops/help/articles/{article_id}"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us",
+                                                              body=lambda c: {"title": "Access sweep"}),
+    ("POST", "/api/v1/ops/help/articles/{article_id}/publish"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us"),
+    ("POST", "/api/v1/ops/help/articles/{article_id}/unpublish"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us"),
     ("GET", "/api/v1/ops/tickets"): admin(),
     ("GET", "/api/v1/ops/alerts"): admin(),  # P23
     ("POST", "/api/v1/ops/tickets/{ticket_id}/resolve"): admin("ops_boi", "viewer", "finance_in", body=lambda c: {"resolution": "Sweep"}),
@@ -380,6 +399,7 @@ class Ctx:
     ticket: str = ""
     payment_method: str = ""
     legal_doc: str = ""
+    help_article: str = ""
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
@@ -388,7 +408,7 @@ class Ctx:
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
                   "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
                   "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": str(uuid.UUID(int=9)),
-                  "payment_method_id": self.payment_method, "kind": "restaurant", "target_id": self.spice,
+                  "payment_method_id": self.payment_method, "article_id": self.help_article, "topic": "orders", "kind": "restaurant", "target_id": self.spice,
                   "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
@@ -508,6 +528,9 @@ async def _build() -> Ctx:
             c.legal_doc = str((await db.execute(text(  # India's seeded Terms (R8 F10)
                 "SELECT id FROM legal_documents WHERE country = 'IN' AND kind = 'terms' AND language = 'en' "
                 "ORDER BY version DESC NULLS LAST LIMIT 1"))).scalar())
+            # an India help article (F9): India's to edit, not the US's
+            c.help_article = str((await db.execute(text(
+                "SELECT id FROM help_articles WHERE slug = 'ways-to-pay' AND country = 'IN' AND language = 'en'"))).scalar())
             c.assignment = str((await db.execute(text(
                 "SELECT a.id FROM admin_role_assignments a JOIN users u ON u.id = a.user_id "
                 "WHERE u.email = 'ops.hyd@example.com' LIMIT 1"))).scalar())

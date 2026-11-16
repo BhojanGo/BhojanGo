@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
-import { MarkdownPreview } from "@/components/content/MarkdownPreview";
+import { LegalMarkdownPreview as MarkdownPreview } from "@/components/content/LegalMarkdownPreview";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { apiMessage, useScope } from "@/lib/ops";

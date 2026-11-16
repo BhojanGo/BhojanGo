@@ -226,6 +226,45 @@ async def seed_hours_and_licences(conn, restaurant_ids: dict) -> None:
             {"id": sid("holiday", slug, day), "r": restaurant_ids[slug], "d": date.fromisoformat(day), "n": note})
 
 
+UPSERT_HELP = text("""
+    INSERT INTO help_articles (id, slug, topic, country, language, title, summary, body, status, popular, related, draft,
+        version, published_at, created_at, updated_at, updated_by)
+    VALUES (:id, :slug, :topic, :country, :language, :title, :summary, :body, 'published', :popular, CAST(:related AS jsonb),
+        NULL, 1, now(), now(), now(), NULL)
+    ON CONFLICT (slug, country, language) DO UPDATE SET topic = EXCLUDED.topic, title = EXCLUDED.title,
+        summary = EXCLUDED.summary, body = EXCLUDED.body, popular = EXCLUDED.popular, related = EXCLUDED.related,
+        status = 'published', updated_at = now()
+    WHERE help_articles.updated_by IS NULL
+    RETURNING id
+""")
+UPSERT_HELP_VERSION = text("""
+    INSERT INTO help_article_versions (id, article_id, version, action, content, status, at, by)
+    VALUES (:id, :article_id, 1, 'created', CAST(:content AS jsonb), 'published', now(), NULL)
+    ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content
+""")
+
+
+async def seed_help(conn) -> int:
+    """The Help centre's articles (F9): tools/seed/help/<language>/<slug>[.<CC>].md.
+    Articles an admin has changed in the console (updated_by set) are left alone."""
+    from core_api.modules.content.service.help import load_seed_dir
+
+    n = 0
+    for a in load_seed_dir(Path(__file__).resolve().parent / "help"):
+        aid = sid("help", a.country, a.language, a.slug)
+        row = (await conn.execute(UPSERT_HELP, {
+            "id": aid, "slug": a.slug, "topic": a.topic, "country": a.country, "language": a.language, "title": a.title,
+            "summary": a.summary, "body": a.body, "popular": a.popular, "related": json.dumps(a.related)})).first()
+        if row is None:
+            continue
+        content = {"title": a.title, "summary": a.summary, "body": a.body, "topic": a.topic, "popular": a.popular,
+                   "related": a.related}
+        await conn.execute(UPSERT_HELP_VERSION, {"id": sid("help_version", str(row[0])), "article_id": row[0],
+                                                 "content": json.dumps(content)})
+        n += 1
+    return n
+
+
 UPSERT_ADMIN_ROLE = text("""
 INSERT INTO admin_role_assignments (id, user_id, role, scope, created_at)
 VALUES (:id, :user_id, :role, :scope, now())
@@ -432,6 +471,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
         await seed_hours_and_licences(conn, restaurant_ids)
         # Terms and Privacy drafts (R8 F10): test environments only; production's are published in the admin console.
         legal_docs = 0 if os.environ.get("APP_ENV", "").strip().lower() == "production" else await seed_legal(conn, sid)
+        help_articles = await seed_help(conn)
 
         counts = (await conn.execute(text(
             "SELECT (SELECT count(*) FROM restaurants WHERE slug = ANY(:slugs)),"
@@ -442,7 +482,7 @@ async def seed(database_url: str) -> list[tuple[str, str, str, str]]:
         ), {"slugs": [r["slug"] for m in MARKETS for r in m["restaurants"]]})).one()
     await engine.dispose()
     print(f"Seeded {counts[3]} cities with {counts[4]} zones, {counts[5]} published rules, {counts[0]} restaurants, "
-          f"{counts[1]} menu items, {counts[2]} users, {legal_docs} legal documents.")
+          f"{counts[1]} menu items, {counts[2]} users, {help_articles} help articles, {legal_docs} legal documents.")
     return logins
 
 

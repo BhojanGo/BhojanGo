@@ -1218,6 +1218,58 @@ with sync_playwright() as p:
             expect(dl.get_by_test_id("app-not-yet")).to_contain_text("isn't in Google Play or the App Store yet")
         check("/deliver: get started with a new phone -> a delivery partner account -> the app's QR code", deliver_sign_up)
 
+    # ── Help centre (F9): articles from the console, search, an article, a vote, contact ──
+    help_ctx = b.new_context(viewport={"width": 1366, "height": 900})
+    hp = help_ctx.new_page()
+    hp.goto(base + "/help", wait_until="networkidle")
+    check("help: search at the top, six topics with counts, popular articles", lambda: (
+        expect(hp.get_by_role("heading", name="How can we help?", level=1)).to_be_visible(),
+        expect(hp.get_by_role("searchbox", name="Search help articles")).to_be_visible(),
+        expect(hp.locator("[data-testid^=topic-]")).to_have_count(6),
+        expect(hp.get_by_test_id("topic-orders")).to_contain_text(re.compile(r"\d+ articles?")),
+        expect(hp.get_by_role("heading", name="Popular articles")).to_be_visible()))
+    shot(hp, "21-help")
+    hp.get_by_role("searchbox", name="Search help articles").fill("zzqqxx nothing")
+    check("help: no results says so, with suggestions and contact", lambda: (
+        expect(hp.get_by_test_id("help-results")).to_contain_text("No articles match", timeout=10000),
+        expect(hp.get_by_test_id("help-results").get_by_role("link", name="Contact us")).to_be_visible()))
+    hp.get_by_role("searchbox", name="Search help articles").fill("delivery PIN")
+    pin_link = hp.get_by_test_id("help-results").get_by_role("link", name=re.compile("delivery PIN", re.I)).first
+    check("help: search finds an article as you type", lambda: expect(pin_link).to_be_visible(timeout=10000))
+    pin_link.click()
+    url_is(hp, r"/help/delivery/delivery-pin$")
+    article = hp.get_by_test_id("help-article")
+    check("help: the article with breadcrumbs, its text and related articles", lambda: (
+        expect(hp.get_by_role("navigation", name="Breadcrumb").get_by_role("link", name="Help centre")).to_be_visible(),
+        expect(article.get_by_role("heading", level=1)).to_contain_text("PIN"),
+        expect(article.get_by_text("4-digit").first).to_be_visible(),
+        expect(hp.get_by_role("heading", name="Related articles")).to_be_visible()))
+    shot(hp, "22-help-article")
+    hp.get_by_test_id("helpful").get_by_role("button", name="No").click()
+    check("help: 'No' thanks you and offers contact", lambda: (
+        expect(hp.get_by_test_id("helpful")).to_contain_text("Sorry this didn't answer"),
+        expect(hp.get_by_test_id("helpful").get_by_role("link", name="Contact us")).to_be_visible()))
+    form = hp.get_by_test_id("contact-form")
+    form.get_by_label("Your name").fill("E2E Visitor")
+    form.get_by_label("Email").fill("e2e.visitor@example.com")
+    form.get_by_label("How can we help?").fill("Testing the help contact form end to end.")
+    form.get_by_role("button", name="Send message").click()
+    check("help: the contact form (signed out) sends a ticket and says what's next", lambda:
+          expect(hp.get_by_test_id("contact-sent")).to_contain_text("e2e.visitor@example.com", timeout=10000))
+    hp.goto(base + "/help/a/how-refunds-work", wait_until="networkidle")
+    check("help: a short link goes to the article under its topic", lambda: url_is(hp, r"/help/payments-refunds/how-refunds-work$"))
+    hp.goto(base + "/help/orders", wait_until="networkidle")
+    check("help: a topic page lists its articles", lambda: (
+        expect(hp.get_by_role("heading", name="Orders", level=1)).to_be_visible(),
+        expect(hp.get_by_role("link", name=re.compile("Cancel", re.I)).first).to_be_visible()))
+    check("help: an unknown article is a 404", lambda: _assert(hp.request.get(f"{base}/help/orders/no-such-article").status == 404, "not 404"))
+    hpm = b.new_context(viewport={"width": 390, "height": 844}).new_page()
+    for path in ("/help", "/help/orders", "/help/delivery/delivery-pin"):
+        hpm.goto(base + path, wait_until="networkidle")
+        check(f"phone width {path}: no sideways scroll", lambda: no_sideways_scroll(hpm))
+        check(f"phone width {path}: only the type scale's font sizes", lambda: type_scale_only(hpm))
+    help_ctx.close()
+
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")
     check("sitemap lists city and kitchen pages", lambda: _assert(
