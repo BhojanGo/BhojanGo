@@ -271,3 +271,14 @@ export function moneySymbol(currency: string): string {
 export function tzLabel(tz: string): string {
   return tz;
 }
+
+/**
+ * The city a country-level page opens on (e.g. the price simulator): the first live
+ * or beta city of `country` (or of any country), else its first city. From Markets,
+ * never a hard-coded code.
+ */
+export function firstCity(markets: CountrySummary[] | undefined, country?: string | null): string | null {
+  const cities = (markets ?? []).filter((c) => !country || country === "ALL" || c.code === country)
+    .flatMap((c) => c.regions.flatMap((r) => r.cities));
+  return (cities.find((c) => c.status === "live" || c.status === "beta") ?? cities[0])?.code ?? null;
+}

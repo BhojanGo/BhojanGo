@@ -90,7 +90,7 @@ function CountryView() {
 
           <section aria-label="States and cities" className="rounded-2xl border border-line bg-white p-6">
             <h2 className="m-0 mb-2 text-h3">States and cities</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full min-w-[640px] border-collapse text-small tabular-nums">
                 <thead>
                   <tr className="text-left text-caption text-muted">
@@ -319,7 +319,7 @@ function DemandCard({ countryCode }: { countryCode: string }) {
         <p className="mt-3 text-small text-muted">No sign-ups yet.</p>
       ) : (
         <div className="mt-3 grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-          <div className="overflow-x-auto"><table className="w-full border-collapse text-small tabular-nums">
+          <div className="table-scroll"><table className="w-full border-collapse text-small tabular-nums">
             <thead>
               <tr className="text-left text-caption text-muted">
                 <th className="py-2 font-bold">City</th>

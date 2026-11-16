@@ -1,6 +1,6 @@
 "use client";
-// Operations: live orders, what needs attention, the dispatch map (riders,
-// orders waiting for a rider, SOS, hand an order to a rider) and the support
+// Operations: live orders, what needs attention, the dispatch map (delivery partners,
+// orders waiting for one, SOS, hand an order to a delivery partner) and the support
 // console (find an order, see its timeline, refund by item: AdminSupport.html).
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
@@ -46,9 +46,10 @@ function Alerts({ scope }: { scope: string }) {
   );
 }
 
-function Flags({ o }: { o: OpsOrder }) {
+function Flags({ o, className = "" }: { o: OpsOrder; className?: string }) {
+  if (!o.flags.length) return null;
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className={`flex flex-wrap gap-1 ${className}`}>
       {o.flags.includes("late") ? <span className="rounded-md bg-danger-tint px-1.5 py-0.5 text-caption text-danger-ink">{o.minutes_late} min late</span> : null}
       {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">no delivery partner · {o.waiting_for_rider_min} min</span> : null}
       {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">kitchen not answering</span> : null}
@@ -56,22 +57,29 @@ function Flags({ o }: { o: OpsOrder }) {
   );
 }
 
-function OrdersTable({ orders, onOpen }: { orders: OpsOrder[]; onOpen: (id: string) => void }) {
-  if (!orders.length) return <p className="rounded-2xl bg-white p-6 text-muted">No orders here right now.</p>;
+function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen: (id: string) => void; attention: boolean }) {
+  if (!orders.length) {
+    return (
+      <div className="space-y-1 rounded-2xl bg-white p-6">
+        <p className="m-0 font-bold">{attention ? "Nothing needs attention right now." : "No live orders here right now."}</p>
+        <p className="m-0 text-small text-muted">{attention ? "Late orders, orders without a delivery partner and kitchens not answering show here." : "Orders show here from the moment they are placed until they are delivered."}</p>
+      </div>
+    );
+  }
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white">
-      <table className="w-full text-left text-small tabular-nums">
+    <div className="table-scroll rounded-2xl">
+      <table className="table-stack w-full text-left text-small tabular-nums [--stack-inset:1rem]">
         <thead className="text-caption text-muted"><tr>
-          <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Delivery partner</th><th>Placed</th><th>Due</th><th>Total</th><th />
+          <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Delivery partner</th><th>Placed</th><th>Due</th><th>Total</th><th><span className="sr-only">Open</span></th>
         </tr></thead>
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
             <tr key={o.id} className="hover:bg-porcelain">
-              <td className="px-4 py-3 font-bold">{o.code}</td><td>{o.restaurant_name}</td><td>{o.customer}</td>
-              <td><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} /></td>
-              <td>{o.rider ?? <span className="text-muted">—</span>}</td><td>{clock(o.placed_at)}</td><td>{clock(o.estimated_delivery_time)}</td>
-              <td>{money(o.total, o.currency, 2)}</td>
-              <td className="pr-4"><button type="button" onClick={() => onOpen(o.id)} className="h-8 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
+              <td className="stack-title px-4 py-3 font-bold">{o.code}</td><td data-label="Kitchen">{o.restaurant_name}</td><td data-label="Customer">{o.customer}</td>
+              <td data-label="Status"><span className="flex flex-wrap justify-end gap-1 md:justify-start"><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} className="basis-full justify-end md:justify-start" /></span></td>
+              <td data-label="Delivery partner">{o.rider ?? <span className="text-muted">—</span>}</td><td data-label="Placed">{clock(o.placed_at)}</td><td data-label="Due">{clock(o.estimated_delivery_time)}</td>
+              <td data-label="Total">{money(o.total, o.currency, 2)}</td>
+              <td className="stack-actions pr-4"><button type="button" onClick={() => onOpen(o.id)} aria-label={`Open order ${o.code}`} className="h-9 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
             </tr>
           ))}
         </tbody>
@@ -396,8 +404,15 @@ function OperationsPage() {
       </div>
       <Alerts scope={scope} />
       {tab === "live" || tab === "attention" ? (
-        live.error ? <p className="text-chili">{apiMessage(live.error)}</p> :
-          <OrdersTable orders={live.data ?? []} onOpen={(id) => { setOpenId(id); go("support"); }} />
+        live.isLoading ? (
+          <ul aria-busy="true" className="space-y-2 rounded-2xl bg-white p-4">{[0, 1, 2, 3].map((i) => <li key={i} className="h-10 animate-pulse rounded-lg bg-porcelain" />)}</ul>
+        ) : live.isError ? (
+          <div role="alert" className="space-y-2 rounded-2xl bg-white p-6">
+            <p className="m-0 font-bold">The orders didn&apos;t load.</p>
+            <p className="m-0 text-small text-muted">{apiMessage(live.error)}</p>
+            <button type="button" onClick={() => void live.refetch()} className="h-10 rounded-full border border-line px-4 font-bold text-peacock">Try again</button>
+          </div>
+        ) : <OrdersTable orders={live.data ?? []} attention={tab === "attention"} onOpen={(id) => { setOpenId(id); go("support"); }} />
       ) : null}
       {tab === "dispatch" ? (country === "ALL" && !city ? <p className="rounded-2xl bg-white p-6 text-muted">Pick a country and city above for the dispatch map.</p> : <Dispatch scope={scope} city={firstCity} />) : null}
       {tab === "support" ? <Support scope={scope} openId={openId} setOpenId={setOpenId} /> : null}

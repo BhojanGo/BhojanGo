@@ -219,6 +219,8 @@ export function Tracking({ id }: { id: string }) {
       </div>
 
       <div className="relative z-10 -mt-8 flex flex-col gap-4 rounded-t-[28px] bg-white px-5 pb-10 pt-6 md:mt-0 md:rounded-none md:p-0">
+        {/* the page's title for screen readers: the big ETA below is what sighted people read first */}
+        <h1 className="sr-only">{t("track.title")}</h1>
         {/* phone: the summary */}
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">

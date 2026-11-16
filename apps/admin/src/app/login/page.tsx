@@ -151,7 +151,7 @@ export default function AdminLoginPage() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 py-10 font-sans text-kohl">
+    <main className="flex min-h-screen items-center justify-center bg-peacock-wash px-4 py-10 font-sans text-kohl">
       <div className={step === "enrol-app" || step === "codes" ? "w-full max-w-md" : "w-full max-w-sm"}>
         <div className="mb-8 flex justify-center"><Logo size={36} suffix="admin" /></div>
         <div className="space-y-5 rounded-3xl bg-white p-8 shadow-[0_8px_24px_rgba(17,20,24,0.08)]">
@@ -255,6 +255,6 @@ export default function AdminLoginPage() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

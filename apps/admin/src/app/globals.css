@@ -8,3 +8,64 @@
 :root .leaflet-popup-content {
   @apply text-small;
 }
+
+@layer components {
+  /*
+   * Wide tables (R9): they scroll sideways inside their card, and a soft shadow
+   * at an edge says there are more columns that way (it goes once you reach the end).
+   */
+  .table-scroll {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center / 32px 100% no-repeat local,
+      linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center / 32px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(17 20 24 / 0.22), rgb(17 20 24 / 0)) left center / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(17 20 24 / 0.22), rgb(17 20 24 / 0)) right center / 12px 100% no-repeat scroll;
+    background-color: #fff;
+  }
+
+  /*
+   * Under 768 px a `.table-stack` table becomes one block per row: each cell on
+   * its own line, named by its column (data-label), actions full width at the end.
+   * The header stays for screen readers only. A table in a card without padding
+   * sets `[--stack-inset:1rem]` for the rows' side padding.
+   */
+  @media (max-width: 767.98px) {
+    .table-stack thead {
+      @apply sr-only;
+    }
+    .table-stack,
+    .table-stack tbody,
+    .table-stack tr,
+    .table-stack td {
+      display: block;
+      width: 100%;
+    }
+    .table-stack tr {
+      @apply py-3;
+      padding-inline: var(--stack-inset, 0);
+    }
+    .table-stack td {
+      @apply flex items-baseline justify-between gap-3 p-0 py-0.5 text-left;
+    }
+    .table-stack td[data-label]::before {
+      content: attr(data-label);
+      @apply shrink-0 font-semibold text-muted;
+    }
+    .table-stack td[data-label] > * {
+      @apply text-right;
+    }
+    .table-stack td.stack-title {
+      @apply block pb-1;
+    }
+    .table-stack td.stack-actions {
+      @apply block pt-2;
+    }
+    .table-stack td.stack-actions:empty {
+      display: none;
+    }
+    .table-stack td.stack-actions button {
+      @apply h-11 px-5;
+    }
+  }
+}

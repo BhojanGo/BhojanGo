@@ -327,7 +327,7 @@ function NextSteps({ documents }: { documents: { key: string; title: string }[] 
   const t = useT();
   const items = [t("kitchen_join.next_email"), t("kitchen_join.next_saved"), t("kitchen_join.next_review")];
   return (
-    <aside aria-labelledby="next-title" data-testid="partner-next" className="rounded-[24px] bg-porcelain p-5 md:p-6 lg:self-start">
+    <section aria-labelledby="next-title" data-testid="partner-next" className="rounded-[24px] bg-porcelain p-5 md:p-6 lg:self-start">
       <h3 id="next-title" className="m-0 text-h3">{t("kitchen_join.next_title")}</h3>
       <ul className="m-0 mt-4 list-none space-y-3 p-0">
         {items.map((x) => (
@@ -345,7 +345,7 @@ function NextSteps({ documents }: { documents: { key: string; title: string }[] 
           </ul>
         </>
       )}
-    </aside>
+    </section>
   );
 }
 
