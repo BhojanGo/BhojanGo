@@ -103,10 +103,10 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
         {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
         {cover && <img src={cover} alt="" className="absolute inset-0 block h-full w-full object-cover" />}
         <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(17,20,24,0.86)_0%,rgba(17,20,24,0.55)_50%,rgba(17,20,24,0.1)_100%)]" />
-        <div className="relative mx-auto max-w-[1440px] px-5 py-10 text-white md:px-16 md:py-16">
+        <div className="relative container-page py-10 text-white md:py-16">
           <div className="max-w-[680px]">
             <Crumbs c={c} />
-            <h1 className="mt-4 text-display leading-none tracking-[-1.2px] md:tracking-[-1.8px]">{t("city.title", { city: c.name })}</h1>
+            <h1 className="mt-4 text-display leading-none">{t("city.title", { city: c.name })}</h1>
             <p className="mt-[14px] text-body-lg text-[#DDE5E6]">
               {[
                 t("city.kitchens", { count: c.restaurants }),
@@ -123,11 +123,11 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1440px] px-5 md:px-16">
+      <div className="container-page">
         {zones.length > 0 && (
           <section aria-labelledby="areas" className="pt-10 md:pt-12">
-            <h2 id="areas" className="m-0 text-h2 tracking-[-0.5px]">{t("city.areas_title")}</h2>
-            <p className="mt-1 text-body text-[#4C5A5E]">{t("city.areas_note", { count: zones.length })}</p>
+            <h2 id="areas" className="m-0 text-h2">{t("city.areas_title")}</h2>
+            <p className="mt-1 text-body text-muted">{t("city.areas_note", { count: zones.length })}</p>
             <ul className="m-0 mt-4 flex list-none flex-wrap gap-[10px] p-0">
               {zones.map((z) => (
                 <li key={z.name} className={`${chip} border-[#E2E7E8] text-[#111418]`}>{z.name}</li>
@@ -138,18 +138,18 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
 
         <section id="kitchens" aria-labelledby="kitchens-title" className="pt-12 md:pt-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <h2 id="kitchens-title" className="m-0 text-h2 tracking-[-0.5px]">
+            <h2 id="kitchens-title" className="m-0 text-h2">
               {cuisine ? t("city.cuisine_kitchens", { cuisine, city: c.name }) : t("city.kitchens_title", { city: c.name })}
             </h2>
             <form id="search" role="search" action={`${base}#kitchens`} className="flex h-12 scroll-mt-[140px] w-full items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] focus-within:border-[#0B5D66] md:w-[360px]">
-              <Search size={18} color="#4C5A5E" />
+              <Search size={18} color="#3D4A4E" />
               {cuisine && <input type="hidden" name="cuisine" value={cuisine} />}
               <label htmlFor="city-q" className="sr-only">{t("city.search_label")}</label>
-              <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-body outline-none placeholder:text-[#4C5A5E]" />
+              <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-body outline-none placeholder:text-muted" />
             </form>
           </div>
           {cuisines.length > 0 && (
-            <nav aria-label={t("city.cuisines")} className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
+            <nav aria-label={t("city.cuisines")} className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
               <Link href={`${base}${q ? `?q=${encodeURIComponent(q)}` : ""}#kitchens`} aria-current={!cuisine ? "page" : undefined} className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${!cuisine ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}>
                 {t("city.all_cuisines")}
               </Link>
@@ -165,13 +165,13 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
             </nav>
           )}
           {shown.length ? (
-            <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map((k) => (
                 <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={unit} feeFrom={feeFrom} />
               ))}
             </div>
           ) : (
-            <p role="status" className="mt-5 text-body text-[#4C5A5E]">
+            <p role="status" className="mt-5 text-body text-muted">
               {kitchens.length ? t("city.no_match") : t("city.no_kitchens")}{" "}
               {(cuisine || q) && <Link href={`${base}#kitchens`} className="font-bold">{t("city.clear_filters")}</Link>}
             </p>
@@ -180,8 +180,8 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
 
         {offers.length > 0 && (
           <section aria-labelledby="city-offers" className="pt-12 md:pt-14">
-            <h2 id="city-offers" className="m-0 text-h2 tracking-[-0.5px]">{t("city.offers_title", { city: c.name })}</h2>
-            <p className="mt-1 text-body text-[#4C5A5E]">{t("offers.who_pays")}</p>
+            <h2 id="city-offers" className="m-0 text-h2">{t("city.offers_title", { city: c.name })}</h2>
+            <p className="mt-1 text-body text-muted">{t("offers.who_pays")}</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {offers.slice(0, 6).map((o, i) => (
                 <OfferCard
@@ -198,14 +198,14 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
           </section>
         )}
 
-        <section aria-labelledby="plainly" className="grid items-start gap-10 pb-16 pt-12 md:pb-24 md:pt-16 lg:grid-cols-[1fr_440px] lg:gap-12">
+        <section aria-labelledby="plainly" className="grid grid-cols-1 items-start gap-10 pb-16 pt-12 md:pb-24 md:pt-16 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_440px]">
           <div>
-            <h2 id="plainly" className="m-0 text-h2 tracking-[-0.5px]">{t("city.plainly_title", { city: c.name })}</h2>
+            <h2 id="plainly" className="m-0 text-h2">{t("city.plainly_title", { city: c.name })}</h2>
             <dl className="m-0 mt-2">
               {cityFaq(c, pricing, t, formatLocale).map((f) => (
                 <div key={f.q} className="border-b border-[#E2E7E8] py-5">
                   <dt className="text-h3">{f.q}</dt>
-                  <dd className="m-0 mt-[6px] text-body leading-[1.5] text-[#4C5A5E]">{f.a}</dd>
+                  <dd className="m-0 mt-[6px] text-body leading-[1.5] text-muted">{f.a}</dd>
                 </div>
               ))}
             </dl>
@@ -242,10 +242,10 @@ async function SoonCity({ c }: { c: CityPage }) {
   return (
     <>
       <section className="bg-[#111418]">
-        <div className="mx-auto max-w-[1440px] px-5 py-10 text-white md:px-16 md:py-16">
+        <div className="container-page py-10 text-white md:py-16">
           <div className="max-w-[680px]">
             <Crumbs c={c} />
-            <h1 className="mt-4 text-display leading-none tracking-[-1.2px] md:tracking-[-1.8px]">{t("city.soon_title", { city: c.name })}</h1>
+            <h1 className="mt-4 text-display leading-none">{t("city.soon_title", { city: c.name })}</h1>
             <p className="mt-[14px] text-body-lg text-[#DDE5E6]">{t("city.soon_body", { city: c.name })}</p>
             {waiting > 0 && (
               <p className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-[#1C3A3E] px-4 text-label text-[#F2F5F5]">
@@ -256,10 +256,10 @@ async function SoonCity({ c }: { c: CityPage }) {
           </div>
         </div>
       </section>
-      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-16 md:py-14">
+      <div className="container-page py-10 md:py-14">
         <div className="max-w-[640px]">
           <NotifyMe variant="card" source="soon_city" cityCode={c.code} cityName={c.name} />
-          <p className="mt-4 text-body text-[#4C5A5E]">
+          <p className="mt-4 text-body text-muted">
             <Link href="/cities" className="font-bold">{t("home.see_where")}</Link>
           </p>
         </div>

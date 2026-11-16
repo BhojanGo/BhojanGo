@@ -200,8 +200,8 @@ function PreviewBox({ rule }: { rule: Rule }) {
         <>
           <p data-testid="preview-summary">{p.data.orders} orders · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · restaurant payouts{" "}
             <b className={diff >= 0 ? "text-peacock-dark" : "text-chili"}>{signed(diff)}</b></p>
-          <table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
-            <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table>
+          <div className="overflow-x-auto"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
+            <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table></div>
         </>
       )}
     </section>
@@ -369,7 +369,7 @@ function PricingPage() {
     <ConsoleShell section="Pricing & Rules" country={country} region={region} city={city} scopeHref={(s) => `/pricing?scope=${s}&tab=${tab}`}>
       <div>
         <div className="text-small text-muted">Pricing &amp; Rules ▸ {tab === "approvals" ? "Approvals" : FAMILIES.find((f) => f.key === tab)?.label}</div>
-        <h1 className="m-0 mt-1 text-h1 tracking-[-0.8px]">Pricing &amp; Rules</h1>
+        <h1 className="m-0 mt-1 text-h1">Pricing &amp; Rules</h1>
       </div>
       <nav aria-label="Rule families" className="flex flex-wrap gap-1 rounded-2xl bg-white p-1">
         {FAMILIES.map((f) => (

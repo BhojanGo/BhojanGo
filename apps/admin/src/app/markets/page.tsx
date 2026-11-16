@@ -211,7 +211,7 @@ export default function AllCountriesPage() {
   return (
     <ConsoleShell section="Markets" country="ALL">
       <div>
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">All countries</h1>
+        <h1 className="m-0 text-h1">All countries</h1>
         <p className="mt-1 text-small text-muted">
           {markets
             ? `${markets.length} countries · ${regions.length} states · ${cities.length} cities (${open.length} live or in beta) · money stays in each country's currency`
@@ -235,7 +235,7 @@ export default function AllCountriesPage() {
               <div className="flex items-center gap-3">
                 <span className="rounded-lg bg-line-soft px-2 py-1 text-label">{c.code}</span>
                 <div className="flex-grow">
-                  <div className="text-h2 tracking-[-0.4px]">{c.name}</div>
+                  <div className="text-h2">{c.name}</div>
                   <div className="text-small text-muted">{countrySubtitle(c)}</div>
                 </div>
                 <Link href={`/markets/${c.code}`} className="flex h-11 items-center rounded-full bg-peacock px-5 text-label text-white hover:bg-peacock-dark">

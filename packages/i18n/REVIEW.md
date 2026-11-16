@@ -300,6 +300,19 @@ glue a case suffix to `{method}`), `track.cancel_nothing`, `track.cancel_yes`, `
 `track.cancelling`, `track.cancel_too_late`, `track.cancel_failed`, `track.refunded`,
 `track.refund_pending`. Check the confirmation reads as a calm question, not a warning.
 
+## Add your kitchen (round 8, F7: every `kitchen_join.*` key)
+
+Machine-translated 2026-11-15, all 7 languages: the /partner landing page, the
+application form and the application steps on the web. Look at these first:
+`kitchen_join.consent` (legal: agreeing to the Terms and the Privacy policy; `{terms}`
+and `{privacy}` become links, so each language may move them), `kitchen_join.customer_body`
+(an account that becomes a kitchen's can no longer order food), the FAQ answers
+(`faq_*_a`: fees, payouts, approval; they describe the product, no promises of time),
+and `why_payout_body` (plural on the hold days). Backend: `kitchen_applied.*` in
+`backend/shared/texts.py` (the email a new kitchen partner gets). The documents list on the
+page (FSSAI, GSTIN, PAN, bank; health permit, EIN, bank) is Markets data seeded in
+`tools/seed/data.py` with its own translations, editable in admin Markets -> country.
+
 ## Terms and Privacy pages (round 8, F10)
 
 Machine-translated 2026-11-15: the whole `legal.*` group, the chrome around the Terms of use

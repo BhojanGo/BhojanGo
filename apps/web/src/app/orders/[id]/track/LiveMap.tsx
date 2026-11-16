@@ -158,7 +158,7 @@ export default function LiveMap({
     <div className="relative h-full w-full bg-[#E9EEEE]">
       {/* data-*: what the lines show, for the e2e (the lines themselves are drawn on a canvas) */}
       <div ref={box} className="h-full w-full" role="region" aria-label={labels.map} data-heading={heading ?? ""} data-trail={trail.length} />
-      {failed && <p className="absolute inset-x-0 top-1/2 m-0 -translate-y-1/2 px-6 text-center text-small text-[#4C5A5E]">{labels.failed}</p>}
+      {failed && <p className="absolute inset-x-0 top-1/2 m-0 -translate-y-1/2 px-6 text-center text-small text-muted">{labels.failed}</p>}
     </div>
   );
 }

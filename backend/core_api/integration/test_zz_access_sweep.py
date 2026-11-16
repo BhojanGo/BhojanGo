@@ -119,6 +119,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/markets/cities/{country}/{slug}"): public("a city's public page (web v2)"),
     ("GET", "/api/v1/markets/areas"): public("the address box: find an area by name"),
     ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
+    ("GET", "/api/v1/kitchens/terms"): public("Add your kitchen: commission, payouts, documents and cities, from live data"),
+    ("POST", "/api/v1/kitchens/apply"): public("Add your kitchen: a new kitchen partner signs up with email and password (rate-limited)"),
     ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
     ("GET", "/api/v1/restaurants"): public("browse"), ("GET", "/api/v1/restaurants/search"): public("browse"),
@@ -249,6 +251,8 @@ POLICY: dict[tuple[str, str], Policy] = {
         "template": "free_delivery", "name": "Sweep", "weekly_cap": "100"}),
     ("POST", f"{R}/offers/{{offer_id}}/end"): user("customer", "rider", "other_partner", "ops_boi"),
     ("GET", f"{R}/application"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("PUT", f"{R}/business"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {
+        "street": "Road 1", "area": "Madhapur", "zip": "500081", "cuisines": ["Thali"]}),
     ("PUT", f"{R}/gst"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"gstin": "36AABCU9603R1ZM"}),
     ("PUT", f"{R}/pricing"): user("customer", "rider", "other_partner", "ops_boi",
                                   body=lambda c: {"pricing_model": "percentage_commission", "commission_rate": "0.15"}),

@@ -20,7 +20,7 @@ import { legalDocument, legalHistory, legalVersion, type LegalKind, type LegalPa
 
 export type Search = Promise<Record<string, string | string[] | undefined>>;
 
-const PAGE = "mx-auto w-full max-w-[1200px] px-4 py-8 md:px-8 md:py-12 lg:px-12 print:max-w-none print:p-0";
+const PAGE = "container-page py-8 md:py-12 print:max-w-none print:p-0";
 
 /** ?country=IN from the switcher, else the visitor's country (address, chosen city, IP hint, browser). */
 async function countryFor(searchParams: Search, ctx: Context): Promise<string | null> {

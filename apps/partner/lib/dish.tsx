@@ -14,7 +14,7 @@ import { color, radius } from "./ui";
 const VEG = "#2E7D32";
 const NON_VEG = "#8C1D18";
 const LINE = "#E2E7E8";
-const MUTED = "#4C5A5E";
+const MUTED = color.muted;
 
 export interface DishLook {
   name: string;

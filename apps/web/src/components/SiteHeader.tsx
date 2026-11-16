@@ -24,7 +24,7 @@ export async function SiteHeader() {
   if (!place) {
     return (
       <header className="relative z-30 border-b border-[#E2E7E8] bg-white print:hidden">
-        <div className="mx-auto flex h-[64px] max-w-[1440px] items-center gap-3 px-4 md:h-[76px] md:gap-5 md:px-16">
+        <div className="flex h-[64px] container-page items-center gap-3 md:h-[76px] md:gap-5">
           {brand}
           <span className="flex-grow" />
           <nav aria-label={t("header.where_we_deliver")} className="hidden items-center gap-5 lg:flex">
@@ -46,7 +46,7 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-[#E2E7E8] bg-white print:hidden">
       {/* desktop */}
-      <div className="mx-auto hidden h-[76px] max-w-[1440px] items-center gap-4 px-16 md:flex">
+      <div className="hidden h-[76px] container-page items-center gap-4 md:flex">
         {brand}
         <SearchBox cityPath={place.city_path ?? null} placeholder={placeholder} />
         <LanguageMenu />
@@ -55,7 +55,7 @@ export async function SiteHeader() {
       </div>
       {/* phone */}
       <div className="md:hidden">
-        <div className="flex items-center gap-[10px] px-5 pb-3 pt-[10px]">
+        <div className="flex items-center gap-[10px] px-4 pb-3 pt-[10px]">
           <Link href="/" aria-label={t("common.home")} className="shrink-0">
             <LogoMark />
           </Link>
@@ -63,7 +63,7 @@ export async function SiteHeader() {
           <LanguageMenu />
           <AccountButton />
         </div>
-        <div className="px-5 pb-3">
+        <div className="px-4 pb-3">
           <SearchBox cityPath={place.city_path ?? null} placeholder={placeholder} compact />
         </div>
       </div>

@@ -11,8 +11,6 @@ One account has one role, so a number that already orders food can't also
 ride or run a kitchen: use another number. Both return new tokens, because
 the role in the old ones is no longer right.
 """
-import re
-import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -38,15 +36,19 @@ class RiderApply(BaseModel):
 
 
 class KitchenApply(BaseModel):
+    """The kitchen's name and city start an application; the address, cuisines and
+    map pin can come now (the tablet app sends them) or later, as the application's
+    first step (PUT /restaurants/{id}/business)."""
+
     full_name: str = Field(min_length=2, max_length=80, description="Your name")
     kitchen_name: str = Field(min_length=2, max_length=120)
     city_code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")
-    street: str = Field(min_length=3, max_length=200)
-    area: str = Field(min_length=2, max_length=80)
-    zip: str = Field(min_length=3, max_length=12)
-    lat: float = Field(ge=-90, le=90)
-    lng: float = Field(ge=-180, le=180)
-    cuisines: list[str] = Field(min_length=1, max_length=5)
+    street: str | None = Field(default=None, min_length=3, max_length=200)
+    area: str | None = Field(default=None, min_length=2, max_length=80)
+    zip: str | None = Field(default=None, min_length=3, max_length=12)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    cuisines: list[str] | None = Field(default=None, min_length=1, max_length=5)
 
 
 class KitchenApplied(AuthTokensResponse):
@@ -99,44 +101,20 @@ async def rider_apply(data: RiderApply, request: Request, me: Me, db: DB) -> Aut
     return await issue_tokens(db, user)
 
 
-def _slug(name: str, area: str) -> str:
-    base = re.sub(r"[^a-z0-9]+", "-", f"{name} {area}".lower()).strip("-")[:60]
-    return f"{base}-{uuid.uuid4().hex[:4]}"
-
-
 @router.post("/restaurants/apply", response_model=KitchenApplied, status_code=status.HTTP_201_CREATED)
 async def kitchen_apply(data: KitchenApply, request: Request, me: Me, db: DB) -> KitchenApplied:
-    """Apply with a kitchen: it's created pending approval and the partner
-    application (FSSAI, GST and bank, menu) follows. Admins approve it in
-    Partners → Applications."""
-    from core_api.modules.catalog.models.restaurant import Restaurant
+    """Apply with a kitchen from a signed-in account (a customer account with no
+    orders becomes the kitchen partner's): it's created pending approval in a live,
+    beta or coming-soon city, and the partner application (business details, FSSAI,
+    GST and bank, menu) follows. Admins approve it in Partners -> Applications.
+    A new visitor uses POST /kitchens/apply (email and password) instead."""
+    from core_api.modules.catalog.service.applications import kitchen_city, open_kitchen
 
-    city, region, country = await _city(db, data.city_code)
+    city, region, country = await kitchen_city(db, data.city_code)
     user = await _switch(db, me, "restaurant_owner")
     user.full_name, user.country = data.full_name.strip(), country.code
-    r = Restaurant(
-        name=data.kitchen_name.strip(), slug=_slug(data.kitchen_name, data.area), owner_id=user.id, description="",
-        cuisine_types=[c.strip() for c in data.cuisines if c.strip()], logo_url=None, cover_url=None,
-        address={"street": data.street, "city": city.name, "state": region.name, "zip": data.zip, "country": country.code,
-                 "lat": data.lat, "lng": data.lng, "landmark": data.area},
-        lat=data.lat, lng=data.lng, rating=0, review_count=0, is_open=True, delivery_time_min=30, delivery_time_max=45,
-        minimum_order_amount=0, delivery_fee=0, currency=country.currency, country=country.code, city=city.name, tags=[],
-        status="pending_approval", is_active=True, avg_prep_minutes=20,
-    )
-    # Their terms: the city's live commission rule (default tier) -- what the application shows.
-    from decimal import Decimal
-
-    from core_api.modules.rules.service.resolver import Context
-    from core_api.modules.rules.service.rules import RuleService
-
-    rules = await RuleService(db).resolve(Context(country=country.code, region=region.code, city=city.code))
-    rate = rules.get("commission:rate")
-    if rate:
-        from core_api.modules.rules.service.templates import commission_percent
-
-        r.commission_rate = commission_percent(rate.template, rate.params, None) / 100
-    db.add(r)
-    await db.flush()
+    r = await open_kitchen(db, user.id, data.kitchen_name, city, region, country, street=data.street, area=data.area,
+                           zip_code=data.zip, lat=data.lat, lng=data.lng, cuisines=data.cuisines)
     await legal.record_acceptance(db, user.id, country.code, legal.ROLE_KINDS["restaurant_owner"],
                                   language=user.preferred_locale, client=legal.client_info(request))
     await db.refresh(user)

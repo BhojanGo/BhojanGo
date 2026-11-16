@@ -50,7 +50,7 @@ export function MenuRow({ selected, onClick, children, href }: { selected?: bool
   const cls = `flex h-11 w-full items-center justify-between rounded-[10px] px-[14px] text-left ${
     selected ? "bg-[#EFF6F6] font-bold text-[#083F46]" : "text-[#111418] hover:bg-[#F4F6F6]"
   }`;
-  const tick = <span className="text-small text-[#4C5A5E]">{selected ? "✓" : ""}</span>;
+  const tick = <span className="text-small text-muted">{selected ? "✓" : ""}</span>;
   if (href) {
     return (
       <a role="menuitem" href={href} className={cls}>
@@ -68,9 +68,9 @@ export function MenuRow({ selected, onClick, children, href }: { selected?: bool
 }
 
 export function MenuTitle({ children }: { children: ReactNode }) {
-  return <div className="px-[14px] pb-[6px] pt-2 text-caption text-[#4C5A5E]">{children}</div>;
+  return <div className="px-[14px] pb-[6px] pt-2 text-caption text-muted">{children}</div>;
 }
 
 export function MenuNote({ children }: { children: ReactNode }) {
-  return <div className="mt-[6px] border-t border-[#EEF1F1] px-[14px] pb-1 pt-[10px] text-small text-[#4C5A5E]">{children}</div>;
+  return <div className="mt-[6px] border-t border-[#EEF1F1] px-[14px] pb-1 pt-[10px] text-small text-muted">{children}</div>;
 }

@@ -1,0 +1,238 @@
+"""The website's "Add your kitchen" page (R8 F7). Public.
+
+  GET  /kitchens/terms?country=IN   what a kitchen partner gets in a country, as data:
+                                    commission from the live rules (range, tiers, each
+                                    city's starting rate), the payout schedule, the
+                                    documents to have ready (Markets setting) and the
+                                    cities a kitchen can apply in (live, beta, coming soon)
+  POST /kitchens/apply              a new visitor starts an application: a kitchen
+                                    partner account (email + password, phone) and the
+                                    kitchen, pending approval; returns tokens (signed in)
+
+A signed-in customer applies with POST /restaurants/apply instead (identity/signup.py).
+"""
+from decimal import Decimal
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel, EmailStr, Field
+from slowapi import Limiter
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core_api.modules.identity.schemas.user import AuthTokensResponse
+from shared.client_ip import client_ip
+from shared.db import get_db
+
+router = APIRouter(prefix="/kitchens", tags=["Kitchen partners (public)"])
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
+limiter = Limiter(key_func=client_ip)
+MIN_PASSWORD = 10
+
+
+class Tier(BaseModel):
+    tier: str
+    percent: Decimal
+
+
+class CommissionTerms(BaseModel):
+    """Commission is a percentage of the food subtotal only (never of delivery,
+    fees, tax or tips), from the country's and cities' live commission:rate rules."""
+
+    base: Literal["food_subtotal"] = "food_subtotal"
+    percent_min: Decimal
+    percent_max: Decimal
+    starting_percent: Decimal | None = Field(description="A new kitchen's rate at country level (the default tier)")
+    tiers: list[Tier] = Field(default=[], description="The country rule's tiers, when it is percent_by_tier")
+    flat_per_order: Decimal | None = Field(default=None, description="A fixed amount per order on top, if a rule sets one")
+
+
+class PayoutTerms(BaseModel):
+    frequency: Literal["weekly", "biweekly"] = "weekly"
+    day: Literal["mon", "tue", "wed", "thu", "fri"] = "mon"
+    hold_days: int = 2
+
+
+class TermsCity(BaseModel):
+    code: str
+    name: str
+    region: str
+    status: Literal["live", "soon"]
+    beta: bool
+    starting_percent: Decimal | None
+
+
+class KitchenDocument(BaseModel):
+    key: str
+    title: str
+    why: str
+
+
+class KitchenTerms(BaseModel):
+    country: str
+    country_name: str
+    currency: str
+    phone_code: str
+    tax_regime: str
+    commission: CommissionTerms | None = Field(description="None when the country has no commission rule live yet")
+    payout: PayoutTerms
+    documents: list[KitchenDocument] = Field(description="Markets setting kitchen_documents; empty: none configured")
+    cities: list[TermsCity]
+
+
+def _tiers(rule) -> list[Tier]:  # type: ignore[no-untyped-def]
+    if rule is None or rule.template != "percent_by_tier":
+        return []
+    return [Tier(tier=k, percent=Decimal(str(v))) for k, v in sorted(rule.params["tiers"].items())]
+
+
+def _percents(rule) -> list[Decimal]:  # type: ignore[no-untyped-def]
+    if rule is None:
+        return []
+    if rule.template == "percent":
+        return [Decimal(str(rule.params["percent"]))]
+    return [Decimal(str(v)) for v in rule.params["tiers"].values()]
+
+
+@router.get("/terms", response_model=KitchenTerms)
+async def terms(db: DB, country: str = Query(pattern=r"^[A-Za-z]{2}$"),
+                language: str = Query(default="en", pattern=r"^[a-z]{2}$")) -> KitchenTerms:
+    """What a kitchen partner gets in this country, from live data (404: not a public country)."""
+    from core_api.modules.markets.api.v1.public import build_directory
+    from core_api.modules.markets.models import Country
+    from core_api.modules.markets.service import kitchen_docs
+    from core_api.modules.rules.service.resolver import Context
+    from core_api.modules.rules.service.rules import RuleService
+    from core_api.modules.rules.service.templates import commission_percent
+
+    code = country.upper()
+    d = await build_directory(db)
+    k = next((c for c in d.countries if c.code == code), None)
+    row = (await db.execute(select(Country).where(Country.code == code))).scalar_one_or_none()
+    if k is None or row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "COUNTRY", "message": "We're not in that country yet"})
+    service = RuleService(db)
+    national = await service.resolve(Context(country=code))
+    rate, flat = national.get("commission:rate"), national.get("commission:flat_per_order")
+    sched = national.get("commission:payout_schedule")
+    percents = _percents(rate)
+    cities = []
+    for region in k.regions:
+        for c in region.cities:
+            picked = await service.resolve(Context(country=code, region=region.code, city=c.code))
+            city_rate = picked.get("commission:rate")
+            percents += _percents(city_rate)
+            cities.append(TermsCity(code=c.code, name=c.name, region=region.name, status=c.status, beta=c.beta,
+                                    starting_percent=commission_percent(city_rate.template, city_rate.params, None) if city_rate else None))
+    commission = None
+    if percents:
+        commission = CommissionTerms(
+            percent_min=min(percents), percent_max=max(percents), tiers=_tiers(rate),
+            starting_percent=commission_percent(rate.template, rate.params, None) if rate else None,
+            flat_per_order=Decimal(str(flat.params["amount"])) if flat and Decimal(str(flat.params["amount"])) > 0 else None)
+    payout = PayoutTerms(**{key: sched.params[key] for key in ("frequency", "day", "hold_days") if key in sched.params}) if sched else PayoutTerms()
+    return KitchenTerms(country=code, country_name=k.name, currency=k.currency, phone_code=k.phone_code, tax_regime=k.tax_regime,
+                        commission=commission, payout=payout,
+                        documents=[KitchenDocument(**x) for x in kitchen_docs.localized(row.settings, language)], cities=cities)
+
+
+class KitchenSignUp(BaseModel):
+    """A new visitor starts an application on the website: their account (they sign
+    in with this email and password, or with the phone and a code) and the kitchen."""
+
+    kitchen_name: str = Field(min_length=2, max_length=120)
+    city_code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")
+    full_name: str = Field(min_length=2, max_length=80, description="The contact person's name")
+    phone: str = Field(pattern=r"^\+[1-9]\d{7,14}$", examples=["+919876543210"])
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128, description=f"At least {MIN_PASSWORD} characters")
+    accept_terms: bool = Field(description="Agreed to the Terms and the Privacy policy (must be true)")
+    language: str | None = Field(default=None, pattern=r"^[a-z]{2}$", description="The page's language: emails use it when the country offers it")
+
+
+class KitchenSignedUp(AuthTokensResponse):
+    restaurant_id: str
+
+
+def _refuse(code: str, message: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT) -> HTTPException:
+    return HTTPException(http, detail={"code": code, "message": message})
+
+
+def _check_password(password: str, email: str) -> None:
+    """identity.service.passwords.validate_new_password when it exists (workstream D:
+    length and the breached-password check), else at least MIN_PASSWORD characters."""
+    try:
+        from core_api.modules.identity.service import passwords  # type: ignore[attr-defined]
+    except ImportError:
+        passwords = None
+    if passwords is not None:
+        try:
+            passwords.validate_new_password(password, email=email)
+        except passwords.PasswordRejected as e:
+            raise _refuse("PASSWORD", e.message) from e
+        return
+    if len(password) < MIN_PASSWORD:
+        raise _refuse("PASSWORD", f"Use at least {MIN_PASSWORD} characters")
+
+
+def _hash(password: str) -> str:
+    try:
+        from core_api.modules.identity.service.passwords import hash_password  # type: ignore[import-not-found]
+    except ImportError:
+        from core_api.modules.identity.service.security import hash_password
+    return hash_password(password)
+
+
+@router.post("/apply", response_model=KitchenSignedUp, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
+async def apply(request: Request, data: KitchenSignUp, db: DB) -> KitchenSignedUp:
+    """Start an application as a new kitchen partner: creates the account (role
+    restaurant_owner) and the kitchen pending approval, signs them in, and emails
+    them what comes next. The application's steps follow (GET /restaurants/{id}/application)."""
+    from core_api.modules.catalog.service.applications import kitchen_city, open_kitchen
+    from core_api.modules.identity.repository.user import UserRepository
+    from core_api.modules.identity.service.auth import issue_tokens
+    from core_api.modules.markets.service import countries
+    from shared import notify
+    from shared.texts import KITCHEN_APPLIED, pick
+
+    if not data.accept_terms:
+        raise _refuse("TERMS", "Agree to the Terms and the Privacy policy to apply")
+    email = str(data.email).lower().strip()
+    _check_password(data.password, email)
+    city, region, country = await kitchen_city(db, data.city_code)
+    info = await countries.require_open(db, country.code)
+    countries.require_phone_in(info, data.phone)
+    repo = UserRepository(db)
+    if await repo.email_exists(email) or await repo.phone_exists(data.phone):
+        # The same answer for either, and no hint which: sign in instead.
+        raise _refuse("ACCOUNT_EXISTS", "There's already an account with this email or phone. Sign in to continue.",
+                      status.HTTP_409_CONFLICT)
+    wanted = f"{data.language}-{country.code}" if data.language else None
+    locale = wanted if wanted in info.locales else info.default_locale
+    user = await repo.create(email=email, phone=data.phone, full_name=data.full_name.strip(), hashed_password=_hash(data.password),
+                             role="restaurant_owner", country=country.code, preferred_currency=country.currency,
+                             preferred_locale=locale)
+    r = await open_kitchen(db, user.id, data.kitchen_name, city, region, country)
+    await _record_acceptance(db, user.id, country.code, request, locale)
+    language = locale.split("-")[0]
+    body = (f"<p>{pick(KITCHEN_APPLIED['body'], language).format(kitchen=_esc(r.name))}</p>"
+            f"<p>{_esc(pick(KITCHEN_APPLIED['next'], language))}</p>")
+    await notify.send("email", email, body, subject=pick(KITCHEN_APPLIED["subject"], language), country=country.code)
+    tokens = await issue_tokens(db, user, is_new_user=True)
+    return KitchenSignedUp(**tokens.model_dump(), restaurant_id=str(r.id))
+
+
+def _esc(text: str) -> str:
+    import html
+
+    return html.escape(text)
+
+
+async def _record_acceptance(db: AsyncSession, user_id, country: str, request: Request, locale: str) -> None:  # type: ignore[no-untyped-def]
+    """Record the Terms, Privacy and (once the country publishes them) kitchen partner
+    terms they accepted by applying (R8 F10)."""
+    from core_api.modules.legal import service as legal
+
+    await legal.record_acceptance(db, user_id, country, legal.ROLE_KINDS["restaurant_owner"], language=locale,
+                                  client=legal.client_info(request))

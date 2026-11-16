@@ -8,6 +8,7 @@ import { Suspense, useState } from "react";
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { DeliveryPartners } from "@/components/markets/DeliveryPartners";
 import { HeroDish } from "@/components/markets/HeroDish";
+import { KitchenDocuments } from "@/components/markets/KitchenDocuments";
 import { PayoutProvider } from "@/components/markets/PayoutProvider";
 import { StatusPill } from "@/components/console/StatusPill";
 import {
@@ -79,7 +80,7 @@ function CountryView() {
       {country && (
         <>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 text-h1 tracking-[-0.8px]">{country.name}</h1>
+            <h1 className="m-0 text-h1">{country.name}</h1>
             <StatusPill status={country.status} />
             <span className="basis-full text-small text-muted">
               Times in {tzShort} · amounts in {moneySymbol(country.currency).trim()} · {cities.length} cities,{" "}
@@ -114,6 +115,7 @@ function CountryView() {
           <SettingsCards country={country} />
           <PayoutProvider country={country} />
           <HeroDish country={country} />
+          <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
           <DeliveryPartners key={country.code} country={country} />
         </>
       )}
@@ -317,7 +319,7 @@ function DemandCard({ countryCode }: { countryCode: string }) {
         <p className="mt-3 text-small text-muted">No sign-ups yet.</p>
       ) : (
         <div className="mt-3 grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-          <table className="w-full border-collapse text-small tabular-nums">
+          <div className="overflow-x-auto"><table className="w-full border-collapse text-small tabular-nums">
             <thead>
               <tr className="text-left text-caption text-muted">
                 <th className="py-2 font-bold">City</th>
@@ -334,7 +336,7 @@ function DemandCard({ countryCode }: { countryCode: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           {suggested.length > 0 && (
             <div>
               <div className="text-caption text-muted">Suggested (not in Markets)</div>

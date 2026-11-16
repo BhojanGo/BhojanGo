@@ -47,7 +47,7 @@ export function UpdatedTermsNotice() {
   return (
     <div role="region" aria-label={t("legal.notice_label")} data-testid="legal-updated-notice"
       className="border-b border-[#B9D6D9] bg-[#EFF6F6] print:hidden">
-      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:px-8 lg:px-12">
+      <div className="container-page flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
         <p className="min-w-0 flex-[1_1_320px] text-body text-kohl">
           <b>{t("legal.notice_updated")}</b>{" "}
           {pending.map((p, i) => {

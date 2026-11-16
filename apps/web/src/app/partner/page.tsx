@@ -1,159 +1,233 @@
-"use client";
-// Apply with your kitchen on the web (B1): sign in with the kitchen's phone,
-// tell us about the kitchen, then the partner application (FSSAI, GST and
-// bank, menu). Admins approve it; the BhojanGo Kitchen tablet app runs it.
-import { errorMessage, unwrap } from "@bhojango/api-client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+// "Add your kitchen" (R8 F7): the landing page for kitchen partners, not a sign-in
+// wall. Everything it promises is data: commission from the live rules, payouts from
+// the payout_schedule rule, cities and documents from Markets (GET /kitchens/terms),
+// and a real bill from the pricing engine (GET /pricing/example). The country comes
+// from the visitor's location (address, chosen city, IP hint), never from the code.
+// The application itself (account, then the steps) is the client part, ApplyPanel.
+import type { Metadata } from "next";
 
-import { api, useHydrated, useSession } from "@/lib/client";
-import { Button } from "@bhojango/ui";
+import { FairBill } from "@/components/FairBill";
+import { flatCities } from "@/components/discover/places";
+import { money } from "@/lib/format";
+import { commissionSummary } from "@/lib/kitchenJoin";
+import { getContext } from "@/lib/prefs";
+import { exampleBill, kitchenTerms, SITE } from "@/lib/server";
+import { ApplyPanel, HeroAction } from "./ApplyPanel";
 
-type City = { code: string; name: string; region: string; lat: number; lng: number };
-type Application = { restaurant_id: string; name: string; done: number; total: number; current: string | null; status: string;
-  commission_percent: string | null; fssai_number: string | null; gstin: string | null; steps: { key: string; title: string; done: boolean; detail: string }[] };
-
-const input = "mt-1 block h-12 w-full rounded-card border-[1.5px] border-line-strong px-3 font-normal";
-
-async function loadApplication(): Promise<Application | null> {
-  const mine = unwrap(await api.core.GET("/api/v1/restaurants/mine"));
-  if (!mine[0]) return null;
-  return unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/application", { params: { path: { restaurant_id: mine[0].id } } })) as Application;
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getContext();
+  return { title: t("kitchen_join.meta_title"), description: t("kitchen_join.meta_description"), alternates: { canonical: `${SITE}/partner` } };
 }
 
-export default function Partner() {
-  const ready = useHydrated();
-  const user = useSession((s) => s.user);
-  const [app, setApp] = useState<Application | null>(null);
-  const reload = async () => {
-    const a = await loadApplication();
-    if (a) setApp(a);
-  };
-  useEffect(() => {
-    if (!(ready && user?.role === "restaurant_owner")) return;
-    let live = true;
-    loadApplication().then((a) => live && a && setApp(a)).catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [ready, user?.role]);
+const PAGE = "container-page";
+const HERO = "kitchen-cook";
 
-  if (!ready) return <div className="mx-auto max-w-content px-5 py-14 text-muted">Loading…</div>;
+export default async function Partner() {
+  const { t, country, city: here, language, formatLocale, directory: dir } = await getContext();
+  const billCity = here?.status === "live" ? here : flatCities(dir).find((c) => c.country === country?.code && c.status === "live") ?? null;
+  const [terms, bill] = await Promise.all([
+    country ? kitchenTerms(country.code, language) : Promise.resolve(null),
+    billCity ? exampleBill(billCity.code) : Promise.resolve(null),
+  ]);
+  const commission = commissionSummary(terms, here?.code);
+  const fmtMoney = (v: string | number) => money(v, terms?.currency ?? country?.currency ?? "USD", formatLocale, { whole: true });
+  const pct = (n: number) => new Intl.NumberFormat(formatLocale, { maximumFractionDigits: 1 }).format(n);
+  const weekly = (terms?.payout.frequency ?? "weekly") === "weekly";
+  const openCities = terms?.cities.length ?? 0;
+
+  const commissionLines: string[] =
+    commission.kind === "unknown"
+      ? [t("kitchen_join.why_commission_unknown")]
+      : [
+          commission.kind === "one"
+            ? t("kitchen_join.why_commission_one", { percent: pct(commission.percent) })
+            : t("kitchen_join.why_commission_range", { min: pct(commission.min), max: pct(commission.max) }),
+          ...(commission.kind === "range" && commission.start !== null
+            ? [commission.city
+                ? t("kitchen_join.why_commission_start_city", { city: commission.city, start: pct(commission.start) })
+                : t("kitchen_join.why_commission_start", { start: pct(commission.start) })]
+            : []),
+          ...(commission.flat ? [t("kitchen_join.why_commission_flat", { amount: fmtMoney(commission.flat) })] : []),
+          t("kitchen_join.why_commission_never"),
+        ];
+  const why = [
+    { key: "commission", title: t("kitchen_join.why_commission_title"), body: commissionLines.join(" ") },
+    {
+      key: "payout",
+      title: t(weekly ? "kitchen_join.why_payout_title_weekly" : "kitchen_join.why_payout_title_biweekly"),
+      body: weekly
+        ? t("kitchen_join.why_payout_body", { count: terms?.payout.hold_days ?? 2 })
+        : t("kitchen_join.why_payout_body_biweekly"),
+    },
+    { key: "prices", title: t("kitchen_join.why_prices_title"), body: t("kitchen_join.why_prices_body") },
+    { key: "bill", title: t("kitchen_join.why_bill_title"), body: t("kitchen_join.why_bill_body") },
+  ];
+  const steps = [1, 2, 3, 4] as const;
+  const faq = ["fees", "payouts", "delivery", "tablet", "approval", "prices", "account", "later"] as const;
+  const countries = dir.countries.map((c) => c.name);
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-5 py-12">
-      <div>
-        <p className="text-caption text-peacock">For kitchens</p>
-        <h1 className="text-display tracking-[-1.2px]">Cook for your neighbourhood</h1>
-        <p className="mt-3 text-body-lg text-muted">Commission on food only, paid weekly. You set your prices and your own offers. Customers see the whole bill, so they trust your prices.</p>
-      </div>
-      {!user ? (
-        <div className="rounded-card bg-white p-6">
-          <p className="mb-4">Sign in with your kitchen&apos;s phone number to apply.</p>
-          <Link href="/sign-in?next=/partner" className="inline-flex h-12 items-center rounded-pill bg-peacock px-6 font-bold text-white">Sign in to apply</Link>
+    <>
+      {/* ── hero ─────────────────────────────────────────────────────────── */}
+      <section className="bg-[linear-gradient(180deg,#EFF6F6_0%,#FFFFFF_100%)]">
+        <div className={`${PAGE} grid items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-12 lg:grid-cols-[1fr_minmax(0,500px)] lg:gap-12 lg:pt-16`}>
+          <div>
+            <p className="m-0 text-caption text-peacock">{t("kitchen_join.eyebrow")}</p>
+            <h1 className="m-0 mt-3 text-display">{t("kitchen_join.title")}</h1>
+            <p className="m-0 mt-4 max-w-[560px] text-body-lg text-muted">{t("kitchen_join.lead")}</p>
+            <div className="mt-7">
+              <HeroAction />
+            </div>
+            <dl aria-label={t("kitchen_join.facts_label")} className="m-0 mt-9 grid max-w-[560px] grid-cols-3 gap-3 sm:gap-6">
+              {commission.kind !== "unknown" && (
+                <Fact
+                  value={commission.kind === "one"
+                    ? t("kitchen_join.fact_commission_one", { percent: pct(commission.percent) })
+                    : t("kitchen_join.fact_commission_range", { min: pct(commission.min), max: pct(commission.max) })}
+                  label={t("kitchen_join.fact_commission_note")}
+                  testId="fact-commission"
+                />
+              )}
+              <Fact value={t(weekly ? "kitchen_join.fact_weekly" : "kitchen_join.fact_biweekly")} label={t("kitchen_join.fact_payout_note")} />
+              {openCities > 0 && (
+                <Fact
+                  value={t("kitchen_join.fact_cities", { count: new Intl.NumberFormat(formatLocale).format(openCities) })}
+                  label={t("kitchen_join.fact_cities_note", { count: openCities })}
+                />
+              )}
+            </dl>
+          </div>
+          <div className="relative overflow-hidden rounded-[28px] bg-peacock-mist md:rounded-[36px]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
+            <img
+              src={`/food/${HERO}-800.webp`}
+              srcSet={`/food/${HERO}-800.webp 800w, /food/${HERO}-1600.webp 1600w`}
+              sizes="(min-width: 1024px) 500px, 100vw"
+              alt={t("kitchen_join.hero_alt")}
+              data-testid="partner-hero"
+              className="block aspect-[4/3] w-full object-cover object-[62%_40%] lg:aspect-[5/6]"
+            />
+          </div>
         </div>
-      ) : user.role === "restaurant_owner" ? (
-        app ? <Steps app={app} onSaved={reload} /> : <p className="text-muted">Loading your application…</p>
-      ) : user.role === "customer" ? <ApplyForm onDone={reload} /> : (
-        <p className="rounded-card bg-white p-6 text-muted">This account is a delivery partner or admin account. Sign in with your kitchen&apos;s number instead.</p>
-      )}
+      </section>
+
+      {/* ── why ──────────────────────────────────────────────────────────── */}
+      <section aria-labelledby="why" className={`${PAGE} pt-12 md:pt-16`}>
+        <h2 id="why" className="m-0 text-h1">{t("kitchen_join.why_title")}</h2>
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_400px] lg:gap-10">
+          <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+            {why.map((w) => (
+              <li key={w.key} data-testid={`why-${w.key}`} className="rounded-card bg-porcelain p-5 md:p-6">
+                <h3 className="m-0 text-h3">{w.title}</h3>
+                <p className="m-0 mt-2 text-body text-muted">{w.body}</p>
+              </li>
+            ))}
+          </ul>
+          {bill && (
+            <figure data-testid="partner-bill" className="m-0 rounded-[24px] bg-kohl p-5 md:p-6">
+              <figcaption className="text-caption text-kesar-bright">
+                {bill.source === "order" ? t("city.bill_real", { city: bill.city_name }) : t("city.bill_typical", { city: bill.city_name })}
+              </figcaption>
+              <div className="mt-4 rounded-[18px] bg-white p-5">
+                <FairBill
+                  lines={bill.lines}
+                  total={bill.total}
+                  currency={bill.currency}
+                  formatLocale={formatLocale}
+                  t={t}
+                  distance={bill.assumptions.distance ? t(bill.assumptions.distance_unit === "mi" ? "common.mi" : "common.km", { n: bill.assumptions.distance }) : null}
+                  totalLabel={t("city.you_pay")}
+                  compact
+                />
+                {bill.shares && (
+                  <p className="m-0 mt-3 rounded-chip bg-peacock-mist px-3 py-2 text-small font-semibold tabular-nums text-peacock-deep">
+                    {t("kitchen_join.bill_kitchen_gets", { amount: money(bill.shares.kitchen, bill.currency, formatLocale) })}
+                  </p>
+                )}
+              </div>
+              <p className="m-0 mt-3 text-small text-[#A9B8BA]">{t("city.bill_note", { city: bill.city_name })}</p>
+            </figure>
+          )}
+        </div>
+      </section>
+
+      {/* ── how it works ─────────────────────────────────────────────────── */}
+      <section aria-labelledby="how" className={`${PAGE} pt-12 md:pt-16`}>
+        <h2 id="how" className="m-0 text-h1">{t("kitchen_join.how_title")}</h2>
+        <ol className="m-0 mt-6 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((n) => (
+            <li key={n} className="rounded-card border border-line p-5 md:p-6">
+              <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-pill bg-peacock text-label text-white">{n}</span>
+              <h3 className="m-0 mt-3 text-h3">{t(`kitchen_join.how_${n}_title`)}</h3>
+              <p className="m-0 mt-2 text-body text-muted">{t(`kitchen_join.how_${n}_body`)}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── documents ───────────────────────────────────────────────────── */}
+      <section aria-labelledby="docs" className={`${PAGE} pt-12 md:pt-16`}>
+        <div className="rounded-[24px] bg-peacock-mist p-5 md:p-8">
+          <h2 id="docs" className="m-0 text-h2">{t("kitchen_join.docs_title")}</h2>
+          {terms && terms.documents.length > 0 ? (
+            <>
+              <p className="m-0 mt-2 text-body text-muted">{t("kitchen_join.docs_lead")}</p>
+              <ul data-testid="partner-docs" className="m-0 mt-5 grid list-none gap-3 p-0 md:grid-cols-2">
+                {terms.documents.map((d) => (
+                  <li key={d.key} data-doc={d.key} className="flex gap-3 rounded-card bg-white p-4">
+                    <span aria-hidden="true" className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-peacock text-white">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+                    </span>
+                    <span>
+                      <b className="block text-label">{d.title}</b>
+                      <span className="mt-1 block text-small text-muted">{d.why}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p data-testid="partner-docs-none" className="m-0 mt-2 text-body text-muted">{t("kitchen_join.docs_none")}</p>
+          )}
+        </div>
+      </section>
+
+      {/* ── apply ───────────────────────────────────────────────────────── */}
+      <section id="apply" aria-labelledby="apply-title" className={`${PAGE} scroll-mt-20 pt-12 md:pt-16`}>
+        <ApplyPanel
+          terms={terms}
+          visitorCity={here?.code ?? null}
+          countryKnown={!!country}
+          countries={countries}
+          taxRegimes={Object.fromEntries(dir.countries.map((c) => [c.code, c.tax_regime]))}
+          phoneCodes={Object.fromEntries(dir.countries.map((c) => [c.code, c.phone_code]))}
+        />
+      </section>
+
+      {/* ── FAQ ─────────────────────────────────────────────────────────── */}
+      <section aria-labelledby="faq" className={`${PAGE} pb-16 pt-12 md:pb-24 md:pt-16`}>
+        <h2 id="faq" className="m-0 text-h1">{t("kitchen_join.faq_title")}</h2>
+        <div className="mt-4 divide-y divide-line border-y border-line">
+          {faq.map((q) => (
+            <details key={q} className="group py-1">
+              <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 py-3 text-h3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peacock [&::-webkit-details-marker]:hidden">
+                {t(`kitchen_join.faq_${q}_q`)}
+                <span aria-hidden="true" className="text-h2 leading-none text-peacock transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="m-0 max-w-[760px] pb-5 text-body text-muted">{t(`kitchen_join.faq_${q}_a`)}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function Fact({ value, label, testId }: { value: string; label: string; testId?: string }) {
+  return (
+    <div data-testid={testId} className="flex min-w-0 flex-col-reverse justify-end">
+      <dt className="mt-1 text-small text-muted">{label}</dt>
+      <dd className="m-0 text-h2 tabular-nums text-peacock-deep">{value}</dd>
     </div>
-  );
-}
-
-function ApplyForm({ onDone }: { onDone: () => Promise<void> }) {
-  const adopt = useSession((s) => s.adopt);
-  const [cities, setCities] = useState<City[]>([]);
-  const [f, setF] = useState({ full_name: "", kitchen_name: "", city_code: "", street: "", area: "", zip: "", cuisines: "" });
-  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api.core.GET("/api/v1/markets/cities").then((r) => {
-      const list = unwrap(r) as City[];
-      setCities(list);
-      setF((x) => ({ ...x, city_code: x.city_code || list[0]?.code || "" }));
-    }).catch(() => undefined);
-  }, []);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
-  function locate() {
-    navigator.geolocation?.getCurrentPosition((p) => setPin({ lat: p.coords.latitude, lng: p.coords.longitude }), () => setError("We couldn't get your location; we'll use the city centre for now."));
-  }
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const city = cities.find((c) => c.code === f.city_code);
-    try {
-      const r = unwrap(await api.core.POST("/api/v1/restaurants/apply", { body: {
-        full_name: f.full_name, kitchen_name: f.kitchen_name, city_code: f.city_code, street: f.street, area: f.area, zip: f.zip,
-        cuisines: f.cuisines.split(",").map((c) => c.trim()).filter(Boolean), lat: pin?.lat ?? city!.lat, lng: pin?.lng ?? city!.lng } }));
-      await adopt(r as { access_token: string; refresh_token: string });
-      await onDone();
-    } catch (err) {
-      setError(errorMessage((err as { body?: unknown }).body, "Couldn't send your application. Try again."));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form onSubmit={submit} className="grid gap-4 rounded-card bg-white p-6 sm:grid-cols-2" aria-label="Apply with your kitchen">
-      <label className="text-label">Your name<input required value={f.full_name} onChange={set("full_name")} className={input} /></label>
-      <label className="text-label">Kitchen name<input required value={f.kitchen_name} onChange={set("kitchen_name")} className={input} /></label>
-      <label className="text-label">City<select value={f.city_code} onChange={set("city_code")} className={input}>{cities.map((c) => <option key={c.code} value={c.code}>{c.name}, {c.region}</option>)}</select></label>
-      <label className="text-label">Area<input required value={f.area} onChange={set("area")} placeholder="e.g. Banjara Hills" className={input} /></label>
-      <label className="text-label sm:col-span-2">Street address<input required value={f.street} onChange={set("street")} className={input} /></label>
-      <label className="text-label">PIN / ZIP code<input required value={f.zip} onChange={set("zip")} className={input} /></label>
-      <label className="text-label">Cuisines<input required value={f.cuisines} onChange={set("cuisines")} placeholder="Andhra, Thali" className={input} /></label>
-      <div className="flex items-center gap-3 sm:col-span-2">
-        <Button type="button" variant="secondary" onClick={locate}>{pin ? "Pin set at your location" : "I'm at the kitchen: use my location"}</Button>
-        <span className="text-small text-muted">{pin ? `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}` : "Otherwise we use the city centre and check the pin with you."}</span>
-      </div>
-      {error ? <p role="alert" className="text-label text-chili sm:col-span-2">{error}</p> : null}
-      <div className="sm:col-span-2"><Button type="submit" size="lg" loading={busy}>Send application</Button></div>
-    </form>
-  );
-}
-
-function Steps({ app, onSaved }: { app: Application; onSaved: () => Promise<void> }) {
-  const [fssai, setFssai] = useState({ number: "", until: "" });
-  const [gstin, setGstin] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-  async function save(fn: () => Promise<unknown>) {
-    setMsg(null);
-    try {
-      await fn();
-      await onSaved();
-    } catch (err) {
-      setMsg(errorMessage((err as { body?: unknown }).body));
-    }
-  }
-  const rid = { params: { path: { restaurant_id: app.restaurant_id } } };
-  return (
-    <section className="space-y-4 rounded-card bg-white p-6" aria-label="Your application">
-      <h2 className="text-h2">{app.name} · {app.done} of {app.total} done</h2>
-      <ol className="space-y-2">
-        {app.steps.map((s, i) => (
-          <li key={s.key} className="flex items-center gap-3">
-            <span className={`flex h-7 w-7 items-center justify-center rounded-pill text-caption ${s.done ? "bg-peacock text-white" : "border-2 border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
-            <b className="w-44">{s.title}</b><span className="text-small text-muted">{s.detail}</span>
-          </li>
-        ))}
-      </ol>
-      {app.current === "fssai" ? (
-        <div className="grid gap-3 rounded-card bg-porcelain p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label className="text-label">FSSAI licence number<input inputMode="numeric" value={fssai.number} onChange={(e) => setFssai({ ...fssai, number: e.target.value.replace(/\D/g, "").slice(0, 14) })} className={input} /></label>
-          <label className="text-label">Valid until<input type="date" value={fssai.until} onChange={(e) => setFssai({ ...fssai, until: e.target.value })} className={input} /></label>
-          <Button disabled={fssai.number.length !== 14 || !fssai.until} onClick={() => void save(async () => unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/licence", { ...rid, body: { fssai_number: fssai.number, fssai_expires_on: fssai.until } })))}>Save licence</Button>
-        </div>
-      ) : null}
-      {app.current === "gst_bank" ? (
-        <div className="grid gap-3 rounded-card bg-porcelain p-4 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className="text-label">GSTIN<input value={gstin} maxLength={15} onChange={(e) => setGstin(e.target.value.toUpperCase())} className={input} /></label>
-          <Button disabled={gstin.length !== 15} onClick={() => void save(async () => unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/gst", { ...rid, body: { gstin } })))}>Save GSTIN</Button>
-        </div>
-      ) : null}
-      {msg ? <p role="alert" className="text-label text-chili">{msg}</p> : null}
-      <p className="text-small text-muted">Upload the licence certificate, add your bank and your menu in the BhojanGo Kitchen app on your kitchen tablet. We check everything and switch you on.</p>
-    </section>
   );
 }

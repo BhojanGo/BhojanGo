@@ -87,7 +87,7 @@ export function HintRow({ currentCountry, countrySource, hintSource }: { current
         <Locate color="#0B5D66" />
         {locate.busy ? t("address.locating") : t("address.use_my_location")}
       </button>
-      {problem && <span role="status" className="text-[#4C5A5E]">{problem}</span>}
+      {problem && <span role="status" className="text-muted">{problem}</span>}
     </div>
   );
 }

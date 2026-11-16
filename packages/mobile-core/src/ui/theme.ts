@@ -15,9 +15,9 @@ export function textFont(weight: "400" | "600" | "700" = "400"): TextStyle {
   return face(weight);
 }
 
-/** Familjen Grotesk (display) face, no size. Prefer type.display / type.h1 / type.h2. */
+/** The heading face (Inter 700), no size. Prefer type.display / type.h1 / type.h2. */
 export function displayFont(): TextStyle {
-  return face("600", true);
+  return face("700");
 }
 
 /** Shadows (RN has no box-shadow strings): floating cards, the tab bar, sheets. */

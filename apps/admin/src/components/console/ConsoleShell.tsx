@@ -6,10 +6,13 @@
  * section nav. Each section keeps its scope in the URL (?scope=IN-TG-HYD);
  * Markets keeps its own country/city routes. Admins only see the countries,
  * states and cities their roles cover, and only the sections they may use.
+ * Layout (R8): from 1024 px the section nav is a side column; under it, a Menu
+ * button in the header opens it as a drawer. Content is at most 1200 px wide with
+ * 16 / 32 / 48 px gutters; the country tabs scroll sideways instead of wrapping.
  */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { CityPicker } from "@/components/console/CityPicker";
 import { Logo } from "@bhojango/ui";
@@ -65,9 +68,16 @@ export function ConsoleShell({
   const { data: markets } = useMarkets();
 
   const hydrated = useAuthHydrated();
+  const [menu, setMenu] = useState(false);
   useEffect(() => {
     if (hydrated && !isAuthenticated) router.replace("/login");
   }, [hydrated, isAuthenticated, router]);
+  useEffect(() => {
+    if (!menu) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    document.addEventListener("keydown", k);
+    return () => document.removeEventListener("keydown", k);
+  }, [menu]);
   if (!hydrated || !isAuthenticated) return null;
 
   const current = markets?.find((c) => c.code === country);
@@ -79,41 +89,59 @@ export function ConsoleShell({
   const toCity = (c: string, code: string) => (scopeHref ? scopeHref(code) : cityHref ? cityHref(c, code) : `/markets/${c}/${code}`);
   const showStates = Boolean(scopeHref) || !countryHref;
   const sections = SECTIONS.filter((s) => !me || (me.permissions[s.perm] ?? []).length > 0);
+  const scope = city ?? region ?? (country !== "ALL" ? country : null);
+  const sectionLinks = sections.map((s, i) => {
+    const href = s.href === "/markets" ? s.href : scope ? `${s.href}?scope=${scope}` : s.href;
+    const heading = s.group && s.group !== sections[i - 1]?.group;
+    return (
+      <Fragment key={s.href}>
+        {heading ? <p className="mb-1 mt-4 px-4 text-caption text-muted">{s.group}</p> : null}
+        <Link href={href} onClick={() => setMenu(false)} aria-current={s.label === section ? "page" : undefined}
+          className={`flex h-11 shrink-0 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
+          {s.label}
+        </Link>
+      </Fragment>
+    );
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-porcelain font-sans text-kohl">
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-3 bg-white px-4 py-3 sm:px-8">
+      <header className="flex items-center gap-x-2 bg-white sm:gap-x-4 px-4 py-3 md:px-8 lg:px-12">
+        <button type="button" onClick={() => setMenu(true)} aria-expanded={menu} aria-controls="admin-sections" aria-label="Menu"
+          className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-kohl hover:bg-porcelain lg:hidden">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
         <Logo size={30} suffix="admin" />
-        <div className="ml-auto flex items-center gap-2.5 text-small">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-peacock-tint text-small text-peacock-dark">{initials}</span>
-          <span data-testid="who">
+        <div className="ml-auto flex min-w-0 items-center gap-2.5 text-small">
+          <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-peacock-tint sm:flex text-small text-peacock-dark">{initials}</span>
+          <span data-testid="who" className="hidden truncate md:inline">
             {user?.full_name}
             {role ? ` · ${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : ""}
           </span>
           <button type="button" onClick={() => { logout(); router.replace("/login"); }}
-            className="ml-2 h-9 rounded-full px-3 font-semibold text-peacock hover:bg-peacock-wash">Sign out</button>
+            className="h-9 shrink-0 whitespace-nowrap rounded-full px-3 font-semibold text-peacock hover:bg-peacock-wash md:ml-2">Sign out</button>
         </div>
       </header>
 
-      <nav aria-label="Country" className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-line bg-white px-4 sm:px-8">
+      <nav aria-label="Country" className="flex items-center gap-1 overflow-x-auto border-b border-line bg-white px-4 md:px-8 lg:px-12">
         {isGlobal && (
           <Link href={scopeHref ? scopeHref("*") : "/markets"} aria-current={country === "ALL" ? "page" : undefined}
-            className={`box-border flex h-[52px] items-center border-b-[3px] px-4 text-label ${country === "ALL" ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
+            className={`box-border flex h-[52px] shrink-0 items-center whitespace-nowrap border-b-[3px] px-4 text-label ${country === "ALL" ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
             All countries
           </Link>
         )}
         {markets?.map((c) => (
           <Link key={c.code} href={toCountry(c.code)} aria-current={c.code === country ? "page" : undefined}
-            className={`box-border flex h-[52px] items-center gap-2 border-b-[3px] px-4 text-label ${c.code === country ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
+            className={`box-border flex h-[52px] shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-4 text-label ${c.code === country ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
             <span className={`rounded-md px-1.5 py-0.5 text-caption ${c.code === country ? "bg-peacock-tint text-peacock-dark" : "bg-line-soft text-kohl"}`}>{c.code}</span>
             {c.name}
           </Link>
         ))}
-        {!isGlobal && markets?.length === 1 ? <span className="ml-auto text-label text-muted">You can see {markets[0]!.name} only</span> : null}
+        {!isGlobal && markets?.length === 1 ? <span className="ml-auto shrink-0 whitespace-nowrap text-label text-muted">You can see {markets[0]!.name} only</span> : null}
       </nav>
 
       {current && (
-        <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 sm:px-8">
+        <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 md:px-8 lg:px-12">
           {showStates && <span className="mr-1 text-label text-muted">State</span>}
           {showStates && (
             <Link href={toCountry(current.code)} aria-current={!region && !city ? "true" : undefined}
@@ -137,25 +165,27 @@ export function ConsoleShell({
         </nav>
       )}
 
-      <div className="flex flex-grow flex-wrap">
-        <nav aria-label="Admin sections" className="box-border flex flex-[1_1_248px] flex-col gap-1 border-r border-line bg-white px-4 py-6">
-          {sections.map((s, i) => {
-            const scope = city ?? region ?? (country !== "ALL" ? country : null);
-            const href = s.href === "/markets" ? s.href : scope ? `${s.href}?scope=${scope}` : s.href;
-            const heading = s.group && s.group !== sections[i - 1]?.group;
-            return (
-              <Fragment key={s.href}>
-                {heading ? <p className="mb-1 mt-4 px-4 text-caption text-muted">{s.group}</p> : null}
-                <Link href={href} aria-current={s.label === section ? "page" : undefined}
-                  className={`flex h-11 items-center rounded-xl px-4 text-label ${s.label === section ? "bg-peacock-tint font-bold text-peacock-dark" : "font-semibold text-kohl hover:bg-porcelain"}`}>
-                  {s.label}
-                </Link>
-              </Fragment>
-            );
-          })}
+      <div className="flex flex-grow">
+        <nav aria-label="Admin sections" className="box-border hidden w-[248px] shrink-0 flex-col gap-1 border-r border-line bg-white px-4 py-6 lg:flex">
+          {sectionLinks}
         </nav>
-        <main className="box-border min-w-0 flex-[999_1_320px] p-4 sm:p-8">
-          <div className="flex max-w-[1280px] flex-col gap-6">{children}</div>
+        {menu && (
+          <div className="fixed inset-0 z-50 bg-[rgba(17,20,24,0.5)] lg:hidden" onClick={() => setMenu(false)}>
+            <nav id="admin-sections" aria-label="Admin sections" onClick={(e) => e.stopPropagation()}
+              className="flex h-full w-[min(300px,85vw)] flex-col gap-1 overflow-y-auto bg-white px-4 py-4 shadow-sheet">
+              <div className="mb-2 flex items-center justify-between">
+                <Logo size={26} suffix="admin" />
+                <button type="button" autoFocus onClick={() => setMenu(false)} aria-label="Close menu"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-kohl hover:bg-porcelain">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                </button>
+              </div>
+              {sectionLinks}
+            </nav>
+          </div>
+        )}
+        <main className="box-border min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8 lg:px-12">
+          <div className="flex max-w-[1200px] flex-col gap-6">{children}</div>
         </main>
       </div>
     </div>
