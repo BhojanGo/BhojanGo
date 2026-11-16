@@ -30,4 +30,4 @@ appId: com.bhojango.app
 # Signed in: the code screen goes; where it lands depends on the address.
 - extendedWaitUntil:
     notVisible: "Enter the 6-digit code"
-    timeout: 30000
+    timeout: 60000

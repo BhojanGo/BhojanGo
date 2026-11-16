@@ -72,6 +72,45 @@ tags:
     visible:
       id: "fair-bill"
     timeout: 30000
+    optional: true
+# One dish can be under the city's minimum (Boise: $15). The bag then says so, with the
+# amount in the country's format, and shows no bill: keep that screen, go back, add
+# three more of the dish, and open the bag again.
+- runFlow:
+    when:
+      visible: "The minimum order in .*"
+    commands:
+      - assertNotVisible: ".*USD.*"
+      - takeScreenshot: docs/screenshots/customer/qa-04-bag-minimum
+      - back
+      # Back on the kitchen (the dish closes when added) or still on the dish.
+      - runFlow:
+          when:
+            notVisible:
+              id: "item"
+          commands:
+            - tapOn:
+                id: "dish-.*"
+                index: 0
+      - extendedWaitUntil:
+          visible:
+            id: "item"
+          timeout: 20000
+      - tapOn: "One more"
+      - tapOn: "One more"
+      - tapOn: "One more"
+      - tapOn:
+          id: "add-to-bag"
+      - extendedWaitUntil:
+          visible:
+            id: "view-bag"
+          timeout: 10000
+      - tapOn:
+          id: "view-bag"
+- extendedWaitUntil:
+    visible:
+      id: "fair-bill"
+    timeout: 30000
 - assertVisible:
     id: "pay"
 - takeScreenshot: docs/screenshots/customer/qa-04-bag

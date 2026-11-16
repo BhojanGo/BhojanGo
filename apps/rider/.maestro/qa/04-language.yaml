@@ -37,17 +37,29 @@ appId: com.bhojango.rider
 - takeScreenshot: docs/screenshots/rider/qa/04-earnings-hindi
 - tapOn:
     id: "tab-account"
+# Account may come back scrolled past the list or above it: look both ways.
 - scrollUntilVisible:
     element:
       id: "language-en"
     direction: DOWN
     timeout: 10000
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: "language-en"
+    direction: UP
+    timeout: 10000
+    optional: true
 - tapOn:
     id: "language-en"
 - extendedWaitUntil:
     visible: "Language"
     timeout: 10000
-- assertVisible: "Documents"
+# Back in English; the page may be scrolled down to the language list.
+- scrollUntilVisible:
+    element: "Documents"
+    direction: UP
+    timeout: 20000
 # Round 6: the same through the language pill in the Drive top bar (globe + "EN"):
 # a plain list under the pill, each language in its own script, kept on this phone.
 - tapOn:
