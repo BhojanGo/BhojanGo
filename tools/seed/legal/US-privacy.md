@@ -69,7 +69,7 @@ We disclose only what each party needs:
 
 **We do not sell your personal information, and we do not share it for cross-context behavioral advertising.** We have not done so in the past 12 months. We do not knowingly sell or share the personal information of consumers under 16.
 
-Kitchen partners and delivery partners: we collect the details needed to approve and pay you (for kitchens: health permit, EIN, bank account and contact details; for delivery partners: identity, driving license, vehicle insurance, a background check with your consent, and a payout account through Stripe). Customers see a kitchen's name, address and ratings, and a delivery partner's first name and live position during a delivery.
+Kitchen partners and delivery partners: we collect the details needed to approve and pay you (for kitchens: health permit, EIN, bank account and contact details; for delivery partners: identity, date of birth (to check the minimum age), vehicle type, driving license, vehicle insurance, a background check with your consent, and a payout account through Stripe). Customers see a kitchen's name, address and ratings, and a delivery partner's first name and live position during a delivery.
 
 ## 6. Cookies and storage on your device
 

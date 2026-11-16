@@ -35,18 +35,36 @@ async def new_number(client: AsyncClient) -> dict:
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+def rider_body(name: str = "Kiran Rao", **over) -> dict:  # type: ignore[no-untyped-def]
+    """A delivery partner sign-up that meets India's seeded rules (18+, a motorcycle)."""
+    return {"full_name": name, "city_code": "IN-TG-HYD", "date_of_birth": "1995-06-15", "vehicle": "motorcycle", **over}
+
+
+def born_years_ago(years: int, days: int = 0, tz: str = "Asia/Kolkata") -> str:
+    """The date of birth of someone exactly ``years`` old today in ``tz`` (``days`` later: that many days younger)."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    today = datetime.now(ZoneInfo(tz)).date()
+    try:
+        born = today.replace(year=today.year - years)
+    except ValueError:  # 29 February: that birthday counts on 1 March
+        born = today.replace(year=today.year - years, month=3, day=1)
+    return (born + timedelta(days=days)).isoformat()
+
+
 async def test_rider_signs_up_and_lands_in_onboarding(client: AsyncClient) -> None:
     h = await new_number(client)
-    r = await client.post("/api/v1/riders/apply", headers=h, json={"full_name": "Kiran Rao", "city_code": "IN-TG-HYD"})
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body())
     assert r.status_code == 200 and r.json()["user"]["role"] == "driver", r.text
     rider = {"Authorization": f"Bearer {r.json()['access_token']}"}
     o = (await client.get("/api/v1/riders/me/onboarding", headers=rider)).json()
     assert o["first_name"] == "Kiran" and o["ready"] is False and o["steps"][0]["status"] == "done"
-    assert (await client.post("/api/v1/riders/apply", headers=rider, json={"full_name": "Kiran Rao", "city_code": "IN-TG-HYD"})).status_code == 200
+    assert (await client.post("/api/v1/riders/apply", headers=rider, json=rider_body())).status_code == 200
     # A number with orders, a city we're not in, and an admin's account are refused.
     cust = await login(client, "customer1.hyd@example.com")
-    assert (await client.post("/api/v1/riders/apply", headers=cust, json={"full_name": "X Y", "city_code": "IN-TG-HYD"})).json()["detail"]["code"] == "HAS_ORDERS"
-    assert (await client.post("/api/v1/riders/apply", headers=await new_number(client), json={"full_name": "X Y", "city_code": "IN-TG-WGL"})).status_code == 422
+    assert (await client.post("/api/v1/riders/apply", headers=cust, json=rider_body("X Y"))).json()["detail"]["code"] == "HAS_ORDERS"
+    assert (await client.post("/api/v1/riders/apply", headers=await new_number(client), json=rider_body("X Y", city_code="IN-TG-WGL"))).status_code == 422
 
 
 async def test_kitchen_applies_and_waits_for_approval(client: AsyncClient) -> None:
@@ -165,3 +183,79 @@ async def test_a_signed_in_customer_applies_with_just_the_name_and_city(client: 
     partner = {"Authorization": f"Bearer {r.json()['access_token']}"}
     a = (await client.get(f"/api/v1/restaurants/{r.json()['restaurant_id']}/application", headers=partner)).json()
     assert a["current"] == "business"
+
+
+# ── R9: the country's minimum age and vehicles (Markets -> Delivery partners) ──
+
+async def test_sign_up_rules_are_public_per_country(client: AsyncClient) -> None:
+    r = await client.get("/api/v1/delivery/sign-up", params={"country": "IN"})
+    assert r.status_code == 200, r.text
+    assert r.json()["min_age"] == 18 and r.json()["vehicles"] == ["motorcycle", "scooter", "electric_scooter"]
+    assert r.json()["rules_set"] is True and r.json()["country"] == "IN"
+    assert "car" in (await client.get("/api/v1/delivery/sign-up", params={"country": "US"})).json()["vehicles"]
+    assert (await client.get("/api/v1/delivery/sign-up", params={"country": "ZZ"})).status_code == 404
+    assert (await client.get("/api/v1/delivery/sign-up", params={"country": "india"})).status_code == 422
+
+
+async def test_under_age_is_refused_and_exactly_the_minimum_age_signs_up(client: AsyncClient) -> None:
+    from sqlalchemy import select
+
+    from core_api.modules.identity.models.rider import RiderProfile
+    from shared.db import AsyncSessionLocal
+
+    h = await new_number(client)
+    young = born_years_ago(18, days=1)  # 18 tomorrow
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(date_of_birth=young, language="hi"))
+    assert r.status_code == 422, r.text
+    d = r.json()["detail"]
+    assert d["code"] == "UNDER_AGE" and d["min_age"] == 18 and "18" in d["message"] and "BhojanGo" in d["message"]
+    english = (await client.post("/api/v1/riders/apply", headers=h, json=rider_body(date_of_birth=young, language="en"))).json()["detail"]
+    assert english["message"] == "You need to be 18 or older to deliver with BhojanGo in this country." != d["message"]
+    me = (await client.get("/api/v1/users/me", headers=h)).json()
+    assert me["role"] == "customer"  # nothing changed
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(date_of_birth="2099-01-01"))
+    assert r.json()["detail"]["code"] == "DOB"
+
+    dob = born_years_ago(18)  # 18 today, on India's date
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(date_of_birth=dob, vehicle="electric_scooter"))
+    assert r.status_code == 200 and r.json()["user"]["role"] == "driver", r.text
+    async with AsyncSessionLocal() as db:
+        p = (await db.execute(select(RiderProfile).where(RiderProfile.user_id == me["id"]))).scalar_one()
+        assert p.date_of_birth.isoformat() == dob and p.vehicle == "electric_scooter"
+
+
+async def test_vehicles_are_the_countrys(client: AsyncClient) -> None:
+    h = await new_number(client)
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(vehicle="car"))  # India's seed: two-wheelers only
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "VEHICLE", r.text
+    assert r.json()["detail"]["vehicles"] == ["motorcycle", "scooter", "electric_scooter"]
+    r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(vehicle="rocket"))
+    assert r.json()["detail"]["code"] == "VEHICLE"
+    assert (await client.post("/api/v1/riders/apply", headers=h, json=rider_body(vehicle="scooter"))).status_code == 200
+    # Missing details are a validation error: the forms always send both.
+    body = rider_body()
+    del body["date_of_birth"]
+    assert (await client.post("/api/v1/riders/apply", headers=await new_number(client), json=body)).status_code == 422
+
+
+async def test_a_country_without_rules_uses_the_defaults(client: AsyncClient) -> None:
+    """No delivery_partner setting: 18 and every vehicle the app supports (markets.service.delivery.sign_up_rules)."""
+    from core_api.integration.test_deliver import _admin
+
+    admin = await _admin(client)
+    before = {"min_age": 18, "vehicles": ["motorcycle", "scooter", "electric_scooter"],  # India's seed (tools/seed/data.py)
+              "documents": ["driving_licence", "vehicle_rc_insurance", "bank_account", "background_check"],
+              "example_trip": {"distance": 3}, "app_links": {"android": None, "ios": None}}
+    try:
+        r = await client.patch("/api/v1/markets/countries/IN", headers=admin, json={"settings": {"delivery_partner": None}})
+        assert r.status_code == 200 and "delivery_partner" not in r.json()["settings"], r.text
+        rules = (await client.get("/api/v1/delivery/sign-up", params={"country": "IN"})).json()
+        assert rules["rules_set"] is False and rules["min_age"] == 18
+        assert rules["vehicles"] == ["motorcycle", "scooter", "electric_scooter", "car"]
+        h = await new_number(client)
+        r = await client.post("/api/v1/riders/apply", headers=h, json=rider_body(date_of_birth=born_years_ago(17)))
+        assert r.json()["detail"]["code"] == "UNDER_AGE"
+        assert (await client.post("/api/v1/riders/apply", headers=h, json=rider_body(vehicle="car"))).status_code == 200
+    finally:
+        r = await client.patch("/api/v1/markets/countries/IN", headers=admin, json={"settings": {"delivery_partner": before}})
+        assert r.status_code == 200, r.text

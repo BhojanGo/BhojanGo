@@ -4,7 +4,9 @@ country's Markets settings. Nothing on the page is typed in: an admin changing
 the rider pay rule or the requirements changes the page.
 
   GET /delivery/terms?city=IN-TG-HYD
+  GET /delivery/sign-up?country=IN   (who can sign up: the age and vehicles the forms offer)
 """
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -122,3 +124,33 @@ async def terms(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z
             apps=AppLinks(**t["app_links"]),
         )
     raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "NOT_FOUND", "message": "We don't deliver in that city yet"})
+
+
+class SignUpRules(BaseModel):
+    """What the delivery partner sign-up forms ask for in a country (the web's /deliver
+    and the BhojanGo Delivery app's Join): POST /riders/apply checks the same rules."""
+
+    country: str
+    min_age: int = Field(description="Applicants must be at least this old on the country's date")
+    vehicles: list[str] = Field(description="The vehicles the country allows (keys: motorcycle, scooter, electric_scooter, car)")
+    today: date = Field(description="The country's date now: the form's latest date of birth and its age check")
+    rules_set: bool = Field(description="False: the country has no rules yet and the platform defaults apply")
+
+
+@router.get("/sign-up", response_model=SignUpRules)
+async def sign_up_rules(db: DB, country: str = Query(pattern=r"^[A-Z]{2}$")) -> SignUpRules:
+    """The minimum age and allowed vehicles for signing up to deliver in a country
+    (Markets -> Delivery partners), with the platform defaults when it has none. Public;
+    404 for a country we don't operate in."""
+    from zoneinfo import ZoneInfo
+
+    from sqlalchemy import select
+
+    from core_api.modules.markets.models import Country
+
+    k = (await db.execute(select(Country).where(Country.code == country))).scalar_one_or_none()
+    if k is None or k.status == "draft":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "NOT_FOUND", "message": "We don't operate in that country"})
+    r = delivery.sign_up_rules(k.settings)
+    return SignUpRules(country=k.code, min_age=r["min_age"], vehicles=r["vehicles"], rules_set=r["rules_set"],
+                       today=datetime.now(ZoneInfo(k.timezone)).date())

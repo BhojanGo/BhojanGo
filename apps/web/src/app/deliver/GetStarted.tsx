@@ -1,31 +1,38 @@
 "use client";
 import { formatPhone } from "@bhojango/i18n";
-// "Get started" on /deliver: name, phone (the country's calling code from Markets)
-// and city -> the code we text (the same OTP as sign-in) -> POST /riders/apply, the
+// "Get started" on /deliver: name, date of birth, vehicle, phone (the country's
+// calling code from Markets) and city -> the code we text (the same OTP as sign-in) -> POST /riders/apply, the
 // call the BhojanGo Delivery app's Join screen makes. Then: get the app (QR code,
 // store links from Markets once published, else /deliver/app) and sign in there
-// with the same number to add documents.
+// with the same number to add documents. The minimum age and the vehicles come from
+// the country's rules (GET /delivery/sign-up); the form checks them to help, the API
+// enforces them.
 import { ApiError, errorMessage, unwrap } from "@bhojango/api-client";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Chevron } from "@/components/Icons";
 import { api, useHydrated, useSession } from "@/lib/client";
-import { firstName, qrPath } from "@/lib/deliver";
-import { useT } from "@/lib/i18n";
+import { ageOn, capitalize, firstName, qrPath } from "@/lib/deliver";
+import { useLanguage, useT } from "@/lib/i18n";
 import { codeSendError } from "../signin/emailAuth";
 
 type Country = { code: string; name: string; phone_code: string };
 type City = { code: string; name: string; region: string };
 type Apps = { android?: string | null; ios?: string | null };
+type Rules = { min_age: number; vehicles: string[]; today: string };
 
 const WAIT = 30; // seconds before "Send a new code"
 const field = "mt-2 block h-14 w-full rounded-[14px] border-[1.5px] border-[#3A4D50] bg-[#14201F] px-4 text-body-lg text-white outline-none focus:border-kesar-bright focus:ring-2 focus:ring-kesar-bright/30";
 const primary = "inline-flex h-14 w-full items-center justify-center rounded-full bg-kesar-bright px-6 text-label text-kohl hover:bg-[#F0B957] disabled:cursor-not-allowed disabled:bg-[#2E4447] disabled:text-[#A9B8BA]";
-const ERRORS: Record<string, string> = { HAS_ORDERS: "gs_err_has_orders", ROLE: "gs_err_role", ADMIN: "gs_err_role", CITY: "gs_err_city" };
+const ERRORS: Record<string, string> = {
+  HAS_ORDERS: "gs_err_has_orders", ROLE: "gs_err_role", ADMIN: "gs_err_role", CITY: "gs_err_city",
+  UNDER_AGE: "gs_dob_under", VEHICLE: "gs_err_vehicle", DOB: "gs_dob_invalid",
+};
 
-export function GetStarted({ countries, country, cities, city, apps }: { countries: Country[]; country: string | null; cities: City[]; city: string | null; apps: Apps }) {
+export function GetStarted({ countries, country, cities, city, apps, rules }: { countries: Country[]; country: string | null; cities: City[]; city: string | null; apps: Apps; rules: Rules | null }) {
   const t = useT();
+  const { language } = useLanguage();
   const hydrated = useHydrated();
   const user = useSession((s) => s.user);
   const { sendCode, verify, adopt, signOut } = useSession();
@@ -34,19 +41,27 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [cityCode, setCityCode] = useState(city ?? cities[0]?.code ?? "");
+  const [dob, setDob] = useState("");
+  const [dobTouched, setDobTouched] = useState(false);
+  const [vehicle, setVehicle] = useState(rules?.vehicles.length === 1 ? rules.vehicles[0]! : "");
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentAt, setSentAt] = useState(0);
   const [now, setNow] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
-  const ids = { name: useId(), nameHelp: useId(), phone: useId(), city: useId(), code: useId() };
+  const ids = { name: useId(), nameHelp: useId(), phone: useId(), city: useId(), code: useId(), dob: useId(), dobHelp: useId(), dobError: useId(), vehicle: useId() };
 
   const phoneCountry = countries.find((c) => c.code === cc) ?? null;
   const digits = number.replace(/\D/g, "");
   const phone = phoneCountry ? `${phoneCountry.phone_code}${digits}` : "";
   const nameOk = name.trim().split(/\s+/).filter(Boolean).length >= 2 && name.trim().length <= 80;
-  const formOk = nameOk && !!phoneCountry && digits.length >= 6 && digits.length <= 15 && !!cityCode;
+  const age = rules ? ageOn(dob, rules.today) : null;
+  const dobProblem = !rules || !dob ? null
+    : age === null ? t("deliver_page.gs_dob_invalid")
+      : age < rules.min_age ? t("deliver_page.gs_dob_under", { age: rules.min_age }) : null;
+  const detailsOk = !!rules && age !== null && age >= rules.min_age && rules.vehicles.includes(vehicle);
+  const formOk = nameOk && detailsOk && !!phoneCountry && digits.length >= 6 && digits.length <= 15 && !!cityCode;
   const wait = Math.max(0, WAIT - Math.floor((now - sentAt) / 1000));
   const signedUp = hydrated && user?.role === "driver";
 
@@ -58,7 +73,7 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
 
   function problem(err: unknown, fallback: string): string {
     const code = err instanceof ApiError ? err.code : (err as { body?: { detail?: { code?: string } } })?.body?.detail?.code;
-    if (code && ERRORS[code]) return t(`deliver_page.${ERRORS[code]}`);
+    if (code && ERRORS[code]) return t(`deliver_page.${ERRORS[code]}`, { age: rules?.min_age ?? "" });
     // Too many codes for this number (with how long to wait), or the SMS provider down.
     return codeSendError(err, t, errorMessage((err as { body?: unknown })?.body, fallback));
   }
@@ -98,7 +113,9 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
       return;
     }
     try {
-      const tokens = unwrap(await api.core.POST("/api/v1/riders/apply", { body: { full_name: name.trim().replace(/\s+/g, " "), city_code: cityCode } }));
+      const tokens = unwrap(await api.core.POST("/api/v1/riders/apply", {
+        body: { full_name: name.trim().replace(/\s+/g, " "), city_code: cityCode, date_of_birth: dob, vehicle, language },
+      }));
       await adopt(tokens as { access_token: string; refresh_token: string });
       setStep("done");
     } catch (err) {
@@ -182,6 +199,35 @@ export function GetStarted({ countries, country, cities, city, apps }: { countri
       <input id={ids.name} data-testid="gs-name" autoComplete="name" value={name} maxLength={80} aria-describedby={ids.nameHelp}
         onChange={(e) => setName(e.target.value)} className={field} />
       <p id={ids.nameHelp} className="m-0 mt-[6px] text-small text-[#C4D0D2]">{t("deliver_page.gs_name_help")}</p>
+
+      {rules ? (
+        <>
+          <label htmlFor={ids.dob} className="mt-4 block text-label">{t("deliver_page.gs_dob")}</label>
+          <input id={ids.dob} data-testid="gs-dob" type="date" autoComplete="bday" value={dob} min="1900-01-01" max={rules.today}
+            aria-describedby={dobProblem && dobTouched ? `${ids.dobError} ${ids.dobHelp}` : ids.dobHelp} aria-invalid={!!dobProblem && dobTouched}
+            onChange={(e) => setDob(e.target.value)} onBlur={() => setDobTouched(true)}
+            className={`${field} [color-scheme:dark] ${dobProblem && dobTouched ? "border-[#FF8A80]" : ""}`} />
+          {dobProblem && dobTouched && <p id={ids.dobError} data-testid="gs-dob-error" className="m-0 mt-[6px] text-small font-bold text-[#FFB4AB]">{dobProblem}</p>}
+          <p id={ids.dobHelp} className="m-0 mt-[6px] text-small text-[#C4D0D2]">{t("deliver_page.gs_dob_help", { age: rules.min_age })}</p>
+
+          <fieldset className="m-0 mt-4 border-0 p-0" data-testid="gs-vehicles">
+            <legend className="block p-0 text-label">{t("deliver_page.gs_vehicle")}</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {rules.vehicles.map((v) => (
+                <label key={v} className={`inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 text-label has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-kesar-bright/60 ${vehicle === v ? "border-kesar-bright bg-[#2A2414] text-white" : "border-[#3A4D50] bg-[#14201F] text-[#C4D0D2] hover:border-[#5C7275]"}`}>
+                  <input type="radio" name={ids.vehicle} value={v} checked={vehicle === v} onChange={() => setVehicle(v)} data-testid={`gs-vehicle-${v}`} className="sr-only" />
+                  <span aria-hidden="true" className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${vehicle === v ? "border-kesar-bright" : "border-[#5C7275]"}`}>
+                    {vehicle === v && <span className="h-2 w-2 rounded-full bg-kesar-bright" />}
+                  </span>
+                  {capitalize(t(`deliver_page.vehicle_${v}`))}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      ) : (
+        <p role="alert" data-testid="gs-rules-failed" className="m-0 mt-4 rounded-[12px] bg-[#3B1A18] px-4 py-3 text-label text-[#FFD9D5]">{t("deliver_page.gs_rules_failed")}</p>
+      )}
 
       <label htmlFor={ids.phone} className="mt-4 block text-label">{t("deliver_page.gs_phone")}</label>
       <span className="mt-2 flex h-14 items-center overflow-hidden rounded-[14px] border-[1.5px] border-[#3A4D50] bg-[#14201F] text-body-lg focus-within:border-kesar-bright focus-within:ring-2 focus-within:ring-kesar-bright/30">

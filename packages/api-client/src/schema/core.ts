@@ -607,6 +607,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/delivery/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sign Up Rules
+         * @description The minimum age and allowed vehicles for signing up to deliver in a country
+         *     (Markets -> Delivery partners), with the platform defaults when it has none. Public;
+         *     404 for a country we don't operate in.
+         */
+        get: operations["sign_up_rules_api_v1_delivery_sign_up_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/delivery/terms": {
         parameters: {
             query?: never;
@@ -3409,6 +3431,10 @@ export interface paths {
          * Rider Apply
          * @description Become a rider applicant: then the onboarding checklist (licence, insurance,
          *     payout account, background check). Admins review in Partners → Rider documents.
+         *     Refused with 422 when the applicant is younger than the country's minimum age
+         *     (UNDER_AGE, with min_age), the vehicle isn't one the country allows (VEHICLE,
+         *     with vehicles) or the date of birth can't be right (DOB); a country without
+         *     rules uses the defaults in markets.service.delivery.sign_up_rules.
          */
         post: operations["rider_apply_api_v1_riders_apply_post"];
         delete?: never;
@@ -8600,12 +8626,29 @@ export interface components {
              */
             restaurant_id: string;
         };
-        /** RiderApply */
+        /**
+         * RiderApply
+         * @description Who is signing up to deliver, and where. The date of birth and the vehicle
+         *     are checked against the country's rules (Markets -> Delivery partners:
+         *     GET /delivery/sign-up?country= lists them for the form).
+         */
         RiderApply: {
             /** City Code */
             city_code: string;
+            /**
+             * Date Of Birth
+             * Format: date
+             */
+            date_of_birth: string;
             /** Full Name */
             full_name: string;
+            /** Language */
+            language?: string | null;
+            /**
+             * Vehicle
+             * @example motorcycle
+             */
+            vehicle: string;
         };
         /**
          * RoleAssignmentCreate
@@ -8902,6 +8945,36 @@ export interface components {
         SignInProviders: {
             apple?: components["schemas"]["ProviderClient"] | null;
             google?: components["schemas"]["ProviderClient"] | null;
+        };
+        /**
+         * SignUpRules
+         * @description What the delivery partner sign-up forms ask for in a country (the web's /deliver
+         *     and the BhojanGo Delivery app's Join): POST /riders/apply checks the same rules.
+         */
+        SignUpRules: {
+            /** Country */
+            country: string;
+            /**
+             * Min Age
+             * @description Applicants must be at least this old on the country's date
+             */
+            min_age: number;
+            /**
+             * Rules Set
+             * @description False: the country has no rules yet and the platform defaults apply
+             */
+            rules_set: boolean;
+            /**
+             * Today
+             * Format: date
+             * @description The country's date now: the form's latest date of birth and its age check
+             */
+            today: string;
+            /**
+             * Vehicles
+             * @description The vehicles the country allows (keys: motorcycle, scooter, electric_scooter, car)
+             */
+            vehicles: string[];
         };
         /**
          * SimCart
@@ -10499,6 +10572,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_up_rules_api_v1_delivery_sign_up_get: {
+        parameters: {
+            query: {
+                country: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignUpRules"];
                 };
             };
             /** @description Validation Error */

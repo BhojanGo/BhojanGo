@@ -13,6 +13,7 @@ from core_api.modules.identity.models.account import Favourite, NotificationPref
 from core_api.modules.identity.models.address import Address
 from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.recovery_code import RecoveryCode
+from core_api.modules.identity.models.rider import RiderProfile
 from core_api.modules.identity.models.user import User
 from core_api.modules.legal.models import LegalAcceptance, LegalDocument
 from core_api.modules.payments.models.payment_method import PaymentMethod
@@ -35,7 +36,7 @@ TestSessionLocal = async_sessionmaker(
 # types), so only create identity's tables in SQLite.
 IDENTITY_TABLES = [User.__table__, Address.__table__, AdminRoleAssignment.__table__, PaymentMethod.__table__,
                    Favourite.__table__, NotificationPreference.__table__, RecoveryCode.__table__,
-                   LegalDocument.__table__, LegalAcceptance.__table__]
+                   LegalDocument.__table__, LegalAcceptance.__table__, RiderProfile.__table__]
 
 
 class FakeBreaches:

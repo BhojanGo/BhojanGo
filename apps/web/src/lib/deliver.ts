@@ -77,3 +77,20 @@ export function defaultCity(codes: string[], preferred: (string | null | undefin
 export function firstName(full: string | null | undefined): string {
   return (full ?? "").trim().split(/\s+/)[0] ?? "";
 }
+
+/**
+ * Whole years from a date of birth to the country's today (both "YYYY-MM-DD",
+ * GET /delivery/sign-up gives today), as POST /riders/apply counts them; null
+ * for a date that can't be a birthday (empty, malformed, in the future, over 100).
+ * Someone born on 29 February turns a year older on 1 March in other years.
+ */
+export function ageOn(born: string, today: string): number | null {
+  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(born);
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today);
+  if (!b || !t || born > today) return null;
+  const [by, bm, bd] = [Number(b[1]), Number(b[2]), Number(b[3])];
+  const [ty, tm, td] = [Number(t[1]), Number(t[2]), Number(t[3])];
+  if (bm < 1 || bm > 12 || bd < 1 || bd > 31) return null;
+  const age = ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+  return age > 100 ? null : age;
+}
