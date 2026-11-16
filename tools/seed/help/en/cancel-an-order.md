@@ -9,6 +9,10 @@ related: track-your-order, how-refunds-work, price-held-while-you-pay
 ---
 Yes, as long as the kitchen hasn't started on it. Every paid order that is cancelled is refunded in full, to the way you paid.
 
+## How to cancel
+
+Open the order's tracking page (from [Your orders](/account/orders)) and tap **Cancel order** while it's shown. Once the order can't be cancelled any more, the button goes away.
+
 ## When you can cancel
 
 - **Before you've paid.** You can cancel at any time. Nothing has been charged.

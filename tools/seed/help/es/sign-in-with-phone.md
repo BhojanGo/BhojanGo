@@ -38,4 +38,4 @@ Nunca te pediremos tu código en una llamada, y el personal de BhojanGo no lo ne
 
 Tu número de celular es la forma en que inicias sesión, así que no puedes cambiarlo por tu cuenta. Comunícate con soporte y te ayudaremos.
 
-> Las cocinas asociadas y los socios repartidores también inician sesión con su número de teléfono, en las apps BhojanGo Kitchen y BhojanGo Delivery. Cada número tiene un solo rol: un número que pide comida no se puede usar también para hacer entregas ni para administrar una cocina.
+> Las cocinas asociadas y los socios repartidores también inician sesión con su número de teléfono, en las apps BhojanGo Kitchen y BhojanGo Delivery.

@@ -189,45 +189,45 @@ export function HelpEditor({ article, prefill }: { article: HelpArticle | null; 
           <section aria-label="Details" className="grid gap-4 rounded-2xl bg-white p-5 md:grid-cols-2 xl:grid-cols-4">
             {isNew ? (
               <>
-                <label className="text-label">Slug (the address)
-                  <input value={f.slug} onChange={(e) => setF((x) => ({ ...x, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+                <Field id="help-slug" label="Slug (the address)" hint={`/help/${f.topic}/${f.slug || "…"}. The same slug in another language or country is a translation.`}>
+                  <input id="help-slug" aria-describedby="help-slug-hint" value={f.slug}
+                    onChange={(e) => setF((x) => ({ ...x, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
                     placeholder="e.g. cancel-an-order" className={`${input} h-10`} />
-                  <span className="mt-1 block text-small font-normal text-muted">/help/{f.topic}/{f.slug || "…"}. The same slug in another language or country is a translation.</span>
-                </label>
-                <label className="text-label">Country
-                  <select value={f.country} onChange={set("country")} className={`${input} h-10`}>
+                </Field>
+                <Field id="help-country" label="Country">
+                  <select id="help-country" value={f.country} onChange={set("country")} className={`${input} h-10`}>
                     <option value="">Choose…</option>
                     {canGlobal ? <option value="*">Every country (global)</option> : null}
                     {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                   </select>
-                </label>
-                <label className="text-label">Language
-                  <select value={f.language} onChange={set("language")} className={`${input} h-10`}>
+                </Field>
+                <Field id="help-language" label="Language">
+                  <select id="help-language" value={f.language} onChange={set("language")} className={`${input} h-10`}>
                     <option value="">Choose…</option>
                     {HELP_LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
                   </select>
-                </label>
+                </Field>
               </>
             ) : null}
-            <label className="text-label">Topic
-              <select value={f.topic} onChange={set("topic")} disabled={!editable} className={`${input} h-10`}>
+            <Field id="help-topic" label="Topic">
+              <select id="help-topic" value={f.topic} onChange={set("topic")} disabled={!editable} className={`${input} h-10`}>
                 {HELP_TOPICS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-            </label>
-            <label className="text-label md:col-span-2">Title
-              <input value={f.title} onChange={set("title")} maxLength={160} disabled={!editable} className={`${input} h-10`} />
-            </label>
-            <label className="text-label">Popular
-              <input type="number" min={0} max={99} value={f.popular} onChange={set("popular")} disabled={!editable} className={`${input} h-10`} />
-              <span className="mt-1 block text-small font-normal text-muted">0: not on the Help home page; 1, 2…: its place in Popular articles.</span>
-            </label>
-            <label className="text-label md:col-span-2 xl:col-span-3">Summary
-              <input value={f.summary} onChange={set("summary")} maxLength={300} disabled={!editable} className={`${input} h-10`} />
-              <span className="mt-1 block text-small font-normal text-muted">One sentence, shown in lists and search results.</span>
-            </label>
-            <label className="text-label">Related articles
-              <input value={f.relatedText} onChange={set("relatedText")} disabled={!editable} placeholder="slug-one, slug-two" className={`${input} h-10`} />
-            </label>
+            </Field>
+            <Field id="help-title" label="Title" className="md:col-span-2">
+              <input id="help-title" value={f.title} onChange={set("title")} maxLength={160} disabled={!editable} className={`${input} h-10`} />
+            </Field>
+            <Field id="help-popular" label="Popular" hint="0: not on the Help home page; 1, 2…: its place in Popular articles.">
+              <input id="help-popular" aria-describedby="help-popular-hint" type="number" min={0} max={99} value={f.popular}
+                onChange={set("popular")} disabled={!editable} className={`${input} h-10`} />
+            </Field>
+            <Field id="help-summary" label="Summary" hint="One sentence, shown in lists and search results." className="md:col-span-2 xl:col-span-3">
+              <input id="help-summary" aria-describedby="help-summary-hint" value={f.summary} onChange={set("summary")} maxLength={300}
+                disabled={!editable} className={`${input} h-10`} />
+            </Field>
+            <Field id="help-related" label="Related articles">
+              <input id="help-related" value={f.relatedText} onChange={set("relatedText")} disabled={!editable} placeholder="slug-one, slug-two" className={`${input} h-10`} />
+            </Field>
           </section>
 
           <section aria-label="Article text" className="grid gap-4 xl:grid-cols-2">
@@ -285,6 +285,17 @@ export function HelpEditor({ article, prefill }: { article: HelpArticle | null; 
           ) : null}
         </>
       )}
+    </div>
+  );
+}
+
+/** A label above its control (the label names the control alone; the hint is its description). */
+function Field({ id, label, hint, className = "", children }: { id: string; label: string; hint?: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="text-label">{label}</label>
+      {children}
+      {hint ? <p id={`${id}-hint`} className="m-0 mt-1 text-small text-muted">{hint}</p> : null}
     </div>
   );
 }

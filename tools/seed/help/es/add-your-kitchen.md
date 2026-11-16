@@ -3,7 +3,7 @@ slug: add-your-kitchen
 topic: kitchen-partners
 country: *
 title: ¿Cómo agrego mi cocina a BhojanGo?
-summary: Inicia sesión con el número de teléfono de tu cocina, envía la solicitud con los datos de tu cocina, completa cinco pasos cortos y nosotros revisamos todo y te activamos.
+summary: Crea la cuenta de tu cocina en Agrega tu cocina con tu correo y una contraseña, envía la solicitud con los datos de tu cocina, completa cinco pasos cortos y te activamos.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, kitchen-payouts-and-statements
 ---
@@ -11,14 +11,14 @@ Las cocinas asociadas de BhojanGo pagan comisión solo sobre la comida, reciben 
 
 ## Envía tu solicitud
 
-1. Ve a [Agrega tu cocina](/partner) o abre la app BhojanGo Kitchen.
-2. Inicia sesión con tu número de teléfono y el código de 6 dígitos que te enviamos por mensaje de texto.
-3. Escribe tu nombre, el nombre de tu cocina tal como lo verán los clientes, tu ciudad, dirección, zona, código postal y hasta cinco tipos de cocina.
+1. Ve a [Agrega tu cocina](/partner) y elige **Comenzar tu solicitud**.
+2. Crea tu cuenta: tu correo electrónico, una contraseña de al menos 10 caracteres y el número de teléfono de tu cocina.
+3. Escribe tu nombre, el nombre de tu cocina tal como lo verán los clientes, tu ciudad y hasta cinco tipos de cocina. Puedes agregar la dirección completa en el primer paso después de enviar la solicitud.
 4. Envía tu solicitud.
 
-Tu cocina debe estar en una de nuestras ciudades activas. Si tu ciudad todavía no está disponible, puedes pedirnos que te avisemos cuando lo esté.
+Tu cocina puede estar en una ciudad donde ya entregamos o en una que llegará pronto.
 
-> Usa un número de teléfono exclusivo para tu cocina. No puedes usar para la solicitud un número que ya se use para pedir comida en BhojanGo o para hacer entregas.
+> ¿Ya pides comida en BhojanGo? Inicia sesión en [Agrega tu cocina](/partner) y solicita con la misma cuenta. Después podrás iniciar sesión con tu correo y contraseña, o con tu número de teléfono.
 
 ## Los cinco pasos
 

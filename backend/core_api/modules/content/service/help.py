@@ -96,6 +96,12 @@ def prefix_query(q: str) -> str | None:
     return " & ".join(f"{w}:*" for w in words) if words else None
 
 
+def _weight(w: str):  # type: ignore[no-untyped-def]
+    """A setweight() label: Postgres wants the one-byte "char" type, not varchar."""
+    assert w in "ABCD"
+    return literal_column(f"'{w}'::\"char\"")
+
+
 def _cfg(name: str):  # type: ignore[no-untyped-def]
     """A full-text configuration by name (only names from FTS_CONFIG or "simple")."""
     assert name in ("simple", *FTS_CONFIG.values())
@@ -108,9 +114,9 @@ async def search(db: AsyncSession, q: str, country: str | None, language: str, l
         return []
     cfg = FTS_CONFIG.get(language, "simple")
     simple = _cfg("simple")
-    doc = (func.setweight(func.to_tsvector(simple, HelpArticle.title), "A")
-           .op("||")(func.setweight(func.to_tsvector(simple, HelpArticle.summary), "B"))
-           .op("||")(func.setweight(func.to_tsvector(simple, HelpArticle.body), "C")))
+    doc = (func.setweight(func.to_tsvector(simple, HelpArticle.title), _weight("A"))
+           .op("||")(func.setweight(func.to_tsvector(simple, HelpArticle.summary), _weight("B")))
+           .op("||")(func.setweight(func.to_tsvector(simple, HelpArticle.body), _weight("C"))))
     stemmed = func.to_tsvector(_cfg(cfg), func.concat_ws(" ", HelpArticle.title, HelpArticle.summary, HelpArticle.body))
     prefix = func.to_tsquery(simple, pq)
     words = func.websearch_to_tsquery(_cfg(cfg), q[:200])
