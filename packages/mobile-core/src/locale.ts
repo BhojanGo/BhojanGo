@@ -58,6 +58,25 @@ export function countryForCurrency(countries: readonly MarketCountry[], currency
   return (currency && countries.find((c) => c.currency === currency)) || null;
 }
 
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/**
+ * "Change city" (R8): the countries' states and cities whose city or state name
+ * contains `q` (accents and case ignored), empty states and countries dropped;
+ * everything when `q` is blank.
+ */
+export function filterCities(countries: readonly MarketCountry[], q: string | null | undefined): MarketCountry[] {
+  const needle = fold(String(q ?? "").trim());
+  return countries
+    .map((k) => ({
+      ...k,
+      regions: k.regions
+        .map((r) => ({ ...r, cities: needle && !fold(r.name).includes(needle) ? r.cities.filter((c) => fold(c.name).includes(needle)) : r.cities }))
+        .filter((r) => r.cities.length),
+    }))
+    .filter((k) => k.regions.length);
+}
+
 /** Every live city's name, for "We're cooking in ..." (Markets order: live first). */
 export function liveCityNames(countries: readonly MarketCountry[]): string[] {
   return countries.flatMap((c) => c.regions.flatMap((r) => r.cities.filter((x) => x.status === "live").map((x) => x.name)));

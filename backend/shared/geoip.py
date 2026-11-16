@@ -24,6 +24,7 @@ class Place:
     region: str | None = None
     lat: float | None = None
     lng: float | None = None
+    region_code: str | None = None  # the subdivision's ISO 3166-2 code without the country ("ID"), when the file has it
 
 
 @lru_cache(maxsize=1)
@@ -54,8 +55,10 @@ def parse(record: Any) -> Place | None:
         return None
     loc = record.get("location") or {}
     subdivisions = record.get("subdivisions") or []
-    return Place(country=country, city=_name(record.get("city")), region=_name(subdivisions[0]) if subdivisions else None,
-                 lat=loc.get("latitude"), lng=loc.get("longitude"))
+    first = subdivisions[0] if subdivisions and isinstance(subdivisions[0], dict) else {}
+    code = str(first.get("iso_code") or "").upper() or None
+    return Place(country=country, city=_name(record.get("city")), region=_name(first) if first else None,
+                 lat=loc.get("latitude"), lng=loc.get("longitude"), region_code=code)
 
 
 def lookup(ip: str) -> Place | None:

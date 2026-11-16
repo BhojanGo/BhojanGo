@@ -210,3 +210,11 @@ spoken name), `location.label`, `location.place` ("{city}, {country}": the count
 2-letter code, kept as is), `location.change_city`, `cities.choose_title`, `cities.choose_note`,
 `bill.example_in` ("On a {total} order in {city}": Indian languages glue a case suffix to
 `{city}` and `{total}`; check with a city name ending in a consonant).
+
+## Round 8 (location line and Change city)
+
+Machine-translated 2026-11-15: `location.set` ("Set your delivery location": a button that
+opens the address box), `location.delivers_here` ("We deliver here", after the visitor's
+town from their IP), `cities.other_countries` (the "Other countries" disclosure on Change
+city), `cities.no_match_in` ("No city in {country} by that name yet.": `{country}` is the
+country's Markets name in English; Indian languages glue a case suffix to it).

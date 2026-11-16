@@ -2,13 +2,13 @@
 // template. The location line ("<city>, <CC> · Change city") sits above the hero.
 // The hero photo is the visitor's country's choice in Markets; the example bill
 // ("Who gets your money", real percentages from the engine's example quote), the
-// other photos and the cuisines come from the visitor's city when it is live, else
-// the first live city of that country; the directory from Markets.
+// other photos and the cuisines come from the visitor's city only when it is live
+// (getContext's location, R8); a place we don't serve gets no other city's kitchens,
+// just the address box and "Set your delivery location". The directory from Markets.
 import Link from "next/link";
 
 import { AddressBox } from "@/components/AddressBox";
 import { LandingDirectory } from "@/components/discover/DirectoryBrowser";
-import { firstLiveCity } from "@/components/discover/places";
 import { MoneyBar } from "@/components/FairBill";
 import { HintRow } from "@/components/HintRow";
 import { NotifyMe } from "@/components/NotifyMe";
@@ -20,8 +20,7 @@ import { LocationLine } from "./LocationLine";
 import { RecruitCards } from "./Recruit";
 
 export async function Landing() {
-  const { t, country, countrySource, city: here, formatLocale, directory: dir } = await getContext();
-  const city = here?.status === "live" ? here : firstLiveCity(dir, country?.code);
+  const { t, country, countrySource, location, city, formatLocale, directory: dir } = await getContext();
   const [d, bill] = city ? await Promise.all([discover({ city: city.code }), exampleBill(city.code)]) : [null, null];
   // The hero is the country's chosen library photo (Markets -> country -> Hero dish; a default when unset).
   const hero = libraryPhoto(country?.hero_photo ?? dir.hero_photo);
@@ -44,7 +43,7 @@ export async function Landing() {
             <div className="mt-9">
               <AddressBox size="hero" country={country?.code ?? null} />
             </div>
-            <HintRow currentCountry={country?.code ?? null} countrySource={countrySource} />
+            <HintRow currentCountry={country?.code ?? null} countrySource={countrySource} hintSource={location.source} />
           </div>
           {(hero || bill) && (
             <div className="relative h-[420px] md:h-[520px]">

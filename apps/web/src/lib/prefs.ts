@@ -5,8 +5,15 @@
 // browser from /markets/hint), then the browser's locale. Currency and the language
 // list follow the country. Language is the visitor's remembered choice (cookie) if
 // the country offers it, else English (`chooseLanguage`).
+// The location line and the home's content (R8, `resolveLocation`): the address's
+// city, else the chosen city, else the IP's own town as itself ("Meridian, ID"),
+// else nothing ("Set your delivery location"); kitchens only for a live city, never
+// the country's first live city.
 
-import { chooseLanguage, createTranslator, detectCountry, formatLocale, languagesFor, type CountrySource, type Messages } from "@bhojango/i18n";
+import {
+  chooseLanguage, createTranslator, detectCountry, formatLocale, languagesFor, resolveLocation,
+  type CountrySource, type LocationEvidence, type Messages, type ResolvedLocation,
+} from "@bhojango/i18n";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
@@ -19,7 +26,7 @@ export const COOKIE = {
   language: "bg_lang", // "te": the language the visitor picked in the pill
   city: "bg_city", // "US-ID-BOI": the city picked with "Change city"
   hintCountry: "bg_hint", // "IN": the IP hint's country
-  hintCity: "bg_hint_city", // the IP hint's city code, when it names one
+  hintPlace: "bg_hint_place", // the IP hint's town: {"place","region_code","city_code","served"} (JSON)
 } as const;
 
 /** The delivery address the visitor picked (an area point or a saved address). */
@@ -59,13 +66,39 @@ async function loadMessages(language: string): Promise<Messages> {
   }
 }
 
+/** The IP hint's town (cookie bg_hint_place, written by HintRow from GET /markets/hint). */
+export interface HintPlace {
+  place: string | null;
+  region_code: string | null;
+  city_code: string | null;
+  served: boolean;
+}
+
+export function parseHintPlace(raw: string | undefined): HintPlace | null {
+  if (!raw) return null;
+  try {
+    const h = JSON.parse(decodeURIComponent(raw)) as Partial<HintPlace>;
+    if (typeof h?.place !== "string" || !h.place.trim()) return null;
+    return {
+      place: h.place.trim().slice(0, 80),
+      region_code: typeof h.region_code === "string" ? h.region_code.slice(0, 3) : null,
+      city_code: typeof h.city_code === "string" ? h.city_code : null,
+      served: h.served === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const countryOfCity = (code: string | null | undefined) => (code ? code.split("-")[0]!.toUpperCase() : null);
 
 export interface Context {
   directory: Directory;
   country: DirCountry | null; // decides currency, kitchens and the language list
   countrySource: CountrySource;
-  /** The home page's location line ("<city>, <CC> · Change city"): the visitor's city in that country. */
+  /** Where the visitor is, for the location line (resolveLocation): never a guessed city. */
+  location: ResolvedLocation<FlatCity>;
+  /** The live city whose kitchens and example bill the home shows (null: none, show "Set your delivery location"). */
   city: FlatCity | null;
   place: Place | null;
   language: string;
@@ -81,7 +114,8 @@ export const getContext = cache(async (): Promise<Context> => {
   const [jar, hdrs, dir] = await Promise.all([cookies(), headers(), directory()]);
   const place = parsePlace(jar.get(COOKIE.address)?.value);
   const chosenCity = jar.get(COOKIE.city)?.value ?? null;
-  const hintCity = jar.get(COOKIE.hintCity)?.value ?? null;
+  const hintCountry = jar.get(COOKIE.hintCountry)?.value ?? null;
+  const hint = parseHintPlace(jar.get(COOKIE.hintPlace)?.value);
   const pathCountry = (hdrs.get("x-bg-path") ?? "").split("/")[1] ?? "";
   const { code, source } = detectCountry(
     {
@@ -89,20 +123,22 @@ export const getContext = cache(async (): Promise<Context> => {
       chosen: countryOfCity(chosenCity),
       // a city or kitchen page (/{country}/...): its country, before IP or browser hints
       page: /^[a-z]{2}$/.test(pathCountry) ? pathCountry : null,
-      ip: jar.get(COOKIE.hintCountry)?.value,
+      ip: hintCountry,
       browser: hdrs.get("accept-language"),
     },
     dir.countries,
   );
   const country = dir.countries.find((c) => c.code === code) ?? null;
-  const all = flatCities(dir).filter((c) => c.country === country?.code);
-  const city =
-    all.find((c) => c.code === place?.city_code) ??
-    all.find((c) => c.code === chosenCity) ??
-    all.find((c) => c.code === hintCity) ??
-    all.find((c) => c.status === "live") ??
-    all[0] ??
-    null;
+  const knownPlace = place && dir.countries.some((c) => c.code === place.country.toUpperCase()) ? place : null;
+  // Only evidence from the country we settled on (an address or a chosen city elsewhere already won).
+  const sameCountry = (cc: string | null | undefined) => !!country && (cc ?? "").toUpperCase() === country.code;
+  const evidence: LocationEvidence = {
+    address: knownPlace && sameCountry(knownPlace.country) ? knownPlace : null,
+    chosen: sameCountry(countryOfCity(chosenCity)) ? chosenCity : null,
+    ip: hint && sameCountry(hintCountry) ? { country: hintCountry, ...hint } : null,
+  };
+  const location = resolveLocation(evidence, flatCities(dir));
+  const city = location.served ? location.city : null;
   const locales = country?.locales ?? ["en-US"];
   const language = chooseLanguage(jar.get(COOKIE.language)?.value, locales);
   const [messages, fallback] = await Promise.all([loadMessages(language), loadMessages("en")]);
@@ -110,8 +146,9 @@ export const getContext = cache(async (): Promise<Context> => {
     directory: dir,
     country,
     countrySource: source,
+    location,
     city,
-    place: place && dir.countries.some((c) => c.code === place.country.toUpperCase()) ? place : null,
+    place: knownPlace,
     language,
     languages: languagesFor(locales),
     formatLocale: formatLocale(locales),

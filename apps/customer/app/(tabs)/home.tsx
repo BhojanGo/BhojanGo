@@ -3,7 +3,9 @@
 // cuisine row, offers that say who pays, and the kitchens for the drop point
 // from GET /discover. The header is minimal (round 6, like the website's): the
 // language pill, favourites and the account; where the food goes sits on the
-// page, one line above the greeting: "<City>, <CC> · Change city".
+// page, one line above the greeting: "<City>, <CC> · Change city" (the delivery
+// address's or the phone's city, R8); where neither is known, "Set your delivery
+// location" (it opens Change city). Never a city we guessed.
 import { Button, color, LanguagePill, radius, space, Txt, type, useBag, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -55,7 +57,8 @@ export default function Home() {
   const { above } = useTabBarOffsets();
   // The delivery address's city and its country's 2-letter code (GET /markets/locate).
   const city = market?.city_name && market.country_code ? t("location.place", { city: market.city_name, country: market.country_code }) : null;
-  const where = city ?? (status === "failed" ? t("app.home.choose_address") : status === "ready" ? point?.label || t("app.home.current_location") : t("app.home.finding_you"));
+  const unknown = status === "failed";
+  const where = city ?? (status === "ready" ? point?.label || t("app.home.current_location") : t("app.home.finding_you"));
   const changeCity = () => router.push("/where");
 
   return (
@@ -76,7 +79,13 @@ export default function Home() {
 
         <View testID="location-line" style={styles.where}>
           <Icon name="pin" size={18} stroke={color.peacock} />
-          <Text testID="location-city" numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
+          {unknown ? (
+            <Pressable testID="set-location" accessibilityRole="button" onPress={changeCity} hitSlop={8} style={[styles.change, { flexShrink: 1 }]}>
+              <Text numberOfLines={1} style={[type.label, { color: color.peacock }]}>{t("location.set")}</Text>
+            </Pressable>
+          ) : (
+            <Text testID="location-city" numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
+          )}
           <Text style={[type.label, { color: color.muted }]}>·</Text>
           <Pressable testID="change-city" accessibilityRole="link" onPress={changeCity} hitSlop={8} style={styles.change}>
             <Text style={[type.label, { color: color.peacock }]}>{t("location.change_city")}</Text>

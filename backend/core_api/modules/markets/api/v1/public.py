@@ -270,19 +270,36 @@ async def areas(db: DB, q: str = Query(min_length=2, max_length=60), country: st
 
 class Hint(BaseModel):
     country: str | None = None  # a public country the IP points at
-    place: str | None = None  # the IP's own town, e.g. "Meridian"
-    region: str | None = None
-    city_code: str | None = None
+    place: str | None = Field(default=None, description="The IP's own town, shown as itself (\"Meridian\"), "
+                                                         "served or not; None outside every public country")
+    region: str | None = None  # its state's name ("Idaho")
+    region_code: str | None = Field(default=None, description="Its state's short code (\"ID\"), when known: the "
+                                                              "location line's \"Meridian, ID\"")
+    city_code: str | None = None  # the served city the point is in (None when not inside an open zone)
     city_name: str | None = None
     city_path: str | None = None
-    served: bool = False
+    served: bool = False  # the point is inside an open zone of a live city ("We deliver here")
+
+
+def short_region_code(found_code: str | None, region_name: str | None, country: str, regions: list[tuple[str, str]]) -> str | None:
+    """The state's short code for "Meridian, ID": the GeoIP file's own ISO code when it has
+    one, else the Markets state of that name (its code "US-ID" -> "ID"), else None."""
+    if found_code:
+        return found_code.upper().removeprefix(f"{country.upper()}-")[:3] or None
+    want = (region_name or "").strip().casefold()
+    for code, name in regions:
+        if want and name.strip().casefold() == want:
+            return code.split("-", 1)[-1].upper()
+    return None
 
 
 @router.get("/hint", response_model=Hint)
 async def hint(request: Request, db: DB) -> Hint:
-    """Where the visitor seems to be, from their IP: a hint only ("Looks like you're
-    near ..."), never a decision. The place is named only when it's inside an open
-    zone; otherwise just the country (for the header's country and language)."""
+    """Where the visitor seems to be, from their IP: a hint only, never a decision (an
+    address or a chosen city always wins). The IP's own town and state are named when
+    it is in a public country ("Meridian, ID"), served or not; ``served`` (and the
+    city) only when the point is inside an open zone of a live city. Outside every
+    public country: nothing but None (the website then says "Set your delivery location")."""
     from core_api.modules.markets.service.markets import MarketService
     from shared import geoip
     from shared.client_ip import client_ip
@@ -293,13 +310,19 @@ async def hint(request: Request, db: DB) -> Hint:
     d = await build_directory(db)
     country = found.country if any(k.code == found.country for k in d.countries) else None
     out = Hint(country=country)
-    if country and found.lat is not None and found.lng is not None:
+    if not country:
+        return out
+    regions = (await db.execute(
+        select(Region.code, Region.name).join(Country, Country.id == Region.country_id).where(Country.code == country))).all()
+    out.place, out.region = found.city, found.region
+    out.region_code = short_region_code(found.region_code, found.region, country, [(c, n) for c, n in regions])
+    if found.lat is not None and found.lng is not None:
         loc = await MarketService(db).locate(found.lat, found.lng)
         if loc.serviceable and loc.city_code:
             k = next(k for k in d.countries if k.code == country)
             city = next((c for r in k.regions for c in r.cities if c.code == loc.city_code), None)
             if city:
-                out.place, out.region = found.city or city.name, found.region
+                out.place = found.city or city.name
                 out.city_code, out.city_name, out.city_path, out.served = city.code, city.name, city.path, True
     return out
 
