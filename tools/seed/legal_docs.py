@@ -69,8 +69,8 @@ async def seed_legal(conn, sid) -> int:  # type: ignore[no-untyped-def]
         # all see "We've updated our policies" until an admin publishes a new version).
         await conn.execute(text("""
             INSERT INTO legal_acceptances (id, user_id, document_id, kind, country, version, source, accepted_at)
-            SELECT gen_random_uuid(), u.id, :doc, :kind, :country, 1, 'app', now() FROM users u
-            WHERE u.country = :country AND u.email LIKE '%@example.com' AND u.role IN ('customer', 'driver', 'restaurant_owner')
+            SELECT gen_random_uuid(), u.id, CAST(:doc AS uuid), CAST(:kind AS varchar), CAST(:country AS varchar), 1, 'app', now()
+            FROM users u WHERE u.country = CAST(:country AS varchar) AND u.email LIKE '%@example.com' AND u.role IN ('customer', 'driver', 'restaurant_owner')
             ON CONFLICT ON CONSTRAINT uq_legal_acceptances_user_document DO NOTHING"""),
             {"doc": doc_id, "kind": d["kind"], "country": d["country"]})
         n += 1
