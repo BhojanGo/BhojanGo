@@ -63,7 +63,7 @@ export async function Landing() {
                   <p className="mb-[14px] mt-1 text-small tabular-nums text-[#4C5A5E]">
                     {t("bill.example_in", { total: money(bill.total, bill.currency, formatLocale), city: bill.city_name })}
                   </p>
-                  <MoneyBar lines={bill.lines} t={t} formatLocale={formatLocale} />
+                  <MoneyBar shares={bill.shares} t={t} formatLocale={formatLocale} />
                   <p className="mt-3 text-small text-[#4C5A5E]">{t("bill.exact_note")}</p>
                 </div>
               )}

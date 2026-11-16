@@ -105,19 +105,31 @@ async def example_quote(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1
                         zone: uuid.UUID | None = Query(default=None)) -> dict:
     """An example bill for the website: a real recent order's bill in this zone (or
     city), as the customer saw it; a new city with no orders yet gets a typical cart
-    from its own menus priced by the engine with live rules. Cached for an hour. Public."""
+    from its own menus priced by the engine with live rules. With it, "shares": who
+    gets the money, from the engine's split (see _shares). Cached for an hour. Public."""
     import json
 
     from shared.redis import get_redis
 
     r = await get_redis()
-    key = f"pricing:example:{city}:{zone or ''}"
+    key = f"pricing:example:v2:{city}:{zone or ''}"  # v2: with the shares
     cached = await r.get(key)
     if cached:
         return json.loads(cached)
     body = await _real_bill(db, city, zone) or await _typical_bill(db, city)
     await r.set(key, json.dumps(body), ex=3600)
     return body
+
+
+def _shares(split: dict, total: Decimal | str) -> dict[str, str]:
+    """Who gets the customer's money, from the engine's split of this bill: the kitchen
+    (its payout), the rider (rider pay: base + distance + wait, plus the whole tip), the
+    tax the platform remits, and BhojanGo (what is left: fees less rider pay and
+    platform-funded offers; below zero when an order costs us money). The four add up
+    to the total exactly."""
+    total = Decimal(str(total))
+    kitchen, rider, us = (Decimal(str(split[k])) for k in ("restaurant", "rider", "platform"))
+    return {"kitchen": str(kitchen), "rider": str(rider), "tax": str(total - kitchen - rider - us), "us": str(us)}
 
 
 async def _real_bill(db: AsyncSession, city: str, zone: uuid.UUID | None) -> dict | None:
@@ -146,7 +158,7 @@ async def _real_bill(db: AsyncSession, city: str, zone: uuid.UUID | None) -> dic
             lines = [{**ln, "label": "Food" if ln.get("code") == "food" else ln.get("label")} for ln in snap.lines]
             ctx = snap.context or {}
             return {"city": city, "city_name": c.name, "currency": snap.currency, "lines": lines, "total": str(snap.total),
-                    "source": "order", "assumptions": {"distance": str(ctx.get("distance", "")),
+                    "shares": _shares(snap.split, snap.total), "source": "order", "assumptions": {"distance": str(ctx.get("distance", "")),
                                                        "distance_unit": country.distance_unit}}
     return None
 
@@ -187,6 +199,8 @@ async def _typical_bill(db: AsyncSession, city: str) -> dict:
     if not out.live.ok:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOT_PRICED", "message": out.live.message})
     lines = [{**ln.model_dump(mode="json"), "label": "Food" if ln.code == "food" else ln.label} for ln in out.live.lines]
+    sp = out.live.split
+    shares = _shares({"restaurant": sp.restaurant, "rider": sp.rider, "platform": sp.platform}, out.live.total) if sp else None
     return {"city": city, "city_name": c.name, "currency": out.currency, "lines": lines, "total": str(out.live.total),
-            "source": "typical", "assumptions": {"food": str(food), "distance": "3", "distance_unit": country.distance_unit,
+            "shares": shares, "source": "typical", "assumptions": {"food": str(food), "distance": "3", "distance_unit": country.distance_unit,
                                                  "tip": str(tip), "local_time": local.isoformat()}}

@@ -1,7 +1,7 @@
 // The fair bill (design: WebKitchen "Your bag", WebCheckout, WebOrders receipt):
 // every line with who gets it. Lines come from the engine (quote, order bill or
 // example bill); amounts are never computed here.
-import { fairSplit, payeeOf, type Payee } from "@/lib/fairSplit";
+import { fairSplit, payeeOf, type Payee, type Shares } from "@/lib/fairSplit";
 import { money } from "@/lib/format";
 import type { BillLine } from "@/lib/server";
 
@@ -68,11 +68,12 @@ export function FairBill({
 }
 
 /**
- * "Who gets your money" (landing page): the shares of a real bill from the engine
- * (the country's example quote), as whole percentages that add up to 100.
+ * "Who gets your money" (landing page): the engine's split of a real bill (the
+ * country's example quote): kitchen, rider (pay + tip), tax, BhojanGo, as whole
+ * percentages that add up to 100.
  */
-export function MoneyBar({ lines, t, formatLocale }: { lines: BillLine[]; t: T; formatLocale: string }) {
-  const split = fairSplit(lines);
+export function MoneyBar({ shares, t, formatLocale }: { shares: Shares | null | undefined; t: T; formatLocale: string }) {
+  const split = fairSplit(shares);
   if (!split) return null;
   const look: Record<Payee, { color: string; label: string }> = {
     kitchen: { color: "#0B5D66", label: t("bill.kitchen") },

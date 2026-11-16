@@ -34,6 +34,8 @@ export interface ExampleBill {
   total: string;
   source: "order" | "typical";
   lines: BillLine[];
+  /** Who gets the money, from the engine's split (rider = pay + tip); absent on an older API. */
+  shares?: Record<"kitchen" | "rider" | "tax" | "us", string>;
   assumptions: Record<string, string>;
 }
 

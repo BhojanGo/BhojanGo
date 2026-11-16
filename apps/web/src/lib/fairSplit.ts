@@ -1,6 +1,15 @@
-// "Who gets your money" (R6): the shares of a real bill (the engine's lines, e.g.
-// GET /pricing/example for the country's city), as whole percentages that add up
-// to exactly 100. Pure: the apps can mirror it line for line.
+// "Who gets your money" (R6, R7): the shares of a real bill as whole percentages that
+// add up to exactly 100. The amounts are the engine's split of the bill (GET
+// /pricing/example's "shares"): the kitchen's payout, the rider's pay (base +
+// distance + wait) plus the tip, the tax, and what is left for BhojanGo. Nothing is
+// worked out from the bill's lines here: a delivery fee is not the rider's pay.
+// Pure: the apps can mirror it line for line.
+
+export type Payee = "kitchen" | "rider" | "tax" | "us";
+
+export const PAYEES: readonly Payee[] = ["kitchen", "rider", "tax", "us"];
+
+export type Shares = Record<Payee, string | number>;
 
 export interface SplitLine {
   code: string;
@@ -8,16 +17,14 @@ export interface SplitLine {
   funded_by?: string | null;
 }
 
-export type Payee = "kitchen" | "rider" | "tax" | "us";
-
-// Who each line goes to: the delivery and service fees are ours (riders are
-// paid separately), tax is the government's, the tip is all the rider's.
+// The fair bill's tag on each line (who the customer pays it to): the delivery and
+// service fees are ours, tax is the government's, the tip is all the rider's. Only
+// for the per-line tags; the shares come from the engine's split (rider pay comes
+// out of our fees).
 export const PAYEE: Record<string, Payee> = {
   food: "kitchen", packaging: "kitchen", delivery_fee: "us", service_fee: "us", small_order_fee: "us",
   surge: "us", late_night_fee: "us", tax: "tax", tip: "rider",
 };
-
-export const PAYEES: readonly Payee[] = ["kitchen", "rider", "tax", "us"];
 
 export function payeeOf(line: SplitLine): Payee {
   if (line.code === "promotion") return line.funded_by === "restaurant" ? "kitchen" : "us";
@@ -25,14 +32,13 @@ export function payeeOf(line: SplitLine): Payee {
 }
 
 /**
- * Sums per payee (a promotion lowers whoever funds it; a negative sum counts as 0)
- * and whole percentages by largest remainder, so they always add up to 100.
- * Null for an empty or zero bill.
+ * Whole percentages by largest remainder, so they always add up to 100 (a share
+ * below zero, e.g. BhojanGo losing money on an order, counts as 0).
+ * Null for missing shares or a zero bill.
  */
-export function fairSplit(lines: readonly SplitLine[]): { payee: Payee; amount: number; percent: number }[] | null {
-  const sums: Record<Payee, number> = { kitchen: 0, rider: 0, tax: 0, us: 0 };
-  for (const ln of lines) sums[payeeOf(ln)] += Number(ln.amount) || 0;
-  const amounts = PAYEES.map((p) => Math.max(sums[p], 0));
+export function fairSplit(shares: Partial<Shares> | null | undefined): { payee: Payee; amount: number; percent: number }[] | null {
+  if (!shares) return null;
+  const amounts = PAYEES.map((p) => Math.max(Number(shares[p]) || 0, 0));
   const total = amounts.reduce((a, b) => a + b, 0);
   if (!(total > 0)) return null;
   const exact = amounts.map((a) => (a / total) * 100);
