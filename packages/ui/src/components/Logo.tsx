@@ -1,7 +1,5 @@
 import * as React from "react";
 
-import { fontSizes } from "@bhojango/ui/tokens";
-
 /** Logo C: the steaming "b" (docs/design/logo). "teal" on light grounds, "white" on Peacock. */
 export function LogoMark({ size = 40, tone = "teal", title = "BhojanGo" }: { size?: number; tone?: "teal" | "white"; title?: string }) {
   const stroke = tone === "white" ? "#FFFFFF" : "#0B5D66";
@@ -17,18 +15,15 @@ export function LogoMark({ size = 40, tone = "teal", title = "BhojanGo" }: { siz
 
 /**
  * The lockup as drawn on BrandLogo.html (route C): the mark, then "bhojango" in
- * Familjen Grotesk 700, kohl, sized and spaced from the mark (52 px mark :
- * 34 px wordmark, -1 px tracking, 12 px gap). Optional quiet suffix ("admin").
- * The wordmark snaps to the nearest size on the type scale (the only sizes allowed).
+ * Familjen Grotesk 700, kohl, spaced from the mark (12 px gap at a 52 px mark).
+ * The wordmark is the h3 token (20 px; 18 px on a phone) in the brand face: only
+ * sizes from the type scale. Optional quiet suffix ("admin").
  */
 export function Logo({ size = 32, suffix, tone = "teal" }: { size?: number; suffix?: string; tone?: "teal" | "white" }) {
-  const ideal = size * (34 / 52);
-  const text = fontSizes.reduce((best, s) => (Math.abs(s - ideal) < Math.abs(best - ideal) ? s : best), fontSizes[0] ?? 20);
   return (
     <span className="inline-flex items-center" style={{ gap: Math.round(size * (12 / 52)) }}>
       <LogoMark size={size} tone={tone} />
-      <span style={{ fontFamily: "var(--font-display, 'Familjen Grotesk'), system-ui, sans-serif", fontWeight: 700, fontSize: text,
-        letterSpacing: `${-(text / 34)}px`, lineHeight: 1, color: tone === "white" ? "#FFFFFF" : "#111418" }}>bhojango</span>
+      <span data-testid="logo-wordmark" className={`text-h3 font-display font-bold leading-none tracking-[-0.6px] ${tone === "white" ? "text-white" : "text-kohl"}`}>bhojango</span>
       {suffix && <span className="text-label tracking-normal text-muted" style={{ marginLeft: Math.round(size * 0.15) }}>{suffix}</span>}
     </span>
   );

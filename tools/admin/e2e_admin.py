@@ -139,6 +139,8 @@ with sync_playwright() as p:
     check("test-site banner: on the login page, a note (not an alert)", lambda: (
         expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible(),
         expect(page.get_by_role("alert").filter(has_text=test_banner)).to_have_count(0)))
+    check("logo: the wordmark is the h3 token (20 px at desktop width)", lambda:
+          expect(page.get_by_test_id("logo-wordmark")).to_have_css("font-size", "20px"))
     sign_in(page, "admin@example.com")
     check("test-site banner: inside the console too", lambda: expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible())
     check("overview, all countries: each country in its own money, side by side, needs action", lambda: (
