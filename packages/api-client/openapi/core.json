@@ -567,6 +567,17 @@
             ],
             "title": "Area"
           },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
           "commission_percent": {
             "anyOf": [
               {
@@ -577,6 +588,25 @@
               }
             ],
             "title": "Commission Percent"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "cuisines": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Cuisines",
+            "type": "array"
           },
           "current": {
             "anyOf": [
@@ -671,9 +701,31 @@
             "title": "Steps",
             "type": "array"
           },
+          "street": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
+          },
+          "zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zip"
           }
         },
         "required": [
@@ -1009,6 +1061,75 @@
           "purpose"
         ],
         "title": "Body_upload_api_v1_uploads_post",
+        "type": "object"
+      },
+      "BusinessIn": {
+        "description": "The application's first step: where the kitchen is and what it cooks.",
+        "properties": {
+          "area": {
+            "description": "Neighbourhood, e.g. Banjara Hills",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Area",
+            "type": "string"
+          },
+          "cuisines": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Cuisines",
+            "type": "array"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The kitchen's pin; None keeps the current one",
+            "title": "Lat"
+          },
+          "lng": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
+          },
+          "street": {
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Street",
+            "type": "string"
+          },
+          "zip": {
+            "description": "PIN or ZIP code",
+            "maxLength": 12,
+            "minLength": 3,
+            "title": "Zip",
+            "type": "string"
+          }
+        },
+        "required": [
+          "street",
+          "area",
+          "zip",
+          "cuisines"
+        ],
+        "title": "BusinessIn",
         "type": "object"
       },
       "BusyIn": {
@@ -1965,6 +2086,65 @@
         "title": "CityUpdate",
         "type": "object"
       },
+      "CommissionTerms": {
+        "description": "Commission is a percentage of the food subtotal only (never of delivery,\nfees, tax or tips), from the country's and cities' live commission:rate rules.",
+        "properties": {
+          "base": {
+            "const": "food_subtotal",
+            "default": "food_subtotal",
+            "title": "Base",
+            "type": "string"
+          },
+          "flat_per_order": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A fixed amount per order on top, if a rule sets one",
+            "title": "Flat Per Order"
+          },
+          "percent_max": {
+            "title": "Percent Max",
+            "type": "string"
+          },
+          "percent_min": {
+            "title": "Percent Min",
+            "type": "string"
+          },
+          "starting_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A new kitchen's rate at country level (the default tier)",
+            "title": "Starting Percent"
+          },
+          "tiers": {
+            "default": [],
+            "description": "The country rule's tiers, when it is percent_by_tier",
+            "items": {
+              "$ref": "#/components/schemas/Tier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "percent_min",
+          "percent_max",
+          "starting_percent"
+        ],
+        "title": "CommissionTerms",
+        "type": "object"
+      },
       "CountryCreate": {
         "properties": {
           "code": {
@@ -2606,13 +2786,13 @@
           "cities": {
             "description": "The country's live cities (the page's city picker)",
             "items": {
-              "$ref": "#/components/schemas/TermsCity"
+              "$ref": "#/components/schemas/core_api__modules__markets__api__v1__delivery__TermsCity"
             },
             "title": "Cities",
             "type": "array"
           },
           "city": {
-            "$ref": "#/components/schemas/TermsCity"
+            "$ref": "#/components/schemas/core_api__modules__markets__api__v1__delivery__TermsCity"
           },
           "country": {
             "title": "Country",
@@ -4013,12 +4193,20 @@
         "type": "object"
       },
       "KitchenApply": {
+        "description": "The kitchen's name and city start an application; the address, cuisines and\nmap pin can come now (the tablet app sends them) or later, as the application's\nfirst step (PUT /restaurants/{id}/business).",
         "properties": {
           "area": {
-            "maxLength": 80,
-            "minLength": 2,
-            "title": "Area",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
           },
           "city_code": {
             "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
@@ -4026,13 +4214,20 @@
             "type": "string"
           },
           "cuisines": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 5,
-            "minItems": 1,
-            "title": "Cuisines",
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 5,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuisines"
           },
           "full_name": {
             "description": "Your name",
@@ -4048,42 +4243,275 @@
             "type": "string"
           },
           "lat": {
-            "maximum": 90.0,
-            "minimum": -90.0,
-            "title": "Lat",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
           },
           "lng": {
-            "maximum": 180.0,
-            "minimum": -180.0,
-            "title": "Lng",
-            "type": "number"
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lng"
           },
           "street": {
-            "maxLength": 200,
-            "minLength": 3,
-            "title": "Street",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street"
           },
           "zip": {
-            "maxLength": 12,
-            "minLength": 3,
-            "title": "Zip",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zip"
           }
         },
         "required": [
           "full_name",
           "kitchen_name",
-          "city_code",
-          "street",
-          "area",
-          "zip",
-          "lat",
-          "lng",
-          "cuisines"
+          "city_code"
         ],
         "title": "KitchenApply",
+        "type": "object"
+      },
+      "KitchenDocument": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "why"
+        ],
+        "title": "KitchenDocument",
+        "type": "object"
+      },
+      "KitchenSignUp": {
+        "description": "A new visitor starts an application on the website: their account (they sign\nin with this email and password, or with the phone and a code) and the kitchen.",
+        "properties": {
+          "accept_terms": {
+            "description": "Agreed to the Terms and the Privacy policy (must be true)",
+            "title": "Accept Terms",
+            "type": "boolean"
+          },
+          "city_code": {
+            "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
+            "title": "City Code",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "description": "The contact person's name",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "kitchen_name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Kitchen Name",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The page's language: emails use it when the country offers it",
+            "title": "Language"
+          },
+          "password": {
+            "description": "At least 10 characters",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "phone": {
+            "examples": [
+              "+919876543210"
+            ],
+            "pattern": "^\\+[1-9]\\d{7,14}$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kitchen_name",
+          "city_code",
+          "full_name",
+          "phone",
+          "email",
+          "password",
+          "accept_terms"
+        ],
+        "title": "KitchenSignUp",
+        "type": "object"
+      },
+      "KitchenSignedUp": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "admin_roles": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Admin Roles",
+            "type": "array"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "is_new_user": {
+            "default": false,
+            "title": "Is New User",
+            "type": "boolean"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "restaurant_id": {
+            "title": "Restaurant Id",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "user",
+          "restaurant_id"
+        ],
+        "title": "KitchenSignedUp",
+        "type": "object"
+      },
+      "KitchenTerms": {
+        "properties": {
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/core_api__modules__catalog__api__v1__kitchens__TermsCity"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "commission": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommissionTerms"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when the country has no commission rule live yet"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "country_name": {
+            "title": "Country Name",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "documents": {
+            "description": "Markets setting kitchen_documents; empty: none configured",
+            "items": {
+              "$ref": "#/components/schemas/KitchenDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "payout": {
+            "$ref": "#/components/schemas/PayoutTerms"
+          },
+          "phone_code": {
+            "title": "Phone Code",
+            "type": "string"
+          },
+          "tax_regime": {
+            "title": "Tax Regime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "country",
+          "country_name",
+          "currency",
+          "phone_code",
+          "tax_regime",
+          "commission",
+          "payout",
+          "documents",
+          "cities"
+        ],
+        "title": "KitchenTerms",
         "type": "object"
       },
       "LicenceIn": {
@@ -7410,6 +7838,38 @@
           "day"
         ],
         "title": "Payout",
+        "type": "object"
+      },
+      "PayoutTerms": {
+        "properties": {
+          "day": {
+            "default": "mon",
+            "enum": [
+              "mon",
+              "tue",
+              "wed",
+              "thu",
+              "fri"
+            ],
+            "title": "Day",
+            "type": "string"
+          },
+          "frequency": {
+            "default": "weekly",
+            "enum": [
+              "weekly",
+              "biweekly"
+            ],
+            "title": "Frequency",
+            "type": "string"
+          },
+          "hold_days": {
+            "default": 2,
+            "title": "Hold Days",
+            "type": "integer"
+          }
+        },
+        "title": "PayoutTerms",
         "type": "object"
       },
       "PhoneSignInRequest": {
@@ -11114,29 +11574,6 @@
         "title": "StatusTimelineEntry",
         "type": "object"
       },
-      "TermsCity": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "region": {
-            "title": "Region",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "name",
-          "region"
-        ],
-        "title": "TermsCity",
-        "type": "object"
-      },
       "TicketOut": {
         "properties": {
           "created_at": {
@@ -11207,6 +11644,24 @@
           "resolution"
         ],
         "title": "TicketOut",
+        "type": "object"
+      },
+      "Tier": {
+        "properties": {
+          "percent": {
+            "title": "Percent",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "percent"
+        ],
+        "title": "Tier",
         "type": "object"
       },
       "TierIn": {
@@ -12105,6 +12560,55 @@
         "title": "ZoneUpdate",
         "type": "object"
       },
+      "core_api__modules__catalog__api__v1__kitchens__TermsCity": {
+        "properties": {
+          "beta": {
+            "title": "Beta",
+            "type": "boolean"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "starting_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starting Percent"
+          },
+          "status": {
+            "enum": [
+              "live",
+              "soon"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "region",
+          "status",
+          "beta",
+          "starting_percent"
+        ],
+        "title": "TermsCity",
+        "type": "object"
+      },
       "core_api__modules__catalog__api__v1__partner__StepOut": {
         "properties": {
           "detail": {
@@ -12178,6 +12682,29 @@
           "required"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "core_api__modules__markets__api__v1__delivery__TermsCity": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "region"
+        ],
+        "title": "TermsCity",
         "type": "object"
       },
       "core_api__modules__rules__api__v1__commission__Decision": {
@@ -13758,6 +14285,103 @@
         "summary": "Stripe Connect Webhook",
         "tags": [
           "Finance"
+        ]
+      }
+    },
+    "/api/v1/kitchens/apply": {
+      "post": {
+        "description": "Start an application as a new kitchen partner: creates the account (role\nrestaurant_owner) and the kitchen pending approval, signs them in, and emails\nthem what comes next. The application's steps follow (GET /restaurants/{id}/application).",
+        "operationId": "apply_api_v1_kitchens_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KitchenSignUp"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenSignedUp"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply",
+        "tags": [
+          "Kitchen partners (public)"
+        ]
+      }
+    },
+    "/api/v1/kitchens/terms": {
+      "get": {
+        "description": "What a kitchen partner gets in this country, from live data (404: not a public country).",
+        "operationId": "terms_api_v1_kitchens_terms_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "pattern": "^[a-z]{2}$",
+              "title": "Language",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenTerms"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Terms",
+        "tags": [
+          "Kitchen partners (public)"
         ]
       }
     },
@@ -17796,7 +18420,7 @@
     },
     "/api/v1/restaurants/apply": {
       "post": {
-        "description": "Apply with a kitchen: it's created pending approval and the partner\napplication (FSSAI, GST and bank, menu) follows. Admins approve it in\nPartners \u2192 Applications.",
+        "description": "Apply with a kitchen from a signed-in account (a customer account with no\norders becomes the kitchen partner's): it's created pending approval in a live,\nbeta or coming-soon city, and the partner application (business details, FSSAI,\nGST and bank, menu) follows. Admins approve it in Partners -> Applications.\nA new visitor uses POST /kitchens/apply (email and password) instead.",
         "operationId": "kitchen_apply_api_v1_restaurants_apply_post",
         "requestBody": {
           "content": {
@@ -18351,6 +18975,65 @@
         "summary": "Get Availability",
         "tags": [
           "Menu and hours"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/business": {
+      "put": {
+        "description": "Business details while applying: the street address, area, PIN/ZIP, cuisines\nand (optionally) the map pin. A live kitchen changes its address through support.",
+        "operationId": "set_business_api_v1_restaurants__restaurant_id__business_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Business",
+        "tags": [
+          "Partner tablet"
         ]
       }
     },
