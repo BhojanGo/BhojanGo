@@ -1,7 +1,7 @@
 "use client";
 // Apply with your kitchen on the web (B1): sign in with the kitchen's phone,
 // tell us about the kitchen, then the partner application (FSSAI, GST and
-// bank, menu). Admins approve it; the BhojanGo Partner tablet app runs it.
+// bank, menu). Admins approve it; the BhojanGo Kitchen tablet app runs it.
 import { errorMessage, unwrap } from "@bhojango/api-client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -54,7 +54,7 @@ export default function Partner() {
       ) : user.role === "restaurant_owner" ? (
         app ? <Steps app={app} onSaved={reload} /> : <p className="text-muted">Loading your application…</p>
       ) : user.role === "customer" ? <ApplyForm onDone={reload} /> : (
-        <p className="rounded-card bg-white p-6 text-muted">This account is a rider or admin account. Sign in with your kitchen&apos;s number instead.</p>
+        <p className="rounded-card bg-white p-6 text-muted">This account is a delivery partner or admin account. Sign in with your kitchen&apos;s number instead.</p>
       )}
     </div>
   );
@@ -153,7 +153,7 @@ function Steps({ app, onSaved }: { app: Application; onSaved: () => Promise<void
         </div>
       ) : null}
       {msg ? <p role="alert" className="text-label text-chili">{msg}</p> : null}
-      <p className="text-small text-muted">Upload the licence certificate, add your bank and your menu in the BhojanGo Partner app on your kitchen tablet. We check everything and switch you on.</p>
+      <p className="text-small text-muted">Upload the licence certificate, add your bank and your menu in the BhojanGo Kitchen app on your kitchen tablet. We check everything and switch you on.</p>
     </section>
   );
 }

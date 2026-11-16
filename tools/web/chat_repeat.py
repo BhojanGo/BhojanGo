@@ -127,7 +127,7 @@ with sync_playwright() as p:
             api("PUT", f"/orders/{order_id}/status", partner, {"status": st})
         api("POST", "/delivery/assign", ops, {"order_id": order_id, "driver_id": sub(rider)}, host=8004)
         api("POST", f"/orders/{order_id}/messages", rider, {"preset": "at_kitchen"})
-        chat = page.get_by_role("region", name=re.compile("^Your rider, "))
+        chat = page.get_by_role("region", name=re.compile("^Your delivery partner, "))
         try:
             # Setup, as in e2e_web.py (same waits).
             expect(chat.get_by_role("button", name="Message")).to_be_visible(timeout=20000)

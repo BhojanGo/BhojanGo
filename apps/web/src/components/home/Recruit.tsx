@@ -25,7 +25,7 @@ export function RecruitCards() {
         <div className="text-caption text-[#E8A93C]">{t("home.riders_eyebrow")}</div>
         <h2 className="mt-[10px] text-h1 tracking-[-0.8px]">{t("home.riders_title")}</h2>
         <p className="mt-3 max-w-[440px] text-body leading-[1.5] text-[#A9B8BA]">{t("home.riders_body")}</p>
-        <Link href="/ride" className="mt-5 inline-flex h-[52px] items-center rounded-full bg-[#E8A93C] px-6 font-bold text-[#111418] hover:text-[#111418]">
+        <Link href="/deliver" className="mt-5 inline-flex h-[52px] items-center rounded-full bg-[#E8A93C] px-6 font-bold text-[#111418] hover:text-[#111418]">
           {t("home.riders_cta")}
         </Link>
       </div>

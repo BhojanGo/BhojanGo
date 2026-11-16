@@ -14,9 +14,9 @@ export default function Privacy() {
         { id: "collect", title: "What we collect", body: <p>Your phone number and name, the addresses you deliver to (with their location on the map), your orders and payments (we never see full card numbers: the payment provider handles them), and messages you send support.</p> },
         { id: "use", title: "Why", body: <p>To take and deliver your orders, show you the bill, send you order updates (push, SMS for the important moments, and email receipts), handle refunds, prevent fraud, and meet tax and consumer law.</p> },
         { id: "share", title: "Who sees it", body: <>
-          <p>The kitchen sees your first name and what you ordered. Your rider sees your first name and initial, and your address only after they pick up your food. Our payment partner in your country processes your payment. We don&apos;t sell your data.</p>
+          <p>The kitchen sees your first name and what you ordered. Your delivery partner sees your first name and initial, and your address only after they pick up your food. Our payment partner in your country processes your payment. We don&apos;t sell your data.</p>
         </> },
-        { id: "location", title: "Location", body: <p>If you choose &quot;Use my location&quot; at checkout, your browser shares it once to find where to deliver. Riders share their location only while they&apos;re online, so you can follow your order.</p> },
+        { id: "location", title: "Location", body: <p>If you choose &quot;Use my location&quot; at checkout, your browser shares it once to find where to deliver. Delivery partners share their location only while they&apos;re online, so you can follow your order.</p> },
         { id: "keep", title: "How long we keep it", body: <p>Order and payment records are kept as long as tax law requires. Everything else is deleted when you delete your account.</p> },
         { id: "rights", title: "Your choices", body: <p>You can see and correct your details, and delete your account from the BhojanGo app (Account → Delete account). This follows the data protection law of the country (and, where it has one, the state) where you use BhojanGo.</p> },
         { id: "cookies", title: "Cookies and storage", body: <p>We store your sign-in and your bag in your browser so they survive a refresh. We don&apos;t use advertising trackers.</p> },

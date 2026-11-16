@@ -8,7 +8,7 @@ appId: com.bhojango.rider
     env:
       PHONE: "2085550291"
 - extendedWaitUntil:
-    visible: "Almost ready to ride.*"
+    visible: "Almost ready to deliver.*"
     timeout: 60000
 - waitForAnimationToEnd:
     timeout: 3000

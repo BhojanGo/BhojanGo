@@ -120,7 +120,7 @@ def main() -> int:  # noqa: C901 - one walk through the site
     if web:
         directory = api(core, "GET", "/markets/directory") if core else {"countries": []}
         for path, name in [("/", "home"), ("/signin", "sign-in"), ("/signin/code?phone=%2B12085550199&next=%2F", "sign-in-code"),
-                           ("/cities", "cities"), ("/partner", "add-your-kitchen"), ("/ride", "deliver"), ("/help", "help"),
+                           ("/cities", "cities"), ("/partner", "add-your-kitchen"), ("/deliver", "deliver"), ("/help", "help"),
                            ("/terms", "terms"), ("/privacy", "privacy"), ("/credits", "credits"), ("/no-such-page", "not-found")]:
             pages.append((name, "visitor", web + path, None))
         for k in directory["countries"]:

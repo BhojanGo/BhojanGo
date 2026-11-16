@@ -281,7 +281,7 @@ call core_api (:8001), realtime (:8004) and worker (:8006) directly.
 | web | 3000 | Customer web app (Next.js) |
 | admin | 3001 | Admin dashboard (Next.js) |
 | customer | 8081 | Expo dev server — BhojanGo app (`com.bhojango.app`) |
-| rider | 8081 | Expo dev server — BhojanGo Rider app (`com.bhojango.rider`) |
+| rider | 8081 | Expo dev server — BhojanGo Delivery app (`com.bhojango.rider`) |
 
 All `/api/v1/...` URLs are the same as before the restructure; only the process
 serving them changed.
@@ -313,8 +313,8 @@ Target layout and the rules behind it: [docs/specs/01-structure.md](docs/specs/0
 bhojango/
 ├── apps/
 │   ├── customer/         Expo · BhojanGo customer app
-│   ├── rider/            Expo · BhojanGo Rider app
-│   ├── partner/          Expo · BhojanGo Partner tablet app (landscape)
+│   ├── rider/            Expo · BhojanGo Delivery app (delivery partners)
+│   ├── partner/          Expo · BhojanGo Kitchen tablet app (landscape)
 │   ├── web/              Next.js 16 customer web
 │   └── admin/            Next.js 16 admin console
 ├── backend/              Python 3.12 · one uv project (pyproject.toml, uv.lock)

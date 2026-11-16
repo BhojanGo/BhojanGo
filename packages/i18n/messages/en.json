@@ -54,7 +54,7 @@
   "header": {
     "where_we_deliver": "Where we deliver",
     "add_your_kitchen": "Add your kitchen",
-    "ride_with_us": "Ride with us",
+    "ride_with_us": "Deliver with BhojanGo",
     "country": "Country: {country}",
     "country_title": "Country",
     "country_note": "Prices, kitchens and languages follow the country of your address.",
@@ -75,7 +75,7 @@
     "suggest_city": "Suggest your city",
     "work_with_us": "Work with us",
     "add_kitchen": "Add your kitchen",
-    "ride": "Ride with BhojanGo",
+    "ride": "Deliver with BhojanGo",
     "help": "Help",
     "help_centre": "Help centre",
     "your_orders": "Your orders",
@@ -99,8 +99,8 @@
   },
   "bill": {
     "kitchen": "Kitchen",
-    "rider": "Rider",
-    "rider_tip": "Rider + tip",
+    "rider": "Delivery partner",
+    "rider_tip": "Delivery partner + tip",
     "tax": "Tax",
     "bhojango": "BhojanGo",
     "total": "Total",
@@ -113,7 +113,7 @@
     "line_small_order_fee": "Small order fee",
     "line_surge": "Busy-hour fee",
     "line_late_night_fee": "Late-night fee",
-    "line_tip": "Tip for your rider",
+    "line_tip": "Tip for your delivery partner",
     "exact_note": "Your real bill shows exact amounts, line by line, before you pay."
   },
   "notify": {
@@ -136,7 +136,7 @@
     "step2_title": "See the whole bill",
     "step2_body": "Food, delivery, service, tax and tip, each with who gets it. Nothing added at the end.",
     "step3_title": "Track it to your door",
-    "step3_body": "Live map, a delivery PIN, and a rider who is paid fairly for every trip.",
+    "step3_body": "Live map, a delivery PIN, and a delivery partner who is paid fairly for every trip.",
     "cooking_title": "What's cooking near you",
     "cooking_note": "Enter your address to see kitchens and prices for your street",
     "find_your_city": "Find your city",
@@ -145,10 +145,10 @@
     "kitchens_title": "Cook with BhojanGo",
     "kitchens_body": "Commission on food only, weekly payouts, your prices and your offers.",
     "kitchens_cta": "Add your kitchen",
-    "riders_eyebrow": "For riders",
-    "riders_title": "Ride with BhojanGo",
+    "riders_eyebrow": "For delivery partners",
+    "riders_title": "Deliver with BhojanGo",
     "riders_body": "See the full pay before you accept. An hourly floor. Tips are 100% yours.",
-    "riders_cta": "Start riding",
+    "riders_cta": "Start delivering",
     "greeting": "Hello",
     "greeting_morning": "Good morning",
     "greeting_afternoon": "Good afternoon",
@@ -169,7 +169,7 @@
     "active_order": "Your order",
     "order_on_way": "Your order from {kitchen} is on the way",
     "order_preparing": "Your order from {kitchen} is being prepared",
-    "order_rider": "Rider {rider}",
+    "order_rider": "Delivery partner {rider}",
     "order_pin": "Delivery PIN {pin}",
     "order_minutes": {
       "one": "{count} min",
@@ -258,7 +258,7 @@
     "faq_cost_q": "What does delivery cost in {city}?",
     "faq_cost_a": "The delivery fee depends on how far the kitchen is from you, plus a small service fee; busy hours can add a fee. Every one is its own line, shown before you pay.",
     "faq_tip_q": "Who gets my tip?",
-    "faq_tip_a": "Your rider, all of it. BhojanGo takes nothing from tips.",
+    "faq_tip_a": "Your delivery partner, all of it. BhojanGo takes nothing from tips.",
     "faq_tax_q": "Is tax included?",
     "faq_tax_a": "Tax is shown as its own lines on the bill, with the rate, so you can see what goes to the government.",
     "bill_real": "A real {city} bill",
@@ -266,7 +266,7 @@
     "you_pay": "You pay",
     "bill_note": "Priced with today's {city} rules.",
     "soon_title": "Coming soon to {city}",
-    "soon_body": "We're getting kitchens and riders ready in {city}. Leave your email and we'll tell you the day we open.",
+    "soon_body": "We're getting kitchens and delivery partners ready in {city}. Leave your email and we'll tell you the day we open.",
     "meta_title": "Food delivery in {city}",
     "meta_title_soon": "{city}: coming soon",
     "meta_description": {
@@ -293,7 +293,7 @@
     "faq_min_one": "The minimum order is {amount}.",
     "faq_min_zones": "The minimum order depends on the area: {list}.",
     "faq_min_zone": "{zone} {amount}",
-    "faq_tip_presets": "Your rider, all of it. BhojanGo takes nothing from tips. Checkout suggests {amounts}, or you can enter any amount."
+    "faq_tip_presets": "Your delivery partner, all of it. BhojanGo takes nothing from tips. Checkout suggests {amounts}, or you can enter any amount."
   },
   "kitchen": {
     "meta_title": "{name}, {city}: order online",
@@ -377,16 +377,16 @@
     "the_area_you_chose": "The area you chose",
     "no_address": "Choose where it goes: set your address at the top of the page.",
     "street": "Flat, house and street",
-    "rider_note": "Instructions for the rider (optional)",
+    "rider_note": "Instructions for the delivery partner (optional)",
     "from_kitchen": "{distance} from the kitchen",
     "arrives": "Arrives {from}–{to}",
     "when": "When",
     "asap": "As soon as possible",
-    "tip_title": "Tip your rider",
+    "tip_title": "Tip your delivery partner",
     "tip_none": "None",
     "tip_other": "Other",
     "tip_amount": "Amount",
-    "tip_note": "100% goes to your rider.",
+    "tip_note": "100% goes to your delivery partner.",
     "pay_with_title": "Pay with",
     "method_upi": "UPI",
     "method_upi_sub": "Approve in your UPI app",
@@ -443,14 +443,14 @@
     "delivered": "Delivered",
     "cancelled": "Cancelled",
     "pin_short": "Delivery PIN",
-    "pin_long": "Delivery PIN · tell the rider at the door",
+    "pin_long": "Delivery PIN · tell the delivery partner at the door",
     "progress": "Order progress",
     "away": "{left} away",
     "live_ago": "Live · updated {s} s ago",
     "s_payment": "Waiting for your payment",
     "s_placed": "{kitchen} has your order",
     "s_cooking": "{kitchen} is cooking",
-    "s_finding": "Finding a rider",
+    "s_finding": "Finding a delivery partner",
     "s_heading": "{rider} is heading to the kitchen",
     "s_picked_up": "{rider} has picked up your order",
     "s_delivered": "Delivered. Enjoy your meal.",
@@ -463,8 +463,8 @@
     "step_on_way_left": "On the way · {left} left",
     "step_delivered": "Delivered",
     "now": "now",
-    "your_rider": "Your rider",
-    "rider_card": "Your rider, {rider}",
+    "your_rider": "Your delivery partner",
+    "rider_card": "Your delivery partner, {rider}",
     "message": "Message",
     "no_messages": "No messages yet.",
     "you_said": "You:",
@@ -481,7 +481,7 @@
     "map": "Map of your order's route",
     "map_kitchen": "{kitchen} (pickup)",
     "map_home": "Your address (drop-off)",
-    "map_rider": "{rider}, your rider",
+    "map_rider": "{rider}, your delivery partner",
     "map_failed": "The map can't load here. Your order is still being tracked."
   },
   "signin": {
@@ -494,16 +494,16 @@
     "send_code": "Send code",
     "sending": "Sending…",
     "send_failed": "We couldn't send a code. Check the number and try again.",
-    "partner_q": "Own a kitchen or want to ride?",
-    "partner_note": "Partners and riders use their own apps.",
+    "partner_q": "Own a kitchen or want to deliver?",
+    "partner_note": "Kitchens use BhojanGo Kitchen; delivery partners use BhojanGo Delivery.",
     "add_kitchen": "Add your kitchen",
-    "ride": "Ride with us",
+    "ride": "Deliver with BhojanGo",
     "agree_before": "By continuing you agree to the",
     "terms": "Terms",
     "agree_and": "and",
     "privacy": "Privacy policy",
     "promise_fees": "Every fee shown before you pay",
-    "promise_tip": "100% of your tip goes to your rider",
+    "promise_tip": "100% of your tip goes to your delivery partner",
     "promise_refunds": "Refunds for missing items, right in the app",
     "code_title": "Enter your code",
     "change_number": "Change number",
@@ -669,7 +669,7 @@
       "postal_code": "Postal code",
       "notes": "Delivery notes (gate code, floor…)",
       "location": "Where on the map",
-      "location_hint": "Search your area or use your location so riders find you.",
+      "location_hint": "Search your area or use your location so delivery partners find you.",
       "location_set": "Pinned: {place}",
       "location_needed": "Pick your area or use your location first.",
       "search_area": "Search your area",
@@ -746,7 +746,7 @@
     "add_dish": "Add {name} from {kitchen}"
   },
   "meta": {
-    "description": "Order from local kitchens with every fee shown before you pay: who gets each part of the bill, the kitchen, the rider, tax and us.",
+    "description": "Order from local kitchens with every fee shown before you pay: who gets each part of the bill, the kitchen, the delivery partner, tax and us.",
     "home": "Kitchens near you",
     "not_in_area": "Not in your area yet",
     "cities_description": "Every city where BhojanGo delivers, and the ones coming soon."
@@ -768,9 +768,9 @@
     "who_pays": "Every offer says who pays for it."
   },
   "ride": {
-    "meta_title": "Ride with us",
-    "eyebrow": "For riders",
-    "title": "Ride with BhojanGo",
+    "meta_title": "Deliver with BhojanGo",
+    "eyebrow": "For delivery partners",
+    "title": "Deliver with BhojanGo",
     "lead": "Deliver from local kitchens in your city, on your own hours, and see what a trip pays before you take it.",
     "pay_title": "What the pay looks like",
     "pay_offer_title": "The full pay, up front.",
@@ -781,13 +781,13 @@
     "pay_tips_body": "Customers can tip before or after delivery, and we keep none of it.",
     "pay_weekly_title": "Paid every week.",
     "pay_weekly_body": "Your earnings, trip by trip, go to your bank account weekly.",
-    "pay_more": "The amounts for your city are in the rider app before you start. Questions?",
+    "pay_more": "The amounts for your city are in the BhojanGo Delivery app before you start. Questions?",
     "help_link": "Visit the help centre",
     "apply_title": "How to apply",
-    "apply_step1": "Install the BhojanGo Rider app on your phone.",
+    "apply_step1": "Install the BhojanGo Delivery app on your phone.",
     "apply_step2": "Sign in with your phone number and add your vehicle and documents.",
     "apply_step3": "We check them and switch you on. Then go online whenever you like.",
-    "apply_note": "Riders apply in the app only; we never ask for a fee to join."
+    "apply_note": "Delivery partners apply in the app only; we never ask for a fee to join."
   },
   "tabs": {
     "label": "Main",
@@ -848,7 +848,7 @@
     },
     "bill": {
       "kitchens_treat": "Kitchen's treat",
-      "on_us": "On us"
+      "on_us": "BhojanGo's treat"
     },
     "phone": {
       "country_code": "Country code, {country} {code}",
@@ -909,7 +909,7 @@
       "step_cooking": "Cooking",
       "step_picked": "Picked up",
       "step_home": "Home",
-      "pin_a11y": "Delivery PIN {pin}. Give it to your rider at the door."
+      "pin_a11y": "Delivery PIN {pin}. Give it to your delivery partner at the door."
     },
     "chat": {
       "title": "Message {name}",
@@ -923,7 +923,7 @@
     }
   },
   "rider": {
-    "brand": "BhojanGo Rider",
+    "brand": "BhojanGo Delivery",
     "tabs": {
       "drive": "Drive",
       "earnings": "Earnings",
@@ -936,7 +936,7 @@
       "failed": "The upload didn't go through. Try again."
     },
     "sign_in": {
-      "hero": "Ride on your\nown hours.",
+      "hero": "Deliver on your\nown hours.",
       "sub": "See the full pay before you accept. Tips are 100% yours.",
       "mobile": "Mobile number",
       "send": "Send code",
@@ -954,15 +954,15 @@
       "send_again": "Send it again",
       "verify": "Verify",
       "checking": "Checking…",
-      "wrong_account": "This number is a partner or admin account. Use another number to ride.",
+      "wrong_account": "This number is a kitchen or admin account. Use another number to deliver.",
       "failed": "That code didn't work. Check it and try again."
     },
     "join": {
-      "title": "Sign up to ride",
+      "title": "Sign up to deliver",
       "sub": "Full pay shown before you accept, tips stay 100% yours, and an hourly floor in every city. Next: a few documents.",
       "name": "Your full name",
       "name_hint": "As on your licence",
-      "city": "Where you'll ride",
+      "city": "Where you'll deliver",
       "cities_failed": "Can't load the cities right now.",
       "continue": "Continue",
       "signing_up": "Signing you up…",
@@ -971,8 +971,8 @@
     },
     "checklist": {
       "help": "Help",
-      "ready_title": "You're ready to ride, {name}",
-      "almost_title": "Almost ready to ride, {name}",
+      "ready_title": "You're ready to deliver, {name}",
+      "almost_title": "Almost ready to deliver, {name}",
       "progress": "{done} of {total} steps done",
       "progress_short": "{done} of {total}",
       "how_pay_title": "How pay works.",
@@ -1016,7 +1016,7 @@
       "no_photo": "No photo yet",
       "take": "Take photo",
       "choose": "Choose photo",
-      "private": "We only use it to check you can ride. It's stored privately.",
+      "private": "We only use it to check you can deliver. It's stored privately.",
       "send": "Send for review",
       "sending": "Sending…"
     },
@@ -1042,7 +1042,7 @@
       "go_online": "Go online",
       "going_online": "Going online…",
       "notice_title": "You're online",
-      "notice_body": "BhojanGo shares your location while you ride.",
+      "notice_body": "BhojanGo shares your location while you deliver.",
       "busy_title": "On a delivery",
       "busy_sub": "Your current order is waiting. Pickup and drop-off steps are on its screen.",
       "open_delivery": "Open delivery"
@@ -1213,7 +1213,7 @@
     }
   },
   "partner": {
-    "brand": "BhojanGo Partner",
+    "brand": "BhojanGo Kitchen",
     "rail": {
       "orders": "Orders",
       "menu": "Menu",
@@ -1228,11 +1228,11 @@
     },
     "split": {
       "hero": "Your kitchen,\nyour prices,\npaid every week.",
-      "sub": "New orders ring on this tablet. Accept, cook, hand over — the rider and the customer see every step."
+      "sub": "New orders ring on this tablet. Accept, cook, hand over — the delivery partner and the customer see every step."
     },
     "sign_in": {
       "title": "Sign in to your kitchen",
-      "sub": "Use the phone number on your partner account. We'll text you a code.",
+      "sub": "Use the phone number on your kitchen partner account. We'll text you a code.",
       "mobile": "Mobile number",
       "send": "Send code",
       "send_failed": "We couldn't send a code. Check the number and try again.",
@@ -1244,7 +1244,7 @@
       "edit": "Edit",
       "label": "Verification code",
       "verify": "Verify",
-      "wrong_account": "This number is a rider or admin account. Use another number for your kitchen.",
+      "wrong_account": "This number is a delivery partner or admin account. Use another number for your kitchen.",
       "failed": "That code didn't work. Check it and try again."
     },
     "kitchens": {
@@ -1275,7 +1275,7 @@
       "send": "Send application"
     },
     "apply": {
-      "title": "Partner application",
+      "title": "Kitchen partner application",
       "save_exit": "Save and exit",
       "steps_label": "Application steps",
       "progress": "Your progress",
@@ -1283,7 +1283,7 @@
       "terms": "Your terms",
       "terms_body": "Commission on food only. Weekly payouts. You set your own prices and offers.",
       "step_of": "Step {n} of {total}",
-      "menu_note": "Add dishes, prices and photos with your BhojanGo partner manager; this tablet shows them once you're live.",
+      "menu_note": "Add dishes, prices and photos with your BhojanGo account manager; this tablet shows them once you're live.",
       "go_live_note": "When every step is done we check your details and switch your kitchen on. This tablet then rings for new orders.",
       "done": "Done",
       "not_done": "Not done yet",
@@ -1346,7 +1346,7 @@
       "new_empty": "New orders ring here.",
       "preparing": "Preparing",
       "ready": "Ready for pickup",
-      "ready_note": "Orders leave this column when the rider confirms pickup.",
+      "ready_note": "Orders leave this column when the delivery partner confirms pickup.",
       "ready_short": "Ready",
       "open_order": "Open order {order}",
       "pause_title": "Pause new orders",
@@ -1392,7 +1392,7 @@
       "on_the_way": "on the way",
       "arriving": "arriving",
       "min_away": "{min} min away",
-      "finding_rider": "Finding a rider",
+      "finding_rider": "Finding a delivery partner",
       "order_code": "Order code {code}"
     },
     "ratings": {
@@ -1536,7 +1536,7 @@
       "sign_out": "Sign out",
       "sign_out_note": "Signing out here signs this account out on every device.",
       "language": "Language",
-      "support": "Partner support",
+      "support": "Kitchen partner support",
       "call_back_title": "We'll call you back",
       "call_back_body": "On the number this tablet signed in with, usually within 15 minutes during opening hours.",
       "about": "About: {topic}",

@@ -86,10 +86,10 @@ export function describe(template: string, params: P, scope: string): string {
       return `Tips offered: ${amounts.map((a) => m(a, cur)).join(", ")}${p.default_index != null ? ` · ${m(amounts[Number(p.default_index)], cur)} picked by default` : " · none picked by default"}`;
     }
     case "max_radius": return `Deliver up to ${n(p.distance)} ${dist} from the kitchen`;
-    case "dispatch_offer_timeout": return `Riders have ${n(p.seconds)} seconds to accept an offer`;
+    case "dispatch_offer_timeout": return `Delivery partners have ${n(p.seconds)} seconds to accept an offer`;
     case "batching": return p.live
-      ? "Live: riders can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
-      : "Off: the batch engine only suggests pairs in the background; riders get one order at a time";
+      ? "Live: delivery partners can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
+      : "Off: the batch engine only suggests pairs in the background; delivery partners get one order at a time";
     case "support_refund_limit": return `Support agents can refund up to ${m(p.max_per_order, cur)} per order`;
     case "payment_fees": {
       const methods = (p.methods ?? {}) as Record<string, { percent?: unknown; fixed?: unknown }>;

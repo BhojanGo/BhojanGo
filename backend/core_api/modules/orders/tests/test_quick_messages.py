@@ -56,5 +56,5 @@ def test_free_text_stays_as_written() -> None:
 
 
 def test_names_when_someone_has_none() -> None:
-    assert fallback_name("rider", "en") == "Your rider" and fallback_name("customer", "es") == "El cliente"
-    assert fallback_name("rider", "ta") == "உங்கள் ரைடர்"
+    assert fallback_name("rider", "en") == "Your delivery partner" and fallback_name("customer", "es") == "El cliente"
+    assert fallback_name("rider", "ta") == "உங்கள் டெலிவரி பார்ட்னர்"
