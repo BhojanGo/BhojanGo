@@ -576,7 +576,7 @@ with sync_playwright() as p:
     hsup = b.new_page(viewport={"width": 1440, "height": 1000})
     sign_in(hsup, "support.hyd@example.com")
     hsup.goto(f"{BASE}/content/help?country=IN", wait_until="networkidle")
-    hsup.get_by_role("region", name="Articles").get_by_role("link").first.click()
+    hsup.get_by_role("region", name="Articles").get_by_role("table").get_by_role("link").first.click()
     check("help: support reads articles but can't edit or publish", lambda: (
         expect(hsup.get_by_role("tab", name="Read")).to_be_visible(timeout=15000),
         expect(hsup.get_by_test_id("help-publish")).to_have_count(0)))

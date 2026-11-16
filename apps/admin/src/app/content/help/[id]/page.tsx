@@ -18,7 +18,7 @@ export default function HelpArticlePage() {
           <div className="h-[420px] animate-pulse rounded-2xl bg-white" />
         </div>
       ) : a.data ? (
-        <HelpEditor key={`${a.data.id}-${a.data.version}`} article={a.data} />
+        <HelpEditor key={a.data.id} article={a.data} />
       ) : (
         <div role="alert" className="space-y-3 rounded-2xl bg-white p-6">
           <p className="m-0 font-bold">{(a.error as { response?: { status?: number } } | null)?.response?.status === 404 ? "This article doesn't exist, or it isn't in a country you can see." : "The article didn't load."}</p>
