@@ -568,9 +568,9 @@ with sync_playwright() as p:
     check("signed-in home: active order bar, no marketing sections", lambda: (
         expect(page.get_by_role("region", name="Your order").get_by_role("link", name=re.compile(f"^Your order from {KITCHEN}.*Track order$"))).to_be_visible(timeout=20000),
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0),
-        expect(page.get_by_role("heading", name="Ride with BhojanGo")).to_have_count(0),
+        expect(page.get_by_role("heading", name="Deliver with BhojanGo")).to_have_count(0),
         expect(page.get_by_role("region", name="Work with us")).to_have_count(0),
-        expect(page.get_by_role("contentinfo").get_by_role("link", name="Ride with BhojanGo")).to_be_visible()))
+        expect(page.get_by_role("contentinfo").get_by_role("link", name="Deliver with BhojanGo")).to_be_visible()))
     check("type scale: the signed-in home uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "13-home-signed-in")
 
