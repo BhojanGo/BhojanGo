@@ -38,7 +38,7 @@ function SettingsPage() {
   const mayGrant = (me?.permissions["admins.grant"] ?? []).length > 0;
   return (
     <ConsoleShell section="Settings" country={country} region={region} city={city} scopeHref={(s) => `/settings?scope=${s}`}>
-      <h1 className="m-0 text-h1 tracking-[-0.8px]">Settings</h1>
+      <h1 className="m-0 text-h1">Settings</h1>
       <section className="rounded-2xl bg-white p-6" aria-label="Your access">
         <h2 className="m-0 mb-2 text-h3">Your access</h2>
         <ul className="space-y-1 text-small">
@@ -48,7 +48,7 @@ function SettingsPage() {
       </section>
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Admins">
         <h2 className="m-0 text-h3">Admins {scope !== "*" ? `in ${scope}` : ""}</h2>
-        <table className="w-full text-left text-small">
+        <div className="overflow-x-auto"><table className="w-full text-left text-small">
           <thead className="text-caption text-muted"><tr><th className="py-2">Admin</th><th>Role</th><th>Where</th><th /></tr></thead>
           <tbody className="divide-y divide-line">
             {(list.data ?? []).map((a) => (
@@ -59,7 +59,7 @@ function SettingsPage() {
                 ) : null}</td></tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         {mayGrant ? (
           <form className="flex flex-wrap items-end gap-2 border-t border-line pt-3" onSubmit={(e) => {
             e.preventDefault();

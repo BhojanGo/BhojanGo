@@ -1,9 +1,8 @@
 // The sign-in frame: a Peacock panel on the left, the form on the right; on a
 // phone (portrait) the panel is a band across the top and the form below it.
-import { LanguagePill, type, useI18n } from "@bhojango/mobile-core";
+import { LanguagePill, SafeAreaView, type, useI18n } from "@bhojango/mobile-core";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useLayout } from "./layout";
 import { color, Mark } from "./ui";

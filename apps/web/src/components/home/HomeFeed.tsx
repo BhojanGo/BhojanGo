@@ -14,7 +14,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { useKitchenBrief } from "@/components/account/shared";
 import { KitchenCard } from "@/components/Cards";
+import { kitchenPhoto, KitchenPhoto } from "@/components/KitchenPhoto";
 import { AddressPill } from "@/components/HeaderParts";
 import { api, authed, useBag, useHydrated, useSession, type Pick } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
@@ -78,14 +80,10 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
   const rider = riderFirstName(order);
   const pin = (order as { pin?: string | null }).pin ?? null;
   const sub = [rider ? t("home.order_rider", { rider }) : null, pin ? t("home.order_pin", { pin }) : null].filter(Boolean).join(" · ");
-  const img = photo(cover, 400);
   return (
     <section aria-label={t("home.active_order")} className="order-1">
       <Link href={`/orders/${order.id}/track`} className="flex items-center gap-3 rounded-[16px] bg-[#111418] px-[14px] py-3 text-[#F2F5F5] hover:text-[#F2F5F5] md:gap-5 md:rounded-[20px] md:px-5 md:py-4">
-        <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-[#24383B] md:h-14 md:w-14 md:rounded-[14px]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-          {img && <img src={img} alt="" className="block h-full w-full object-cover" />}
-        </span>
+        <OrderKitchenPhoto restaurantId={order.restaurant_id} known={cover} className="block h-10 w-10 shrink-0 overflow-hidden rounded-[10px] md:h-14 md:w-14 md:rounded-[14px]" />
         <span className="min-w-0 flex-grow">
           <b className="line-clamp-2 block text-h3 md:line-clamp-none md:truncate">
             {t(onWay ? "home.order_on_way" : "home.order_preparing", { kitchen: order.restaurant_name })}
@@ -114,6 +112,13 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
       </div>
     </section>
   );
+}
+
+/** The kitchen of a past or current order: its photo from this address's kitchens, else
+ * its public page (a kitchen that doesn't deliver here now), else the branded tile. */
+function OrderKitchenPhoto({ restaurantId, known, className }: { restaurantId: string; known: string | null | undefined; className: string }) {
+  const brief = useKitchenBrief(known ? null : restaurantId);
+  return <KitchenPhoto src={photo(known ?? kitchenPhoto(brief), 400)} className={className} />;
 }
 
 function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Record<string, string | null>; cityName: string }) {
@@ -155,23 +160,20 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
   return (
     <section aria-labelledby="order-again" className="order-4 md:order-3">
       <div className="flex items-baseline justify-between">
-        <h2 id="order-again" className="m-0 text-h2 tracking-[-0.5px]">{t("home.order_again")}</h2>
+        <h2 id="order-again" className="m-0 text-h2">{t("home.order_again")}</h2>
         <Link href="/account/orders" className="font-bold">{t("home.all_orders")}</Link>
       </div>
-      <div className="-mx-5 mt-3 flex gap-3 overflow-x-auto px-5 md:mx-0 md:mt-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0">
+      <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 md:mx-0 md:mt-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0">
         {past.map((o) => {
-          const img = photo(covers[o.restaurant_id] ?? null, 400);
           const items = (o.items as { name?: string; quantity?: number }[]).map((i) => ((i.quantity ?? 1) > 1 ? `${i.quantity} ${i.name}` : i.name)).join(", ");
           return (
             <div key={o.id} className="flex w-[240px] shrink-0 items-center gap-[10px] rounded-[16px] border border-[#E2E7E8] p-[10px] md:w-auto md:gap-4 md:rounded-[20px] md:p-4">
-              <span className="block h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-[#EFF6F6] md:h-[88px] md:w-[88px] md:rounded-[14px]">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
-                {img && <img src={img} alt="" loading="lazy" className="block h-full w-full object-cover" />}
-              </span>
+              <OrderKitchenPhoto restaurantId={o.restaurant_id} known={covers[o.restaurant_id]}
+                className="block h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[12px] md:h-[88px] md:w-[88px] md:rounded-[14px]" />
               <span className="min-w-0 flex-grow">
                 <b className="block truncate text-label">{o.restaurant_name}</b>
-                <span className="mt-[2px] hidden truncate text-small text-[#4C5A5E] md:block">{items}</span>
-                <span className="mt-[2px] block text-small tabular-nums text-[#4C5A5E]">
+                <span className="mt-[2px] hidden truncate text-small text-muted md:block">{items}</span>
+                <span className="mt-[2px] block text-small tabular-nums text-muted">
                   <span className="hidden md:inline">{f.zone(o.time_zone).date(o.created_at)} · </span>
                   {f.money(o.total, o.currency)}
                 </span>
@@ -226,7 +228,7 @@ export function HomeFeed({
   const { orders, user, hydrated } = useMyOrders();
   const [on, setOn] = useState<Set<Filter>>(new Set());
   const [all, setAll] = useState(false);
-  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, k.cover_url])), [kitchens]);
+  const covers = useMemo(() => Object.fromEntries(kitchens.map((k) => [k.id, kitchenPhoto(k)])), [kitchens]);
   const active = orders?.find((o) => ACTIVE_STATUSES.includes(o.status as OrderStatus)) ?? null;
   const shown = kitchens.filter((k) => [...on].every((f) => TEST[f](k)));
   const pod = hydrated ? partOfDay(timeZone) : null; // the delivery address's clock, not the device's
@@ -242,19 +244,19 @@ export function HomeFeed({
     });
 
   return (
-    <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-5 pb-16 pt-4 md:gap-10 md:px-16 md:pb-24 md:pt-6">
+    <div className="flex container-page flex-col gap-6 pb-16 pt-4 md:gap-10 md:pb-24 md:pt-6">
       {active && <ActiveOrderBar order={active} cover={covers[active.restaurant_id] ?? null} />}
 
       <section aria-labelledby="greeting" className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 id="greeting" className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1px]">{greeting}</h1>
-          <p className="mt-[6px] text-body text-[#4C5A5E]">
+          <h1 id="greeting" className="m-0 text-h1">{greeting}</h1>
+          <p className="mt-[6px] text-body text-muted">
             {t("home.kitchens_deliver", { count: kitchens.length, place: "\u0000" }).split("\u0000").map((part, i) => (
               <span key={i}>{i > 0 && <AddressPill inline label={placeLabel} country={placeCountry ?? null} />}{part}</span>
             ))}
           </p>
         </div>
-        <div role="group" aria-label={t("home.filters")} className="-mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
+        <div role="group" aria-label={t("home.filters")} className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
           {FILTERS.map((f) => {
             const pressed = on.has(f);
             return (
@@ -281,8 +283,8 @@ export function HomeFeed({
       <section id="kitchens" aria-labelledby="kitchens-near" className="order-6">
         <div className="flex items-baseline justify-between gap-4">
           <div>
-            <h2 id="kitchens-near" className="m-0 text-h2 tracking-[-0.5px]">{t("home.kitchens_near")}</h2>
-            <p className="mt-1 hidden text-body text-[#4C5A5E] md:block">{t("home.kitchens_near_note")}</p>
+            <h2 id="kitchens-near" className="m-0 text-h2">{t("home.kitchens_near")}</h2>
+            <p className="mt-1 hidden text-body text-muted md:block">{t("home.kitchens_near_note")}</p>
           </div>
           {/* the rest of the same list, here (with the filters on: the rest of what they keep) */}
           {!all && shown.length > SHOWN && (
@@ -298,13 +300,13 @@ export function HomeFeed({
           )}
         </div>
         {shown.length ? (
-          <div id="kitchens-list" className="mt-3 grid gap-[18px] md:mt-5 md:grid-cols-2 md:gap-6 lg:grid-cols-4" aria-live="polite">
+          <div id="kitchens-list" className="mt-3 grid gap-[18px] sm:grid-cols-2 md:mt-5 md:gap-6 lg:grid-cols-3 xl:grid-cols-4" aria-live="polite">
             {(all ? shown : shown.slice(0, SHOWN)).map((k) => (
               <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={distanceUnit} />
             ))}
           </div>
         ) : (
-          <p role="status" className="mt-4 text-body text-[#4C5A5E]">
+          <p role="status" className="mt-4 text-body text-muted">
             {kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}
           </p>
         )}

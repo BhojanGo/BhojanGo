@@ -7,7 +7,9 @@ import { api, color, inZone, QuickChat, radius, space, StatusPill, Txt, type, un
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CancelOrder, RefundLine } from "../../components/CancelOrder";
 import { LiveMap } from "../../components/LiveMap";
 import { distanceLeft, nextStop, riderFirstName, type Eta, type Order, type Pt } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
@@ -27,6 +29,9 @@ export default function Tracking() {
   const { t, time, number, distance } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { height: screen } = useWindowDimensions();
+  // Under the test banner this top inset is 0 (the banner has the status bar); in production it is the status bar.
+  const { top: safeTop } = useSafeAreaInsets();
+  const floatTop = safeTop + space[3];
   const [order, setOrder] = useState<Order | null>(null);
   const [missing, setMissing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -145,16 +150,17 @@ export default function Tracking() {
         dropoff={dropoff}
         rider={riderAt}
         trail={live.trail}
-        next={next}
+        leg={finished ? null : status === "picked_up" ? "home" : "kitchen"}
         height={mapHeight}
         coverBottom={40}
+        coverTop={floatTop + 44}
         labels={{ map: t("track.map"), kitchen: t("track.map_kitchen", { kitchen }), home: t("track.map_home"), rider: rider ? t("track.map_rider", { rider }) : t("track.your_rider") }}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel={t("track.back")} onPress={back} style={[styles.float, { left: 20 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("track.back")} onPress={back} style={[styles.float, { top: floatTop, left: 20 }]}>
         <Icon name="back" />
       </Pressable>
       {delivered ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={[styles.float, { right: 20, width: undefined, paddingHorizontal: 18 }]}>
+        <Pressable accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={[styles.float, { top: floatTop, right: 20, width: undefined, paddingHorizontal: 18 }]}>
           <Text style={type.label}>{t("track.help")}</Text>
         </Pressable>
       ) : null}
@@ -211,6 +217,14 @@ export default function Tracking() {
             <Text testID="delivery-pin" style={[type.h2, { letterSpacing: 6, color: color.kohl }]}>{pin}</Text>
           </View>
         ) : null}
+        {/* R8: cancel while the API says the customer may; after it, the refund line */}
+        {!finished && order ? (
+          <CancelOrder order={order} onDone={setOrder} onRefresh={() => {
+            api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
+              .then((r) => setOrder(unwrap(r) as Order)).catch(() => undefined);
+          }} />
+        ) : null}
+        {cancelled && order ? <RefundLine order={order} /> : null}
         {delivered ? (
           <Pressable testID="report-problem" accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={styles.report}>
             <Text style={[type.label, { color: color.peacockDeep }]}>{t("track.report")}</Text>
@@ -229,7 +243,7 @@ const styles = StyleSheet.create({
   },
   screen: { flex: 1, backgroundColor: color.mapGround },
   float: {
-    position: "absolute", top: 48, width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
+    position: "absolute", width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center", shadowColor: color.kohl, shadowOpacity: 0.1, shadowRadius: 14, elevation: 4,
   },
   sheet: {

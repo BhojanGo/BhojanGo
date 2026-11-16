@@ -3,9 +3,10 @@
 import Link from "next/link";
 
 import { ratingOf } from "@/lib/contract";
-import { initials, money, photo } from "@/lib/format";
+import { money, photo } from "@/lib/format";
 import type { KitchenCard as Kitchen, Offer } from "@/lib/server";
 import { FavouriteHeart } from "./FavouriteHeart";
+import { kitchenPhoto, KitchenPhoto } from "./KitchenPhoto";
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -55,17 +56,6 @@ function Img({ src, alt = "", className }: { src: string | null; alt?: string; c
   return <img src={src} alt={alt} loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-/** A kitchen with no photo of its own: its initials and first cuisine on the brand
- * tint (never someone else's photo, never an empty frame). */
-function NameTile({ name, sub }: { name: string; sub: string | null }) {
-  return (
-    <span aria-hidden="true" className="flex h-full w-full flex-col items-center justify-center rounded-[20px] bg-[#DDEBEC] text-[#083F46]">
-      <span className="text-display leading-none tracking-[-1px]">{initials(name)}</span>
-      {sub && <span className="mt-2 text-caption text-[#0B5D66]">{sub}</span>}
-    </span>
-  );
-}
-
 /** "New" until a kitchen has 5 ratings, then "★4.6 (23)" (rating_display, or the same rule over rating/review_count). */
 export function RatingBadge({ x, t, formatLocale }: { x: Parameters<typeof ratingOf>[0]; t: T; formatLocale: string }) {
   const r = ratingOf(x);
@@ -93,11 +83,8 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
     <div className="relative">
       <Link href={k.path} className="block text-[#111418] hover:text-[#111418]">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[20px]">
-          {k.cover_url ? (
-            <Img src={photo(k.cover_url, 800)} className="rounded-[20px]" />
-          ) : (
-            <NameTile name={k.name} sub={k.cuisine_types[0] ?? null} />
-          )}
+          {/* photo_url: its cover, else a dish of its own, else its cuisine's photo; else the branded tile */}
+          <KitchenPhoto src={photo(kitchenPhoto(k), 800)} className="h-full w-full rounded-[20px]" />
           {k.offer && (
             <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-caption text-white">
               {offerBadge(k.offer, t, currency, formatLocale)}
@@ -109,7 +96,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
           <b className="truncate text-h3">{k.name}</b>
           <RatingBadge x={k} t={t} formatLocale={formatLocale} />
         </div>
-        <div className="mt-1 truncate text-small text-[#4C5A5E]">{meta}</div>
+        <div className="mt-1 truncate text-small text-muted">{meta}</div>
         <div className="mt-1 text-small tabular-nums">
           <b>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</b>
           {fee !== null && (
@@ -128,7 +115,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale, { whole: true }) })}
             </>
           )}
-          {!k.open_now && k.opens_at && <span className="text-[#4C5A5E]"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
+          {!k.open_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">
@@ -141,13 +128,13 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
 const OFFER_TINTS = ["#F6E7CC", "#DDEBEC", "#F1E3E1"];
 
 export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href }: { o: Offer; i: number; t: T; currency: string; formatLocale: string; fallbackPhoto?: string | null; href?: string }) {
-  const img = photo((o.restaurant?.cover_url as string | null | undefined) ?? fallbackPhoto ?? null, 800);
+  const img = photo(kitchenPhoto(o.restaurant as { photo_url?: string | null; cover_url?: string | null } | null) ?? fallbackPhoto ?? null, 800);
   return (
     <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
       <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
-        <b className="text-h2 tracking-[-0.4px]">{offerTitle(o, t, currency, formatLocale)}</b>
+        <b className="text-h2">{offerTitle(o, t, currency, formatLocale)}</b>
         <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
-        <span className="mt-[10px] text-caption text-[#4C5A5E]">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
+        <span className="mt-[10px] text-caption text-muted">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
       </span>
       {img && <span className="hidden w-[170px] shrink-0 sm:block"><Img src={img} /></span>}
     </Link>
@@ -156,9 +143,9 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
 
 export function CuisineTile({ name, image, href }: { name: string; image: string | null; href: string }) {
   return (
-    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[150px]">
-      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[150px]">
-        <Img src={photo(image, 400)} className="rounded-full" />
+    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[120px]">
+      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[120px]">
+        <KitchenPhoto src={photo(image, 400)} className="h-full w-full rounded-full" />
       </span>
       <span className="mt-[6px] block text-label md:mt-3">{name}</span>
     </Link>

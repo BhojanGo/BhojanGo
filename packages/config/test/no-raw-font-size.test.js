@@ -35,7 +35,7 @@ test("rule: tokens pass, every raw size pattern fails", () => tester.run("no-raw
     { code: `<p style={{ fontSize: 12 }} />`, errors: [{ messageId: "style" }] },
     { code: `const s = { "font-size": "12px" };`, errors: [{ messageId: "style" }] },
     { code: `const o = { plugins: { legend: { labels: { font: { size: 11 } } } } };`, errors: [{ messageId: "style" }] },
-    { code: `ctx.font = "12px sans-serif"; const o = { font: "bold 11px Hanken" };`, errors: 2 },
+    { code: `ctx.font = "12px sans-serif"; const o = { font: "bold 11px Inter" };`, errors: 2 },
     { code: `<svg><text fontSize={10}>x</text></svg>`, errors: [{ messageId: "style" }] },
     { code: `el.innerHTML = '<span style="font-size:11px">x</span>';`, errors: [{ messageId: "css" }] },
   ],

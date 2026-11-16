@@ -1,4 +1,4 @@
-import { type, useI18n, useSession } from "@bhojango/mobile-core";
+import { DENSE_FONT_SCALE, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { Redirect, router, Tabs, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,7 +33,7 @@ export default function TabsLayout() {
                 <Pressable key={t.name} testID={`tab-${t.name}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={title}
                   onPress={() => router.navigate(`/${t.name}` as Href)} style={styles.tab}>
                   <Icon name={t.icon} stroke={on ? night.kesar : night.muted} />
-                  <Text numberOfLines={1} style={[type.small, { color: on ? night.text : night.muted }]}>{title}</Text>
+                  <Text numberOfLines={1} maxFontSizeMultiplier={DENSE_FONT_SCALE} style={[type.small, { color: on ? night.text : night.muted }]}>{title}</Text>
                 </Pressable>
               );
             })}

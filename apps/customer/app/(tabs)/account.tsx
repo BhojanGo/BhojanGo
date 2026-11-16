@@ -1,11 +1,10 @@
 // Account (website parity, WebProfile): your details, then a page each for
 // addresses, payment methods, notifications, favourites, language,
 // and privacy (download your data, delete your account); sign out.
-import { Button, color, Input, LANGUAGES, Sheet, space, Txt, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, Input, LANGUAGES, SafeAreaView, Sheet, space, Txt, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updateMe } from "../../lib/account";
 import { LinkButton, MenuRow, Row, Section, ui } from "../../lib/account-ui";

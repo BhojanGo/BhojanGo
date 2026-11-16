@@ -33,7 +33,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js test/environment.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",

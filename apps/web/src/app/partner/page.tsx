@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("kitchen_join.meta_title"), description: t("kitchen_join.meta_description"), alternates: { canonical: `${SITE}/partner` } };
 }
 
-const PAGE = "mx-auto w-full max-w-[1200px] px-4 md:px-8 lg:px-12";
+const PAGE = "container-page";
 const HERO = "kitchen-cook";
 
 export default async function Partner() {
@@ -73,7 +73,7 @@ export default async function Partner() {
         <div className={`${PAGE} grid items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-12 lg:grid-cols-[1fr_minmax(0,500px)] lg:gap-12 lg:pt-16`}>
           <div>
             <p className="m-0 text-caption text-peacock">{t("kitchen_join.eyebrow")}</p>
-            <h1 className="m-0 mt-3 text-display tracking-[-1.2px]">{t("kitchen_join.title")}</h1>
+            <h1 className="m-0 mt-3 text-display">{t("kitchen_join.title")}</h1>
             <p className="m-0 mt-4 max-w-[560px] text-body-lg text-muted">{t("kitchen_join.lead")}</p>
             <div className="mt-7">
               <HeroAction />
@@ -113,7 +113,7 @@ export default async function Partner() {
 
       {/* ── why ──────────────────────────────────────────────────────────── */}
       <section aria-labelledby="why" className={`${PAGE} pt-12 md:pt-16`}>
-        <h2 id="why" className="m-0 text-h1 tracking-[-0.8px]">{t("kitchen_join.why_title")}</h2>
+        <h2 id="why" className="m-0 text-h1">{t("kitchen_join.why_title")}</h2>
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_400px] lg:gap-10">
           <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
             {why.map((w) => (
@@ -153,7 +153,7 @@ export default async function Partner() {
 
       {/* ── how it works ─────────────────────────────────────────────────── */}
       <section aria-labelledby="how" className={`${PAGE} pt-12 md:pt-16`}>
-        <h2 id="how" className="m-0 text-h1 tracking-[-0.8px]">{t("kitchen_join.how_title")}</h2>
+        <h2 id="how" className="m-0 text-h1">{t("kitchen_join.how_title")}</h2>
         <ol className="m-0 mt-6 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((n) => (
             <li key={n} className="rounded-card border border-line p-5 md:p-6">
@@ -206,7 +206,7 @@ export default async function Partner() {
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section aria-labelledby="faq" className={`${PAGE} pb-16 pt-12 md:pb-24 md:pt-16`}>
-        <h2 id="faq" className="m-0 text-h1 tracking-[-0.8px]">{t("kitchen_join.faq_title")}</h2>
+        <h2 id="faq" className="m-0 text-h1">{t("kitchen_join.faq_title")}</h2>
         <div className="mt-4 divide-y divide-line border-y border-line">
           {faq.map((q) => (
             <details key={q} className="group py-1">
@@ -227,7 +227,7 @@ function Fact({ value, label, testId }: { value: string; label: string; testId?:
   return (
     <div data-testid={testId} className="flex min-w-0 flex-col-reverse justify-end">
       <dt className="mt-1 text-small text-muted">{label}</dt>
-      <dd className="m-0 text-h2 tabular-nums tracking-[-0.5px] text-peacock-deep">{value}</dd>
+      <dd className="m-0 text-h2 tabular-nums text-peacock-deep">{value}</dd>
     </div>
   );
 }

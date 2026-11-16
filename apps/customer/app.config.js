@@ -9,5 +9,7 @@ module.exports = ({ config }) => {
   if (file && !fs.existsSync(path.join(__dirname, file))) {
     delete config.android.googleServicesFile;
   }
+  // No grey focus box on Android controls (packages/mobile-core/plugins/no-focus-box.js).
+  config.plugins = [...(config.plugins || []), require("@bhojango/mobile-core/plugins/no-focus-box")];
   return config;
 };

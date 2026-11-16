@@ -1,11 +1,12 @@
 // Help and settings: ask BhojanGo to call you back (B3: a ticket in the admin
 // support console), this tablet (kitchen, the alert sound, the language: the
 // country's languages from Markets), sign out.
-import { api, ApiError, type CoreSchemas, field, LanguagePicker, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import {
+  api, ApiError, type CoreSchemas, field, LanguagePicker, SafeAreaView, type, unwrap, useI18n, useSession,
+} from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useBoard } from "../../lib/board";
 import { useKitchen } from "../../lib/data";

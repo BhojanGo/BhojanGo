@@ -20,6 +20,7 @@ export type { TabItem } from "./components/TabBar";
 export { ScopeBar, CityPicker } from "./components/ScopeBar";
 export type { ScopeBarProps, ScopeCountry, ScopeState } from "./components/ScopeBar";
 export { Logo, LogoMark } from "./components/Logo";
+export { Container, Section } from "./components/Layout";
 export { Badge, badgeVariants } from "./components/Badge";
 export type { BadgeProps } from "./components/Badge";
 export { Spinner, FullPageSpinner } from "./components/Spinner";

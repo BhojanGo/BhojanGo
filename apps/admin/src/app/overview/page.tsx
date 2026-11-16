@@ -18,7 +18,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-white p-4">
       <div className="text-label text-muted">{label}</div>
-      <div className="mt-1 text-h2 tracking-[-0.6px] tabular-nums">{value}</div>
+      <div className="mt-1 text-h2 tabular-nums">{value}</div>
     </div>
   );
 }
@@ -56,17 +56,17 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
   return (
     <>
       <div>
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">All countries</h1>
+        <h1 className="m-0 text-h1">All countries</h1>
         <p className="mt-1 text-small text-muted">
           {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {countries.length} countries · {states} states · {cities} cities ({live} live or in beta) · money stays in each country&apos;s currency
         </p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         {countries.map((c) => (
           <section key={c.code} className="flex flex-col gap-4 rounded-2xl bg-white p-6" aria-label={c.name}>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-md bg-peacock-tint px-2 py-1 text-caption text-peacock-dark">{c.code}</span>
-              <div className="flex-1"><div className="text-h3">{c.name}</div><div className="text-small text-muted">{c.currency} · {c.tax} · {c.payments} · main zone {c.timezone}</div></div>
+              <div className="min-w-[200px] flex-1"><div className="text-h3">{c.name}</div><div className="text-small text-muted">{c.currency} · {c.tax} · {c.payments} · main zone {c.timezone}</div></div>
               <Link href={`/overview?scope=${c.code}`} className="h-10 rounded-full bg-peacock px-4 text-label leading-10 text-white">Open {c.code === "US" ? "US" : c.name}</Link>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -137,7 +137,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">{title}</h1>
+        <h1 className="m-0 text-h1">{title}</h1>
         {one ? <StatusPill status={one.status as MarketStatus} /> : null}
         <p className="w-full text-small text-muted">
           {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {one ? `times in ${one.timezone}` : "times in each city's own zone"} · amounts in {country.currency}
@@ -154,7 +154,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
           <h2 className="m-0 text-h3">States and cities</h2>
           <Link href={`/markets/${country.code}`} className="text-label text-peacock">Markets →</Link>
         </div>
-        <table className="w-full text-left text-small tabular-nums">
+        <div className="overflow-x-auto"><table className="w-full text-left text-small tabular-nums">
           <thead className="text-caption text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
           <tbody className="divide-y divide-line">
             {states.map((s) => [
@@ -167,7 +167,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
               )),
             ])}
           </tbody>
-        </table>
+        </table></div>
       </section>
       <section className="rounded-2xl bg-white p-6" aria-label="Needs action">
         <h2 className="m-0 mb-2 text-h3">Needs action · {title}</h2>

@@ -1,9 +1,8 @@
 // The onboarding checklist, from Account (after approval it shows everything done).
-import { useI18n } from "@bhojango/mobile-core";
+import { SafeAreaView, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Checklist } from "../lib/checklist";
 import { Icon } from "../lib/icons";

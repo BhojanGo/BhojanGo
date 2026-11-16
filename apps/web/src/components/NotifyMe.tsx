@@ -62,7 +62,7 @@ export function NotifyMe({
 
   const done = state === "done";
   const dark = variant === "band";
-  const field = `h-12 min-w-0 rounded-full px-[18px] text-body outline-none ${dark ? "bg-[#1E2A2D] text-white placeholder:text-[#A9B8BA]" : "border border-[#E2E7E8] bg-white text-[#111418] placeholder:text-[#4C5A5E]"}`;
+  const field = `h-12 min-w-0 rounded-full px-[18px] text-body outline-none ${dark ? "bg-[#1E2A2D] text-white placeholder:text-[#A9B8BA]" : "border border-[#E2E7E8] bg-white text-[#111418] placeholder:text-muted"}`;
   return (
     <section
       id={source === "suggest_city" ? "suggest" : undefined}
@@ -87,7 +87,7 @@ export function NotifyMe({
               {t("notify.button")}
             </button>
           </div>
-          <label className={`flex items-start gap-2 text-small ${dark ? "text-[#A9B8BA]" : "text-[#4C5A5E]"}`}>
+          <label className={`flex items-start gap-2 text-small ${dark ? "text-[#A9B8BA]" : "text-muted"}`}>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-[2px]" />
             {t("notify.consent")}
           </label>

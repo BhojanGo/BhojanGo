@@ -5,26 +5,18 @@
 import { ACTIVE_STATUSES, type CoreSchemas, type OrderStatus } from "@bhojango/api-client";
 import { useEffect, useState } from "react";
 
+import { KitchenPhoto } from "@/components/KitchenPhoto";
 import { urls } from "@/lib/client";
-import { initials } from "@/lib/format";
 
 /** An order as the history lists it (GET /orders adds the kitchen's slug and a one-line summary). */
 export type Order = CoreSchemas["OrderResponse"] & { restaurant_slug?: string | null; items_summary?: string | null };
 
 export const isActive = (s: string) => ACTIVE_STATUSES.includes(s as OrderStatus);
 
-/** A photo from data, or a tinted block when there is none. */
-export function Thumb({ src, className, name }: { src: string | null; className: string; name?: string | null }) {
-  if (!src) {
-    // no photo of its own: the kitchen's initials, never an empty frame or another kitchen's photo
-    return (
-      <span aria-hidden="true" className={`flex items-center justify-center bg-[#DDEBEC] text-h2 text-[#083F46] ${className}`}>
-        {initials(name)}
-      </span>
-    );
-  }
-  // eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library, already optimised
-  return <img src={src} alt="" loading="lazy" className={`block object-cover ${className}`} />;
+/** A photo from data (a kitchen's photo_url, a dish's photo), else the branded tile (no text:
+ * the kitchen's name is beside or on top of it). `glyph={false}` under overlaid text. */
+export function Thumb({ src, className, glyph = true }: { src: string | null; className: string; glyph?: boolean }) {
+  return <KitchenPhoto src={src} className={className} glyph={glyph} />;
 }
 
 /** "#D4X8P1": the first six hex digits of the order id (as on the receipt PDF). */
@@ -50,6 +42,8 @@ export interface KitchenBrief {
   country: string;
   currency: string;
   cover_url: string | null;
+  /** What to show: the cover, else the first dish photo, else the cuisine's library photo (R8). */
+  photo_url?: string | null;
 }
 
 // One request per kitchen per page load, shared by every row that shows it.

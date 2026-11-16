@@ -73,13 +73,13 @@ export function GoogleSignIn({ clientId, country, next, hasPlace }: { clientId: 
   return (
     <div>
       <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onReady={() => setLoaded(true)} />
-      <div className="my-6 flex items-center gap-3 text-small text-[#4C5A5E]">
+      <div className="my-6 flex items-center gap-3 text-small text-muted">
         <span className="h-px flex-grow bg-[#E2E7E8]" />
         {t("signin.or")}
         <span className="h-px flex-grow bg-[#E2E7E8]" />
       </div>
       <div ref={box} className="flex min-h-[44px] w-full justify-center" aria-busy={busy} />
-      {busy && <p role="status" className="m-0 mt-2 text-center text-small text-[#4C5A5E]">{t("signin.signing_in")}</p>}
+      {busy && <p role="status" className="m-0 mt-2 text-center text-small text-muted">{t("signin.signing_in")}</p>}
       {error && <p role="alert" className="m-0 mt-2 text-label text-[#8C1D18]">{error}</p>}
     </div>
   );

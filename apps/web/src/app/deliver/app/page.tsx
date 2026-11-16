@@ -27,10 +27,10 @@ export default async function DeliveryApp({ searchParams }: { searchParams: Prom
   ].filter((x): x is { href: string; label: string } => !!x);
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 py-12 md:px-8 md:py-16 lg:px-12">
+    <div className="container-page py-12 md:py-16">
       <div className="max-w-[640px]">
         <p className="m-0 text-caption text-peacock">{t("deliver_page.eyebrow")}</p>
-        <h1 className="m-0 mt-3 text-h1 tracking-[-0.8px]">{t("deliver_page.app_title")}</h1>
+        <h1 className="m-0 mt-3 text-h1">{t("deliver_page.app_title")}</h1>
         <p className="m-0 mt-3 text-body-lg text-muted">{t("deliver_page.app_lead")}</p>
         {terms === "error" ? (
           <div role="alert" className="mt-8 rounded-[20px] border border-line p-6">

@@ -4,7 +4,7 @@
 // stepper, the dish-options dialog, and "Your bag" with the fair bill from a
 // live quote when we know who and where. The bag holds one kitchen.
 import Link from "next/link";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 
 import { FairBill } from "@/components/FairBill";
 import { Check, Close, Minus, Plus, Search } from "@/components/Icons";
@@ -125,10 +125,10 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
   });
 
   return (
-    <section className="mx-auto grid max-w-[1440px] gap-12 px-5 pb-28 pt-2 md:grid-cols-[minmax(0,1fr)_400px] md:px-16 md:pb-[72px]">
+    <section className="container-page grid grid-cols-1 gap-12 pb-28 pt-2 lg:grid-cols-[minmax(0,1fr)_380px] lg:pb-[72px]">
       <div className="min-w-0">
         {/* chips + search */}
-        <div className={`sticky ${deliverTo ? "top-[126px] md:top-[76px]" : "top-0"} z-20 -mx-5 flex items-center gap-2 border-b border-[#E2E7E8] bg-white px-5 py-3 md:mx-0 md:px-0 md:py-4`}>
+        <div className={`sticky ${deliverTo ? "top-[126px] md:top-[76px]" : "top-0"} z-20 -mx-4 flex items-center gap-2 border-b border-[#E2E7E8] bg-white px-4 py-3 md:mx-0 md:px-0 md:py-4`}>
           <nav aria-label={t("kitchen.categories")} className="flex min-w-0 flex-grow gap-2 overflow-x-auto [scrollbar-width:none]">
             {categories.map((c) => {
               const on = c.key === active;
@@ -146,22 +146,22 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
               );
             })}
           </nav>
-          <label className="hidden h-10 w-[180px] shrink-0 items-center gap-2 rounded-full bg-[#F4F6F6] px-4 text-small text-[#4C5A5E] focus-within:ring-2 focus-within:ring-[#0B5D66] md:flex lg:w-[200px]">
-            <Search size={16} color="#4C5A5E" />
+          <label className="hidden h-10 w-[180px] shrink-0 items-center gap-2 rounded-full bg-[#F4F6F6] px-4 text-small text-muted focus-within:ring-2 focus-within:ring-[#0B5D66] md:flex lg:w-[200px]">
+            <Search size={16} color="#3D4A4E" />
             <span className="sr-only">{t("kitchen.search_menu")}</span>
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("kitchen.search_menu")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("kitchen.search_menu")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-muted" />
           </label>
         </div>
 
         {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t("kitchen.closed_note")}</p>}
-        {categories.length === 0 && <p className="mt-8 text-[#4C5A5E]">{t("kitchen.menu_unavailable")}</p>}
-        {q.trim() && shown.length === 0 && <p className="mt-8 text-[#4C5A5E]">{t("kitchen.no_match", { q: q.trim() })}</p>}
+        {categories.length === 0 && <p className="mt-8 text-muted">{t("kitchen.menu_unavailable")}</p>}
+        {q.trim() && shown.length === 0 && <p className="mt-8 text-muted">{t("kitchen.no_match", { q: q.trim() })}</p>}
 
         {shown.map((c, ci) => (
           <section key={c.key} id={`cat-${c.key}`} aria-labelledby={`h-${c.key}`} className="scroll-mt-[150px] md:scroll-mt-[160px]">
             <div className={ci ? "mt-8" : "mt-6"}>
-              <h2 id={`h-${c.key}`} className="m-0 text-h2 tracking-[-0.5px]">{c.name}</h2>
-              {c.description && <div className="text-small text-[#4C5A5E]">{c.description}</div>}
+              <h2 id={`h-${c.key}`} className="m-0 text-h2">{c.name}</h2>
+              {c.description && <div className="text-small text-muted">{c.description}</div>}
             </div>
             {c.items.map((i) => {
               const off = !i.is_available || !!i.sold_out_today;
@@ -169,7 +169,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
               // A dish photo only when the kitchen has one; otherwise a clean text row.
               const pic = photo(i.image_url, 400);
               const control = off ? (
-                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#4C5A5E]">{t("kitchen.sold_out")}</span>
+                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-muted">{t("kitchen.sold_out")}</span>
                 ) : n > 0 ? (
                   <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
                     <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
@@ -182,7 +182,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                     disabled={closed}
                     aria-label={t("kitchen.add_dish", { name: i.name })}
                     onClick={() => plus(i)}
-                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-[#4C5A5E]"
+                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-muted"
                   >
                     {t("common.add")}
                   </button>
@@ -193,7 +193,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
                     <Marks item={i} t={t} />
                     <b className="mt-2 block text-h3">{i.name}</b>
                     <b className="mt-1 block text-label tabular-nums">{fmt(i.price)}</b>
-                    {i.description && <span className="mt-2 block text-small leading-[1.5] text-[#4C5A5E]">{i.description}</span>}
+                    {i.description && <span className="mt-2 block text-small leading-[1.5] text-muted">{i.description}</span>}
                     {off && <span className="mt-2 block text-label text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
                   </span>
                   {pic ? (
@@ -213,13 +213,16 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
         ))}
       </div>
 
-      <aside className="hidden md:block" aria-label={t("kitchen.your_bag")}>
+      {/* from 1024 px the bag sits beside the menu; under it, a bottom bar that opens the bag */}
+      <aside className="hidden lg:block" aria-label={t("kitchen.your_bag")}>
         <div className="sticky top-[100px]">
           <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} />
         </div>
       </aside>
 
-      <PhoneBagBar quote={quote.quote?.total ?? null} />
+      <BagBar quote={quote.quote?.total ?? null}>
+        <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} />
+      </BagBar>
 
       {open && <Customise key={open.id} item={open} currency={restaurant.currency} onClose={() => setOpen(null)} onAdd={(line) => { setOpen(null); put(line); }} />}
       {pending && (
@@ -302,8 +305,8 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
           </div>
           <div className={`px-5 pb-5 md:px-7 ${item.image_url ? "pt-6" : "pt-0"}`}>
             <Marks item={item} t={t} />
-            <h2 id={titleId} className="m-0 mt-2 text-h1 tracking-[-0.6px]">{item.name}</h2>
-            {item.description && <p className="m-0 mt-2 text-body text-[#4C5A5E]">{item.description}</p>}
+            <h2 id={titleId} className="m-0 mt-2 text-h1">{item.name}</h2>
+            {item.description && <p className="m-0 mt-2 text-body text-muted">{item.description}</p>}
             {groups.map((g) => {
               const radio = g.max_picks === 1;
               const absolute = g.min_picks >= 1 && radio && g.options.some((o) => Number(o.price) > 0); // a portion: show the dish's price with it
@@ -316,7 +319,7 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
                         {g.min_picks === g.max_picks ? t("kitchen.required_pick", { count: g.min_picks }) : t("kitchen.required_range", { min: g.min_picks, max: g.max_picks })}
                       </span>
                     ) : (
-                      <span className="text-caption text-[#4C5A5E]">{t("kitchen.optional_upto", { count: g.max_picks })}</span>
+                      <span className="text-caption text-muted">{t("kitchen.optional_upto", { count: g.max_picks })}</span>
                     )}
                   </legend>
                   <div className="mt-2">
@@ -337,7 +340,7 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
                             </span>
                           )}
                           <span className={`flex-grow text-body ${on ? "font-bold" : ""}`}>{o.name}</span>
-                          <span className="text-body tabular-nums text-[#4C5A5E]">{absolute ? fmt(base + price) : price > 0 ? `+${fmt(price)}` : ""}</span>
+                          <span className="text-body tabular-nums text-muted">{absolute ? fmt(base + price) : price > 0 ? `+${fmt(price)}` : ""}</span>
                         </label>
                       );
                     })}
@@ -369,8 +372,8 @@ function NewBag({ from, dish, onKeep, onStart }: { from: string; dish: string; o
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] md:items-center" onClick={onKeep}>
       <div role="alertdialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} className="w-full rounded-t-[28px] bg-white p-6 md:w-[460px] md:rounded-[28px]">
-        <h2 id={titleId} className="m-0 text-h2 tracking-[-0.5px]">{t("kitchen.new_bag_title")}</h2>
-        <p className="mt-2 text-body text-[#4C5A5E]">{t("kitchen.new_bag_body", { kitchen: from, dish })}</p>
+        <h2 id={titleId} className="m-0 text-h2">{t("kitchen.new_bag_title")}</h2>
+        <p className="mt-2 text-body text-muted">{t("kitchen.new_bag_body", { kitchen: from, dish })}</p>
         <div className="mt-6 flex gap-3">
           <button type="button" autoFocus onClick={onKeep} className="h-12 flex-1 rounded-full border-[1.5px] border-[#C9D3D4] font-bold">{t("kitchen.keep_bag")}</button>
           <button type="button" onClick={onStart} className="h-12 flex-1 rounded-full bg-[#0B5D66] font-bold text-white hover:bg-[#083F46]">{t("kitchen.start_new_bag")}</button>
@@ -391,15 +394,15 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
   const box = "rounded-[24px] border border-[#E2E7E8] p-[22px]";
   const head = (
     <div className="flex items-baseline justify-between">
-      <h2 className="m-0 text-h2 tracking-[-0.5px]">{t("kitchen.your_bag")}</h2>
-      {count > 0 && <span className="text-small text-[#4C5A5E]">{t("kitchen.items", { count })}</span>}
+      <h2 className="m-0 text-h2">{t("kitchen.your_bag")}</h2>
+      {count > 0 && <span className="text-small text-muted">{t("kitchen.items", { count })}</span>}
     </div>
   );
   if (!hydrated || !restaurant || !lines.length) {
     return (
       <div className={box}>
         {head}
-        <p className="mt-2 text-body text-[#4C5A5E]">{t("kitchen.bag_empty")}</p>
+        <p className="mt-2 text-body text-muted">{t("kitchen.bag_empty")}</p>
       </div>
     );
   }
@@ -408,13 +411,13 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
   return (
     <div className={box}>
       {head}
-      {restaurant.id !== kitchenId && <p className="mt-1 text-small text-[#4C5A5E]">{t("kitchen.from_kitchen", { kitchen: restaurant.name })}</p>}
+      {restaurant.id !== kitchenId && <p className="mt-1 text-small text-muted">{t("kitchen.from_kitchen", { kitchen: restaurant.name })}</p>}
       <ul className="mt-[14px] flex list-none flex-col gap-3 p-0 text-body">
         {lines.map((l) => (
           <li key={l.key} className="flex items-start gap-[10px]">
             <span className="min-w-0 flex-grow">
               {t("kitchen.line", { count: l.quantity, name: l.name })}
-              {l.summary && <span className="block truncate text-small text-[#4C5A5E]">{l.summary}</span>}
+              {l.summary && <span className="block truncate text-small text-muted">{l.summary}</span>}
             </span>
             <span className="flex shrink-0 items-center gap-1">
               <button type="button" aria-label={t("kitchen.one_less", { name: l.name })} onClick={() => setQuantity(l.key, l.quantity - 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E2E7E8] hover:bg-[#F4F6F6]"><Minus size={12} /></button>
@@ -442,7 +445,7 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
               <span>{t("bill.line_food")}</span>
               <b className="tabular-nums">{f.money(foodSubtotal(lines), currency)}</b>
             </div>
-            <p className="mt-1 text-small text-[#4C5A5E]" aria-live="polite">
+            <p className="mt-1 text-small text-muted" aria-live="polite">
               {quote.loading ? t("kitchen.working_out") : quote.error ? quote.error : !signedIn ? t("kitchen.bill_after_sign_in") : !hasAddress ? t("kitchen.bill_after_address") : t("kitchen.bill_at_checkout")}
             </p>
           </>
@@ -455,20 +458,49 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
   );
 }
 
-function PhoneBagBar({ quote }: { quote: string | null }) {
+/** Under 1024 px: "View bag · N items · total" pinned to the bottom; it opens the bag (the same panel as the side bag) in a sheet. */
+function BagBar({ quote, children }: { quote: string | null; children: ReactNode }) {
   const t = useT();
   const f = useFormat();
   const hydrated = useHydrated();
   const { restaurant, lines } = useBag();
+  const [open, setOpen] = useState(false);
   const count = lines.reduce((n, l) => n + l.quantity, 0);
   if (!hydrated || !restaurant || !count) return null;
   return (
-    <Link
-      href="/checkout"
-      className="fixed inset-x-4 bottom-4 z-40 flex h-14 items-center justify-between rounded-full bg-[#0B5D66] px-[22px] text-label text-white shadow-[0_10px_30px_rgba(11,93,102,0.35)] hover:text-white md:hidden"
-    >
-      <span className="tabular-nums">{t("kitchen.bar_summary", { count, total: f.money(quote ?? foodSubtotal(lines), restaurant.currency) })}</span>
-      <span>{t("kitchen.view_bag")} →</span>
-    </Link>
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="fixed inset-x-4 bottom-4 z-40 flex h-14 items-center justify-between gap-3 rounded-full bg-[#0B5D66] px-[22px] text-label text-white shadow-[0_10px_30px_rgba(11,93,102,0.35)] hover:bg-[#083F46] md:inset-x-auto md:left-1/2 md:w-[560px] md:-translate-x-1/2 lg:hidden"
+      >
+        <span>{t("kitchen.view_bag")}</span>
+        <span className="min-w-0 truncate tabular-nums">{t("kitchen.bar_summary", { count, total: f.money(quote ?? foodSubtotal(lines), restaurant.currency) })}</span>
+      </button>
+      {open && <BagSheet onClose={() => setOpen(false)}>{children}</BagSheet>}
+    </>
+  );
+}
+
+function BagSheet({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const t = useT();
+  useEscape(onClose);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] lg:hidden" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("kitchen.your_bag")}
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[88svh] w-full overflow-y-auto rounded-t-[28px] bg-white p-4 pt-16 md:mb-6 md:max-w-[560px] md:rounded-[28px]"
+      >
+        <button type="button" autoFocus aria-label={t("common.close")} onClick={onClose} className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#F4F6F6]">
+          <Close />
+        </button>
+        {children}
+      </div>
+    </div>
   );
 }
