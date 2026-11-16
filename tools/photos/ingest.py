@@ -9,7 +9,8 @@ license, license_version, license_url, foreign_landing_url, url, provider) plus
   docs/design/photos/originals/<slug>.<ext>      the original, as downloaded
   apps/web/public/food/<slug>-{1600,800,400}.webp  (never upscaled: a photo
       narrower than 1600 px keeps its own width in the -1600 file)
-  docs/design/photos/LICENSES.md                 one row per photo
+  docs/design/photos/LICENSES.md                 one row per photo (rows already there for
+      other slugs are kept, so one new photo can be added on its own)
   docs/design/photos/contact-sheet.jpg           every photo with its slug
 then regenerates the web credits (tools/photos/credits.py).
 """
@@ -40,12 +41,28 @@ def cell(text):
     return str(text or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
+def existing_rows(replaced):
+    """The LICENSES.md rows of photos not being (re)ingested now: slug -> its line."""
+    path = os.path.join(DOCS, "LICENSES.md")
+    if not os.path.exists(path):
+        return {}
+    out = {}
+    for line in open(path, encoding="utf-8"):
+        if not line.startswith("| ") or line.startswith("| Slug |"):
+            continue
+        slug = line[2:].split(" | ", 1)[0].strip()
+        if slug not in replaced:
+            out[slug] = line.rstrip("\n") + "\n"
+    return out
+
+
 def main(picked_path, src_dir):
     picked = json.load(open(picked_path, encoding="utf-8"))
     os.makedirs(os.path.join(DOCS, "originals"), exist_ok=True)
     os.makedirs(PUBLIC, exist_ok=True)
     today = datetime.date.today().isoformat()
     rows = []
+    kept = existing_rows(set(picked))
     for slug in sorted(picked):
         rec = picked[slug]
         src = os.path.join(src_dir, rec["file"])
@@ -67,11 +84,15 @@ def main(picked_path, src_dir):
                 "`python tools/photos/credits.py` (checked by `make ci`). Edit this table, then rerun it.\n\n")
         f.write("| Slug | Title | Source | Creator | License | License URL | Changes | Original size | Downloaded |\n")
         f.write("|---|---|---|---|---|---|---|---|---|\n")
+        new = {}
         for slug, rec, (w, h), changes in rows:
             creator = cell(rec.get("creator")) or "Unknown"
-            f.write(f"| {slug} | {cell(rec.get('title'))} | {rec['foreign_landing_url']} | {creator} | "
-                    f"{license_name(rec)} | {rec['license_url']} | {changes} | {w}×{h} | {today} |\n")
-    contact_sheet([r[0] for r in rows])
+            new[slug] = (f"| {slug} | {cell(rec.get('title'))} | {rec['foreign_landing_url']} | {creator} | "
+                         f"{license_name(rec)} | {rec['license_url']} | {changes} | {w}×{h} | {today} |\n")
+        table = {**kept, **new}
+        for slug in sorted(table):
+            f.write(table[slug])
+    contact_sheet(sorted(table))
     subprocess.run([sys.executable, os.path.join(ROOT, "tools", "photos", "credits.py")], check=True)
 
 

@@ -23,6 +23,14 @@ FORBIDDEN = re.compile(
     re.IGNORECASE,
 )
 
+# The one public route that publishes terms on purpose: what ANY new kitchen partner in a
+# country gets ("Add your kitchen", R8 F7): the country's commission range and tiers from
+# the live rules, the payout schedule, and the documents to have ready. Nothing about a
+# particular restaurant; only these exact fields are allowed, anything else still fails.
+PUBLISHED_TERMS = {
+    ("GET", "/api/v1/kitchens/terms"): {"commission", "commission.tiers[].tier", "documents", "payout"},
+}
+
 needs_db = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
     reason="needs a migrated + seeded Postgres and Redis (set RUN_MIGRATED_DB_TESTS=1)",
@@ -96,7 +104,8 @@ def test_no_public_route_can_expose_commission_payout_or_tax_fields() -> None:
     routes = public_routes()
     assert ("GET", "/api/v1/restaurants/{restaurant_id}") in routes  # the sweep's policy is where we think
     leaks = {f"{m} {p}": bad for m, p in routes
-             for bad in [sorted({b for s in response_schemas(doc, m, p) for b in forbidden_in_schema(s, components)})]
+             for bad in [sorted({b for s in response_schemas(doc, m, p) for b in forbidden_in_schema(s, components)}
+                                - PUBLISHED_TERMS.get((m, p), set()))]
              if bad}
     assert not leaks, f"public routes whose response schema has private fields: {leaks}"
 
