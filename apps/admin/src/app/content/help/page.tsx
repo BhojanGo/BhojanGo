@@ -60,7 +60,7 @@ function HelpList() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="m-0 text-caption text-muted">Content</p>
-          <h1 className="m-0 text-h1 tracking-[-0.8px]">Help articles</h1>
+          <h1 className="m-0 text-h1">Help articles</h1>
           <p className="m-0 mt-1 max-w-2xl text-small text-muted">
             What the website&apos;s Help centre shows. Visitors get their country&apos;s article in their language, then their country&apos;s English one, then the one for every country.
           </p>

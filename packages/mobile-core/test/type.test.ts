@@ -7,41 +7,81 @@ import { describe, it, test } from "node:test";
 import { RuleTester } from "eslint";
 
 import {
-  face, familyFor, field, num, scriptFor, setTypeScript, textStyles, type, TYPE_ROLES, TYPE_SCALE, TYPE_SIZES, typeScript, typeStyleFor,
+  DENSE_FONT_SCALE, face, familyFor, field, FLUID, MIN_READABLE, num, scriptFor, setTypeScript, setTypeWidth, sizeAt, textStyles, type,
+  TYPE_RANGES, TYPE_ROLES, TYPE_SCALE, typeScript, typeStyleFor, typeWidth,
 } from "../src/ui/type.ts";
 
 const require = createRequire(import.meta.url);
 const rule = require("../eslint/no-raw-font-size.js");
 const plugin = require("../eslint/index.js");
+const tokens = require("@bhojango/ui/tokens");
 
-test("the phone column of the scale, and nothing else", () => {
-  const sizes = Object.fromEntries(TYPE_ROLES.map((r) => [r, TYPE_SCALE[r].size]));
-  assert.deepEqual(sizes, { display: 44, h1: 30, h2: 22, h3: 18, bodyLg: 17, body: 16, label: 15, small: 14, caption: 12 });
-  assert.deepEqual([...TYPE_SIZES], [12, 14, 15, 16, 17, 18, 22, 30, 44]);
+test("the scale: each role's [min, max], weights, and the same numbers as the web", () => {
+  assert.deepEqual(Object.fromEntries(TYPE_ROLES.map((r) => [r, [...TYPE_RANGES[r]]])), {
+    display: [36, 52], h1: [28, 36], h2: [22, 28], h3: [17, 20], bodyLg: [16, 18], body: [15, 16], label: [14, 15], small: [13, 14], caption: [12, 12],
+  });
   const weights = Object.fromEntries(TYPE_ROLES.map((r) => [r, TYPE_SCALE[r].weight]));
   assert.deepEqual(weights, {
-    display: "600", h1: "600", h2: "600", h3: "600", bodyLg: "400", body: "400", label: "600", small: "400", caption: "700",
+    display: "700", h1: "700", h2: "700", h3: "600", bodyLg: "400", body: "400", label: "600", small: "400", caption: "700",
   });
+  assert.equal(TYPE_SCALE.display.tracking, -0.8);
+  assert.equal(TYPE_SCALE.h1.tracking, -0.4);
+  assert.equal(MIN_READABLE, 13);
+  assert.ok(DENSE_FONT_SCALE > 1, "dense UI caps the font setting, never turns it off");
+  // packages/ui tokens.js is the web's copy: the apps use the same numbers.
+  for (const r of TYPE_ROLES) {
+    const web = tokens.typeScale[r === "bodyLg" ? "body-lg" : r];
+    assert.deepEqual([web.min, web.max, web.weight, web.lineHeight], [TYPE_SCALE[r].min, TYPE_SCALE[r].max, TYPE_SCALE[r].weight, TYPE_SCALE[r].lineHeight], r);
+    assert.equal(tokens.fontSizeAt(r === "bodyLg" ? "body-lg" : r, 900), (TYPE_SCALE[r].min + TYPE_SCALE[r].max) / 2, r);
+  }
+  assert.deepEqual(FLUID, tokens.fluid);
 });
 
-test("Familjen Grotesk for display, h1, h2; Hanken Grotesk for the rest; caption is uppercase", () => {
+test("sizes are fluid: the min on a 360 dp phone, the max from 1440 dp, linear between", () => {
+  for (const r of TYPE_ROLES) {
+    const [min, max] = TYPE_RANGES[r];
+    assert.equal(sizeAt(r, 320), min, `${r} below 360`);
+    assert.equal(sizeAt(r, 360), min, `${r} at 360`);
+    assert.equal(sizeAt(r, 1440), max, `${r} at 1440`);
+    assert.equal(sizeAt(r, 2000), max, `${r} above 1440`);
+    const mid = sizeAt(r, 900);
+    assert.ok(mid >= min && mid <= max, `${r} in range`);
+  }
+  assert.equal(sizeAt("display", 900), 44);
+  assert.equal(sizeAt("body", 412), 15, "a large phone sits at the min (to 0.1 dp)");
+  assert.equal(sizeAt("h1", 800), 31.3, "a tablet sits in between");
+});
+
+test("Inter for every role; caption is uppercase; the tokens follow the screen size", () => {
   setTypeScript("latin");
-  assert.equal(type.display.fontFamily, "FamiljenGrotesk_600SemiBold");
-  assert.equal(type.h1.fontFamily, "FamiljenGrotesk_600SemiBold");
-  assert.equal(type.h2.fontFamily, "FamiljenGrotesk_600SemiBold");
-  assert.equal(type.h3.fontFamily, "HankenGrotesk_600SemiBold");
-  assert.equal(type.label.fontFamily, "HankenGrotesk_600SemiBold");
-  assert.equal(type.body.fontFamily, "HankenGrotesk_400Regular");
-  assert.equal(type.small.fontFamily, "HankenGrotesk_400Regular");
-  assert.equal(type.caption.fontFamily, "HankenGrotesk_700Bold");
+  assert.equal(type.display.fontFamily, "Inter_700Bold");
+  assert.equal(type.h1.fontFamily, "Inter_700Bold");
+  assert.equal(type.h2.fontFamily, "Inter_700Bold");
+  assert.equal(type.h3.fontFamily, "Inter_600SemiBold");
+  assert.equal(type.label.fontFamily, "Inter_600SemiBold");
+  assert.equal(type.body.fontFamily, "Inter_400Regular");
+  assert.equal(type.small.fontFamily, "Inter_400Regular");
+  assert.equal(type.caption.fontFamily, "Inter_700Bold");
   assert.equal(type.caption.textTransform, "uppercase");
   assert.ok((type.caption.letterSpacing ?? 0) > 0);
+  assert.equal(type.display.letterSpacing, -0.8);
+  assert.equal(typeWidth(), 360);
   for (const r of TYPE_ROLES) {
     const s = type[r];
-    assert.equal(s.fontSize, TYPE_SCALE[r].size, r);
+    assert.equal(s.fontSize, TYPE_SCALE[r].min, r);
     assert.ok((s.lineHeight ?? 0) >= (s.fontSize ?? 0), `${r} line height`);
-    if (r !== "caption") assert.ok((s.fontSize ?? 0) >= 14, `${r} is readable`);
+    if (r !== "caption") assert.ok((s.fontSize ?? 0) >= 13, `${r} is readable`);
   }
+  setTypeWidth(1440);
+  try {
+    for (const r of TYPE_ROLES) assert.equal(type[r].fontSize, TYPE_SCALE[r].max, r);
+    const s = textStyles({ title: ["h3"] });
+    assert.equal(s.title.fontSize, 20);
+    assert.equal(field.h1.fontSize, 36);
+  } finally {
+    setTypeWidth(360);
+  }
+  assert.equal(type.h3.fontSize, 17);
 });
 
 test("an Indian-script language gets its Noto Sans face for every role", () => {
@@ -54,12 +94,12 @@ test("an Indian-script language gets its Noto Sans face for every role", () => {
   assert.equal(scriptFor("en"), "latin");
   assert.equal(scriptFor("es"), "latin");
   assert.equal(scriptFor(null), "latin");
-  assert.equal(familyFor("telugu", "600", true), "NotoSansTelugu_600SemiBold");
+  assert.equal(familyFor("telugu", "600"), "NotoSansTelugu_600SemiBold");
 
   setTypeScript("devanagari");
   try {
     assert.equal(typeScript(), "devanagari");
-    assert.equal(type.h1.fontFamily, "NotoSansDevanagari_600SemiBold");
+    assert.equal(type.h1.fontFamily, "NotoSansDevanagari_700Bold");
     assert.equal(type.body.fontFamily, "NotoSansDevanagari_400Regular");
     assert.equal(type.caption.fontFamily, "NotoSansDevanagari_700Bold");
     assert.equal(type.h1.letterSpacing, undefined, "no tracking on Indic scripts");
@@ -78,7 +118,7 @@ test("an Indian-script language gets its Noto Sans face for every role", () => {
 test("textStyles keeps view styles and resolves text styles at read time", () => {
   const s = textStyles({ card: { padding: 8 } }, { title: ["h3"], amount: ["label", num] });
   assert.deepEqual(s.card, { padding: 8 });
-  assert.equal(s.title.fontSize, 18);
+  assert.equal(s.title.fontSize, 17);
   assert.deepEqual(s.amount.fontVariant, ["tabular-nums"]);
   setTypeScript("tamil");
   try {
@@ -86,7 +126,7 @@ test("textStyles keeps view styles and resolves text styles at read time", () =>
   } finally {
     setTypeScript("latin");
   }
-  assert.equal(s.title.fontFamily, "HankenGrotesk_600SemiBold");
+  assert.equal(s.title.fontFamily, "Inter_600SemiBold");
   assert.equal(field.bodyLg.lineHeight, undefined, "inputs centre their line themselves");
 });
 
@@ -112,7 +152,8 @@ tester.run("no-raw-font-size", rule, {
   invalid: [
     { code: "const s = StyleSheet.create({ x: { fontSize: 16 } });", errors: [{ messageId: "raw" }] },
     { code: "const a = <Text style={[textFont('700'), { fontSize: 15, color: c }]} />;", errors: [{ messageId: "raw" }] },
-    { code: "const a = <Text style={{ fontSize: 13 }} />;", errors: [{ messageId: "tooSmall", data: { size: "13" } }] },
+    { code: "const a = <Text style={{ fontSize: 12 }} />;", errors: [{ messageId: "tooSmall", data: { size: "12" } }] },
+    { code: "const a = <Text style={{ fontSize: 13 }} />;", errors: [{ messageId: "raw" }] },
     { code: "const s = { payee: { fontSize: 11, textTransform: 'uppercase' } };", errors: [{ messageId: "tooSmall" }] },
     { code: "const s = { fontSize: big ? 52 : 20 };", errors: [{ messageId: "raw" }] },
     { code: "const s = { fontSize: wide ? 18 : 12 };", errors: [{ messageId: "tooSmall", data: { size: "12" } }] },

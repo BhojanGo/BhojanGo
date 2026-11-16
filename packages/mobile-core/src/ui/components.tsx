@@ -11,7 +11,7 @@ import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 import { useI18n, useLocaleStore } from "../i18n";
 import { TAB_BAR_HEIGHT } from "../tabbar";
 import { color, dark, elevation, radius, space, textFont, touch } from "./theme";
-import { field, num, textStyles, type, type TypeRole } from "./type";
+import { DENSE_FONT_SCALE, field, num, textStyles, type, type TypeRole } from "./type";
 
 // ── text ──────────────────────────────────────────────────────────────────────
 
@@ -352,7 +352,7 @@ export function TabBar({ items, current, onSelect, testID = "tab-bar" }: {
             style={[styles.tab, on && styles.tabOn]}
           >
             {t.icon(on ? color.white : color.lineStrong)}
-            {on ? <Text numberOfLines={1} style={[type.label, { color: color.white }]}>{t.label}</Text> : null}
+            {on ? <Text numberOfLines={1} maxFontSizeMultiplier={DENSE_FONT_SCALE} style={[type.label, { color: color.white }]}>{t.label}</Text> : null}
           </Pressable>
         );
       })}

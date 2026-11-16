@@ -151,7 +151,7 @@ export function HelpEditor({ article, prefill }: { article: HelpArticle | null; 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <Link href="/content/help" className="text-small font-semibold text-peacock">← Help articles</Link>
-          <h1 className="m-0 mt-1 text-h1 tracking-[-0.8px]">{isNew ? "New help article" : (working?.title ?? "")}</h1>
+          <h1 className="m-0 mt-1 text-h1">{isNew ? "New help article" : (working?.title ?? "")}</h1>
           {article ? (
             <p className="m-0 mt-1 text-small text-muted">
               {article.slug} · {countryLabel(article.country, names)} · {languageLabel(article.language)} · version {article.version}

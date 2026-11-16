@@ -20,7 +20,7 @@ export function AddressDialog({ title, country, onClose }: { title: string; coun
         <div className="mb-4 flex items-center">
           <h2 className="m-0 flex-grow text-h2">{title}</h2>
           <button type="button" aria-label={t("common.close")} onClick={onClose} className="flex h-11 w-11 items-center justify-center">
-            <Close color="#4C5A5E" />
+            <Close color="#3D4A4E" />
           </button>
         </div>
         <AddressBox size="sheet" country={country} autoFocus onPicked={onClose} />

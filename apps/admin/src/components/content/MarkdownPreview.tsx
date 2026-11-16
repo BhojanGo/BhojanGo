@@ -49,7 +49,7 @@ function Block({ b }: { b: MdBlock }) {
 export function MarkdownPreview({ title, summary, body }: { title: string; summary: string; body: string }) {
   const blocks = parseMarkdown(body);
   return (
-    <article className="space-y-4 leading-relaxed text-[#26363A]" aria-label="Preview">
+    <article className="space-y-4 leading-relaxed text-kohl" aria-label="Preview">
       <header className="space-y-2 border-b border-line pb-4">
         <h1 className="m-0 text-h1 text-kohl">{title || <span className="text-muted">Title</span>}</h1>
         {summary ? <p className="m-0 text-body text-muted">{summary}</p> : null}

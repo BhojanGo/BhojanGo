@@ -140,10 +140,18 @@ export function AddressBox({
         }}
         className={
           hero
-            ? "flex h-[60px] max-w-[660px] items-center gap-3 rounded-full border border-[#DDEBEC] bg-white pl-5 pr-2 shadow-[0_1px_2px_rgba(17,20,24,0.06),0_12px_32px_rgba(11,93,102,0.14)] md:h-[72px] md:pl-[26px]"
+            ? // A phone: the field full width, the button under it (the placeholder is never cut); from 640 px one pill.
+              "flex max-w-[660px] flex-col gap-3 sm:h-[60px] sm:flex-row sm:items-center sm:rounded-full sm:border sm:border-[#DDEBEC] sm:bg-white sm:pl-5 sm:pr-2 sm:shadow-[0_1px_2px_rgba(17,20,24,0.06),0_12px_32px_rgba(11,93,102,0.14)] md:h-[72px] md:pl-[26px]"
             : "flex h-[52px] items-center gap-3 rounded-full border border-[#E2E7E8] bg-[#F4F6F6] pl-4 pr-2"
         }
       >
+        <div
+          className={
+            hero
+              ? "flex h-14 min-w-0 flex-grow items-center gap-3 rounded-full border border-[#DDEBEC] bg-white pl-5 pr-4 shadow-[0_1px_2px_rgba(17,20,24,0.06),0_12px_32px_rgba(11,93,102,0.14)] sm:h-auto sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+              : "contents"
+          }
+        >
         <Pin size={22} color="#0B5D66" />
         <input
           aria-label={t("address.label")}
@@ -159,11 +167,12 @@ export function AddressBox({
             if (e.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
           }}
           placeholder={t("address.placeholder")}
-          className="min-w-0 flex-grow bg-transparent text-body-lg text-[#111418] outline-none placeholder:text-[#4C5A5E]"
+          className="min-w-0 flex-grow bg-transparent text-body-lg text-[#111418] outline-none placeholder:text-muted"
         />
+        </div>
         <button
           type="submit"
-          className={`shrink-0 rounded-full border-0 bg-[#0B5D66] text-label text-white hover:bg-[#083F46] ${hero ? "h-11 px-5 md:h-14 md:px-[30px]" : "h-10 px-4"}`}
+          className={`shrink-0 rounded-full border-0 bg-[#0B5D66] text-label text-white hover:bg-[#083F46] ${hero ? "h-12 w-full px-5 sm:h-11 sm:w-auto md:h-14 md:px-[30px]" : "h-10 px-4"}`}
         >
           {t("address.find_food")}
         </button>
@@ -178,9 +187,9 @@ export function AddressBox({
                 onClick={() => choose(a)}
                 className={`flex h-12 w-full items-center gap-3 rounded-[10px] px-3 text-left ${i === active ? "bg-[#EFF6F6]" : ""}`}
               >
-                <Pin size={16} color="#4C5A5E" />
+                <Pin size={16} color="#3D4A4E" />
                 <span className="flex-grow font-semibold text-[#111418]">{a.label}</span>
-                <span className={`text-small ${a.served ? "text-[#0B5D66]" : "text-[#4C5A5E]"}`}>
+                <span className={`text-small ${a.served ? "text-[#0B5D66]" : "text-muted"}`}>
                   {a.served ? t("address.served") : t("address.not_served")}
                 </span>
               </button>
@@ -196,7 +205,7 @@ export function AddressBox({
               {locate.busy ? t("address.locating") : t("address.use_my_location")}
             </button>
           )}
-          {problem && <span role="status" className="text-small text-[#4C5A5E]">{problem}</span>}
+          {problem && <span role="status" className="text-small text-muted">{problem}</span>}
         </div>
       )}
     </div>

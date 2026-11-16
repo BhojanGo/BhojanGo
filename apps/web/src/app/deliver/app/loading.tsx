@@ -2,7 +2,7 @@
 export default function Loading() {
   const bar = "animate-pulse rounded-[12px] bg-porcelain";
   return (
-    <div aria-busy="true" className="mx-auto w-full max-w-[1200px] px-4 py-12 md:px-8 md:py-16 lg:px-12">
+    <div aria-busy="true" className="container-page py-12 md:py-16">
       <div className="max-w-[640px]">
         <div className={`${bar} h-4 w-40`} />
         <div className={`${bar} mt-4 h-10 w-3/4`} />

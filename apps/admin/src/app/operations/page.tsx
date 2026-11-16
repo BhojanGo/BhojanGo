@@ -386,11 +386,11 @@ function OperationsPage() {
   return (
     <ConsoleShell section="Operations" country={country} region={region} city={city} scopeHref={(s) => `/operations?scope=${s}&tab=${tab}`}>
       <div className="flex flex-wrap items-end gap-3">
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">Operations</h1>
-        <nav aria-label="Operations" className="ml-auto flex rounded-full bg-white p-1">
+        <h1 className="m-0 text-h1">Operations</h1>
+        <nav aria-label="Operations" className="ml-auto flex max-w-full overflow-x-auto rounded-full bg-white p-1">
           {TABS.map((t) => (
             <button key={t.key} type="button" onClick={() => go(t.key)} aria-current={tab === t.key ? "page" : undefined}
-              className={`h-9 rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
+              className={`h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
           ))}
         </nav>
       </div>

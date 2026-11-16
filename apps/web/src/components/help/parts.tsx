@@ -170,7 +170,7 @@ function Block({ b }: { b: MdBlock }) {
 /** An article body (the Help centre's Markdown: text only, never HTML). */
 export function ArticleBody({ markdown }: { markdown: string }) {
   return (
-    <div className="space-y-4 text-body leading-relaxed text-[#26363A]">
+    <div className="space-y-4 text-body leading-relaxed text-kohl">
       {parseMarkdown(markdown).map((b, i) => <Block key={i} b={b} />)}
     </div>
   );

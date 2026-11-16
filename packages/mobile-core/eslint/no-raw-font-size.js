@@ -1,18 +1,20 @@
 // bhojango-native/no-raw-font-size: in the Expo apps a font size comes only from
 // the type scale (packages/mobile-core/src/ui/type.ts, the one file exempt).
 //
-//   fontSize: 13                       error: raw size, and under 14
+//   fontSize: 12                       error: raw size, and under 13
 //   fontSize: big ? 52 : 20            error: raw size
 //   fontSize: Math.round(size * 0.4)   error: raw size
 //   <SvgText fontSize={18}>            error: raw size (JSX attribute)
 //   fontSize: type.h3.fontSize         ok (a token)
 //   style={[type.small, { color }]}    ok (the usual way: no fontSize at all)
 //
-// Sizes under 14 are reported separately ("tooSmall"): only type.caption
-// (uppercase labels and badges) may be smaller than 14.
+// Sizes under 13 are reported separately ("tooSmall"): only type.caption
+// (uppercase labels and badges, 12) may be smaller than 13. The token sizes are
+// fluid (min at a 360 dp screen, max at 1440; see src/ui/type.ts), so the only
+// way to a size is a token.
 "use strict";
 
-const MIN_READABLE = 14;
+const MIN_READABLE = 13;
 
 /** Roots that hold the type tokens: type.h3.fontSize, field.body.fontSize, TYPE_SCALE.h3.size. */
 const DEFAULT_TOKENS = ["type", "field", "TYPE_SCALE"];
@@ -38,11 +40,11 @@ function numbers(node, out = []) {
 module.exports = {
   meta: {
     type: "problem",
-    docs: { description: "Font sizes in the Expo apps come only from the type scale (type.* tokens); nothing readable under 14." },
+    docs: { description: "Font sizes in the Expo apps come only from the type scale (type.* tokens); nothing readable under 13." },
     schema: [{ type: "object", properties: { tokens: { type: "array", items: { type: "string" } } }, additionalProperties: false }],
     messages: {
       raw: "Raw font size: use a type token (style={[type.small, ...]}, type.h3.fontSize); sizes come only from packages/mobile-core/src/ui/type.ts.",
-      tooSmall: "Font size {{size}} is under 14: readable text is at least type.small (14); only type.caption (uppercase labels, badges) is smaller.",
+      tooSmall: "Font size {{size}} is under 13: readable text is at least type.small (13 to 14); only type.caption (uppercase labels, badges) is smaller.",
     },
   },
   create(context) {

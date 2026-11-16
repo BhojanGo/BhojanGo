@@ -21,7 +21,7 @@ export async function LocationLine() {
         data-testid="location-line"
         data-source={source}
         data-served={served ? "1" : "0"}
-        className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-[#4C5A5E]"
+        className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted"
       >
         <Pin size={16} color="#0B5D66" className="shrink-0" />
         {label && (

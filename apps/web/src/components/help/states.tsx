@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 
 import { getContext } from "@/lib/prefs";
 
-/** Content at most 1200 px wide with 16 / 32 / 48 px gutters. */
+/** The page container (`.container-page`: at most 1200 px, gutters 16 / 32 / 48 px). */
 export function PageWidth({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-[1200px] px-4 md:px-8 lg:px-12 ${className}`}>{children}</div>;
+  return <div className={`container-page ${className}`}>{children}</div>;
 }
 
 /** core_api didn't answer: say so in plain words; the contact form below still works. */
