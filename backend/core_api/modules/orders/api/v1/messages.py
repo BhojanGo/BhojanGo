@@ -186,6 +186,11 @@ async def send_message(
     await outbox.add(db, "order.message", "order", order.id,
                      {"order_id": str(order.id), "message_id": str(msg.id), "to_user_id": str(to),
                       "from_role": me, "from_name": name, "text": text, "preset": data.preset}, "order-svc")
+    # Commit before telling anyone: with a preset the watchers fetch the conversation
+    # again, and a fetch that beats the request's own commit (get_db commits after the
+    # endpoint returns) gets the list without this message until the next poll (R7:
+    # the flaky "live from the rider" e2e check). The outbox row commits with it.
+    await db.commit()
     # ... and live to anyone watching the order (realtime relays the tracking channel). With a
     # preset the apps fetch the conversation again, so it shows in the watcher's language.
     try:

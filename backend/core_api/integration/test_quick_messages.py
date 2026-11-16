@@ -73,3 +73,47 @@ async def test_quick_messages_during_the_order(client: AsyncClient) -> None:  # 
         r = (await client.get(url, headers=h)).json()
         assert r["open"] is False and r["messages"] == []
     assert (await client.post(url, headers=cust, json={"text": "thanks"})).status_code == 409
+
+
+async def test_a_message_is_committed_before_it_is_published(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: F811
+    """R7, the flaky "live from the rider" check: watchers fetch the conversation as soon
+    as the live event arrives (always for a quick message), so the message must already
+    be readable from another connection when the event goes out, not only after the
+    request's own commit."""
+    import json
+
+    from sqlalchemy import select
+
+    from core_api.modules.orders.api.v1 import messages as api
+    from core_api.modules.orders.models import OrderMessage
+    from shared.db import AsyncSessionLocal
+
+    visible_at_publish: list[bool] = []
+
+    class Watcher:
+        async def publish(self, channel: str, body: str) -> int:
+            msg_id = json.loads(body)["payload"]["id"]
+            async with AsyncSessionLocal() as other:  # another connection, like the watcher's GET
+                found = (await other.execute(select(OrderMessage.id).where(OrderMessage.id == msg_id))).scalar_one_or_none()
+            visible_at_publish.append(found is not None)
+            return 1
+
+    async def watcher() -> Watcher:
+        return Watcher()
+
+    cust = await login(client, "customer1.hyd@example.com")
+    order = await new_order(client, cust)
+    oid = order["id"]
+    await pay(client, cust, order)
+    partner = await login(client, "partner.hyd@example.com")
+    for s in ("accepted", "preparing", "almost_ready", "ready"):
+        assert (await move(client, partner, oid, s)).status_code == 200
+    rider = await login(client, "rider1.hyd@example.com")
+    assert (await assign(client, oid, rider)).status_code == 200
+
+    monkeypatch.setattr(api, "get_redis", watcher)
+    url = f"/api/v1/orders/{oid}/messages"
+    assert (await client.post(url, headers=rider, json={"preset": "outside"})).status_code == 201
+    assert (await client.post(url, headers=cust, json={"text": "Gate 2"})).status_code == 201
+    assert visible_at_publish == [True, True]
+    assert (await outbox_types(oid)).count("order.message") == 2  # the push still goes out (same commit)

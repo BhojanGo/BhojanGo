@@ -1,0 +1,73 @@
+name: Live chat check, repeated
+
+# R7: the website's "messages: live from the rider without reloading" check was
+# flaky. This runs that check's exact sequence N times in a row on one stack (a new
+# order each round, the e2e's 15 s wait, no retries): every round must pass.
+# Runs on pull requests that touch the chat (page, API, realtime, this check) and
+# by hand (Actions > Live chat check, repeated > Run workflow).
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "apps/web/src/app/orders/**"
+      - "backend/core_api/modules/orders/api/v1/messages.py"
+      - "backend/realtime/**"
+      - "tools/web/chat_repeat.*"
+      - ".github/workflows/chat-repeat.yml"
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: "Rounds in a row"
+        default: "50"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chat-repeat-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repeat:
+    name: Live chat check x${{ inputs.rounds || '50' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      COMPOSE_PROJECT_NAME: bhojango-chat
+      COMPOSE: docker compose -f infra/docker/compose.yaml
+      DEMO_RIDER_SIM: "0"  # the demo rider simulator stays off while tests run
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Host tools for the run (opening hours helper)
+        run: pip install httpx==0.28.1
+
+      - name: Start the stack (make dev)
+        run: $COMPOSE --profile all up -d --build --wait --wait-timeout 600
+
+      - name: Seed
+        run: $COMPOSE exec -T core-api python /srv/tools/seed/seed.py
+
+      - name: The live chat check, ${{ inputs.rounds || '50' }} times in a row
+        run: sh tools/web/chat_repeat.sh ${{ inputs.rounds || '50' }}
+
+      - name: Service logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 300 core-api realtime worker web
+
+      - name: Failed rounds
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chat-repeat-failures
+          path: docs/screenshots/web/chat-fail-*.png
+          retention-days: 7
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v
