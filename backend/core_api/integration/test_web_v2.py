@@ -136,3 +136,30 @@ async def test_example_bill_for_a_city(client: AsyncClient) -> None:
     b = (await client.get("/api/v1/pricing/example", params={"city": "US-ID-BOI"})).json()
     assert b["currency"] == "USD" and b["source"] in ("order", "typical") and b["lines"][0]["code"] == "food"
     assert abs(sum(float(ln["amount"]) for ln in b["lines"]) - float(b["total"])) < 0.01
+
+
+def _percentages(amounts: list[float]) -> list[int]:
+    """Whole percentages by largest remainder (as the website's fairShares): a share
+    below zero counts as nothing."""
+    amounts = [max(a, 0.0) for a in amounts]
+    exact = [a / sum(amounts) * 100 for a in amounts]
+    pct = [int(x) for x in exact]
+    for i in sorted(range(len(pct)), key=lambda i: (-(exact[i] - int(exact[i])), i))[:100 - sum(pct)]:
+        pct[i] += 1
+    return pct
+
+
+@pytest.mark.parametrize("city", ["IN-TG-HYD", "US-ID-BOI"])
+async def test_example_bill_shares_rider_pay_and_tip(client: AsyncClient, city: str) -> None:
+    """R7: "Who gets your money" counts the rider's pay (base + distance + wait, from the
+    engine's split) plus the tip, not the tip alone; the four shares are the whole bill
+    and their whole percentages add up to 100."""
+    b = (await client.get("/api/v1/pricing/example", params={"city": city})).json()
+    shares = {k: float(v) for k, v in b["shares"].items()}
+    assert list(shares) == ["kitchen", "rider", "tax", "us"]
+    assert abs(sum(shares.values()) - float(b["total"])) < 0.005, (shares, b["total"])
+    tip = sum(float(ln["amount"]) for ln in b["lines"] if ln["code"] == "tip")
+    assert shares["rider"] > tip, (shares, tip)  # the rider's pay is in it, not just the tip
+    assert abs(shares["tax"] - sum(float(ln["amount"]) for ln in b["lines"] if ln["code"] == "tax")) < 0.005, (shares, b["lines"])
+    pct = _percentages(list(shares.values()))
+    assert sum(pct) == 100 and min(pct) >= 0 and pct[1] > 0, pct

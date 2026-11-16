@@ -276,12 +276,9 @@ with sync_playwright() as p:
         shown = {li.get_attribute("data-payee"): int(li.get_attribute("data-percent") or "-1") for li in card.locator("li[data-payee]").all()}
         _assert(sum(shown.values()) == 100 and min(shown.values()) >= 0, shown)
         ex = api("GET", f"/pricing/example?city={card.get_attribute('data-city')}")
-        payee = {"food": "kitchen", "packaging": "kitchen", "tax": "tax", "tip": "rider"}
-        sums = {"kitchen": 0.0, "rider": 0.0, "tax": 0.0, "us": 0.0}
-        for ln in ex["lines"]:
-            who = ("kitchen" if ln.get("funded_by") == "restaurant" else "us") if ln["code"] == "promotion" else payee.get(ln["code"], "us")
-            sums[who] += float(ln["amount"])
-        amounts = [max(sums[k], 0.0) for k in ("kitchen", "rider", "tax", "us")]
+        # The engine's split (R7): the rider's share is their pay (base + distance + wait) plus the tip.
+        _assert(shown["rider"] > 0, ("no rider share", shown))
+        amounts = [max(float(ex["shares"][k]), 0.0) for k in ("kitchen", "rider", "tax", "us")]
         exact = [a / sum(amounts) * 100 for a in amounts]
         pct = [int(x) for x in exact]
         for i in sorted(range(4), key=lambda i: (-(exact[i] - int(exact[i])), i))[:100 - sum(pct)]:

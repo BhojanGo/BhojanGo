@@ -1761,7 +1761,8 @@ export interface paths {
          * Example Quote
          * @description An example bill for the website: a real recent order's bill in this zone (or
          *     city), as the customer saw it; a new city with no orders yet gets a typical cart
-         *     from its own menus priced by the engine with live rules. Cached for an hour. Public.
+         *     from its own menus priced by the engine with live rules. With it, "shares": who
+         *     gets the money, from the engine's split (see _shares). Cached for an hour. Public.
          */
         get: operations["example_quote_api_v1_pricing_example_get"];
         put?: never;
