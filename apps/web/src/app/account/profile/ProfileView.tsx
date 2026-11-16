@@ -1,5 +1,5 @@
 "use client";
-// WebProfile: your details, language and country, addresses, payment methods,
+// WebProfile: your details, sign-in and security, language and country, addresses, payment methods,
 // notifications, and your data (download, delete). Everything shown is your
 // account's data; the country is the one your delivery address is in.
 
@@ -11,6 +11,7 @@ import { useLanguage, usePrefs, useT } from "@/lib/i18n";
 import { saveFile } from "@/components/account/shared";
 import { Addresses } from "./Addresses";
 import { Payments } from "./Payments";
+import { Security } from "./Security";
 import { card, ghost, h2, input, link, primary, Row } from "./ui";
 
 function Details({ user }: { user: User }) {
@@ -57,13 +58,6 @@ function Details({ user }: { user: User }) {
           {user.full_name}
         </Row>
       )}
-      <Row label={t("account.profile.mobile")} note={user.is_phone_verified ? t("account.profile.mobile_note") : t("account.profile.mobile_unverified")}>
-        {user.phone ?? t("account.profile.not_set")}
-      </Row>
-      <Row label={t("account.profile.email")} note={t("account.profile.email_note")}>
-        {user.email ?? t("account.profile.not_set")}
-      </Row>
-      <p className="pt-3 text-small text-[#4C5A5E]">{t("account.profile.read_only_note")}</p>
       {msg && <p role="status" className="pt-2 text-label text-[#0B5D66]">{msg}</p>}
     </section>
   );
@@ -273,7 +267,7 @@ function Privacy() {
   );
 }
 
-export function ProfileView() {
+export function ProfileView({ countries }: { countries: { code: string; name: string; phone_code: string }[] }) {
   const t = useT();
   const user = useSession((s) => s.user);
   if (!user) return null; // the account frame sends you to sign in
@@ -281,6 +275,7 @@ export function ProfileView() {
     <div className="flex flex-col gap-5">
       <h1 className="text-h1 tracking-[-0.8px]">{t("account.profile.title")}</h1>
       <Details key={user.id} user={user} />
+      <Security countries={countries} />
       <LanguageCountry />
       <Addresses />
       <Payments />
