@@ -5,7 +5,7 @@ export function Prose({ title, updated, intro, sections }: {
   title: string; updated?: string; intro?: ReactNode; sections: { id: string; title: string; body: ReactNode }[];
 }) {
   return (
-    <div className="mx-auto grid max-w-content gap-10 px-5 py-12 md:grid-cols-[240px_1fr] md:px-8">
+    <div className="container-page grid gap-10 py-12 md:grid-cols-[240px_1fr]">
       <nav aria-label="On this page" className="hidden md:block">
         <ul className="sticky top-24 space-y-2 text-small">
           {sections.map((s) => <li key={s.id}><a href={`#${s.id}`} className="text-muted hover:text-peacock">{s.title}</a></li>)}
@@ -13,7 +13,7 @@ export function Prose({ title, updated, intro, sections }: {
       </nav>
       <article className="max-w-3xl space-y-8">
         <header className="space-y-2">
-          <h1 className="text-display tracking-[-1.2px]">{title}</h1>
+          <h1 className="text-display">{title}</h1>
           {updated ? <p className="text-small text-muted">Last updated {updated}</p> : null}
           {intro ? <div className="text-body-lg text-muted">{intro}</div> : null}
         </header>

@@ -96,7 +96,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
           <b className="truncate text-h3">{k.name}</b>
           <RatingBadge x={k} t={t} formatLocale={formatLocale} />
         </div>
-        <div className="mt-1 truncate text-small text-[#4C5A5E]">{meta}</div>
+        <div className="mt-1 truncate text-small text-muted">{meta}</div>
         <div className="mt-1 text-small tabular-nums">
           <b>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</b>
           {fee !== null && (
@@ -115,7 +115,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale, { whole: true }) })}
             </>
           )}
-          {!k.open_now && k.opens_at && <span className="text-[#4C5A5E]"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
+          {!k.open_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">
@@ -132,9 +132,9 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
   return (
     <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
       <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
-        <b className="text-h2 tracking-[-0.4px]">{offerTitle(o, t, currency, formatLocale)}</b>
+        <b className="text-h2">{offerTitle(o, t, currency, formatLocale)}</b>
         <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
-        <span className="mt-[10px] text-caption text-[#4C5A5E]">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
+        <span className="mt-[10px] text-caption text-muted">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
       </span>
       {img && <span className="hidden w-[170px] shrink-0 sm:block"><Img src={img} /></span>}
     </Link>
@@ -143,8 +143,8 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
 
 export function CuisineTile({ name, image, href }: { name: string; image: string | null; href: string }) {
   return (
-    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[150px]">
-      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[150px]">
+    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[120px]">
+      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[120px]">
         <KitchenPhoto src={photo(image, 400)} className="h-full w-full rounded-full" />
       </span>
       <span className="mt-[6px] block text-label md:mt-3">{name}</span>

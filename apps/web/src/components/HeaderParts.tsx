@@ -135,15 +135,15 @@ export function AddressPill({ label, country, mobile, inline }: { label: string;
         <button type="button" onClick={() => setOpen(true)} aria-label={t("header.change_address")} className="flex min-w-0 flex-grow items-center gap-[10px] text-left">
           <Pin size={22} color="#0B5D66" />
           <span className="min-w-0">
-            <span className="block text-small text-[#4C5A5E]">{t("header.deliver_to", { place: "" }).trim()}</span>
-            <b className="flex items-center gap-1 truncate text-label">{label} <Chevron size={14} color="#4C5A5E" /></b>
+            <span className="block text-small text-muted">{t("header.deliver_to", { place: "" }).trim()}</span>
+            <b className="flex items-center gap-1 truncate text-label">{label} <Chevron size={14} color="#3D4A4E" /></b>
           </span>
         </button>
       ) : (
         <button type="button" onClick={() => setOpen(true)} aria-label={t("header.change_address")} className="flex h-11 max-w-[260px] shrink-0 items-center gap-2 rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 text-label text-[#111418]">
           <Pin size={16} color="#0B5D66" />
           <span className="truncate">{label}</span>
-          <Chevron size={14} color="#4C5A5E" />
+          <Chevron size={14} color="#3D4A4E" />
         </button>
       )}
       {open && <AddressDialog title={t("header.change_address")} country={country} onClose={close} />}
@@ -162,10 +162,10 @@ export function SearchBox({ cityPath, compact, placeholder }: { cityPath: string
         e.preventDefault();
         router.push(`${cityPath ?? "/cities"}?q=${encodeURIComponent(q.trim())}`);
       }}
-      className={`flex h-12 flex-grow items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-body text-[#4C5A5E] ${compact ? "" : "min-w-0"}`}
+      className={`flex h-12 flex-grow items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-body text-muted ${compact ? "" : "min-w-0"}`}
     >
-      <Search color="#4C5A5E" />
-      <input aria-label={t("common.search_label")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder ?? t("common.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
+      <Search color="#3D4A4E" />
+      <input aria-label={t("common.search_label")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder ?? t("common.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-muted" />
     </form>
   );
 }

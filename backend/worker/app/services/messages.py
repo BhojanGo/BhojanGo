@@ -320,16 +320,16 @@ def email_html(r: Rendered, *, total: str | None = None, code: str | None = None
     esc = html.escape
     rows = ""
     if total:
-        rows = (f'<tr><td style="padding:12px 0 0;color:#4C5A5E">{esc(EMAIL_ORDER[r.language])} {esc(code or "")}</td>'
+        rows = (f'<tr><td style="padding:12px 0 0;color:#3D4A4E">{esc(EMAIL_ORDER[r.language])} {esc(code or "")}</td>'
                 f'<td style="padding:12px 0 0;text-align:right;font-weight:700">{esc(EMAIL_TOTAL[r.language])} {esc(total)}</td></tr>')
     return f"""<!doctype html><html lang="{r.language}"><body style="margin:0;background:#F4F6F6">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F6;padding:24px 12px">
 <tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"
- style="max-width:520px;background:#FFFFFF;border-radius:16px;padding:28px;font-family:'Hanken Grotesk',
+ style="max-width:520px;background:#FFFFFF;border-radius:16px;padding:28px;font-family:Inter,
  'Noto Sans Devanagari','Noto Sans Telugu','Noto Sans Tamil','Noto Sans Kannada','Noto Sans Bengali',Arial,sans-serif;color:#111418">
 <tr><td colspan="2" style="font-size:20px;font-weight:700;color:#0B5D66;padding-bottom:16px">bhojango</td></tr>
 <tr><td colspan="2" style="font-size:24px;font-weight:700;padding-bottom:8px">{esc(r.title)}</td></tr>
 <tr><td colspan="2" style="font-size:16px;line-height:1.5">{esc(r.body)}</td></tr>
 {rows}
-<tr><td colspan="2" style="font-size:12px;color:#4C5A5E;padding-top:24px">{esc(EMAIL_FOOTER[r.language])}</td></tr>
+<tr><td colspan="2" style="font-size:13px;color:#3D4A4E;padding-top:24px">{esc(EMAIL_FOOTER[r.language])}</td></tr>
 </table></td></tr></table></body></html>"""

@@ -143,7 +143,7 @@ export function Tracking({ id }: { id: string }) {
       </div>
     );
   }
-  if (!order) return <div className="mx-auto max-w-[1440px] px-5 py-14 text-[#4C5A5E] md:px-16">{t("track.loading")}</div>;
+  if (!order) return <div className="container-page py-14 text-muted">{t("track.loading")}</div>;
 
   const status = order.status === "delivered" || order.status === "cancelled" || !live.status ? order.status : live.status;
   const cancelled = status === "cancelled";
@@ -196,7 +196,7 @@ export function Tracking({ id }: { id: string }) {
   const bigEta = cancelled ? t("track.cancelled") : delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—";
 
   return (
-    <div className="mx-auto grid max-w-[1440px] md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:px-16 md:py-6">
+    <div className="container-page grid max-md:px-0 md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:py-6">
       {/* the map */}
       {/* phone: the sheet below overlaps the map's last 32 px, so the map's controls and credits sit above it */}
       <div className="relative h-[400px] overflow-hidden md:h-[760px] md:rounded-[28px] [&_.maplibregl-ctrl-bottom-left]:bottom-8 [&_.maplibregl-ctrl-bottom-right]:bottom-8 md:[&_.maplibregl-ctrl-bottom-left]:bottom-0 md:[&_.maplibregl-ctrl-bottom-right]:bottom-0">
@@ -223,12 +223,12 @@ export function Tracking({ id }: { id: string }) {
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">
             <span>
-              <span className="text-small text-[#4C5A5E]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
-              <b className="block text-h1 leading-none tracking-[-1.2px]" data-testid="eta">{bigEta}</b>
+              <span className="text-small text-muted">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
+              <b className="block text-h1 leading-none" data-testid="eta">{bigEta}</b>
             </span>
             {pin && (
               <span className="text-right">
-                <span className="text-small text-[#4C5A5E]">{t("track.pin_short")}</span>
+                <span className="text-small text-muted">{t("track.pin_short")}</span>
                 <b className="block text-h2 tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
               </span>
             )}
@@ -240,13 +240,13 @@ export function Tracking({ id }: { id: string }) {
               ))}
             </div>
           )}
-          <p className="m-0 mt-3 text-body text-[#4C5A5E]">{[sub, stage === 3 ? leftText && t("track.away", { left: leftText }) : null].filter(Boolean).join(" · ")}</p>
+          <p className="m-0 mt-3 text-body text-muted">{[sub, stage === 3 ? leftText && t("track.away", { left: leftText }) : null].filter(Boolean).join(" · ")}</p>
         </section>
 
         {/* desktop: the dark card */}
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
           <span className="text-body text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
-          <b className="block text-display leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
+          <b className="block text-display leading-[1.05]" data-testid="eta">{bigEta}</b>
           <p className="m-0 mt-2 text-body text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">
@@ -267,8 +267,8 @@ export function Tracking({ id }: { id: string }) {
                 return (
                   <li key={i} className="flex items-center gap-[14px]" aria-current={current ? "step" : undefined}>
                     <span aria-hidden="true" className={`h-[14px] w-[14px] shrink-0 rounded-full ${done ? "bg-[#0B5D66]" : current ? "bg-[#E8A93C] shadow-[0_0_0_5px_#F6E7CC]" : "bg-[#C9D3D4]"}`} />
-                    <b className={`flex-grow text-body ${done || current ? "" : "text-[#4C5A5E]"}`}>{s.label}</b>
-                    <span className="text-small text-[#4C5A5E]">
+                    <b className={`flex-grow text-body ${done || current ? "" : "text-muted"}`}>{s.label}</b>
+                    <span className="text-small text-muted">
                       {s.at ? z.time(s.at) : current && s.now ? t("track.now") : s.eta ? `~${z.time(s.eta)}` : ""}
                     </span>
                   </li>
@@ -314,7 +314,7 @@ export function Tracking({ id }: { id: string }) {
           </ul>
           {bill && (
             <div className="mt-4 border-t border-[#E2E7E8] pt-4">
-              <div className="mb-2 text-caption text-[#4C5A5E]">{t("checkout.fair_bill")}</div>
+              <div className="mb-2 text-caption text-muted">{t("checkout.fair_bill")}</div>
               <FairBill lines={bill.lines} total={bill.total ?? order.total} currency={bill.currency} formatLocale={f.formatLocale} t={t} totalLabel={t("track.you_paid")} compact />
             </div>
           )}
@@ -411,7 +411,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
         <span aria-hidden="true" className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#E8A93C] text-h3 text-[#111418]">{name.trim()[0]?.toUpperCase()}</span>
         <span className="min-w-0 flex-grow">
           <b className="block text-h3">{name}</b>
-          <span className="text-small text-[#4C5A5E]">{t("track.your_rider")}</span>
+          <span className="text-small text-muted">{t("track.your_rider")}</span>
         </span>
         {chat?.open && (
           <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="h-11 shrink-0 rounded-full border-[1.5px] border-[#C9D3D4] px-[22px] font-bold hover:border-[#0B5D66]">
@@ -424,7 +424,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
           {open && (
             <ol className="m-0 mt-4 flex max-h-64 list-none flex-col gap-2 overflow-y-auto p-0" aria-live="polite">
               {chat.messages.length === 0 ? (
-                <li className="text-small text-[#4C5A5E]">{t("track.no_messages")}</li>
+                <li className="text-small text-muted">{t("track.no_messages")}</li>
               ) : (
                 chat.messages.map((m) => (
                   <li key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 text-label ${m.mine ? "self-end bg-[#0B5D66] text-white" : "self-start bg-[#F4F6F6]"}`}>
@@ -450,7 +450,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
             </form>
           )}
           {error && <p role="alert" className="m-0 mt-2 text-label text-[#8C1D18]">{error}</p>}
-          <p className="m-0 mt-3 text-small text-[#4C5A5E]">{t("track.private")}</p>
+          <p className="m-0 mt-3 text-small text-muted">{t("track.private")}</p>
         </>
       )}
     </section>

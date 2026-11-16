@@ -1,12 +1,11 @@
 // The brand faces, loaded before the first screen draws, and the Noto Sans face
 // for an Indian-script language, loaded when that language is chosen (I18nProvider).
-// Only the weights the type scale uses: Familjen Grotesk 600; Hanken Grotesk and
-// Noto Sans 400/600/700 (see ./type.ts).
-// One import per weight (the package index would bundle all 9 weights and their italics).
-import { FamiljenGrotesk_600SemiBold } from "@expo-google-fonts/familjen-grotesk/600SemiBold";
-import { HankenGrotesk_400Regular } from "@expo-google-fonts/hanken-grotesk/400Regular";
-import { HankenGrotesk_600SemiBold } from "@expo-google-fonts/hanken-grotesk/600SemiBold";
-import { HankenGrotesk_700Bold } from "@expo-google-fonts/hanken-grotesk/700Bold";
+// Only the weights the type scale uses: Inter and Noto Sans 400/600/700 (see ./type.ts).
+// Inter is OFL, bundled with the app (no font download at runtime).
+// One import per weight (the package index would bundle all 18 weights and italics).
+import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
+import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
+import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
 import { NotoSansBengali_400Regular } from "@expo-google-fonts/noto-sans-bengali/400Regular";
 import { NotoSansBengali_600SemiBold } from "@expo-google-fonts/noto-sans-bengali/600SemiBold";
 import { NotoSansBengali_700Bold } from "@expo-google-fonts/noto-sans-bengali/700Bold";
@@ -23,17 +22,29 @@ import { NotoSansTelugu_400Regular } from "@expo-google-fonts/noto-sans-telugu/4
 import { NotoSansTelugu_600SemiBold } from "@expo-google-fonts/noto-sans-telugu/600SemiBold";
 import { NotoSansTelugu_700Bold } from "@expo-google-fonts/noto-sans-telugu/700Bold";
 import { loadAsync, useFonts } from "expo-font";
+import { PixelRatio, useWindowDimensions } from "react-native";
 
-import type { Script } from "./type";
+import { setTypeWidth, type Script } from "./type";
 
+/**
+ * Loads Inter and sets the size the type tokens scale to (the window's shorter
+ * side), before the screens below read them. Each app's root layout calls it.
+ */
 export function useBrandFonts(): boolean {
-  const [loaded] = useFonts({
-    FamiljenGrotesk_600SemiBold,
-    HankenGrotesk_400Regular,
-    HankenGrotesk_600SemiBold,
-    HankenGrotesk_700Bold,
-  });
+  const { width, height } = useWindowDimensions();
+  setTypeWidth(Math.min(width, height));
+  const [loaded] = useFonts({ Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   return loaded;
+}
+
+/**
+ * The phone's font setting (1 = default; React Native already applies it to every
+ * Text with allowFontScaling, so the type tokens stay unscaled). For layout that
+ * must make room for text it does not render itself (a fixed bar height, a badge),
+ * capped at `max` the same way maxFontSizeMultiplier caps dense text.
+ */
+export function fontScale(max = Infinity): number {
+  return Math.min(max, PixelRatio.getFontScale());
 }
 
 // Family names match familyFor() in ./type.ts.

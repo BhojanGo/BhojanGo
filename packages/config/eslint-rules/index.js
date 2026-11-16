@@ -12,8 +12,11 @@
 //     - font-size in CSS (the `css` processor turns each line of a .css file
 //       into a string, so the same rule reads it).
 //   Colour, alignment and other text-* classes (text-white, text-center,
-//   text-[#111418], text-peacock) are fine. Nothing readable is under 14 px
-//   because the only token under 14 is text-caption, which sets uppercase itself.
+//   text-[#111418], text-peacock) are fine. The tokens are fluid (packages/ui
+//   tailwind-preset.js: clamp() from 360 to 1440 px, e.g. text-h1 28 to 36 px), so a
+//   raw size, fixed or clamp(), is always off the scale. Nothing readable is under
+//   13 px because the only token under 13 is text-caption (12), which sets
+//   uppercase itself.
 
 const TOKENS = ["display", "h1", "h2", "h3", "body-lg", "body", "label", "small", "caption"];
 const NAMED = /^text-(?:xs|sm|base|lg|xl|[2-9]xl)(?:\/\S+)?$/;

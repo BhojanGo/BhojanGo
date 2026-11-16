@@ -43,9 +43,9 @@ function SearchField({ value, onChange, placeholder, className, anchor }: { valu
   const id = useId();
   return (
     <label id={anchor} htmlFor={id} className={`flex scroll-mt-[120px] items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] text-body focus-within:border-[#0B5D66] ${className}`}>
-      <Search size={18} color="#4C5A5E" />
+      <Search size={18} color="#3D4A4E" />
       <span className="sr-only">{placeholder}</span>
-      <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-[#4C5A5E]" />
+      <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-muted" />
     </label>
   );
 }
@@ -66,7 +66,7 @@ function CityChip({ c }: { c: DirCity }) {
       {c.name}
     </Link>
   ) : (
-    <Link href={c.path} className="flex h-11 items-center gap-2 rounded-full border border-dashed border-[#C9D3D4] px-4 font-semibold text-[#4C5A5E] hover:text-[#111418]">
+    <Link href={c.path} className="flex h-11 items-center gap-2 rounded-full border border-dashed border-[#C9D3D4] px-4 font-semibold text-muted hover:text-[#111418]">
       {c.name} · {t("common.soon")}
       <Waiting c={c} className="text-small text-[#7A4F0E]" />
     </Link>
@@ -84,11 +84,11 @@ export function LandingDirectory({ dir }: { dir: Directory }) {
     ...dir.countries.map((k) => ({ key: k.code, label: k.name, count: k.live + k.soon })),
   ];
   return (
-    <section aria-labelledby="where-we-deliver" className="mx-auto max-w-[1440px] px-5 pt-14 md:px-16 md:pt-20">
+    <section aria-labelledby="where-we-deliver" className="container-page pt-14 md:pt-20">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 id="where-we-deliver" className="m-0 text-h1 tracking-[-0.8px]">{t("cities.title")}</h2>
-          <p className="mt-[6px] text-body text-[#4C5A5E]">{totalsLine(t, dir.totals)}</p>
+          <h2 id="where-we-deliver" className="m-0 text-h1">{t("cities.title")}</h2>
+          <p className="mt-[6px] text-body text-muted">{totalsLine(t, dir.totals)}</p>
         </div>
         <SearchField value={q} onChange={setQ} placeholder={t("home.find_your_city")} className="h-12 w-full md:w-[360px]" />
       </div>
@@ -102,7 +102,7 @@ export function LandingDirectory({ dir }: { dir: Directory }) {
               role="tab"
               aria-selected={on}
               onClick={() => setFilter(tab.key)}
-              className={`flex h-11 shrink-0 items-center px-4 ${on ? "border-b-[2.5px] border-[#0B5D66] font-bold text-[#083F46]" : "font-bold text-[#4C5A5E]"}`}
+              className={`flex h-11 shrink-0 items-center px-4 ${on ? "border-b-[2.5px] border-[#0B5D66] font-bold text-[#083F46]" : "font-bold text-muted"}`}
             >
               {tab.label}
               {tab.count != null && <span className="ml-[6px] rounded-md bg-[#F4F6F6] px-[6px] py-[2px] text-small">{tab.count}</span>}
@@ -113,10 +113,10 @@ export function LandingDirectory({ dir }: { dir: Directory }) {
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         {shown.map((k) => (
           <div key={k.code} className="rounded-[24px] border border-[#E2E7E8] p-6">
-            <div className="text-caption text-[#4C5A5E]">{k.name}</div>
+            <div className="text-caption text-muted">{k.name}</div>
             {k.regions.map((r) => (
               <div key={r.code}>
-                <div className="mt-4 text-label text-[#4C5A5E]">{r.name}</div>
+                <div className="mt-4 text-label text-muted">{r.name}</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {r.cities.map((c) => (
                     <CityChip key={c.code} c={c} />
@@ -135,7 +135,7 @@ export function LandingDirectory({ dir }: { dir: Directory }) {
 function NoMatch() {
   const t = useT();
   return (
-    <p role="status" className="text-body text-[#4C5A5E] md:col-span-2">
+    <p role="status" className="text-body text-muted md:col-span-2">
       {t("cities.no_match")}{" "}
       <a href="#suggest" className="font-bold">
         {t("cities.suggest_link")}
@@ -191,19 +191,15 @@ function CityCard({ c, region, cover, country, choosing }: { c: DirCity; region:
       ) : null}
       <span className="min-w-0 flex-1">
         <b className="block break-words text-h3">{c.name}</b>
-        <span className="block break-words text-small text-[#4C5A5E]">{region}</span>
+        <span className="block break-words text-small text-muted">{region}</span>
         <span data-testid="city-status" className={`mt-1 block text-label ${live ? "text-[#0B5D66]" : "text-[#7A4F0E]"}`}>{status}</span>
         {notify && (
-          <span className="mt-2 inline-flex h-10 items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:hidden">
+          // under the text at every size, so a long city name keeps the card's width (4 columns at 1280)
+          <span className="mt-2 inline-flex h-10 items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418]">
             {t("notify.button")}
           </span>
         )}
       </span>
-      {notify && (
-        <span className="hidden h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:inline-flex">
-          {t("notify.button")}
-        </span>
-      )}
     </Link>
   );
 }
@@ -214,7 +210,7 @@ function CityGrid({ k, covers, choosing }: { k: DirCountry; covers: Record<strin
       {k.regions.map((r, i) => (
         <div key={r.code}>
           <h3 className={`m-0 text-label ${i ? "mt-[22px]" : "mt-[14px]"}`}>{r.name}</h3>
-          <div className="mt-[10px] grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-[10px] grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {r.cities.map((c) => (
               <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} country={k} choosing={choosing} />
             ))}
@@ -246,12 +242,12 @@ export function ChooseCity({ dir, covers, country, choosing }: { dir: Directory;
       </div>
       {home ? (
         <section aria-label={home.name} data-testid="choose-home" data-country={home.code} className="pt-8">
-          <h2 className="m-0 text-caption text-[#4C5A5E]">{home.name}</h2>
+          <h2 className="m-0 text-caption text-muted">{home.name}</h2>
           <CityGrid k={home} covers={covers} choosing={choosing} />
         </section>
       ) : (
         country && (
-          <p role="status" className="pt-8 text-body text-[#4C5A5E]">
+          <p role="status" className="pt-8 text-body text-muted">
             {homeName && q.trim() ? t("cities.no_match_in", { country: homeName }) : t("cities.no_match")}
           </p>
         )
@@ -268,7 +264,7 @@ export function ChooseCity({ dir, covers, country, choosing }: { dir: Directory;
           </summary>
           {others.map((k) => (
             <section key={k.code} aria-label={k.name} className="pt-6">
-              <h2 className="m-0 text-caption text-[#4C5A5E]">{k.name}</h2>
+              <h2 className="m-0 text-caption text-muted">{k.name}</h2>
               <CityGrid k={k} covers={covers} choosing={choosing} />
             </section>
           ))}
@@ -317,7 +313,7 @@ export function CitiesDirectory({ dir, covers, choosing }: { dir: Directory; cov
       </div>
       {shown.map((k) => (
         <section key={k.code} aria-label={k.name} className="pt-10">
-          <h2 className="m-0 text-caption text-[#4C5A5E]">{k.name}</h2>
+          <h2 className="m-0 text-caption text-muted">{k.name}</h2>
           <CityGrid k={k} covers={covers} choosing={choosing} />
         </section>
       ))}
