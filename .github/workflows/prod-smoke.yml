@@ -11,6 +11,7 @@ on:
     branches: [dev, main]
     paths:
       - infra/docker/next-app.Dockerfile
+      - turbo.json
       - infra/docker/compose.prod-smoke.yaml
       - packages/ui/environment.js
       - packages/ui/security-headers.js
