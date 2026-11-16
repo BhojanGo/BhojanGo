@@ -111,7 +111,7 @@ function Simulator() {
     >
       <div>
         <div className="text-small text-muted">Pricing &amp; Rules ▸ Price simulator</div>
-        <h1 className="m-0 mt-2 text-h1 tracking-[-0.8px]">Price simulator · {cityInfo?.name ?? city}</h1>
+        <h1 className="m-0 mt-2 text-h1">Price simulator · {cityInfo?.name ?? city}</h1>
         <p className="mt-1 text-small text-muted">Price one cart with the live rules and with drafts before anyone approves them.</p>
       </div>
 
@@ -212,7 +212,7 @@ function Simulator() {
                   {!sim.data.draft.ok ? `Draft: ${sim.data.draft.message}.` : ""}
                 </p>
               )}
-              <table className="w-full min-w-[420px] border-collapse text-small tabular-nums">
+              <div className="overflow-x-auto"><table className="w-full min-w-[420px] border-collapse text-small tabular-nums">
                 <thead>
                   <tr className="text-left text-caption text-muted">
                     <th className="py-2 font-bold">Line</th>
@@ -245,7 +245,7 @@ function Simulator() {
                     );
                   })}
                 </tbody>
-              </table>
+              </table></div>
               <p className="mt-3 text-small text-muted">
                 {sim.data.changes.length ? `${sim.data.changes.length} amounts change with the drafts.` : "No change."}{" "}
                 <button type="button" className="font-bold text-peacock" onClick={() => router.refresh()}>

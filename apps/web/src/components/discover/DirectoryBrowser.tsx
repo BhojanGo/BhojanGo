@@ -84,7 +84,7 @@ export function LandingDirectory({ dir }: { dir: Directory }) {
     ...dir.countries.map((k) => ({ key: k.code, label: k.name, count: k.live + k.soon })),
   ];
   return (
-    <section aria-labelledby="where-we-deliver" className="mx-auto max-w-[1440px] px-5 pt-14 md:px-16 md:pt-20">
+    <section aria-labelledby="where-we-deliver" className="container-page pt-14 md:pt-20">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 id="where-we-deliver" className="m-0 text-h1">{t("cities.title")}</h2>
@@ -194,16 +194,12 @@ function CityCard({ c, region, cover, country, choosing }: { c: DirCity; region:
         <span className="block break-words text-small text-muted">{region}</span>
         <span data-testid="city-status" className={`mt-1 block text-label ${live ? "text-[#0B5D66]" : "text-[#7A4F0E]"}`}>{status}</span>
         {notify && (
-          <span className="mt-2 inline-flex h-10 items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:hidden">
+          // under the text at every size, so a long city name keeps the card's width (4 columns at 1280)
+          <span className="mt-2 inline-flex h-10 items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418]">
             {t("notify.button")}
           </span>
         )}
       </span>
-      {notify && (
-        <span className="hidden h-10 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-[#111418] sm:inline-flex">
-          {t("notify.button")}
-        </span>
-      )}
     </Link>
   );
 }
@@ -214,7 +210,7 @@ function CityGrid({ k, covers, choosing }: { k: DirCountry; covers: Record<strin
       {k.regions.map((r, i) => (
         <div key={r.code}>
           <h3 className={`m-0 text-label ${i ? "mt-[22px]" : "mt-[14px]"}`}>{r.name}</h3>
-          <div className="mt-[10px] grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-[10px] grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {r.cities.map((c) => (
               <CityCard key={c.code} c={c} region={r.name} cover={covers[c.code] ?? null} country={k} choosing={choosing} />
             ))}

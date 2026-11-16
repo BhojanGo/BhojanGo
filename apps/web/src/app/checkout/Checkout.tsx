@@ -70,7 +70,7 @@ function StepHead({ n, done, title, action }: { n: number; done: boolean; title:
       <span aria-hidden="true" className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-label text-white md:flex ${done ? "bg-[#0B5D66]" : "bg-[#111418]"}`}>
         {done ? <Check color="#FFFFFF" /> : n}
       </span>
-      <h2 className="m-0 flex-grow text-h2 tracking-[-0.4px]">{title}</h2>
+      <h2 className="m-0 flex-grow text-h2">{title}</h2>
       {action}
     </div>
   );
@@ -191,7 +191,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const defaultMethod = saved.find((m) => m.is_default) ? `saved:${saved.find((m) => m.is_default)!.id}` : methods[0]?.key;
   const chosen = methods.find((m) => m.key === (method ?? defaultMethod)) ?? methods[0];
 
-  if (!hydrated || !user) return <div className="mx-auto max-w-[1440px] px-5 py-14 text-muted md:px-16">{t("common.loading")}</div>;
+  if (!hydrated || !user) return <div className="container-page py-14 text-muted">{t("common.loading")}</div>;
   if (!lines.length || !bag.restaurant) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
@@ -306,7 +306,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   );
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pb-32 pt-4 md:px-16 md:pb-20 md:pt-6">
+    <div className="container-page pb-32 pt-4 md:pb-20 md:pt-6">
       <div className="mb-4 flex items-center justify-between text-body">
         <Link href={kitchenPath} className="inline-flex items-center gap-2 font-bold text-[#0B5D66]">
           <span aria-hidden="true">←</span> {t("checkout.back_to_menu")}
@@ -316,9 +316,9 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
           {t("checkout.secure")}
         </span>
       </div>
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_460px] md:gap-10">
+      <div className="grid grid-cols-1 gap-6 md:gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
         <div className="flex flex-col gap-4">
-          <h1 className="m-0 text-h1 tracking-[-0.8px] md:tracking-[-1.2px]">{t("checkout.title")}</h1>
+          <h1 className="m-0 text-h1">{t("checkout.title")}</h1>
 
           {/* where */}
           <section className={card} aria-labelledby="where-h">
@@ -441,7 +441,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
         </div>
 
         {/* summary */}
-        <aside className="md:sticky md:top-[100px] md:self-start" aria-label={t("checkout.summary")}>
+        <aside className="lg:sticky lg:top-[100px] lg:self-start" aria-label={t("checkout.summary")}>
           <div className="overflow-hidden rounded-[24px] border border-[#E2E7E8]">
             <div className="hidden items-center gap-[14px] bg-[#F4F6F6] px-5 py-[18px] md:flex">
               <span className="h-14 w-14 shrink-0 overflow-hidden rounded-[14px] bg-[#DDEBEC]">

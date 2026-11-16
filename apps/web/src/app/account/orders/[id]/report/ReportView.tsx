@@ -76,7 +76,7 @@ export function ReportView({ id }: { id: string }) {
   if (done) {
     return (
       <section aria-labelledby="report-done" className="max-w-[640px] rounded-3xl border border-[#E2E7E8] p-6 md:p-7">
-        <h1 id="report-done" className="text-h1 tracking-[-0.8px]">
+        <h1 id="report-done" className="text-h1">
           {done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}
         </h1>
         <p className="mt-3 text-body-lg">{done.message}</p>
@@ -95,7 +95,7 @@ export function ReportView({ id }: { id: string }) {
     <form onSubmit={send} aria-labelledby="report-title" className="max-w-[640px] space-y-5">
       <div>
         <Link href={back} className="text-label">← {t("account.report.back")}</Link>
-        <h1 id="report-title" className="mt-2 text-h1 tracking-[-0.8px]">{t("account.report.title")}</h1>
+        <h1 id="report-title" className="mt-2 text-h1">{t("account.report.title")}</h1>
         {loaded?.order && <p className="text-muted">{loaded.order.restaurant_name}</p>}
         {!loaded && <p role="status" className="text-muted">{t("account.loading")}</p>}
         {loaded && !loaded.order && <p role="alert" className="text-muted">{t("account.report.not_found")}</p>}

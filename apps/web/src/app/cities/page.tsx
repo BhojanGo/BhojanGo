@@ -28,7 +28,7 @@ export default async function Cities({ searchParams }: { searchParams: Search })
   const covers = Object.fromEntries(live.map((c, i) => [c.code, found[i]?.restaurants?.find((k) => k.cover_url)?.cover_url ?? null]));
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-16 md:pb-[72px] md:pt-12">
+    <div className="container-page pb-16 pt-8 md:pb-[72px] md:pt-12">
       <h1 className="m-0 text-h1">{choosing ? t("cities.choose_title") : t("cities.title")}</h1>
       <p className="mt-2 text-body-lg text-muted">{choosing ? t("cities.choose_note") : totalsLine(t, dir.totals)}</p>
       {choosing ? (

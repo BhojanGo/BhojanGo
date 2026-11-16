@@ -141,7 +141,7 @@ export function OrdersView() {
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
       <div className={chosen ? "hidden lg:block" : ""}>
         <div className="flex items-baseline justify-between">
-          <h1 className="text-h1 tracking-[-0.8px]">{t("account.orders.title")}</h1>
+          <h1 className="text-h1">{t("account.orders.title")}</h1>
           {!loading && !list.error && <span className="text-small text-muted">{t("account.orders.count", { count: list.total })}</span>}
         </div>
         <label className="mt-4 flex h-11 items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-4 text-small focus-within:border-[#0B5D66]">

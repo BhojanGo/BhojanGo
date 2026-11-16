@@ -126,7 +126,7 @@ function Kitchens({ scope }: { scope: string }) {
   const opened = list.find((k) => k.id === open) ?? null;
   return (
     <section className="space-y-3">
-      <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
+      <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-full max-w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
       {isLoading ? <p className="text-muted">Loading…</p> : null}
       <div className="overflow-x-auto rounded-2xl bg-white">
         <table className="w-full text-left text-small">
@@ -271,11 +271,11 @@ function PartnersPage() {
   return (
     <ConsoleShell section="Partners" country={country} region={region} city={city} scopeHref={(s) => `/partners?scope=${s}&tab=${tab}`}>
       <div className="flex flex-wrap items-end gap-3">
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">Partners</h1>
-        <nav aria-label="Partners" className="ml-auto flex rounded-full bg-white p-1">
+        <h1 className="m-0 text-h1">Partners</h1>
+        <nav aria-label="Partners" className="ml-auto flex max-w-full overflow-x-auto rounded-full bg-white p-1">
           {TABS.map((t) => (
             <button key={t.key} type="button" onClick={() => router.replace(`/partners?scope=${scope}&tab=${t.key}`)} aria-current={tab === t.key ? "page" : undefined}
-              className={`h-9 rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
+              className={`h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-label ${tab === t.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{t.label}</button>
           ))}
         </nav>
       </div>

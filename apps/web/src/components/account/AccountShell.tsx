@@ -35,7 +35,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
 
   if (!hydrated || !user) {
     return (
-      <div className="mx-auto max-w-[1440px] px-5 py-16 text-muted md:px-16" role="status">
+      <div className="container-page py-16 text-muted" role="status">
         {t("account.loading")}
       </div>
     );
@@ -43,7 +43,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
 
   const initial = (user.full_name || user.email || "?").trim()[0]?.toUpperCase();
   return (
-    <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-5 pb-[72px] pt-5 md:flex-row md:gap-10 md:px-16 md:pt-8">
+    <div className="flex container-page flex-col gap-5 pb-[72px] pt-5 md:flex-row md:gap-10 md:pt-8">
       <aside className="md:w-[260px] md:shrink-0">
         <div className="flex items-center gap-3 px-1 pb-4 md:pb-5 md:pt-1">
           <span aria-hidden="true" className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#DDEBEC] text-h3 text-[#083F46]">
@@ -54,7 +54,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
             {user.phone && <span className="text-small text-muted">{user.phone}</span>}
           </span>
         </div>
-        <nav aria-label={t("account.nav.label")} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-col md:gap-[2px] md:overflow-visible md:px-0 md:pb-0">
+        <nav aria-label={t("account.nav.label")} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-[2px] md:overflow-visible md:px-0 md:pb-0">
           {NAV.map((n) => {
             const active = "match" in n && path.startsWith(n.match);
             return (

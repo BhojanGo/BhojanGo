@@ -43,7 +43,7 @@ export default function Partner() {
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-12">
       <div>
         <p className="text-caption text-peacock">For kitchens</p>
-        <h1 className="text-display tracking-[-1.2px]">Cook for your neighbourhood</h1>
+        <h1 className="text-display">Cook for your neighbourhood</h1>
         <p className="mt-3 text-body-lg text-muted">Commission on food only, paid weekly. You set your prices and your own offers. Customers see the whole bill, so they trust your prices.</p>
       </div>
       {!user ? (

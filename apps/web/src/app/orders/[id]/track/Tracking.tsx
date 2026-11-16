@@ -143,7 +143,7 @@ export function Tracking({ id }: { id: string }) {
       </div>
     );
   }
-  if (!order) return <div className="mx-auto max-w-[1440px] px-5 py-14 text-muted md:px-16">{t("track.loading")}</div>;
+  if (!order) return <div className="container-page py-14 text-muted">{t("track.loading")}</div>;
 
   const status = order.status === "delivered" || order.status === "cancelled" || !live.status ? order.status : live.status;
   const cancelled = status === "cancelled";
@@ -196,7 +196,7 @@ export function Tracking({ id }: { id: string }) {
   const bigEta = cancelled ? t("track.cancelled") : delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—";
 
   return (
-    <div className="mx-auto grid max-w-[1440px] md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:px-16 md:py-6">
+    <div className="container-page grid max-md:px-0 md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:py-6">
       {/* the map */}
       {/* phone: the sheet below overlaps the map's last 32 px, so the map's controls and credits sit above it */}
       <div className="relative h-[400px] overflow-hidden md:h-[760px] md:rounded-[28px] [&_.maplibregl-ctrl-bottom-left]:bottom-8 [&_.maplibregl-ctrl-bottom-right]:bottom-8 md:[&_.maplibregl-ctrl-bottom-left]:bottom-0 md:[&_.maplibregl-ctrl-bottom-right]:bottom-0">
@@ -224,7 +224,7 @@ export function Tracking({ id }: { id: string }) {
           <div className="flex items-start justify-between gap-4">
             <span>
               <span className="text-small text-muted">{t("track.arriving")}</span>
-              <b className="block text-h1 leading-none tracking-[-1.2px]" data-testid="eta">{bigEta}</b>
+              <b className="block text-h1 leading-none" data-testid="eta">{bigEta}</b>
             </span>
             {pin && (
               <span className="text-right">
@@ -246,7 +246,7 @@ export function Tracking({ id }: { id: string }) {
         {/* desktop: the dark card */}
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
           <span className="text-body text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
-          <b className="block text-display leading-[1.05] tracking-[-1.6px]" data-testid="eta">{bigEta}</b>
+          <b className="block text-display leading-[1.05]" data-testid="eta">{bigEta}</b>
           <p className="m-0 mt-2 text-body text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">

@@ -83,7 +83,7 @@ function FinancePage() {
   return (
     <ConsoleShell section="Finance" country={country} region={region} city={city} scopeHref={(s) => `/finance?scope=${s.split("-")[0]}`}>
       <div>
-        <h1 className="m-0 text-h1 tracking-[-0.8px]">Finance · {markets?.find((c) => c.code === target)?.name ?? target}</h1>
+        <h1 className="m-0 text-h1">Finance · {markets?.find((c) => c.code === target)?.name ?? target}</h1>
         <p className="mt-1 text-small text-muted">Payouts run weekly per country (Monday to Monday, local time). The admin who prepares a run can&apos;t approve it.</p>
       </div>
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Payout runs">
@@ -97,7 +97,7 @@ function FinancePage() {
           ) : null}
         </div>
         {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
-        <table className="w-full text-left text-small tabular-nums">
+        <div className="overflow-x-auto"><table className="w-full text-left text-small tabular-nums">
           <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Kitchens</th><th>Riders</th><th /></tr></thead>
           <tbody className="divide-y divide-line">
             {(runs.data ?? []).map((r) => (
@@ -116,13 +116,13 @@ function FinancePage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         {runs.data && runs.data.length === 0 ? <p className="text-small text-muted">No payout runs yet.</p> : null}
       </section>
       {open && run.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Statements">
           <h2 className="m-0 mb-3 text-h3">Statements · {run.data.period_start} → {run.data.period_end}</h2>
-          <table className="w-full text-left text-small tabular-nums">
+          <div className="overflow-x-auto"><table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted"><tr><th className="py-2">Payee</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody className="divide-y divide-line">
               {run.data.statements.map((s) => (
@@ -130,7 +130,7 @@ function FinancePage() {
                   <td>{money(s.amount / 100, s.currency, 2)}</td><td>{s.status}{s.error ? <span className="text-muted"> · {s.error}</span> : null}</td></tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </section>
       ) : null}
       {contribution.data ? (

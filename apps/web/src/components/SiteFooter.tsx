@@ -10,7 +10,7 @@ export async function SiteFooter() {
   const col = "flex flex-col gap-[10px]";
   return (
     <footer className="mt-[72px] bg-[#F4F6F6]">
-      <div className="mx-auto grid max-w-[1440px] grid-cols-2 gap-8 px-5 py-12 text-body md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-16">
+      <div className="grid container-page grid-cols-2 gap-8 py-12 text-body md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-[10px]">
             <LogoMark size={30} />

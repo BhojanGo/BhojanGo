@@ -19,7 +19,7 @@ export default async function Ride() {
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-12">
       <div>
         <p className="text-caption text-[#0B5D66]">{t("ride.eyebrow")}</p>
-        <h1 className="text-h1 leading-[1.05] tracking-[-1.2px]">{t("ride.title")}</h1>
+        <h1 className="text-h1 leading-[1.05]">{t("ride.title")}</h1>
         <p className="mt-3 text-body-lg text-muted">{t("ride.lead")}</p>
       </div>
 

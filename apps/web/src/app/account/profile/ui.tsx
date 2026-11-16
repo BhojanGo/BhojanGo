@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 
 export const card = "scroll-mt-24 rounded-3xl border border-[#E2E7E8] px-5 py-5 md:px-7 md:py-6";
-export const h2 = "text-h2 tracking-[-0.4px]";
+export const h2 = "text-h2";
 export const link = "shrink-0 font-bold text-[#0B5D66] hover:text-[#083F46] disabled:opacity-60";
 export const input = "mt-1 block h-11 w-full rounded-xl border-[1.5px] border-[#C9D3D4] bg-white px-3 text-body text-[#111418] focus:border-[#0B5D66] focus:outline-none";
 export const primary = "flex h-11 shrink-0 items-center justify-center rounded-full bg-[#0B5D66] px-5 font-bold text-white hover:bg-[#083F46] disabled:opacity-60";

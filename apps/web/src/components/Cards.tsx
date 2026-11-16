@@ -60,7 +60,7 @@ function Img({ src, alt = "", className }: { src: string | null; alt?: string; c
 function NameTile({ name, sub }: { name: string; sub: string | null }) {
   return (
     <span aria-hidden="true" className="flex h-full w-full flex-col items-center justify-center rounded-[20px] bg-[#DDEBEC] text-[#083F46]">
-      <span className="text-display leading-none tracking-[-1px]">{initials(name)}</span>
+      <span className="text-display leading-none">{initials(name)}</span>
       {sub && <span className="mt-2 text-caption text-[#0B5D66]">{sub}</span>}
     </span>
   );
@@ -145,7 +145,7 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
   return (
     <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
       <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
-        <b className="text-h2 tracking-[-0.4px]">{offerTitle(o, t, currency, formatLocale)}</b>
+        <b className="text-h2">{offerTitle(o, t, currency, formatLocale)}</b>
         <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
         <span className="mt-[10px] text-caption text-muted">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
       </span>
@@ -156,8 +156,8 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
 
 export function CuisineTile({ name, image, href }: { name: string; image: string | null; href: string }) {
   return (
-    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[150px]">
-      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[150px]">
+    <Link href={href} className="w-[72px] shrink-0 text-center text-[#111418] hover:text-[#111418] md:w-[120px]">
+      <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[120px] md:w-[120px]">
         <Img src={photo(image, 400)} className="rounded-full" />
       </span>
       <span className="mt-[6px] block text-label md:mt-3">{name}</span>

@@ -43,7 +43,7 @@ export function PhoneForm({ countries, initial, next, children }: { countries: C
 
   return (
     <form onSubmit={send} noValidate>
-      <h1 className="m-0 text-h1 leading-[1.1] tracking-[-0.8px] md:tracking-[-1px]">{t("signin.heading")}</h1>
+      <h1 className="m-0 text-h1 leading-[1.1]">{t("signin.heading")}</h1>
       <p className="m-0 mt-2 hidden text-body text-muted md:block">{t("signin.sub")}</p>
       <div className="mt-6 md:mt-8">
         <label htmlFor={inputId} className="block text-label">{t("signin.mobile")}</label>

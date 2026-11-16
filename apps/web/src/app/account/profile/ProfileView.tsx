@@ -279,7 +279,7 @@ export function ProfileView() {
   if (!user) return null; // the account frame sends you to sign in
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-h1 tracking-[-0.8px]">{t("account.profile.title")}</h1>
+      <h1 className="text-h1">{t("account.profile.title")}</h1>
       <Details key={user.id} user={user} />
       <LanguageCountry />
       <Addresses />
