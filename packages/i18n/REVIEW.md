@@ -377,3 +377,6 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
   refusals POST /riders/apply sends in the form's language.
 - Help article `become-a-delivery-partner` (en, hi, es seed): the sign-up step and the
   background-check line changed to match.
+- Report a problem (round 9 page review): `account.report.photo_add`, `photo_remove`
+  (the page's own photo button, replacing the browser's untranslated "Choose File")
+  and `account.report.need` (why Send report is still greyed out).

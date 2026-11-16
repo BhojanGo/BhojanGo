@@ -4246,6 +4246,28 @@
       },
       "FavouriteItemRestaurant": {
         "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",

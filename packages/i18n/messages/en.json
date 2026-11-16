@@ -641,7 +641,10 @@
       "refunded": "Refunded",
       "ticket": "Sent to support",
       "ticket_note": "Refunds above {amount} on one order are checked by a person first.",
-      "back_to_order": "Back to your order"
+      "back_to_order": "Back to your order",
+      "photo_add": "Add a photo",
+      "photo_remove": "Remove photo",
+      "need": "Choose how many of which item, and what went wrong."
     },
     "profile": {
       "title": "Profile & settings",

@@ -28,7 +28,6 @@ async function uploadPhoto(file: File, token: string | null): Promise<string> {
   return body.key;
 }
 
-const field = "mt-1 block h-12 w-full rounded-xl border-[1.5px] border-[#C9D3D4] bg-white px-3 font-normal text-[#111418] focus:border-[#0B5D66] focus:outline-none";
 
 export function ReportView({ id }: { id: string }) {
   const t = useT();
@@ -136,21 +135,40 @@ export function ReportView({ id }: { id: string }) {
         </div>
         <label className="block text-label">
           {t("account.report.more")}
-          <input value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} className={field} />
+          <textarea value={note} maxLength={300} rows={3} onChange={(e) => setNote(e.target.value)}
+            className="mt-1 block w-full resize-y rounded-xl border-[1.5px] border-[#C9D3D4] bg-white px-3 py-3 font-normal text-[#111418] focus:border-[#0B5D66] focus:outline-none" />
         </label>
-        <label className="block text-label">
-          {t("account.report.photo")}
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-small" />
-        </label>
+        {/* The browser's own file control says "Choose File / No file chosen" in its language,
+            not the page's: a labelled button instead, with the chosen photo's name. */}
+        <div>
+          <p className="m-0 text-label">{t("account.report.photo")}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <label className="inline-flex h-11 cursor-pointer items-center rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-5 text-label text-[#111418] focus-within:ring-2 focus-within:ring-[#0B5D66] hover:border-[#0B5D66]">
+              <input key={photo ? "set" : "empty"} type="file" accept="image/jpeg,image/png,image/webp" data-testid="report-photo"
+                onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="sr-only" />
+              {t("account.report.photo_add")}
+            </label>
+            {photo && (
+              <span className="flex min-w-0 items-center gap-2 text-small">
+                <span className="max-w-[220px] truncate">{photo.name}</span>
+                <button type="button" onClick={() => setPhoto(null)} className="min-h-[44px] font-bold text-[#0B5D66]">{t("account.report.photo_remove")}</button>
+              </span>
+            )}
+          </div>
+        </div>
       </fieldset>
       {error && <p role="alert" className="font-semibold text-[#8C1D18]">{error}</p>}
-      <button
-        type="submit"
-        disabled={busy || !chosen || !reason}
-        className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#0B5D66] px-7 font-bold text-white hover:bg-[#083F46] disabled:opacity-50 md:w-auto"
-      >
-        {busy ? t("account.report.sending") : t("account.report.send")}
-      </button>
+      <div>
+        <button
+          type="submit"
+          disabled={busy || !chosen || !reason}
+          aria-describedby={!chosen || !reason ? "report-need" : undefined}
+          className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#0B5D66] px-7 font-bold text-white hover:bg-[#083F46] disabled:opacity-50 md:w-auto"
+        >
+          {busy ? t("account.report.sending") : t("account.report.send")}
+        </button>
+        {(!chosen || !reason) && loaded?.order && <p id="report-need" className="mt-2 text-small text-muted">{t("account.report.need")}</p>}
+      </div>
     </form>
   );
 }

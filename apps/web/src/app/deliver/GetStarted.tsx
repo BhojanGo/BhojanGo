@@ -204,11 +204,14 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
         <>
           <label htmlFor={ids.dob} className="mt-4 block text-label">{t("deliver_page.gs_dob")}</label>
           <input id={ids.dob} data-testid="gs-dob" type="date" autoComplete="bday" value={dob} min="1900-01-01" max={rules.today}
-            aria-describedby={dobProblem && dobTouched ? `${ids.dobError} ${ids.dobHelp}` : ids.dobHelp} aria-invalid={!!dobProblem && dobTouched}
+            aria-describedby={dobProblem && dobTouched ? ids.dobError : ids.dobHelp} aria-invalid={!!dobProblem && dobTouched}
             onChange={(e) => setDob(e.target.value)} onBlur={() => setDobTouched(true)}
             className={`${field} [color-scheme:dark] ${dobProblem && dobTouched ? "border-[#FF8A80]" : ""}`} />
-          {dobProblem && dobTouched && <p id={ids.dobError} data-testid="gs-dob-error" className="m-0 mt-[6px] text-small font-bold text-[#FFB4AB]">{dobProblem}</p>}
-          <p id={ids.dobHelp} className="m-0 mt-[6px] text-small text-[#C4D0D2]">{t("deliver_page.gs_dob_help", { age: rules.min_age })}</p>
+          {dobProblem && dobTouched ? (
+            <p id={ids.dobError} data-testid="gs-dob-error" className="m-0 mt-[6px] text-small font-bold text-[#FFB4AB]">{dobProblem}</p>
+          ) : (
+            <p id={ids.dobHelp} className="m-0 mt-[6px] text-small text-[#C4D0D2]">{t("deliver_page.gs_dob_help", { age: rules.min_age })}</p>
+          )}
 
           <fieldset className="m-0 mt-4 border-0 p-0" data-testid="gs-vehicles">
             <legend className="block p-0 text-label">{t("deliver_page.gs_vehicle")}</legend>

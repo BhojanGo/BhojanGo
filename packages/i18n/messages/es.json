@@ -641,7 +641,10 @@
       "refunded": "Reembolsado",
       "ticket": "Enviado a soporte",
       "ticket_note": "Los reembolsos de más de {amount} en un pedido los revisa primero una persona.",
-      "back_to_order": "Volver a tu pedido"
+      "back_to_order": "Volver a tu pedido",
+      "photo_add": "Añadir una foto",
+      "photo_remove": "Quitar la foto",
+      "need": "Elige cuántos de qué producto y qué salió mal."
     },
     "profile": {
       "title": "Perfil y configuración",

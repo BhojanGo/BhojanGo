@@ -855,7 +855,10 @@ with sync_playwright() as p:
     page.get_by_text("Not good", exact=True).click()
     page.get_by_label("Tell us more (optional)").fill("Cold when it came")
     png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
-    page.get_by_label("A photo helps (optional)").set_input_files(files=[{"name": "biryani.png", "mimeType": "image/png", "buffer": png}])
+    page.get_by_label("Add a photo").set_input_files(files=[{"name": "biryani.png", "mimeType": "image/png", "buffer": png}])
+    check("report a problem: the chosen photo is named in the page's language (no browser 'No file chosen')", lambda: (
+        expect(page.get_by_text("biryani.png")).to_be_visible(),
+        expect(page.get_by_role("button", name="Remove photo")).to_be_visible()))
     page.get_by_role("button", name="Send report").click()
     check("report a problem: over the city's limit, sent to support with the photo", lambda: (
         expect(page.get_by_text(re.compile("^(Sent to support|Refunded)"))).to_be_visible(timeout=20000),

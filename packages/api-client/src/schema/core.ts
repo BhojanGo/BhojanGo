@@ -5675,6 +5675,10 @@ export interface components {
         };
         /** FavouriteItemRestaurant */
         FavouriteItemRestaurant: {
+            /** City */
+            city?: string | null;
+            /** Country */
+            country?: string | null;
             /**
              * Id
              * Format: uuid
