@@ -11,7 +11,7 @@ in the US, the kitchen partner applying, and the admin console):
   1366, 1536 and 1920 CSS px, and at 1366 and 1920 screens with 125 % and 150 %
   display scaling (the browser then lays out 1093 / 911 and 1536 / 1280 CSS px):
   sideways scroll, anything past the right edge, text cut off by its box, and
-  readable text under 14 px (12 px is the uppercase caption);
+  readable text under 13 px (the small token at 360 px; 12 px is the uppercase caption);
 - one sheet per page (OUT/<page>.jpg): the page at 390 (phone), at 1366 with 125 %
   scaling (a common laptop) and at 1920, side by side, top of the page;
 - OUT/results.json: per page and width, what failed.
@@ -59,7 +59,7 @@ PROBE = r"""() => {
         && cs.webkitLineClamp === 'none' && e.scrollWidth > e.clientWidth + 1) out.clipped.push(name(e));
     if (hasText) {
       const px = parseFloat(cs.fontSize);
-      if (px < 14 && !(px === 12 && cs.textTransform === 'uppercase')) out.small.push(px + 'px ' + name(e));
+      if (px < 12.95 && !(px === 12 && cs.textTransform === 'uppercase')) out.small.push(px + 'px ' + name(e));
     }
   }
   for (const k of ['past', 'clipped', 'small']) out[k] = [...new Set(out[k])].slice(0, 8);
