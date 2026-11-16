@@ -7,7 +7,7 @@
 import type { Metadata } from "next";
 
 import { FairBill } from "@/components/FairBill";
-import { firstLiveCity } from "@/components/discover/places";
+import { flatCities } from "@/components/discover/places";
 import { money } from "@/lib/format";
 import { commissionSummary } from "@/lib/kitchenJoin";
 import { getContext } from "@/lib/prefs";
@@ -24,7 +24,7 @@ const HERO = "kitchen-cook";
 
 export default async function Partner() {
   const { t, country, city: here, language, formatLocale, directory: dir } = await getContext();
-  const billCity = here?.status === "live" ? here : firstLiveCity(dir, country?.code);
+  const billCity = here?.status === "live" ? here : flatCities(dir).find((c) => c.country === country?.code && c.status === "live") ?? null;
   const [terms, bill] = await Promise.all([
     country ? kitchenTerms(country.code, language) : Promise.resolve(null),
     billCity ? exampleBill(billCity.code) : Promise.resolve(null),

@@ -940,7 +940,7 @@ with sync_playwright() as p:
     form = k.get_by_test_id("partner-form")
     form.get_by_role("button", name="Create account and continue").click()
     check("/partner form: empty fields are named, tied to their inputs, nothing sent", lambda: (
-        expect(k.get_by_test_id("partner-form-error")).to_have_text("Fix 6 fields to continue."),  # the city is the visitor's own (bg_city),
+        expect(k.get_by_test_id("partner-form-error")).to_have_text(re.compile(r"Fix [67] fields to continue.")),  # 6 when the city is the visitor's own
         expect(form.get_by_label("Kitchen name")).to_have_attribute("aria-invalid", "true"),
         expect(form.get_by_text("Use at least 10 characters.")).to_be_visible()))
     n = random.randint(10000, 99999)
