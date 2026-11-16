@@ -482,7 +482,20 @@
     "map_kitchen": "{kitchen} (recogida)",
     "map_home": "Tu dirección (entrega)",
     "map_rider": "{rider}, tu repartidor",
-    "map_failed": "El mapa no puede cargarse aquí. Tu pedido se sigue rastreando."
+    "map_failed": "El mapa no puede cargarse aquí. Tu pedido se sigue rastreando.",
+    "cancel": "Cancelar pedido",
+    "cancel_until": "Puedes cancelar hasta las {time}.",
+    "cancel_before_accept": "Puedes cancelar hasta que la cocina empiece a prepararlo.",
+    "cancel_title": "¿Cancelar este pedido?",
+    "cancel_refund": "Te devolveremos {amount} a tu {method}, como pagaste.",
+    "cancel_nothing": "Aún no se ha cobrado nada, así que no hay nada que devolver.",
+    "cancel_yes": "Sí, cancelar pedido",
+    "cancel_keep": "Mantener mi pedido",
+    "cancelling": "Cancelando…",
+    "cancel_too_late": "La cocina ya empezó a prepararlo, así que este pedido ya no se puede cancelar. Si algo va mal, pregúntanos desde el pedido.",
+    "cancel_failed": "No pudimos cancelar el pedido. Inténtalo de nuevo.",
+    "refunded": "{amount} devueltos a tu {method}.",
+    "refund_pending": "Tu reembolso de {amount} a tu {method} está en camino."
   },
   "signin": {
     "title": "Iniciar sesión",

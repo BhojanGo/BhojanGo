@@ -247,3 +247,12 @@ Machine-translated 2026-11-15: `errors.title_404`, `errors.body_404`, `errors.ti
 `errors.help`, `errors.popular` (the website's 404 and error pages). The tone is informal
 and reassuring ("It's not you"); check Hindi/Marathi/Bengali read as polite, and that
 `errors.help` matches the footer's "Help centre" wording in each language.
+
+## Round 8: cancelling an order (workstream P)
+
+Machine-translated 2026-11-15: `track.cancel`, `track.cancel_until` ({time} is a clock time),
+`track.cancel_before_accept`, `track.cancel_title`, `track.cancel_refund` ({amount} is formatted
+money, {method} the payment method's label from `account.pay.*`: "UPI", "Card"; Indian languages
+glue a case suffix to `{method}`), `track.cancel_nothing`, `track.cancel_yes`, `track.cancel_keep`,
+`track.cancelling`, `track.cancel_too_late`, `track.cancel_failed`, `track.refunded`,
+`track.refund_pending`. Check the confirmation reads as a calm question, not a warning.

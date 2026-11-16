@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CancelOrder, RefundLine } from "../../components/CancelOrder";
 import { LiveMap } from "../../components/LiveMap";
 import { distanceLeft, nextStop, riderFirstName, type Eta, type Order, type Pt } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
@@ -216,6 +217,14 @@ export default function Tracking() {
             <Text testID="delivery-pin" style={[type.h2, { letterSpacing: 6, color: color.kohl }]}>{pin}</Text>
           </View>
         ) : null}
+        {/* R8: cancel while the API says the customer may; after it, the refund line */}
+        {!finished && order ? (
+          <CancelOrder order={order} onDone={setOrder} onRefresh={() => {
+            api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
+              .then((r) => setOrder(unwrap(r) as Order)).catch(() => undefined);
+          }} />
+        ) : null}
+        {cancelled && order ? <RefundLine order={order} /> : null}
         {delivered ? (
           <Pressable testID="report-problem" accessibilityRole="button" onPress={() => router.push(`/report/${id}`)} style={styles.report}>
             <Text style={[type.label, { color: color.peacockDeep }]}>{t("track.report")}</Text>

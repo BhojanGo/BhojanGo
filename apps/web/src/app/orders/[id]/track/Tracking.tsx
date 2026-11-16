@@ -4,7 +4,7 @@
 // items and the fair bill. Live from the realtime WebSocket (/ws/track), with a
 // slow poll as a safety net. The map is MapLibre GL over OpenFreeMap's free
 // tiles (LiveMap, loaded in the browser only).
-import { unwrap, type CoreSchemas } from "@bhojango/api-client";
+import { ApiError, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -278,6 +278,14 @@ export function Tracking({ id }: { id: string }) {
           </section>
         )}
 
+        {/* R8: cancel while the API says the customer may; after it, the refund line */}
+        {!cancelled && !delivered && (
+          <CancelOrder order={order} onDone={(o) => setOrder(o)} onRefresh={() => {
+            void api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } }).then((r) => setOrder(unwrap(r))).catch(() => undefined);
+          }} />
+        )}
+        {cancelled && <RefundLine order={order} />}
+
         {/* after delivery: rate it */}
         {delivered && <RateOrder orderId={id} order={order} />}
 
@@ -447,4 +455,93 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
       )}
     </section>
   );
+}
+
+// ── cancelling (R8): only while GET /orders/{id} says the customer may (customer_cancel) ──
+
+function payLabel(t: ReturnType<typeof useT>, method: string): string {
+  const key = `account.pay.${method}`;
+  return t(key) === key ? method : t(key);
+}
+
+function CancelOrder({ order, onDone, onRefresh }: { order: Order; onDone: (o: Order) => void; onRefresh: () => void }) {
+  const t = useT();
+  const f = useFormat();
+  const c = order.customer_cancel;
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const z = f.zone(order.time_zone);
+  // Not (or no longer) allowed: nothing, or why the cancel just failed (the kitchen started meanwhile).
+  if (!c) return problem ? <p role="alert" className="m-0 rounded-[18px] bg-[#FBEAE9] px-[18px] py-[14px] text-body text-[#8C1D18]">{problem}</p> : null;
+  const refund = Number(c.refund);
+
+  async function cancel() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const r = await api.core.POST("/api/v1/orders/{order_id}/cancel", {
+        params: { path: { order_id: order.id } }, body: { reason: "customer_cancelled" },
+      });
+      onDone(unwrap(r));
+    } catch (e) {
+      // The kitchen started cooking (or the order moved on) while the page was open.
+      const late = e instanceof ApiError && e.status === 409;
+      setProblem(late ? t("track.cancel_too_late") : t("track.cancel_failed"));
+      setAsking(false);
+      if (late) onRefresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-[24px] border border-[#E2E7E8] p-[22px]" aria-labelledby="cancel-h" data-testid="cancel-order">
+      {!asking ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p id="cancel-h" className="m-0 text-small text-[#3D4A4E]">
+            {c.until ? t("track.cancel_until", { time: z.time(c.until) }) : t("track.cancel_before_accept")}
+          </p>
+          <button type="button" onClick={() => setAsking(true)}
+            className="inline-flex min-h-11 items-center rounded-full border-[1.5px] border-[#C9D3D4] px-5 text-label font-bold text-[#B3261E] hover:border-[#B3261E]">
+            {t("track.cancel")}
+          </button>
+        </div>
+      ) : (
+        <div role="alertdialog" aria-labelledby="cancel-h" aria-describedby="cancel-money">
+          <h2 id="cancel-h" className="m-0 text-h3">{t("track.cancel_title")}</h2>
+          <p id="cancel-money" className="m-0 mt-2 text-body text-[#3D4A4E]">
+            {refund > 0
+              ? t("track.cancel_refund", { amount: f.money(refund, order.currency), method: payLabel(t, c.refund_to) })
+              : t("track.cancel_nothing")}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button type="button" onClick={() => void cancel()} disabled={busy} data-testid="cancel-confirm"
+              className="inline-flex min-h-12 items-center rounded-full bg-[#B3261E] px-6 text-label font-bold text-white hover:bg-[#8C1D18] disabled:opacity-60">
+              {busy ? t("track.cancelling") : t("track.cancel_yes")}
+            </button>
+            <button type="button" onClick={() => setAsking(false)} disabled={busy}
+              className="inline-flex min-h-12 items-center rounded-full border-[1.5px] border-[#C9D3D4] px-6 text-label font-bold text-[#111418]">
+              {t("track.cancel_keep")}
+            </button>
+          </div>
+        </div>
+      )}
+      {problem && <p role="alert" className="m-0 mt-3 text-small text-[#B3261E]">{problem}</p>}
+    </section>
+  );
+}
+
+/** A cancelled order: what came back, and where (nothing when nothing was charged). */
+function RefundLine({ order }: { order: Order }) {
+  const t = useT();
+  const f = useFormat();
+  const paid = (order.status_history as { status: string }[] | undefined)?.some((h) => h.status === "placed");
+  if (order.refunded) {
+    return <p className="m-0 rounded-[18px] bg-[#EFF6F6] px-[18px] py-[14px] text-body text-[#083F46]" data-testid="refund-line">
+      {t("track.refunded", { amount: f.money(order.refunded, order.currency), method: payLabel(t, order.payment_method) })}</p>;
+  }
+  if (!paid) return null;
+  return <p className="m-0 rounded-[18px] bg-[#EFF6F6] px-[18px] py-[14px] text-body text-[#083F46]" data-testid="refund-line">
+    {t("track.refund_pending", { amount: f.money(order.total, order.currency), method: payLabel(t, order.payment_method) })}</p>;
 }

@@ -4145,6 +4145,20 @@ export interface components {
             /** Timezone */
             timezone?: string | null;
         };
+        /**
+         * CustomerCancel
+         * @description The customer may cancel this order now (R8): GET /orders/{id}, to its customer only,
+         *     absent when they can't. The rule is the service's (customer_cancel_window): before the
+         *     kitchen accepts, and for the business rule's cancel window after the order was placed.
+         */
+        CustomerCancel: {
+            /** Refund */
+            refund: number;
+            /** Refund To */
+            refund_to: string;
+            /** Until */
+            until?: string | null;
+        };
         /** DeliveryCheckResponse */
         DeliveryCheckResponse: {
             /** Currency */
@@ -5571,6 +5585,7 @@ export interface components {
             customer?: {
                 [key: string]: unknown;
             } | null;
+            customer_cancel?: components["schemas"]["CustomerCancel"] | null;
             /**
              * Customer Id
              * Format: uuid
@@ -5649,6 +5664,8 @@ export interface components {
             /** Rated */
             rated?: boolean | null;
             rating?: components["schemas"]["OrderRating"] | null;
+            /** Refunded */
+            refunded?: number | null;
             /** Restaurant Accepted At */
             restaurant_accepted_at?: string | null;
             /**
