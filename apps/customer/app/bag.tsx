@@ -169,15 +169,20 @@ export default function Bag() {
             <Text style={{ color: color.muted }}> · {t(`checkout.method_${method}_sub`)}</Text>
           </Text>
         </View>
-        <Button
-          testID="pay"
-          title={quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay")}
-          size="lg"
-          block
-          loading={paying}
-          disabled={!quote || held === 0}
-          onPress={() => setSheet(true)}
-        />
+        {point?.browse ? (
+          // A city picked on "Change city" is for browsing: the order needs a real address.
+          <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
+        ) : (
+          <Button
+            testID="pay"
+            title={quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay")}
+            size="lg"
+            block
+            loading={paying}
+            disabled={!quote || held === 0}
+            onPress={() => setSheet(true)}
+          />
+        )}
       </View>
       <Sheet visible={sheet} onClose={() => setSheet(false)} title={t("checkout.test_title")}
         footer={

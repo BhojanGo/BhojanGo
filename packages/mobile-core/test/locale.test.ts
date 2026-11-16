@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { convertDistance, countryForCurrency, e164, findCity, formatDate, formatMoney, formatNumber, formatTime,
+import { convertDistance, countryForCurrency, e164, filterCities, findCity, formatDate, formatMoney, formatNumber, formatTime,
   liveCityNames, localeForCurrency, regionOf, resolveCountry, type MarketCountry } from "../src/locale.ts";
 
 function country(code: string, currency: string, locales: string[], unit: string, phone: string, cities: string[] = []): MarketCountry {
@@ -70,4 +70,13 @@ test("cities and phone numbers from Markets data", () => {
   assert.deepEqual(liveCityNames(ALL), ["Alpha", "Gamma"]);
   assert.equal(e164("+91", "098480 21234"), "+919848021234");
   assert.equal(e164("+1", "+1 (208) 555-0199"), "+12085550199");
+});
+
+test("Change city search: by city or state, accents and case ignored; empty states and countries dropped", () => {
+  assert.deepEqual(filterCities(ALL, "").map((k) => k.code), ["AA", "BB"]);
+  assert.deepEqual(filterCities(ALL, "  ALPH ").flatMap((k) => k.regions.flatMap((r) => r.cities.map((c) => c.name))), ["Alpha"]);
+  assert.deepEqual(filterCities(ALL, "regi").map((k) => k.regions[0]!.cities.length), [2, 1]); // a state's name keeps all its cities
+  const accented = { ...BB, regions: [{ ...BB.regions[0]!, cities: [{ ...BB.regions[0]!.cities[0]!, name: "São Paulo" }] }] };
+  assert.equal(filterCities([accented], "sao").length, 1);
+  assert.deepEqual(filterCities(ALL, "zzz"), []);
 });

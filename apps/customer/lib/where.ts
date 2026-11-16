@@ -20,6 +20,8 @@ export interface DropPoint {
   state: string;
   zip: string;
   country: string;
+  /** Picked as a city on "Change city" (a point inside one of its areas): fine for browsing, not a door to deliver to. */
+  browse?: boolean;
 }
 
 interface WhereState {
@@ -29,6 +31,8 @@ interface WhereState {
   locate: () => Promise<void>;
   setPoint: (p: DropPoint) => Promise<void>;
   goHere: () => Promise<void>;
+  /** "Change city": browse a live city (a point inside one of its open areas, GET /markets/areas). */
+  pickCity: (city: { code: string; name: string }, country: string) => Promise<void>;
   saved: () => Promise<DropPoint[]>;
 }
 
@@ -80,6 +84,16 @@ export const useWhere = create<WhereState>()((set, get) => ({
 
   goHere: async () => {
     await get().setPoint(await here());
+  },
+
+  pickCity: async (city, country) => {
+    const hits = unwrap(await api.core.GET("/api/v1/markets/areas", { params: { query: { q: city.name, country, limit: 20 } } }));
+    const hit = hits.find((a) => a.served && a.city_code === city.code);
+    if (!hit) throw new Error("city");
+    await get().setPoint({
+      label: hit.city_name, addressId: null, lat: hit.lat, lng: hit.lng, street: "", city: hit.city_name, state: "", zip: "",
+      country: hit.country, browse: true,
+    });
   },
 
   saved: async () => {

@@ -25,6 +25,7 @@ Stdlib only (the Repo checks job has Python and nothing else).
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -224,13 +225,16 @@ def source_files(root: Path) -> list[Path]:
         base = root / d
         if not base.exists():
             continue
-        for p in base.rglob("*"):
-            if p.suffix not in SOURCE_EXT or not p.is_file() or p in seen:
-                continue
-            rel = p.relative_to(root)
-            if SKIP_PARTS.intersection(rel.parts) or SKIP_NAME.search(p.name):
-                continue
-            seen.add(p)
+        # os.walk, pruned: never descends into node_modules (deep paths break on Windows)
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = [n for n in dirnames if n not in SKIP_PARTS]
+            for name in filenames:
+                p = Path(dirpath) / name
+                if p.suffix not in SOURCE_EXT or p in seen or SKIP_NAME.search(name):
+                    continue
+                if SKIP_PARTS.intersection(p.relative_to(root).parts):
+                    continue
+                seen.add(p)
     return sorted(seen)
 
 

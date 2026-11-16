@@ -811,9 +811,11 @@ export interface paths {
         };
         /**
          * Hint
-         * @description Where the visitor seems to be, from their IP: a hint only ("Looks like you're
-         *     near ..."), never a decision. The place is named only when it's inside an open
-         *     zone; otherwise just the country (for the header's country and language).
+         * @description Where the visitor seems to be, from their IP: a hint only, never a decision (an
+         *     address or a chosen city always wins). The IP's own town and state are named when
+         *     it is in a public country ("Meridian, ID"), served or not; ``served`` (and the
+         *     city) only when the point is inside an open zone of a live city. Outside every
+         *     public country: nothing but None (the website then says "Set your delivery location").
          */
         get: operations["hint_api_v1_markets_hint_get"];
         put?: never;
@@ -4569,10 +4571,18 @@ export interface components {
             city_path?: string | null;
             /** Country */
             country?: string | null;
-            /** Place */
+            /**
+             * Place
+             * @description The IP's own town, shown as itself ("Meridian"), served or not; None outside every public country
+             */
             place?: string | null;
             /** Region */
             region?: string | null;
+            /**
+             * Region Code
+             * @description Its state's short code ("ID"), when known: the location line's "Meridian, ID"
+             */
+            region_code?: string | null;
             /**
              * Served
              * @default false

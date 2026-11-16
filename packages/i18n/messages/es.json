@@ -226,7 +226,9 @@
     "suggest_link": "Dinos dónde estás.",
     "not_listed": "¿No está en la lista? Dinos tu ciudad. Las ciudades más solicitadas abren primero.",
     "choose_title": "Elige tu ciudad",
-    "choose_note": "Los precios, las cocinas y los idiomas siguen la ciudad que elijas."
+    "choose_note": "Los precios, las cocinas y los idiomas siguen la ciudad que elijas.",
+    "other_countries": "Otros países",
+    "no_match_in": "Aún no hay ninguna ciudad con ese nombre en {country}."
   },
   "city": {
     "breadcrumb": "Ruta de navegación",
@@ -1562,6 +1564,8 @@
   "location": {
     "label": "Tu ciudad",
     "place": "{city}, {country}",
-    "change_city": "Cambiar ciudad"
+    "change_city": "Cambiar ciudad",
+    "set": "Indica tu ubicación de entrega",
+    "delivers_here": "Entregamos aquí"
   }
 }

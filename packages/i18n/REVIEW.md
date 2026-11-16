@@ -253,3 +253,11 @@ manager"), `partner.orders.ready_note`, `partner.orders.finding_rider`, `partner
 ("Kitchen partner support"). Backend: `names.your_rider` ("Your delivery partner", the name
 in push/SMS/chat when a delivery partner has none) and `driver_assigned.title` ("Delivery
 partner on the way to the kitchen").
+
+## Round 8 (location line and Change city)
+
+Machine-translated 2026-11-15: `location.set` ("Set your delivery location": a button that
+opens the address box), `location.delivers_here` ("We deliver here", after the visitor's
+town from their IP), `cities.other_countries` (the "Other countries" disclosure on Change
+city), `cities.no_match_in` ("No city in {country} by that name yet.": `{country}` is the
+country's Markets name in English; Indian languages glue a case suffix to it).
