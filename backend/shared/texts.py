@@ -233,6 +233,42 @@ WELCOME: dict[str, dict[str, str]] = {
 }
 
 
+# The email a new kitchen partner gets when they start an application on the
+# website (POST /kitchens/apply). {kitchen} is the kitchen's name.
+KITCHEN_APPLIED: dict[str, dict[str, str]] = {
+    "subject": {
+        "en": "Your BhojanGo kitchen application has started",
+        "hi": "BhojanGo पर आपकी किचन का आवेदन शुरू हो गया है",
+        "te": "BhojanGoలో మీ కిచెన్ దరఖాస్తు మొదలైంది",
+        "ta": "BhojanGo-வில் உங்கள் சமையலறை விண்ணப்பம் தொடங்கியது",
+        "kn": "BhojanGoನಲ್ಲಿ ನಿಮ್ಮ ಅಡುಗೆಮನೆ ಅರ್ಜಿ ಆರಂಭವಾಗಿದೆ",
+        "mr": "BhojanGo वर तुमच्या किचनचा अर्ज सुरू झाला आहे",
+        "bn": "BhojanGo-তে আপনার কিচেনের আবেদন শুরু হয়েছে",
+        "es": "Tu solicitud de cocina en BhojanGo ha comenzado",
+    },
+    "body": {
+        "en": "Thanks for applying with {kitchen}. Your kitchen partner account is ready: sign in with this email and your password.",
+        "hi": "{kitchen} के साथ आवेदन करने के लिए धन्यवाद। आपका किचन पार्टनर खाता तैयार है: इसी ईमेल और अपने पासवर्ड से साइन इन करें।",
+        "te": "{kitchen}తో దరఖాస్తు చేసినందుకు ధన్యవాదాలు. మీ కిచెన్ పార్ట్‌నర్ ఖాతా సిద్ధంగా ఉంది: ఈ ఈమెయిల్, మీ పాస్‌వర్డ్‌తో సైన్ ఇన్ చేయండి.",
+        "ta": "{kitchen} உடன் விண்ணப்பித்ததற்கு நன்றி. உங்கள் சமையலறை கூட்டாளர் கணக்கு தயார்: இந்த மின்னஞ்சல் மற்றும் உங்கள் கடவுச்சொல்லுடன் உள்நுழையுங்கள்.",
+        "kn": "{kitchen} ಜೊತೆ ಅರ್ಜಿ ಸಲ್ಲಿಸಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ಕಿಚನ್ ಪಾಲುದಾರ ಖಾತೆ ಸಿದ್ಧವಾಗಿದೆ: ಈ ಇಮೇಲ್ ಮತ್ತು ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್‌ನಿಂದ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+        "mr": "{kitchen} सह अर्ज केल्याबद्दल धन्यवाद. तुमचे किचन पार्टनर खाते तयार आहे: याच ईमेल आणि तुमच्या पासवर्डने साइन इन करा.",
+        "bn": "{kitchen} নিয়ে আবেদন করার জন্য ধন্যবাদ। আপনার কিচেন পার্টনার অ্যাকাউন্ট তৈরি: এই ইমেল আর আপনার পাসওয়ার্ড দিয়ে সাইন ইন করুন।",
+        "es": "Gracias por presentar la solicitud de {kitchen}. Tu cuenta de socio de cocina está lista: inicia sesión con este correo y tu contraseña.",
+    },
+    "next": {
+        "en": "Next: your business details, licences, tax and bank account on the website's \"Add your kitchen\" page, then your menu and photos in the BhojanGo Kitchen app. We check everything before your kitchen goes live.",
+        "hi": "आगे: वेबसाइट के \"अपनी किचन जोड़ें\" पेज पर अपने व्यवसाय का ब्योरा, लाइसेंस, टैक्स और बैंक खाता, फिर BhojanGo Kitchen ऐप में अपना मेन्यू और फ़ोटो। आपकी किचन लाइव होने से पहले हम सब कुछ जांचते हैं।",
+        "te": "తర్వాత: వెబ్‌సైట్‌లోని \"మీ కిచెన్ చేర్చండి\" పేజీలో మీ వ్యాపార వివరాలు, లైసెన్సులు, పన్ను, బ్యాంక్ ఖాతా; ఆ తర్వాత BhojanGo Kitchen యాప్‌లో మీ మెనూ, ఫోటోలు. మీ కిచెన్ లైవ్ అయ్యే ముందు మేము అన్నీ తనిఖీ చేస్తాం.",
+        "ta": "அடுத்து: இணையதளத்தின் \"உங்கள் சமையலறையைச் சேர்க்கவும்\" பக்கத்தில் உங்கள் வணிக விவரங்கள், உரிமங்கள், வரி மற்றும் வங்கிக் கணக்கு; பிறகு BhojanGo Kitchen செயலியில் உங்கள் மெனு மற்றும் புகைப்படங்கள். உங்கள் சமையலறை நேரலைக்கு வருமுன் அனைத்தையும் சரிபார்க்கிறோம்.",
+        "kn": "ಮುಂದೆ: ವೆಬ್‌ಸೈಟ್‌ನ \"ನಿಮ್ಮ ಕಿಚನ್ ಸೇರಿಸಿ\" ಪುಟದಲ್ಲಿ ನಿಮ್ಮ ವ್ಯಾಪಾರ ವಿವರಗಳು, ಪರವಾನಗಿಗಳು, ತೆರಿಗೆ ಮತ್ತು ಬ್ಯಾಂಕ್ ಖಾತೆ; ನಂತರ BhojanGo Kitchen ಆ್ಯಪ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಮೆನು ಮತ್ತು ಫೋಟೋಗಳು. ನಿಮ್ಮ ಕಿಚನ್ ಲೈವ್ ಆಗುವ ಮೊದಲು ನಾವು ಎಲ್ಲವನ್ನೂ ಪರಿಶೀಲಿಸುತ್ತೇವೆ.",
+        "mr": "पुढे: वेबसाइटच्या \"तुमचे किचन जोडा\" पानावर तुमच्या व्यवसायाचा तपशील, परवाने, कर आणि बँक खाते; मग BhojanGo Kitchen ॲपमध्ये तुमचा मेन्यू आणि फोटो. तुमचे किचन लाइव्ह होण्यापूर्वी आम्ही सर्व काही तपासतो.",
+        "bn": "এরপর: ওয়েবসাইটের \"আপনার কিচেন যোগ করুন\" পাতায় আপনার ব্যবসার বিবরণ, লাইসেন্স, ট্যাক্স ও ব্যাঙ্ক অ্যাকাউন্ট; তারপর BhojanGo Kitchen অ্যাপে আপনার মেনু ও ছবি। আপনার কিচেন লাইভ হওয়ার আগে আমরা সব কিছু যাচাই করি।",
+        "es": "Después: los datos de tu negocio, licencias, impuestos y cuenta bancaria en la página \"Agrega tu cocina\" del sitio web, y luego tu menú y fotos en la app BhojanGo Kitchen. Revisamos todo antes de que tu cocina esté activa.",
+    },
+}
+
+
 def entries() -> dict[str, dict[str, str]]:
     """Every text here as "<name>" → {language: text}, for the CI check."""
     out: dict[str, dict[str, str]] = {}
@@ -246,4 +282,6 @@ def entries() -> dict[str, dict[str, str]]:
         out[f"bill.{key}"] = texts
     for key, texts in WELCOME.items():
         out[f"welcome.{key}"] = texts
+    for key, texts in KITCHEN_APPLIED.items():
+        out[f"kitchen_applied.{key}"] = texts
     return out

@@ -766,6 +766,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kitchens/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply
+         * @description Start an application as a new kitchen partner: creates the account (role
+         *     restaurant_owner) and the kitchen pending approval, signs them in, and emails
+         *     them what comes next. The application's steps follow (GET /restaurants/{id}/application).
+         */
+        post: operations["apply_api_v1_kitchens_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kitchens/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Terms
+         * @description What a kitchen partner gets in this country, from live data (404: not a public country).
+         */
+        get: operations["terms_api_v1_kitchens_terms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets": {
         parameters: {
             query?: never;
@@ -2201,9 +2243,11 @@ export interface paths {
         put?: never;
         /**
          * Kitchen Apply
-         * @description Apply with a kitchen: it's created pending approval and the partner
-         *     application (FSSAI, GST and bank, menu) follows. Admins approve it in
-         *     Partners → Applications.
+         * @description Apply with a kitchen from a signed-in account (a customer account with no
+         *     orders becomes the kitchen partner's): it's created pending approval in a live,
+         *     beta or coming-soon city, and the partner application (business details, FSSAI,
+         *     GST and bank, menu) follows. Admins approve it in Partners -> Applications.
+         *     A new visitor uses POST /kitchens/apply (email and password) instead.
          */
         post: operations["kitchen_apply_api_v1_restaurants_apply_post"];
         delete?: never;
@@ -2358,6 +2402,27 @@ export interface paths {
          */
         get: operations["get_availability_api_v1_restaurants__restaurant_id__availability_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/business": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Business
+         * @description Business details while applying: the street address, area, PIN/ZIP, cuisines
+         *     and (optionally) the map pin. A live kitchen changes its address through support.
+         */
+        put: operations["set_business_api_v1_restaurants__restaurant_id__business_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3782,8 +3847,17 @@ export interface components {
         ApplicationOut: {
             /** Area */
             area: string | null;
+            /** City */
+            city?: string | null;
             /** Commission Percent */
             commission_percent: string | null;
+            /** Country */
+            country?: string | null;
+            /**
+             * Cuisines
+             * @default []
+             */
+            cuisines?: string[];
             /** Current */
             current: string | null;
             /** Done */
@@ -3808,8 +3882,12 @@ export interface components {
             status: string;
             /** Steps */
             steps: components["schemas"]["core_api__modules__catalog__api__v1__partner__StepOut"][];
+            /** Street */
+            street?: string | null;
             /** Total */
             total: number;
+            /** Zip */
+            zip?: string | null;
         };
         /** ApprovalOut */
         ApprovalOut: {
@@ -4028,6 +4106,33 @@ export interface components {
              * @enum {string}
              */
             purpose: "delivery_proof" | "rider_document" | "partner_document" | "problem_photo" | "menu_photo";
+        };
+        /**
+         * BusinessIn
+         * @description The application's first step: where the kitchen is and what it cooks.
+         */
+        BusinessIn: {
+            /**
+             * Area
+             * @description Neighbourhood, e.g. Banjara Hills
+             */
+            area: string;
+            /** Cuisines */
+            cuisines: string[];
+            /**
+             * Lat
+             * @description The kitchen's pin; None keeps the current one
+             */
+            lat?: number | null;
+            /** Lng */
+            lng?: number | null;
+            /** Street */
+            street: string;
+            /**
+             * Zip
+             * @description PIN or ZIP code
+             */
+            zip: string;
         };
         /** BusyIn */
         BusyIn: {
@@ -4352,6 +4457,39 @@ export interface components {
             /** Timezone */
             timezone?: string | null;
         };
+        /**
+         * CommissionTerms
+         * @description Commission is a percentage of the food subtotal only (never of delivery,
+         *     fees, tax or tips), from the country's and cities' live commission:rate rules.
+         */
+        CommissionTerms: {
+            /**
+             * Base
+             * @default food_subtotal
+             * @constant
+             */
+            base?: "food_subtotal";
+            /**
+             * Flat Per Order
+             * @description A fixed amount per order on top, if a rule sets one
+             */
+            flat_per_order?: string | null;
+            /** Percent Max */
+            percent_max: string;
+            /** Percent Min */
+            percent_min: string;
+            /**
+             * Starting Percent
+             * @description A new kitchen's rate at country level (the default tier)
+             */
+            starting_percent: string | null;
+            /**
+             * Tiers
+             * @description The country rule's tiers, when it is percent_by_tier
+             * @default []
+             */
+            tiers?: components["schemas"]["Tier"][];
+        };
         /** ContactIn */
         ContactIn: {
             /**
@@ -4644,8 +4782,8 @@ export interface components {
              * Cities
              * @description The country's live cities (the page's city picker)
              */
-            cities: components["schemas"]["TermsCity"][];
-            city: components["schemas"]["TermsCity"];
+            cities: components["schemas"]["core_api__modules__markets__api__v1__delivery__TermsCity"][];
+            city: components["schemas"]["core_api__modules__markets__api__v1__delivery__TermsCity"];
             /** Country */
             country: string;
             /** Currency */
@@ -5219,14 +5357,19 @@ export interface components {
             token_type?: string;
             user: components["schemas"]["UserResponse"];
         };
-        /** KitchenApply */
+        /**
+         * KitchenApply
+         * @description The kitchen's name and city start an application; the address, cuisines and
+         *     map pin can come now (the tablet app sends them) or later, as the application's
+         *     first step (PUT /restaurants/{id}/business).
+         */
         KitchenApply: {
             /** Area */
-            area: string;
+            area?: string | null;
             /** City Code */
             city_code: string;
             /** Cuisines */
-            cuisines: string[];
+            cuisines?: string[] | null;
             /**
              * Full Name
              * @description Your name
@@ -5235,13 +5378,113 @@ export interface components {
             /** Kitchen Name */
             kitchen_name: string;
             /** Lat */
-            lat: number;
+            lat?: number | null;
             /** Lng */
-            lng: number;
+            lng?: number | null;
             /** Street */
-            street: string;
+            street?: string | null;
             /** Zip */
-            zip: string;
+            zip?: string | null;
+        };
+        /** KitchenDocument */
+        KitchenDocument: {
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
+        };
+        /**
+         * KitchenSignUp
+         * @description A new visitor starts an application on the website: their account (they sign
+         *     in with this email and password, or with the phone and a code) and the kitchen.
+         */
+        KitchenSignUp: {
+            /**
+             * Accept Terms
+             * @description Agreed to the Terms and the Privacy policy (must be true)
+             */
+            accept_terms: boolean;
+            /** City Code */
+            city_code: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Full Name
+             * @description The contact person's name
+             */
+            full_name: string;
+            /** Kitchen Name */
+            kitchen_name: string;
+            /**
+             * Language
+             * @description The page's language: emails use it when the country offers it
+             */
+            language?: string | null;
+            /**
+             * Password
+             * @description At least 10 characters
+             */
+            password: string;
+            /**
+             * Phone
+             * @example +919876543210
+             */
+            phone: string;
+        };
+        /** KitchenSignedUp */
+        KitchenSignedUp: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Admin Roles
+             * @default []
+             */
+            admin_roles?: string[];
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Is New User
+             * @default false
+             */
+            is_new_user?: boolean;
+            /** Refresh Token */
+            refresh_token: string;
+            /** Restaurant Id */
+            restaurant_id: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type?: string;
+            user: components["schemas"]["UserResponse"];
+        };
+        /** KitchenTerms */
+        KitchenTerms: {
+            /** Cities */
+            cities: components["schemas"]["core_api__modules__catalog__api__v1__kitchens__TermsCity"][];
+            /** @description None when the country has no commission rule live yet */
+            commission: components["schemas"]["CommissionTerms"] | null;
+            /** Country */
+            country: string;
+            /** Country Name */
+            country_name: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Documents
+             * @description Markets setting kitchen_documents; empty: none configured
+             */
+            documents: components["schemas"]["KitchenDocument"][];
+            payout: components["schemas"]["PayoutTerms"];
+            /** Phone Code */
+            phone_code: string;
+            /** Tax Regime */
+            tax_regime: string;
         };
         /** LicenceIn */
         LicenceIn: {
@@ -6452,6 +6695,26 @@ export interface components {
              * @enum {string}
              */
             frequency: "weekly" | "biweekly";
+        };
+        /** PayoutTerms */
+        PayoutTerms: {
+            /**
+             * Day
+             * @default mon
+             * @enum {string}
+             */
+            day?: "mon" | "tue" | "wed" | "thu" | "fri";
+            /**
+             * Frequency
+             * @default weekly
+             * @enum {string}
+             */
+            frequency?: "weekly" | "biweekly";
+            /**
+             * Hold Days
+             * @default 2
+             */
+            hold_days?: number;
         };
         /**
          * PhoneSignInRequest
@@ -7837,15 +8100,6 @@ export interface components {
             /** Status */
             status: string;
         };
-        /** TermsCity */
-        TermsCity: {
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Region */
-            region: string;
-        };
         /** TicketOut */
         TicketOut: {
             /**
@@ -7870,6 +8124,13 @@ export interface components {
             status: string;
             /** Topic */
             topic: string;
+        };
+        /** Tier */
+        Tier: {
+            /** Percent */
+            percent: string;
+            /** Tier */
+            tier: string;
         };
         /** TierIn */
         TierIn: {
@@ -8198,6 +8459,24 @@ export interface components {
             /** Status */
             status?: ("draft" | "beta" | "live") | null;
         };
+        /** TermsCity */
+        core_api__modules__catalog__api__v1__kitchens__TermsCity: {
+            /** Beta */
+            beta: boolean;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /** Starting Percent */
+            starting_percent: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "live" | "soon";
+        };
         /** StepOut */
         core_api__modules__catalog__api__v1__partner__StepOut: {
             /** Detail */
@@ -8227,6 +8506,15 @@ export interface components {
             status: "done" | "in_review" | "needed" | "waiting" | "rejected";
             /** Title */
             title: string;
+        };
+        /** TermsCity */
+        core_api__modules__markets__api__v1__delivery__TermsCity: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
         };
         /** Decision */
         core_api__modules__rules__api__v1__commission__Decision: {
@@ -9465,6 +9753,71 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_api_v1_kitchens_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenSignUp"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitchenSignedUp"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    terms_api_v1_kitchens_terms_get: {
+        parameters: {
+            query: {
+                country: string;
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitchenTerms"];
                 };
             };
             /** @description Validation Error */
@@ -12351,6 +12704,41 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_business_api_v1_restaurants__restaurant_id__business_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
                 };
             };
             /** @description Validation Error */

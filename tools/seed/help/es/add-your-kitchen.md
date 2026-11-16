@@ -3,7 +3,7 @@ slug: add-your-kitchen
 topic: kitchen-partners
 country: *
 title: ¿Cómo agrego mi cocina a BhojanGo?
-summary: Crea la cuenta de tu cocina en Agrega tu cocina con tu correo y una contraseña, envía la solicitud con los datos de tu cocina, completa cinco pasos cortos y te activamos.
+summary: Empieza tu solicitud en Agrega tu cocina con el nombre de tu cocina, la ciudad, tu número de celular, correo y una contraseña, completa cinco pasos cortos y te activamos.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, kitchen-payouts-and-statements
 ---
@@ -11,14 +11,13 @@ Las cocinas asociadas de BhojanGo pagan comisión solo sobre la comida, reciben 
 
 ## Envía tu solicitud
 
-1. Ve a [Agrega tu cocina](/partner) y elige **Comenzar tu solicitud**.
-2. Crea tu cuenta: tu correo electrónico, una contraseña de al menos 10 caracteres y el número de teléfono de tu cocina.
-3. Escribe tu nombre, el nombre de tu cocina tal como lo verán los clientes, tu ciudad y hasta cinco tipos de cocina. Puedes agregar la dirección completa en el primer paso después de enviar la solicitud.
-4. Envía tu solicitud.
+1. Ve a [Agrega tu cocina](/partner) y elige **Empieza tu solicitud**.
+2. Completa **Nombre de la cocina** (como lo verán los clientes), **Ciudad**, **Tu nombre**, **Número de celular**, **Correo electrónico** y una **Contraseña** de al menos 10 caracteres. Si quieres, agrega hasta 5 tipos de cocina.
+3. Elige **Crear cuenta y continuar**. Tu solicitud se abre en la misma página, donde completas los pasos de abajo.
 
 Tu cocina puede estar en una ciudad donde ya entregamos o en una que llegará pronto.
 
-> ¿Ya pides comida en BhojanGo? Inicia sesión en [Agrega tu cocina](/partner) y solicita con la misma cuenta. Después podrás iniciar sesión con tu correo y contraseña, o con tu número de teléfono.
+> Una cuenta es de cliente o de cocina asociada. Si iniciaste sesión con una cuenta que nunca ha hecho pedidos, puedes solicitar con ella y se convierte en la cuenta de tu cocina. Una cuenta que ya pidió comida no puede cambiar: cierra sesión y usa otro correo para tu cocina.
 
 ## Los cinco pasos
 

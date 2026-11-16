@@ -3,7 +3,7 @@ slug: add-your-kitchen
 topic: kitchen-partners
 country: *
 title: How do I add my kitchen to BhojanGo?
-summary: Create your kitchen's account on Add your kitchen with your email and a password, apply with your kitchen's details, finish five short steps and we switch you on.
+summary: Start your application on Add your kitchen with your kitchen's name, city, your mobile number, email and a password, finish five short steps and we switch you on.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, kitchen-payouts-and-statements
 ---
@@ -12,13 +12,12 @@ Kitchen partners on BhojanGo pay commission on food only, get paid weekly, and s
 ## Apply
 
 1. Go to [Add your kitchen](/partner) and choose **Start your application**.
-2. Create your account: your email, a password of at least 10 characters, and your kitchen's phone number.
-3. Fill in your name, your kitchen's name as customers will see it, your city and up to five cuisines. You can add the full address in the first step after you apply.
-4. Send your application.
+2. Fill in **Kitchen name** (as customers will see it), **City**, **Your name**, **Mobile number**, **Email** and a **Password** of at least 10 characters. Add up to 5 cuisines if you like.
+3. Choose **Create account and continue**. Your application opens on the same page, where you finish the steps below.
 
-Your kitchen can be in a city we already deliver in or one that is coming soon.
+Your kitchen can be in a city we already deliver in, or in one that is coming soon.
 
-> Already order food on BhojanGo? Sign in on [Add your kitchen](/partner) and apply with the same account. Later you can sign in with your email and password, or with your phone number.
+> One account is either a customer's or a kitchen partner's. If you're signed in with an account that has never ordered, you can apply with it, and it becomes your kitchen's account. An account that has ordered food can't switch: sign out and use a different email for your kitchen.
 
 ## The five steps
 
