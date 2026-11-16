@@ -218,3 +218,10 @@ opens the address box), `location.delivers_here` ("We deliver here", after the v
 town from their IP), `cities.other_countries` (the "Other countries" disclosure on Change
 city), `cities.no_match_in` ("No city in {country} by that name yet.": `{country}` is the
 country's Markets name in English; Indian languages glue a case suffix to it).
+## Round 8: not-found and error pages (workstream P)
+
+Machine-translated 2026-11-15: `errors.title_404`, `errors.body_404`, `errors.title_error`,
+`errors.body_error`, `errors.try_again`, `errors.go_home`, `errors.where_we_deliver`,
+`errors.help`, `errors.popular` (the website's 404 and error pages). The tone is informal
+and reassuring ("It's not you"); check Hindi/Marathi/Bengali read as polite, and that
+`errors.help` matches the footer's "Help centre" wording in each language.
