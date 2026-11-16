@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import {
-  initials, minutesUntil, offerPayer, offerSubtitle, offerTitle, orderAgain, riderFirstName, type CuisineTileData, type Offer, type Order,
+  minutesUntil, offerPayer, offerSubtitle, offerTitle, orderAgain, riderFirstName, type CuisineTileData, type Offer, type Order,
 } from "../lib/contract";
 import { reorder } from "../lib/orders";
-import { photo, Photo, Thumb } from "../lib/plate";
+import { BrandTile, photo, Photo, Thumb } from "../lib/plate";
 
 const OFFER_TINTS = [color.plate, color.peacockTint, "#F1E3E1"];
 
@@ -119,7 +119,7 @@ export function CuisineRow({ tiles, selected, onSelect }: { tiles: CuisineTileDa
               accessibilityLabel={c.name} onPress={() => onSelect(on ? null : c.name)} style={{ width: 76, alignItems: "center" }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: on ? color.peacock : color.white, overflow: "hidden", backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}>
                 <Photo uri={photo(c.photo, 400)} style={{ width: 66, height: 66 }}
-                  fallback={<Text style={[type.h2, { color: color.peacockDeep }]}>{initials(c.name)}</Text>} />
+                  fallback={<BrandTile width={66} height={66} rounded={33} />} />
               </View>
               <Text numberOfLines={1} style={[type.label, { marginTop: 6, color: on ? color.peacockDeep : color.kohl }]}>{c.name}</Text>
             </Pressable>

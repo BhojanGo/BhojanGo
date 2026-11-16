@@ -42,7 +42,7 @@ function Details({ user }: { user: User }) {
       <h2 id="details" className={h2}>{t("account.profile.details")}</h2>
       {editing ? (
         <form onSubmit={save} className="flex flex-wrap items-end gap-3 border-b border-[#EEF1F1] py-4">
-          <label className="min-w-[220px] flex-grow text-label text-[#4C5A5E]">
+          <label className="min-w-[220px] flex-grow text-label text-muted">
             {t("account.profile.name_label")}
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required autoFocus autoComplete="name" className={input} />
           </label>
@@ -63,7 +63,7 @@ function Details({ user }: { user: User }) {
       <Row label={t("account.profile.email")} note={t("account.profile.email_note")}>
         {user.email ?? t("account.profile.not_set")}
       </Row>
-      <p className="pt-3 text-small text-[#4C5A5E]">{t("account.profile.read_only_note")}</p>
+      <p className="pt-3 text-small text-muted">{t("account.profile.read_only_note")}</p>
       {msg && <p role="status" className="pt-2 text-label text-[#0B5D66]">{msg}</p>}
     </section>
   );
@@ -154,11 +154,11 @@ function Notifications() {
   return (
     <section id="notifications" aria-labelledby="notifications-title" className={card}>
       <h2 id="notifications-title" className={h2}>{t("account.notifications.title")}</h2>
-      {prefs === null && <p role="status" className="mt-3 text-[#4C5A5E]">{t("account.loading")}</p>}
-      {prefs === "error" && <p className="mt-3 text-[#4C5A5E]">{t("account.notifications.unavailable")}</p>}
+      {prefs === null && <p role="status" className="mt-3 text-muted">{t("account.loading")}</p>}
+      {prefs === "error" && <p className="mt-3 text-muted">{t("account.notifications.unavailable")}</p>}
       {prefs && prefs !== "error" && (
         <div role="table" aria-labelledby="notifications-title" className="mt-3">
-          <div role="row" className="grid grid-cols-[1fr_repeat(3,56px)] text-center text-caption text-[#4C5A5E] md:grid-cols-[1fr_repeat(3,80px)]">
+          <div role="row" className="grid grid-cols-[1fr_repeat(3,56px)] text-center text-caption text-muted md:grid-cols-[1fr_repeat(3,80px)]">
             <span role="columnheader" />
             {CHANNELS.map((c) => <span key={c} role="columnheader">{t(`account.notifications.${c}`)}</span>)}
           </div>
@@ -166,7 +166,7 @@ function Notifications() {
             <div key={k} role="row" className="grid grid-cols-[1fr_repeat(3,56px)] items-center border-b border-[#EEF1F1] py-[14px] md:grid-cols-[1fr_repeat(3,80px)]">
               <span role="rowheader">
                 <b className="text-label">{t(`account.notifications.${k}`)}</b>
-                <span className="block text-small text-[#4C5A5E]">{t(`account.notifications.${k}_note`)}</span>
+                <span className="block text-small text-muted">{t(`account.notifications.${k}_note`)}</span>
               </span>
               {CHANNELS.map((c) => {
                 const on = prefs[k]?.[c] ?? false;
@@ -250,7 +250,7 @@ function Privacy() {
           {t("account.privacy.delete")}
         </button>
       </div>
-      <p className="mt-4 text-small text-[#4C5A5E]">{t("account.privacy.note")}</p>
+      <p className="mt-4 text-small text-muted">{t("account.privacy.note")}</p>
       {problem && <p role="alert" className="mt-2 text-label text-[#8C1D18]">{problem}</p>}
 
       {confirming && (
@@ -279,7 +279,7 @@ export function ProfileView() {
   if (!user) return null; // the account frame sends you to sign in
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-h1 tracking-[-0.8px]">{t("account.profile.title")}</h1>
+      <h1 className="text-h1">{t("account.profile.title")}</h1>
       <Details key={user.id} user={user} />
       <LanguageCountry />
       <Addresses />

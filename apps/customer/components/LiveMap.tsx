@@ -1,8 +1,9 @@
 // The live map on tracking, as the website's LiveMap: MapLibre (native) over
 // OpenFreeMap's free vector tiles (no key, no account), © OpenStreetMap
-// contributors shown on the map. Markers for the kitchen, home and the rider;
-// the rider's trail drawn solid, a dashed line to the next stop. The rider
-// marker moves on every location_update from the tracking socket.
+// contributors shown on the map. Markers for the kitchen, home and the delivery
+// partner; where the partner has been on this leg drawn solid (after pickup from
+// the kitchen on: lib/route.ts, the website's code), a dashed line on to the next
+// stop. The partner's marker moves on every location_update from the tracking socket.
 //
 // MapLibre is native code: an APK built before it was added (Metro + an older
 // dev build) has no MLRN modules, and importing the package would throw. So it
@@ -14,6 +15,7 @@ import { Linking, Text, TurboModuleRegistry, View, type StyleProp, type ViewStyl
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
 
 import { boundsOf, type Pt } from "../lib/contract";
+import { routeLines } from "../lib/route";
 
 type MapLibre = typeof import("@maplibre/maplibre-react-native");
 
@@ -42,12 +44,14 @@ export interface LiveMapProps {
   dropoff: Pt | null;
   rider: Pt | null;
   trail: Pt[];
-  /** Where the rider goes next (the kitchen, then home); null when finished. */
-  next: Pt | null;
+  /** Where the partner goes next: the kitchen before pickup, home after; null when finished. */
+  leg: "kitchen" | "home" | null;
   labels: { map: string; kitchen: string; home: string; rider: string };
   height: number;
   /** Room at the bottom covered by the sheet, so the markers stay in view. */
   coverBottom?: number;
+  /** Room at the top taken by the status bar and the floating back button. */
+  coverTop?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -70,16 +74,17 @@ export function LiveMap(props: LiveMapProps) {
   );
 }
 
-function NativeMap({ ML, pickup, dropoff, rider, trail, next, labels, coverBottom = 0, onFail }: LiveMapProps & { ML: MapLibre; onFail: () => void }) {
+function NativeMap({ ML, pickup, dropoff, rider, trail, leg, labels, coverBottom = 0, coverTop = 0, onFail }: LiveMapProps & { ML: MapLibre; onFail: () => void }) {
   const { Map, Camera, GeoJSONSource, Layer, Marker } = ML;
-  // Fit everything in view when the places change (not on every rider step, so panning isn't undone).
-  const fitKey = JSON.stringify([pickup, dropoff, !!rider]);
+  const route = useMemo(() => routeLines({ pickup, dropoff, rider, trail, leg }), [pickup, dropoff, rider, trail, leg]);
+  // Fit what is drawn in view when the places change (not on every step, so panning isn't undone).
+  const fitKey = JSON.stringify([pickup, dropoff, !!rider, leg]);
   const [fit, setFit] = useState<{ key: string; bounds: [number, number, number, number] | null }>({ key: "", bounds: null });
-  if (fit.key !== fitKey) setFit({ key: fitKey, bounds: boundsOf([pickup, dropoff, rider, ...trail]) });
-  const bounds = fit.key === fitKey ? fit.bounds : boundsOf([pickup, dropoff, rider, ...trail]);
-  const done = useMemo(() => line(pickup ? [pickup, ...trail] : trail), [pickup, trail]);
-  const ahead = useMemo(() => line(next ? [rider ?? pickup, next].filter((p): p is Pt => !!p) : []), [next, rider, pickup]);
-  const padding = { top: 72, right: 48, bottom: 48 + coverBottom, left: 48 };
+  if (fit.key !== fitKey) setFit({ key: fitKey, bounds: boundsOf([pickup, dropoff, rider, ...route.done]) });
+  const bounds = fit.key === fitKey ? fit.bounds : boundsOf([pickup, dropoff, rider, ...route.done]);
+  const done = useMemo(() => line(route.done), [route.done]);
+  const ahead = useMemo(() => line(route.ahead), [route.ahead]);
+  const padding = { top: 40 + coverTop, right: 48, bottom: 48 + coverBottom, left: 48 };
 
   return (
     <View testID="live-map" style={{ flex: 1 }}>
@@ -124,9 +129,10 @@ function NativeMap({ ML, pickup, dropoff, rider, trail, next, labels, coverBotto
         testID="map-attribution"
         accessibilityRole="link"
         onPress={() => void Linking.openURL(COPYRIGHT)}
-        style={[type.caption, {
-          // top right: always on screen (the sheet below can cover more of the map than coverBottom)
-          position: "absolute", right: 8, top: 8, maxWidth: "92%", color: color.kohl,
+        style={[type.small, {
+          // bottom right, just above the sheet: clear of the back button and the status bar
+          // (a map's credit sits at its foot); readable size, not the uppercase caption
+          position: "absolute", right: 8, bottom: coverBottom + 8, maxWidth: "80%", color: color.kohl, textAlign: "right",
           backgroundColor: "rgba(255,255,255,0.85)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: "hidden",
         }]}
       >
@@ -164,22 +170,21 @@ function RiderPin() {
 }
 
 /** No MapLibre in this build (or no tiles): the route drawn over a plain ground. */
-function DrawnMap({ pickup, dropoff, rider, trail, next, labels, height }: LiveMapProps) {
-  const pts = [pickup, dropoff, rider, ...trail].filter(Boolean) as Pt[];
+function DrawnMap({ pickup, dropoff, rider, trail, leg, labels, height }: LiveMapProps) {
+  const { done, ahead } = routeLines({ pickup, dropoff, rider, trail, leg });
+  const pts = [pickup, dropoff, rider, ...done].filter(Boolean) as Pt[];
   const W = 390, H = height, pad = 60;
   if (pts.length === 0) return <View testID="drawn-map" style={{ flex: 1 }} />;
   const lats = pts.map((p) => p[0]), lngs = pts.map((p) => p[1]);
   const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
   const span = Math.max(maxLat - minLat, maxLng - minLng, 0.004);
   const xy = (p: Pt): [number, number] => [pad + ((p[1] - minLng) / span) * (W - 2 * pad), H - pad - ((p[0] - minLat) / span) * (H - 2 * pad)];
-  const from = rider ?? pickup;
-  const done = pickup ? [pickup, ...trail] : trail;
   return (
     <Svg testID="drawn-map" width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <Rect width={W} height={H} fill={color.mapGround} />
       {[80, 160, 240, 320].map((y) => <Path key={y} d={`M0 ${y} H${W}`} stroke="#DDE4E4" strokeWidth={10} />)}
       {[70, 190, 310].map((x) => <Path key={x} d={`M${x} 0 V${H}`} stroke="#DDE4E4" strokeWidth={10} />)}
-      {from && next ? <Path d={`M${xy(from).join(" ")} L${xy(next).join(" ")}`} stroke={color.peacockDeep} strokeWidth={4} strokeDasharray="8 8" /> : null}
+      {ahead.length === 2 ? <Path d={`M${xy(ahead[0]!).join(" ")} L${xy(ahead[1]!).join(" ")}`} stroke={color.peacockDeep} strokeWidth={4} strokeDasharray="8 8" /> : null}
       {done.length > 1 ? <Polyline points={done.map((p) => xy(p).join(",")).join(" ")} fill="none" stroke={color.peacock} strokeWidth={5} strokeLinecap="round" /> : null}
       {pickup ? <Circle accessibilityLabel={labels.kitchen} cx={xy(pickup)[0]} cy={xy(pickup)[1]} r={10} fill={color.kohl} /> : null}
       {dropoff ? <Circle accessibilityLabel={labels.home} cx={xy(dropoff)[0]} cy={xy(dropoff)[1]} r={10} fill={color.peacock} stroke={color.white} strokeWidth={3} /> : null}

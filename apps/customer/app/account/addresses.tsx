@@ -1,11 +1,10 @@
 // Saved addresses (WebProfile): the default first, delivery notes, make
 // default, edit, delete, add. Making one the default also makes it where the
 // app shows food for (and so the country, its languages and prices).
-import { Button, color, space, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, SafeAreaView, space, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { deleteAddress, followAddress, listAddresses, makeDefaultAddress, type Address } from "../../lib/account";
 import { LinkButton, ScreenBar, Section, Status, ui } from "../../lib/account-ui";

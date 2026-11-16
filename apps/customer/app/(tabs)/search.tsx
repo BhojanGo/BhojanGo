@@ -1,9 +1,8 @@
 // Search the kitchens that deliver to the drop point (names, cuisines, areas),
 // from the same /discover answer as home; the cuisine row filters too.
-import { color, Input, space, Txt, useI18n } from "@bhojango/mobile-core";
+import { color, Input, SafeAreaView, space, Txt, useI18n } from "@bhojango/mobile-core";
 import { useMemo, useState } from "react";
 import { FlatList, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CuisineRow } from "../../components/HomeSections";
 import { KitchenCard } from "../../components/KitchenCard";

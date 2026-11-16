@@ -35,3 +35,19 @@ export function tabBarClearance(insetBottom: number, stacked: readonly number[] 
   const above = stacked.map(px).filter((h) => h > 0).reduce((sum, h) => sum + h + TAB_BAR_GAP, 0);
   return tabBarBottom(insetBottom) + TAB_BAR_HEIGHT + above + TAB_BAR_BREATHING;
 }
+
+// R8: the bar no longer floats over content at rest. Tab screens end above a band
+// at the bottom (tabBarZone) that the bar floats in, so nothing (a heading, a
+// cuisine label) ever sits under the bar when the screen opens. Inside that
+// shorter screen, the scroll ends with sceneEndSpace() and a floating button
+// (the bag pill) sits TAB_BAR_GAP above the screen's bottom edge, i.e. above the bar.
+
+/** The band at the bottom of the window the bar floats in (its offset and its height); tab screens end above it. */
+export function tabBarZone(insetBottom: number): number {
+  return tabBarBottom(insetBottom) + TAB_BAR_HEIGHT;
+}
+
+/** The paddingBottom a tab screen's scroll ends with inside a screen that already ends above the bar. */
+export function sceneEndSpace(stacked: readonly number[] = []): number {
+  return tabBarClearance(0, stacked) - tabBarZone(0);
+}

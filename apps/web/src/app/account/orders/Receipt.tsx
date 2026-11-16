@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
+import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { FairBill } from "@/components/FairBill";
 import { RateOrder } from "@/components/order/RateOrder";
 import { authed, useBag } from "@/lib/client";
@@ -66,10 +67,10 @@ export function Receipt({ id }: { id: string }) {
   const kitchen = useKitchenBrief(order?.restaurant_id);
 
   if (!data || data.id !== id) {
-    return <div role="status" className="rounded-3xl border border-[#E2E7E8] p-6 text-[#4C5A5E]">{t("account.loading")}</div>;
+    return <div role="status" className="rounded-3xl border border-[#E2E7E8] p-6 text-muted">{t("account.loading")}</div>;
   }
   if (!order) {
-    return <div role="alert" className="rounded-3xl border border-[#E2E7E8] p-6 text-[#4C5A5E]">{t("account.receipt.not_found")}</div>;
+    return <div role="alert" className="rounded-3xl border border-[#E2E7E8] p-6 text-muted">{t("account.receipt.not_found")}</div>;
   }
 
   const bill = data.bill;
@@ -143,7 +144,7 @@ export function Receipt({ id }: { id: string }) {
   return (
     <article aria-label={t("account.receipt.label", { code })} className="overflow-hidden rounded-3xl border border-[#E2E7E8]">
       <div className="relative h-[140px] md:h-[160px]">
-        <Thumb src={photo(kitchen?.cover_url, 800)} name={order.restaurant_name} className="h-full w-full" />
+        <Thumb src={photo(kitchenPhoto(kitchen), 800)} glyph={false} className="h-full w-full" />
         <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_30%,rgba(17,20,24,0.75)_100%)]" />
         <div className="absolute bottom-[18px] left-5 right-5 text-white md:left-6">
           <h2 className="text-h2">{order.restaurant_name}</h2>
@@ -192,7 +193,7 @@ export function Receipt({ id }: { id: string }) {
 
         {order.status === "delivered" && <RateOrder key={order.id} orderId={order.id} order={order} compact />}
 
-        <h3 className="mt-6 text-caption text-[#4C5A5E]">{t("account.receipt.items")}</h3>
+        <h3 className="mt-6 text-caption text-muted">{t("account.receipt.items")}</h3>
         <ul className="mt-[10px] flex flex-col gap-2 text-body">
           {items.map((i, n) => {
             const opts = (i.options ?? []).map((o) => (typeof o === "string" ? o : o.name ?? o.option)).filter(Boolean).join(", ");
@@ -201,7 +202,7 @@ export function Receipt({ id }: { id: string }) {
               <li key={`${i.menu_item_id}-${n}`} className="flex justify-between gap-3">
                 <span>
                   {i.quantity ?? 1} × {i.name}
-                  {opts && <span className="text-[#4C5A5E]"> · {opts}</span>}
+                  {opts && <span className="text-muted"> · {opts}</span>}
                 </span>
                 {line != null && <b className="shrink-0 tabular-nums">{f.money(line, order.currency)}</b>}
               </li>
@@ -209,7 +210,7 @@ export function Receipt({ id }: { id: string }) {
           })}
         </ul>
 
-        <h3 className="mt-6 text-caption text-[#4C5A5E]">{t("account.receipt.fair_bill")}</h3>
+        <h3 className="mt-6 text-caption text-muted">{t("account.receipt.fair_bill")}</h3>
         <div className="mt-[10px]">
           {bill ? (
             <FairBill
@@ -223,7 +224,7 @@ export function Receipt({ id }: { id: string }) {
             />
           ) : (
             <>
-              <p className="text-small text-[#4C5A5E]">{t("account.receipt.no_bill")}</p>
+              <p className="text-small text-muted">{t("account.receipt.no_bill")}</p>
               <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
                 <b className="text-h3">{t("account.receipt.total")}</b>
                 <b className="text-h3 tabular-nums">{f.money(order.total, order.currency)}</b>
@@ -231,14 +232,14 @@ export function Receipt({ id }: { id: string }) {
             </>
           )}
           {!cancelled && order.placed_at && (
-            <p data-testid="receipt-time" className="mt-[6px] text-small text-[#4C5A5E]">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
+            <p data-testid="receipt-time" className="mt-[6px] text-small text-muted">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
           )}
         </div>
 
         {(addr.street || addr.label) && (
           <div className="mt-6 rounded-2xl bg-[#F4F6F6] p-4 text-small">
             <b className="block">{delivered ? t("account.receipt.delivered_to") : t("account.receipt.deliver_to")}</b>
-            <span className="text-[#4C5A5E]">{[addr.label, addr.street, addr.city].filter(Boolean).join(" · ")}</span>
+            <span className="text-muted">{[addr.label, addr.street, addr.city].filter(Boolean).join(" · ")}</span>
           </div>
         )}
       </div>

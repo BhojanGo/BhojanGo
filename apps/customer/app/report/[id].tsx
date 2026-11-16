@@ -2,13 +2,12 @@
 // Up to the city's limit it's refunded at once to the original payment;
 // above it, support looks at it and gets back to you.
 import {
-  api, ApiError, Button, color, type CoreSchemas, field, radius, space, textStyles, type, unwrap, useI18n,
+  api, ApiError, Button, color, type CoreSchemas, field, radius, SafeAreaView, space, textStyles, type, unwrap, useI18n,
 } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Icon } from "../../lib/icons";
 import { uploadPhoto } from "../../lib/upload";

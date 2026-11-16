@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
 import { offerBadge, ratingOf, type KitchenCard as Kitchen } from "../lib/contract";
-import { KitchenCover } from "../lib/plate";
+import { kitchenPhoto, KitchenCover } from "../lib/plate";
 import { FavouriteHeart } from "./Heart";
 
 /** "New" until a kitchen has 5 ratings, then "★4.6 (23)". */
@@ -53,7 +53,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
       <Pressable accessibilityRole="button" accessibilityLabel={k.name} onPress={() => router.push(`/restaurant/${k.id}`)}
         style={{ backgroundColor: color.white, borderRadius: radius.card, overflow: "hidden" }}>
         <View>
-          <KitchenCover name={k.name} cover={k.cover_url} cuisine={k.cuisine_types[0]} height={height} />
+          <KitchenCover name={k.name} cover={kitchenPhoto(k)} height={height} />
           {k.offer ? (
             <View testID="offer-badge" style={{ position: "absolute", left: 12, top: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: color.kohl }}>
               <Text style={[type.caption, { color: color.white }]}>{offerBadge(k.offer, t, money, currency)}</Text>

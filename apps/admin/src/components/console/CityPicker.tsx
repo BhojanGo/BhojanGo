@@ -75,7 +75,7 @@ export function CityPicker({
         <div className="absolute right-0 z-[1000] mt-2 w-72 rounded-2xl border border-line bg-white p-2 shadow-[0_8px_24px_rgba(17,20,24,0.12)]">
           <label className="flex h-10 items-center gap-2 rounded-full bg-porcelain px-3">
             <span className="sr-only">Search cities</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C5A5E" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4A4E" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
             </svg>

@@ -61,15 +61,15 @@ function AddCard({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
   return (
     <form onSubmit={save} aria-labelledby="add-card" className="mt-4 rounded-2xl border border-[#E2E7E8] bg-[#FAFBFB] p-4 md:p-5">
       <h3 id="add-card" className="font-bold">{t("account.payments.add_title")}</h3>
-      <p className="mt-1 text-small text-[#4C5A5E]">{t("account.payments.add_note")}</p>
+      <p className="mt-1 text-small text-muted">{t("account.payments.add_note")}</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.payments.brand")}
           <select value={brand} onChange={(e) => setBrand(e.target.value)} className={input}>
             {BRANDS.map((b) => <option key={b} value={b}>{brandName(b)}</option>)}
           </select>
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.payments.last4")}
           <input
             value={last4}
@@ -82,13 +82,13 @@ function AddCard({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
             className={input}
           />
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.payments.exp_month")}
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className={input}>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
           </select>
         </label>
-        <label className="text-label text-[#4C5A5E]">
+        <label className="text-label text-muted">
           {t("account.payments.exp_year")}
           <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={input}>
             {Array.from({ length: 16 }, (_, i) => now.getFullYear() + i).map((y) => <option key={y} value={y}>{y}</option>)}
@@ -137,12 +137,12 @@ export function Payments() {
   return (
     <section id="payments" aria-labelledby="payments-title" className={card}>
       <h2 id="payments-title" className={h2}>{t("account.payments.title")}</h2>
-      <p className="mt-[2px] text-small text-[#4C5A5E]">{t("account.payments.note")}</p>
-      {list === null && <p role="status" className="mt-3 text-[#4C5A5E]">{t("account.loading")}</p>}
-      {list === "error" && <p className="mt-3 text-[#4C5A5E]">{t("account.payments.unavailable")}</p>}
+      <p className="mt-[2px] text-small text-muted">{t("account.payments.note")}</p>
+      {list === null && <p role="status" className="mt-3 text-muted">{t("account.loading")}</p>}
+      {list === "error" && <p className="mt-3 text-muted">{t("account.payments.unavailable")}</p>}
       {Array.isArray(list) && (
         <div className="mt-3">
-          {!list.length && <p className="py-3 text-[#4C5A5E]">{t("account.payments.empty")}</p>}
+          {!list.length && <p className="py-3 text-muted">{t("account.payments.empty")}</p>}
           {list.map((m) => (
             <Row
               key={m.id}
@@ -175,7 +175,7 @@ export function Payments() {
           </button>
         )
       ) : (
-        <p className="mt-[14px] text-small text-[#4C5A5E]">{t("account.payments.live_note")}</p>
+        <p className="mt-[14px] text-small text-muted">{t("account.payments.live_note")}</p>
       )}
     </section>
   );

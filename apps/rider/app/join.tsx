@@ -1,11 +1,10 @@
 // Sign up to ride: your name and city, then the onboarding checklist (licence,
 // insurance, payout account, background check). A number that already orders
 // food on BhojanGo can't also ride.
-import { api, ApiError, field, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field, SafeAreaView, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RiderMark } from "../lib/icons";
 import { night, radius, space, ui } from "../lib/theme";

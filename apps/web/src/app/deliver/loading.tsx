@@ -2,7 +2,7 @@
 export default function Loading() {
   const bar = "animate-pulse rounded-[12px] bg-porcelain";
   return (
-    <div aria-busy="true" className="mx-auto w-full max-w-[1200px] px-4 pb-16 pt-8 md:px-8 md:pt-14 lg:px-12">
+    <div aria-busy="true" className="container-page pb-16 pt-8 md:pt-14">
       <div className="grid gap-8 lg:grid-cols-[1fr_520px] lg:gap-12">
         <div>
           <div className={`${bar} h-4 w-40`} />

@@ -1,5 +1,10 @@
 # Type scale v1: evidence (Round 6, item 5)
 
+> Superseded in Round 8: the type is now Inter with a fluid scale (display 36-52,
+> h1 28-36, h2 22-28, h3 17-20, body-lg 16-18, body 15-16, label 14-15, small 13-14,
+> caption 12; min at a 360 px viewport, max at 1440 px). See `docs/design/README.md`
+> and `packages/ui/tokens.js`. The record below is the Round 6 scale as measured then.
+
 Viewport screenshots of every website and admin page and of the main app screens, all
 taken on QA on 2026-11-15, and every font size found on screen. The allowed sizes
 (desktop / phone): display 64/44 · h1 40/30 · h2 28/22 · h3 20/18 · body-lg 18/17 ·

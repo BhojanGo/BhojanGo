@@ -38,7 +38,6 @@ const config: Config = {
         kohl: "#111418",
         kesar: { DEFAULT: "#D4932A", tint: "#F7EBD3", ink: "#5C4100" },
         porcelain: "#F4F6F6",
-        muted: "#4C5A5E",
         line: { DEFAULT: "#E2E7E8", soft: "#EEF1F1" },
         danger: { DEFAULT: "#B3261E", tint: "#FCE8E6", ink: "#8C1D18" },
       },
