@@ -16699,7 +16699,7 @@
     },
     "/api/v1/pricing/example": {
       "get": {
-        "description": "An example bill for the website: a real recent order's bill in this zone (or\ncity), as the customer saw it; a new city with no orders yet gets a typical cart\nfrom its own menus priced by the engine with live rules. Cached for an hour. Public.",
+        "description": "An example bill for the website: a real recent order's bill in this zone (or\ncity), as the customer saw it; a new city with no orders yet gets a typical cart\nfrom its own menus priced by the engine with live rules. With it, \"shares\": who\ngets the money, from the engine's split (see _shares). Cached for an hour. Public.",
         "operationId": "example_quote_api_v1_pricing_example_get",
         "parameters": [
           {
