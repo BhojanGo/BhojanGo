@@ -13129,7 +13129,7 @@
     },
     "/api/v1/auth/email/sign-up": {
       "post": {
-        "description": "Start a new account with email + password. A 6-digit code goes to the email;\nthe account exists once /auth/email/verify gets it. The same 202 for an email\nthat already has an account (that mailbox gets a \"you already have an account\" email).\n422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_EMAILS.",
+        "description": "Start a new account with email + password. A 6-digit code goes to the email;\nthe account exists once /auth/email/verify gets it. The same 202 for an email\nthat already has an account (that mailbox gets a \"you already have an account\" email).\n422 PASSWORD_TOO_SHORT / PASSWORD_LIKE_EMAIL / PASSWORD_BREACHED; 429 TOO_MANY_CODES (retry_after).",
         "operationId": "email_sign_up_api_v1_auth_email_sign_up_post",
         "requestBody": {
           "content": {
@@ -13773,7 +13773,7 @@
     },
     "/api/v1/auth/send-otp": {
       "post": {
-        "description": "Send a 6-digit OTP to the given phone number via SMS.",
+        "description": "Send a 6-digit OTP to the given phone number via SMS.\n429 TOO_MANY_CODES (``retry_after`` seconds) when this number had too many codes lately;\n503 SEND_FAILED when the SMS provider didn't take it.",
         "operationId": "send_otp_api_v1_auth_send_otp_post",
         "requestBody": {
           "content": {

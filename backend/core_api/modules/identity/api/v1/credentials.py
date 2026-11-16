@@ -54,7 +54,7 @@ async def change_password(request: Request, data: ChangePasswordRequest, me: Me,
 
 
 @router.post("/email", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute;300/hour")
 async def link_email(request: Request, data: LinkEmailStart, me: Me, db: DB) -> MessageResponse:
     """Send a code to the email to link. 409 EMAIL_IN_USE (another account has it) / ALREADY_LINKED."""
     await CredentialsService(db, me).start_email(data)
@@ -68,7 +68,7 @@ async def link_email_verify(request: Request, data: LinkEmailVerify, me: Me, db:
 
 
 @router.post("/phone", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("3/minute")
+@limiter.limit("30/minute;300/hour")
 async def link_phone(request: Request, data: LinkPhoneStart, me: Me, db: DB) -> MessageResponse:
     """Send an SMS code to the number to link. 409 PHONE_IN_USE / ALREADY_LINKED."""
     await CredentialsService(db, me).start_phone(data)

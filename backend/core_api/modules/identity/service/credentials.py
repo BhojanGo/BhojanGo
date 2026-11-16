@@ -99,13 +99,16 @@ class CredentialsService:
     # ── email ────────────────────────────────────────────────────────────────
     async def start_email(self, data: LinkEmailStart) -> None:
         email = data.email.strip().lower()
-        await self._limit("link_email")
+        await self._limit("link_email")  # checking many addresses from one account
+        wait = await guard.code_send_wait("email_send", email, exempt=bool(email_codes.fixed_code_for(email)))
         if self.user.email == email and self.user.is_verified:
             raise _error(status.HTTP_409_CONFLICT, "ALREADY_LINKED", "This email is already on your account.")
         other = await self.repo.get_by_email(email)
         if other is not None and other.id != self.user.id:
             raise _error(status.HTTP_409_CONFLICT, "EMAIL_IN_USE",
                          "This email is already used by another BhojanGo account. Use a different one.")
+        if wait:
+            raise guard.too_many_codes(wait, "email address")
         code = await email_codes.issue(f"link:{self.user.id}", email)
         lang = mailer.language(data.language, self.user.preferred_locale)
         background.spawn(mailer.send_code(email, code, lang, email_codes.ttl_minutes()), name="mail:link")
@@ -138,8 +141,8 @@ class CredentialsService:
             raise _error(status.HTTP_409_CONFLICT, "PHONE_IN_USE",
                          "This number is already used by another BhojanGo account. Use a different one.")
         lang = mailer.language(data.language, self.user.preferred_locale)
-        if not await send_otp(data.phone, country.code, lang):
-            raise _error(status.HTTP_429_TOO_MANY_REQUESTS, "OTP_LIMIT_REACHED", "Too many codes asked for. Please wait.")
+        if not await send_otp(data.phone, country.code, lang):  # 429 TOO_MANY_CODES is raised inside
+            raise _error(status.HTTP_503_SERVICE_UNAVAILABLE, "SEND_FAILED", "We couldn't send the code. Try again in a moment.")
 
     async def verify_phone(self, data: LinkPhoneVerify) -> User:
         other = await self.repo.get_by_phone(data.phone)

@@ -61,3 +61,41 @@ async def clear(email: str) -> None:
     redis = await get_redis()
     h = ident_hash(email)
     await redis.delete(f"pw_fail:{h}", f"pw_lock:{h}")
+
+
+# ── sending codes (SMS and email) ────────────────────────────────────────────
+# Limited per phone number or email address, not per IP: in India many people share one
+# IP behind carrier-grade NAT, so a tight per-IP limit would lock real customers out. The
+# per-IP limits on the routes are only a high ceiling against abuse (30/minute, 300/hour).
+CODE_SEND_WINDOWS: tuple[tuple[int, int], ...] = ((30, 1), (3600, 5), (86400, 10))  # (seconds, sends)
+
+
+async def code_send_wait(kind: str, ident: str, *, exempt: bool = False) -> int:
+    """0 if a code may be sent to ``ident`` now (and the send is counted), else the seconds
+    to wait. ``exempt``: the seed's fictional numbers and @example.com outside production
+    (they always get the fixed code, so nothing is sent to a real person)."""
+    if exempt:
+        return 0
+    redis = await get_redis()
+    h = ident_hash(ident)
+    keys = [f"rl:{kind}:{window}:{h}" for window, _ in CODE_SEND_WINDOWS]
+    counts = await redis.mget(keys)
+    for (window, limit), key, count in zip(CODE_SEND_WINDOWS, keys, counts):
+        if count is not None and int(count) >= limit:
+            return max(1, int(await redis.ttl(key) or window))
+    for (window, _), key in zip(CODE_SEND_WINDOWS, keys):
+        if await redis.incr(key) == 1:
+            await redis.expire(key, window)
+    return 0
+
+
+def too_many_codes(wait: int, what: str = "number"):  # type: ignore[no-untyped-def]
+    """429 TOO_MANY_CODES with retry_after (seconds); the clients say "Try again in N s"."""
+    from fastapi import HTTPException, status
+
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail={"code": "TOO_MANY_CODES", "message": f"Too many codes for this {what}. Try again in {wait} seconds.",
+                "retry_after": wait},
+        headers={"Retry-After": str(wait)},
+    )
