@@ -1567,5 +1567,16 @@
     "change_city": "Change city",
     "set": "Set your delivery location",
     "delivers_here": "We deliver here"
+  },
+  "errors": {
+    "title_404": "We can't find that page",
+    "body_404": "The link may be old, or the page has moved. Search for a dish or a kitchen, or start from one of these.",
+    "title_error": "Something went wrong on our side",
+    "body_error": "It's not you. Try again in a moment. If it keeps happening, the help centre has answers and a way to reach us.",
+    "try_again": "Try again",
+    "go_home": "Go to the home page",
+    "where_we_deliver": "Where we deliver",
+    "help": "Help centre",
+    "popular": "Popular pages"
   }
 }
