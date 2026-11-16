@@ -1891,5 +1891,101 @@
     "code_submit": "Create account and continue",
     "code_resend": "Send a new code",
     "code_back": "Change my details"
+  },
+  "helpcentre": {
+    "title": "Help centre",
+    "meta_description": "Answers about orders, payments and refunds, delivery, your account, and working with BhojanGo as a kitchen or delivery partner.",
+    "hero_title": "How can we help?",
+    "hero_body": "Search our answers, or pick a topic. If you still need us, you can write to our support team at the bottom of the page.",
+    "search_label": "Search help articles",
+    "search_placeholder": "Search refunds, PIN, payouts…",
+    "search_clear": "Clear search",
+    "results": {
+      "one": "{count} article found",
+      "other": "{count} articles found"
+    },
+    "results_for": "Results for “{query}”",
+    "no_results_title": "No articles match “{query}”",
+    "no_results_body": "Try other words, or start with one of these. You can also contact us below.",
+    "search_error": "Search isn't working right now. Browse the topics instead.",
+    "contact_us": "Contact us",
+    "topics_title": "Browse by topic",
+    "topic_count": {
+      "one": "{count} article",
+      "other": "{count} articles"
+    },
+    "topics": {
+      "orders": {
+        "title": "Orders",
+        "body": "Placing, tracking, cancelling and rating orders"
+      },
+      "payments-refunds": {
+        "title": "Payments and refunds",
+        "body": "The fair bill, ways to pay, offers and refunds"
+      },
+      "delivery": {
+        "title": "Delivery",
+        "body": "The delivery PIN, fees, tips and where we deliver"
+      },
+      "account": {
+        "title": "Account and sign-in",
+        "body": "Signing in, addresses, language and your data"
+      },
+      "kitchen-partners": {
+        "title": "Kitchen partners",
+        "body": "Joining, documents, the BhojanGo Kitchen app and payouts"
+      },
+      "delivery-partners": {
+        "title": "Delivery partners",
+        "body": "Joining, pay and tips, and the BhojanGo Delivery app"
+      }
+    },
+    "popular_title": "Popular articles",
+    "topic_empty": "There are no articles in this topic yet. Search above, or contact us below.",
+    "breadcrumb": "Breadcrumb",
+    "in_topic": "More in {topic}",
+    "all_in_topic": "See the whole topic",
+    "related_title": "Related articles",
+    "updated": "Updated {date}",
+    "fallback_note": "This article isn't available in {language} yet, so it's shown in English.",
+    "helpful_question": "Was this helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "helpful_thanks": "Thanks for letting us know.",
+    "unhelpful_thanks": "Thanks. Sorry this didn't answer your question.",
+    "unhelpful_body": "Tell us what you were looking for and our support team will help.",
+    "unhelpful_contact": "Contact us",
+    "vote_error": "We couldn't save your answer. Try again.",
+    "contact_title": "Still need help?",
+    "contact_body_signed_in": "Pick an order to report a problem with it or ask about it, or write to our support team about something else.",
+    "contact_body_signed_out": "Send us a message and our support team will reply by email.",
+    "recent_orders": "Your recent orders",
+    "no_orders": "You haven't placed an order yet.",
+    "orders_error": "We couldn't load your orders. You can still write to us.",
+    "report_problem": "Report a problem",
+    "track_order": "Track this order",
+    "message_support": "Message support",
+    "message_about_order": "Message support about this order",
+    "about_order": "About order {order}",
+    "form_name": "Your name",
+    "form_email": "Email",
+    "form_topic": "Topic",
+    "form_message": "How can we help?",
+    "form_message_hint": "Tell us what happened. If it's about an order, add the order number from your receipt.",
+    "form_send": "Send message",
+    "form_sending": "Sending…",
+    "form_invalid": "Check your name, email and message (at least 10 characters), then try again.",
+    "sent_title": "Message sent",
+    "sent_body_email": "Thanks, {name}. Our support team will reply to {email}.",
+    "sent_body_signed_in": "Thanks. Our support team will look at it and get back to you.",
+    "send_another": "Send another message",
+    "too_many": "You've sent several messages in a short time. Wait a few minutes, then try again.",
+    "send_error": "We couldn't send your message. Check your connection and try again.",
+    "sign_in_orders": "Sign in to get help with an order",
+    "error_title": "Help articles didn't load",
+    "error_body": "We couldn't load help articles just now. Try again in a moment, or write to us below.",
+    "not_found_title": "We couldn't find that article",
+    "not_found_body": "It may have moved or been renamed. Search for it, or browse the topics.",
+    "back_to_help": "Back to the Help centre"
   }
 }
