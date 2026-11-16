@@ -153,7 +153,7 @@ with sync_playwright() as p:
         page.get_by_label("6-digit code").fill(wrong)
         page.get_by_role("button", name="Continue").click()
         check("admin sign-in: a wrong code says so, in words", lambda:
-              expect(page.get_by_role("alert")).to_contain_text("That code didn't work", timeout=10000))
+              expect(page.locator("p[role=alert]")).to_contain_text("That code didn't work", timeout=10000))
         page.get_by_role("button", name=re.compile("Use a recovery code")).click()
         check("admin sign-in: a recovery code can be used instead of the app", lambda: (
             expect(page.get_by_role("heading", name="Use a recovery code")).to_be_visible(),
