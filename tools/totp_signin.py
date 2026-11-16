@@ -60,3 +60,11 @@ def finish(post, email: str, body: dict, keys: dict[str, str] | None = None) -> 
     if body.get("enrolment_required"):
         raise RuntimeError(f"{email} has no authenticator yet: sign in once in the admin console to set it up")
     return post("/auth/mfa/verify", {"mfa_token": body["mfa_token"], "code": next_code(email, (keys or {}).get(email))})
+
+
+def admin_console_second_step(page, email: str, keys: dict[str, str] | None = None) -> None:  # type: ignore[no-untyped-def]
+    """Playwright: after "Sign in" on the admin console's /login, type the authenticator code."""
+    box = page.get_by_label("6-digit code")
+    box.wait_for(timeout=20000)
+    box.fill(next_code(email, (keys or {}).get(email)))
+    page.get_by_role("button", name="Continue").click()

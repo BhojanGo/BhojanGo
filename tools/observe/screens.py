@@ -48,6 +48,11 @@ with sync_playwright() as p:
     a.locator("input[type=email]").fill("ops.hyd@example.com")
     a.locator("input[type=password]").fill("BhojanGoAdmin1")
     a.get_by_role("button", name=re.compile("sign in", re.I)).click()
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tools/
+    from totp_signin import admin_console_second_step  # every admin: the authenticator code (seed key)
+
+    admin_console_second_step(a, "ops.hyd@example.com")
     a.wait_for_url("**/overview**", timeout=20000)
     a.goto("http://localhost:3001/operations?scope=IN-TG-HYD&tab=live", wait_until="networkidle")
     a.get_by_role("region", name="Alerts").wait_for(timeout=20000)

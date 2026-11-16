@@ -86,7 +86,7 @@ def _mock_client(handler):  # type: ignore[no-untyped-def]
 
 async def test_pwned_passwords_sends_only_five_hex_characters(monkeypatch) -> None:
     seen: list[httpx.Request] = []
-    digest = hashlib.sha1(b"hunter2-but-longer").hexdigest().upper()
+    digest = hashlib.sha1(b"hunter2-but-longer", usedforsecurity=False).hexdigest().upper()
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)

@@ -24,15 +24,19 @@ PW = "BhojanGoAdmin1"
 # Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
 sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
 from target_guard import ensure_safe_api  # noqa: E402
+from totp_signin import SEED_TOTP_SECRET, admin_console_second_step, code_at, finish  # noqa: E402
 
 ensure_safe_api(CORE)
 
 # Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
-# and the seed's random passwords from E2E_LOGINS_FILE (outside the repo).
+# and the seed's random passwords (and admins' authenticator keys) from E2E_LOGINS_FILE (outside the repo).
 PASSWORDS: dict[str, str] = {}
+TOTP_KEYS: dict[str, str] = {}
 if os.environ.get("E2E_LOGINS_FILE"):
     with open(os.environ["E2E_LOGINS_FILE"], encoding="utf-8") as _f:
-        PASSWORDS = {r[2]: r[3] for r in (line.rstrip("\n").split("\t") for line in _f) if len(r) >= 4}
+        _rows = [line.rstrip("\n").split("\t") for line in _f]
+    PASSWORDS = {r[2]: r[3] for r in _rows if len(r) >= 4}
+    TOTP_KEYS = {r[2]: r[4] for r in _rows if len(r) >= 5 and r[4]}
 results: list[tuple[str, bool, str]] = []
 
 
@@ -103,7 +107,8 @@ with sync_playwright() as p:
                 if r.status != 429:
                     break
                 page_wait(6000)
-            _tokens[email] = {"Authorization": f"Bearer {r.json()['access_token']}"}
+            body = finish(lambda path, data: api.post(f"{CORE}{path}", data=data).json(), email, r.json(), TOTP_KEYS)
+            _tokens[email] = {"Authorization": f"Bearer {body['access_token']}"}
         return _tokens[email]
 
     def page_wait(ms: int) -> None:
@@ -128,8 +133,36 @@ with sync_playwright() as p:
         page.locator("input[type=email]").fill(email)
         page.locator("input[type=password]").fill(PASSWORDS.get(email, PW))
         page.get_by_role("button", name=re.compile("sign in", re.I)).click()
+        # Every admin: the second step, a code from the authenticator (the seed's key; QA: the logins file's).
+        admin_console_second_step(page, email, TOTP_KEYS)
         # A client-side navigation never fires "load": wait on the URL itself.
         expect(page).to_have_url(re.compile(r"/overview"), timeout=20000)
+
+    def second_step_checks(page, email: str) -> None:  # type: ignore[no-untyped-def]
+        """Round 8 D5: a password alone is not enough; wrong codes say so; recovery codes are offered."""
+        page.goto(f"{BASE}/login", wait_until="networkidle")
+        page.locator("input[type=email]").fill(email)
+        page.locator("input[type=password]").fill(PASSWORDS.get(email, PW))
+        page.get_by_role("button", name=re.compile("sign in", re.I)).click()
+        check("admin sign-in: the password alone asks for the authenticator code", lambda: (
+            expect(page.get_by_role("heading", name="Enter your authenticator code")).to_be_visible(timeout=20000),
+            expect(page.get_by_label("6-digit code")).to_be_focused()))
+        import time
+
+        wrong = code_at(TOTP_KEYS.get(email, SEED_TOTP_SECRET), int(time.time() // 30) + 20)  # far from now: never valid
+        page.get_by_label("6-digit code").fill(wrong)
+        page.get_by_role("button", name="Continue").click()
+        check("admin sign-in: a wrong code says so, in words", lambda:
+              expect(page.get_by_role("alert")).to_contain_text("That code didn't work", timeout=10000))
+        page.get_by_role("button", name=re.compile("Use a recovery code")).click()
+        check("admin sign-in: a recovery code can be used instead of the app", lambda: (
+            expect(page.get_by_role("heading", name="Use a recovery code")).to_be_visible(),
+            expect(page.get_by_label("Recovery code")).to_be_visible()))
+        page.screenshot(path=f"{OUT}/00-sign-in-recovery.png")
+        page.get_by_role("button", name="Use your authenticator app instead").click()
+        admin_console_second_step(page, email, TOTP_KEYS)
+        check("admin sign-in: the right code opens the console", lambda:
+              expect(page).to_have_url(re.compile(r"/overview"), timeout=20000))
 
     page = b.new_page(viewport={"width": 1440, "height": 1000})
     # Outside production (make dev, QA, staging) the console says it's a test site, on the
@@ -141,7 +174,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("alert").filter(has_text=test_banner)).to_have_count(0)))
     check("logo: the wordmark is the h3 token (20 px at desktop width)", lambda:
           expect(page.get_by_test_id("logo-wordmark")).to_have_css("font-size", "20px"))
-    sign_in(page, "admin@example.com")
+    second_step_checks(page, "admin@example.com")
     check("test-site banner: inside the console too", lambda: expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible())
     check("overview, all countries: each country in its own money, side by side, needs action", lambda: (
         expect(page.get_by_role("heading", name="All countries", exact=True)).to_be_visible(timeout=15000),
