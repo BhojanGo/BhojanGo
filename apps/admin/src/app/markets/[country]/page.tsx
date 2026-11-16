@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { HeroDish } from "@/components/markets/HeroDish";
+import { KitchenDocuments } from "@/components/markets/KitchenDocuments";
 import { PayoutProvider } from "@/components/markets/PayoutProvider";
 import { StatusPill } from "@/components/console/StatusPill";
 import {
@@ -113,6 +114,7 @@ function CountryView() {
           <SettingsCards country={country} />
           <PayoutProvider country={country} />
           <HeroDish country={country} />
+          <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
         </>
       )}
     </ConsoleShell>

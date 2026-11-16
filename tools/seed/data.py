@@ -336,6 +336,66 @@ ADMINS = [
 ]
 
 
+# ── Documents a kitchen needs (Markets country setting kitchen_documents) ─────
+# Shown on the website's "Add your kitchen" page in the visitor's language; admins
+# edit them in Markets -> country. English is required, other languages optional.
+IN_KITCHEN_DOCUMENTS = [
+    {"key": "fssai",
+     "title": {"en": "FSSAI licence", "hi": "FSSAI लाइसेंस", "te": "FSSAI లైసెన్స్", "ta": "FSSAI உரிமம்",
+               "kn": "FSSAI ಪರವಾನಗಿ", "mr": "FSSAI परवाना", "bn": "FSSAI লাইসেন্স"},
+     "why": {"en": "Every kitchen that sells food in India needs one. Customers see it on your page.",
+             "hi": "भारत में खाना बेचने वाली हर किचन के लिए ज़रूरी है। ग्राहक इसे आपके पेज पर देखते हैं।",
+             "te": "భారత్‌లో ఆహారం అమ్మే ప్రతి కిచెన్‌కు ఇది తప్పనిసరి. కస్టమర్లు దీన్ని మీ పేజీలో చూస్తారు.",
+             "ta": "இந்தியாவில் உணவு விற்கும் ஒவ்வொரு சமையலறைக்கும் இது தேவை. வாடிக்கையாளர்கள் இதை உங்கள் பக்கத்தில் பார்ப்பார்கள்.",
+             "kn": "ಭಾರತದಲ್ಲಿ ಆಹಾರ ಮಾರುವ ಪ್ರತಿ ಕಿಚನ್‌ಗೂ ಇದು ಬೇಕು. ಗ್ರಾಹಕರು ಇದನ್ನು ನಿಮ್ಮ ಪುಟದಲ್ಲಿ ನೋಡುತ್ತಾರೆ.",
+             "mr": "भारतात अन्न विकणाऱ्या प्रत्येक किचनला हा लागतो. ग्राहक तो तुमच्या पानावर पाहतात.",
+             "bn": "ভারতে খাবার বিক্রি করা প্রতিটি কিচেনের এটি লাগে। গ্রাহকরা এটি আপনার পাতায় দেখেন।"}},
+    {"key": "gstin",
+     "title": {"en": "GST registration (GSTIN)", "hi": "GST पंजीकरण (GSTIN)", "te": "GST నమోదు (GSTIN)", "ta": "GST பதிவு (GSTIN)",
+               "kn": "GST ನೋಂದಣಿ (GSTIN)", "mr": "GST नोंदणी (GSTIN)", "bn": "GST নিবন্ধন (GSTIN)"},
+     "why": {"en": "Your GSTIN goes on customers' bills, so the GST on your food is charged and filed correctly.",
+             "hi": "आपका GSTIN ग्राहकों के बिल पर आता है, ताकि आपके खाने पर GST सही लगे और सही भरा जाए।",
+             "te": "మీ GSTIN కస్టమర్ల బిల్లులపై ఉంటుంది, దాంతో మీ ఆహారంపై GST సరిగ్గా వసూలై, సరిగ్గా దాఖలవుతుంది.",
+             "ta": "உங்கள் GSTIN வாடிக்கையாளர் பில்களில் வரும், அதனால் உங்கள் உணவுக்கான GST சரியாக வசூலிக்கப்பட்டு தாக்கல் செய்யப்படும்.",
+             "kn": "ನಿಮ್ಮ GSTIN ಗ್ರಾಹಕರ ಬಿಲ್‌ಗಳಲ್ಲಿ ಬರುತ್ತದೆ, ಹೀಗಾಗಿ ನಿಮ್ಮ ಆಹಾರದ GST ಸರಿಯಾಗಿ ವಸೂಲಾಗಿ ಸಲ್ಲಿಕೆಯಾಗುತ್ತದೆ.",
+             "mr": "तुमचा GSTIN ग्राहकांच्या बिलावर येतो, त्यामुळे तुमच्या अन्नावरचा GST बरोबर आकारला आणि भरला जातो.",
+             "bn": "আপনার GSTIN গ্রাহকদের বিলে থাকে, যাতে আপনার খাবারের GST ঠিকমতো নেওয়া ও জমা হয়।"}},
+    {"key": "pan",
+     "title": {"en": "PAN", "hi": "PAN", "te": "PAN", "ta": "PAN", "kn": "PAN", "mr": "PAN", "bn": "PAN"},
+     "why": {"en": "Our payments partner checks it before your first payout.",
+             "hi": "आपके पहले भुगतान से पहले हमारा पेमेंट पार्टनर इसे जांचता है।",
+             "te": "మీ మొదటి చెల్లింపుకు ముందు మా పేమెంట్స్ భాగస్వామి దీన్ని తనిఖీ చేస్తుంది.",
+             "ta": "உங்கள் முதல் பணப்பரிமாற்றத்துக்கு முன் எங்கள் கட்டணக் கூட்டாளர் இதைச் சரிபார்க்கிறார்.",
+             "kn": "ನಿಮ್ಮ ಮೊದಲ ಪಾವತಿಗೆ ಮೊದಲು ನಮ್ಮ ಪಾವತಿ ಪಾಲುದಾರರು ಇದನ್ನು ಪರಿಶೀಲಿಸುತ್ತಾರೆ.",
+             "mr": "तुमच्या पहिल्या पेआउटपूर्वी आमचा पेमेंट पार्टनर तो तपासतो.",
+             "bn": "আপনার প্রথম পেআউটের আগে আমাদের পেমেন্ট পার্টনার এটি যাচাই করে।"}},
+    {"key": "bank",
+     "title": {"en": "Bank account", "hi": "बैंक खाता", "te": "బ్యాంక్ ఖాతా", "ta": "வங்கிக் கணக்கு", "kn": "ಬ್ಯಾಂಕ್ ಖಾತೆ",
+               "mr": "बँक खाते", "bn": "ব্যাঙ্ক অ্যাকাউন্ট"},
+     "why": {"en": "In the kitchen's or the owner's name: where your weekly payout lands.",
+             "hi": "किचन या मालिक के नाम पर: आपका साप्ताहिक भुगतान यहीं आता है।",
+             "te": "కిచెన్ పేరు మీద లేదా యజమాని పేరు మీద: మీ వారపు చెల్లింపు ఇక్కడికే వస్తుంది.",
+             "ta": "சமையலறை அல்லது உரிமையாளர் பெயரில்: உங்கள் வாராந்திரப் பணம் இங்கே வரும்.",
+             "kn": "ಕಿಚನ್ ಅಥವಾ ಮಾಲೀಕರ ಹೆಸರಿನಲ್ಲಿ: ನಿಮ್ಮ ವಾರದ ಪಾವತಿ ಇಲ್ಲಿಗೆ ಬರುತ್ತದೆ.",
+             "mr": "किचन किंवा मालकाच्या नावावर: तुमचे साप्ताहिक पेआउट इथे जमा होते.",
+             "bn": "কিচেন বা মালিকের নামে: আপনার সাপ্তাহিক পেআউট এখানেই আসে।"}},
+]
+US_KITCHEN_DOCUMENTS = [
+    {"key": "health_permit",
+     "title": {"en": "Food establishment or health permit", "es": "Permiso sanitario o de establecimiento de alimentos"},
+     "why": {"en": "Issued by your city or county health department. We may ask to see it during review.",
+             "es": "Lo emite el departamento de salud de tu ciudad o condado. Podemos pedirlo durante la revisión."}},
+    {"key": "ein",
+     "title": {"en": "EIN (or SSN for a sole proprietor)", "es": "EIN (o SSN si eres propietario único)"},
+     "why": {"en": "Your tax ID. Our payments partner verifies it before your first payout.",
+             "es": "Tu identificación fiscal. Nuestro socio de pagos la verifica antes de tu primer pago."}},
+    {"key": "bank",
+     "title": {"en": "Bank account", "es": "Cuenta bancaria"},
+     "why": {"en": "In the business's or the owner's name: where your weekly payout lands.",
+             "es": "A nombre del negocio o del dueño: ahí llega tu pago semanal."}},
+]
+
+
 # ── Markets (P6) ──────────────────────────────────────────────────────────────
 # Zones are simple boxes (south, west, north, east) drawn so every seeded
 # restaurant and customer address falls inside an open zone. Admins redraw
@@ -349,7 +409,9 @@ COUNTRIES = [
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali",
-                     "emergency_number": "112"},  # the rider app's SOS button
+                     "emergency_number": "112",  # the rider app's SOS button
+                     # "Add your kitchen" (website): what to have ready (Markets -> India -> Documents kitchens need)
+                     "kitchen_documents": IN_KITCHEN_DOCUMENTS},
         "regions": [
             {
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
@@ -389,7 +451,7 @@ COUNTRIES = [
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
-                     "emergency_number": "911"},
+                     "emergency_number": "911", "kitchen_documents": US_KITCHEN_DOCUMENTS},
         "regions": [
             {
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},

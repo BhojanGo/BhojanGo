@@ -85,6 +85,12 @@ export async function exampleBill(city: string, zone?: string | null): Promise<E
   return get<ExampleBill>(`/pricing/example?city=${encodeURIComponent(city)}${zone ? `&zone=${zone}` : ""}`, 3600);
 }
 
+/** "Add your kitchen": commission, payouts, documents and cities for a country, from live data (null: not offered there, or no API). */
+export async function kitchenTerms(country: string, language: string): Promise<KitchenTerms | null> {
+  return get<KitchenTerms>(`/kitchens/terms?country=${encodeURIComponent(country)}&language=${encodeURIComponent(language)}`, 300);
+}
+export type KitchenTerms = CoreSchemas["KitchenTerms"];
+
 /** Which social sign-ins are configured ({google: {client_id} | null, apple: null}); null on an older API. */
 export async function authProviders(): Promise<{ google?: { client_id: string } | null; apple?: { client_id: string } | null } | null> {
   return get("/auth/providers", 300);
