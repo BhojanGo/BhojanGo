@@ -126,3 +126,9 @@ async def test_record_acceptance_once_per_version_and_pending(db: AsyncSession) 
 async def test_a_country_without_documents_records_nothing(db: AsyncSession) -> None:
     await published(db)
     assert await service.record_acceptance(db, uuid.uuid4(), "GB") == []
+
+
+async def test_a_first_translation_starts_from_the_english_text(db: AsyncSession) -> None:
+    await published(db)
+    hi = await service.create_draft(db, None, kind="terms", country="IN", language="hi-IN")
+    assert (hi.language, hi.body, hi.title, hi.key_points) == ("hi", BODY, "Terms of use", ["One", "Two"])

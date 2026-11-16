@@ -231,7 +231,8 @@ async def create_draft(db: AsyncSession, actor_id: uuid.UUID | None, *, kind: st
         raise LegalError("COUNTRY", "Use a two-letter country code")
     if await open_draft(db, kind, country, language) is not None:
         raise LegalError("DRAFT_EXISTS", "There is already a draft for this document: edit or discard it first")
-    base = await _published(db, kind, country, language)
+    # A first translation starts from the English text, to be translated in place.
+    base = await _published(db, kind, country, language) or await _published(db, kind, country, DEFAULT_LANGUAGE)
     doc = LegalDocument(
         kind=kind, country=country, language=language, version=None, status="draft",
         title=(title or (base.title if base else "")).strip() or kind.replace("_", " ").capitalize(),
