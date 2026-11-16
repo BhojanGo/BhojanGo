@@ -15,6 +15,7 @@ from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_u
 from core_api.modules.catalog.models.menu import MenuItem
 from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.service import access, ratings
+from core_api.modules.catalog.service.applications import business_done
 from core_api.modules.catalog.service.menu import busy_minutes, paused_by_kitchen
 from shared.db import get_db
 
@@ -258,6 +259,23 @@ class ApplicationOut(BaseModel):
     current: str | None
     commission_percent: Decimal | None
     steps: list[StepOut]
+    # The business details as saved (the website pre-fills the step with them)
+    street: str | None = None
+    zip: str | None = None
+    city: str | None = None
+    country: str | None = None
+    cuisines: list[str] = []
+
+
+class BusinessIn(BaseModel):
+    """The application's first step: where the kitchen is and what it cooks."""
+
+    street: str = Field(min_length=3, max_length=200)
+    area: str = Field(min_length=2, max_length=80, description="Neighbourhood, e.g. Banjara Hills")
+    zip: str = Field(min_length=3, max_length=12, description="PIN or ZIP code")
+    cuisines: list[str] = Field(min_length=1, max_length=5)
+    lat: float | None = Field(default=None, ge=-90, le=90, description="The kitchen's pin; None keeps the current one")
+    lng: float | None = Field(default=None, ge=-180, le=180)
 
 
 class GstIn(BaseModel):
@@ -272,7 +290,7 @@ async def _application(db: AsyncSession, r: Restaurant) -> ApplicationOut:
         PayoutAccount.payee_type == "restaurant", PayoutAccount.payee_id == r.id))).scalars().first()
     india = r.country == "IN"
     steps = [
-        StepOut(key="business", title="Business details", done=bool(r.name and r.lat is not None and r.address),
+        StepOut(key="business", title="Business details", done=business_done(r),
                 detail="Name, address and pin on the map"),
         StepOut(key="fssai", title="FSSAI licence" if india else "Food permit", done=bool(r.fssai_number) or not india,
                 detail="14-digit licence and expiry date" if india else "Not needed in your city"),
@@ -290,13 +308,32 @@ async def _application(db: AsyncSession, r: Restaurant) -> ApplicationOut:
                           fssai_document=bool(r.fssai_document_key), fssai_document_key=r.fssai_document_key, gstin=r.gstin, payout_account=bank.status if bank else None, name=r.name, area=(r.address or {}).get("landmark") or r.city, status=r.status,
                           done=done, total=len(steps), current=current,
                           commission_percent=(Decimal(str(r.commission_rate)) * 100).quantize(Decimal("0.1")),
-                          steps=steps)
+                          steps=steps, street=(r.address or {}).get("street"), zip=(r.address or {}).get("zip"),
+                          city=r.city, country=r.country, cuisines=list(r.cuisine_types or []))
 
 
 @router.get("/{restaurant_id}/application", response_model=ApplicationOut)
 async def application(restaurant_id: uuid.UUID, user: User, db: DB) -> ApplicationOut:
     """Where the partner application is: the five steps and what's left."""
     return await _application(db, await access.manage(db, user, restaurant_id))
+
+
+@router.put("/{restaurant_id}/business", response_model=ApplicationOut)
+async def set_business(restaurant_id: uuid.UUID, data: BusinessIn, user: User, db: DB) -> ApplicationOut:
+    """Business details while applying: the street address, area, PIN/ZIP, cuisines
+    and (optionally) the map pin. A live kitchen changes its address through support."""
+    r = await access.manage(db, user, restaurant_id)
+    if r.status != "pending_approval":
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={
+            "code": "NOT_APPLYING", "message": "Your kitchen is already approved. Ask support to change its address."})
+    lat = r.lat if data.lat is None or data.lng is None else data.lat
+    lng = r.lng if data.lat is None or data.lng is None else data.lng
+    r.address = {**(r.address or {}), "street": data.street.strip(), "landmark": data.area.strip(), "zip": data.zip.strip(),
+                 "lat": lat, "lng": lng}
+    r.lat, r.lng = lat, lng
+    r.cuisine_types = [c.strip() for c in data.cuisines if c.strip()][:5]
+    await db.flush()
+    return await _application(db, r)
 
 
 @router.put("/{restaurant_id}/gst", response_model=ApplicationOut)

@@ -63,3 +63,93 @@ async def test_kitchen_applies_and_waits_for_approval(client: AsyncClient) -> No
     assert a["done"] == 1 and a["current"] == "fssai"
     ops = await login(client, "ops.hyd@example.com", "BhojanGoAdmin1")
     assert rid in [k["id"] for k in (await client.get("/api/v1/restaurants/admin/pending", headers=ops)).json()]
+
+
+# ── R8 F7: "Add your kitchen" on the website ─────────────────────────────────
+
+def _signup(**over: object) -> dict:
+    n = random.randint(10000, 99999)
+    body = {"kitchen_name": "Amma's Kitchen", "city_code": "IN-TG-HYD", "full_name": "Lakshmi Rao", "phone": f"+9190001{n}",
+            "email": f"kitchen{n}@example.com", "password": "a long enough pass", "accept_terms": True, "language": "te"}
+    return {**body, **over}
+
+
+async def test_terms_come_from_the_live_rules_and_markets(client: AsyncClient) -> None:
+    t = (await client.get("/api/v1/kitchens/terms", params={"country": "IN", "language": "hi"})).json()
+    assert t["currency"] == "INR" and t["phone_code"] == "+91"
+    c = t["commission"]
+    assert c["base"] == "food_subtotal" and c["starting_percent"] == "15"  # the seeded country rule, default tier B
+    assert {x["tier"]: x["percent"] for x in c["tiers"]} == {"A": "18", "B": "15", "C": "12"}
+    assert float(c["percent_min"]) <= 12 and float(c["percent_max"]) >= 18
+    assert t["payout"] == {"frequency": "weekly", "day": "mon", "hold_days": 2}
+    assert [d["key"] for d in t["documents"]] == ["fssai", "gstin", "pan", "bank"]
+    assert t["documents"][0]["title"] == "FSSAI लाइसेंस"  # in the visitor's language
+    status = {x["code"]: x["status"] for x in t["cities"]}
+    assert status["IN-TG-HYD"] == "live" and status["IN-AP-VSKP"] == "soon" and "IN-TG-WGL" not in status  # drafts hidden
+    us = (await client.get("/api/v1/kitchens/terms", params={"country": "us"})).json()
+    assert us["currency"] == "USD" and [d["key"] for d in us["documents"]] == ["health_permit", "ein", "bank"]
+    assert (await client.get("/api/v1/kitchens/terms", params={"country": "ZZ"})).status_code == 404
+
+
+async def test_a_new_kitchen_partner_signs_up_and_continues(client: AsyncClient) -> None:
+    body = _signup()
+    r = await client.post("/api/v1/kitchens/apply", json=body)
+    assert r.status_code == 201, r.text
+    assert r.json()["user"]["role"] == "restaurant_owner" and r.json()["user"]["preferred_locale"] == "te-IN"
+    rid = r.json()["restaurant_id"]
+    # Save and continue later: they sign in again with the email and password
+    again = await client.post("/api/v1/auth/login", json={"email": body["email"].upper(), "password": body["password"]})
+    assert again.status_code == 200, again.text
+    h = {"Authorization": f"Bearer {again.json()['access_token']}"}
+    assert [k["id"] for k in (await client.get("/api/v1/restaurants/mine", headers=h)).json()] == [rid]
+    a = (await client.get(f"/api/v1/restaurants/{rid}/application", headers=h)).json()
+    assert a["current"] == "business" and a["done"] == 0 and a["status"] == "pending_approval"
+    assert a["commission_percent"] == "15.0"
+    a = (await client.put(f"/api/v1/restaurants/{rid}/business", headers=h, json={
+        "street": "Plot 4, Road 2", "area": "Madhapur", "zip": "500081", "cuisines": ["Andhra"], "lat": 17.45, "lng": 78.39})).json()
+    assert a["current"] == "fssai" and a["street"] == "Plot 4, Road 2" and a["cuisines"] == ["Andhra"]
+    # The same email or phone again, in any case: one answer, no hint which
+    for dup in (_signup(email=body["email"].upper()), _signup(phone=body["phone"])):
+        r = await client.post("/api/v1/kitchens/apply", json=dup)
+        assert r.status_code == 409 and r.json()["detail"]["code"] == "ACCOUNT_EXISTS", r.text
+
+
+async def test_kitchen_signup_is_checked(client: AsyncClient) -> None:
+    async def code(**over: object) -> str:
+        r = await client.post("/api/v1/kitchens/apply", json=_signup(**over))
+        assert r.status_code == 422, r.text
+        d = r.json()["detail"]
+        return d["code"] if isinstance(d, dict) else "VALIDATION"
+
+    assert await code(password="too short") == "PASSWORD"
+    # The shared rules for every new password (identity.service.passwords): the rule broken is in reason.
+    r = await client.post("/api/v1/kitchens/apply", json=_signup(password="too short"))
+    assert r.json()["detail"]["reason"] == "PASSWORD_TOO_SHORT"
+    from core_api.modules.identity.service import passwords
+
+    class Breached:
+        async def times_seen(self, password: str) -> int:
+            return 99
+
+    previous = passwords.set_breach_checker(Breached())
+    try:
+        r = await client.post("/api/v1/kitchens/apply", json=_signup(password="a long enough pass"))
+        assert r.status_code == 422 and r.json()["detail"]["reason"] == "PASSWORD_BREACHED", r.text
+    finally:
+        passwords.set_breach_checker(previous)
+    assert await code(accept_terms=False) == "TERMS"
+    assert await code(city_code="IN-TG-WGL") == "CITY"  # a draft city
+    assert await code(phone="+12085550199") == "PHONE_COUNTRY_MISMATCH"
+    # A coming-soon city takes applications (kitchens join before it opens)
+    r = await client.post("/api/v1/kitchens/apply", json=_signup(city_code="IN-AP-VSKP"))
+    assert r.status_code == 201, r.text
+
+
+async def test_a_signed_in_customer_applies_with_just_the_name_and_city(client: AsyncClient) -> None:
+    h = await new_number(client)
+    r = await client.post("/api/v1/restaurants/apply", headers=h, json={
+        "full_name": "Ravi Kumar", "kitchen_name": "Ravi's Tiffins", "city_code": "IN-TG-HYD"})
+    assert r.status_code == 201, r.text
+    partner = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    a = (await client.get(f"/api/v1/restaurants/{r.json()['restaurant_id']}/application", headers=partner)).json()
+    assert a["current"] == "business"

@@ -1038,26 +1038,61 @@ with sync_playwright() as p:
         page.goto(base + path, wait_until="networkidle")
         check(f"{path}: readable page", lambda h=heading: expect(page.get_by_role("heading", name=h, level=1)).to_be_visible())
 
-    # A kitchen applies on the web with a brand-new number (B1).
-    k = b.new_context(viewport={"width": 1440, "height": 900}).new_page()
+    # "Add your kitchen" (R8 F7): a landing page, then a new kitchen partner account
+    # with email and password, straight into the application's steps.
+    kctx = b.new_context(viewport={"width": 1440, "height": 900})
+    kctx.add_cookies([{"name": "bg_city", "value": "IN-TG-HYD", "url": base}])
+    k = kctx.new_page()
     k.goto(base + "/partner", wait_until="networkidle")
-    k.get_by_role("link", name="Sign in to apply").click()
-    url_is(k, r"/signin\?")
-    k.get_by_role("textbox", name="Mobile number").fill(f"90000{random.randint(10000, 99999)}")
-    k.get_by_role("button", name="Send code").click()
-    url_is(k, r"/signin/code\?")
-    k.get_by_role("textbox", name="Digit 1").fill(OTP)
-    k.get_by_role("button", name="Verify and continue").click()
-    url_is(k, r"/partner$")
-    apply = k.get_by_role("form", name="Apply with your kitchen")
-    for label, value in (("Your name", "Lata Menon"), ("Kitchen name", "Lata's Kitchen"), ("Area", "Banjara Hills"),
-                         ("Street address", "Plot 9, Road 12"), ("PIN / ZIP code", "500034"), ("Cuisines", "Kerala, Thali")):
-        apply.get_by_label(label, exact=True).fill(value)
-    apply.get_by_role("button", name="Send application").click()
-    check("kitchen sign-up on the web: application created, licence step next", lambda: (
-        expect(k.get_by_role("region", name="Your application")).to_be_visible(timeout=20000),
-        expect(k.get_by_text("Lata's Kitchen · 1 of 5 done")).to_be_visible()))
+    check("/partner: a landing page with live terms, documents and FAQ (not a sign-in wall)", lambda: (
+        expect(k.get_by_role("heading", level=1)).to_be_visible(),
+        expect(k.get_by_test_id("partner-hero")).to_be_visible(),
+        expect(k.get_by_test_id("fact-commission")).to_contain_text("%"),
+        expect(k.get_by_test_id("partner-docs").locator("[data-doc=fssai]")).to_be_visible(),
+        expect(k.get_by_test_id("partner-bill")).to_be_visible(),
+        expect(k.locator("details")).to_have_count(8),
+        _assert(k.locator("a[href='/sign-in'], a[href^='/sign-in?']").count() == 0, "a link to /sign-in (no such page)")))
+    shot(k, "21-partner-landing")
+    k.get_by_test_id("partner-start").click()
+    form = k.get_by_test_id("partner-form")
+    form.get_by_role("button", name="Create account and continue").click()
+    check("/partner form: empty fields are named, tied to their inputs, nothing sent", lambda: (
+        expect(k.get_by_test_id("partner-form-error")).to_have_text(re.compile(r"Fix [67] fields to continue.")),  # 6 when the city is the visitor's own
+        expect(form.get_by_label("Kitchen name")).to_have_attribute("aria-invalid", "true"),
+        expect(form.get_by_text("Use at least 10 characters.")).to_be_visible()))
+    n = random.randint(10000, 99999)
+    email = f"kitchen{n}@example.com"
+    form.get_by_label("Kitchen name").fill("Lata's Kitchen")
+    form.get_by_label("City").select_option("IN-TG-HYD")
+    form.get_by_label("Your name").fill("Lata Menon")
+    form.get_by_label("Mobile number").fill(f"90002{n}")
+    form.get_by_label("Email").fill(email)
+    form.get_by_label("Password", exact=True).fill("short")
+    form.get_by_role("checkbox").check()
+    form.get_by_role("button", name="Create account and continue").click()
+    check("/partner form: a short password is refused before sending", lambda: expect(k.get_by_test_id("partner-form-error")).to_have_text("Fix 1 field to continue."))
+    form.get_by_label("Password", exact=True).fill("a long enough password")
+    form.get_by_role("button", name="Create account and continue").click()
+    check("/partner: submitting creates a kitchen partner and continues to business details", lambda: (
+        expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "business", timeout=20000),
+        expect(k.get_by_text(f"We've emailed {email}")).to_be_visible(),
+        _assert(api("GET", "/restaurants/mine", login(email, "a long enough password"))[0]["status"] == "pending_approval", "no kitchen")))
+    step_form = k.get_by_test_id("step-business")
+    for label, value in (("Street address", "Plot 9, Road 12"), ("Area or neighbourhood", "Madhapur"), ("Postal code", "500081"), ("Cuisines", "Kerala, Thali")):
+        step_form.get_by_label(label, exact=True).fill(value)
+    step_form.get_by_role("button", name="Save and continue").click()
+    check("/partner: business details saved, the licence step is next", lambda: expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "fssai", timeout=20000))
+    k.reload(wait_until="networkidle")
+    check("/partner: save and continue later (signed in, back where they left off)", lambda: (
+        expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "fssai", timeout=20000),
+        expect(k.get_by_test_id("partner-saved")).to_contain_text(email)))
     shot(k, "21-partner-application")
+    page.goto(base + "/partner", wait_until="networkidle")
+    check("/partner as a customer: apply with this account (it has orders, so the API says no)", lambda: expect(page.get_by_test_id("partner-customer")).to_be_visible())
+    kp = b.new_context(viewport={"width": 390, "height": 844}).new_page()
+    kp.goto(base + "/partner", wait_until="networkidle")
+    check("phone width /partner: no sideways scroll", lambda: no_sideways_scroll(kp))
+    check("phone width /partner: only the type scale's font sizes", lambda: type_scale_only(kp))
 
     # ── Phone width (390): no sideways scroll on the main pages ──────────────
     m = ctx.new_page()
