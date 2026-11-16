@@ -37,9 +37,9 @@ export function SignInWays({ value, onChange, order = ["phone", "email"], tone =
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(w)}
-            style={[s.way, on && (d ? { backgroundColor: dark.surface, borderColor: dark.lineStrong, borderWidth: 1 } : s.wayOn)]}
+            style={[s.way, on && (d ? { backgroundColor: dark.surface, borderColor: dark.link } : s.wayOn)]}
           >
-            <Text style={[type.label, { color: on ? (d ? dark.text : color.kohl) : d ? dark.muted : color.muted }]}>
+            <Text style={[type.label, { color: on ? (d ? dark.link : color.peacock) : d ? dark.muted : color.muted }]}>
               {t(w === "phone" ? "auth.tab_phone" : "auth.tab_email")}
             </Text>
           </Pressable>
@@ -276,8 +276,9 @@ export function EmailSignIn({ country, onSignedIn, tone = "light", buttonVariant
 
 const s = StyleSheet.create({
   ways: { flexDirection: "row", gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: color.line },
-  way: { flex: 1, minHeight: touch.min, alignItems: "center", justifyContent: "center", borderRadius: radius.pill },
-  wayOn: { backgroundColor: color.white, shadowColor: "#111418", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  way: { flex: 1, minHeight: touch.min, alignItems: "center", justifyContent: "center", borderRadius: radius.pill,
+    borderWidth: 2, borderColor: "transparent" },
+  wayOn: { backgroundColor: color.white, borderColor: color.peacock, shadowColor: "#111418", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   stack: { gap: space[3] },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: space[3] },
   link: { minHeight: touch.min, justifyContent: "center" },

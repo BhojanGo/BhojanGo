@@ -15,6 +15,7 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { api, urls, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, useT } from "@/lib/i18n";
 import { apiProblem, applicationState, cityOptions, defaultCity, e164, splitLinks, validate, type FieldKey, type SignUpFields, type Terms } from "@/lib/kitchenJoin";
+import { authError } from "../signin/emailAuth";
 
 type T = ReturnType<typeof useT>;
 type Step = { key: string; title: string; done: boolean; detail: string };
@@ -149,7 +150,10 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
       if (err instanceof ApiError) {
         const p = apiProblem(err.code);
         if (p.field) setErrors({ [p.field]: p.key });
-        setProblem(t(`kitchen_join.errors.${p.key}`));
+        // A refused password says which rule (too short, in a data breach, the email itself).
+        const reason = (err.body as { detail?: { reason?: string } } | undefined)?.detail?.reason;
+        setProblem(err.code === "PASSWORD" && reason ? authError(new ApiError(err.status, "", reason, err.body), t)
+          : err.code === "TOO_MANY_CODES" ? authError(err, t) : t(`kitchen_join.errors.${p.key}`));
       } else {
         setProblem(t("kitchen_join.errors.network"));
       }

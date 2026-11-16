@@ -1,4 +1,5 @@
 "use client";
+import { formatPhone } from "@bhojango/i18n";
 // The account pages' frame (WebOrders, WebFavourites, WebProfile): who is
 // signed in, the account navigation, and the page. Signed out → sign in and
 // come back. Phone: the navigation is a scrolling row above the page.
@@ -51,7 +52,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
           </span>
           <span className="min-w-0">
             <b className="block truncate text-h3">{user.full_name}</b>
-            {user.phone && <span className="text-small text-muted">{user.phone}</span>}
+            {user.phone && <span className="text-small text-muted">{formatPhone(user.phone)}</span>}
           </span>
         </div>
         <nav aria-label={t("account.nav.label")} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-[2px] md:overflow-visible md:px-0 md:pb-0">

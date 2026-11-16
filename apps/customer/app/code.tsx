@@ -1,5 +1,5 @@
 // CustomerOTP.html: six boxes, filled from the SMS where the phone allows.
-import { Button, codeSendErrorText, color, errorMessage, radius, SafeAreaView, space, textFont, Txt, type, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, codeSendErrorText, color, errorMessage, formatPhone, radius, SafeAreaView, space, textFont, Txt, type, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -47,7 +47,7 @@ export default function Code() {
       <View style={styles.body}>
         <Txt variant="h1" accessibilityRole="header">Enter the 6-digit code</Txt>
         <Txt style={{ color: color.muted }}>
-          Sent to <Text style={textFont("700")}>{phone}</Text> ·{" "}
+          Sent to <Text style={textFont("700")}>{formatPhone(phone)}</Text> ·{" "}
           <Text style={[textFont("700"), { color: color.peacock }]} onPress={() => router.back()}>Edit</Text>
         </Txt>
         <Pressable accessibilityLabel="Verification code" onPress={() => input.current?.focus()} style={styles.boxes}>

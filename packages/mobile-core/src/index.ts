@@ -38,7 +38,7 @@ export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";
 export type { AppEnv } from "./env";
 // Round 6: the header's language pill (globe + "EN"); no country selector. The pure
 // helpers are @bhojango/i18n's, shared with the website.
-export { chooseLanguage, detectCountry, languageList } from "@bhojango/i18n";
+export { chooseLanguage, detectCountry, formatPhone, languageList } from "@bhojango/i18n";
 export { LanguagePicker, LanguagePill, PhoneCountryButton, TestBanner, WithTestBanner } from "./ui/locale";
 export type { Tone } from "./ui/locale";
 // R8: the screens' SafeAreaView (follows the test banner's insets; the native one padded the status bar twice).

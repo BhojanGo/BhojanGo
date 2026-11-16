@@ -1,5 +1,6 @@
 "use client";
-// /signin (round 8, D5): "Phone" and "Email" as two equal tabs (same size and weight;
+// /signin (round 8, D5): "Phone" and "Email" as two equal tabs (same size and weight; the
+// chosen one white with a Peacock outline and text, never by hover or focus alone;
 // arrow keys move between them, per the WAI-ARIA tabs pattern), Google below both.
 import { useRef, useState, type ReactNode } from "react";
 
@@ -51,7 +52,7 @@ export function SignInTabs({ initial, phone, email, after }: { initial: Way; pho
                   choose(WAYS[(i + (e.key === "ArrowRight" ? 1 : WAYS.length - 1)) % WAYS.length] as Way, true);
                 }
               }}
-              className={`h-11 rounded-full text-label font-bold transition-colors ${on ? "bg-white text-[#111418] shadow-[0_1px_3px_rgba(17,20,24,0.16)]" : "text-muted hover:text-[#111418]"}`}
+              className={`h-11 rounded-full border-2 text-label font-bold outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0B5D66] ${on ? "border-[#0B5D66] bg-white text-[#0B5D66] shadow-[0_1px_3px_rgba(17,20,24,0.16)]" : "border-transparent bg-transparent text-muted hover:text-[#111418]"}`}
             >
               {t(w === "phone" ? "auth.tab_phone" : "auth.tab_email")}
             </button>

@@ -138,3 +138,12 @@ test("location line (R8): address, then a chosen city, then the IP place as itse
     assert.deepEqual(resolveLocation(ev, cities), { source: "none", place: null, code: null, city: null, served: false, deliversHere: false });
   }
 });
+
+test("phone numbers read in each country's grouping", () => {
+  const { formatPhone } = require("../index.js");
+  assert.equal(formatPhone("+919000000101"), "+91 90000 00101");
+  assert.equal(formatPhone("+12085550301"), "+1 208 555 0301");
+  assert.equal(formatPhone("+64211234567"), "+64 21 123 4567");
+  assert.equal(formatPhone("not a phone"), "not a phone");
+  assert.equal(formatPhone(null), "");
+});

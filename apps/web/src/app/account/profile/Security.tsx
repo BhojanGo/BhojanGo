@@ -4,6 +4,7 @@
 // (every other device is signed out). An email or number on another account can't be
 // added, and the page says so without saying whose it is.
 import { unwrap, type CoreSchemas } from "@bhojango/api-client";
+import { formatPhone } from "@bhojango/i18n";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { api, useSession } from "@/lib/client";
@@ -86,7 +87,7 @@ export function Security({ countries }: { countries: Country[] }) {
               note={info.phone ? (info.phone_verified ? t("account.security.verified_signin") : t("account.security.unverified")) : t("account.security.phone_why")}
               action={<button type="button" onClick={open("phone")} className={link}>{info.phone ? t("account.security.change") : t("account.security.add")}</button>}
             >
-              {info.phone ?? t("account.security.not_set")}
+              {info.phone ? formatPhone(info.phone) : t("account.security.not_set")}
             </Row>
           )}
           {editing === "email" ? (
@@ -243,7 +244,7 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
         </div>
       ) : (
         <>
-          <p className="mt-2 text-body text-muted">{t("account.security.code_sent_to", { to: phone })}</p>
+          <p className="mt-2 text-body text-muted">{t("account.security.code_sent_to", { to: formatPhone(phone) })}</p>
           <CodeBoxes onChange={setCode} legend={t("auth.code_label")} />
         </>
       )}
