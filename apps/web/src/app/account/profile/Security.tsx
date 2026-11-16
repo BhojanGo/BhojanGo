@@ -79,7 +79,7 @@ export function Security({ countries }: { countries: Country[] }) {
       {info && (
         <>
           {editing === "phone" ? (
-            <LinkPhone countries={countries} onDone={() => void finished(t("account.security.phone_saved"))} onCancel={() => setEditing(null)} />
+            <LinkPhone countries={countries} replacing={!!info.phone} onDone={() => void finished(t("account.security.phone_saved"))} onCancel={() => setEditing(null)} />
           ) : (
             <Row
               label={t("account.security.phone")}
@@ -90,7 +90,7 @@ export function Security({ countries }: { countries: Country[] }) {
             </Row>
           )}
           {editing === "email" ? (
-            <LinkEmail onDone={() => void finished(t("account.security.email_saved"))} onCancel={() => setEditing(null)} />
+            <LinkEmail replacing={!!info.email} onDone={() => void finished(t("account.security.email_saved"))} onCancel={() => setEditing(null)} />
           ) : (
             <Row
               label={t("account.security.email")}
@@ -156,7 +156,7 @@ function useStep() {
   return { busy, error, setError, run };
 }
 
-function LinkEmail({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+function LinkEmail({ replacing, onDone, onCancel }: { replacing: boolean; onDone: () => void; onCancel: () => void }) {
   const t = useT();
   const id = useId();
   const { busy, error, setError, run } = useStep();
@@ -176,7 +176,7 @@ function LinkEmail({ onDone, onCancel }: { onDone: () => void; onCancel: () => v
   }
 
   return (
-    <FormShell title={t("account.security.email_title")} onSubmit={submit}>
+    <FormShell title={t(replacing ? "account.security.email_change_title" : "account.security.email_title")} onSubmit={submit}>
       {!sent ? (
         <label htmlFor={id} className="mt-3 block text-label text-[#3D4A4E]">
           {t("auth.email")}
@@ -199,7 +199,7 @@ function LinkEmail({ onDone, onCancel }: { onDone: () => void; onCancel: () => v
   );
 }
 
-function LinkPhone({ countries, onDone, onCancel }: { countries: Country[]; onDone: () => void; onCancel: () => void }) {
+function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Country[]; replacing: boolean; onDone: () => void; onCancel: () => void }) {
   const t = useT();
   const id = useId();
   const ccId = useId();
@@ -226,7 +226,7 @@ function LinkPhone({ countries, onDone, onCancel }: { countries: Country[]; onDo
   }
 
   return (
-    <FormShell title={t("account.security.phone_title")} onSubmit={submit}>
+    <FormShell title={t(replacing ? "account.security.phone_change_title" : "account.security.phone_title")} onSubmit={submit}>
       {!sent ? (
         <div className="mt-3 flex flex-wrap gap-3">
           <label htmlFor={ccId} className="text-label text-[#3D4A4E]">

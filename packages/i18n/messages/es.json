@@ -763,7 +763,9 @@
       "err_wrong_password": "Tu contraseña actual no es correcta.",
       "err_email_required": "Añade primero un correo: inicias sesión con él y tu contraseña.",
       "err_already": "Esto ya está en tu cuenta.",
-      "err_phone_country": "Ese número no coincide con el prefijo del país. Revisa ambos."
+      "err_phone_country": "Ese número no coincide con el prefijo del país. Revisa ambos.",
+      "email_change_title": "Cambia tu correo",
+      "phone_change_title": "Cambia tu móvil"
     }
   },
   "favourites": {

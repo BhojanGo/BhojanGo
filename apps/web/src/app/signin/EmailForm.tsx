@@ -36,7 +36,7 @@ export function EmailForm({ country, next, hasPlace, initialMode = "signin" }: {
   const [now, setNow] = useState(() => Date.now());
   const errorId = useId();
   const emailOk = looksLikeEmail(email);
-  const wait = Math.max(0, WAIT - Math.floor((now - sentAt) / 1000));
+  const wait = Math.max(0, WAIT - Math.floor(Math.max(0, now - sentAt) / 1000));
 
   useEffect(() => {
     if (mode !== "code") return;

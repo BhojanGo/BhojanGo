@@ -763,7 +763,9 @@
       "err_wrong_password": "Your current password isn't right.",
       "err_email_required": "Add an email first: you sign in with it and your password.",
       "err_already": "This is already on your account.",
-      "err_phone_country": "That number doesn't match the country code. Check both."
+      "err_phone_country": "That number doesn't match the country code. Check both.",
+      "email_change_title": "Change your email",
+      "phone_change_title": "Change your mobile number"
     }
   },
   "favourites": {

@@ -612,8 +612,8 @@ with sync_playwright() as p:
         em.get_by_role("textbox", name="Email").fill(who)
         em.locator("input[name=password]").fill("not-the-password-1")
         em.get_by_role("button", name="Sign in", exact=True).click()
-        expect(em.get_by_role("alert")).to_be_visible(timeout=15000)
-        wrong_answers.append(em.get_by_role("alert").inner_text())
+        expect(em.locator("p[role=alert]")).to_be_visible(timeout=15000)  # (Next's route announcer is an empty alert too)
+        wrong_answers.append(em.locator("p[role=alert]").inner_text())
     check("email sign-in: a wrong password and an unknown email get the same plain answer", lambda: (
         _assert(wrong_answers[0] == wrong_answers[1], f"{wrong_answers}"),
         _assert("don't match" in wrong_answers[0], wrong_answers[0])))
@@ -634,7 +634,7 @@ with sync_playwright() as p:
     em.locator("input[name=new-password]").fill("short")
     em.get_by_role("button", name="Create account").click()
     check("new account: a short password is refused before anything is sent", lambda:
-          expect(em.get_by_role("alert")).to_contain_text("at least 10 characters"))
+          expect(em.locator("p[role=alert]")).to_contain_text("at least 10 characters"))
     em.locator("input[name=new-password]").fill("Web-e2e-password-2026")
     em.get_by_role("button", name="Create account").click()
     check("new account: a 6-digit code goes to the email first", lambda: (
@@ -667,7 +667,7 @@ with sync_playwright() as p:
     shot(em, "09e-forgot-sent")
     em.goto(base + "/signin/reset?token=" + "x" * 43, wait_until="networkidle")
     check("reset link: an expired or used link says so and offers a new one", lambda: (
-        expect(em.get_by_role("alert")).to_contain_text("expired or was already used", timeout=15000),
+        expect(em.locator("p[role=alert]")).to_contain_text("expired or was already used", timeout=15000),
         expect(em.get_by_role("link", name="Ask for a new link")).to_have_attribute("href", "/signin/forgot")))
     em_ctx.close()
 
