@@ -127,7 +127,7 @@ def _serve() -> tuple[http.server.ThreadingHTTPServer, int]:
 
 
 def _card_frame(page):  # type: ignore[no-untyped-def]
-    for _ in range(60):
+    for _ in range(240):  # up to 2 minutes: the challenge frame loads its content late in headless Chromium
         for f in page.frames:
             try:
                 if f.locator('input[name="number"]').count():
@@ -140,7 +140,7 @@ def _card_frame(page):  # type: ignore[no-untyped-def]
 
 def _complete_3ds(page) -> bool:  # type: ignore[no-untyped-def]
     """Stripe's test 3-D Secure page: press "Complete" (it sits in nested frames)."""
-    for _ in range(60):
+    for _ in range(240):  # up to 2 minutes: the challenge frame loads its content late in headless Chromium
         for f in page.frames:
             try:
                 b = f.locator("#test-source-authorize-3ds")
@@ -180,8 +180,16 @@ def _pay_in_browser(h: H, card: str, three_ds: bool = False) -> tuple[dict, str]
             if f.locator('input[name="postalCode"]').count():
                 f.locator('input[name="postalCode"]').fill("83702")
             page.click("#pay")
-            if three_ds:
-                assert _complete_3ds(page), "the 3-D Secure challenge didn't appear"
+            if three_ds and not _complete_3ds(page):
+                frames = [f.url[:90] for f in page.frames]
+                buttons = []
+                for f in page.frames:
+                    try:
+                        buttons += [t.strip()[:30] for t in f.locator("button").all_inner_texts()]
+                    except Exception:  # noqa: BLE001
+                        pass
+                raise AssertionError(f"the 3-D Secure challenge didn't appear; out={page.inner_text('#out')!r} "
+                                     f"frames={frames} buttons={buttons}")
             page.wait_for_function("/^(done|error)/.test(document.getElementById('out').textContent)", timeout=60000)
             out = page.inner_text("#out")
             browser.close()
