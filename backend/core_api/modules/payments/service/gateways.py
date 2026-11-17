@@ -83,14 +83,15 @@ class StripeGateway:
                         "metadata": {"order_id": order_id, "attempt": idempotency_key},
                         "description": f"BhojanGo order {order_id}",
                         "idempotency_key": idempotency_key,
-                        # Cards (Apple Pay and Google Pay are cards) and Link only: bank debits settle in days and
-                        # Klarna / Cash App Pay leave the page, neither fits a hot meal paid at checkout (R10, QA).
-                        "payment_method_types": ["card", "link"]}
+                        # Which methods show is the account's payment method configuration (Stripe no
+                        # longer takes payment_method_types): cards (incl. Apple Pay / Google Pay) and Link
+                        # only; bank debits, Klarna and Cash App Pay are off there (docs/11 Integration guide).
+                        "automatic_payment_methods": {"enabled": True}}
         if customer.get("provider_customer_id"):
             kwargs["customer"] = customer["provider_customer_id"]
         if payment_method_id:  # server-side confirm (saved card)
             kwargs.update(payment_method=payment_method_id, confirm=True)
-            kwargs["payment_method_types"] = ["card"]
+            kwargs.pop("automatic_payment_methods")
         pi = await asyncio.to_thread(s.PaymentIntent.create, **kwargs)
         checkout = {"sdk": "stripe_payment_sheet", "payment_intent_client_secret": pi.client_secret,
                     "publishable_key": get_settings().payments.STRIPE_PUBLISHABLE_KEY,

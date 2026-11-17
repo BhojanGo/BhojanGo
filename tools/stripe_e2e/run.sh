@@ -65,13 +65,19 @@ trap cleanup EXIT INT TERM
 
 # The child processes are a throwaway test stack, not QA: their own name, no QA identity.
 e2e_env() {
-  env -u RAILWAY_ENVIRONMENT_NAME -u JWT_PRIVATE_KEY -u QA_JOB \
-    APP_ENV=e2e DATABASE_URL="$E2E_DB_URL" REDIS_URL="$E2E_REDIS" EVENT_BUS=redis EVENT_BUS_REDIS_URL="$E2E_REDIS" \
+  env -u RAILWAY_ENVIRONMENT_NAME -u QA_JOB \
+    JWT_PRIVATE_KEY="$E2E_JWT_KEY" APP_ENV=e2e DATABASE_URL="$E2E_DB_URL" REDIS_URL="$E2E_REDIS" EVENT_BUS=redis EVENT_BUS_REDIS_URL="$E2E_REDIS" \
     JWT_SECRET_KEY="$JWT_SECRET" PAYMENT_PROVIDER=auto TAX_PROVIDER=auto PAYOUT_PROVIDER="${STRIPE_E2E_PAYOUT_PROVIDER:-auto}" \
     SMS_PROVIDER=log PUSH_PROVIDER=log EMAIL_PROVIDER=log OTP_FIXED_CODE=123456 \
     STRIPE_WEBHOOK_SECRET="${WHSEC:-}" "$@"
 }
 JWT_SECRET="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+# Outside development and test core-api needs a real signing key: a throwaway one for this run only
+# (never QA's: the test stack must not mint tokens QA would accept).
+E2E_JWT_KEY="$(uv run --frozen python -c 'from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization as s
+k = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+print(k.private_bytes(s.Encoding.PEM, s.PrivateFormat.PKCS8, s.NoEncryption()).decode())')"   || { echo "stripe-e2e: FAIL: could not make a signing key"; exit 1; }
 
 echo "stripe-e2e: database $DB on the QA server (dropped at the end), Redis db 11"
 psql "$SERVER_PG" -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE \"$DB\"" \
