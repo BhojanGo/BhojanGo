@@ -48,18 +48,31 @@ function SettingsPage() {
       </section>
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Admins">
         <h2 className="m-0 text-h3">Admins {scope !== "*" ? `in ${scope}` : ""}</h2>
-        <div className="overflow-x-auto"><table className="w-full text-left text-small">
-          <thead className="text-caption text-muted"><tr><th className="py-2">Admin</th><th>Role</th><th>Where</th><th /></tr></thead>
-          <tbody className="divide-y divide-line">
-            {(list.data ?? []).map((a) => (
-              <tr key={a.id}><td className="py-2.5"><b>{a.full_name ?? "—"}</b> <span className="text-muted">{a.email}</span></td><td>{ROLE_LABELS[a.role] ?? a.role}</td>
-                <td>{a.scope === "*" ? "Everywhere" : a.scope}</td>
-                <td className="text-right">{mayGrant && a.user_id !== me?.user_id && can(me, "admins.grant", a.scope === "*" ? "*" : a.scope) ? (
-                  <button type="button" onClick={() => void act(() => adminApi.delete(`/user/admin/role-assignments/${a.id}`), "Removed.")} className="h-8 rounded-full border border-line-strong px-3 text-label text-chili">Remove</button>
-                ) : null}</td></tr>
-            ))}
-          </tbody>
-        </table></div>
+        {list.isLoading ? (
+          <ul aria-busy="true" className="space-y-2">{[0, 1, 2].map((i) => <li key={i} className="h-10 animate-pulse rounded-lg bg-porcelain" />)}</ul>
+        ) : list.isError ? (
+          <div role="alert" className="space-y-2">
+            <p className="m-0 font-bold">The admins didn&apos;t load.</p>
+            <button type="button" onClick={() => void list.refetch()} className="h-10 rounded-full border border-line px-4 font-bold text-peacock">Try again</button>
+          </div>
+        ) : !list.data?.length ? (
+          <p className="m-0 text-small text-muted">No admins in this scope yet.{mayGrant ? " Grant a role below." : ""}</p>
+        ) : (
+          <div><table className="table-stack w-full text-left text-small">
+            <thead className="text-caption text-muted"><tr><th className="py-2">Admin</th><th>Role</th><th>Where</th><th><span className="sr-only">Actions</span></th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {list.data.map((a) => (
+                <tr key={a.id}><td className="stack-title py-2.5"><b>{a.full_name ?? "—"}</b> <span className="break-all text-muted">{a.email}</span></td>
+                  <td data-label="Role">{ROLE_LABELS[a.role] ?? a.role}</td>
+                  <td data-label="Where">{a.scope === "*" ? "Everywhere" : a.scope}</td>
+                  <td className="stack-actions text-right">{mayGrant && a.user_id !== me?.user_id && can(me, "admins.grant", a.scope === "*" ? "*" : a.scope) ? (
+                    <button type="button" aria-label={`Remove ${a.full_name ?? a.email ?? "admin"} (${ROLE_LABELS[a.role] ?? a.role}, ${a.scope === "*" ? "everywhere" : a.scope})`}
+                      onClick={() => void act(() => adminApi.delete(`/user/admin/role-assignments/${a.id}`), "Removed.")} className="h-9 rounded-full border border-line-strong px-3 text-label text-chili">Remove</button>
+                  ) : null}</td></tr>
+              ))}
+            </tbody>
+          </table></div>
+        )}
         {mayGrant ? (
           <form className="flex flex-wrap items-end gap-2 border-t border-line pt-3" onSubmit={(e) => {
             e.preventDefault();

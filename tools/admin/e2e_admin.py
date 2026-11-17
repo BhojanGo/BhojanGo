@@ -26,6 +26,12 @@ sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/g
 from target_guard import ensure_safe_api  # noqa: E402
 from totp_signin import SEED_TOTP_SECRET, admin_console_second_step, code_at, finish  # noqa: E402
 
+# Accessibility (R9): axe-core on the main pages; serious or critical fails the run (tools/a11y, at /a11y).
+sys.path[:0] = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "a11y"), "/a11y"]
+from axe_check import Axe  # noqa: E402
+
+AXE = Axe("admin")
+
 ensure_safe_api(CORE)
 
 # Hosted QA (Railway): the public URLs come from QA_WEB / QA_ADMIN / QA_CORE / QA_RT
@@ -174,6 +180,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("alert").filter(has_text=test_banner)).to_have_count(0)))
     check("logo: the wordmark is the h3 token (20 px at desktop width)", lambda:
           expect(page.get_by_test_id("logo-wordmark")).to_have_css("font-size", "20px"))
+    check("a11y login: no serious or critical accessibility issues (axe)", lambda: AXE.scan(page, "login"))
     second_step_checks(page, "admin@example.com")
     check("test-site banner: inside the console too", lambda: expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible())
     check("overview, all countries: each country in its own money, side by side, needs action", lambda: (
@@ -673,6 +680,16 @@ with sync_playwright() as p:
         if hit:
             dirty.append(f"{path}: {hit.group(0)!r}")
     check("no JSON-like text or null on any admin page", lambda: not dirty or fail("; ".join(dirty[:8])))
+
+    # Accessibility (R9): the main pages as the super admin sees them.
+    for name, path in [("overview", "/overview"), ("operations", "/operations?scope=IN-TG-HYD&tab=live"),
+                       ("partners", "/partners?scope=IN-TG-HYD&tab=kitchens"), ("pricing", "/pricing?scope=IN-TG-HYD&tab=delivery_fee"),
+                       ("pricing-simulator", "/pricing/simulator?city=IN-TG-HYD"), ("markets", "/markets"), ("markets-country", "/markets/IN"),
+                       ("markets-city", "/markets/IN/IN-TG-HYD"), ("finance", "/finance?scope=IN"), ("settings", "/settings"),
+                       ("content-help", "/content/help"), ("content-legal", "/content/legal")]:
+        page.goto(BASE + path, wait_until="networkidle")
+        page.wait_for_timeout(800)
+        check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda n=name: AXE.scan(page, n))
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
     check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"0–\d+ km: ₹\d+")).first).to_be_visible(timeout=10000))
 
@@ -698,6 +715,7 @@ with sync_playwright() as p:
         expect(nav.get_by_role("link", name="Finance")).to_have_count(0)))
     b.close()
 
+AXE.write(OUT)
 failed = [n for n, ok, _ in results if not ok]
 print(f"{len(results) - len(failed)}/{len(results)} passed" + (f"; failed: {failed}" if failed else ""))
 raise SystemExit(1 if failed else 0)

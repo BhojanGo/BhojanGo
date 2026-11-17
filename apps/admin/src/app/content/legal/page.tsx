@@ -271,7 +271,7 @@ function LegalPage() {
             {list.isLoading ? <p className="text-body text-muted" aria-busy="true">Loading documents…</p> : null}
             {list.isError ? <p role="alert" className="text-label text-chili">{apiMessage(list.error)} <button type="button" className="font-semibold underline" onClick={() => void list.refetch()}>Try again</button></p> : null}
             {!list.isLoading && !groups.length ? <p className="text-body text-muted">No documents here yet. {editable.length ? "Start a draft above." : "A country manager for this country can start one."}</p> : null}
-            <div className="relative overflow-x-auto">
+            <div className="relative table-scroll">
               <table className="w-full min-w-[640px] text-left text-small" data-testid="legal-list">
                 <thead className="text-caption text-muted"><tr><th className="py-2">Document</th><th>Country</th><th>Language</th><th>Status</th><th>In effect from</th><th>Updated</th><th><span className="sr-only">Open</span></th></tr></thead>
                 <tbody className="divide-y divide-line">

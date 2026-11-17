@@ -238,8 +238,8 @@ export default function AllCountriesPage() {
                   <div className="text-h2">{c.name}</div>
                   <div className="text-small text-muted">{countrySubtitle(c)}</div>
                 </div>
-                <Link href={`/markets/${c.code}`} className="flex h-11 items-center rounded-full bg-peacock px-5 text-label text-white hover:bg-peacock-dark">
-                  Open {c.code === "US" ? "US" : c.name}
+                <Link href={`/markets/${c.code}`} className="flex h-11 shrink-0 items-center whitespace-nowrap rounded-full bg-peacock px-5 text-label text-white hover:bg-peacock-dark">
+                  Open<span className="sr-only"> {c.name}</span>
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

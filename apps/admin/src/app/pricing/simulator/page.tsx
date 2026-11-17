@@ -11,7 +11,7 @@ import { Suspense, useMemo, useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
-import { apiError, moneySymbol, useMarkets } from "@/lib/markets";
+import { apiError, firstCity, moneySymbol, useMarkets } from "@/lib/markets";
 
 type Line = { code: string; label: string; amount: string; funded_by: string | null };
 type Split = { restaurant: string; rider: string; tax: string; platform: string };
@@ -37,17 +37,18 @@ function Simulator() {
   const params = useSearchParams();
   const router = useRouter();
   const { data: markets } = useMarkets();
-  const city = params.get("city") ?? "IN-TG-HYD";
-  const country = city.slice(0, 2);
+  // No ?city=: the first live city in Markets (never a hard-coded one).
+  const city = params.get("city") ?? firstCity(markets) ?? "";
+  const country = city.split("-")[0] ?? "";
   const cityInfo = markets?.flatMap((c) => c.regions.flatMap((r) => r.cities)).find((c) => c.code === city);
-  const currency = markets?.find((c) => c.code === country)?.currency ?? (country === "IN" ? "INR" : "USD");
-  const sym = moneySymbol(currency);
+  const currency = markets?.find((c) => c.code === country)?.currency;
+  const sym = currency ? moneySymbol(currency) : "";
   const unit = markets?.find((c) => c.code === country)?.distance_unit ?? "km";
 
   const [form, setForm] = useState({
     food: "560",
     distance: "4.2",
-    when: "2026-11-12T20:00",
+    when: `${new Date().toLocaleDateString("en-CA")}T20:00`, // today, 8 pm
     tip: "20",
     tier: "B",
     restaurant: "",
@@ -64,6 +65,7 @@ function Simulator() {
   });
   const { data: draftRules } = useQuery({
     queryKey: ["rules", "drafts", city],
+    enabled: Boolean(city),
     queryFn: async () => {
       const [d, p] = await Promise.all(
         ["draft", "pending_approval"].map((status) => adminApi.get<Rule[]>("/user/rules", { params: { status, scope: country } }))
@@ -106,7 +108,7 @@ function Simulator() {
       section="Pricing & Rules"
       country={country}
       city={city}
-      countryHref={(c) => `/pricing/simulator?city=${c === "IN" ? "IN-TG-HYD" : "US-ID-BOI"}`}
+      countryHref={(c) => `/pricing/simulator?city=${firstCity(markets, c) ?? ""}`}
       cityHref={(_, c) => `/pricing/simulator?city=${c}`}
     >
       <div>
@@ -142,7 +144,7 @@ function Simulator() {
               <input type="number" min="0" step="1" value={form.tip} onChange={(e) => setForm({ ...form, tip: e.target.value })} className={field} />
             </label>
             <label className="flex-1 text-small text-muted">
-              Restaurant tier
+              Kitchen tier
               <select value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} className={field}>
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -151,9 +153,9 @@ function Simulator() {
             </label>
           </div>
           <label className="text-small text-muted">
-            Restaurant (adds its own rules, e.g. packaging)
+            Kitchen (adds its own rules, e.g. packaging)
             <select value={form.restaurant} onChange={(e) => setForm({ ...form, restaurant: e.target.value })} className={field}>
-              <option value="">Any restaurant</option>
+              <option value="">Any kitchen</option>
               {restaurants?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -212,7 +214,7 @@ function Simulator() {
                   {!sim.data.draft.ok ? `Draft: ${sim.data.draft.message}.` : ""}
                 </p>
               )}
-              <div className="overflow-x-auto"><table className="w-full min-w-[420px] border-collapse text-small tabular-nums">
+              <div className="table-scroll"><table className="w-full min-w-[420px] border-collapse text-small tabular-nums">
                 <thead>
                   <tr className="text-left text-caption text-muted">
                     <th className="py-2 font-bold">Line</th>

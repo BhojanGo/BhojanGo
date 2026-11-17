@@ -64,6 +64,12 @@ ensure_safe_api(QA_CORE or "http://core-api:8001")
 # The type scale check (font_sizes.py, next to this file): every visible text's size.
 from font_sizes import collect as font_sizes_on, problems as font_problems  # noqa: E402
 
+# Accessibility (R9): axe-core on the main pages; serious or critical fails the run (tools/a11y, at /a11y).
+sys.path[:0] = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "a11y"), "/a11y"]
+from axe_check import Axe  # noqa: E402
+
+AXE = Axe("web")
+
 # Seed data (tools/seed/data.py). The website never names these; the test may.
 HYD_PHONE, US_PHONE, OTP = "9000000101", "2085550101", "123456"
 KITCHEN, KITCHEN_PATH = "Spice Route Kitchen", "/in/hyderabad/spice-route-kitchen-madhapur"
@@ -118,6 +124,11 @@ def step(name: str, fn) -> bool:  # type: ignore[no-untyped-def]
 
 def shot(page, name: str) -> None:  # type: ignore[no-untyped-def]
     page.screenshot(path=f"{OUT}/{name}.png", full_page=True)
+
+
+def a11y(page, name: str) -> None:  # type: ignore[no-untyped-def]
+    """axe on the page as it is now: no serious or critical violations (all are written to a11y-web.md)."""
+    check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda: AXE.scan(page, name))
 
 
 def api(method: str, path: str, token: str | None = None, body: dict | None = None, host: int = 8001) -> dict:
@@ -276,6 +287,7 @@ with sync_playwright() as p:
         _assert(page.get_by_test_id("test-site-banner").bounding_box()["y"] < page.locator("header").first.bounding_box()["y"],
                 "banner is not above the header")))
     shot(page, "01-landing")
+    a11y(page, "landing")
 
     # Notify me ("Don't see your city?"), then the demand shows it in Markets (admin API).
     town = f"Testpur {RUN}"
@@ -520,6 +532,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("link", name=re.compile("^Boise"))).to_be_visible(),
         expect(page.get_by_role("link", name=re.compile("^Hyderabad"))).to_have_count(0)))
     shot(page, "05-cities")
+    a11y(page, "cities")
     page.goto(base + hyd["path"], wait_until="networkidle")
     check("live city page: title, kitchens, a real bill, ItemList and canonical", lambda: (
         expect(page).to_have_title("Food delivery in Hyderabad · BhojanGo"),
@@ -544,6 +557,7 @@ with sync_playwright() as p:
         expect(page.locator("#kitchens").get_by_role("link", name=re.compile(KITCHEN))).to_have_count(0),
         expect(page.locator("#kitchens").get_by_role("link", name=re.compile("Charminar Chai House"))).to_have_count(0)))
     shot(page, "06-city")
+    a11y(page, "city")
     page.goto(base + soon_city["path"], wait_until="networkidle")
     check("coming-soon city page: Notify me for that city", lambda: (
         expect(page.get_by_role("heading", name=f"Coming soon to {soon_city['name']}", level=1)).to_be_visible(),
@@ -565,6 +579,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Biryani")).to_be_visible(),
         _assert(any(x.get("@type") == "Restaurant" and x.get("hasMenu") for x in ld()), ld())))
     check("type scale: the kitchen page uses only the scale's font sizes", lambda: type_scale_only(page))
+    a11y(page, "kitchen")
     page.get_by_role("button", name=f"Add {DISH}").click()
     dialog = page.get_by_role("dialog", name=DISH)
     check("customise sheet: required and optional groups with prices", lambda: (
@@ -609,6 +624,7 @@ with sync_playwright() as p:
         expect(em.get_by_role("link", name="Forgot password?")).to_be_visible(),
         expect(em.get_by_role("button", name="Create an account")).to_be_visible()))
     shot(em, "09b-signin-email")
+    a11y(em, "signin-email")
     wrong_answers = []
     for who in ("customer2.hyd@example.com", f"nobody.{uuid.uuid4().hex[:8]}@example.com"):
         em.get_by_role("textbox", name="Email").fill(who)
@@ -653,6 +669,7 @@ with sync_playwright() as p:
         expect(em.get_by_text("Verified · you can sign in with it")).to_be_visible(),
         expect(em.get_by_role("button", name="Add", exact=True)).to_be_visible()))
     shot(em, "09d-profile-security-phone")
+    a11y(em, "profile")
     em_ctx.close()
 
     em_ctx = b.new_context(viewport={"width": 1366, "height": 900})
@@ -680,6 +697,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading", name="Sign in or create an account", level=1)).to_be_visible(),
         expect(page.get_by_label("Country code")).to_have_value("IN")))
     shot(page, "09-signin")
+    a11y(page, "signin-phone")
     page.get_by_role("textbox", name="Mobile number").fill(HYD_PHONE)
     page.get_by_role("button", name="Send code").click()
     url_is(page, r"/signin/code\?")
@@ -720,6 +738,7 @@ with sync_playwright() as p:
     check("tip: on the bill as the rider's", lambda: (
         expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(re.sub(r"\D", "", tip_label), timeout=15000)))
     shot(page, "11-checkout")
+    a11y(page, "checkout")
     page.get_by_role("button", name=re.compile(r"^Pay ")).click()
     pay = page.get_by_role("dialog", name="Pay (test mode)")
     check("pay: the test provider's checkout", lambda: expect(pay).to_be_visible(timeout=30000))
@@ -734,6 +753,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Your order").get_by_text("The fair bill")).to_be_visible(),
         expect(page.get_by_text("You paid")).to_be_visible()))
     shot(page, "12-tracking")
+    a11y(page, "tracking")
 
     # The home page while an order is on: the active order bar, still no marketing.
     page.goto(base, wait_until="networkidle")
@@ -873,6 +893,7 @@ with sync_playwright() as p:
     check("orders: the new order first, delivered", lambda: (
         expect(page.get_by_role("heading", name="Orders", level=1)).to_be_visible(timeout=15000),
         expect(lst.get_by_role("button", name=re.compile(re.escape(code))).first).to_contain_text("Delivered", timeout=15000)))
+    a11y(page, "account-orders")
     page.get_by_role("searchbox", name="Search by kitchen, dish or order code").fill(code[1:])
     check("orders: search by order code", lambda: (
         expect(lst.get_by_role("button", name=re.compile(re.escape(code)))).to_have_count(1, timeout=15000),
@@ -1049,6 +1070,7 @@ with sync_playwright() as p:
     kctx.add_cookies([{"name": "bg_city", "value": "IN-TG-HYD", "url": base}])
     k = kctx.new_page()
     k.goto(base + "/partner", wait_until="networkidle")
+    a11y(k, "partner")
     check("/partner: a landing page with live terms, documents and FAQ (not a sign-in wall)", lambda: (
         expect(k.get_by_role("heading", level=1)).to_be_visible(),
         expect(k.get_by_test_id("partner-hero")).to_be_visible(),
@@ -1226,10 +1248,12 @@ with sync_playwright() as p:
         expect(lp.get_by_role("heading", name=re.compile("Cancellations and refunds"), level=2)).to_be_in_viewport()
     check("terms: a contents link goes to its section", toc_jumps)
     shot(lp, "22-terms-in")
+    a11y(lp, "terms")
     lp.goto(f"{base}/privacy?country=IN", wait_until="networkidle")
     check("privacy (India): the Grievance Officer, data principal rights, nomination", lambda: (
         expect(lp.get_by_role("heading", name=re.compile("Grievance Officer"), level=2)).to_be_visible(),
         expect(lp.get_by_text(re.compile("Nominate"))).not_to_have_count(0)))
+    a11y(lp, "privacy")
     lp.goto(f"{base}/privacy?country=US", wait_until="networkidle")
     check("privacy (US): state privacy rights and Do Not Sell or Share", lambda: (
         expect(lp.get_by_role("heading", name="Do Not Sell or Share My Personal Information")).to_be_visible(),
@@ -1296,6 +1320,7 @@ with sync_playwright() as p:
             _assert(other not in dl.get_by_test_id("pay-cards").inner_text(), "the other country's money on the page")
         check(f"/deliver?city={code}: the city's real pay and its country's requirements", deliver_page)
         shot(dl, f"30-deliver-{code.lower()}")
+        a11y(dl, f"deliver-{code.lower()}")
 
     def deliver_phone() -> None:
         m390 = b.new_context(viewport={"width": 390, "height": 844}).new_page()
@@ -1350,6 +1375,7 @@ with sync_playwright() as p:
         expect(hp.get_by_test_id("topic-orders")).to_contain_text(re.compile(r"\d+ articles?")),
         expect(hp.get_by_role("heading", name="Popular articles")).to_be_visible()))
     shot(hp, "21-help")
+    a11y(hp, "help")
     hp.get_by_role("searchbox", name="Search help articles").fill("zzqqxx nothing")
     check("help: no results says so, with suggestions and contact", lambda: (
         expect(hp.get_by_test_id("help-results")).to_contain_text("No articles match", timeout=10000),
@@ -1366,6 +1392,7 @@ with sync_playwright() as p:
         expect(article.get_by_text("4-digit").first).to_be_visible(),
         expect(hp.get_by_role("heading", name="Related articles")).to_be_visible()))
     shot(hp, "22-help-article")
+    a11y(hp, "help-article")
     hp.get_by_test_id("helpful").get_by_role("button", name="No").click()
     check("help: 'No' thanks you and offers contact", lambda: (
         expect(hp.get_by_test_id("helpful")).to_contain_text("Sorry this didn't answer"),
@@ -1403,11 +1430,14 @@ with sync_playwright() as p:
     check("X-Robots-Tag: noindex outside production", lambda: _assert(
         "noindex" in (page.request.get(base + "/").headers.get("x-robots-tag") or ""), page.request.get(base + "/").headers))
     check("unknown kitchen is a 404", lambda: _assert(page.request.get(f"{base}{hyd['path']}/no-such-kitchen").status == 404, "not 404"))
+    page.goto(f"{base}/no-such-page", wait_until="networkidle")
+    a11y(page, "404")
     old = page.request.get(f"{base}/orders", max_redirects=0)
     check("old /orders redirects to the account", lambda: _assert(
         old.status in (301, 308) and old.headers.get("location", "").endswith("/account/orders"), (old.status, old.headers)))
     b.close()
 
+AXE.write(OUT)
 failed = [n for n, ok, _ in results if not ok]
 print(f"{len(results) - len(failed)}/{len(results)} passed" + (f"; failed: {failed}" if failed else ""))
 raise SystemExit(1 if failed else 0)
