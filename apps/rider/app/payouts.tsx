@@ -119,14 +119,17 @@ export default function Payouts() {
             </View>
           </View>
           {copy.action ? (
-            <Pressable testID="payout-set-up" accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} onPress={setUp} disabled={busy} style={ui.cta}>
+            <Pressable testID="payout-set-up" accessibilityRole="button"
+              // An explicit label: without one Android kept a stale "busy" description after the press (R11).
+              accessibilityLabel={busy ? t("payout_setup.opening", { provider }) : copy.action}
+              accessibilityState={{ busy, disabled: busy }} onPress={setUp} disabled={busy} style={ui.cta}>
               {busy ? <ActivityIndicator color={night.onKesar} /> : null}
               <Text numberOfLines={1} style={[ui.ctaText, { flexShrink: 1 }]}>{busy ? t("payout_setup.opening", { provider }) : copy.action}</Text>
             </Pressable>
           ) : null}
           {copy.comeBack && setup.account ? <Text style={ui.muted}>{t("payout_setup.come_back")}</Text> : null}
           {setup.state !== "ready" && setup.account ? (
-            <Pressable testID="payout-check" accessibilityRole="button" accessibilityState={{ busy: checking }} onPress={() => void check()}
+            <Pressable testID="payout-check" accessibilityRole="button" accessibilityLabel={t("payout_setup.check_again")} accessibilityState={{ busy: checking }} onPress={() => void check()}
               disabled={checking} style={ui.outline}>
               {checking ? <ActivityIndicator color={night.text} /> : null}
               <Text style={ui.bold}>{t("payout_setup.check_again")}</Text>

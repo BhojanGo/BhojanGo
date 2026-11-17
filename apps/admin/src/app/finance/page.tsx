@@ -59,7 +59,10 @@ function FinancePage() {
   const { data: markets } = useMarkets();
   const qc = useQueryClient();
   // Payouts are per country: the all-countries view shows the first country you may see, and says so.
-  const target = country === "ALL" ? markets?.[0]?.code ?? "" : country;
+  // A finance admin may not read Markets (403): then the first country their own finance scope names (R11:
+  // the US finance admin saw an empty table and no error).
+  const ownCountry = (me?.permissions["finance.view"] ?? []).map((s) => s.split("-")[0]).find((c) => /^[A-Z]{2}$/.test(c)) ?? "";
+  const target = country === "ALL" ? markets?.[0]?.code ?? ownCountry : country;
   const runs = useQuery({ queryKey: ["payout-runs", target], enabled: Boolean(target), queryFn: async () => (await adminApi.get<Run[]>("/user/finance/payout-runs", { params: { country: target } })).data });
   const [open, setOpen] = useState<string | null>(null);
   const run = useQuery({
@@ -130,6 +133,7 @@ function FinancePage() {
           </tbody>
         </table></div>
         {runs.isLoading ? <p aria-busy="true" className="text-small text-muted">Loading payout runs…</p> : null}
+        {!target && me ? <p className="text-small text-muted">Pick a country above to see its payout runs.</p> : null}
         {runs.isError ? <p role="alert" className="text-small">The payout runs didn&apos;t load. <button type="button" onClick={() => void runs.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
         {runs.data && runs.data.length === 0 ? <p className="text-small text-muted">No payout runs yet. Prepare one for a week once it has delivered orders; a second finance admin approves and pays it.</p> : null}
       </section>

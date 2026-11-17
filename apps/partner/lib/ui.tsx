@@ -61,7 +61,9 @@ export function Btn({ title, onPress, kind = "outline", height = 48, disabled, b
 }) {
   const k = BTN[kind];
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || busy, busy }}
+    <Pressable testID={testID} accessibilityRole="button"
+      // Always a label: without one Android left a stale "busy" description after a busy press (R11).
+      accessibilityLabel={label ?? title} accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy} onPress={onPress}
       style={({ pressed }) => [s.btn, { height, backgroundColor: k.bg, borderColor: k.border ?? k.bg, borderWidth: k.border ? 1.5 : 0,
         opacity: disabled ? 0.45 : pressed ? 0.85 : 1 }, grow && { flexGrow: 1 }, style]}>

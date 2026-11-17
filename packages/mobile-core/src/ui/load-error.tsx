@@ -28,6 +28,9 @@ export interface LoadErrorProps {
   title?: string;
   /** Centre it in all the room there is (a whole screen's load failed). */
   fill?: boolean;
+  /** Part of a screen that has its own primary action (e.g. a form under it): Retry is the
+   *  secondary button, so the screen keeps one primary action (page checklist 1.2). */
+  inline?: boolean;
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -45,7 +48,7 @@ export function loadErrorText(error: unknown, t: Translate): { title: string; re
 }
 
 /** The error state: icon, title, why (one line), Retry. */
-export function LoadError({ error, onRetry, tone = "light", title, fill, testID = "load-error", style }: LoadErrorProps) {
+export function LoadError({ error, onRetry, tone = "light", title, fill, inline, testID = "load-error", style }: LoadErrorProps) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const live = useRef(true);
@@ -80,7 +83,7 @@ export function LoadError({ error, onRetry, tone = "light", title, fill, testID 
       <T testID="load-error-title" variant="h3" accessibilityRole="header" style={[styles.center, onDark && { color: dark.text }]}>{heading}</T>
       <T testID="load-error-reason" variant="body" style={[styles.center, { color: onDark ? dark.muted : color.muted }]}>{reason}</T>
       <Button testID="load-retry" title={t("app.load_error.retry")} accessibilityLabel={`${t("app.load_error.retry")}: ${heading}`}
-        variant={onDark ? "rider" : "primary"} loading={busy} onPress={() => void retry()} style={styles.button} />
+        variant={onDark ? "rider" : inline ? "secondary" : "primary"} loading={busy} onPress={() => void retry()} style={styles.button} />
     </View>
   );
 }
