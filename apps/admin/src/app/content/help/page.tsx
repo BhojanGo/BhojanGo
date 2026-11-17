@@ -24,7 +24,7 @@ export function StatusChip({ a }: { a: Pick<HelpArticle, "status" | "draft"> }) 
 function Helpful({ a }: { a: HelpArticle }) {
   const n = a.helpful_yes + a.helpful_no;
   if (!n) return <span className="text-muted">No votes</span>;
-  return <span className="tabular-nums">{Math.round((a.helpful_yes / n) * 100)}% of {n}</span>;
+  return <span className="tabular-nums">{Math.round((a.helpful_yes / n) * 100)}% helpful · {n} vote{n === 1 ? "" : "s"}</span>;
 }
 
 function HelpList() {
@@ -123,39 +123,47 @@ function HelpList() {
           </div>
         ) : (
           <>
-            {/* Desktop: a table */}
-            <table className="hidden w-full text-left text-small lg:table">
-              <thead className="text-caption text-muted">
-                <tr><th className="px-4 py-2.5">Article</th><th>Topic</th><th>Country</th><th>Language</th><th>Status</th><th>Helpful</th><th className="pr-4">Updated</th></tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {list.data.map((a) => (
-                  <tr key={a.id} className="hover:bg-porcelain">
-                    <td className="max-w-[420px] px-4 py-3">
-                      <Link href={`/content/help/${a.id}`} className="font-bold text-kohl hover:text-peacock">{(a.draft ?? a.live).title}</Link>
-                      <span className="block truncate text-muted">{a.slug}{a.live.popular ? ` · popular #${a.live.popular}` : ""}</span>
-                    </td>
-                    <td>{topicLabel((a.draft ?? a.live).topic)}</td>
-                    <td>{countryLabel(a.country, names)}</td>
-                    <td>{languageLabel(a.language)}</td>
-                    <td><StatusChip a={a} /></td>
-                    <td><Helpful a={a} /></td>
-                    <td className="pr-4 text-muted">{new Date(a.updated_at).toLocaleDateString()}{a.updated_by_name ? ` · ${a.updated_by_name}` : ""}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Phone and tablet: rows */}
-            <ul className="divide-y divide-line lg:hidden">
+            {/* Wide screens (1280 px and up): a table, scrolling inside the card if it ever needs to */}
+            <div className="table-scroll hidden xl:block">
+              <table className="w-full text-left text-small [&_td]:px-3 [&_td]:align-top [&_th]:px-3 [&_th]:py-2.5">
+                <thead className="text-caption text-muted">
+                  <tr><th className="!pl-4">Article</th><th>Topic</th><th>Country</th><th>Language</th><th>Status</th><th>Helpful</th><th className="!pr-4">Updated</th></tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {list.data.map((a) => (
+                    <tr key={a.id} className="hover:bg-porcelain">
+                      <td className="max-w-[360px] !pl-4 py-3">
+                        <Link href={`/content/help/${a.id}`} className="font-bold text-kohl hover:text-peacock">{(a.draft ?? a.live).title}</Link>
+                        <span className="block truncate text-muted">{a.slug}{a.live.popular ? ` · popular #${a.live.popular}` : ""}</span>
+                      </td>
+                      <td className="py-3">{topicLabel((a.draft ?? a.live).topic)}</td>
+                      <td className="py-3">{countryLabel(a.country, names)}</td>
+                      <td className="py-3">{languageLabel(a.language)}</td>
+                      <td className="py-3"><StatusChip a={a} /></td>
+                      <td className="whitespace-nowrap py-3"><Helpful a={a} /></td>
+                      <td className="!pr-4 py-3 text-muted">
+                        <span className="block whitespace-nowrap tabular-nums">{new Date(a.updated_at).toLocaleDateString()}</span>
+                        {a.updated_by_name ? <span className="block">{a.updated_by_name}</span> : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Phones, tablets and laptops (under 1280 px, e.g. 1366 at 125 %): rows */}
+            <ul className="divide-y divide-line xl:hidden">
               {list.data.map((a) => (
                 <li key={a.id}>
                   <Link href={`/content/help/${a.id}`} className="block space-y-1 px-4 py-3 hover:bg-porcelain">
-                    <span className="flex items-start justify-between gap-3">
+                    <span className="flex flex-col items-start gap-1 sm:flex-row sm:justify-between sm:gap-3">
                       <b className="text-label">{(a.draft ?? a.live).title}</b>
                       <StatusChip a={a} />
                     </span>
                     <span className="block text-small text-muted">
                       {topicLabel((a.draft ?? a.live).topic)} · {countryLabel(a.country, names)} · {languageLabel(a.language)}
+                    </span>
+                    <span className="block text-small text-muted tabular-nums">
+                      Updated {new Date(a.updated_at).toLocaleDateString()}{a.updated_by_name ? ` by ${a.updated_by_name}` : ""} · <Helpful a={a} />
                     </span>
                   </Link>
                 </li>

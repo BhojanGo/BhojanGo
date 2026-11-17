@@ -1,11 +1,11 @@
 // PartnerOnboarding.html: the partner application. Steps on the left (and
 // your terms), the current step on the right: FSSAI licence, GST and bank,
 // menu, then we check everything and switch the kitchen on.
-import { api, ApiError, field, SafeAreaView, type Translate, type, unwrap, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field, LoadError, loadErrorText, SafeAreaView, type Translate, type, unwrap, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useKitchen, useLoad, type Application } from "../lib/data";
 import { useLayout } from "../lib/layout";
@@ -129,7 +129,8 @@ export default function Apply() {
               <Text style={[type.label, { color: color.peacock }]}>{tr("partner.apply.step_of", { n: idx + 1, total: a.total })}</Text>
               <StepBody app={a} stepKey={current} onSaved={async () => { const n = await app.reload(); setStep(n?.current ?? null); }} />
             </>
-          ) : <Text style={t.muted}>{app.error ?? tr("common.loading")}</Text>}
+          ) : app.failure ? <LoadError error={app.failure} onRetry={app.reload} style={{ padding: 0 }} />
+            : <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} />}
         </ScrollView>
       </View>
       </Scroller>
@@ -183,7 +184,7 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
       setDoc({ name: f.name, size: f.size ?? 0, key });
     } catch (e) {
       setDoc(null);
-      setMsg((e as Error).message || tr("partner.upload.failed"));
+      setMsg((!(e instanceof TypeError) && (e as Error).message) || tr("partner.upload.failed")); // never fetch's raw "Network request failed"
     }
   }
 
@@ -197,7 +198,7 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
       }));
       await onSaved();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : (e as Error).message);
+      setMsg(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     } finally {
       setBusy(false);
     }
@@ -277,7 +278,7 @@ function GstBank({ app: a, onSaved }: { app: Application; onSaved: () => Promise
       if (r.onboarding_url) await Linking.openURL(r.onboarding_url);
       await onSaved();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : (e as Error).message);
+      setMsg(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     }
   }
   return (

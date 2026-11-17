@@ -1,0 +1,45 @@
+# R9: BhojanGo's sign-in when the API can't be reached. Run it with the app's API pointed at an
+# address nothing answers on (apps/customer/.env.local: EXPO_PUBLIC_CORE_URL=http://10.0.2.2:9,
+# then restart Metro with -c). Not part of the normal runs (tools/railway/maestro-qa.sh skips
+# offline-* flows unless ONLY names them): with the API up there is no error to see.
+# Within 10 s of the screen: "Can't reach BhojanGo", why, and Retry; Retry with the API still
+# down keeps the error state (no half-working form, no "…" for the country code).
+appId: com.bhojango.app
+tags:
+  - offline
+---
+- launchApp:
+    clearState: true
+# The app itself starting (a dev build loads its JS from Metro first) is not what is timed.
+- extendedWaitUntil:
+    visible:
+      id: "sign-in-screen"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      id: "load-error"
+    timeout: 10000
+- assertVisible: ".*reach BhojanGo.*"
+- assertVisible:
+    id: "load-error-reason"
+- assertVisible:
+    id: "load-retry"
+- assertNotVisible:
+    id: "phone"
+- assertNotVisible:
+    id: "email"
+- takeScreenshot: docs/screenshots/customer/offline-sign-in
+- tapOn:
+    id: "load-retry"
+# Still down: the error state again (Retry gives up within the same 8 s), never the form.
+- extendedWaitUntil:
+    visible:
+      id: "load-retry"
+    timeout: 10000
+- assertVisible:
+    id: "load-error"
+- assertNotVisible:
+    id: "phone"
+- assertNotVisible:
+    id: "email"
+- takeScreenshot: docs/screenshots/customer/offline-sign-in-retry

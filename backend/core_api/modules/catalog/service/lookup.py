@@ -56,7 +56,7 @@ async def restaurant_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.
 
 
 async def item_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:
-    """Dishes on a live menu, each with its restaurant (id, slug, name) (favourites)."""
+    """Dishes on a live menu, each with its restaurant (id, slug, name, city, country: its page's address) (favourites)."""
     from sqlalchemy import select
 
     from core_api.modules.catalog.models.menu import MenuItem
@@ -74,7 +74,7 @@ async def item_cards(db: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, 
             continue
         out[i.id] = {"id": str(i.id), "name": i.name, "price": float(i.price), "currency": r.currency,
                      "image_url": i.image_url, "available": i.is_available and not is_sold_out(i),
-                     "restaurant": {"id": str(r.id), "slug": r.slug, "name": r.name}}
+                     "restaurant": {"id": str(r.id), "slug": r.slug, "name": r.name, "city": r.city, "country": r.country}}
     return out
 
 

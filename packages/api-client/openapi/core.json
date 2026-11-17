@@ -4246,6 +4246,28 @@
       },
       "FavouriteItemRestaurant": {
         "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -12396,10 +12418,16 @@
         "type": "object"
       },
       "RiderApply": {
+        "description": "Who is signing up to deliver, and where. The date of birth and the vehicle\nare checked against the country's rules (Markets -> Delivery partners:\nGET /delivery/sign-up?country= lists them for the form).",
         "properties": {
           "city_code": {
             "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
             "title": "City Code",
+            "type": "string"
+          },
+          "date_of_birth": {
+            "format": "date",
+            "title": "Date Of Birth",
             "type": "string"
           },
           "full_name": {
@@ -12407,11 +12435,36 @@
             "minLength": 2,
             "title": "Full Name",
             "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "examples": [
+                  "hi"
+                ],
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "vehicle": {
+            "examples": [
+              "motorcycle"
+            ],
+            "pattern": "^[a-z_]{2,20}$",
+            "title": "Vehicle",
+            "type": "string"
           }
         },
         "required": [
           "full_name",
-          "city_code"
+          "city_code",
+          "date_of_birth",
+          "vehicle"
         ],
         "title": "RiderApply",
         "type": "object"
@@ -13164,6 +13217,48 @@
           }
         },
         "title": "SignInProviders",
+        "type": "object"
+      },
+      "SignUpRules": {
+        "description": "What the delivery partner sign-up forms ask for in a country (the web's /deliver\nand the BhojanGo Delivery app's Join): POST /riders/apply checks the same rules.",
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "min_age": {
+            "description": "Applicants must be at least this old on the country's date",
+            "title": "Min Age",
+            "type": "integer"
+          },
+          "rules_set": {
+            "description": "False: the country has no rules yet and the platform defaults apply",
+            "title": "Rules Set",
+            "type": "boolean"
+          },
+          "today": {
+            "description": "The country's date now: the form's latest date of birth and its age check",
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "vehicles": {
+            "description": "The vehicles the country allows (keys: motorcycle, scooter, electric_scooter, car)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Vehicles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "country",
+          "min_age",
+          "vehicles",
+          "today",
+          "rules_set"
+        ],
+        "title": "SignUpRules",
         "type": "object"
       },
       "SimCart": {
@@ -16348,6 +16443,50 @@
         "summary": "Verify Otp",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/api/v1/delivery/sign-up": {
+      "get": {
+        "description": "The minimum age and allowed vehicles for signing up to deliver in a country\n(Markets -> Delivery partners), with the platform defaults when it has none. Public;\n404 for a country we don't operate in.",
+        "operationId": "sign_up_rules_api_v1_delivery_sign_up_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpRules"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sign Up Rules",
+        "tags": [
+          "Delivery partners (public)"
         ]
       }
     },
@@ -25184,7 +25323,7 @@
     },
     "/api/v1/riders/apply": {
       "post": {
-        "description": "Become a rider applicant: then the onboarding checklist (licence, insurance,\npayout account, background check). Admins review in Partners \u2192 Rider documents.",
+        "description": "Become a rider applicant: then the onboarding checklist (licence, insurance,\npayout account, background check). Admins review in Partners \u2192 Rider documents.\nRefused with 422 when the applicant is younger than the country's minimum age\n(UNDER_AGE, with min_age), the vehicle isn't one the country allows (VEHICLE,\nwith vehicles) or the date of birth can't be right (DOB); a country without\nrules uses the defaults in markets.service.delivery.sign_up_rules.",
         "operationId": "rider_apply_api_v1_riders_apply_post",
         "requestBody": {
           "content": {

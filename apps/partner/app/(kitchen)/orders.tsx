@@ -3,7 +3,7 @@
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
 // On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
 // and tapping an order opens its detail (the same card); Back returns to the list.
-import { api, ApiError, LanguagePill, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -28,7 +28,7 @@ type Item = { name?: string; quantity?: number; options?: string[] };
 
 export default function Orders() {
   const kitchen = useKitchen((s) => s.kitchen)!;
-  const { orders, today, error, refresh, setToday } = useBoard();
+  const { orders, today, failure, refresh, setToday } = useBoard();
   const [pausing, setPausing] = useState(false);
   const { t: tr } = useI18n();
   const { narrow } = useLayout();
@@ -40,7 +40,7 @@ export default function Orders() {
     try {
       await fn();
     } catch (e) {
-      Alert.alert(tr("partner.orders.failed"), e instanceof ApiError ? e.message : (e as Error).message);
+      Alert.alert(tr("partner.orders.failed"), e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     }
     await refresh(kitchen.id);
   }
@@ -60,8 +60,15 @@ export default function Orders() {
   return (
     <SafeAreaView testID="orders-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} />
-      {error ? <Text style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>{error}</Text> : null}
-      {narrow ? <PhoneBoard fresh={fresh} cooking={cooking} ready={ready} defaultPrep={today?.prep_minutes ?? 20} act={act} /> : (
+      {/* R9: the first load failed: the error state and Retry; later polls that fail: one line over the board (it keeps polling). */}
+      {failure && today ? (
+        <Text testID="board-offline" accessibilityRole="alert" style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>
+          {`${loadErrorText(failure, tr).title}. ${loadErrorText(failure, tr).reason}`}
+        </Text>
+      ) : null}
+      {failure && !today ? (
+        <View style={{ flex: 1, padding: 24 }}><LoadError error={failure} onRetry={() => refresh(kitchen.id)} fill /></View>
+      ) : narrow ? <PhoneBoard fresh={fresh} cooking={cooking} ready={ready} defaultPrep={today?.prep_minutes ?? 20} act={act} /> : (
       <View style={s.board}>
         <Column testID="column-new" title={tr("partner.orders.new")} count={fresh.length} badge={[color.peacock, color.white]}>
           {fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}

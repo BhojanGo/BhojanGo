@@ -1,6 +1,6 @@
 // RiderEarnings.html: the week so far, by day, the hourly floor, today's
 // deliveries and the next payout. Money and dates by the country (Markets).
-import { inZone, num, SafeAreaView, type, useI18n } from "@bhojango/mobile-core";
+import { inZone, LoadError, num, SafeAreaView, type, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -26,13 +26,14 @@ function dayInitial(iso: string, date: DateFn) {
 export default function Earnings() {
   const { cash, cityName, date, time } = useFormat();
   const { t, number } = useI18n();
-  const { data: w, error, reload } = useWeek();
+  const { data: w, failure, reload } = useWeek();
   useFocusEffect(useCallback(() => void reload(), [reload]));
 
   if (!w) {
     return (
       <SafeAreaView style={[ui.screen, styles.center]}>
-        {error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator testID="earnings-loading" color={night.kesar} />}
+        {failure ? <LoadError error={failure} onRetry={reload} tone="dark" fill style={{ alignSelf: "stretch" }} />
+          : <ActivityIndicator testID="earnings-loading" color={night.kesar} />}
       </SafeAreaView>
     );
   }

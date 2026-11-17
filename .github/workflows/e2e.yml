@@ -50,6 +50,15 @@ jobs:
         if: always()
         run: sh tools/admin/e2e.sh
 
+      # R9: axe-core runs on the main pages of both suites (serious or critical fails them);
+      # every finding, of every impact, goes to the run's summary and the screenshots artifact.
+      - name: Accessibility report (axe)
+        if: always()
+        run: |
+          for f in docs/screenshots/web/a11y-web.md docs/screenshots/admin/a11y-admin.md; do
+            if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
+
       - name: Service logs
         if: failure()
         run: $COMPOSE logs --no-color --tail 300 core-api realtime worker web admin

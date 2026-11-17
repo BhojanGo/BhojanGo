@@ -356,3 +356,39 @@ and Privacy notice (the documents themselves are English for now; other language
   legal wording.
 - `legal.older`, `legal.history_replaced`, `legal.history_effective`: {date} is formatted by the
   country ("20 November 2026"); check the word order around it.
+
+## Apps: can't reach BhojanGo (round 9)
+
+Machine-translated 2026-11-16: `app.load_error.*`, the error state every app screen shows when
+its data can't load (no connection, our servers too slow or down), with its Retry button.
+Check first: `title` names the brand ("Can't reach BhojanGo"); `offline` must not blame the
+person ("we couldn't connect"); `retry` is a button label, short enough for a 160 px button.
+Spanish uses "Reintentar" for the button and "tú" in the sentences.
+
+Also machine-translated 2026-11-16: `app.payment_failed.*`, the customer app's "Payment didn't go
+through" screen (it was English-only). `not_charged` is a promise about money: check it says
+"you have not been charged" and that the bank reverses any hold, nothing more. "UPI" stays as is.
+
+## Delivery partner sign-up: age and vehicle (round 9)
+
+Machine-translated on 2026-11-16 into all seven languages; needs native review.
+
+- Changed: `rider.checklist.detail.background_progress`, `background_waiting`,
+  `needed_background_check`, `deliver_page.doc_background_check_body`,
+  `deliver_page.faq_approval_a` ("usually 2–5 days" became "We'll let you know by
+  SMS and email"; the product owner's wording), `deliver_page.step1_body` (now lists
+  date of birth and vehicle).
+- New, website: `deliver_page.gs_dob`, `gs_dob_help`, `gs_dob_under`, `gs_dob_invalid`,
+  `gs_vehicle`, `gs_err_vehicle`, `gs_rules_failed`. New, BhojanGo Delivery app:
+  `rider.join.dob`, `dob_day`, `dob_month`, `dob_year`, `dob_help`, `dob_under`,
+  `dob_invalid`, `vehicle`, `rules_failed`. `{age}` is the country's minimum age in
+  years (Markets); check "{age} or older" reads naturally with a number in each language.
+- `gs_dob_help` / `rider.join.dob_help` promise we use the date of birth only to check
+  the age: legal wording, keep it that narrow.
+- Backend (shared/texts.py `DELIVERY_SIGN_UP`): `under_age`, `vehicle`, `dob`, the
+  refusals POST /riders/apply sends in the form's language.
+- Help article `become-a-delivery-partner` (en, hi, es seed): the sign-up step and the
+  background-check line changed to match.
+- Report a problem (round 9 page review): `account.report.photo_add`, `photo_remove`
+  (the page's own photo button, replacing the browser's untranslated "Choose File")
+  and `account.report.need` (why Send report is still greyed out).

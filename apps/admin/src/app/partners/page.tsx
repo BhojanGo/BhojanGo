@@ -1,6 +1,6 @@
 "use client";
 // Partners: live kitchens, kitchens applying to join (the five steps, the
-// FSSAI licence to check, approve or turn down), and riders' documents to
+// food licence to check, approve or turn down), and delivery partners' documents to
 // review. Every list is cut to your scopes; approving needs partners.edit /
 // riders.edit for that city or country.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import { Suspense, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
-import { ago, apiMessage, DOC_LABELS, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
+import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
 
 const TABS = [
   { key: "kitchens", label: "Kitchens" },
@@ -39,22 +39,24 @@ interface Commission {
   pending_tier_change: { id: string; to: string; from: string | null; requested_by: string; note: string } | null;
 }
 
-const LEVEL_SOURCE: Record<string, string> = { restaurant: "this restaurant's own rule", city: "the city's rule", country: "the country's rule", region: "the state's rule" };
+const LEVEL_SOURCE: Record<string, string> = { restaurant: "this kitchen's own rule", city: "the city's rule", country: "the country's rule", region: "the state's rule" };
 
 /** A kitchen's commission (Pricing & Rules, commissions first): the rate it pays now, which
  * rule sets it and until when, and its tier; a tier change waits for a second admin. */
 function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
   const { data: me } = useAdminMe();
+  const { data: markets } = useMarkets();
   const qc = useQueryClient();
   const c = useQuery({ queryKey: ["kitchen-commission", kitchen.id], queryFn: async () => (await adminApi.get<Commission>(`/user/rules/commission/restaurants/${kitchen.id}`)).data });
   const [tier, setTier] = useState("A");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  if (!c.data) return <p className="text-small text-muted">Loading commission…</p>;
+  if (c.isError) return <p role="alert" className="rounded-2xl bg-white p-6 text-small">The commission didn&apos;t load. <button type="button" onClick={() => void c.refetch()} className="font-bold text-peacock">Try again</button></p>;
+  if (!c.data) return <p className="rounded-2xl bg-white p-6 text-small text-muted" aria-busy="true">Loading commission…</p>;
   const d = c.data;
   const scope = d.city ?? d.country;
-  const cur = d.country === "US" ? "$" : "₹";
+  const currency = markets?.find((x) => x.code === d.country)?.currency;
   const src = d.rate_source;
   async function run(fn: () => Promise<unknown>, ok: string) {
     setBusy(true);
@@ -75,7 +77,7 @@ function KitchenCommission({ kitchen }: { kitchen: Kitchen }) {
     <section className="space-y-3 rounded-2xl bg-white p-6" aria-label={`Commission · ${d.name}`}>
       <h2 className="m-0 text-h2">{d.name}</h2>
       <p className="text-body" data-testid="kitchen-commission">
-        Pays <b>{d.percent ?? "no"}%</b> of food{d.flat_per_order ? ` + ${cur}${Number(d.flat_per_order).toFixed(2)} per order` : ""}
+        Pays <b>{d.percent ?? "no"}%</b> of food{d.flat_per_order && currency ? ` + ${money(d.flat_per_order, currency, 2)} per order` : ""}
         {src ? <> · set by {LEVEL_SOURCE[src.scope_level] ?? src.scope_level}{src.name ? ` “${src.name}”` : ""} (v{src.version})</> : null}
         {src?.effective_to ? <> · until {new Date(src.effective_to).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</> : null}
       </p>
@@ -115,7 +117,7 @@ async function openFile(key: string) {
 function Kitchens({ scope }: { scope: string }) {
   const cities = useCityNames(scope);
   const [q, setQ] = useState("");
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["kitchens", cities.map((c) => c.name).join(",")],
     queryFn: async () => (await Promise.all(cities.map(async (c) =>
       (await adminApi.get<{ items: Kitchen[] }>("/user/restaurants/admin/kitchens", { params: { city: c.name, limit: 100 } })).data.items))).flat(),
@@ -127,20 +129,36 @@ function Kitchens({ scope }: { scope: string }) {
   return (
     <section className="space-y-3">
       <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-full max-w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
-      {isLoading ? <p className="text-muted">Loading…</p> : null}
-      <div className="overflow-x-auto rounded-2xl bg-white">
-        <table className="w-full text-left text-small">
-          <thead className="text-caption text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>FSSAI</th><th>Open</th></tr></thead>
-          <tbody className="divide-y divide-line">
-            {list.map((k) => (
-              <tr key={k.id} onClick={() => setOpen(k.id)} className={`cursor-pointer ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}><td className="px-4 py-3 font-bold"><button type="button" className="font-bold">{k.name}</button></td><td>{k.city}</td><td className="text-muted">{k.cuisine_types.join(", ")}</td>
-                <td>{k.rating ? `★ ${Number(k.rating).toFixed(1)}` : "—"}</td>
-                <td className="text-muted">{k.country === "IN" ? (k.fssai_expires_on ? `until ${k.fssai_expires_on}` : "missing") : "n/a"}</td>
-                <td>{k.is_open === false ? "Paused" : "Yes"}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {isLoading ? (
+        <ul aria-busy="true" className="space-y-2 rounded-2xl bg-white p-4">{[0, 1, 2, 3].map((i) => <li key={i} className="h-10 animate-pulse rounded-lg bg-porcelain" />)}</ul>
+      ) : isError ? (
+        <div role="alert" className="space-y-2 rounded-2xl bg-white p-6">
+          <p className="m-0 font-bold">The kitchens didn&apos;t load.</p>
+          <button type="button" onClick={() => void refetch()} className="h-10 rounded-full border border-line px-4 font-bold text-peacock">Try again</button>
+        </div>
+      ) : !list.length ? (
+        <div className="space-y-1 rounded-2xl bg-white p-6">
+          <p className="m-0 font-bold">{q ? "No kitchen matches that name." : "No live kitchens here yet."}</p>
+          <p className="m-0 text-small text-muted">{q ? "Check the spelling, or clear the search." : "Kitchens show here once their application is approved (see Applications)."}</p>
+        </div>
+      ) : (
+        <div className="table-scroll rounded-2xl">
+          <table className="table-stack w-full text-left text-small [--stack-inset:1rem]">
+            <thead className="text-caption text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>Food licence</th><th>Open</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {list.map((k) => (
+                <tr key={k.id} onClick={() => setOpen(k.id)} className={`cursor-pointer ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
+                  <td className="stack-title px-4 py-3 font-bold"><button type="button" aria-pressed={open === k.id} className="min-h-11 text-left font-bold md:min-h-0">{k.name}</button></td>
+                  <td data-label="City">{k.city}</td><td data-label="Cuisine" className="text-muted">{k.cuisine_types.join(", ")}</td>
+                  <td data-label="Rating" className="tabular-nums">{k.rating ? `★ ${Number(k.rating).toFixed(1)}` : "—"}</td>
+                  <td data-label="Food licence" className="text-muted tabular-nums">{k.fssai_expires_on ? `until ${k.fssai_expires_on}` : "—"}</td>
+                  <td data-label="Open" className="md:pr-4">{k.is_open === false ? "Paused" : "Yes"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {opened ? <KitchenCommission key={opened.id} kitchen={opened} /> : null}
     </section>
   );
@@ -178,7 +196,9 @@ function Applications({ scope }: { scope: string }) {
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <section className="rounded-2xl bg-white p-2" aria-label="Kitchens applying">
         <div className="px-3 py-2 text-label">Applying · {mine.length}</div>
-        {mine.length === 0 ? <p className="px-3 pb-3 text-small text-muted">No kitchens waiting.</p> : null}
+        {pending.isLoading ? <p aria-busy="true" className="px-3 pb-3 text-small text-muted">Loading applications…</p> : null}
+        {pending.isError ? <p role="alert" className="px-3 pb-3 text-small">The applications didn&apos;t load. <button type="button" onClick={() => void pending.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
+        {pending.data && mine.length === 0 ? <p className="px-3 pb-3 text-small text-muted">No kitchens waiting. New applications from the website&apos;s Add your kitchen page show here.</p> : null}
         {mine.map((k) => (
           <button key={k.id} type="button" onClick={() => setOpen(k.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
             <b>{k.name}</b><div className="text-muted">{k.city} · {k.cuisine_types.join(", ")} · applied {ago(k.created_at)}</div>
@@ -213,7 +233,7 @@ function Applications({ scope }: { scope: string }) {
           ) : <p className="text-small text-muted">You can view this application; approving needs partners.edit for {kitchen?.city}.</p>}
           {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
         </section>
-      ) : <div className="rounded-2xl bg-white p-6 text-muted">{msg ?? "Pick a kitchen to see its application."}</div>}
+      ) : <div className="rounded-2xl bg-white p-6 text-muted">{open && app.isLoading ? "Loading the application…" : open && app.isError ? "The application didn't load. Pick it again to retry." : msg ?? "Pick a kitchen to see its application."}</div>}
     </div>
   );
 }
@@ -242,7 +262,14 @@ function Riders({ scope }: { scope: string }) {
     <section className="space-y-3">
       <p className="text-small text-muted">Delivery partners work across a country, so their documents are reviewed by country. A delivery partner goes online once their licence, insurance and background check are approved.</p>
       {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
-      {(docs.data ?? []).length === 0 ? <p className="rounded-2xl bg-white p-6 text-muted">Nothing to review.</p> : null}
+      {docs.isLoading ? <p aria-busy="true" className="rounded-2xl bg-white p-6 text-muted">Loading documents…</p> : null}
+      {docs.isError ? (
+        <div role="alert" className="space-y-2 rounded-2xl bg-white p-6">
+          <p className="m-0 font-bold">The documents didn&apos;t load.</p>
+          <button type="button" onClick={() => void docs.refetch()} className="h-10 rounded-full border border-line px-4 font-bold text-peacock">Try again</button>
+        </div>
+      ) : null}
+      {docs.data && docs.data.length === 0 ? <p className="rounded-2xl bg-white p-6 text-muted">Nothing to review. Documents delivery partners send from BhojanGo Delivery show here.</p> : null}
       {(docs.data ?? []).map((d) => (
         <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 text-small">
           <div className="min-w-[220px] flex-1"><b>{d.rider_name}</b> <span className="text-muted">· {d.rider_phone} · {d.country}</span>

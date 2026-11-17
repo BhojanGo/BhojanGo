@@ -94,7 +94,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
       </div>
       <section className="rounded-2xl bg-white p-6" aria-label="Side by side">
         <div className="mb-3 flex items-baseline justify-between"><h2 className="m-0 text-h3">Side by side</h2><span className="text-small text-muted">Today · local time in each city</span></div>
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted">
               <tr><th className="py-2">Country</th><th>Completed</th><th>On time</th><th>Median delivery</th><th>Live</th><th>Kitchens</th><th>Refunds</th></tr>
@@ -154,7 +154,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
           <h2 className="m-0 text-h3">States and cities</h2>
           <Link href={`/markets/${country.code}`} className="text-label text-peacock">Markets →</Link>
         </div>
-        <div className="overflow-x-auto"><table className="w-full text-left text-small tabular-nums">
+        <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
           <thead className="text-caption text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
           <tbody className="divide-y divide-line">
             {states.map((s) => [

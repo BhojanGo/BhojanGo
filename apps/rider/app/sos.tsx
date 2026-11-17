@@ -61,7 +61,7 @@ export default function Sos() {
           <Text style={[type.h3, { color: night.sosText }]}>{busy ? t("rider.sos.sending") : t("rider.sos.alert")}</Text>
         </Pressable>
       )}
-      {msg ? <Text style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
+      {msg ? <Text accessibilityRole="alert" style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
     </SafeAreaView>
   );
 }

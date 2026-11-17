@@ -27,7 +27,8 @@ ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:8004
 ARG NEXT_PUBLIC_WORKER_URL=http://localhost:8006
 ARG NEXT_PUBLIC_APP_URL=https://bhojango.com
 # Only production is indexable by search engines (robots.txt, meta, X-Robots-Tag); the
-# headers are fixed at build time, so the environment is a build argument too.
+# headers are fixed at build time, so the environment is a build argument too. turbo.json
+# lists APP_ENV in the build's env, or turbo's strict env mode would hide it from `next build`.
 ARG APP_ENV=development
 ENV NEXT_PUBLIC_CORE_URL=${NEXT_PUBLIC_CORE_URL} \
     NEXT_PUBLIC_REALTIME_URL=${NEXT_PUBLIC_REALTIME_URL} \
@@ -50,7 +51,10 @@ RUN pnpm turbo build --filter="${APP}..."
 
 FROM ${NODE_IMAGE} AS run
 ARG APP_DIR
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 APP_DIR=${APP_DIR}
+# The same environment at run time as at build time: server-rendered pages read APP_ENV
+# when they render (test-site banner, draft banner on legal pages, robots).
+ARG APP_ENV=development
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 APP_DIR=${APP_DIR} APP_ENV=${APP_ENV}
 WORKDIR /repo
 # Security (trivy): Debian security fixes, and no npm at runtime (its bundled
 # undici and brace-expansion had HIGH CVEs; next is started directly).

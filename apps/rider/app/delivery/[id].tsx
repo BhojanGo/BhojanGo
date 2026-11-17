@@ -6,7 +6,7 @@
 // The screen polls the order and the rider's live state, shows whatever step the
 // server is at, reloads after a refused action instead of insisting, and says so
 // plainly when the order is no longer this rider's.
-import { api, ApiError, field, num, QuickChat, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, LoadError, num, QuickChat, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -38,7 +38,7 @@ export default function Delivery() {
   const { dist, unitFor } = useFormat();
   const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: order, error, gone, reload } = useOrder(id);
+  const { data: order, failure, gone, reload } = useOrder(id);
   const fixNow = useLive((s) => s.now?.location);
   const refreshLive = useLive((s) => s.refresh);
   const finish = useLive((s) => s.finish);
@@ -90,14 +90,8 @@ export default function Delivery() {
   if (!order) {
     return (
       <SafeAreaView style={[ui.screen, styles.center]}>
-        {error ? (
-          <>
-            <Text style={ui.body}>{error}</Text>
-            <Pressable accessibilityRole="button" onPress={() => void reload()} style={ui.outline}>
-              <Text style={ui.bold}>{t("common.retry")}</Text>
-            </Pressable>
-          </>
-        ) : <ActivityIndicator testID="delivery-loading" color={night.kesar} />}
+        {failure ? <LoadError error={failure} onRetry={reload} tone="dark" fill style={{ alignSelf: "stretch" }} />
+          : <ActivityIndicator testID="delivery-loading" color={night.kesar} />}
       </SafeAreaView>
     );
   }

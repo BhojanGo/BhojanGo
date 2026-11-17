@@ -57,6 +57,8 @@ for app in $APPS; do
   [ "$app" = rider ] && adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   # Top-level flows, plus the read-only QA folder (.maestro/qa: every flow there is read-only).
   flows="$(cd "$ROOT/apps/$app/.maestro" && { ls *.yaml; ls qa/*.yaml 2>/dev/null; } | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
+  # offline-*.yaml need the API pointed at an address nothing answers on: only when ONLY names them.
+  [ -n "${ONLY:-}" ] || flows="$(echo "$flows" | grep -v '^offline-')"
   if [ "$READONLY" = 1 ]; then
     flows="$(for f in $flows; do case "$f" in qa/*) echo "$f"; continue;; esac
       grep -Eq '^[[:space:]]*-[[:space:]]*qa-readonly[[:space:]]*$' "$ROOT/apps/$app/.maestro/$f.yaml" && echo "$f"; done)"

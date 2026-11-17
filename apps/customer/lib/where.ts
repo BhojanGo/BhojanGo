@@ -1,6 +1,6 @@
 // Where the food goes: the customer's saved address, or where the phone is.
 // Located against the markets API to know the city, zone and whether we deliver.
-import { api, hourIn, unwrap, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, hourIn, loadFailure, unwrap, type CoreSchemas } from "@bhojango/mobile-core";
 import * as Location from "expo-location";
 import { create } from "zustand";
 
@@ -28,6 +28,8 @@ interface WhereState {
   point: DropPoint | null;
   market: Locate | null;
   status: "idle" | "locating" | "ready" | "failed";
+  /** R9: locating failed because the API couldn't be reached (not the phone's location): what it threw. */
+  apiFailure: unknown;
   locate: () => Promise<void>;
   setPoint: (p: DropPoint) => Promise<void>;
   goHere: () => Promise<void>;
@@ -63,18 +65,20 @@ export const useWhere = create<WhereState>()((set, get) => ({
   point: null,
   market: null,
   status: "idle",
+  apiFailure: null,
 
   locate: async () => {
     if (get().status === "locating") return;
-    set({ status: "locating" });
+    set({ status: "locating", apiFailure: null });
     try {
       // A saved address first (the one with a map pin), else the phone's location.
       const saved = unwrap(await api.core.GET("/api/v1/me/addresses")) as CoreSchemas["AddressResponse"][];
       const withPin = saved.find((a) => a.lat != null && a.lng != null);
       const point = withPin ? fromAddress(withPin) : await here();
       set({ point, market: await market(point.lat, point.lng), status: "ready" });
-    } catch {
-      set({ status: "failed" });
+    } catch (e) {
+      // fetch fails with a TypeError when nothing answers; the API's own errors and timeouts have a kind.
+      set({ status: "failed", apiFailure: e instanceof TypeError || loadFailure(e) !== "offline" ? e : null });
     }
   },
 

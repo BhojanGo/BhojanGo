@@ -93,3 +93,4 @@ tools/load/out/
 # Database dumps (tools/backup): never committed
 backups/
 tools/soak/out/
+tools/a11y/vendor/

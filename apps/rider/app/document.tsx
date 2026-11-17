@@ -40,7 +40,8 @@ export default function Document() {
       unwrap(await api.core.POST("/api/v1/riders/me/documents", { body: { kind, file_key: key } }));
       router.back();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : (e as Error).message || t("rider.upload.failed"));
+      // A TypeError is fetch's "Network request failed": never shown raw.
+      setMsg(e instanceof ApiError ? e.message : (!(e instanceof TypeError) && (e as Error).message) || t("rider.upload.failed"));
     } finally {
       setBusy(false);
     }
@@ -70,7 +71,7 @@ export default function Document() {
           <Text style={ui.bold}>{t("rider.document.choose")}</Text>
         </Pressable>
       </View>
-      {msg ? <Text style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
+      {msg ? <Text accessibilityRole="alert" style={[type.small, { color: night.sosText }]}>{msg}</Text> : null}
       <View style={{ flex: 1 }} />
       <Text style={ui.muted}>{t("rider.document.private")}</Text>
       <Pressable accessibilityRole="button" disabled={!picked || busy} onPress={send} style={[ui.cta, { opacity: picked && !busy ? 1 : 0.5 }]}>

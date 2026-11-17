@@ -1,0 +1,66 @@
+name: Production build smoke
+
+# R9 item 8: web and admin built for production (APP_ENV=production) start, their key
+# pages answer 200 with no test-site or draft banner, the security headers are there,
+# no console errors, and the 404 page is the branded one. The end-to-end run uses the
+# same images built for development. Runs when what decides a production build
+# changes, and by hand (Actions → Production build smoke → Run workflow).
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - infra/docker/next-app.Dockerfile
+      - turbo.json
+      - infra/docker/compose.prod-smoke.yaml
+      - packages/ui/environment.js
+      - packages/ui/security-headers.js
+      - apps/web/next.config.*
+      - apps/admin/next.config.*
+      - tools/web/prod_smoke.*
+      - .github/workflows/prod-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-smoke-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Web and admin, production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: bhojango-smoke
+      COMPOSE: docker compose -f infra/docker/compose.yaml -f infra/docker/compose.prod-smoke.yaml
+      DEMO_RIDER_SIM: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack, web and admin built for production
+        run: $COMPOSE --profile all up -d --build --wait --wait-timeout 600
+
+      - name: Seed
+        run: $COMPOSE exec -T core-api python /srv/tools/seed/seed.py
+
+      - name: Smoke test
+        run: sh tools/web/prod_smoke.sh
+
+      - name: Service logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 200 web admin core-api
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-smoke-screenshots
+          path: docs/screenshots/prod-smoke
+          retention-days: 7
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v

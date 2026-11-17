@@ -160,7 +160,7 @@ async def test_every_sign_up_path_records_acceptance(client: AsyncClient) -> Non
     kp = (await publish(client, root, "kitchen_partner_terms", "IN", title="Kitchen partner terms"))["document"]["version"]
     rider = await new_number(client)
     r = await client.post("/api/v1/riders/apply", headers={"Authorization": rider["Authorization"]},
-                          json={"full_name": "Legal Rider", "city_code": "IN-TG-HYD"})
+                          json={"full_name": "Legal Rider", "city_code": "IN-TG-HYD", "date_of_birth": "1995-06-15", "vehicle": "scooter"})
     assert r.status_code == 200, r.text
     assert ("delivery_partner_terms", "IN", dp, "app") in await acceptances(rider["id"])
     kitchen = await new_number(client)
@@ -184,7 +184,7 @@ async def test_every_sign_up_path_records_acceptance(client: AsyncClient) -> Non
 async def test_updated_terms_notice_once(client: AsyncClient) -> None:
     rider = await new_number(client)
     r = await client.post("/api/v1/riders/apply", headers={"Authorization": rider["Authorization"]},
-                          json={"full_name": "Notice Rider", "city_code": "IN-TG-HYD"})
+                          json={"full_name": "Notice Rider", "city_code": "IN-TG-HYD", "date_of_birth": "1995-06-15", "vehicle": "scooter"})
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     assert (await client.get("/api/v1/me/legal/pending", headers=h)).json() == []
     root = await login(client, "admin@example.com", ADMIN_PW)

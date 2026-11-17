@@ -16,6 +16,8 @@ interface BoardStore {
   orders: Order[];
   today: Today | null;
   error: string | null;
+  /** What the last refresh threw (LoadError / loadErrorText word it); null after a good one. */
+  failure: unknown;
   muted: boolean;
   refresh: (kitchenId: string) => Promise<void>;
   setToday: (t: Today) => void;
@@ -26,13 +28,14 @@ export const useBoard = create<BoardStore>()((set) => ({
   orders: [],
   today: null,
   error: null,
+  failure: null,
   muted: false,
   refresh: async (id) => {
     try {
       const [orders, today] = await Promise.all([getBoard(id), getToday(id)]);
-      set({ orders, today, error: null });
+      set({ orders, today, error: null, failure: null });
     } catch (e) {
-      set({ error: (e as Error).message });
+      set({ error: (e as Error).message, failure: e });
     }
   },
   setToday: (today) => set({ today }),

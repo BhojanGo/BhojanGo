@@ -153,7 +153,7 @@ function Notifications() {
       {prefs && prefs !== "error" && (
         <div role="table" aria-labelledby="notifications-title" className="mt-3">
           <div role="row" className="grid grid-cols-[1fr_repeat(3,56px)] text-center text-caption text-muted md:grid-cols-[1fr_repeat(3,80px)]">
-            <span role="columnheader" />
+            <span role="columnheader"><span className="sr-only">{t("account.notifications.title")}</span></span>
             {CHANNELS.map((c) => <span key={c} role="columnheader">{t(`account.notifications.${c}`)}</span>)}
           </div>
           {KINDS.map((k) => (

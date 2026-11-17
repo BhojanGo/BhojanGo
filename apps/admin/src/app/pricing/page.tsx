@@ -15,7 +15,7 @@ import { Suspense, useMemo, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { RuleEditor } from "@/components/ops/RuleEditor";
 import { adminApi } from "@/lib/api";
-import { can, useAdminMe, useMarkets } from "@/lib/markets";
+import { can, firstCity, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
 import { versionState } from "@/lib/ruleState";
 import { describe, unitsFor } from "@/lib/ruleWords";
@@ -88,7 +88,7 @@ function useKitchens(scope: string) {
 
 /** "Inherited from United States · 20% (tier B)" / "Set for Boise · 15%" / "Set for Spice Route Kitchen · 12% until 14 Feb 2027". */
 function source(r: Rule, scope: string, names: Record<string, string>, kitchens: Record<string, string>): string {
-  const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a restaurant" : names[r.market_scope] ?? r.market_scope;
+  const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a kitchen" : names[r.market_scope] ?? r.market_scope;
   const inherited = r.scope_level !== "restaurant" && r.market_scope !== scope && scope !== "*" && r.market_scope.length < scope.length;
   const until = r.effective_to && !past(r.effective_to) ? ` until ${day(r.effective_to)}` : "";
   return `${inherited ? "Inherited from" : "Set for"} ${who} · ${short(r)}${until}`;
@@ -104,7 +104,7 @@ const STARTERS: Record<string, Record<string, unknown>> = {
   flat_per_order: { amount: 1 },
 };
 const TEMPLATE_WORDS: Record<string, string> = { percent: "Percent of food", percent_by_tier: "Percent by tier", flat_per_order: "Flat per order" };
-const LEVEL_WORDS: Record<string, string> = { platform: "Everywhere", country: "Country", region: "State", city: "City", zone: "Zone", restaurant: "A restaurant" };
+const LEVEL_WORDS: Record<string, string> = { platform: "Everywhere", country: "Country", region: "State", city: "City", zone: "Zone", restaurant: "A kitchen" };
 
 function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   family: string; scope: string; templates: Template[]; rules: Rule[]; kitchens: KitchenRef[];
@@ -127,7 +127,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   const matches = kitchens.filter((k) => !kitchenQ || k.name.toLowerCase().includes(kitchenQ.toLowerCase())).slice(0, 8);
   const scopeId = level === "country" ? country : level === "city" ? city : kitchen;
   async function create(params: Record<string, unknown>) {
-    if (!scopeId) return setErr(level === "restaurant" ? "Pick the restaurant." : "Pick a country or city in the scope bar first.");
+    if (!scopeId) return setErr(level === "restaurant" ? "Pick the kitchen." : "Pick a country or city in the scope bar first.");
     if (!from) return setErr("A start date is needed.");
     setBusy(true);
     setErr(null);
@@ -169,7 +169,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
       </div>
       {level === "restaurant" ? (
         <div className="space-y-2 text-small">
-          <input aria-label="Find a restaurant" placeholder="Find a restaurant in this scope" value={kitchenQ} onChange={(e) => { setKitchenQ(e.target.value); setKitchen(null); }}
+          <input aria-label="Find a kitchen" placeholder="Find a kitchen in this scope" value={kitchenQ} onChange={(e) => { setKitchenQ(e.target.value); setKitchen(null); }}
             className="h-10 w-80 rounded-full border border-line-strong px-4" />
           <div className="flex flex-wrap gap-2">
             {matches.map((k) => (
@@ -198,9 +198,9 @@ function PreviewBox({ rule }: { rule: Rule }) {
       <h3 className="m-0 text-label">Preview: the last {p.data.days} days with this draft</h3>
       {p.data.orders === 0 ? <p className="text-muted" data-testid="preview-summary">No delivered orders in this scope in the last {p.data.days} days.</p> : (
         <>
-          <p data-testid="preview-summary">{p.data.orders} orders · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · restaurant payouts{" "}
+          <p data-testid="preview-summary">{p.data.orders} orders · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · kitchen payouts{" "}
             <b className={diff >= 0 ? "text-peacock-dark" : "text-chili"}>{signed(diff)}</b></p>
-          <div className="overflow-x-auto"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
+          <div className="table-scroll"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th className="py-1">Kitchen</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
             <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table></div>
         </>
       )}
@@ -219,6 +219,8 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
   const where = rule.market_scope;
+  const { data: markets } = useMarkets();
+  const simCity = where.split("-").length === 3 ? where : firstCity(markets, where === "*" ? null : where.split("-")[0]);
   const versions = history.data?.versions ?? [];
   const state = versionState(rule, versions);
   async function run(fn: () => Promise<unknown>, ok: string, next?: string) {
@@ -292,7 +294,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
           </>
         ) : null}
         {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-small text-muted">Waiting for a second admin to approve.</span> : null}
-        <Link href={`/pricing/simulator?city=${where.split("-").length === 3 ? where : "IN-TG-HYD"}`} className="ml-auto text-label text-peacock">Try it in the price simulator →</Link>
+        {simCity ? <Link href={`/pricing/simulator?city=${simCity}`} className="ml-auto text-label text-peacock">Try it in the price simulator →</Link> : null}
       </div>
       {kitchenOffer ? (
         <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The kitchen's own offer">
@@ -345,6 +347,8 @@ function PricingPage() {
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const names = useNames();
+  const { data: markets } = useMarkets();
+  const simCity = city ?? firstCity(markets, country);
   const kitchenList = useKitchens(scope);
   const kitchens = useMemo(() => Object.fromEntries((kitchenList.data ?? []).map((k) => [k.id, k.name])), [kitchenList.data]);
   const catalogue = useQuery({ queryKey: ["rule-templates"], queryFn: async () => (await adminApi.get<Template[]>("/user/rules/templates")).data });
@@ -376,7 +380,7 @@ function PricingPage() {
           <button key={f.key} type="button" onClick={() => go(f.key)} aria-current={tab === f.key ? "page" : undefined}
             className={`h-9 rounded-xl px-3 text-label ${tab === f.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{f.label}</button>
         ))}
-        <Link href={`/pricing/simulator?city=${city ?? (country === "US" ? "US-ID-BOI" : "IN-TG-HYD")}`} className="flex h-9 items-center rounded-xl px-3 text-label text-muted">Price simulator</Link>
+        <Link href={`/pricing/simulator${simCity ? `?city=${simCity}` : ""}`} className="flex h-9 items-center rounded-xl px-3 text-label font-semibold text-muted">Price simulator</Link>
         <button type="button" onClick={() => go("approvals")} aria-current={tab === "approvals" ? "page" : undefined}
           className={`h-9 rounded-xl px-3 text-label ${tab === "approvals" ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>
           Approvals {approvals.data?.length ? <span className="ml-1 rounded-full bg-kesar px-1.5 text-small text-white">{approvals.data.length}</span> : null}
@@ -387,7 +391,13 @@ function PricingPage() {
           {mayAdd ? (
             <button type="button" onClick={() => { setAdding(true); setOpen(null); }} className="m-1 h-10 rounded-full bg-kohl px-4 text-label text-white">Add</button>
           ) : tab !== "approvals" && !country ? <p className="px-3 py-2 text-small text-muted">Pick a country or city to add a rule.</p> : null}
-          {relevant.length === 0 ? <p className="p-4 text-small text-muted">{tab === "approvals" ? "Nothing waiting for you." : "No rules here."}</p> : null}
+          {(tab === "approvals" ? approvals : rules).isLoading ? (
+            <ul aria-busy="true" className="space-y-2 p-2">{[0, 1, 2].map((i) => <li key={i} className="h-12 animate-pulse rounded-lg bg-porcelain" />)}</ul>
+          ) : (tab === "approvals" ? approvals : rules).isError ? (
+            <p role="alert" className="p-4 text-small">The rules didn&apos;t load. <button type="button" onClick={() => void (tab === "approvals" ? approvals : rules).refetch()} className="font-bold text-peacock">Try again</button></p>
+          ) : relevant.length === 0 ? (
+            <p className="p-4 text-small text-muted">{tab === "approvals" ? "Nothing waiting for you. Rules other admins send for approval show here." : mayAdd ? "No rules for this scope yet. Add one above." : "No rules for this scope yet."}</p>
+          ) : null}
           {relevant.map((r) => (
             <button key={r.id} type="button" onClick={() => { setOpen(r.id); setAdding(false); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>

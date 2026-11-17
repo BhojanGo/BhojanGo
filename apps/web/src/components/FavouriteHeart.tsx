@@ -75,8 +75,10 @@ export function FavouriteHeart({ kind, id, name, size = 36 }: { kind: Kind; id: 
       aria-label={on ? t("common.unsave_kitchen", { name }) : t("common.save_kitchen", { name })}
       onClick={() => (user ? void toggle(kind, id) : router.push(`/signin?next=${encodeURIComponent(path)}`))}
       style={{ width: size, height: size }}
-      className="flex items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(17,20,24,0.12)]"
+      className="relative flex items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(17,20,24,0.12)]"
     >
+      {/* A 44 px touch target around a smaller heart (page checklist 7.4). */}
+      {size < 44 && <span aria-hidden="true" className="absolute rounded-full" style={{ inset: -(44 - size) / 2 }} />}
       <Heart filled={on} color={on ? "#C0392B" : "#111418"} />
     </button>
   );

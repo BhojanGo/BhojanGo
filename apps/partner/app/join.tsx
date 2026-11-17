@@ -1,10 +1,10 @@
 // Apply with a kitchen (B1): your name, the kitchen, where it is. The kitchen is
 // created pending approval and the partner application (FSSAI, GST and bank,
 // menu) follows. BhojanGo checks it and switches the kitchen on.
-import { api, ApiError, field as input, SafeAreaView, type, unwrap, useI18n, useSession } from "@bhojango/mobile-core";
+import { api, ApiError, field as input, LoadError, SafeAreaView, type, unwrap, useFirstLoad, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useKitchen } from "../lib/data";
 import { useLayout } from "../lib/layout";
@@ -18,18 +18,14 @@ export default function Join() {
   const load = useKitchen((s) => s.load);
   const { t: tr } = useI18n();
   const { narrow } = useLayout();
-  const [cities, setCities] = useState<City[]>([]);
-  const [city, setCity] = useState<City | null>(null);
+  // Markets' cities (R9: a spinner while they load, the error and Retry if they can't).
+  const cityList = useFirstLoad(async () => unwrap(await api.core.GET("/api/v1/markets/cities")) as City[], []);
+  const cities = cityList.data ?? [];
+  const [picked, setCity] = useState<City | null>(null);
+  const city = picked ?? cities[0] ?? null;
   const [f, setF] = useState({ full_name: "", kitchen_name: "", street: "", area: "", zip: "", cuisines: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api.core.GET("/api/v1/markets/cities").then((r) => {
-      const list = unwrap(r) as City[];
-      setCities(list);
-      setCity((c) => c ?? list[0] ?? null);
-    }).catch(() => setError(tr("partner.join.cities_failed")));
-  }, [tr]);
   const set = (k: keyof typeof f) => (v: string) => setF((x) => ({ ...x, [k]: v }));
 
   async function apply() {
@@ -70,6 +66,8 @@ export default function Join() {
         <Text style={t.muted}>{tr("partner.join.sub")}</Text>
         <View style={s.row}>{field("full_name", tr("partner.join.name"), tr("partner.join.name_hint"))}{field("kitchen_name", tr("partner.join.kitchen"), tr("partner.join.kitchen_hint"))}</View>
         <Text style={t.label}>{tr("partner.join.city")}</Text>
+        {cityList.status === "error" && !cities.length ? <LoadError error={cityList.error} onRetry={cityList.retry} title={tr("partner.join.cities_failed")} /> : null}
+        {cityList.status === "loading" && !cities.length ? <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} /> : null}
         <View style={s.row}>
           {cities.map((c) => (
             <Pressable key={c.code} accessibilityRole="radio" accessibilityState={{ checked: city?.code === c.code }} accessibilityLabel={c.name}
