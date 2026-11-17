@@ -392,3 +392,19 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
 - Report a problem (round 9 page review): `account.report.photo_add`, `photo_remove`
   (the page's own photo button, replacing the browser's untranslated "Choose File")
   and `account.report.need` (why Send report is still greyed out).
+
+## Payouts through Stripe (round 10)
+
+Machine-translated on 2026-11-16 into all seven languages; needs native review.
+
+- New, both apps (BhojanGo Kitchen and BhojanGo Delivery Payouts screens): `payout_setup.*`
+  (the set-up state, its button and one-line explanation). `{provider}` is a brand name
+  ("Stripe", "Razorpay") or `payout_setup.our_partner`; check each sentence reads with both.
+  `body_action_needed` is a plural on `{count}` (details Stripe still needs). `body_payout_failed`
+  carries Stripe's own reason in English in `{reason}`.
+- New statement statuses: `partner.payouts.status.onboarding`, `reversed` and the same under
+  `rider.payouts.status`. `reversed` is about money: it must say we'll pay it again, nothing more.
+- New, website: `payouts_done.*`, the page Stripe sends people back to (/payouts/done) and where an
+  expired set-up link lands. App names (BhojanGo Kitchen, BhojanGo Delivery) stay in English.
+- Backend (worker/app/services/messages.py `payout_setup`): the push and email an admin sends with
+  the set-up link ("works for 7 days").

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
+import { type PayeeKind, SetupLinkButton, SetupPill, type SetupState } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { apiMessage, money, useScope } from "@/lib/ops";
@@ -15,7 +16,10 @@ interface Run {
   approved_by: string | null; paid_at: string | null;
   totals: { orders?: number; restaurants?: string; riders?: string; restaurant_statements?: number; rider_statements?: number };
 }
-interface Statement { id: string; payee_type: string; payee_name: string; amount: number; currency: string; status: string; error: string | null; summary: Record<string, unknown> }
+interface Statement {
+  id: string; payee_type: PayeeKind; payee_id: string; payee_name: string; amount: number; currency: string; status: string; error: string | null;
+  summary: Record<string, unknown>; transfer_id: string | null; transferred_at: string | null; attempts: number; payout_setup: SetupState;
+}
 interface Recon {
   currency: string; orders: { total: number; delivered: number; cancelled: number; open: number };
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
@@ -33,7 +37,10 @@ const CONTRIBUTION_ROWS: [string, string, number][] = [
 ];
 
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
-const STATEMENT_STATUS: Record<string, string> = { pending: "Not paid yet", paid: "Paid", failed: "Payment failed", no_account: "No payout account" };
+const STATEMENT_STATUS: Record<string, string> = {
+  pending: "Not paid yet", paid: "Paid", failed: "Transfer failed", no_account: "No payout account", onboarding: "Waiting for onboarding", reversed: "Reversed",
+};
+const STATUS_STYLE: Record<string, string> = { paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink" };
 
 function lastWeek(): [string, string] {
   const d = new Date();
@@ -129,17 +136,28 @@ function FinancePage() {
       {open && run.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Statements">
           <h2 className="m-0 mb-3 text-h3">Statements · {run.data.period_start} → {run.data.period_end}</h2>
-          <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
-            <thead className="text-caption text-muted"><tr><th className="py-2">Payee</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+          <p className="mb-3 text-small text-muted">Transfers go only to payout accounts that are ready. Anyone still onboarding waits and is paid as soon as their account is ready; send them a set-up link.</p>
+          <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
+            <thead className="text-caption text-muted"><tr><th className="py-2">Payee</th><th>Type</th><th>Amount</th><th>Transfer</th><th>Payout set-up</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody className="divide-y divide-line">
               {run.data.statements.map((s) => (
-                <tr key={s.id}><td className="py-2.5 font-semibold">{s.payee_name}</td><td>{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
-                  <td>{money(s.amount / 100, s.currency, 2)}</td><td>{STATEMENT_STATUS[s.status] ?? s.status}{s.error ? <span className="text-muted"> · {s.error}</span> : null}</td></tr>
+                <tr key={s.id} data-testid="statement-row"><td className="stack-title py-2.5 font-semibold">{s.payee_name}</td>
+                  <td data-label="Type">{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
+                  <td data-label="Amount">{money(s.amount / 100, s.currency, 2)}</td>
+                  <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span className={`block font-semibold ${STATUS_STYLE[s.status] ?? ""}`}>{STATEMENT_STATUS[s.status] ?? s.status}</span>
+                    {s.transfer_id ? <span className="block text-small text-muted">{s.transfer_id}{s.transferred_at ? ` · ${new Date(s.transferred_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}</span> : null}
+                    {s.error && ["failed", "reversed"].includes(s.status) ? <span className="block text-small text-muted">{s.error}</span> : null}</div></td>
+                  <td data-label="Payout set-up"><SetupPill state={s.payout_setup} /></td>
+                  <td className="stack-actions text-right">{s.payout_setup !== "ready" && s.status !== "paid" && can(me, "finance.edit", run.data!.country)
+                    ? <SetupLinkButton kind={s.payee_type} id={s.payee_id} /> : null}</td></tr>
               ))}
             </tbody>
           </table></div>
+          {run.data.statements.length === 0 ? <p className="text-small text-muted">No statements: nothing was delivered in this period.</p> : null}
         </section>
       ) : null}
+      {open && run.isLoading ? <p aria-busy="true" className="rounded-2xl bg-white p-6 text-small text-muted">Loading statements…</p> : null}
+      {open && run.isError ? <p role="alert" className="rounded-2xl bg-white p-6 text-small">The statements didn&apos;t load. <button type="button" onClick={() => void run.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
       {contribution.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
           <h2 className="m-0 mb-1 text-h3">Contribution per order · {start} → {end}</h2>

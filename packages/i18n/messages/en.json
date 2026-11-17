@@ -1232,7 +1232,9 @@
         "paid": "Paid",
         "pending": "On its way",
         "no_account": "Waiting for your payout account",
-        "failed": "Didn't go through · we'll retry"
+        "failed": "Didn't go through · we'll retry",
+        "onboarding": "Waiting for you to finish payout set-up",
+        "reversed": "Sent back by our payments partner; we'll pay it again"
       },
       "ready": "Payout account ready",
       "finish": "Finish setting up payouts",
@@ -1600,7 +1602,9 @@
         "paid": "Paid",
         "pending": "On its way",
         "no_account": "Waiting for your bank details",
-        "failed": "Didn't go through · we'll retry"
+        "failed": "Didn't go through · we'll retry",
+        "onboarding": "Waiting for you to finish payout set-up",
+        "reversed": "Sent back by our payments partner; we'll pay it again"
       },
       "where": "Where we pay you",
       "paid_through": "Paid every Monday through {provider}.",
@@ -2173,5 +2177,46 @@
     "notice_label": "Policy update",
     "changes": "What changed: {summary}",
     "not_found": "We couldn't find that version."
+  },
+  "payout_setup": {
+    "state": {
+      "not_started": "Not set up",
+      "in_progress": "In progress",
+      "action_needed": "Action needed",
+      "ready": "Ready"
+    },
+    "set_up_with": "Set up payouts with {provider}",
+    "continue_with": "Continue on {provider}",
+    "fix_with": "Update details on {provider}",
+    "set_up": "Set up payouts",
+    "body_not_started": "Add your bank details on {provider}'s secure pages so your weekly pay can reach you. It takes about 5 minutes.",
+    "body_in_progress": "You've started. Finish on {provider} so we can pay you.",
+    "body_in_review": "Thanks. {provider} is checking your details; this usually takes a few minutes.",
+    "body_action_needed": {
+      "one": "{provider} needs {count} more detail before we can pay you.",
+      "other": "{provider} needs {count} more details before we can pay you."
+    },
+    "body_action_generic": "{provider} needs more information before we can pay you.",
+    "body_payout_failed": "Your last bank payout didn't go through ({reason}). Check your bank details on {provider}.",
+    "body_ready": "Paid every Monday through {provider}.",
+    "opening": "Opening {provider}…",
+    "open_failed": "Couldn't open {provider}. Check your connection and try again.",
+    "not_available": "Payouts aren't open in your country yet. We'll let you know when you can set them up.",
+    "come_back": "When you're done, come back to this app. This screen updates by itself.",
+    "check_again": "Check again",
+    "our_partner": "our payments partner"
+  },
+  "payouts_done": {
+    "meta_title": "Payout set-up",
+    "title": "You're done for now",
+    "body": "Your details are with our payments partner. Go back to the app to see your payout status; it tells you if anything else is needed.",
+    "title_expired": "This link has expired",
+    "body_expired": "Set-up links work for 7 days. Open the app and tap Set up payouts again, or ask your BhojanGo contact for a new link.",
+    "title_unavailable": "We couldn't reach our payments partner",
+    "body_unavailable": "Nothing is lost. Try the link again in a few minutes.",
+    "open_kitchen": "Open BhojanGo Kitchen",
+    "open_delivery": "Open BhojanGo Delivery",
+    "help": "Help centre",
+    "ways": "What next"
   }
 }

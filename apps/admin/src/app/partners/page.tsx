@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
+import { PayoutSetupPanel } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
@@ -160,6 +161,7 @@ function Kitchens({ scope }: { scope: string }) {
         </div>
       )}
       {opened ? <KitchenCommission key={opened.id} kitchen={opened} /> : null}
+      {opened ? <PayoutSetupPanel key={`payouts-${opened.id}`} kind="restaurant" id={opened.id} name={opened.name} /> : null}
     </section>
   );
 }
@@ -248,6 +250,8 @@ function Riders({ scope }: { scope: string }) {
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  /** The delivery partner whose payout set-up is open (R10). */
+  const [payouts, setPayouts] = useState<string | null>(null);
   async function review(d: RiderDoc, decision: "approve" | "reject") {
     setMsg(null);
     try {
@@ -275,6 +279,7 @@ function Riders({ scope }: { scope: string }) {
           <div className="min-w-[220px] flex-1"><b>{d.rider_name}</b> <span className="text-muted">· {d.rider_phone} · {d.country}</span>
             <div>{DOC_LABELS[d.kind] ?? d.kind} · sent {ago(d.submitted_at)}</div></div>
           {d.file_key ? <button type="button" className="font-bold text-peacock" onClick={() => void openFile(d.file_key!)}>View</button> : <span className="text-muted">our check</span>}
+          <button type="button" aria-expanded={payouts === d.id} onClick={() => setPayouts(payouts === d.id ? null : d.id)} className="font-bold text-peacock">Payouts</button>
           {can(me, "riders.edit", d.country) ? (
             <>
               <input aria-label={`Note for ${d.rider_name}`} placeholder="What to fix (if sending back)" value={notes[d.id] ?? ""}
@@ -283,6 +288,7 @@ function Riders({ scope }: { scope: string }) {
               <button type="button" onClick={() => void review(d, "approve")} className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Approve</button>
             </>
           ) : null}
+          {payouts === d.id ? <div className="basis-full"><PayoutSetupPanel kind="rider" id={d.rider_id} name={d.rider_name} /></div> : null}
         </div>
       ))}
     </section>

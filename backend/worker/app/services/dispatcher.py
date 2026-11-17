@@ -50,6 +50,7 @@ POLICY: dict[str, tuple[str, ...]] = {
     "refund_items": ("push", "email"),
     "partner_new_order": ("push", "sms_fallback"),
     "payout_paid": ("push", "email"),
+    "payout_setup": ("push", "email"),
     "order_message": ("push",),
 }
 # Live conversation (B2): pushed only; never kept in the inbox, so it is gone after delivery.
@@ -84,6 +85,13 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
         return [Outgoing(str(user), "payout_paid", {"amount": m.money(Decimal(str(p["amount"])), p["currency"]),
                                                      "period": m.period(*span) if span else ""},
                          data={"statement_id": p.get("statement_id", "")})]
+    if kind == "payout.setup_link":  # an admin sent a kitchen or delivery partner the link to set up payouts (R10)
+        user = p.get("user_id") or (await d.restaurant_owner(p["payee_id"]) if p.get("payee_type") == "restaurant"
+                                    else p.get("payee_id"))
+        if not user:
+            return []
+        return [Outgoing(str(user), "payout_setup", {"link": p.get("link", "")},
+                         data={"screen": "payouts", "link": p.get("link", "")})]
     if order is None:
         return []
     if kind == "order.message":

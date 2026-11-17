@@ -1232,7 +1232,9 @@
         "paid": "Pagado",
         "pending": "En camino",
         "no_account": "Esperando tu cuenta de pagos",
-        "failed": "No se completó · lo reintentaremos"
+        "failed": "No se completó · lo reintentaremos",
+        "onboarding": "Esperando a que termines de configurar tus pagos",
+        "reversed": "Nuestro socio de pagos lo devolvió; lo pagaremos de nuevo"
       },
       "ready": "Cuenta de pagos lista",
       "finish": "Termina de configurar los pagos",
@@ -1600,7 +1602,9 @@
         "paid": "Pagado",
         "pending": "En camino",
         "no_account": "Esperando tus datos bancarios",
-        "failed": "No se completó · lo reintentaremos"
+        "failed": "No se completó · lo reintentaremos",
+        "onboarding": "Esperando a que termines de configurar tus pagos",
+        "reversed": "Nuestro socio de pagos lo devolvió; lo pagaremos de nuevo"
       },
       "where": "Dónde te pagamos",
       "paid_through": "Pagos cada lunes a través de {provider}.",
@@ -2173,5 +2177,46 @@
     "notice_label": "Actualización de políticas",
     "changes": "Qué cambió: {summary}",
     "not_found": "No encontramos esa versión."
+  },
+  "payout_setup": {
+    "state": {
+      "not_started": "Sin configurar",
+      "in_progress": "En curso",
+      "action_needed": "Requiere acción",
+      "ready": "Listo"
+    },
+    "set_up_with": "Configura tus pagos con {provider}",
+    "continue_with": "Continuar en {provider}",
+    "fix_with": "Actualizar datos en {provider}",
+    "set_up": "Configurar pagos",
+    "body_not_started": "Agrega tus datos bancarios en las páginas seguras de {provider} para que tu pago semanal te llegue. Toma unos 5 minutos.",
+    "body_in_progress": "Ya empezaste. Termina en {provider} para que podamos pagarte.",
+    "body_in_review": "Gracias. {provider} está revisando tus datos; suele tardar unos minutos.",
+    "body_action_needed": {
+      "one": "{provider} necesita {count} dato más antes de que podamos pagarte.",
+      "other": "{provider} necesita {count} datos más antes de que podamos pagarte."
+    },
+    "body_action_generic": "{provider} necesita más información antes de que podamos pagarte.",
+    "body_payout_failed": "Tu último pago al banco no se completó ({reason}). Revisa tus datos bancarios en {provider}.",
+    "body_ready": "Te pagamos cada lunes a través de {provider}.",
+    "opening": "Abriendo {provider}…",
+    "open_failed": "No pudimos abrir {provider}. Revisa tu conexión e inténtalo de nuevo.",
+    "not_available": "Los pagos aún no están disponibles en tu país. Te avisaremos cuando puedas configurarlos.",
+    "come_back": "Cuando termines, vuelve a esta app. Esta pantalla se actualiza sola.",
+    "check_again": "Volver a revisar",
+    "our_partner": "nuestro socio de pagos"
+  },
+  "payouts_done": {
+    "meta_title": "Configuración de pagos",
+    "title": "Listo por ahora",
+    "body": "Tus datos ya están con nuestro socio de pagos. Vuelve a la app para ver el estado de tus pagos; te dirá si falta algo.",
+    "title_expired": "Este enlace venció",
+    "body_expired": "Los enlaces de configuración funcionan 7 días. Abre la app y toca Configurar pagos de nuevo, o pide un enlace nuevo a tu contacto de BhojanGo.",
+    "title_unavailable": "No pudimos comunicarnos con nuestro socio de pagos",
+    "body_unavailable": "No se perdió nada. Vuelve a abrir el enlace en unos minutos.",
+    "open_kitchen": "Abrir BhojanGo Kitchen",
+    "open_delivery": "Abrir BhojanGo Delivery",
+    "help": "Centro de ayuda",
+    "ways": "Qué sigue"
   }
 }

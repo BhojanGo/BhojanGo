@@ -107,6 +107,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     **{("POST", f"/api/v1/auth/mfa/{p}"): public("signing in: an admin's second step, with the mfa_token")
        for p in ("verify", "recovery", "enrol/start", "enrol/confirm")},
     ("POST", "/api/v1/finance/stripe/connect/webhook"): public("signature-checked webhook"),
+    ("POST", "/api/v1/finance/stripe/webhook"): public("signature-checked webhook (payout transfers, R10)"),
+    ("GET", "/api/v1/finance/payout-onboarding"): public("a signed link that expires (Stripe's refresh_url, admins' copy): R10"),
     ("POST", "/api/v1/payments/fake/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
@@ -201,6 +203,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     # a key another rider uploaded is refused even to a rider: see test_riders.py
     ("POST", "/api/v1/finance/payout-accounts"): user(
         "other_partner", "customer", body=lambda c: {"payee_type": "restaurant", "restaurant_id": c.spice}),
+    ("GET", "/api/v1/finance/payout-accounts/me/setup"): user(
+        "other_partner", "customer", "rider", params=lambda c: {"payee_type": "restaurant", "restaurant_id": c.spice}),
     # ── orders: the customer, the restaurant, the assigned rider, admins for the city ──
     ("GET", "/api/v1/orders/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("GET", "/api/v1/orders/{order_id}/breakdown"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
@@ -386,6 +390,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/finance/payout-runs/{run_id}/retry"): admin("finance_us", "ops_hyd", "viewer"),
     ("GET", "/api/v1/finance/reconciliation"): admin("finance_us", "ops_boi", params=lambda c: {
         "country": "IN", "start": "2001-01-01", "end": "2001-01-08"}),
+    # a payee's payout set-up (R10): finance for the country, partners.* for the kitchen's city
+    ("GET", "/api/v1/finance/payees/{kind}/{target_id}/payout-account"): admin("ops_boi", "finance_us", "cm_us"),
+    ("POST", "/api/v1/finance/payees/{kind}/{target_id}/payout-account/link"): admin(
+        "viewer", "support_hyd", "ops_boi", "finance_us", "cm_us", body=lambda c: {"send": False}),
     ("GET", "/api/v1/finance/statements/{statement_id}"): user("other_partner", "other_rider", "customer", "finance_us"),
 }
 
