@@ -12,7 +12,7 @@ import { flatCities } from "@/components/discover/places";
 import { capitalize, defaultCity, distance, orList, percent, unitName, weekday } from "@/lib/deliver";
 import { libraryPhoto, money } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
-import { deliveryTerms, SITE, type DeliveryTerms } from "@/lib/server";
+import { deliverySignUp, deliveryTerms, SITE, type DeliveryTerms } from "@/lib/server";
 import { CityPicker } from "./CityPicker";
 import { GetStarted } from "./GetStarted";
 
@@ -36,6 +36,9 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
   const code = askedCity ?? defaultCity(ours.map((c) => c.code), [ctx.place?.city_code, ctx.city?.code]);
   const terms = code ? await deliveryTerms(code) : null;
   const ok = terms && terms !== "error" ? terms : null;
+  // Who can sign up in the form's country (its cities are that country's): minimum age and vehicles.
+  const signUpCountry = ok?.country ?? ctx.country?.code ?? null;
+  const signUp = signUpCountry ? await deliverySignUp(signUpCountry) : null;
   const termsCountry = dir.countries.find((k) => k.code === (ok?.country ?? ctx.country?.code)) ?? ctx.country;
   const loc = termsCountry ? localeOf(termsCountry.locales) : ctx.formatLocale;
   const cityName = ok?.city.name ?? live.find((c) => c.code === code)?.name ?? "";
@@ -150,6 +153,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
             cities={ok?.cities ?? ours.map((c) => ({ code: c.code, name: c.name, region: c.region }))}
             city={ok?.city.code ?? code}
             apps={ok?.apps ?? { android: null, ios: null }}
+            rules={signUp ? { min_age: signUp.min_age, vehicles: signUp.vehicles, today: signUp.today } : null}
           />
         </div>
       </section>

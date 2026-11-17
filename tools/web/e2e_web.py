@@ -855,7 +855,10 @@ with sync_playwright() as p:
     page.get_by_text("Not good", exact=True).click()
     page.get_by_label("Tell us more (optional)").fill("Cold when it came")
     png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
-    page.get_by_label("A photo helps (optional)").set_input_files(files=[{"name": "biryani.png", "mimeType": "image/png", "buffer": png}])
+    page.get_by_label("Add a photo").set_input_files(files=[{"name": "biryani.png", "mimeType": "image/png", "buffer": png}])
+    check("report a problem: the chosen photo is named in the page's language (no browser 'No file chosen')", lambda: (
+        expect(page.get_by_text("biryani.png")).to_be_visible(),
+        expect(page.get_by_role("button", name="Remove photo")).to_be_visible()))
     page.get_by_role("button", name="Send report").click()
     check("report a problem: over the city's limit, sent to support with the photo", lambda: (
         expect(page.get_by_text(re.compile("^(Sent to support|Refunded)"))).to_be_visible(timeout=20000),
@@ -1307,6 +1310,20 @@ with sync_playwright() as p:
             dl.goto(f"{base}/deliver?city=IN-TG-HYD#get-started", wait_until="networkidle")
             form = dl.get_by_test_id("gs-form")
             form.get_by_label("Your full name").fill("Kiran Rao")
+            # R9: the vehicles are India's (Markets) and the minimum age is checked as you type.
+            rules = api("GET", "/delivery/sign-up?country=IN")
+            vehicles = form.get_by_test_id("gs-vehicles").get_by_role("radio")
+            expect(vehicles).to_have_count(len(rules["vehicles"]))
+            _assert("car" not in rules["vehicles"] and form.get_by_test_id("gs-vehicle-car").count() == 0, "a car offered in India")
+            y = int(rules["today"][:4])
+            dob = form.get_by_label("Date of birth")
+            dob.fill(f"{y - rules['min_age'] + 1:04d}-01-01")  # a year short of the minimum
+            dob.blur()
+            expect(form.get_by_test_id("gs-dob-error")).to_contain_text(f"{rules['min_age']} or older")
+            dob.fill("1995-06-15")
+            expect(form.get_by_test_id("gs-dob-error")).to_have_count(0)
+            form.get_by_text("Motorcycle", exact=True).click()
+            expect(form.get_by_test_id("gs-vehicle-motorcycle")).to_be_checked()
             form.get_by_label("Country code").select_option("IN")
             form.get_by_label("Mobile number").fill(f"90000{random.randint(10000, 99999)}")
             form.get_by_label("City you'll deliver in").select_option("IN-TG-HYD")

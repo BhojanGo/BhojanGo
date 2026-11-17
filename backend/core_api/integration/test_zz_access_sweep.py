@@ -127,6 +127,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/markets/hint"): public("near-you hint from the visitor's IP"),
     ("GET", "/api/v1/kitchens/terms"): public("Add your kitchen: commission, payouts, documents and cities, from live data"),
     ("POST", "/api/v1/kitchens/apply"): public("Add your kitchen: a new kitchen partner signs up with email and password (rate-limited)"),
+    ("GET", "/api/v1/delivery/sign-up"): public("the delivery partner sign-up forms (web /deliver, the Delivery app): a country's minimum age and vehicles"),
     ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
     # the Help centre (F9): published articles for everyone; votes and the contact form are rate-limited
@@ -186,7 +187,8 @@ POLICY: dict[tuple[str, str], Policy] = {
                                                      "quote_token": "x", "delivery_address": ADDRESS}),
     ("GET", "/api/v1/finance/payout-accounts/me"): user(), ("GET", "/api/v1/finance/statements/me"): user(),
     # self sign-up (B1): your own account only; admins use another number
-    ("POST", "/api/v1/riders/apply"): user("ops_hyd", body=lambda c: {"full_name": "Sweep", "city_code": "IN-TG-HYD"}),
+    ("POST", "/api/v1/riders/apply"): user("ops_hyd", body=lambda c: {"full_name": "Sweep", "city_code": "IN-TG-HYD",
+                                                                          "date_of_birth": "1995-06-15", "vehicle": "scooter"}),
     ("POST", "/api/v1/restaurants/apply"): user("ops_hyd", body=lambda c: {
         "full_name": "Sweep", "kitchen_name": "Sweep", "city_code": "IN-TG-HYD", "street": "Road 1", "area": "Madhapur",
         "zip": "500081", "lat": 17.44, "lng": 78.39, "cuisines": ["Thali"]}),

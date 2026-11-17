@@ -110,6 +110,17 @@ export async function deliveryTerms(city: string): Promise<DeliveryTerms | null 
   }
 }
 
+export type SignUpRules = CoreSchemas["SignUpRules"];
+
+/**
+ * Who can sign up to deliver in a country: the minimum age, the vehicles allowed
+ * (Markets) and the country's date. The form checks them for friendliness;
+ * POST /riders/apply enforces them. null: not a country we operate in, or no API.
+ */
+export async function deliverySignUp(country: string): Promise<SignUpRules | null> {
+  return get<SignUpRules>(`/delivery/sign-up?country=${encodeURIComponent(country)}`, 60);
+}
+
 /** Which social sign-ins are configured ({google: {client_id} | null, apple: null}); null on an older API. */
 export async function authProviders(): Promise<{ google?: { client_id: string } | null; apple?: { client_id: string } | null } | null> {
   return get("/auth/providers", 300);

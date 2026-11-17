@@ -11,19 +11,23 @@ One account has one role, so a number that already orders food can't also
 ride or run a kitchen: use another number. Both return new tokens, because
 the role in the old ones is no longer right.
 """
+from datetime import date, datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.identity.models.rider import RiderProfile
 from core_api.modules.identity.models.user import User
-from core_api.modules.identity.schemas.user import AuthTokensResponse
+from core_api.modules.identity.schemas.user import AuthTokensResponse, Language
 from core_api.modules.identity.service.auth import issue_tokens
 from core_api.modules.legal import service as legal
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
 from shared.db import get_db
+from shared.texts import DELIVERY_SIGN_UP, language_for, pick
 
 router = APIRouter(tags=["Sign-up"])
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
@@ -31,8 +35,16 @@ Me = Annotated[CurrentUser, Depends(get_current_user)]
 
 
 class RiderApply(BaseModel):
+    """Who is signing up to deliver, and where. The date of birth and the vehicle
+    are checked against the country's rules (Markets -> Delivery partners:
+    GET /delivery/sign-up?country= lists them for the form)."""
+
     full_name: str = Field(min_length=2, max_length=80)
     city_code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")
+    date_of_birth: date
+    vehicle: str = Field(pattern=r"^[a-z_]{2,20}$", examples=["motorcycle"])
+    # The form's language ("hi"): a refusal's message is written in it.
+    language: Language | None = None
 
 
 class KitchenApply(BaseModel):
@@ -89,10 +101,31 @@ async def _switch(db: AsyncSession, me: CurrentUser, to: str) -> User:
 @router.post("/riders/apply", response_model=AuthTokensResponse)
 async def rider_apply(data: RiderApply, request: Request, me: Me, db: DB) -> AuthTokensResponse:
     """Become a rider applicant: then the onboarding checklist (licence, insurance,
-    payout account, background check). Admins review in Partners → Rider documents."""
+    payout account, background check). Admins review in Partners → Rider documents.
+    Refused with 422 when the applicant is younger than the country's minimum age
+    (UNDER_AGE, with min_age), the vehicle isn't one the country allows (VEHICLE,
+    with vehicles) or the date of birth can't be right (DOB); a country without
+    rules uses the defaults in markets.service.delivery.sign_up_rules."""
+    from core_api.modules.markets.service import delivery
+
     _, _, country = await _city(db, data.city_code)
+    # The country's rules, on the country's own date (a birthday counts from midnight there).
+    rules = delivery.sign_up_rules(country.settings)
+    why = delivery.check_applicant(rules, data.date_of_birth, data.vehicle, datetime.now(ZoneInfo(country.timezone)).date())
+    if why is not None:
+        row = await db.get(User, me.id)
+        lang = language_for(data.language or (row.preferred_locale if row else None))
+        text = pick(DELIVERY_SIGN_UP[{"DOB": "dob", "UNDER_AGE": "under_age", "VEHICLE": "vehicle"}[why]], lang)
+        extra = {"min_age": rules["min_age"]} if why == "UNDER_AGE" else {"vehicles": rules["vehicles"]} if why == "VEHICLE" else {}
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            detail={"code": why, "message": text.format(age=rules["min_age"]), **extra})
     user = await _switch(db, me, "driver")
     user.full_name, user.country = data.full_name.strip(), country.code
+    profile = await db.get(RiderProfile, user.id)
+    if profile is None:
+        db.add(RiderProfile(user_id=user.id, date_of_birth=data.date_of_birth, vehicle=data.vehicle))
+    else:
+        profile.date_of_birth, profile.vehicle = data.date_of_birth, data.vehicle
     await db.flush()
     # Applying is agreeing to the Terms, Privacy and (once the country publishes them) the delivery partner terms.
     await legal.record_acceptance(db, user.id, country.code, legal.ROLE_KINDS["driver"], language=user.preferred_locale,

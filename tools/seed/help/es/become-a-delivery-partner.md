@@ -13,7 +13,7 @@ Entrega pedidos de cocinas locales en tu ciudad, en tu propio horario, y ve cuá
 
 1. Instala la app BhojanGo Delivery. Si quieres, primero puedes leer más en nuestra página [Reparte con BhojanGo](/deliver).
 2. Inicia sesión con tu número de teléfono y el código de 6 dígitos que te enviamos por mensaje de texto.
-3. Escribe tu nombre completo, tal como aparece en tu licencia, y la ciudad donde harás entregas.
+3. Escribe tu nombre completo, tal como aparece en tu licencia, tu fecha de nacimiento, tu vehículo y la ciudad donde harás entregas. Cada país fija una edad mínima y los vehículos que puedes usar: la app y la página [Reparte con BhojanGo](/deliver) los muestran.
 
 Usa un número de teléfono que no se use ya para pedir comida en BhojanGo ni para administrar una cocina. Cada número tiene un solo rol.
 
@@ -24,7 +24,7 @@ La app muestra una lista con lo que te falta:
 1. **Teléfono e identidad**: se completa cuando verificas tu número.
 2. **Licencia de conducir**: una foto clara del frente, sobre una superficie plana y enfocada, en la que se vean las cuatro esquinas.
 3. **Seguro del vehículo**: una foto de tu tarjeta o certificado de seguro en la que se vean tu nombre, el vehículo y las fechas. En India, este paso es el RC y el seguro de tu vehículo.
-4. **Verificación de antecedentes**: comienza automáticamente cuando hayas enviado tu licencia y tu seguro. Por lo general tarda unos días.
+4. **Verificación de antecedentes**: comienza automáticamente cuando hayas enviado tu licencia y tu seguro. Te avisaremos por SMS y correo electrónico.
 5. **Cuenta para pagos**: donde te enviamos tu pago semanal; se configura con nuestro socio de pagos.
 
 Tus documentos se guardan de forma privada y solo se usan para verificar que puedes hacer entregas.

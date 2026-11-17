@@ -641,7 +641,10 @@
       "refunded": "Refunded",
       "ticket": "Sent to support",
       "ticket_note": "Refunds above {amount} on one order are checked by a person first.",
-      "back_to_order": "Back to your order"
+      "back_to_order": "Back to your order",
+      "photo_add": "Add a photo",
+      "photo_remove": "Remove photo",
+      "need": "Choose how many of which item, and what went wrong."
     },
     "profile": {
       "title": "Profile & settings",
@@ -1047,7 +1050,16 @@
       "continue": "Continue",
       "signing_up": "Signing you up…",
       "failed": "Couldn't sign you up. Try again.",
-      "another_number": "Use another number"
+      "another_number": "Use another number",
+      "dob": "Date of birth",
+      "dob_day": "Day",
+      "dob_month": "Month",
+      "dob_year": "Year",
+      "dob_help": "You need to be {age} or older to deliver here. We use it only to check your age.",
+      "dob_under": "You need to be {age} or older to deliver with BhojanGo here.",
+      "dob_invalid": "Check your date of birth.",
+      "vehicle": "Your vehicle",
+      "rules_failed": "Can't load what we need for this country right now."
     },
     "checklist": {
       "help": "Help",
@@ -1076,13 +1088,13 @@
         "set_up": "Set up",
         "cleared": "Cleared",
         "payout_finish": "Finish setting up with our payments partner",
-        "background_progress": "In progress · usually 2–5 days",
-        "background_waiting": "Starts after insurance · usually 2–5 days",
+        "background_progress": "In progress · we'll let you know by SMS and email",
+        "background_waiting": "Starts after insurance · we'll let you know by SMS and email",
         "needed_identity": "Verify your phone number",
         "needed_licence": "Photo of the front of your licence",
         "needed_payout": "Where we send your weekly pay",
         "needed_insurance": "Needed now · photo of your insurance",
-        "needed_background_check": "Starts after insurance · usually 2–5 days"
+        "needed_background_check": "Starts after insurance · we'll let you know by SMS and email"
       }
     },
     "document": {
@@ -1706,10 +1718,10 @@
     "doc_payout_account": "A payout account",
     "doc_payout_account_body": "You set it up in the app with our payments partner; your pay goes there.",
     "doc_background_check": "A background check",
-    "doc_background_check_body": "We start it once your documents are in. It usually takes 2–5 days.",
+    "doc_background_check_body": "We start it once your documents are in. We'll let you know by SMS and email.",
     "how_title": "How it works",
     "step1_title": "Sign up here",
-    "step1_body": "Your name, phone number and city. We text you a code to check the number is yours.",
+    "step1_body": "Your name, date of birth, vehicle, phone number and city. We text you a code to check the number is yours.",
     "step2_title": "Add your documents in the app",
     "step2_body": "Get BhojanGo Delivery, sign in with the same number and upload your documents.",
     "step3_title": "Go online",
@@ -1765,7 +1777,7 @@
     "faq_paid_weekly": "Every week, to the account you set up in the app. Your pay statement lists each trip, your tips and any top-up.",
     "faq_paid_biweekly": "Every two weeks, to the account you set up in the app. Your pay statement lists each trip, your tips and any top-up.",
     "faq_approval_q": "How long does approval take?",
-    "faq_approval_a": "We check your documents after you upload them in the app. The background check starts once they're in and usually takes 2–5 days. The app shows where each step is.",
+    "faq_approval_a": "We check your documents after you upload them in the app, and the background check starts once they're in. We'll let you know by SMS and email. The app shows where each step is.",
     "faq_fee_q": "Does it cost anything to join?",
     "faq_fee_a": "No. There's no fee to sign up, for the background check or for the app.",
     "no_city_title": "We're not delivering in {country} yet",
@@ -1779,7 +1791,14 @@
     "app_help": "Questions? Visit the help centre",
     "gs_err_has_orders": "This number orders food on BhojanGo. Use another number to deliver.",
     "gs_err_role": "This number already has a kitchen partner or admin account. Use another number to deliver.",
-    "gs_err_city": "We're not delivering in that city yet. Pick another city."
+    "gs_err_city": "We're not delivering in that city yet. Pick another city.",
+    "gs_dob": "Date of birth",
+    "gs_dob_help": "You need to be {age} or older to deliver here. We use it only to check your age.",
+    "gs_dob_under": "You need to be {age} or older to deliver with BhojanGo here.",
+    "gs_dob_invalid": "Check your date of birth.",
+    "gs_vehicle": "Your vehicle",
+    "gs_err_vehicle": "That vehicle can't be used for deliveries here. Pick one from the list.",
+    "gs_rules_failed": "We couldn't load the sign-up form. Refresh the page to try again."
   },
   "errors": {
     "title_404": "We can't find that page",

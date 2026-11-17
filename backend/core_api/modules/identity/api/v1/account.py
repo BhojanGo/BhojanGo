@@ -45,6 +45,9 @@ class FavouriteItemRestaurant(BaseModel):
     id: uuid.UUID
     slug: str
     name: str
+    # The kitchen's page is /<country>/<city>/<slug>: a saved dish opens it even when the kitchen isn't saved.
+    city: str | None = None
+    country: str | None = None
 
 
 class FavouriteItem(BaseModel):
