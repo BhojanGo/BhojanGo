@@ -375,6 +375,42 @@ KITCHEN_APPLIED: dict[str, dict[str, str]] = {
 }
 
 
+# Why POST /riders/apply refused a delivery partner's sign-up (R9): the country's
+# minimum age and allowed vehicles (Markets). {age}: the minimum age in years.
+DELIVERY_SIGN_UP: dict[str, dict[str, str]] = {
+    "under_age": {
+        "en": "You need to be {age} or older to deliver with BhojanGo in this country.",
+        "hi": "इस देश में BhojanGo के साथ डिलीवरी करने के लिए आपकी उम्र कम से कम {age} साल होनी चाहिए।",
+        "te": "ఈ దేశంలో BhojanGoతో డెలివరీ చేయడానికి మీ వయస్సు కనీసం {age} సంవత్సరాలు ఉండాలి.",
+        "ta": "இந்த நாட்டில் BhojanGo உடன் டெலிவரி செய்ய உங்களுக்குக் குறைந்தது {age} வயது ஆகியிருக்க வேண்டும்.",
+        "kn": "ಈ ದೇಶದಲ್ಲಿ BhojanGo ಜೊತೆ ಡೆಲಿವರಿ ಮಾಡಲು ನಿಮಗೆ ಕನಿಷ್ಠ {age} ವರ್ಷ ವಯಸ್ಸಾಗಿರಬೇಕು.",
+        "mr": "या देशात BhojanGo सोबत डिलिव्हरी करण्यासाठी तुमचे वय किमान {age} वर्षे असायला हवे.",
+        "bn": "এই দেশে BhojanGo-র সঙ্গে ডেলিভারি করতে আপনার বয়স অন্তত {age} বছর হতে হবে।",
+        "es": "Necesitas tener {age} años o más para repartir con BhojanGo en este país.",
+    },
+    "vehicle": {
+        "en": "That vehicle can't be used for deliveries in this country. Pick one from the list.",
+        "hi": "इस देश में इस वाहन से डिलीवरी नहीं की जा सकती। सूची में से कोई वाहन चुनें।",
+        "te": "ఈ దేశంలో ఆ వాహనంతో డెలివరీ చేయలేరు. జాబితాలో ఉన్న వాహనాన్ని ఎంచుకోండి.",
+        "ta": "இந்த நாட்டில் அந்த வாகனத்தைக் கொண்டு டெலிவரி செய்ய முடியாது. பட்டியலில் உள்ள ஒன்றைத் தேர்ந்தெடுங்கள்.",
+        "kn": "ಈ ದೇಶದಲ್ಲಿ ಆ ವಾಹನದಿಂದ ಡೆಲಿವರಿ ಮಾಡಲು ಆಗುವುದಿಲ್ಲ. ಪಟ್ಟಿಯಲ್ಲಿರುವ ಒಂದನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+        "mr": "या देशात त्या वाहनाने डिलिव्हरी करता येत नाही. यादीतील एखादे वाहन निवडा.",
+        "bn": "এই দেশে ওই যানবাহন দিয়ে ডেলিভারি করা যায় না। তালিকা থেকে একটি বেছে নিন।",
+        "es": "Ese vehículo no se puede usar para repartir en este país. Elige uno de la lista.",
+    },
+    "dob": {
+        "en": "Check your date of birth.",
+        "hi": "अपनी जन्मतिथि जांच लें।",
+        "te": "మీ పుట్టిన తేదీని ఒకసారి చూసుకోండి.",
+        "ta": "உங்கள் பிறந்த தேதியைச் சரிபார்க்கவும்.",
+        "kn": "ನಿಮ್ಮ ಜನ್ಮ ದಿನಾಂಕವನ್ನು ಪರಿಶೀಲಿಸಿ.",
+        "mr": "तुमची जन्मतारीख तपासा.",
+        "bn": "আপনার জন্মতারিখটি দেখে নিন।",
+        "es": "Revisa tu fecha de nacimiento.",
+    },
+}
+
+
 def entries() -> dict[str, dict[str, str]]:
     """Every text here as "<name>" → {language: text}, for the CI check."""
     out: dict[str, dict[str, str]] = {}
@@ -392,4 +428,6 @@ def entries() -> dict[str, dict[str, str]]:
         out[f"auth_email.{key}"] = texts
     for key, texts in KITCHEN_APPLIED.items():
         out[f"kitchen_applied.{key}"] = texts
+    for key, texts in DELIVERY_SIGN_UP.items():
+        out[f"delivery_sign_up.{key}"] = texts
     return out

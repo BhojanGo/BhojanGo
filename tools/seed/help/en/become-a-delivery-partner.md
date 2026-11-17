@@ -13,7 +13,7 @@ Deliver from local kitchens in your city, on your own hours, and see what a trip
 
 1. Install the BhojanGo Delivery app. You can read more first on our [deliver with BhojanGo](/deliver) page.
 2. Sign in with your phone number and the 6-digit code we text you.
-3. Enter your full name, as on your licence, and the city you'll deliver in.
+3. Enter your full name, as on your licence, your date of birth, your vehicle and the city you'll deliver in. Each country sets a minimum age and the vehicles you can use: the app and the [deliver with BhojanGo](/deliver) page list them.
 
 Use a phone number that isn't already used to order food on BhojanGo or to run a kitchen. One number has one role.
 
@@ -24,7 +24,7 @@ The app shows a checklist of what's left:
 1. **Phone and identity**: done when you verify your number.
 2. **Driving licence**: a clear photo of the front, flat and in focus, with all four corners showing.
 3. **Vehicle insurance**: a photo of your insurance card or certificate showing your name, the vehicle and the dates. In India, this step is your vehicle RC and insurance.
-4. **Background check**: starts by itself once your licence and insurance are in. It usually takes a few days.
+4. **Background check**: starts by itself once your licence and insurance are in. We'll let you know by SMS and email.
 5. **Payout account**: where we send your weekly pay, set up with our payments partner.
 
 Your documents are stored privately and used only to check you can deliver.

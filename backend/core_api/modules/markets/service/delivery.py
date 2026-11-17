@@ -15,6 +15,7 @@ checklist (identity.api.v1.riders): ``APP_STEP`` says which step, so the page
 can't promise a document the app never asks for. Store links stay empty until
 the app is published: the page then says how to get the app for now.
 """
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -34,6 +35,9 @@ APP_STEP = {
 }
 STORES = {"android": "https://play.google.com/", "ios": "https://apps.apple.com/"}
 DEFAULT_EXAMPLE_DISTANCE = Decimal("3")
+# Sign-up in a country whose admins haven't set a minimum age yet (sign_up_rules).
+DEFAULT_MIN_AGE = 18
+MAX_AGE = 100  # an older date of birth is a typo
 
 
 def _fail(msg: str) -> None:
@@ -80,6 +84,40 @@ def check_settings(settings: dict[str, Any] | None) -> None:
         for store, url in links.items():
             if url is not None and (not isinstance(url, str) or not url.startswith(STORES[store]) or len(url) > 300 or " " in url):
                 _fail(f"the {store} link starts with {STORES[store]}")
+
+
+def sign_up_rules(settings: dict[str, Any] | None) -> dict[str, Any]:
+    """Who can sign up to deliver in a country: the minimum age and the vehicles
+    allowed (R9). The single source for POST /riders/apply and the sign-up forms.
+
+    A country without rules (no ``delivery_partner`` setting, or one without
+    ``min_age`` / ``vehicles``) still gets a safe answer instead of an open door
+    or a closed one: ``DEFAULT_MIN_AGE`` and every vehicle the app supports.
+    ``rules_set`` says whether the country's own rules were used, so the admin
+    console and the tests can tell."""
+    t = terms(settings)
+    return {"min_age": t["min_age"] if t["min_age"] is not None else DEFAULT_MIN_AGE,
+            "vehicles": t["vehicles"] or list(VEHICLES),
+            "rules_set": t["min_age"] is not None and bool(t["vehicles"])}
+
+
+def age_on(born: date, today: date) -> int:
+    """Whole years from ``born`` to ``today`` (someone born on 29 February turns
+    a year older on 1 March in other years)."""
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
+def check_applicant(rules: dict[str, Any], born: date, vehicle: str, today: date) -> str | None:
+    """None when the applicant may sign up; else why not: "DOB" (in the future or
+    an impossible age), "UNDER_AGE" or "VEHICLE". ``today`` is the country's local date."""
+    age = age_on(born, today)
+    if born > today or age > MAX_AGE:
+        return "DOB"
+    if age < rules["min_age"]:
+        return "UNDER_AGE"
+    if vehicle not in rules["vehicles"]:
+        return "VEHICLE"
+    return None
 
 
 def terms(settings: dict[str, Any] | None) -> dict[str, Any]:

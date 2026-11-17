@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { capitalize, defaultCity, distance, firstName, orList, percent, qrPath, unitName, weekday } from "../src/lib/deliver.ts";
+import { ageOn, capitalize, defaultCity, distance, firstName, orList, percent, qrPath, unitName, weekday } from "../src/lib/deliver.ts";
 
 test("the QR code is drawn locally: a square with a quiet zone, dark modules as one path", () => {
   const a = qrPath("https://example.test/deliver/app?country=IN");
@@ -37,4 +37,14 @@ test("the visitor's city is the default when it is live, else the first live cit
   assert.equal(defaultCity(["A-B-CD", "A-B-EF"], ["Z-Z-ZZ", undefined]), "A-B-CD");
   assert.equal(defaultCity([], ["A-B-CD"]), null);
   assert.equal(firstName("  Kiran  Rao "), "Kiran");
+});
+
+test("age on the country's date, as the API counts it (R9)", () => {
+  assert.equal(ageOn("2008-11-16", "2026-11-16"), 18); // the birthday itself
+  assert.equal(ageOn("2008-11-17", "2026-11-16"), 17); // one day short
+  assert.equal(ageOn("2008-02-29", "2026-02-28"), 17); // leap-day births count from 1 March
+  assert.equal(ageOn("2008-02-29", "2026-03-01"), 18);
+  assert.equal(ageOn("2027-01-01", "2026-11-16"), null); // the future
+  assert.equal(ageOn("1900-01-01", "2026-11-16"), null); // a typo
+  assert.equal(ageOn("", "2026-11-16"), null);
 });

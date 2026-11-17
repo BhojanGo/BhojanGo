@@ -3,7 +3,7 @@ cards (never a card number), notification preferences, locales, and what
 account deletion removes. Favourites, order history, reorder, receipts and the
 export need the catalog and orders tables: core_api/integration/test_account.py."""
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from core_api.modules.identity.models.account import Favourite, NotificationPreference
 from core_api.modules.identity.models.address import Address
+from core_api.modules.identity.models.rider import RiderProfile
 from core_api.modules.identity.tests.test_p5_auth import bearer, login, make_user
 from core_api.modules.payments.models.payment_method import PaymentMethod
 
@@ -222,11 +223,12 @@ async def test_deleting_the_account_removes_cards_favourites_and_preferences(cli
     await client.post("/api/v1/me/payment-methods", headers=h, json=card())
     await client.put("/api/v1/me/notification-preferences", headers=h, json={"offers": {"email": True}})
     db_session.add(Favourite(user_id=uid, kind="restaurant", target_id=uuid.uuid4()))
+    db_session.add(RiderProfile(user_id=uid, date_of_birth=date(1990, 1, 1), vehicle="scooter"))  # a delivery partner's (R9)
     await db_session.flush()
 
     r = await client.delete("/api/v1/users/me", headers=h)
     assert r.status_code == 200, r.text
-    for model in (PaymentMethod, Favourite, NotificationPreference):
+    for model in (PaymentMethod, Favourite, NotificationPreference, RiderProfile):
         assert (await db_session.execute(select(model).where(model.user_id == uid))).first() is None, model.__name__
     # Orders and reviews are kept but anonymised (checked on Postgres in the integration tests).
     order_lookup.forget_customer.assert_awaited_with(db_session, uid)  # type: ignore[attr-defined]

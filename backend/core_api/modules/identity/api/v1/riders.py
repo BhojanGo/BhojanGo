@@ -134,11 +134,11 @@ def _labels(country: str) -> dict[str, tuple[str, str]]:
         return {"identity": ("Phone and identity", ""), "licence": ("Driving licence", "Photo of the front of your licence"),
                 "payout": ("Bank account for payouts", "Where we send your weekly pay"),
                 "insurance": ("Vehicle RC and insurance", "Photo of your insurance certificate"),
-                "background_check": ("Background check", "Starts after insurance · usually 2–5 days")}
+                "background_check": ("Background check", "Starts after insurance · we'll let you know by SMS and email")}
     return {"identity": ("Phone and identity", ""), "licence": ("Driver's licence", "Photo of the front of your licence"),
             "payout": ("Payout account", "Where we send your weekly pay"),
             "insurance": ("Vehicle insurance", "Photo of your card"),
-            "background_check": ("Background check", "Starts after insurance · usually 2–5 days")}
+            "background_check": ("Background check", "Starts after insurance · we'll let you know by SMS and email")}
 
 
 async def onboarding(db: AsyncSession, rider_id: uuid.UUID) -> OnboardingOut:
@@ -185,7 +185,7 @@ async def onboarding(db: AsyncSession, rider_id: uuid.UUID) -> OnboardingOut:
     elif bg.status == "rejected":
         add("background_check", "rejected", bg.note or "Contact delivery partner support")
     else:
-        add("background_check", "in_review", "In progress · usually 2–5 days")
+        add("background_check", "in_review", "In progress · we'll let you know by SMS and email")
     done = sum(1 for s in steps if s.status == "done")
     ready = all(s.status == "done" for s in steps if s.required)
     return OnboardingOut(first_name=(user.full_name or "").split(" ")[0], country=user.country, done=done,

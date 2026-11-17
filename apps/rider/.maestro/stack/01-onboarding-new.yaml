@@ -1,5 +1,5 @@
-# RiderOnboarding.html, as a brand-new rider sees it: sign up with a new number (name and
-# city), then the onboarding checklist. Creates an account, so throwaway stack only
+# RiderOnboarding.html, as a brand-new rider sees it: sign up with a new number (name, city,
+# date of birth and vehicle from India's Markets rules), then the onboarding checklist. Creates an account, so throwaway stack only
 # (.github/workflows/app-screens.yml).
 appId: com.bhojango.rider
 ---
@@ -17,6 +17,25 @@ appId: com.bhojango.rider
 - inputText: "Kiran Rao"
 - hideKeyboard
 - tapOn: "Hyderabad"
+- extendedWaitUntil:
+    visible:
+      id: "dob-year"
+    timeout: 30000
+- tapOn:
+    id: "dob-day"
+- inputText: "15"
+- tapOn:
+    id: "dob-month"
+- inputText: "6"
+- tapOn:
+    id: "dob-year"
+- inputText: "1995"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "vehicle-motorcycle"
+- tapOn:
+    id: "vehicle-motorcycle"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-rider-signup

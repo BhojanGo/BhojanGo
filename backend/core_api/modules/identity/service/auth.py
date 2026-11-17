@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.identity.models.address import Address
 from core_api.modules.identity.models.recovery_code import RecoveryCode
+from core_api.modules.identity.models.rider import RiderProfile
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.repository.admin_role import AdminRoleRepository
 from core_api.modules.identity.repository.user import UserRepository
@@ -277,6 +278,7 @@ class AuthService:
             totp_last_step=None,
         )
         await self.db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
+        await self.db.execute(delete(RiderProfile).where(RiderProfile.user_id == user.id))  # date of birth, vehicle
         await AdminRoleRepository(self.db).delete_for_user(user.id)
         await self.db.execute(delete(Address).where(Address.user_id == user.id))
         # Saved cards, favourites and preferences go; orders and reviews stay

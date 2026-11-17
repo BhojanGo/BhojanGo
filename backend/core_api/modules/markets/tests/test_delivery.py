@@ -84,3 +84,52 @@ def test_example_trip_is_the_engines_rider_pay() -> None:
     assert rider_base_pay(p, Decimal("3"), Decimal("10")) == Decimal("48.00")
     us = {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}
     assert rider_base_pay(us, Decimal("2")) == Decimal("5.00")
+
+
+# ── who can sign up (R9): the country's minimum age and vehicles ──────────────
+
+def test_sign_up_rules_come_from_the_country_with_safe_defaults() -> None:
+    r = delivery.sign_up_rules({"delivery_partner": GOOD})
+    assert r == {"min_age": 18, "vehicles": ["motorcycle", "scooter"], "rules_set": True}
+    assert delivery.sign_up_rules({"delivery_partner": {**GOOD, "min_age": 21}})["min_age"] == 21
+    # No rules: the platform minimum and every vehicle the app supports.
+    for none in (None, {}, {"delivery_partner": {}}, {"delivery_partner": "junk"}):
+        assert delivery.sign_up_rules(none) == {"min_age": delivery.DEFAULT_MIN_AGE, "vehicles": list(delivery.VEHICLES),
+                                                "rules_set": False}
+    half = delivery.sign_up_rules({"delivery_partner": {"min_age": 20}})
+    assert half["min_age"] == 20 and half["vehicles"] == list(delivery.VEHICLES) and half["rules_set"] is False
+
+
+def test_age_on_the_countrys_date() -> None:
+    from datetime import date
+
+    assert delivery.age_on(date(2008, 11, 16), date(2026, 11, 16)) == 18  # the birthday itself
+    assert delivery.age_on(date(2008, 11, 17), date(2026, 11, 16)) == 17  # one day short
+    assert delivery.age_on(date(2008, 2, 29), date(2026, 2, 28)) == 17  # leap-day births: 1 March
+    assert delivery.age_on(date(2008, 2, 29), date(2026, 3, 1)) == 18
+
+
+def test_check_applicant() -> None:
+    from datetime import date
+
+    today = date(2026, 11, 16)
+    r = delivery.sign_up_rules({"delivery_partner": GOOD})
+    assert delivery.check_applicant(r, date(2008, 11, 16), "motorcycle", today) is None  # exactly 18
+    assert delivery.check_applicant(r, date(2008, 11, 17), "motorcycle", today) == "UNDER_AGE"
+    assert delivery.check_applicant(r, date(1990, 1, 1), "car", today) == "VEHICLE"
+    assert delivery.check_applicant(r, date(1990, 1, 1), "scooter", today) is None
+    assert delivery.check_applicant(r, date(2027, 1, 1), "scooter", today) == "DOB"
+    assert delivery.check_applicant(r, date(1900, 1, 1), "scooter", today) == "DOB"
+    # No rules: 18 and any supported vehicle; still never an unknown one.
+    d = delivery.sign_up_rules(None)
+    assert delivery.check_applicant(d, date(1990, 1, 1), "car", today) is None
+    assert delivery.check_applicant(d, date(2009, 1, 1), "car", today) == "UNDER_AGE"
+    assert delivery.check_applicant(d, date(1990, 1, 1), "bicycle", today) == "VEHICLE"
+
+
+def test_sign_up_refusals_are_written_in_every_language() -> None:
+    from shared.texts import DELIVERY_SIGN_UP, LANGUAGES
+
+    for key, texts in DELIVERY_SIGN_UP.items():
+        assert set(texts) == set(LANGUAGES), key
+        assert all(("{age}" in v) == ("{age}" in texts["en"]) for v in texts.values()), key

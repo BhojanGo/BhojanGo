@@ -71,7 +71,7 @@ We share only what each party needs:
 
 **We do not sell your personal data, and we do not share it with advertisers.**
 
-Kitchen partners and delivery partners: we collect the details needed to approve and pay you (for kitchens: FSSAI licence, GSTIN, bank account and contact details; for delivery partners: identity, driving licence, insurance, background check and payout account). Customers see a kitchen's name, address and ratings, and a delivery partner's first name and live position during a delivery.
+Kitchen partners and delivery partners: we collect the details needed to approve and pay you (for kitchens: FSSAI licence, GSTIN, bank account and contact details; for delivery partners: identity, date of birth (to check the minimum age), vehicle type, driving licence, insurance, background check and payout account). Customers see a kitchen's name, address and ratings, and a delivery partner's first name and live position during a delivery.
 
 ## 6. Cookies and storage on your device
 

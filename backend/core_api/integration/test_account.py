@@ -170,7 +170,9 @@ async def test_favourites(client: AsyncClient) -> None:  # noqa: F811
     assert {"cuisine_types", "cover_url", "rating", "delivery_time_min", "delivery_time_max", "delivery_fee"} <= set(r)
     i = fav["items"][0]
     assert (i["id"], i["name"], i["price"], i["currency"]) == (biryani["id"], "Veg Dum Biryani", float(biryani["price"]), "INR")
-    assert i["restaurant"] == {"id": rest["id"], "slug": "spice-route-kitchen-madhapur", "name": "Spice Route Kitchen"}
+    # With its city and country: the dish opens its kitchen's page even when the kitchen isn't saved (R9).
+    assert i["restaurant"] == {"id": rest["id"], "slug": "spice-route-kitchen-madhapur", "name": "Spice Route Kitchen",
+                               "city": "Hyderabad", "country": "IN"}
 
     assert (await client.delete(f"/api/v1/me/favourites/restaurant/{rest['id']}", headers=h)).status_code == 204
     assert (await client.delete(f"/api/v1/me/favourites/restaurant/{rest['id']}", headers=h)).status_code == 204
