@@ -57,6 +57,9 @@ export function Button({ title, variant = "primary", size = "md", loading, disab
   return (
     <Pressable
       accessibilityRole="button"
+      // The title is the label unless the caller gives one: without a label Android kept a
+      // stale "busy" description after a loading press (R11). {...rest} below can override it.
+      accessibilityLabel={title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       style={({ pressed }) => [

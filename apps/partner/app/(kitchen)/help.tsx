@@ -81,7 +81,7 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
     <View style={[s.panel, { flex: 1 }]} accessibilityLabel={tr("partner.help.support")}>
       <Text style={type.h3}>{tr("partner.help.support")}</Text>
       {earlier.status === "error" && !open ? (
-        <LoadError testID="callback-load-error" error={earlier.error} onRetry={earlier.retry} title={tr("partner.help.earlier_failed")}
+        <LoadError inline testID="callback-load-error" error={earlier.error} onRetry={earlier.retry} title={tr("partner.help.earlier_failed")}
           style={{ borderWidth: 1, borderColor: color.line }} />
       ) : null}
       {open ? (

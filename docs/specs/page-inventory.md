@@ -77,7 +77,7 @@ Who: V visitor, C customer, K kitchen partner, D delivery partner, A admin.
 | Markets | `/markets` | **Pass** (R9: failed [rule 4, 3.3], fixed in #136) | No "Open US" special case; button no longer wraps at 390 | Review pending |
 | Country | `/markets/[country]` | **Pass** (reviewed R9) | Holds kitchen documents and delivery-partner requirements (min age, vehicles now enforced at sign-up); table scrolls in its card with an edge shadow | Review pending |
 | City | `/markets/[country]/[city]` | **Pass** (reviewed R9) | — | Fail |
-| Finance | `/finance` | **Pass** (R9: failed [1.1, 6.1–6.3, rule 4], fixed in #136) | "All countries" silently showed India: now says Finance shows one country at a time; payout runs have states; statuses in words; stacked on phones | Review pending |
+| Finance | `/finance` | **Pass** (R11: failed [6.3], fixed) | A US finance admin (no Markets permission) saw an empty runs table and no error: the page now falls back to the admin's own finance country. Checked against real Stripe test mode: a run with a paid kitchen transfer and a reversed delivery-partner transfer | Reviewed (R11) |
 | Settings | `/settings` | **Pass** (R9 fix in #136) | Stacked rows under 768 px, Remove buttons 44 px and visible | Fail |
 | Content → Help | `/content/help` | **Pass** (R9 fix in #136) | Table from 1280 px, rows below it: "Updated" no longer cut at 1366 @125 % | Missing |
 | Content → Legal | `/content/legal` | Layout pass · reviewed in F10's shots | — | Missing |
@@ -111,12 +111,12 @@ Round 9 flow results (2026-11-16):
 | BhojanGo · Out of area | **Pass** (R9: failed [7.4], fixed in #135) | "Try another" is a 44 px link | Review pending |
 | BhojanGo · Payment failed | **Pass** (R9: failed [5.3, 1.3, 6.3], fixed in #135) | Was English only, now 8 languages; dead "Chat with support" removed; status load has error and Retry | Review pending |
 | BhojanGo Kitchen · Orders, menu, rating, language, phone portrait | **Pass** (flows, reviewed) | No top band; name "BhojanGo Kitchen" | Fail |
-| BhojanGo Kitchen · Apply, join, payouts | **Pass** (R9: failed [6.1, 6.3], fixed in #135) | Loading, error and Retry instead of "Loading…" text, raw errors or "Set up payouts" before the account loaded | Review pending |
-| BhojanGo Kitchen · Help | **Fail** [6.3, minor] | If loading an existing call-back request fails it is silently hidden (sending a request still reports errors) | Review pending |
+| BhojanGo Kitchen · Apply, join, payouts | **Pass** (R11 phone: payouts failed [7.2], fixed) | Payouts on a phone against real Stripe test mode: not set up → Stripe's page → in progress → ready with the week paid. "Continue on Stripe" read as "busy" to a screen reader after the first press; buttons now always carry their title as the label | Reviewed (phone, R11) |
+| BhojanGo Kitchen · Help | **Pass** (R11 phone: failed [1.2], fixed) | Offline: "Your call-back request didn't load" with Retry, which recovers (R10 #139). Retry was a second filled button next to "Request a call back"; it is now secondary (LoadError `inline`) | Reviewed (phone, R11) |
 | BhojanGo Delivery · Sign in, join | **Pass** (R9) | Offline error state (#135); join asks date of birth and vehicle from the country's rules (#134) | Fail |
 | BhojanGo Delivery · Drive | **Pass** (reviewed) | Real dark map (MapLibre + OpenFreeMap) with credit; offline sheet | Fail |
 | BhojanGo Delivery · Earnings | **Pass** (reviewed) | "Today" no longer covered; "Paid weekly" is a footer | Fail |
-| BhojanGo Delivery · Documents, document, delivery, payouts | **Pass** (R9: failed [6.3, 7.2], fixed in #135) | Raw network errors replaced by the error state with Retry; alert role on errors | Review pending |
+| BhojanGo Delivery · Documents, document, delivery, payouts | **Pass** (R11 phone: payouts failed [7.2], fixed) | Payouts on a phone: not set up, in progress, ready, a reversed week ("Sent back by our payments partner; we'll pay it again"). Set-up and Check again read as "busy" after a press; now labelled | Payouts reviewed (phone, R11) |
 | BhojanGo Delivery · SOS, account, language | **Pass** (code review / flows) | — | Review pending |
 
 Font sizes on screen (font audit, all three apps): every size inside its role's fluid range
