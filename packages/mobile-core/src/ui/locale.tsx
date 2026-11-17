@@ -175,7 +175,7 @@ export function TestBanner({ tone = "light" }: { tone?: Tone }) {
   const { t } = useI18n();
   return (
     <View accessibilityRole="summary" testID="test-banner" style={[styles.banner, tone === "dark" ? styles.bannerDark : styles.bannerLight]}>
-      <Text numberOfLines={2} style={[type.caption, styles.bannerText, { color: tone === "dark" ? color.kesarBright : color.kohl }]}>
+      <Text numberOfLines={3} maxFontSizeMultiplier={1.5} style={[type.caption, styles.bannerText, { color: tone === "dark" ? color.kesarBright : color.kohl }]}>
         {t("app.test_banner")}
       </Text>
     </View>
@@ -223,5 +223,5 @@ const styles = StyleSheet.create({
   banner: { paddingHorizontal: space[4], paddingVertical: 6, alignItems: "center" },
   bannerLight: { backgroundColor: color.kesarBright },
   bannerDark: { backgroundColor: dark.raised },
-  bannerText: { textAlign: "center" },
+  bannerText: { textAlign: "center", alignSelf: "stretch" }, // at 200 % font the centred line overflowed both edges (R9)
 });

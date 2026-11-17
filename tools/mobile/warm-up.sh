@@ -14,15 +14,16 @@
 # server unchanged). Two fixes: this wait, and tools/mobile/metro-host.sh, which sends the
 # JS through adb reverse so a killed download can't poison the next launch at all.
 DEVICE="$1"; PKG="$2"; LOG="$3"; LIMIT="${4:-300}"
+adb -s "$DEVICE" shell am force-stop "$PKG" >/dev/null 2>&1   # a running app would only come to the front
 adb -s "$DEVICE" logcat -c >/dev/null 2>&1
 adb -s "$DEVICE" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 end=$(( $(date +%s) + LIMIT ))
 until grep -q "Android Bundled" "$LOG" || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
 grep -q "Android Bundled" "$LOG" || { echo "warm-up: Metro never bundled $PKG"; tail -40 "$LOG"; }
 # React Native logs this once the JS bundle is loaded and the first screen starts.
-until adb -s "$DEVICE" logcat -d -s "unknown:BridgelessReact" 2>/dev/null | grep -q "startSurface(surfaceId = 0): Execute" \
+until adb -s "$DEVICE" logcat -d 2>/dev/null | grep -q "startSurface(surfaceId = 0): Execute" \
   || [ "$(date +%s)" -ge "$end" ]; do sleep 2; done
-adb -s "$DEVICE" logcat -d -s "unknown:BridgelessReact" 2>/dev/null | grep -q "startSurface(surfaceId = 0): Execute" \
+adb -s "$DEVICE" logcat -d 2>/dev/null | grep -q "startSurface(surfaceId = 0): Execute" \
   || echo "warm-up: $PKG did not finish loading its bundle in ${LIMIT}s"
 sleep 3   # let the first screen's requests start before closing
 adb -s "$DEVICE" shell am force-stop "$PKG" >/dev/null 2>&1

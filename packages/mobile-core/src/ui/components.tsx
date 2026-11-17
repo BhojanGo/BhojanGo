@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: "row", padding: 4, borderRadius: radius.pill, backgroundColor: color.porcelain },
   segment: { flex: 1, height: 42, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.card, overflow: "hidden" },
-  billHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 },
+  billHead: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }, // wraps at the largest font (R9)
   billRow: { flexDirection: "row", alignItems: "baseline", gap: 10, paddingVertical: 4 },
   billTotal: {
     marginTop: space[3], paddingTop: space[3], borderTopWidth: 1.5, borderStyle: "dashed", borderTopColor: color.lineStrong,
