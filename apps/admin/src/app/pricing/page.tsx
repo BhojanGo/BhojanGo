@@ -396,7 +396,7 @@ function PricingPage() {
           ) : (tab === "approvals" ? approvals : rules).isError ? (
             <p role="alert" className="p-4 text-small">The rules didn&apos;t load. <button type="button" onClick={() => void (tab === "approvals" ? approvals : rules).refetch()} className="font-bold text-peacock">Try again</button></p>
           ) : relevant.length === 0 ? (
-            <p className="p-4 text-small text-muted">{tab === "approvals" ? "Nothing waiting for you: rules other admins send for approval show here." : mayAdd ? "No rules for this scope yet. Add one above." : "No rules for this scope yet."}</p>
+            <p className="p-4 text-small text-muted">{tab === "approvals" ? "Nothing waiting for you. Rules other admins send for approval show here." : mayAdd ? "No rules for this scope yet. Add one above." : "No rules for this scope yet."}</p>
           ) : null}
           {relevant.map((r) => (
             <button key={r.id} type="button" onClick={() => { setOpen(r.id); setAdding(false); }}

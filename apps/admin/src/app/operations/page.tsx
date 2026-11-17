@@ -79,7 +79,7 @@ function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen
               <td data-label="Status"><span className="flex flex-wrap justify-end gap-1 md:justify-start"><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} className="basis-full justify-end md:justify-start" /></span></td>
               <td data-label="Delivery partner">{o.rider ?? <span className="text-muted">—</span>}</td><td data-label="Placed">{clock(o.placed_at)}</td><td data-label="Due">{clock(o.estimated_delivery_time)}</td>
               <td data-label="Total">{money(o.total, o.currency, 2)}</td>
-              <td className="stack-actions pr-4"><button type="button" onClick={() => onOpen(o.id)} aria-label={`Open order ${o.code}`} className="h-9 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
+              <td className="stack-actions pr-4"><button type="button" onClick={() => onOpen(o.id)} className="h-9 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
             </tr>
           ))}
         </tbody>
