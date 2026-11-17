@@ -57,6 +57,12 @@ logger = structlog.get_logger(__name__)
 
 OURS = "demo_sim:orders"  # Redis set: the orders the simulator placed
 PAYMENT_METHOD = "card"   # the demo customers' saved test card (demo seed)
+
+
+def PAY_BODY(order_id: str) -> dict:  # noqa: N802
+    """The demo customer pays at once: Stripe's test card where the country pays through Stripe
+    (test mode on QA, confirmed server-side; R10), and the fake completes anything not "decline"."""
+    return {"order_id": order_id, "payment_method_type": PAYMENT_METHOD, "payment_method_id": "pm_card_visa"}
 SIGN_IN_BACKOFF_SECONDS = 65
 _running = False
 
@@ -326,7 +332,7 @@ class City:
         if step == "pay":
             if o.id not in self.paid:  # once; the fake provider completes it and core_api places it
                 self.paid.add(o.id)
-                await cust.call("core", "POST", "/payments/initiate", json={"order_id": o.id, "payment_method_type": PAYMENT_METHOD})
+                await cust.call("core", "POST", "/payments/initiate", json=PAY_BODY(o.id))
         elif step == "cancel":
             await cust.call("core", "POST", f"/orders/{o.id}/cancel", json={"reason": "other", "note": "Demo order not paid"})
         elif step in ("accept", "prepare", "almost_ready", "ready") and kitchen is not None:
@@ -436,7 +442,7 @@ class City:
                                      "lat": home["lat"], "lng": home["lng"]}})
             await (await get_redis()).sadd(OURS, order["id"])
             self.paid.add(order["id"])
-            await cust.call("core", "POST", "/payments/initiate", json={"order_id": order["id"], "payment_method_type": PAYMENT_METHOD})
+            await cust.call("core", "POST", "/payments/initiate", json=PAY_BODY(order["id"]))
             logger.info("demo_order_placed", city=self.key, order_id=order["id"], restaurant_id=kitchen)
             return str(order["id"])
         logger.info("demo_order_not_placed", city=self.key, reason="no kitchen the demo customer ordered from is open now")

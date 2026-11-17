@@ -41,6 +41,29 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = structlog.get_logger(__name__)
 
 
+async def _saved_method_token(db: AsyncSession, user_id, method_id: str | None, provider: str) -> str | None:  # type: ignore[no-untyped-def]
+    """A saved card's id (what the apps send) -> its provider token. A card saved with another
+    provider (e.g. a fake demo card where the country now pays through Stripe) can't be charged
+    there: 409, so the customer pays with a new card instead of a raw provider error (R10)."""
+    import uuid as _uuid
+
+    from core_api.modules.payments.models.payment_method import PaymentMethod
+
+    if not method_id:
+        return None
+    try:
+        key = _uuid.UUID(str(method_id))
+    except ValueError:
+        return method_id  # already a provider token (a provider's test token, a fake outcome)
+    m = await db.get(PaymentMethod, key)
+    if m is None or m.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "CARD_NOT_FOUND", "message": "Card not found"})
+    if m.provider != provider and provider != "fake":  # the fake (no keys: local, CI) takes any card
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={
+            "code": "CARD_NOT_USABLE", "message": "This saved card can't be used here. Pay with a new card."})
+    return m.provider_token
+
+
 @router.post("/initiate", response_model=PaymentInitiateResponse, status_code=status.HTTP_201_CREATED)
 async def initiate_payment(
     data: PaymentInitiateRequest,
@@ -94,10 +117,11 @@ async def initiate_payment(
         return PaymentInitiateResponse(payment_intent_id=str(intent.id), provider="wallet", amount=amount, currency=currency)
 
     gateway = get_gateway(country)
+    method_token = await _saved_method_token(db, current_user.id, data.payment_method_id, gateway.name)
     customer = await _checkout_customer(db, gateway, current_user.id, country)
     result = await gateway.create(
         amount=amount, currency=currency, order_id=str(data.order_id), idempotency_key=idempotency_key,
-        payment_method_id=data.payment_method_id, customer=customer,
+        payment_method_id=method_token, customer=customer,
     )
     meta = {k: v for k, v in result.items() if k in ("client_secret", "razorpay_order_id", "fake_outcome", "checkout")}
     intent = await repo.create_intent(

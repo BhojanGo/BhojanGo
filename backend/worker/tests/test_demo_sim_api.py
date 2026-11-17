@@ -231,7 +231,7 @@ async def test_orders_again_from_an_open_kitchen(services: Services, monkeypatch
     placed = next(b for m, p, b in calls if p == "/api/v1/orders" and m == "POST")
     assert placed["quote_token"] == "q" * 30 and placed["payment_method"] == "card"
     assert placed["delivery_address"]["lat"] == HOME[0] and placed["delivery_address"]["zip"] == "500081"
-    assert ("POST", "/api/v1/payments/initiate", {"order_id": "new-order", "payment_method_type": "card"}) in calls
+    assert ("POST", "/api/v1/payments/initiate", {"order_id": "new-order", "payment_method_type": "card", "payment_method_id": "pm_card_visa"}) in calls
     assert await (await runner.get_redis()).smembers(runner.OURS) == {"new-order"}, "marked as the simulator's"
 
 

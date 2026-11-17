@@ -18,6 +18,7 @@ Webhook events we act on (subscribe the endpoint
 Anything else is acknowledged and ignored.
 """
 import asyncio
+import json
 
 import structlog
 import stripe
@@ -71,9 +72,12 @@ def _refunds_of(event_type: str, obj) -> list[dict]:  # type: ignore[no-untyped-
 
 async def process_webhook(payload: bytes, sig_header: str) -> dict:
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, get_settings().payments.STRIPE_WEBHOOK_SECRET)
+        stripe.Webhook.construct_event(payload, sig_header, get_settings().payments.STRIPE_WEBHOOK_SECRET)
     except (stripe.error.SignatureVerificationError, ValueError):  # type: ignore[attr-defined]
         raise ValueError("Invalid Stripe webhook signature")
+    # Verified: read the event as plain JSON. The SDK's Event object is not a dict
+    # (event.get raised on QA, R10, so no paid order was ever placed); finance reads it the same way.
+    event = json.loads(payload)
 
     event_type = event["type"]
     data = event["data"]["object"]

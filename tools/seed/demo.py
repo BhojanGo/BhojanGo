@@ -290,10 +290,14 @@ class Demo:
         brand, last4 = city["card"]
         await self.db.execute(text("""
             INSERT INTO payment_methods (id, user_id, provider, provider_token, brand, last4, exp_month, exp_year, is_default, created_at)
-            VALUES (:id, :u, 'fake', :token, :brand, :last4, 12, :year,
+            VALUES (:id, :u, :provider, :token, :brand, :last4, 12, :year,
                     NOT EXISTS (SELECT 1 FROM payment_methods WHERE user_id = :u AND is_default), now())
             ON CONFLICT DO NOTHING"""), {
-            "id": sid("payment_method", key, "demo"), "u": user, "token": f"pm_fake_demo_{key}", "brand": brand,
+            # US pays through Stripe (test mode on QA): its documented test card pm_card_visa, so the
+            # saved card really charges there; other countries keep the fake (no provider keys yet).
+            "id": sid("payment_method", key, "demo"), "u": user, "brand": brand,
+            "provider": "stripe" if city["city_code"].startswith("US-") else "fake",
+            "token": "pm_card_visa" if city["city_code"].startswith("US-") else f"pm_fake_demo_{key}",
             "last4": last4, "year": date.today().year + 3})
 
     # ── orders ───────────────────────────────────────────────────────────────
