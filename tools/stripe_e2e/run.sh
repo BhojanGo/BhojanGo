@@ -11,6 +11,11 @@
 #   4. tools/stripe_e2e/harness.py runs every case file (tools/stripe_e2e/test_*.py),
 #      PASS/FAIL per case and one result line;
 #   5. everything is torn down (processes stopped, database dropped, Redis 11 flushed).
+# Hold mode (manual checks against the same stack: the headed 3-D Secure check, the apps on an
+# emulator, admin Finance): STRIPE_E2E_HOLD_MINUTES=N binds core-api on 0.0.0.0 (give the runner
+# a temporary Railway domain to port $PORT) and keeps the stack up N minutes (at most 90) after the
+# cases (STRIPE_E2E_CASES=none runs no case first); then it is torn down as usual. Databases a
+# killed run left behind (older than 3 hours) are dropped when the next run starts.
 # Needs STRIPE_SECRET_KEY (sk_test_...) and STRIPE_PUBLISHABLE_KEY (pk_test_...) as
 # sealed variables on the runner; without them it prints "SKIPPED: no Stripe test keys".
 # Live keys are refused. Keys are never printed.
@@ -20,6 +25,10 @@ HERE="$ROOT/tools/stripe_e2e"
 STRIPE_CLI_VERSION=1.55.3
 STRIPE_CLI_SHA256=a894f7891eac5eabb67a5ad5b4820a236626a805b9be544fb4c6e41c5ad91043
 PORT="${STRIPE_E2E_PORT:-8011}"
+HOLD="${STRIPE_E2E_HOLD_MINUTES:-0}"
+case "$HOLD" in ''|*[!0-9]*) HOLD=0 ;; esac
+[ "$HOLD" -gt 90 ] && HOLD=90
+BIND=127.0.0.1; [ "$HOLD" -gt 0 ] && BIND=0.0.0.0
 
 case "${STRIPE_SECRET_KEY:-}" in
   sk_test_*|rk_test_*) ;;
@@ -79,6 +88,14 @@ from cryptography.hazmat.primitives import serialization as s
 k = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 print(k.private_bytes(s.Encoding.PEM, s.PrivateFormat.PKCS8, s.NoEncryption()).decode())')"   || { echo "stripe-e2e: FAIL: could not make a signing key"; exit 1; }
 
+# Throwaway databases a killed run (e.g. a runner deleted mid-hold) left behind: older than 3 hours.
+for old in $(psql "$SERVER_PG" -qAtX -c "SELECT datname FROM pg_database WHERE datname LIKE 'bhojango_stripe_e2e_%'" 2>/dev/null); do
+  ts="${old#bhojango_stripe_e2e_}"
+  case "$ts" in ''|*[!0-9]*) continue ;; esac
+  if [ "$ts" -lt $(( $(date +%s) - 10800 )) ]; then
+    psql "$SERVER_PG" -q -c "DROP DATABASE IF EXISTS \"$old\" WITH (FORCE)" >/dev/null 2>&1 && echo "stripe-e2e: dropped a stale $old"
+  fi
+done
 echo "stripe-e2e: database $DB on the QA server (dropped at the end), Redis db 11"
 psql "$SERVER_PG" -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE \"$DB\"" \
   && psql "$E2E_PG" -v ON_ERROR_STOP=1 -q -f "$ROOT/infra/docker/db/init.sql" >/dev/null \
@@ -115,7 +132,7 @@ case "$WHSEC" in whsec_*) ;; *) echo "stripe-e2e: FAIL: no webhook signing secre
   --forward-to "localhost:$PORT/api/v1/payments/stripe/webhook" >"$WORK/listen.log" 2>&1 &
 CLI_PID=$!
 
-e2e_env uv run --frozen uvicorn core_api.main:app --host 127.0.0.1 --port "$PORT" >"$WORK/api.log" 2>&1 &
+e2e_env uv run --frozen uvicorn core_api.main:app --host "$BIND" --port "$PORT" >"$WORK/api.log" 2>&1 &
 API_PID=$!
 i=0
 until uv run --frozen python -c "import urllib.request,sys; urllib.request.urlopen(sys.argv[1], timeout=3)" "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; do
@@ -132,16 +149,26 @@ echo "stripe-e2e: core-api on :$PORT, Stripe CLI forwarding $EVENTS"
 # Headless Chromium for the Payment Element and 3-D Secure cases (pinned Playwright).
 # The qa-runner image installs Chromium and its libraries at build time (PLAYWRIGHT_BROWSERS_PATH,
 # infra/railway/qa-runner.Dockerfile, same version); elsewhere it is installed here.
-PW="playwright==1.49.0"
+PW="playwright==1.49.0"  # = infra/railway/qa-runner.Dockerfile
 if ls -d "${PLAYWRIGHT_BROWSERS_PATH:-/nonexistent}"/chromium* >/dev/null 2>&1; then
   echo "stripe-e2e: Chromium from the image (${PLAYWRIGHT_BROWSERS_PATH})"
 elif ! uv run --frozen --with "$PW" python -m playwright install --with-deps chromium >"$WORK/playwright.log" 2>&1; then
   echo "stripe-e2e: Playwright/Chromium could not be installed; the browser cases will fail. playwright.log (last 25 lines):"
   tail -25 "$WORK/playwright.log"
 fi
-STRIPE_E2E_CORE="http://127.0.0.1:$PORT" STRIPE_E2E_PSQL="$E2E_PG" STRIPE_E2E_WORK="$WORK" \
-  e2e_env uv run --frozen --with "$PW" python -I "$HERE/harness.py" "$@"
-rc=$?
+rc=0
+if [ "${STRIPE_E2E_CASES:-}" != none ]; then
+  STRIPE_E2E_CORE="http://127.0.0.1:$PORT" STRIPE_E2E_PSQL="$E2E_PG" STRIPE_E2E_WORK="$WORK" \
+    e2e_env uv run --frozen --with "$PW" python -I "$HERE/harness.py" "$@"
+  rc=$?
+fi
+if [ "$HOLD" -gt 0 ]; then
+  echo "stripe-e2e: HOLD core-api on 0.0.0.0:$PORT for $HOLD minutes (until $(date -u -d "+$HOLD min" +%H:%MZ 2>/dev/null)), then teardown"
+  end=$(( $(date +%s) + HOLD * 60 ))
+  while [ "$(date +%s)" -lt "$end" ] && kill -0 "$API_PID" 2>/dev/null; do sleep 15; done
+  kill -0 "$API_PID" 2>/dev/null || { echo "stripe-e2e: core-api stopped during the hold"; rc=1; }
+  echo "stripe-e2e: HOLD over"
+fi
 if [ $rc -ne 0 ]; then
   echo "stripe-e2e: core-api log (last 60 lines)"; sed 's/sk_test_[A-Za-z0-9]*/sk_test_***/g; s/whsec_[A-Za-z0-9]*/whsec_***/g' "$WORK/api.log" | tail -60
 fi

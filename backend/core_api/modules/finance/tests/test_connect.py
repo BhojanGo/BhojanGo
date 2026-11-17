@@ -26,7 +26,10 @@ class FakeStripe:
     def __init__(self, fail: Exception | None = None) -> None:
         self.calls: list[tuple[str, dict]] = []
         self.fail = fail
-        self.Account = SimpleNamespace(create=self._rec("Account.create", SimpleNamespace(id="acct_123")),
+        self.api_key = "sk_test_x"
+        accounts = SimpleNamespace(create=self._rec("v2.accounts.create", SimpleNamespace(id="acct_123")))
+        self.StripeClient = lambda key: SimpleNamespace(v2=SimpleNamespace(core=SimpleNamespace(accounts=accounts)))
+        self.Account = SimpleNamespace(modify=self._rec("Account.modify", None),
                                        retrieve=self._rec("Account.retrieve", {"id": "acct_123", "payouts_enabled": True,
                                                                                "details_submitted": True}))
         self.AccountLink = SimpleNamespace(create=self._rec("AccountLink.create", SimpleNamespace(url="https://connect.stripe.com/setup/e/x")))
@@ -53,19 +56,29 @@ def run(coro):  # type: ignore[no-untyped-def]
 
 
 def test_express_account_for_a_delivery_partner(stripe) -> None:  # type: ignore[no-untyped-def]
-    out = run(P.StripeConnect().create_account({"type": "rider", "id": "u1", "country": "US", "email": "jake@example.com"}))
+    out = run(P.StripeConnect().create_account({"type": "rider", "id": "u1", "country": "US", "email": "jake@example.com",
+                                                "name": "Jake"}))
     assert out == {"external_id": "acct_123", "status": "pending", "onboarding_url": None}
     name, kw = stripe.calls[0]
-    assert name == "Account.create" and kw["type"] == "express" and kw["country"] == "US"
-    assert kw["capabilities"] == {"transfers": {"requested": True}} and kw["business_type"] == "individual"
-    assert kw["business_profile"]["mcc"] == "4215" and kw["metadata"] == {"payee_type": "rider", "payee_id": "u1"}
-    assert kw["idempotency_key"] == "payout-account-rider-u1"  # a retried create never opens a second account
+    params, options = kw["args"]
+    # Accounts v2 (Stripe refuses v1 account creation for new Connect platforms): Express, transfers only.
+    assert name == "v2.accounts.create" and params["dashboard"] == "express"
+    assert params["identity"] == {"country": "US", "entity_type": "individual"}
+    assert params["configuration"] == {"recipient": {"capabilities": {"stripe_balance": {"stripe_transfers": {"requested": True}}}}}
+    assert params["contact_email"] == "jake@example.com" and params["display_name"] == "Jake"
+    assert params["metadata"] == {"payee_type": "rider", "payee_id": "u1"}
+    assert options == {"idempotency_key": "payout-account-rider-u1"}  # a retried create never opens a second account
+    run(P.StripeConnect().create_account({"type": "rider", "id": "u1", "country": "US", "open_key": "rider-u1-1794-2"}))
+    assert stripe.calls[2][1]["args"][1] == {"idempotency_key": "payout-account-rider-u1-1794-2"}  # payouts._open_key
+    name, kw = stripe.calls[1]
+    assert name == "Account.modify" and kw["business_profile"]["mcc"] == "4215"
 
 
 def test_a_kitchen_chooses_company_or_sole_trader_on_stripes_pages(stripe) -> None:  # type: ignore[no-untyped-def]
     run(P.StripeConnect().create_account({"type": "restaurant", "id": "k1", "country": "US", "name": "Boise Bowl Co."}))
-    kw = stripe.calls[0][1]
-    assert "business_type" not in kw and kw["business_profile"] == {
+    params = stripe.calls[0][1]["args"][0]
+    assert params["identity"] == {"country": "US"} and "contact_email" not in params
+    assert stripe.calls[1][1]["business_profile"] == {
         "mcc": "5812", "product_description": "Food sold through BhojanGo", "name": "Boise Bowl Co."}
 
 

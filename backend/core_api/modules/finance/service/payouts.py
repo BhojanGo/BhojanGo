@@ -326,6 +326,23 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
 
 # ── payee accounts ────────────────────────────────────────────────────────────
 
+async def _open_key(db: AsyncSession, payee_type: str, payee_id: uuid.UUID) -> str:
+    """The idempotency key for opening this payee's provider account: the same for a retried or
+    double-tapped request, new when the payee opens again later (their earlier accounts counted)
+    and in a reseeded environment, where ids repeat but the payee is a new row (its creation time).
+    Stripe keeps a key for 24 hours and refuses it with different parameters."""
+    from sqlalchemy import func
+
+    from core_api.modules.catalog.models.restaurant import Restaurant
+    from core_api.modules.identity.models.user import User
+
+    model = Restaurant if payee_type == "restaurant" else User
+    since = (await db.execute(select(model.created_at).where(model.id == payee_id))).scalar_one_or_none()
+    before = (await db.execute(select(func.count()).select_from(PayoutAccount).where(
+        PayoutAccount.payee_type == payee_type, PayoutAccount.payee_id == payee_id))).scalar_one()
+    return f"{payee_type}-{payee_id}-{int(since.timestamp()) if since else 0}-{before}"
+
+
 async def open_account(db: AsyncSession, payee_type: str, payee_id: uuid.UUID, country: str, profile: dict,
                        return_url: str | None = None) -> tuple[PayoutAccount, str | None]:
     """Create the payee's account with the country's provider, or reuse it; with
@@ -338,7 +355,8 @@ async def open_account(db: AsyncSession, payee_type: str, payee_id: uuid.UUID, c
         PayoutAccount.provider == provider.name)))).scalars().first()
     if acct is None:
         created = await provider.create_account({**profile, "type": payee_type, "id": str(payee_id), "country": country,
-                                                 "return_url": return_url})
+                                                 "return_url": return_url,
+                                                 "open_key": await _open_key(db, payee_type, payee_id)})
         acct = PayoutAccount(payee_type=payee_type, payee_id=payee_id, provider=provider.name, external_id=created["external_id"],
                              status=created["status"], country=country, requirements_due=[])
         connect.mark_created(acct)
