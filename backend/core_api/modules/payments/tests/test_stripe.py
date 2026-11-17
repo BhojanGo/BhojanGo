@@ -74,48 +74,77 @@ async def test_refund_by_amount_with_idempotency_key(monkeypatch) -> None:
                     "metadata": {"order_id": "o-1", "refund_id": "abc"}}
 
 
+_LAST: dict = {}
+
+
 def _event(monkeypatch, event: dict) -> None:
+    """Signature check mocked; the body is the event's real JSON (the handler reads the body)."""
+    import json
+
     import stripe
+
+    _LAST["body"] = json.dumps(event).encode()
 
     def construct(payload, sig, secret):  # type: ignore[no-untyped-def]
         if sig != "good":
             raise stripe.SignatureVerificationError("bad", sig)
-        return event
+        return stripe.Event.construct_from(json.loads(payload), "sk_test_x")  # what the SDK really returns
 
     monkeypatch.setattr(stripe.Webhook, "construct_event", construct)
 
 
+async def test_webhook_with_a_real_stripe_signature(monkeypatch) -> None:
+    """No mocks: a body signed the way Stripe signs it goes through the real SDK check (R10: the
+    handler called .get on the SDK's Event object and crashed on every real webhook on QA)."""
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    from shared.config import get_settings
+
+    monkeypatch.setattr(get_settings().payments, "STRIPE_WEBHOOK_SECRET", "whsec_unit")
+    body = json.dumps({"id": "evt_r", "object": "event", "type": "payment_intent.succeeded",
+                       "data": {"object": {"id": "pi_r", "object": "payment_intent"}}}).encode()
+    ts = int(time.time())
+    sig = hmac.new(b"whsec_unit", f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+    e = await stripe_svc.process_webhook(body, f"t={ts},v1={sig}")
+    assert e == {"event_type": "payment_intent.succeeded", "provider_payment_id": "pi_r", "status": "succeeded", "event_id": "evt_r"}
+    with pytest.raises(ValueError):
+        await stripe_svc.process_webhook(body, f"t={ts},v1={'0' * 64}")
+
+
 async def test_webhook_payment_events(monkeypatch) -> None:
     _event(monkeypatch, {"id": "evt_1", "type": "payment_intent.succeeded", "data": {"object": {"id": "pi_1"}}})
-    assert await stripe_svc.process_webhook(b"{}", "good") == {
+    assert await stripe_svc.process_webhook(_LAST["body"], "good") == {
         "event_type": "payment_intent.succeeded", "provider_payment_id": "pi_1", "status": "succeeded", "event_id": "evt_1"}
     with pytest.raises(ValueError):
-        await stripe_svc.process_webhook(b"{}", "forged")
+        await stripe_svc.process_webhook(_LAST["body"], "forged")
 
     _event(monkeypatch, {"id": "evt_2", "type": "payment_intent.payment_failed", "data": {"object": {
         "id": "pi_1", "last_payment_error": {"message": "Your card was declined.", "decline_code": "generic_decline"}}}})
-    e = await stripe_svc.process_webhook(b"{}", "good")
+    e = await stripe_svc.process_webhook(_LAST["body"], "good")
     assert e["status"] == "failed" and e["failure_reason"] == "Your card was declined."
 
     _event(monkeypatch, {"id": "evt_3", "type": "payment_intent.canceled", "data": {"object": {
         "id": "pi_1", "cancellation_reason": "abandoned"}}})
-    e = await stripe_svc.process_webhook(b"{}", "good")
+    e = await stripe_svc.process_webhook(_LAST["body"], "good")
     assert e["status"] == "failed" and e["failure_reason"] == "abandoned"
 
     _event(monkeypatch, {"id": "evt_4", "type": "payment_intent.requires_action", "data": {"object": {"id": "pi_1"}}})
-    assert (await stripe_svc.process_webhook(b"{}", "good"))["status"] == "unknown"  # 3-D Secure: the client handles it
+    assert (await stripe_svc.process_webhook(_LAST["body"], "good"))["status"] == "unknown"  # 3-D Secure: the client handles it
 
 
 async def test_webhook_refund_events(monkeypatch) -> None:
     _event(monkeypatch, {"id": "evt_5", "type": "charge.refunded", "data": {"object": {
         "id": "ch_1", "payment_intent": "pi_1",
         "refunds": {"data": [{"id": "re_1", "status": "succeeded", "amount": 500}]}}}})
-    e = await stripe_svc.process_webhook(b"{}", "good")
+    e = await stripe_svc.process_webhook(_LAST["body"], "good")
     assert e["kind"] == "refund" and e["refunds"] == [
         {"refund_id": "re_1", "status": "succeeded", "amount": 500, "provider_payment_id": "pi_1"}]
     _event(monkeypatch, {"id": "evt_6", "type": "refund.failed", "data": {"object": {
         "id": "re_2", "status": "failed", "amount": 700, "payment_intent": "pi_1"}}})
-    e = await stripe_svc.process_webhook(b"{}", "good")
+    e = await stripe_svc.process_webhook(_LAST["body"], "good")
     assert e["refunds"][0]["status"] == "failed" and e["refunds"][0]["refund_id"] == "re_2"
     assert set(stripe_svc.WEBHOOK_EVENTS) >= {"payment_intent.succeeded", "payment_intent.payment_failed", "charge.refunded"}
 
