@@ -39,7 +39,7 @@ async def test_customer_and_intent_idempotency(monkeypatch) -> None:
                        customer={"provider_customer_id": "cus_1", "methods": ["card"]})
     pi = calls["pi"]
     assert pi["idempotency_key"] == "o-9:attempt-2" and pi["metadata"] == {"order_id": "o-9", "attempt": "o-9:attempt-2"}
-    assert pi["payment_method_types"] == ["card", "link"]
+    assert pi["automatic_payment_methods"] == {"enabled": True}
     c = r["checkout"]
     assert c["amount"] == 1999 and c["currency"] == "USD" and c["customer_id"] == "cus_1" and c["customer_ephemeral_key"] == "ek_1"
 
