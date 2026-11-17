@@ -392,3 +392,10 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
 - Report a problem (round 9 page review): `account.report.photo_add`, `photo_remove`
   (the page's own photo button, replacing the browser's untranslated "Choose File")
   and `account.report.need` (why Send report is still greyed out).
+
+## Kitchen app Help: call-back request didn't load (round 10)
+
+Machine-translated on 2026-11-16 into all seven languages; needs native review.
+
+- New, BhojanGo Kitchen app: `partner.help.earlier_failed`, the title of the error (with
+  Retry) when the kitchen's open call-back request can't be loaded.

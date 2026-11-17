@@ -1,19 +1,50 @@
 // Every rule's settings in plain words (Pricing & Rules, approvals, history):
 // "0–3 km: ₹25 · 3–6 km: ₹35 · 6–10 km: ₹50 · beyond 10 km: not delivered".
 // No raw JSON or "null" ever reaches the page.
+// The currency, how money is written (the country's first locale) and km or mi all
+// come from the rule's country in Markets, never from a table here.
+// Pure (no React): `node --test` covers it (test/ruleWords.test.ts).
+import { money } from "./money.ts";
+
 type P = Record<string, unknown>;
 
-const SYM: Record<string, string> = { IN: "₹", US: "$" };
+/** The Markets country fields a rule's words need (lib/markets Country has them all). */
+export interface UnitsCountry { code: string; currency: string; locales: string[]; distance_unit: string }
 
-export function unitsFor(scope: string): { cur: string; dist: string } {
-  const c = scope.split("-")[0] ?? "IN";
-  return { cur: SYM[c] ?? "", dist: c === "US" ? "mi" : "km" };
+/** How a rule's amounts and distances read in its country. */
+export interface Units {
+  /** An amount: whole amounts without ".00" unless `decimals` is given. */
+  money: (v: number, decimals?: number) => string;
+  /** "km" or "mi"; empty when the scope has no country (platform rules) or Markets hasn't loaded. */
+  dist: string;
 }
 
-function m(v: unknown, cur: string): string {
+/** The units for a rule scope ("IN", "US-ID-BOI", "*") from the Markets countries. */
+export function unitsFor(scope: string, countries: UnitsCountry[] | undefined): Units {
+  const code = scope.split("-")[0];
+  const c = (countries ?? []).find((x) => x.code === code);
+  const plain = (v: number, decimals?: number) => (decimals != null ? v.toFixed(decimals) : String(Number.isInteger(v) ? v : Number(v.toFixed(2))));
+  if (!c?.currency) return { money: plain, dist: c?.distance_unit ?? "" };
+  return {
+    money: (v, decimals) => money(v, c.currency, decimals ?? (Number.isInteger(v) ? 0 : 2), c.locales[0]),
+    dist: c.distance_unit ?? "",
+  };
+}
+
+function m(v: unknown, cur: Units): string {
   const n = Number(v);
   if (v == null || v === "" || Number.isNaN(n)) return "not set";
-  return `${cur}${Number.isInteger(n) ? n : n.toFixed(2)}`;
+  return cur.money(n);
+}
+
+/** "3 km"; just "3" when there is no unit. */
+function d(v: unknown, dist: string): string {
+  return dist ? `${n(v)} ${dist}` : n(v);
+}
+
+/** "per km"; "per unit of distance" when there is no unit. */
+function per(dist: string): string {
+  return dist ? `per ${dist}` : "per unit of distance";
 }
 
 function n(v: unknown): string {
@@ -39,19 +70,20 @@ const LINE_NAMES: Record<string, string> = {
 };
 
 /** One line of plain words for a rule's settings. */
-export function describe(template: string, params: P, scope: string): string {
-  const { cur, dist } = unitsFor(scope);
+export function describe(template: string, params: P, units: Units): string {
+  const cur = units;
+  const { dist } = units;
   const p = params ?? {};
   switch (template) {
     case "distance_slabs": {
       const slabs = (p.slabs as { up_to: unknown; fee: unknown }[] | undefined) ?? [];
       let from = 0;
       const parts = slabs.map((s) => {
-        const part = `${from}–${n(s.up_to)} ${dist}: ${m(s.fee, cur)}`;
+        const part = `${from}–${d(s.up_to, dist)}: ${m(s.fee, cur)}`;
         from = Number(s.up_to);
         return part;
       });
-      parts.push(`beyond ${from} ${dist}: ${p.beyond_per_unit != null ? `${m(p.beyond_per_unit, cur)} per extra ${dist}` : "not delivered"}`);
+      parts.push(`beyond ${d(from, dist)}: ${p.beyond_per_unit != null ? `${m(p.beyond_per_unit, cur)} ${dist ? `per extra ${dist}` : "per extra unit of distance"}` : "not delivered"}`);
       return parts.join(" · ");
     }
     case "flat": return `${m(p.amount, cur)} per order`;
@@ -72,7 +104,7 @@ export function describe(template: string, params: P, scope: string): string {
     case "flat_per_order": return `${m(p.amount, cur)} per order on top of the percentage`;
     case "payout_schedule": return `Paid ${p.frequency === "biweekly" ? "every two weeks" : "weekly"} on ${DAYS[String(p.day)] ?? p.day}, ${n(p.hold_days)} days after the week ends`;
     case "base_distance_wait":
-      return `${m(p.base, cur)} per delivery + ${m(p.per_unit, cur)} per ${dist} + ${m(p.per_wait_minute, cur)} per minute waiting after ${n(p.free_wait_minutes)} free minutes`;
+      return `${m(p.base, cur)} per delivery + ${m(p.per_unit, cur)} ${per(dist)} + ${m(p.per_wait_minute, cur)} per minute waiting after ${n(p.free_wait_minutes)} free minutes`;
     case "hourly_floor": return `At least ${m(p.per_active_hour, cur)} per active hour (topped up weekly)`;
     case "batch_bonus": return `${m(p.per_extra_order, cur)} for each extra order in a batch`;
     case "peak_bonus": return `${m(p.per_order, cur)} per order during ${((p.windows as unknown[]) ?? []).map(window).join(", ")}`;
@@ -85,7 +117,7 @@ export function describe(template: string, params: P, scope: string): string {
       const amounts = (p.amounts as unknown[]) ?? [];
       return `Tips offered: ${amounts.map((a) => m(a, cur)).join(", ")}${p.default_index != null ? ` · ${m(amounts[Number(p.default_index)], cur)} picked by default` : " · none picked by default"}`;
     }
-    case "max_radius": return `Deliver up to ${n(p.distance)} ${dist} from the kitchen`;
+    case "max_radius": return `Deliver up to ${d(p.distance, dist)} from the kitchen`;
     case "dispatch_offer_timeout": return `Delivery partners have ${n(p.seconds)} seconds to accept an offer`;
     case "batching": return p.live
       ? "Live: delivery partners can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
