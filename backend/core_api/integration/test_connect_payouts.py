@@ -79,7 +79,8 @@ async def _q(sql: str, **kw) -> list:  # type: ignore[no-untyped-def]
     from shared.db import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        rows = (await db.execute(text(sql), kw)).all()
+        result = await db.execute(text(sql), kw)
+        rows = result.all() if result.returns_rows else []  # DELETE / UPDATE return none
         await db.commit()
         return rows
 
