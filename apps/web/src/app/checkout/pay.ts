@@ -126,7 +126,6 @@ export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, l
   const elements = stripe.elements({
     clientSecret: String(c.payment_intent_client_secret),
     locale: STRIPE_LOCALES.has(language) ? language : "auto",
-    fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" }],
     appearance: {
       theme: "stripe",
       variables: {

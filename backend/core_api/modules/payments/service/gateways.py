@@ -82,12 +82,15 @@ class StripeGateway:
         kwargs: dict = {"amount": amount, "currency": currency.lower(),
                         "metadata": {"order_id": order_id, "attempt": idempotency_key},
                         "description": f"BhojanGo order {order_id}",
-                        "idempotency_key": idempotency_key, "automatic_payment_methods": {"enabled": True}}
+                        "idempotency_key": idempotency_key,
+                        # Cards (Apple Pay and Google Pay are cards) and Link only: bank debits settle in days and
+                        # Klarna / Cash App Pay leave the page, neither fits a hot meal paid at checkout (R10, QA).
+                        "payment_method_types": ["card", "link"]}
         if customer.get("provider_customer_id"):
             kwargs["customer"] = customer["provider_customer_id"]
         if payment_method_id:  # server-side confirm (saved card)
             kwargs.update(payment_method=payment_method_id, confirm=True)
-            kwargs.pop("automatic_payment_methods")
+            kwargs["payment_method_types"] = ["card"]
         pi = await asyncio.to_thread(s.PaymentIntent.create, **kwargs)
         checkout = {"sdk": "stripe_payment_sheet", "payment_intent_client_secret": pi.client_secret,
                     "publishable_key": get_settings().payments.STRIPE_PUBLISHABLE_KEY,

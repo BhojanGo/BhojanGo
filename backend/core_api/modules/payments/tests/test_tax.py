@@ -58,7 +58,8 @@ async def test_stripe_tax_request_shape(monkeypatch) -> None:
     monkeypatch.setattr(stripe.tax.Calculation, "create", create)
     r = await StripeTax().calculate("USD", LINES, TaxAddress("US", "ID", "Boise", "83702", "1510 N 13th St"))
     assert sent["currency"] == "usd" and sent["customer_details"]["address"]["postal_code"] == "83702"
-    assert [li["amount"] for li in sent["line_items"]] == [2500, 199, 125]
+    assert [li["amount"] for li in sent["line_items"]] == [2500, 125]  # food, service fee
+    assert sent["shipping_cost"]["amount"] == 199  # the delivery fee goes as shipping (R10)
     assert sent["line_items"][0]["tax_code"] == "txcd_40060003"  # prepared food
     assert r.calculation_id == "taxcalc_123" and r.total == Decimal("1.69")
     with pytest.raises(TaxError):

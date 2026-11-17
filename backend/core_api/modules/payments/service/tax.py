@@ -166,7 +166,8 @@ def parse_calculation(calc, state: str) -> list[TaxBreakdown]:  # type: ignore[n
     data = _g(items, "data", []) if items is not None else []
     if data and not _g(items, "has_more", False):
         by: dict[tuple, dict] = {}
-        for li in data:
+        ship = _g(calc, "shipping_cost")  # the delivery fee's tax (sent as shipping_cost)
+        for li in [*data, *([ship] if ship is not None else [])]:
             for b in _g(li, "tax_breakdown", []) or []:
                 j = _g(b, "jurisdiction", {})
                 d = _g(b, "tax_rate_details")
@@ -203,6 +204,13 @@ def parse_calculation(calc, state: str) -> list[TaxBreakdown]:  # type: ignore[n
 
 
 UNAVAILABLE = "stripe_tax_unavailable"
+SHIPPING_TAX_CODE = "txcd_92010001"
+
+
+def _not_set_up(e) -> bool:  # type: ignore[no-untyped-def]
+    """Stripe's answer when Stripe Tax isn't activated (head office, settings) on the account."""
+    text = f"{getattr(e, 'code', '') or ''} {e}".lower()
+    return "stripe_tax_inactive" in text or "not been activated" in text or "head office" in text or "tax settings" in text
 
 
 class StripeTax:
@@ -215,12 +223,15 @@ class StripeTax:
         stripe.api_key = get_settings().payments.STRIPE_SECRET_KEY
         if not address.postal_code:
             raise TaxError("A US address needs a ZIP code to calculate tax")
+        # Stripe Tax refuses a shipping tax code on a line item: the delivery fee goes in
+        # shipping_cost (found on QA, R10: every US quote fell back to "not calculated").
+        shipping = [ln for ln in lines if ln.amount > 0 and TAX_CODES.get(ln.what) == SHIPPING_TAX_CODE and not ln.tax_code]
         params: dict = {
             "currency": currency.lower(),
             "line_items": [
                 {"amount": _cents(ln.amount), "reference": ln.reference[:500],
                  "tax_code": ln.tax_code or TAX_CODES.get(ln.what, "txcd_99999999"), "tax_behavior": "exclusive"}
-                for ln in lines if ln.amount > 0
+                for ln in lines if ln.amount > 0 and ln not in shipping
             ],
             "customer_details": {
                 "address": {k: v for k, v in {"country": address.country, "state": address.state, "city": address.city,
@@ -229,11 +240,18 @@ class StripeTax:
             },
             "expand": ["line_items.data.tax_breakdown"],
         }
+        if shipping:
+            params["shipping_cost"] = {"amount": sum(_cents(ln.amount) for ln in shipping),
+                                       "tax_code": SHIPPING_TAX_CODE, "tax_behavior": "exclusive"}
         if idempotency_key:
             params["idempotency_key"] = idempotency_key
         try:
             calc = await asyncio.to_thread(stripe.tax.Calculation.create, **params)
         except (stripe.InvalidRequestError, stripe.PermissionError, stripe.AuthenticationError) as e:  # type: ignore[attr-defined]
+            if isinstance(e, stripe.InvalidRequestError) and not _not_set_up(e):  # type: ignore[attr-defined]
+                # Our request is wrong (a bug), not the account: never hide it behind a $0 line.
+                logger.error("stripe_tax_bad_request", error=str(e)[:300], param=getattr(e, "param", None))
+                raise TaxError("We couldn't calculate tax right now; please try again")
             # The account can't calculate tax (Stripe Tax not set up / no access).
             logger.error("stripe_tax_not_configured", error=str(e)[:300], code=getattr(e, "code", None))
             if get_settings().is_production:
