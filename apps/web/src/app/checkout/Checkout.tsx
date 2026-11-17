@@ -618,7 +618,7 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
       <button type="button" disabled={!ready || busy || !complete} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
         {busy ? t("checkout.paying") : t("checkout.pay_amount", { amount })}
       </button>
-      <p className="mb-0 mt-3 flex items-center justify-center gap-1.5 text-caption text-muted">
+      <p className="mb-0 mt-3 flex items-start justify-center gap-1.5 text-center text-small text-muted">
         <Lock /> {t("checkout.stripe_note")}
       </p>
     </Modal>

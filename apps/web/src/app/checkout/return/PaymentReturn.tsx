@@ -53,9 +53,8 @@ export function PaymentReturn() {
     : error
       ? t("common.error")
       : failed
-        ? status?.failure_reason
-          ? t("checkout.payment_failed_reason", { reason: status.failure_reason })
-          : t("checkout.payment_failed")
+        // Stripe's reason ("Your card was declined."), then what it means for the money
+        ? [status?.failure_reason || t("app.payment_failed.declined_card"), t("app.payment_failed.not_charged")].join(" ")
         : slow
           ? t("checkout.payment_slow")
           : t("checkout.return_body");
