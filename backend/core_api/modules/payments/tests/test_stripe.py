@@ -39,7 +39,7 @@ async def test_customer_and_intent_idempotency(monkeypatch) -> None:
                        customer={"provider_customer_id": "cus_1", "methods": ["card"]})
     pi = calls["pi"]
     assert pi["idempotency_key"] == "o-9:attempt-2" and pi["metadata"] == {"order_id": "o-9", "attempt": "o-9:attempt-2"}
-    assert pi["automatic_payment_methods"] == {"enabled": True}
+    assert pi["payment_method_types"] == ["card", "link"]
     c = r["checkout"]
     assert c["amount"] == 1999 and c["currency"] == "USD" and c["customer_id"] == "cus_1" and c["customer_ephemeral_key"] == "ek_1"
 
@@ -153,17 +153,20 @@ def _mock_calc(monkeypatch, result=None, error=None) -> dict:  # type: ignore[no
 
 
 async def test_stripe_tax_per_line_and_per_jurisdiction(monkeypatch) -> None:
-    sent = _mock_calc(monkeypatch, _calc([
+    calc = _calc([
         {"reference": "food-1-a", "tax_breakdown": [_bd("Idaho", "state", 1500, 90)]},
         {"reference": "food-2-b", "tax_breakdown": [_bd("Idaho", "state", 1000, 60)]},
-        {"reference": "delivery_fee", "tax_breakdown": [_bd("Idaho", "state", 199, 0, "0.0", "product_exempt")]},
-    ]))
+    ])
+    # The delivery fee is Stripe's shipping_cost (a shipping tax code is refused on a line item).
+    calc["shipping_cost"] = {"amount": 199, "tax_breakdown": [_bd("Idaho", "state", 199, 0, "0.0", "product_exempt")]}
+    sent = _mock_calc(monkeypatch, calc)
     lines = [TaxableLine("food-1-a", Decimal("15.00"), kind="food"), TaxableLine("food-2-b", Decimal("10.00"), kind="food"),
              TaxableLine("delivery_fee", Decimal("1.99"), kind="delivery_fee")]
     r = await StripeTax().calculate("USD", lines, ADDR, idempotency_key="taxcalc:q-1")
     assert sent["idempotency_key"] == "taxcalc:q-1"
     assert [(li["reference"], li["amount"], li["tax_code"]) for li in sent["line_items"]] == [
-        ("food-1-a", 1500, "txcd_40060003"), ("food-2-b", 1000, "txcd_40060003"), ("delivery_fee", 199, "txcd_92010001")]
+        ("food-1-a", 1500, "txcd_40060003"), ("food-2-b", 1000, "txcd_40060003")]
+    assert sent["shipping_cost"] == {"amount": 199, "tax_code": "txcd_92010001", "tax_behavior": "exclusive"}
     [b] = r.breakdown
     assert (b.label, b.rate_percent, b.taxable_amount, b.amount) == ("Idaho sales tax", Decimal("6.0"), Decimal("26.99"), Decimal("1.50"))
     assert r.provider == "stripe_tax" and r.calculation_id == "taxcalc_1"
@@ -231,3 +234,16 @@ def test_tax_lines_one_per_cart_line_adding_up_to_the_food_after_discounts() -> 
     assert [ln.reference for ln in out] == ["food-1-a", "food-2-b", "food-3-c", "delivery_fee"]
     assert sum((ln.amount for ln in out if ln.kind == "food"), Decimal(0)) == Decimal("21.97")
     assert all(ln.amount > 0 for ln in out)
+
+
+async def test_stripe_tax_bad_request_is_an_error_not_a_zero_line(monkeypatch) -> None:
+    """Our own malformed request (a bug) must not be shown as "Sales tax not calculated" (R10, QA)."""
+    import pytest
+    import stripe
+
+    from core_api.modules.payments.service.tax import TaxError
+
+    err = stripe.InvalidRequestError("The shipping tax code txcd_92010001 cannot be used on a line item.", "line_items[1][tax_code]")
+    _mock_calc(monkeypatch, error=err)
+    with pytest.raises(TaxError):
+        await StripeTax().calculate("USD", [TaxableLine("food", Decimal("25"))], ADDR)

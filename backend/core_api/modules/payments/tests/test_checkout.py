@@ -38,7 +38,7 @@ async def test_stripe_payment_sheet(monkeypatch) -> None:
 
     r = await g.create(amount=3973, currency="USD", order_id="o-1", idempotency_key="o-1:attempt-1",
                        payment_method_id=None, customer={**CUSTOMER, "provider_customer_id": cus})
-    assert calls["pi"]["automatic_payment_methods"] == {"enabled": True}  # cards, Apple Pay, Google Pay
+    assert calls["pi"]["payment_method_types"] == ["card", "link"]  # cards (incl. Apple Pay, Google Pay) and Link
     assert calls["pi"]["customer"] == "cus_123" and calls["pi"]["amount"] == 3973 and calls["pi"]["currency"] == "usd"
     assert calls["key"]["stripe_version"] == gateways.STRIPE_API_VERSION
     sheet = r["checkout"]

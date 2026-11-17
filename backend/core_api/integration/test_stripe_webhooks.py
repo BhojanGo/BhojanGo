@@ -80,7 +80,7 @@ async def test_webhooks_drive_the_order_and_refunds(client: AsyncClient, stripe_
     assert c["customer_ephemeral_key"] == "ek_test_x" and c["payment_intent_client_secret"].startswith("pi_")
     pi1 = c["payment_intent_client_secret"].split("_secret_")[0]
     assert stripe_mock["pi"][0]["idempotency_key"] == f"{order['id']}:attempt-1"
-    assert stripe_mock["pi"][0]["automatic_payment_methods"] == {"enabled": True}
+    assert stripe_mock["pi"][0]["payment_method_types"] == ["card", "link"]
 
     # A forged webhook is refused; a declined attempt keeps the order payable.
     assert (await hook(client, {"id": "evt_x", "type": "payment_intent.succeeded", "data": {"object": {"id": pi1}}},

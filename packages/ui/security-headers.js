@@ -7,7 +7,8 @@
 
 /**
  * @param {{ connect?: string[], img?: string[], script?: string[], style?: string[], frame?: string[], worker?: string[],
- *   geolocation?: boolean, popups?: boolean }} o
+ *   geolocation?: boolean, popups?: boolean, payment?: string[] }} o
+ * `payment` lets these origins' frames use the Payment Request API (Stripe's Apple Pay / Google Pay frames).
  * `worker` adds a worker-src (e.g. "blob:" for a WebGL map); `popups` relaxes the opener policy to
  * same-origin-allow-popups (a sign-in provider's popup must message back to the page).
  */
@@ -35,7 +36,7 @@ function securityHeaders(o = {}) {
     { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    { key: "Permissions-Policy", value: `camera=(), microphone=(), payment=(self), geolocation=(${o.geolocation ? "self" : ""})` },
+    { key: "Permissions-Policy", value: `camera=(), microphone=(), payment=(self${(o.payment ?? []).map((u) => ` "${u}"`).join("")}), geolocation=(${o.geolocation ? "self" : ""})` },
     { key: "Cross-Origin-Opener-Policy", value: o.popups ? "same-origin-allow-popups" : "same-origin" },
     { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
   ];
