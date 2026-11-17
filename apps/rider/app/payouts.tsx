@@ -1,5 +1,5 @@
 // Payouts: where the money goes (payout account) and past weekly statements.
-import { api, ApiError, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LoadError, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -33,14 +33,18 @@ export default function Payouts() {
   const [data, setData] = useState<{ statements: Statement[]; accounts: Account[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  /** The first load failed (offline, our servers): LoadError and Retry (R9). */
+  const [failure, setFailure] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     const [st, ac] = await Promise.all([api.core.GET("/api/v1/finance/statements/me"), api.core.GET("/api/v1/finance/payout-accounts/me")]);
     setData({ statements: (unwrap(st) as unknown as Statement[]) ?? [], accounts: (unwrap(ac) as unknown as Account[]) ?? [] });
+    setFailure(null);
   }, []);
+  const firstLoad = useCallback(() => load().catch(setFailure), [load]);
   useFocusEffect(useCallback(() => {
-    load().catch((e: Error) => setMsg(e.message));
-  }, [load]));
+    void firstLoad();
+  }, [firstLoad]));
 
   async function setUp() {
     setBusy(true);
@@ -64,7 +68,10 @@ export default function Payouts() {
         <Text accessibilityRole="header" style={[type.h2, { color: night.text }]}>{t("rider.payouts.title")}</Text>
       </View>
       {!data ? (
-        <View style={styles.center}>{msg ? <Text style={ui.body}>{msg}</Text> : <ActivityIndicator color={night.kesar} />}</View>
+        <View style={styles.center}>
+          {failure ? <LoadError error={failure} onRetry={firstLoad} tone="dark" fill style={{ alignSelf: "stretch" }} />
+            : <ActivityIndicator accessibilityLabel={t("common.loading")} color={night.kesar} />}
+        </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: space[5], gap: space[4] }}>
           <View style={styles.card}>

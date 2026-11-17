@@ -36,6 +36,8 @@ interface LocaleState {
   /** Markets countries (GET /api/v1/markets/directory); empty until loaded or when offline. */
   countries: MarketCountry[];
   directoryError: boolean;
+  /** What the directory load threw (LoadError words it: no connection, too slow, ...). */
+  directoryFailure: unknown;
   addressCountry: string | null;
   /** The country GET /markets/hint reads from this phone's IP (null when unknown or GeoIP is off). */
   ipCountry: string | null;
@@ -56,6 +58,7 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
   ready: false,
   countries: [],
   directoryError: false,
+  directoryFailure: null,
   addressCountry: null,
   ipCountry: null,
   chosenLanguage: null,
@@ -87,9 +90,10 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
   loadDirectory: async () => {
     try {
       const d = unwrap(await api.core.GET("/api/v1/markets/directory"));
-      set({ countries: d.countries, directoryError: false });
-    } catch {
-      set({ directoryError: true });
+      set({ countries: d.countries, directoryError: false, directoryFailure: null });
+      if (!get().ipCountry) void get().loadHint(); // the hint failed with it when offline at start
+    } catch (e) {
+      set({ directoryError: true, directoryFailure: e });
     }
   },
 
@@ -137,6 +141,8 @@ export interface CountryContext {
   /** True while Markets' countries haven't loaded (or failed: see `reload`). */
   loading: boolean;
   error: boolean;
+  /** What the load threw, for <LoadError error={failure} onRetry={reload} />. */
+  failure: unknown;
   reload: () => Promise<void>;
   /** The country known for sure: the delivery address's or the account's (strongest source; not stored). See useKnownCountry. */
   setAddressCountry: (code: string | null) => void;
@@ -151,9 +157,9 @@ export function useCountry(): CountryContext {
     });
     return {
       country, source, countries: s.countries, loading: !s.countries.length && !s.directoryError, error: s.directoryError,
-      reload: s.loadDirectory, setAddressCountry: s.setAddressCountry,
+      failure: s.directoryFailure, reload: s.loadDirectory, setAddressCountry: s.setAddressCountry,
     };
-  }, [s.countries, s.addressCountry, s.ipCountry, s.device, s.directoryError, s.loadDirectory, s.setAddressCountry]);
+  }, [s.countries, s.addressCountry, s.ipCountry, s.device, s.directoryError, s.directoryFailure, s.loadDirectory, s.setAddressCountry]);
 }
 
 export interface I18n {

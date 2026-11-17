@@ -4,7 +4,7 @@
 // will (lib/dish.tsx), then save it as the item's image_url. On a phone (portrait,
 // lib/layout.ts) it is one column: the search under the title, each dish on two
 // lines (name, then price and stock), then the store hours and offers.
-import { api, ApiError, field, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, field, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -78,7 +78,7 @@ export default function MenuScreen() {
         params: { path: { restaurant_id: id, item_id: i.id } }, body: { sold_out: out } }));
       await menu.reload();
     } catch (e) {
-      Alert.alert(tr("partner.menu.change_failed"), e instanceof ApiError ? e.message : (e as Error).message);
+      Alert.alert(tr("partner.menu.change_failed"), e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     }
   }
 
@@ -118,6 +118,9 @@ export default function MenuScreen() {
       )}
       <ScrollView nestedScrollEnabled contentContainerStyle={{ paddingBottom: 12 }}>
         {menu.data && items.length === 0 ? <Text style={[t.muted, { paddingVertical: 16 }]}>{tr("partner.menu.none")}</Text> : null}
+        {/* R9: the menu didn't load (offline, our servers): say so and Retry. */}
+        {!menu.data && menu.failure ? <LoadError error={menu.failure} onRetry={menu.reload} /> : null}
+        {!menu.data && !menu.failure ? <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} style={{ paddingVertical: 16 }} /> : null}
         {items.map((i, n) => {
           const inStock = i.is_available && !i.sold_out_today;
           const groups = (i.option_groups ?? []).map((g) => g.name.toLowerCase());
@@ -283,7 +286,7 @@ function DishPhoto({ item, currency, kitchenId, onClose, onSaved }: {
       setNext({ uri: a.uri, url: menuPhotoUrl(up.public_path) });
     } catch (e) {
       setNext(undefined);
-      setMsg((e as Error).message || tr("partner.upload.failed"));
+      setMsg((!(e instanceof TypeError) && (e as Error).message) || tr("partner.upload.failed"));
     } finally {
       setBusy(null);
     }
@@ -393,7 +396,7 @@ function CreateOffer({ visible, currency, onClose, onCreate }: { visible: boolea
       setValue("");
       setCap("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : (e as Error).message);
+      setError(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
     } finally {
       setBusy(false);
     }

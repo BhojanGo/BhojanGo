@@ -1,7 +1,7 @@
 // Delivery partners sign in with their phone and a code by SMS (first), or their email
 // (round 8, D5); dark, like the rest of the app.
 import {
-  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LanguagePill, type MarketCountry, PhoneCountryButton, SafeAreaView, SignInWays, type SignInWay, type,
+  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, type MarketCountry, PhoneCountryButton, SafeAreaView, SignInWays, type SignInWay, type,
   useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -17,7 +17,9 @@ export default function SignIn() {
   const { t } = useI18n();
   const [way, setWay] = useState<SignInWay>("phone");
   // The phone number's country code (not a site country: there is none to choose): Markets' countries, from the detected one.
-  const { country: current, countries } = useCountry();
+  const { country: current, countries, error: marketsDown, failure, reload } = useCountry();
+  // R9: no countries (the API can't be reached): the error state and Retry, never a form that can't send.
+  const unreachable = marketsDown && !countries.length;
   const [picked, setPicked] = useState<MarketCountry | null>(null);
   const country = picked ?? current ?? countries[0] ?? null;
   const [number, setNumber] = useState("");
@@ -27,9 +29,9 @@ export default function SignIn() {
   const ok = !!country && digits.length >= 6 && digits.length <= 15 && !busy;
 
   async function send() {
+    if (!country) return;
     setBusy(true);
     setError(null);
-    if (!country) return;
     const phone = e164(country.phone_code, number);
     try {
       await sendCode(phone, country.code);
@@ -68,8 +70,9 @@ export default function SignIn() {
         <Text accessibilityRole="header" style={[ui.display, { marginTop: 48 }]}>{t("rider.sign_in.hero")}</Text>
         <Text style={[ui.body, { color: night.muted, marginTop: space[3] }]}>{t("rider.sign_in.sub")}</Text>
         <View style={{ flex: 1, minHeight: space[6] }} />
-        <SignInWays value={way} onChange={(w) => { setWay(w); setError(null); }} tone="dark" />
-        {way === "email" ? (
+        {unreachable ? <LoadError error={failure} onRetry={reload} tone="dark" /> : null}
+        {unreachable ? null : <SignInWays value={way} onChange={(w) => { setWay(w); setError(null); }} tone="dark" />}
+        {unreachable ? null : way === "email" ? (
           <>
             <EmailSignIn country={country?.code ?? null} onSignedIn={() => void signedIn()} tone="dark" buttonVariant="rider" />
             {error ? <Text accessibilityRole="alert" style={[type.small, { color: night.sosText }]}>{error}</Text> : null}

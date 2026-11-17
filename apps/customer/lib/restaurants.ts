@@ -21,6 +21,8 @@ interface DiscoverState {
   data: Discover | null;
   loading: boolean;
   error: boolean;
+  /** What the last load threw (LoadError words it). */
+  failure: unknown;
   load: (at: { lat: number; lng: number }, force?: boolean) => Promise<void>;
 }
 
@@ -30,29 +32,30 @@ export const useDiscoverStore = create<DiscoverState>()((set, get) => ({
   data: null,
   loading: false,
   error: false,
+  failure: null,
   load: async ({ lat, lng }, force = false) => {
     const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
     if (!force && get().key === key && (get().data || get().loading)) return;
-    set({ key, loading: true, error: false, ...(get().key === key ? {} : { data: null }) });
+    set({ key, loading: true, error: false, failure: null, ...(get().key === key ? {} : { data: null }) });
     try {
       const d = unwrap(await api.core.GET("/api/v1/discover", { params: { query: { lat, lng } } })) as Discover;
       if (get().key === key) set({ data: d, loading: false });
-    } catch {
-      if (get().key === key) set({ loading: false, error: true });
+    } catch (e) {
+      if (get().key === key) set({ loading: false, error: true, failure: e });
     }
   },
 }));
 
 /** Kitchens, cuisines and offers for the drop point (null point: nothing yet). */
 export function useDiscover(point: { lat: number; lng: number } | null | undefined) {
-  const { data, loading, error, load } = useDiscoverStore();
+  const { data, loading, error, failure, load } = useDiscoverStore();
   const lat = point?.lat;
   const lng = point?.lng;
   useEffect(() => {
     if (lat != null && lng != null) void load({ lat, lng });
   }, [lat, lng, load]);
   const reload = useCallback(() => (lat != null && lng != null ? load({ lat, lng }, true) : Promise.resolve()), [lat, lng, load]);
-  return { data, kitchens: data?.restaurants ?? [], loading: loading || (!data && !error && lat != null), error, reload };
+  return { data, kitchens: data?.restaurants ?? [], loading: loading || (!data && !error && lat != null), error, failure, reload };
 }
 
 /** The kitchen's card from the last /discover (its offer, distance), if it was on it. */
@@ -79,10 +82,17 @@ export async function loadMenu(id: string): Promise<Menu> {
 
 export function useMenu(id: string | undefined) {
   const [menu, setMenu] = useState<Menu | null>(id ? (menus.get(id) ?? null) : null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  /** What the load threw (null while loading or loaded): <LoadError error={failure} onRetry={reload} />. */
+  const [failure, setFailure] = useState<unknown>(null);
+  const reload = useCallback(async () => {
     if (!id) return;
-    loadMenu(id).then(setMenu).catch((e: Error) => setError(e.message));
+    await loadMenu(id).then((m) => {
+      setMenu(m);
+      setFailure(null);
+    }, setFailure);
   }, [id]);
-  return { menu, error };
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  return { menu, failure, reload };
 }

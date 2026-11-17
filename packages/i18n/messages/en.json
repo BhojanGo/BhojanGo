@@ -978,6 +978,31 @@
       "note": "Your number stays private. Messages close once the order is delivered.",
       "close": "Close messages",
       "empty": "No messages yet. Tap a quick message or write a short note."
+    },
+    "load_error": {
+      "title": "Can't reach BhojanGo",
+      "title_refused": "This didn't load",
+      "offline": "We couldn't connect. Check your internet connection, then retry.",
+      "timeout": "Our servers are taking too long to answer. Retry in a moment.",
+      "server": "Our servers aren't answering right now. Retry in a moment.",
+      "retry": "Retry"
+    },
+    "payment_failed": {
+      "title": "Payment didn't go through",
+      "declined_upi": "Your UPI app declined the request.",
+      "declined_card": "Your bank declined the payment.",
+      "not_charged": "You have not been charged. If money left your account, your bank reverses it automatically, usually by the next working day.",
+      "held": "Your price is still held",
+      "left": "{total} · {time} left",
+      "try_upi": "Try UPI again",
+      "try_card": "Try the card again",
+      "another_way": "Pay another way",
+      "back_to_bag": "Back to your bag",
+      "sheet_upi": "Pay with UPI",
+      "sheet_card": "Pay with card",
+      "approve": "Approve {total}",
+      "decline": "Decline",
+      "test_note": "Test payments: nothing is charged."
     }
   },
   "rider": {

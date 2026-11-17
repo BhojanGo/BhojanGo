@@ -3,7 +3,7 @@
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes (a slow poll as a safety net). The map is
 // MapLibre over OpenFreeMap's free tiles (components/LiveMap.tsx).
-import { api, color, inZone, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
+import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -33,7 +33,9 @@ export default function Tracking() {
   const { top: safeTop } = useSafeAreaInsets();
   const floatTop = safeTop + space[3];
   const [order, setOrder] = useState<Order | null>(null);
-  const [missing, setMissing] = useState(false);
+  /** What the order's load threw: 403/404 is "not found"; anything else (offline, our servers) gets Retry. */
+  const [failure, setFailure] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false });
 
@@ -46,8 +48,12 @@ export default function Tracking() {
     let alive = true;
     const load = () =>
       api.core.GET("/api/v1/orders/{order_id}", { params: { path: { order_id: id } } })
-        .then((r) => alive && setOrder(unwrap(r) as Order))
-        .catch(() => alive && setMissing(true));
+        .then((r) => {
+          if (!alive) return;
+          setOrder(unwrap(r) as Order);
+          setFailure(null);
+        })
+        .catch((e: unknown) => alive && setFailure(e));
     void load();
     const ws = new WebSocket(wsUrl(`/ws/track/${id}`));
     ws.onmessage = (e) => {
@@ -92,11 +98,18 @@ export default function Tracking() {
       clearInterval(poll);
       ws.close();
     };
-  }, [id]);
+  }, [id, attempt]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/orders"));
 
-  if (missing && !order) {
+  if (failure && !order && loadFailure(failure) !== "refused") {
+    return (
+      <View style={[styles.screen, { padding: space[6] }]}>
+        <LoadError error={failure} onRetry={() => setAttempt((a) => a + 1)} fill />
+      </View>
+    );
+  }
+  if (failure && !order) {
     return (
       <View style={[styles.screen, { alignItems: "center", justifyContent: "center", padding: space[6], gap: space[4] }]}>
         <Txt variant="h2" style={{ textAlign: "center" }}>{t("track.not_found")}</Txt>

@@ -5,7 +5,7 @@
 // simulator on QA, the same rider on another phone), so this tab follows
 // /riders/me (WebSocket + a poll) and shares this phone's GPS only when the
 // rider went online here (lib/location.ts trackingHere).
-import { api, ApiError, LanguagePill, num, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, LanguagePill, LoadError, num, SafeAreaView, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
@@ -85,7 +85,8 @@ export default function Drive() {
   if (!onboarding.data) {
     return (
       <SafeAreaView style={[ui.screen, styles.center]}>
-        {onboarding.error ? <Text style={ui.body}>{onboarding.error}</Text> : <ActivityIndicator testID="drive-loading" color={night.kesar} />}
+        {onboarding.failure ? <LoadError error={onboarding.failure} onRetry={onboarding.reload} tone="dark" fill style={{ alignSelf: "stretch" }} />
+          : <ActivityIndicator testID="drive-loading" color={night.kesar} />}
       </SafeAreaView>
     );
   }

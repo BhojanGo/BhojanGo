@@ -2,10 +2,11 @@
 // Tokens live in SecureStore; the client adds the access token, refreshes it
 // once on a 401 (one refresh shared by concurrent requests) and signs out if
 // the refresh token is no longer good.
-import { createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
+import { ApiError, createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
+import { FIRST_LOAD_TIMEOUT_MS, timeoutFetch } from "./load";
 import { deviceLocale } from "./locale";
 
 const env = (k: string, fallback: string) => (process.env as Record<string, string | undefined>)[k] || fallback;
@@ -23,7 +24,10 @@ const REFRESH = "refresh_token";
 export type User = CoreSchemas["UserResponse"];
 
 interface SessionState {
-  status: "loading" | "signed-out" | "signed-in";
+  /** "unreachable": signed in on this phone, but the API didn't answer at start (see `failure`). */
+  status: "loading" | "signed-out" | "signed-in" | "unreachable";
+  /** Why the start-up check got no answer (LoadError words it); null otherwise. */
+  failure: unknown;
   accessToken: string | null;
   user: User | null;
   initialize: () => Promise<void>;
@@ -40,20 +44,28 @@ interface SessionState {
 
 export const useSession = create<SessionState>()((set, get) => ({
   status: "loading",
+  failure: null,
   accessToken: null,
   user: null,
 
   initialize: async () => {
     const token = await SecureStore.getItemAsync(ACCESS).catch(() => null);
     if (!token) {
-      set({ status: "signed-out" });
+      set({ status: "signed-out", failure: null });
       return;
     }
     set({ accessToken: token });
     try {
       await get().loadUser();
-      set({ status: "signed-in" });
-    } catch {
+      set({ status: "signed-in", failure: null });
+    } catch (e) {
+      // R9: no answer (offline, our servers down, a request that hung): stay signed in and
+      // say so (the root layouts show UnreachableScreen; its Retry calls initialize again).
+      // Only the API refusing the account signs this phone out.
+      if (!(e instanceof ApiError)) {
+        set({ status: "unreachable", failure: e });
+        return;
+      }
       await get().signOut();
     }
   },
@@ -163,6 +175,8 @@ export const api = createApi({
   getAccessToken: () => useSession.getState().accessToken,
   refreshAccessToken: () => useSession.getState().refresh(),
   onSignedOut: () => void useSession.getState().signOut(),
+  // R9: a GET that hangs fails after 8 s, so a screen shows "Can't reach BhojanGo" and Retry (load.ts).
+  fetch: timeoutFetch(FIRST_LOAD_TIMEOUT_MS),
 });
 
 /** The realtime WebSocket URL for a path (token as a subprotocol-free query for React Native). */

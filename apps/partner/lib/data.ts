@@ -20,6 +20,8 @@ interface KitchenStore {
   kitchen: Kitchen | null;
   /** The API's reason the kitchens didn't load; null when they did. */
   error: string | null;
+  /** What the load threw (LoadError words it). */
+  failure: unknown;
   /** Signed in, but the account has no kitchen (index shows partner.home.no_kitchen). */
   none: boolean;
   load: () => Promise<Kitchen | null>;
@@ -31,16 +33,17 @@ export const useKitchen = create<KitchenStore>()((set) => ({
   kitchens: null,
   kitchen: null,
   error: null,
+  failure: null,
   none: false,
   load: async () => {
     try {
       const all = unwrap(await api.core.GET("/api/v1/restaurants/mine"));
       const saved = await SecureStore.getItemAsync(CHOSEN).catch(() => null);
       const k = all.find((x) => x.id === saved) ?? (all.length === 1 ? all[0] : null);
-      set({ kitchens: all, kitchen: k ?? null, error: null, none: !all.length });
+      set({ kitchens: all, kitchen: k ?? null, error: null, failure: null, none: !all.length });
       return k ?? null;
     } catch (e) {
-      set({ error: (e as Error).message });
+      set({ error: (e as Error).message, failure: e });
       return null;
     }
   },
@@ -74,6 +77,8 @@ export function code(id: string): string {
 export function useLoad<T>(load: () => Promise<T>, key = "", every = 0) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** What the last load threw (R9: <LoadError error={failure} onRetry={reload} />); null after a good one. */
+  const [failure, setFailure] = useState<unknown>(null);
   const loader = useRef(load);
   useEffect(() => {
     loader.current = load;
@@ -83,9 +88,11 @@ export function useLoad<T>(load: () => Promise<T>, key = "", every = 0) {
       const v = await loader.current();
       setData(v);
       setError(null);
+      setFailure(null);
       return v;
     } catch (e) {
       setError((e as Error).message);
+      setFailure(e);
       return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,7 +103,7 @@ export function useLoad<T>(load: () => Promise<T>, key = "", every = 0) {
     const t = setInterval(() => void reload(), every);
     return () => clearInterval(t);
   }, [reload, every]);
-  return { data, error, reload, setData };
+  return { data, error, failure, reload, setData };
 }
 
 export async function getToday(id: string): Promise<Today> {

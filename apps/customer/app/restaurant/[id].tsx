@@ -1,7 +1,7 @@
 // The kitchen: its photo (photo_url, or the branded tile), "New" or its rating, the offer
 // and who pays, then the menu by section. A dish shows a photo only when it has
 // its own (image_url); otherwise a clean text row. Tap a dish to customise it.
-import { color, radius, SafeAreaView, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
+import { color, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +16,7 @@ import { useKitchenCard, useMenu, type MenuItem } from "../../lib/restaurants";
 export default function RestaurantScreen() {
   const { t, money } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { menu, error } = useMenu(id);
+  const { menu, failure, reload } = useMenu(id);
   const card = useKitchenCard(id);
   // Over the cover: below the status bar in production; under the test banner (which has it) the inset is 0.
   const floatTop = useSafeAreaInsets().top + space[3];
@@ -26,7 +26,7 @@ export default function RestaurantScreen() {
   if (!menu) {
     return (
       <SafeAreaView style={styles.center}>
-        {error ? <Txt>{t("kitchen.menu_unavailable")}</Txt> : <ActivityIndicator color={color.peacock} />}
+        {failure ? <LoadError error={failure} onRetry={reload} fill style={{ alignSelf: "stretch" }} /> : <ActivityIndicator color={color.peacock} />}
       </SafeAreaView>
     );
   }

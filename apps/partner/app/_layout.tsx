@@ -1,5 +1,5 @@
 import {
-  color, FontAudit, fontAuditEnabled, I18nProvider, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
+  color, FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
 import { useKeepAwake } from "expo-keep-awake";
 import { Stack, usePathname } from "expo-router";
@@ -17,6 +17,7 @@ export default function RootLayout() {
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
+  const failure = useSession((s) => s.failure);
   useKnownCountry(useSession((s) => s.user?.country)); // the partner's account country (Markets)
 
   useEffect(() => {
@@ -34,7 +35,10 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }} />
+        {/* Signed in, but the API didn't answer at start: say so, Retry (the person stays signed in). */}
+        {status === "unreachable" ? <UnreachableScreen error={failure} onRetry={initialize} /> : (
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }} />
+        )}
       </WithTestBanner>
     </I18nProvider>
   );

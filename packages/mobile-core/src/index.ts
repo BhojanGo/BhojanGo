@@ -20,6 +20,11 @@ export { AdminAccountError, api, emailAuth, urls, useSession, wsUrl } from "./se
 export { authErrorText, codeSendErrorText, EmailSignIn, SignInWays, waitText } from "./ui/signin";
 export type { Way as SignInWay } from "./ui/signin";
 export type { User } from "./session";
+// R9: every GET gives up after 8 s; screens show LoadError (title, why, Retry) when their load fails.
+export { createFirstLoad, FIRST_LOAD_TIMEOUT_MS, loadFailure, RequestTimeoutError, timeoutFetch } from "./load";
+export type { LoadFailure, LoadState } from "./load";
+export { LoadError, loadErrorText, UnreachableScreen, useFirstLoad } from "./ui/load-error";
+export type { LoadErrorProps } from "./ui/load-error";
 export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";

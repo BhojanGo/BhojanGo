@@ -1,8 +1,8 @@
 // The onboarding checklist, from Account (after approval it shows everything done).
-import { SafeAreaView, useI18n } from "@bhojango/mobile-core";
+import { LoadError, SafeAreaView, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { Checklist } from "../lib/checklist";
 import { Icon } from "../lib/icons";
@@ -10,11 +10,16 @@ import { useOnboarding } from "../lib/rider";
 import { night, ui } from "../lib/theme";
 
 export default function Documents() {
-  const { data, error, reload } = useOnboarding();
+  const { data, failure, reload } = useOnboarding();
   const { t } = useI18n();
   useFocusEffect(useCallback(() => void reload(), [reload]));
   if (!data) {
-    return <SafeAreaView style={[ui.screen, { alignItems: "center", justifyContent: "center" }]}>{error ? <Text style={ui.body}>{error}</Text> : <ActivityIndicator color={night.kesar} />}</SafeAreaView>;
+    return (
+      <SafeAreaView style={[ui.screen, { alignItems: "center", justifyContent: "center" }]}>
+        {failure ? <LoadError error={failure} onRetry={reload} tone="dark" fill style={{ alignSelf: "stretch" }} />
+          : <ActivityIndicator accessibilityLabel={t("common.loading")} color={night.kesar} />}
+      </SafeAreaView>
+    );
   }
   return (
     <View style={ui.screen}>
