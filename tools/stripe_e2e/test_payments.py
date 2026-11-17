@@ -47,6 +47,11 @@ def case_card_succeeds_and_places_the_order(h: H) -> None:
     rest, address, q, cart = h.boise_quote(customer)
     order = h.place(customer, rest, address, q, cart)
     assert order["status"] == "pending_payment", order["status"]
+    # The payment deadline comes from the business rule unpaid_auto_cancel (the seed: 10 minutes).
+    rule = h.sql("SELECT params->>'minutes' FROM rules WHERE template = 'unpaid_auto_cancel' AND status = 'published' "
+                 "ORDER BY version DESC LIMIT 1")
+    held = h.sql(f"SELECT round(extract(epoch FROM payment_due_at - created_at) / 60) FROM orders WHERE id = '{order['id']}'")[0][0]
+    assert rule and int(float(held)) == int(rule[0][0]) == 10, f"payment deadline {held} min, rule {rule}"
     init = h.initiate(customer, order["id"])
     again = h.initiate(customer, order["id"])
     assert again["payment_intent_id"] == init["payment_intent_id"], "initiating twice must reuse the open payment"
@@ -168,7 +173,9 @@ def _pay_in_browser(h: H, card: str, three_ds: bool = False) -> tuple[dict, str]
     srv, port = _serve()
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch()
+            # Chromium's full headless mode: in the older "headless shell" Stripe's 3-D Secure
+            # challenge frame never loaded its content on the runner (R10).
+            browser = p.chromium.launch(channel="chromium")
             page = browser.new_page()
             page.goto(f"http://127.0.0.1:{port}/pay.html?pk={c['publishable_key']}&cs={c['payment_intent_client_secret']}")
             page.wait_for_function("document.getElementById('out').textContent !== 'loading'", timeout=30000)

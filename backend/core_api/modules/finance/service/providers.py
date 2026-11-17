@@ -86,26 +86,43 @@ class StripeConnect:
     hosted_onboarding = True
 
     async def create_account(self, payee: dict) -> dict:
+        """An Express account through Stripe's Accounts v2 (Stripe refuses v1 account creation
+        for new Connect platforms): Stripe collects identity, terms and bank on its hosted
+        pages; the recipient configuration asks for transfers to the account's Stripe balance.
+        Account Links, transfers and account reads stay on v1, which serve v2 accounts too."""
         stripe = _stripe()
         kitchen = payee["type"] == "restaurant"
-        # Prefilled so Stripe asks less: who they are and what they do (MCC 5812 eating
-        # places, 4215 courier services). A kitchen may be a company or a sole trader, so
-        # Stripe asks; a delivery partner is an individual.
+        identity: dict = {"country": payee["country"]}
+        if not kitchen:
+            identity["entity_type"] = "individual"  # a kitchen may be a company or a sole trader: Stripe asks
+        params = {
+            "dashboard": "express",
+            "identity": identity,
+            "defaults": {"responsibilities": {"fees_collector": "application", "losses_collector": "application"}},
+            "configuration": {"recipient": {"capabilities": {"stripe_balance": {"stripe_transfers": {"requested": True}}}}},
+            "metadata": {"payee_type": payee["type"], "payee_id": payee["id"]},
+        }
+        if payee.get("email"):
+            params["contact_email"] = payee["email"]
+        if payee.get("name"):
+            params["display_name"] = payee["name"]
+        # Prefilled so Stripe asks less: what they do (MCC 5812 eating places, 4215 courier services).
         profile = {"mcc": "5812" if kitchen else "4215",
                    "product_description": "Food sold through BhojanGo" if kitchen else "Food delivery with BhojanGo"}
         if kitchen and payee.get("name"):
             profile["name"] = payee["name"]
         try:
             acct = await asyncio.to_thread(
-                stripe.Account.create, type="express", country=payee["country"], email=payee.get("email") or None,
-                **({} if kitchen else {"business_type": "individual"}),
-                business_profile=profile,
-                capabilities={"transfers": {"requested": True}},
-                metadata={"payee_type": payee["type"], "payee_id": payee["id"]},
-                idempotency_key=f"payout-account-{payee['type']}-{payee['id']}",
+                stripe.StripeClient(stripe.api_key).v2.core.accounts.create, params,
+                # a retried or double-tapped create never opens a second account (payouts._open_key)
+                {"idempotency_key": f"payout-account-{payee.get('open_key') or payee['type'] + '-' + payee['id']}"},
             )
         except stripe.StripeError as e:  # type: ignore[attr-defined]
             raise _stripe_error(e) from e
+        try:  # best effort: Stripe asks for anything this didn't set
+            await asyncio.to_thread(stripe.Account.modify, acct.id, business_profile=profile)
+        except stripe.StripeError as e:  # type: ignore[attr-defined]
+            logger.warning("stripe_connect_profile_not_prefilled", account=acct.id, error=str(e)[:200])
         return {"external_id": acct.id, "status": "pending", "onboarding_url": None}
 
     async def onboarding_link(self, external_id: str, refresh_url: str, return_url: str) -> str:

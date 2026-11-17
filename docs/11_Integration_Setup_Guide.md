@@ -50,12 +50,39 @@ show "Sales tax not calculated" ($0) and production refuses to quote (`payments/
 ### Testing
 - GitHub CI: Stripe mocked (unit tests `payments/tests/test_stripe.py`, integration
   `core_api/integration/test_stripe_webhooks.py`).
-- Real test mode: the `stripe-e2e` job on the Railway qa-runner (`tools/stripe_e2e/`, keys as
-  sealed variables on the runner): `sh tools/railway/qa-runner.sh run stripe-e2e`.
+- Real test mode: the `stripe-e2e` job on the Railway qa-runner (`tools/stripe_e2e/`; the runner
+  references core-api's sealed test keys): `sh tools/railway/qa-runner.sh run stripe-e2e`. Its own
+  throwaway database, Stripe's webhooks through the Stripe CLI, 9 cases: Stripe Tax on a quote, card
+  succeeds (order placed by the webhook; payment deadline = the `unpaid_auto_cancel` rule), declined
+  card, refund by item, the Payment Element with 4242 / 3-D Secure 4000 0027 6000 3184 / declined, an
+  Express account and onboarding link for a kitchen and a delivery partner, and a weekly payout run that
+  pays both with real Transfers (admin Finance's run page shows them paid; a reversal webhook marks one
+  reversed).
+- **CI gate (PLAYBOOK rule 66):** PR Checks job `stripe-e2e` runs the same job whenever payments code
+  changes (`payments` path filter). It needs the GitHub secret `RAILWAY_QA_TOKEN` (a Railway project
+  token for QA; the Stripe keys never leave Railway) and fails without it.
+- **Hold mode** for checks against the same stack: set `STRIPE_E2E_HOLD_MINUTES=N` (and
+  `STRIPE_E2E_CASES=none` to skip the cases) on the runner and give it a temporary Railway domain to port
+  8011; core-api stays up N minutes (max 90), then everything is torn down.
+
+#### Manual release checks (a person, before a release that touches payments)
+1. **3-D Secure in a headed browser**: `python tools/stripe_e2e/headed_3ds.py --api https://<stack>` opens
+   Chrome, pays with 4000 0027 6000 3184 and presses COMPLETE (the order must become placed), then FAIL
+   (the payment fails and the order stays payable with "try again"). Screenshots with `--out`.
+2. **Express onboarding on Stripe's pages**: open a kitchen's and a delivery partner's "Set up payouts"
+   link and finish it with Stripe's test data ("Use test phone number", code 000000, SSN 000-00-0000,
+   "Use test account" for the bank). Stripe shows automated browsers a CAPTCHA, so this can't run in CI.
+   Then run the stripe-e2e job with `STRIPE_E2E_EXPRESS_KITCHEN` / `STRIPE_E2E_EXPRESS_RIDER` set to
+   those accounts: the weekly payout pays them.
+3. **The customer app's payment sheet** on an emulator against a held stack: 4242 succeeds, 4000 0000
+   0000 0002 is declined and the order stays payable.
 
 ### Payouts: Stripe Connect Express (R10)
 Kitchen partners and delivery partners in a country whose Markets payout provider is
-`stripe_connect` set up payouts on Stripe's own pages (Express). Code:
+`stripe_connect` set up payouts on Stripe's own pages (Express). Accounts are created through
+Stripe's **Accounts v2** (`POST /v2/core/accounts`, dashboard `express`, the `recipient`
+configuration with `stripe_transfers`): Stripe refuses v1 account creation for new Connect
+platforms. Account Links, Transfers and account reads stay on v1, which serve v2 accounts. Code:
 `backend/core_api/modules/finance/service/{providers,connect,payouts}.py`.
 
 1. **Once per Stripe account (test mode too; done for the test account in R10):** Dashboard → Settings → Connect →
