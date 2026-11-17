@@ -22,11 +22,6 @@
               }
             ],
             "title": "Restaurant Id"
-          },
-          "return_url": {
-            "default": "https://bhojango.example/payouts/done",
-            "title": "Return Url",
-            "type": "string"
           }
         },
         "required": [
@@ -574,6 +569,18 @@
           "can_edit"
         ],
         "title": "AdminArticle",
+        "type": "object"
+      },
+      "AdminLink": {
+        "properties": {
+          "send": {
+            "default": false,
+            "description": "Also send the link to the payee (push, email and the app's inbox)",
+            "title": "Send",
+            "type": "boolean"
+          }
+        },
+        "title": "AdminLink",
         "type": "object"
       },
       "AdminMeResponse": {
@@ -16750,9 +16757,157 @@
         ]
       }
     },
+    "/api/v1/finance/payees/{kind}/{target_id}/payout-account": {
+      "get": {
+        "description": "A kitchen's or delivery partner's payout set-up (finance.view for the country, or\npartners.view for the kitchen's city / riders.view for the delivery partner's country).",
+        "operationId": "payee_setup_api_v1_finance_payees__kind___target_id__payout_account_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "restaurant",
+                "rider"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Target Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Payee Setup Api V1 Finance Payees  Kind   Target Id  Payout Account Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Payee Setup",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/payees/{kind}/{target_id}/payout-account/link": {
+      "post": {
+        "description": "A link for the payee to set up payouts on the provider's pages (opens the account\nif there isn't one). It works for 7 days and makes a fresh Stripe link each time it\nis opened. ``send`` also sends it to them. null when the provider has no hosted\nset-up or the account is already ready.",
+        "operationId": "payee_link_api_v1_finance_payees__kind___target_id__payout_account_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "restaurant",
+                "rider"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Target Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Payee Link Api V1 Finance Payees  Kind   Target Id  Payout Account Link Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Payee Link",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
     "/api/v1/finance/payout-accounts": {
       "post": {
-        "description": "Set up where you're paid, with your country's payout provider in Markets\n(Stripe Connect Express, Razorpay Route). Follow onboarding_url to finish (bank,\nidentity). 409 FINANCE_RULE when the country has no payout provider.",
+        "description": "Set up where you're paid, with your country's payout provider in Markets\n(Stripe Connect Express, Razorpay Route). Opens the account once and reuses it;\nwith Stripe, ``onboarding_url`` is a fresh link to Stripe's pages (bank, identity),\nnull once payouts are enabled. 409 FINANCE_RULE when the country has no payout\nprovider; 503 CONNECT_NOT_SET_UP when the platform's Stripe account can't open\nconnected accounts yet; 502 when the provider fails.",
         "operationId": "open_account_api_v1_finance_payout_accounts_post",
         "requestBody": {
           "content": {
@@ -16801,7 +16956,22 @@
     },
     "/api/v1/finance/payout-accounts/me": {
       "get": {
+        "description": "Your payout accounts with their set-up state (not_started, in_progress, action_needed, ready).",
         "operationId": "my_accounts_api_v1_finance_payout_accounts_me_get",
+        "parameters": [
+          {
+            "description": "Ask the provider now (back from Stripe)",
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Ask the provider now (back from Stripe)",
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -16817,6 +16987,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -16825,6 +17005,124 @@
           }
         ],
         "summary": "My Accounts",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/payout-accounts/me/setup": {
+      "get": {
+        "description": "The Payouts screen: your country's payout provider (stripe_connect, razorpay_route,\nfake; null when it has none yet), whether set-up happens on the provider's pages,\nand your account's state. ``refresh`` asks the provider first (back from Stripe).",
+        "operationId": "my_setup_api_v1_finance_payout_accounts_me_setup_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "payee_type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "restaurant",
+                "rider"
+              ],
+              "title": "Payee Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restaurant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Restaurant Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response My Setup Api V1 Finance Payout Accounts Me Setup Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "My Setup",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/payout-onboarding": {
+      "get": {
+        "description": "The link people keep (and Stripe's refresh_url): checks the signed token and\nredirects to a fresh Stripe onboarding page, or to the website's /payouts/done page\n(already set up, link expired, or Stripe unavailable).",
+        "operationId": "payout_onboarding_api_v1_finance_payout_onboarding_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "t",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "title": "T",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Payout Onboarding",
         "tags": [
           "Finance"
         ]
@@ -17334,7 +17632,7 @@
     },
     "/api/v1/finance/stripe/connect/webhook": {
       "post": {
-        "description": "account.updated from Stripe Connect: active once payouts are enabled.",
+        "description": "Connect endpoint (events on connected accounts): account.updated,\naccount.application.deauthorized, payout.failed, payout.paid. Signed with\nSTRIPE_CONNECT_WEBHOOK_SECRET (else STRIPE_WEBHOOK_SECRET); each event applied once.",
         "operationId": "stripe_connect_webhook_api_v1_finance_stripe_connect_webhook_post",
         "responses": {
           "200": {
@@ -17351,6 +17649,30 @@
           }
         },
         "summary": "Stripe Connect Webhook",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/stripe/webhook": {
+      "post": {
+        "description": "Account endpoint for payouts: transfer.created, transfer.updated, transfer.reversed\n(a reversed transfer shows as reversed; retry pays it again). Signed with\nSTRIPE_PAYOUTS_WEBHOOK_SECRET (else STRIPE_WEBHOOK_SECRET); each event applied once.",
+        "operationId": "stripe_payouts_webhook_api_v1_finance_stripe_webhook_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stripe Payouts Webhook Api V1 Finance Stripe Webhook Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stripe Payouts Webhook",
         "tags": [
           "Finance"
         ]

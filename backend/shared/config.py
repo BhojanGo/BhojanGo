@@ -138,6 +138,13 @@ class PaymentsSettings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    # Payouts through Stripe Connect (R10, finance/service/connect.py). Each Stripe webhook
+    # endpoint has its own signing secret; empty = STRIPE_WEBHOOK_SECRET (one `stripe listen`).
+    STRIPE_CONNECT_WEBHOOK_SECRET: str = ""  # Connect endpoint: /api/v1/finance/stripe/connect/webhook
+    STRIPE_PAYOUTS_WEBHOOK_SECRET: str = ""  # account endpoint: /api/v1/finance/stripe/webhook (transfer.*)
+    # This API's public address: payout onboarding links point at
+    # <it>/api/v1/finance/payout-onboarding (they make a fresh Stripe link each time).
+    PUBLIC_API_URL: str = "http://localhost:8001"
 
     # Razorpay (India)
     RAZORPAY_KEY_ID: str = ""

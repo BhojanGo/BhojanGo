@@ -26,52 +26,118 @@ logger = structlog.get_logger(__name__)
 
 
 class PayoutError(RuntimeError):
-    pass
+    """A payout or account call failed. ``final``: the provider refused it (a retry with
+    the same idempotency key would be refused again); otherwise the outcome is unknown
+    (timeout, the provider's own error) and a retry reuses the key."""
+
+    def __init__(self, message: str, *, final: bool = True) -> None:
+        super().__init__(message)
+        self.final = final
+
+
+class ConnectSetupError(PayoutError):
+    """The platform's Stripe account can't open connected accounts yet: a one-time
+    setting in the Stripe Dashboard (Connect, platform profile). Shown to admins as is."""
 
 
 class PayoutProvider(Protocol):
     name: str
+    hosted_onboarding: bool  # the payee finishes set-up on the provider's own pages (onboarding_link)
 
     async def create_account(self, payee: dict) -> dict:
         """{external_id, status, onboarding_url}"""
         ...
 
     async def transfer(self, external_id: str, amount: int, currency: str, reference: str) -> str:
-        """Send money to the payee's account; returns the transfer id."""
+        """Send money to the payee's account; returns the transfer id. ``reference`` is
+        "<run id>:<statement id>:<attempt>" and is the idempotency key."""
         ...
+
+
+# The Stripe Dashboard page that unblocks Connect, and the words its errors use.
+CONNECT_SETUP_URL = "https://dashboard.stripe.com/test/settings/connect/platform-profile"
+_SETUP_HINTS = ("platform-profile", "platform profile", "signed up for connect", "responsibilities of managing losses",
+                "review the responsibilities", "connect/platform")
+
+
+def _stripe():  # type: ignore[no-untyped-def]
+    import stripe
+
+    stripe.api_key = get_settings().payments.STRIPE_SECRET_KEY
+    return stripe
+
+
+def _stripe_error(e: Exception) -> PayoutError:
+    """A StripeError as a PayoutError: refused (4xx) is final; no answer or 5xx isn't."""
+    msg = getattr(e, "user_message", None) or str(e)
+    if any(h in str(e).lower() for h in _SETUP_HINTS):
+        return ConnectSetupError(
+            "Stripe Connect isn't set up on the platform account yet. In the Stripe Dashboard (test mode) open "
+            f"Settings → Connect → Platform profile ({CONNECT_SETUP_URL}), complete the platform profile and accept "
+            "the responsibilities for connected accounts (Express), then try again. Stripe said: " + str(e)[:300])
+    status = getattr(e, "http_status", None)
+    return PayoutError(msg, final=bool(status) and int(status) < 500)
 
 
 class StripeConnect:
     """Stripe Connect Express: Stripe hosts onboarding (identity, bank) for us."""
 
     name = "stripe_connect"
+    hosted_onboarding = True
 
     async def create_account(self, payee: dict) -> dict:
-        import stripe
+        stripe = _stripe()
+        kitchen = payee["type"] == "restaurant"
+        # Prefilled so Stripe asks less: who they are and what they do (MCC 5812 eating
+        # places, 4215 courier services). A kitchen may be a company or a sole trader, so
+        # Stripe asks; a delivery partner is an individual.
+        profile = {"mcc": "5812" if kitchen else "4215",
+                   "product_description": "Food sold through BhojanGo" if kitchen else "Food delivery with BhojanGo"}
+        if kitchen and payee.get("name"):
+            profile["name"] = payee["name"]
+        try:
+            acct = await asyncio.to_thread(
+                stripe.Account.create, type="express", country=payee["country"], email=payee.get("email") or None,
+                **({} if kitchen else {"business_type": "individual"}),
+                business_profile=profile,
+                capabilities={"transfers": {"requested": True}},
+                metadata={"payee_type": payee["type"], "payee_id": payee["id"]},
+                idempotency_key=f"payout-account-{payee['type']}-{payee['id']}",
+            )
+        except stripe.StripeError as e:  # type: ignore[attr-defined]
+            raise _stripe_error(e) from e
+        return {"external_id": acct.id, "status": "pending", "onboarding_url": None}
 
-        stripe.api_key = get_settings().payments.STRIPE_SECRET_KEY
-        acct = await asyncio.to_thread(
-            stripe.Account.create, type="express", country=payee["country"], email=payee.get("email") or None,
-            business_type="company" if payee["type"] == "restaurant" else "individual",
-            capabilities={"transfers": {"requested": True}},
-            metadata={"payee_type": payee["type"], "payee_id": payee["id"]},
-        )
-        link = await asyncio.to_thread(
-            stripe.AccountLink.create, account=acct.id, type="account_onboarding",
-            refresh_url=payee["return_url"], return_url=payee["return_url"],
-        )
-        return {"external_id": acct.id, "status": "pending", "onboarding_url": link.url}
+    async def onboarding_link(self, external_id: str, refresh_url: str, return_url: str) -> str:
+        """A fresh Account Link (they last a few minutes and work once)."""
+        stripe = _stripe()
+        try:
+            link = await asyncio.to_thread(stripe.AccountLink.create, account=external_id, type="account_onboarding",
+                                           refresh_url=refresh_url, return_url=return_url)
+        except stripe.StripeError as e:  # type: ignore[attr-defined]
+            raise _stripe_error(e) from e
+        return link.url
+
+    async def account_state(self, external_id: str) -> dict:
+        """The account as Stripe has it now (the same fields as account.updated)."""
+        stripe = _stripe()
+        try:
+            acct = await asyncio.to_thread(stripe.Account.retrieve, external_id)
+        except stripe.StripeError as e:  # type: ignore[attr-defined]
+            raise _stripe_error(e) from e
+        return acct.to_dict() if hasattr(acct, "to_dict") else dict(acct)
 
     async def transfer(self, external_id: str, amount: int, currency: str, reference: str) -> str:
-        import stripe
-
-        stripe.api_key = get_settings().payments.STRIPE_SECRET_KEY
+        stripe = _stripe()
+        run_id, _, rest = reference.partition(":")
+        statement_id = rest.split(":")[0]
         try:
             tr = await asyncio.to_thread(stripe.Transfer.create, amount=amount, currency=currency.lower(),
-                                         destination=external_id, transfer_group=reference.split(":")[0],
-                                         idempotency_key=reference)
+                                         destination=external_id, transfer_group=f"payout-run-{run_id}",
+                                         metadata={"payout_run_id": run_id, "payout_statement_id": statement_id},
+                                         idempotency_key=f"payout-{reference}")
         except stripe.StripeError as e:  # type: ignore[attr-defined]
-            raise PayoutError(str(e)) from e
+            raise _stripe_error(e) from e
         return tr.id
 
 
@@ -79,6 +145,7 @@ class RazorpayRoute:
     """Razorpay Route: a linked account per payee, then transfers to it."""
 
     name = "razorpay_route"
+    hosted_onboarding = False
 
     def _client(self):  # type: ignore[no-untyped-def]
         import razorpay
@@ -109,6 +176,7 @@ class FakePayouts:
     """No account, no money moves. Accounts are active at once."""
 
     name = "fake"
+    hosted_onboarding = False
 
     async def create_account(self, payee: dict) -> dict:
         return {"external_id": f"fake_acct_{uuid.uuid4().hex[:16]}", "status": "active", "onboarding_url": None}

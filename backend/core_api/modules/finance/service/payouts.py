@@ -3,8 +3,8 @@
 Weekly, finance creates a run for a country and period: every delivered order
 in it becomes a line on its restaurant's and its rider's statement. A second
 finance admin approves the run, and each statement is paid to the payee's
-payout account (statements without an active account wait as no_account and
-are paid by "retry" once the payee finishes onboarding).
+payout account (statements wait as no_account, or onboarding while the payee
+finishes set-up, and are paid as soon as the account is ready: service/connect.py).
 
 The provider (Stripe Connect, Razorpay Route, the fake) is the country's choice in
 Markets (countries.payout_provider; providers.py): accounts are opened with it,
@@ -217,31 +217,43 @@ async def approve_and_pay(db: AsyncSession, actor: uuid.UUID, run_id: uuid.UUID)
     return run
 
 
-async def pay_pending(db: AsyncSession, run: PayoutRun, provider: PayoutProvider) -> None:
-    """Pay every statement not yet paid with the country's provider; payees without an
-    active account with it wait (no_account)."""
-    stmts = (await db.execute(select(PayoutStatement).where(
-        PayoutStatement.run_id == run.id, PayoutStatement.status.in_(("pending", "failed", "no_account"))))).scalars().all()
-    for st in stmts:
+async def pay_pending(db: AsyncSession, run: PayoutRun, provider: PayoutProvider,
+                      payee: tuple[str, uuid.UUID] | None = None) -> None:
+    """Pay every statement not yet paid with the country's provider (or just ``payee``'s).
+    Only accounts with payouts enabled are paid; the others wait: ``no_account`` (never
+    set up) or ``onboarding`` (set-up not finished), and are paid when the account is
+    ready (connect.pay_waiting) or on retry. The idempotency key is the statement and its
+    attempt: a transfer that timed out is retried with the same key (never paid twice),
+    one the provider refused or that was reversed gets a new one."""
+    q = select(PayoutStatement).where(PayoutStatement.run_id == run.id,
+                                      PayoutStatement.status.in_(("pending", "failed", "no_account", "onboarding", "reversed")))
+    if payee:
+        q = q.where(PayoutStatement.payee_type == payee[0], PayoutStatement.payee_id == payee[1])
+    for st in (await db.execute(q)).scalars().all():
         if st.amount <= 0:
             st.status = "paid"  # nothing to send
             continue
-        acct = (await db.execute(select(PayoutAccount).where(
+        accts = (await db.execute(select(PayoutAccount).where(
             PayoutAccount.payee_type == st.payee_type, PayoutAccount.payee_id == st.payee_id,
-            PayoutAccount.country == run.country, PayoutAccount.provider == provider.name,
-            PayoutAccount.status == "active"))).scalars().first()
+            PayoutAccount.country == run.country, PayoutAccount.provider == provider.name))).scalars().all()
+        acct = next((a for a in accts if a.status == "active"), None)
         if acct is None:
-            st.status, st.error = "no_account", "The payee hasn't set up a payout account"
+            if accts:
+                st.status, st.error = "onboarding", "Waiting for the payee to finish setting up payouts"
+            else:
+                st.status, st.error = "no_account", "The payee hasn't set up a payout account"
             continue
         try:
-            st.transfer_id = await provider.transfer(acct.external_id, st.amount, st.currency, f"{run.id}:{st.id}")
-            st.status, st.error = "paid", None
+            st.transfer_id = await provider.transfer(acct.external_id, st.amount, st.currency, f"{run.id}:{st.id}:{st.attempts}")
+            st.status, st.error, st.transferred_at = "paid", None, datetime.now(UTC)
             await outbox.add(db, "payout.paid", st.payee_type, st.payee_id, {
                 "statement_id": str(st.id), "run_id": str(run.id), "amount": st.amount, "currency": st.currency,
                 "payee_type": st.payee_type, "payee_id": str(st.payee_id), "user_id": None}, "finance")
         except PayoutError as e:
             st.status, st.error = "failed", str(e)[:500]
-            logger.error("payout_failed", statement_id=str(st.id), error=str(e))
+            if e.final:
+                st.attempts += 1  # refused: the next try is a new request
+            logger.error("payout_failed", statement_id=str(st.id), error=str(e), final=e.final)
     await db.flush()
     statuses = {s for (s,) in (await db.execute(select(PayoutStatement.status).where(PayoutStatement.run_id == run.id))).all()}
     run.status = "paid" if statuses <= {"paid"} else "partially_paid"
@@ -315,28 +327,24 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
 # ── payee accounts ────────────────────────────────────────────────────────────
 
 async def open_account(db: AsyncSession, payee_type: str, payee_id: uuid.UUID, country: str, profile: dict,
-                       return_url: str) -> tuple[PayoutAccount, str | None]:
+                       return_url: str | None = None) -> tuple[PayoutAccount, str | None]:
+    """Create the payee's account with the country's provider, or reuse it; with
+    hosted onboarding (Stripe), a fresh link to finish set-up (None once ready)."""
+    from core_api.modules.finance.service import connect
+
     provider = await _provider(db, country)
-    existing = (await db.execute(select(PayoutAccount).where(and_(
+    acct = (await db.execute(select(PayoutAccount).where(and_(
         PayoutAccount.payee_type == payee_type, PayoutAccount.payee_id == payee_id,
         PayoutAccount.provider == provider.name)))).scalars().first()
-    if existing:
-        return existing, None
-    created = await provider.create_account({**profile, "type": payee_type, "id": str(payee_id), "country": country,
-                                             "return_url": return_url})
-    acct = PayoutAccount(payee_type=payee_type, payee_id=payee_id, provider=provider.name, external_id=created["external_id"],
-                         status=created["status"], country=country)
-    db.add(acct)
-    await db.flush()
-    return acct, created.get("onboarding_url")
-
-
-async def mark_account(db: AsyncSession, external_id: str, active: bool) -> PayoutAccount | None:
-    acct = (await db.execute(select(PayoutAccount).where(PayoutAccount.external_id == external_id))).scalars().first()
-    if acct is not None:
-        acct.status = "active" if active else "restricted"
+    if acct is None:
+        created = await provider.create_account({**profile, "type": payee_type, "id": str(payee_id), "country": country,
+                                                 "return_url": return_url})
+        acct = PayoutAccount(payee_type=payee_type, payee_id=payee_id, provider=provider.name, external_id=created["external_id"],
+                             status=created["status"], country=country, requirements_due=[])
+        connect.mark_created(acct)
+        db.add(acct)
         await db.flush()
-    return acct
+    return acct, await connect.fresh_link(acct)
 
 
 # ── reconciliation ────────────────────────────────────────────────────────────

@@ -1,22 +1,24 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
-import { api, ApiError, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
-import { useState } from "react";
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { api, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, SafeAreaView, STATEMENT_STATUSES, type Translate, type,
+  unwrap, useI18n } from "@bhojango/mobile-core";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useFormat, useKitchen, useLoad } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
-import { Btn, color, radius, t } from "../../lib/ui";
+import { Btn, color, radius, t, tone } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string } };
-type Account = { id: string; payee_id: string; provider: string; status: string };
 
-const STATUSES = ["paid", "pending", "no_account", "failed"];
-const statusLabel = (t: Translate, s: string) => (STATUSES.includes(s) ? t(`partner.payouts.status.${s}`) : s);
-// data-ok: payment provider brand names (Markets payment_providers values), not places or currencies.
-const PROVIDERS: Record<string, string> = { razorpay: "Razorpay", stripe: "Stripe" };
+const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`partner.payouts.status.${s}`) : s);
+// The set-up badge's colours per state (R10).
+const BADGE: Record<PayoutCopy["tone"], { bg: string; fg: string }> = {
+  neutral: { bg: color.porcelain, fg: color.kohl }, progress: { bg: color.peacockTint, fg: color.peacockDeep },
+  warning: { bg: tone.kesarSoft, fg: tone.kesarInk }, good: { bg: color.peacockTint, fg: color.peacockDeep },
+};
 
 function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
   const end = new Date(`${s.period_end}T12:00:00`);
@@ -30,48 +32,85 @@ export default function Payouts() {
   const { width, narrow } = useLayout();
   const kitchen = useKitchen((s) => s.kitchen)!;
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  /** Ask Stripe (through our API) on the next load: back from its pages, or "Check again". */
+  const refreshNext = useRef(false);
+  /** We sent the kitchen to Stripe's pages; refresh when the app comes back to the front. */
+  const away = useRef(false);
   const data = useLoad(async () => {
-    const [st, ac] = await Promise.all([api.core.GET("/api/v1/finance/statements/me"), api.core.GET("/api/v1/finance/payout-accounts/me")]);
+    const refresh = refreshNext.current;
+    refreshNext.current = false;
+    const [st, setup] = await Promise.all([
+      api.core.GET("/api/v1/finance/statements/me"),
+      api.core.GET("/api/v1/finance/payout-accounts/me/setup", { params: { query: { payee_type: "restaurant", restaurant_id: kitchen.id, refresh } } }),
+    ]);
     return {
       statements: (unwrap(st) as unknown as Statement[]).filter((x) => x.payee_id === kitchen.id),
-      account: (unwrap(ac) as unknown as Account[]).find((x) => x.payee_id === kitchen.id) ?? null,
+      setup: unwrap(setup) as unknown as PayoutSetup,
     };
   }, kitchen.id);
+  const { reload } = data;
+
+  async function check() {
+    setChecking(true);
+    refreshNext.current = true;
+    await reload();
+    setChecking(false);
+  }
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && away.current) {
+        away.current = false;
+        refreshNext.current = true;
+        void reload();
+      }
+    });
+    return () => sub.remove();
+  }, [reload]);
 
   async function setUp() {
     setBusy(true);
     setMsg(null);
     try {
       const r = unwrap(await api.core.POST("/api/v1/finance/payout-accounts", { body: { payee_type: "restaurant", restaurant_id: kitchen.id } })) as { onboarding_url?: string | null };
-      if (r.onboarding_url) await Linking.openURL(r.onboarding_url);
-      await data.reload();
-    } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
+      if (r.onboarding_url) {
+        away.current = true;
+        await Linking.openURL(r.onboarding_url);
+      }
+      await reload();
+    } catch {
+      setMsg(tr("payout_setup.open_failed", { provider: providerName(tr, data.data?.setup.account?.provider ?? data.data?.setup.provider) }));
     } finally {
       setBusy(false);
     }
   }
 
-  const a = data.data?.account;
+  const setup = data.data?.setup;
+  const copy = setup ? payoutCopy(tr, setup) : null;
   return (
     <SafeAreaView testID="payouts-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <View style={[s.header, narrow && { height: 64, paddingHorizontal: 16 }]}><Text accessibilityRole="header" style={t.h1}>{tr("partner.payouts.title")}</Text></View>
       {/* R9: until the account and statements load, a spinner (or the error and Retry), never "Set up payouts" for an account we haven't read. */}
-      {!data.data ? (
+      {!data.data || !copy || !setup ? (
         <View style={{ flex: 1, padding: 24, justifyContent: "center" }}>
           {data.failure ? <LoadError error={data.failure} onRetry={data.reload} /> : <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} />}
         </View>
       ) : (
       <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
         <View testID="payout-account" style={[s.panel, { flex: width < 760 ? undefined : 1 }, narrow && { padding: 16 }]}>
-          <Text style={type.h3}>{tr("partner.payouts.where")}</Text>
-          <Text style={t.body}>
-            {a ? (a.status === "active" ? tr("partner.payouts.paid_through", { provider: PROVIDERS[a.provider] ?? tr("partner.payouts.partner") })
-              : tr("partner.payouts.unconfirmed")) : tr("partner.payouts.add_bank")}
-          </Text>
-          {!a || a.status !== "active" ? <Btn title={a ? tr("partner.payouts.continue") : tr("partner.payouts.set_up")} kind="primary" busy={busy} onPress={setUp} /> : null}
-          {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Text style={[type.h3, { flexShrink: 1 }]}>{tr("partner.payouts.where")}</Text>
+            <View testID={`payout-state-${setup.state}`} style={[s.badge, { backgroundColor: BADGE[copy.tone].bg }]}>
+              <Text style={[type.caption, { color: BADGE[copy.tone].fg }]}>{copy.badge}</Text>
+            </View>
+          </View>
+          <Text style={t.body}>{copy.body}</Text>
+          {copy.action ? <Btn testID="payout-set-up" title={busy ? tr("payout_setup.opening", { provider: providerName(tr, setup.account?.provider ?? setup.provider) }) : copy.action} kind="primary" busy={busy} onPress={setUp} /> : null}
+          {copy.comeBack && setup.account ? <Text style={t.muted}>{tr("payout_setup.come_back")}</Text> : null}
+          {setup.state !== "ready" && setup.account ? <Btn testID="payout-check" title={tr("payout_setup.check_again")} busy={checking} onPress={() => void check()} /> : null}
+          {msg ? <Text accessibilityRole="alert" style={[type.small, { color: tone.reject }]}>{msg}</Text> : null}
         </View>
         <View testID="payout-statements" style={[s.panel, { flex: width < 760 ? undefined : 2 }, narrow && { padding: 16 }]}>
           <Text style={type.h3}>{tr("partner.payouts.statements")}</Text>
@@ -97,6 +136,7 @@ export default function Payouts() {
 }
 
 const s = StyleSheet.create({
+  badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
   header: { height: 80, paddingHorizontal: 24, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.line, justifyContent: "center" },
   panel: { backgroundColor: color.white, borderRadius: radius.card, borderWidth: 1, borderColor: color.line, padding: 20, gap: 10 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: color.divider },

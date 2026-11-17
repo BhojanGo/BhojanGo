@@ -710,6 +710,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/payees/{kind}/{target_id}/payout-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payee Setup
+         * @description A kitchen's or delivery partner's payout set-up (finance.view for the country, or
+         *     partners.view for the kitchen's city / riders.view for the delivery partner's country).
+         */
+        get: operations["payee_setup_api_v1_finance_payees__kind___target_id__payout_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payees/{kind}/{target_id}/payout-account/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Payee Link
+         * @description A link for the payee to set up payouts on the provider's pages (opens the account
+         *     if there isn't one). It works for 7 days and makes a fresh Stripe link each time it
+         *     is opened. ``send`` also sends it to them. null when the provider has no hosted
+         *     set-up or the account is already ready.
+         */
+        post: operations["payee_link_api_v1_finance_payees__kind___target_id__payout_account_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/payout-accounts": {
         parameters: {
             query?: never;
@@ -722,8 +766,11 @@ export interface paths {
         /**
          * Open Account
          * @description Set up where you're paid, with your country's payout provider in Markets
-         *     (Stripe Connect Express, Razorpay Route). Follow onboarding_url to finish (bank,
-         *     identity). 409 FINANCE_RULE when the country has no payout provider.
+         *     (Stripe Connect Express, Razorpay Route). Opens the account once and reuses it;
+         *     with Stripe, ``onboarding_url`` is a fresh link to Stripe's pages (bank, identity),
+         *     null once payouts are enabled. 409 FINANCE_RULE when the country has no payout
+         *     provider; 503 CONNECT_NOT_SET_UP when the platform's Stripe account can't open
+         *     connected accounts yet; 502 when the provider fails.
          */
         post: operations["open_account_api_v1_finance_payout_accounts_post"];
         delete?: never;
@@ -739,8 +786,55 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** My Accounts */
+        /**
+         * My Accounts
+         * @description Your payout accounts with their set-up state (not_started, in_progress, action_needed, ready).
+         */
         get: operations["my_accounts_api_v1_finance_payout_accounts_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payout-accounts/me/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Setup
+         * @description The Payouts screen: your country's payout provider (stripe_connect, razorpay_route,
+         *     fake; null when it has none yet), whether set-up happens on the provider's pages,
+         *     and your account's state. ``refresh`` asks the provider first (back from Stripe).
+         */
+        get: operations["my_setup_api_v1_finance_payout_accounts_me_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payout-onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout Onboarding
+         * @description The link people keep (and Stripe's refresh_url): checks the signed token and
+         *     redirects to a fresh Stripe onboarding page, or to the website's /payouts/done page
+         *     (already set up, link expired, or Stripe unavailable).
+         */
+        get: operations["payout_onboarding_api_v1_finance_payout_onboarding_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -917,9 +1011,33 @@ export interface paths {
         put?: never;
         /**
          * Stripe Connect Webhook
-         * @description account.updated from Stripe Connect: active once payouts are enabled.
+         * @description Connect endpoint (events on connected accounts): account.updated,
+         *     account.application.deauthorized, payout.failed, payout.paid. Signed with
+         *     STRIPE_CONNECT_WEBHOOK_SECRET (else STRIPE_WEBHOOK_SECRET); each event applied once.
          */
         post: operations["stripe_connect_webhook_api_v1_finance_stripe_connect_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/stripe/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe Payouts Webhook
+         * @description Account endpoint for payouts: transfer.created, transfer.updated, transfer.reversed
+         *     (a reversed transfer shows as reversed; retry pays it again). Signed with
+         *     STRIPE_PAYOUTS_WEBHOOK_SECRET (else STRIPE_WEBHOOK_SECRET); each event applied once.
+         */
+        post: operations["stripe_payouts_webhook_api_v1_finance_stripe_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4198,11 +4316,6 @@ export interface components {
             payee_type: "restaurant" | "rider";
             /** Restaurant Id */
             restaurant_id?: string | null;
-            /**
-             * Return Url
-             * @default https://bhojango.example/payouts/done
-             */
-            return_url?: string;
         };
         /** AddressCreate */
         AddressCreate: {
@@ -4374,6 +4487,15 @@ export interface components {
             updated_by_name: string | null;
             /** Version */
             version: number;
+        };
+        /** AdminLink */
+        AdminLink: {
+            /**
+             * Send
+             * @description Also send the link to the payee (push, email and the app's inbox)
+             * @default false
+             */
+            send?: boolean;
         };
         /** AdminMeResponse */
         AdminMeResponse: {
@@ -10776,6 +10898,80 @@ export interface operations {
             };
         };
     };
+    payee_setup_api_v1_finance_payees__kind___target_id__payout_account_get: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                kind: "restaurant" | "rider";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payee_link_api_v1_finance_payees__kind___target_id__payout_account_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "restaurant" | "rider";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     open_account_api_v1_finance_payout_accounts_post: {
         parameters: {
             query?: never;
@@ -10813,7 +11009,10 @@ export interface operations {
     };
     my_accounts_api_v1_finance_payout_accounts_me_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Ask the provider now (back from Stripe) */
+                refresh?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10829,6 +11028,79 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_setup_api_v1_finance_payout_accounts_me_setup_get: {
+        parameters: {
+            query: {
+                payee_type: "restaurant" | "rider";
+                restaurant_id?: string | null;
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payout_onboarding_api_v1_finance_payout_onboarding_get: {
+        parameters: {
+            query: {
+                t: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -11127,6 +11399,28 @@ export interface operations {
         };
     };
     stripe_connect_webhook_api_v1_finance_stripe_connect_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    stripe_payouts_webhook_api_v1_finance_stripe_webhook_post: {
         parameters: {
             query?: never;
             header?: never;

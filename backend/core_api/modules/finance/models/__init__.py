@@ -2,7 +2,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, Date, DateTime, Index, Integer, String, Text, UniqueConstraint, false, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,10 +20,19 @@ class PayoutAccount(Base):
     payee_type: Mapped[str] = mapped_column(String(12), nullable=False)  # restaurant | rider
     payee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     provider: Mapped[str] = mapped_column(String(20), nullable=False)
-    external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    external_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(12), nullable=False, default="pending")  # pending | active | restricted
     country: Mapped[str] = mapped_column(String(2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # What the provider says (R10; Stripe: account.updated and on demand). status is
+    # "active" exactly when payouts_enabled; service/connect.py turns these into the
+    # state people see (not started, in progress, action needed, ready).
+    details_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
+    payouts_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
+    requirements_due: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    disabled_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payout_error: Mapped[str | None] = mapped_column(Text, nullable=True)  # the last bank payout that failed (payout.failed)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class PayoutRun(Base):
@@ -61,9 +70,14 @@ class PayoutStatement(Base):
     amount: Mapped[int] = mapped_column(Integer, nullable=False)  # minor units
     summary: Mapped[dict] = mapped_column(JSONB, nullable=False)
     lines: Mapped[list] = mapped_column(JSONB, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")  # pending | paid | failed | no_account
-    transfer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # pending | paid | failed | no_account | onboarding (account not ready yet) | reversed
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    transfer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Transfers tried: the idempotency key is "<run>:<statement>:<attempts>", so a retry
+    # after a definite failure or a reversal is a new transfer, and a timed-out one isn't.
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    transferred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 __all__ = ["PayoutAccount", "PayoutRun", "PayoutStatement"]

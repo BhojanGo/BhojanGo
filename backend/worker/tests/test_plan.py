@@ -88,6 +88,16 @@ async def test_payout_goes_to_the_restaurant_owner_or_rider() -> None:
     assert rest[0].params == {"amount": "₹1,240.50", "period": "3–9 Nov"}
 
 
+async def test_payout_setup_link_goes_to_the_owner_or_delivery_partner() -> None:
+    d = FakeDirectory()
+    link = "https://api.example/api/v1/finance/payout-onboarding?t=abc"
+    base = {"event_type": "payout.setup_link", "payload": {"link": link, "provider": "stripe_connect", "user_id": None}}
+    rest = await plan({**base, "payload": {**base["payload"], "payee_type": "restaurant", "payee_id": REST}}, d)  # type: ignore[arg-type]
+    rider = await plan({**base, "payload": {**base["payload"], "payee_type": "rider", "payee_id": RIDER}}, d)  # type: ignore[arg-type]
+    assert rest[0].user_id == OWNER and rider[0].user_id == RIDER
+    assert rest[0].key == "payout_setup" and rest[0].params == {"link": link} and rest[0].data["screen"] == "payouts"
+
+
 async def test_unknown_orders_and_events_are_ignored() -> None:
     d = FakeDirectory()
     assert await plan({"event_type": "order.placed", "payload": {"order_id": str(uuid.uuid4())}}, d) == []  # type: ignore[arg-type]

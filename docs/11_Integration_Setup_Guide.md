@@ -53,6 +53,36 @@ show "Sales tax not calculated" ($0) and production refuses to quote (`payments/
 - Real test mode: the `stripe-e2e` job on the Railway qa-runner (`tools/stripe_e2e/`, keys as
   sealed variables on the runner): `sh tools/railway/qa-runner.sh run stripe-e2e`.
 
+### Payouts: Stripe Connect Express (R10)
+Kitchen partners and delivery partners in a country whose Markets payout provider is
+`stripe_connect` set up payouts on Stripe's own pages (Express). Code:
+`backend/core_api/modules/finance/service/{providers,connect,payouts}.py`.
+
+1. **Once per Stripe account (test mode too; done for the test account in R10):** Dashboard → Settings → Connect →
+   Platform profile (`https://dashboard.stripe.com/test/settings/connect/platform-profile`):
+   complete it and accept the responsibilities for Express accounts. Until then creating an
+   account fails and the API answers 503 `CONNECT_NOT_SET_UP` with these words.
+2. **Two webhook endpoints** (Developers → Webhooks → Add endpoint):
+   - *Connect* ("Events on connected accounts"): `https://<api>/api/v1/finance/stripe/connect/webhook`,
+     events `account.updated`, `account.application.deauthorized`, `payout.failed`, `payout.paid`
+     → its signing secret in `STRIPE_CONNECT_WEBHOOK_SECRET`.
+   - *Your account*: `https://<api>/api/v1/finance/stripe/webhook`, events `transfer.created`,
+     `transfer.updated`, `transfer.reversed` → its signing secret in `STRIPE_PAYOUTS_WEBHOOK_SECRET`.
+   Either secret empty = `STRIPE_WEBHOOK_SECRET` (one `stripe listen` signs everything with one secret:
+   `stripe listen --forward-to <api>/api/v1/finance/stripe/webhook --forward-connect-to <api>/api/v1/finance/stripe/connect/webhook`).
+3. `PUBLIC_API_URL` = the API's public address (onboarding links and Stripe's refresh_url point at
+   `<it>/api/v1/finance/payout-onboarding?t=…`, which makes a fresh Account Link each time);
+   `PUBLIC_WEB_URL` = the website (Stripe's return_url is `<it>/payouts/done?app=kitchen|delivery`).
+4. Weekly runs pay only accounts with payouts enabled (Transfers, idempotency key
+   `payout-<run>:<statement>:<attempt>`); the others wait as "waiting for onboarding" and are paid
+   as soon as `account.updated` says payouts are enabled. A reversed transfer shows as Reversed in
+   admin Finance; Retry sends a new transfer.
+5. Testing: Stripe's test onboarding values (phone `000 000 0000`, SMS code `000000`, SSN `000-00-0000`,
+   routing `110000000`, account `000123456789`); money for transfers comes from test charges with
+   card `4000 0000 0000 0077` (available at once). GitHub CI runs this with Stripe mocked
+   (`core_api/integration/test_connect_payouts.py`); the real test-mode run is the case file
+   `tools/stripe_e2e/test_payout_transfer.py` in the Railway `stripe-e2e` job (keys only in Railway).
+
 ## 2. Razorpay (India Payments)
 
 ### Account Setup
