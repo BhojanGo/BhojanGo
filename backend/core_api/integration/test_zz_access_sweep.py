@@ -245,6 +245,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/orders/driver/active"): user("customer", "partner"),
     ("GET", "/api/v1/orders/admin/pain-points"): admin("ops_boi"),
     ("GET", "/api/v1/payments/{order_id}"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
+    ("GET", "/api/v1/payments/provider"): user(params=lambda c: {"country": "US"}),
     ("GET", "/api/v1/payments/orders/{order_id}/status"): user("other_customer", "other_partner", "other_rider"),
     ("GET", "/api/v1/payments/orders/{order_id}/refunds"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("POST", "/api/v1/payments/initiate"): user("other_customer", "other_partner", "other_rider",

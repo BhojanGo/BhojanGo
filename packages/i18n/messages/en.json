@@ -424,7 +424,20 @@
     "test_title": "Pay (test mode)",
     "test_body": "This stands in for the payment provider's checkout until live keys are set. Nothing is charged.",
     "test_decline": "Decline",
-    "test_approve": "Approve {amount}"
+    "test_approve": "Approve {amount}",
+    "stripe_title": "Payment details",
+    "stripe_loading": "Loading the secure payment form…",
+    "stripe_unavailable": "We couldn't load the payment form. Check your connection and try again.",
+    "stripe_note": "Payments are processed by Stripe. BhojanGo never sees your full card number.",
+    "stripe_test_hint": "Test mode: no real money moves. Use card 4242 4242 4242 4242, any future date and any CVC.",
+    "return_title": "Finishing your payment",
+    "return_body": "You're back from your bank. We're waiting for the payment to be confirmed; this usually takes a few seconds.",
+    "return_slow_title": "Still confirming your payment",
+    "return_failed_title": "Your payment didn't go through",
+    "return_missing": "We couldn't tell which order this payment was for. Go back to checkout to try again.",
+    "back_to_checkout": "Back to checkout",
+    "view_order": "View your order",
+    "stripe_update_app": "This version of the app can't open the card payment screen. Please update BhojanGo to pay."
   },
   "track": {
     "title": "Your order",

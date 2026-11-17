@@ -69,15 +69,19 @@ class StripeGateway:
         if existing:
             return existing
         s = stripe_svc.get_stripe()
-        cus = await asyncio.to_thread(s.Customer.create, email=profile.get("email") or None,
-                                      name=profile.get("name") or None, phone=profile.get("phone") or None,
-                                      metadata={"user_id": profile["user_id"]})
+        fields = {k: profile.get(k) for k in ("email", "name", "phone") if profile.get(k)}
+        cus = await asyncio.to_thread(s.Customer.create, **fields, metadata={"user_id": profile["user_id"]},
+                                      idempotency_key=f"cus:{profile['user_id']}")
         return cus.id
 
     async def create(self, *, amount, currency, order_id, idempotency_key, payment_method_id, customer=None):  # type: ignore[no-untyped-def]
         s = stripe_svc.get_stripe()
         customer = customer or {}
-        kwargs: dict = {"amount": amount, "currency": currency.lower(), "metadata": {"order_id": order_id},
+        # Cards and wallets (Apple Pay, Google Pay; whatever the Dashboard enables), 3-D Secure when the
+        # bank asks for it (the client SDKs handle requires_action). Idempotent per order attempt.
+        kwargs: dict = {"amount": amount, "currency": currency.lower(),
+                        "metadata": {"order_id": order_id, "attempt": idempotency_key},
+                        "description": f"BhojanGo order {order_id}",
                         "idempotency_key": idempotency_key, "automatic_payment_methods": {"enabled": True}}
         if customer.get("provider_customer_id"):
             kwargs["customer"] = customer["provider_customer_id"]
@@ -87,20 +91,30 @@ class StripeGateway:
         pi = await asyncio.to_thread(s.PaymentIntent.create, **kwargs)
         checkout = {"sdk": "stripe_payment_sheet", "payment_intent_client_secret": pi.client_secret,
                     "publishable_key": get_settings().payments.STRIPE_PUBLISHABLE_KEY,
+                    "amount": amount, "currency": currency.upper(),
                     "merchant_display_name": "BhojanGo", "apple_pay": {"merchant_country_code": "US"},
                     "google_pay": {"merchant_country_code": "US", "test_env": not get_settings().is_production},
                     "methods": customer.get("methods", [])}
         if kwargs.get("customer"):
-            eph = await asyncio.to_thread(s.EphemeralKey.create, customer=kwargs["customer"], stripe_version=STRIPE_API_VERSION)
-            checkout.update(customer_id=kwargs["customer"], customer_ephemeral_key=eph.secret)
+            checkout = await self.refresh_checkout({**checkout, "customer_id": kwargs["customer"]})
         logger.info("stripe_intent_created", intent_id=pi.id, amount=amount)
         return {"provider_payment_id": pi.id, "client_secret": pi.client_secret, "checkout": checkout}
+
+    async def refresh_checkout(self, checkout: dict) -> dict:
+        """PaymentSheet's customer key is short-lived: a fresh one each time the
+        app opens the sheet (also when it reopens the same payment)."""
+        if not checkout.get("customer_id"):
+            return checkout
+        s = stripe_svc.get_stripe()
+        eph = await asyncio.to_thread(s.EphemeralKey.create, customer=checkout["customer_id"], stripe_version=STRIPE_API_VERSION)
+        return {**checkout, "customer_ephemeral_key": eph.secret}
 
     async def parse_webhook(self, payload: bytes, signature: str) -> dict:
         return await stripe_svc.process_webhook(payload, signature)
 
     async def refund(self, provider_payment_id, amount, idempotency_key, meta):  # type: ignore[no-untyped-def]
-        r = await stripe_svc.create_refund(provider_payment_id, amount, idempotency_key=idempotency_key)
+        r = await stripe_svc.create_refund(provider_payment_id, amount, idempotency_key=idempotency_key,
+                                           metadata={k: meta[k] for k in ("order_id", "refund_id") if meta.get(k)})
         return {"refund_id": r["refund_id"], "status": r["status"]}
 
 

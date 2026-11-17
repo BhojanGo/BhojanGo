@@ -203,10 +203,14 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
                     reason=reason, fault=fault, note=note, lines=lines, requested_by=actor_id, status="pending")
     db.add(refund)
     await db.flush()
-    result = await gateway_by_name(intent.provider).refund(intent.provider_payment_id, minor, f"refund:{refund.id}", intent.metadata_)
+    # Through the provider (Stripe: a Refund of exactly this amount, idempotency key refund:<our id>).
+    result = await gateway_by_name(intent.provider).refund(
+        intent.provider_payment_id, minor, f"refund:{refund.id}",
+        {**intent.metadata_, "order_id": str(order_id), "refund_id": str(refund.id)})
     refund.provider_refund_id, refund.status = result["refund_id"], result["status"]
     intent.refunded_amount = (intent.refunded_amount or 0) + minor
     intent.status = "refunded" if intent.refunded_amount >= intent.amount else "partially_refunded"
+    await reverse_tax(intent, f"refund:{refund.id}", minor, full=intent.status == "refunded" and not previous)
     await outbox.add(db, "payment.refunded", "order", order_id, {
         "order_id": str(order_id), "user_id": str(intent.user_id), "refund_id": str(refund.id), "amount": minor,
         "currency": intent.currency, "reason": reason, "fault": fault, "items": lines, "provider": intent.provider,
@@ -214,6 +218,17 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
     await db.flush()
     logger.info("refund_by_item", order_id=str(order_id), amount=minor, items=len(lines), by=str(actor_id))
     return refund
+
+
+async def reverse_tax(intent: PaymentIntent, reference: str, amount_minor: int, full: bool) -> None:
+    """US: give back the refund's share of the Stripe Tax transaction recorded
+    when the payment succeeded (kept on the payment)."""
+    from core_api.modules.payments.service.tax import reverse_tax_transaction
+
+    rev = await reverse_tax_transaction(intent.metadata_.get("tax_transaction"), reference, amount_minor, full)
+    if rev:
+        intent.metadata_ = {**intent.metadata_, "tax_reversals": [*intent.metadata_.get("tax_reversals", []),
+                                                                  {**rev, "reference": reference}]}
 
 
 async def list_refunds(db: AsyncSession, order_id: uuid.UUID) -> list[Refund]:

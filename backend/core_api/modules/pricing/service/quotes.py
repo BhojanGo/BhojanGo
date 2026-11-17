@@ -59,6 +59,28 @@ class QuoteError(ValueError):
         self.details = details or {}
 
 
+def tax_lines(inputs: QuoteInputs, result: QuoteResult) -> list[TaxableLine]:
+    """What the tax provider is sent: each cart line (its share of the food
+    after food discounts, so the lines add up to the bill's food line) and each
+    taxable fee."""
+    amounts = taxable_amounts(result)
+    food = amounts.pop("food", Decimal(0))
+    out: list[TaxableLine] = []
+    gross = [ln.unit_price * ln.quantity for ln in inputs.lines]
+    total = sum(gross, Decimal(0))
+    if food > 0 and total > 0:
+        left = food
+        for i, (ln, g) in enumerate(zip(inputs.lines, gross)):
+            share = left if i == len(gross) - 1 else money(food * g / total)
+            left -= share
+            if share > 0:
+                out.append(TaxableLine(f"food-{i + 1}-{ln.item_id or 'item'}", share, kind="food"))
+    elif food > 0:
+        out.append(TaxableLine("food", food, kind="food"))
+    out += [TaxableLine(ref, amount, kind=ref) for ref, amount in amounts.items()]
+    return out
+
+
 def _key(quote_id: str) -> str:
     return f"quote:{quote_id}"
 
@@ -122,20 +144,21 @@ class QuoteService:
         return a["lat"], a["lng"], a
 
     async def _with_tax(self, inputs: QuoteInputs, rules, result: QuoteResult, region_code: str,  # type: ignore[no-untyped-def]
-                        city_name: str, postal: dict) -> tuple[QuoteInputs, QuoteResult]:
-        """US: send the taxable lines and the address to the tax provider, then
-        price again with the tax it returns. Never quote without tax."""
+                        city_name: str, postal: dict, quote_id: uuid.UUID) -> tuple[QuoteInputs, QuoteResult]:
+        """US: send the taxable lines (each cart line, each fee) and the address
+        to the tax provider, then price again with the tax it returns. Never
+        quote without tax. One calculation per quote (idempotency key)."""
         if not result.tax_pending:
             return inputs, result
-        lines = [TaxableLine(ref, amount) for ref, amount in taxable_amounts(result).items()]
         address = TaxAddress(country=region_code[:2], state=region_code[3:], city=postal.get("city") or city_name,
                              postal_code=postal.get("postal_code"), line1=postal.get("street"))
         try:
-            calc = await get_tax_provider().calculate(inputs.currency, lines, address)
+            calc = await get_tax_provider().calculate(inputs.currency, tax_lines(inputs, result), address,
+                                                      idempotency_key=f"taxcalc:{quote_id}")
         except TaxError as e:
             raise QuoteError(str(e))
         ext = [ExternalTax(b.label, b.rate_percent, b.taxable_amount, b.amount, b.jurisdiction, calc.provider,
-                           calc.calculation_id) for b in calc.breakdown]
+                           calc.calculation_id, b.reason) for b in calc.breakdown]
         inputs = replace(inputs, external_tax=ext)
         return inputs, compute(inputs, rules)
 
@@ -180,15 +203,15 @@ class QuoteService:
             promo_code=req.promo_code, promo_spent=await self._promo_spent(),
             promo_spent_week=await self._promo_spent_week(week_of(now.astimezone(tz))),
         )
+        quote_id = uuid.uuid4()
         try:
             result = compute(inputs, rules)
-            inputs, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal)
+            inputs, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal, quote_id)
         except NotDeliverable as e:
             raise QuoteError(str(e), details=tips)
         except QuoteError as e:
             raise QuoteError(str(e), code=e.code, details={**tips, **e.details})
 
-        quote_id = uuid.uuid4()
         expires = now + QUOTE_TTL
         stored = {
             "quote_id": str(quote_id), "user_id": str(user_id), "restaurant_id": rest.id,
@@ -315,7 +338,7 @@ class QuoteService:
         async def side(rules) -> SimSide:  # type: ignore[no-untyped-def]
             try:
                 result = compute(inputs, rules)
-                _, result = await self._with_tax(inputs, rules, result, region.code, city.name, {})
+                _, result = await self._with_tax(inputs, rules, result, region.code, city.name, {}, uuid.uuid4())
             except NotDeliverable as e:
                 return SimSide(ok=False, message=str(e))
             return SimSide(ok=True, lines=lines_out(result), total=result.total, split=split_out(result), rules=result.rules_used)

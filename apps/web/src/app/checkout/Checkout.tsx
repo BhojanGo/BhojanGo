@@ -15,10 +15,10 @@ import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQu
 import { api, authed, cartItems, useBag, useHydrated, useSession } from "@/lib/client";
 import { tipPresetsOf, type TipPresets } from "@/lib/contract";
 import { photo } from "@/lib/format";
-import { useFormat, useT } from "@/lib/i18n";
+import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import type { Place } from "@/lib/prefs";
 import { slugify } from "../[country]/[city]/[kitchen]/data";
-import { completeFake, mountStripe, payWithRazorpay, waitForPayment, type PayType } from "./pay";
+import { completeFake, isStripeTestKey, mountStripe, payWithRazorpay, stripeReturnUrl, waitForPayment, type PayType } from "./pay";
 
 type Restaurant = CoreSchemas["PublicRestaurant"];
 interface Address {
@@ -505,7 +505,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       {stripe && (
         <StripePay
           checkout={stripe.checkout}
-          returnUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/orders/${stripe.orderId}/track`}
+          returnUrl={stripeReturnUrl(typeof window !== "undefined" ? window.location.origin : "", stripe.orderId)}
           amount={q ? f.money(q.total, q.currency) : ""}
           onClose={() => setStripe(null)}
           onPaid={() => {
@@ -555,29 +555,35 @@ function FakePay({ amount, onClose, onOutcome }: { amount: string; onClose: () =
   );
 }
 
-/** Stripe's Payment Element (cards, Apple Pay, Google Pay) in a dialog. */
+/** Stripe's Payment Element (cards, Apple Pay, Google Pay; 3-D Secure in Stripe's pop-up) in a dialog. */
 function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout: Record<string, unknown>; returnUrl: string; amount: string; onClose: () => void; onPaid: () => void }) {
   const t = useT();
+  const { language } = useLanguage();
   const box = useRef<HTMLDivElement>(null);
   const handle = useRef<Awaited<ReturnType<typeof mountStripe>> | null>(null);
   const [ready, setReady] = useState(false);
+  const [complete, setComplete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
     if (!box.current) return;
-    mountStripe(checkout, box.current)
+    setFailed(false);
+    mountStripe(checkout, box.current, language, (c) => live && setComplete(c))
       .then((h) => {
         if (!live) return h.destroy();
         handle.current = h;
         setReady(true);
       })
-      .catch(() => live && setError(t("common.error")));
+      .catch(() => live && setFailed(true));
     return () => {
       live = false;
       handle.current?.destroy();
+      handle.current = null;
     };
-  }, [checkout, t]);
+  }, [checkout, language, attempt]);
   async function confirm() {
     if (!handle.current) return;
     setBusy(true);
@@ -586,18 +592,44 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
       await handle.current.confirm(returnUrl);
       onPaid();
     } catch (e) {
+      // Stripe's own words, in the form's language ("Your card was declined.")
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
   return (
-    <Modal title={t("checkout.card_title")} onClose={onClose}>
-      <div ref={box} className="min-h-[120px]" />
+    <Modal title={t("checkout.stripe_title")} onClose={busy ? () => undefined : onClose}>
+      {isStripeTestKey(checkout) && (
+        <p data-testid="stripe-test-hint" className="mb-4 rounded-xl bg-[#FFF4D6] px-3 py-2 text-small text-[#5C4400]">{t("checkout.stripe_test_hint")}</p>
+      )}
+      {!ready && !failed && (
+        <p role="status" className="m-0 py-8 text-center text-body text-muted">{t("checkout.stripe_loading")}</p>
+      )}
+      {failed ? (
+        <div role="alert" className="py-4 text-center">
+          <p className="m-0 text-body">{t("checkout.stripe_unavailable")}</p>
+          <button type="button" onClick={() => setAttempt((n) => n + 1)} className="mt-4 h-12 rounded-full border-[1.5px] border-[#C9D3D4] px-6 font-bold">{t("common.retry")}</button>
+        </div>
+      ) : (
+        <div ref={box} data-testid="stripe-payment-element" className={ready ? "min-h-[120px]" : "h-0 overflow-hidden"} />
+      )}
       {error && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{error}</p>}
-      <button type="button" disabled={!ready || busy} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
+      <button type="button" disabled={!ready || busy || !complete} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
         {busy ? t("checkout.paying") : t("checkout.pay_amount", { amount })}
       </button>
+      <p className="mb-0 mt-3 flex items-start justify-center gap-1.5 text-center text-small text-muted">
+        <Lock /> {t("checkout.stripe_note")}
+      </p>
     </Modal>
+  );
+}
+
+function Lock() {
+  return (
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
   );
 }

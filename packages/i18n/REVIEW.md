@@ -393,6 +393,18 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
   (the page's own photo button, replacing the browser's untranslated "Choose File")
   and `account.report.need` (why Send report is still greyed out).
 
+## US payments through Stripe (round 10)
+
+Machine-translated on 2026-11-16 into all seven languages; needs native review.
+
+- New, website and customer app: `checkout.stripe_title`, `stripe_loading`, `stripe_unavailable`,
+  `stripe_note`, `stripe_test_hint`, `return_title`, `return_body`, `return_slow_title`,
+  `return_failed_title`, `return_missing`, `back_to_checkout`, `view_order`, `stripe_update_app`.
+- `stripe_note` is a promise about card data ("BhojanGo never sees your full card number"):
+  keep it that narrow. `stripe_test_hint` shows only with a Stripe test key; the card number
+  4242 4242 4242 4242 stays in Latin digits in every language (it is typed as is).
+- "Stripe", "BhojanGo", "CVC" and "Google Pay" stay in Latin script.
+
 ## Kitchen app Help: call-back request didn't load (round 10)
 
 Machine-translated on 2026-11-16 into all seven languages; needs native review.
