@@ -41,6 +41,7 @@ import json, sys
 rows = [l.rstrip('\n').split('\t') for l in open(sys.argv[1], encoding='utf-8')]
 print(json.dumps({r[2]: r[4] for r in rows if len(r) >= 5 and '@' in r[2] and r[4]}))" "$E2E_LOGINS_FILE")"
 timeout 10 adb -s "$DEVICE" shell settings put global hide_error_dialogs 1 >/dev/null 2>&1
+sh "$ROOT/tools/mobile/metro-host.sh" "$DEVICE"   # before adb reverse: adb root drops it
 adb -s "$DEVICE" reverse tcp:8081 tcp:8081 >/dev/null   # Metro only; the APIs are public URLs
 fail=0
 for app in $APPS; do
@@ -49,14 +50,10 @@ for app in $APPS; do
   METRO=$!
   end=$(( $(date +%s) + 180 ))
   until curl -s -m 3 localhost:8081/status | grep -q running || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
-  # Open the app once so Metro builds the bundle it asks for (with a cleared cache the
-  # first flow otherwise races the build), then close it again.
+  # Open the app once so Metro builds the bundle, and close it only once the app has
+  # loaded it (tools/mobile/warm-up.sh explains the black first flow this prevents).
   case "$app" in customer) pkg=com.bhojango.app ;; *) pkg="com.bhojango.$app" ;; esac
-  adb -s "$DEVICE" shell monkey -p "$pkg" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-  end=$(( $(date +%s) + 240 ))
-  until grep -q "Android Bundled" "$OUT/metro-$app.log" || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
-  sleep 10
-  adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
+  sh "$ROOT/tools/mobile/warm-up.sh" "$DEVICE" "$pkg" "$OUT/metro-$app.log" 300
   [ "$app" = rider ] && adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   # Top-level flows, plus the read-only QA folder (.maestro/qa: every flow there is read-only).
   flows="$(cd "$ROOT/apps/$app/.maestro" && { ls *.yaml; ls qa/*.yaml 2>/dev/null; } | grep -v '^sign-in.yaml$' | sed 's/\.yaml$//')"
@@ -68,7 +65,9 @@ for app in $APPS; do
     flows="$(for f in $flows; do case " $ONLY " in *" $f "*) echo "$f";; esac; done)"
   fi
   for f in $flows; do
-    if maestro --device "$DEVICE" test -e QA_CORE="$QA_CORE" -e QA_RT="$QA_RT" -e QA_PASSWORDS="$QA_PASSWORDS" -e QA_TOTP_KEYS="$QA_TOTP_KEYS" \
+    # PHONE / COUNTRY pick another seed customer (e.g. the Boise demo, +1 208 555 0301,
+    # when Hyderabad's demo kitchens are closed at night): passed through when set.
+    if maestro --device "$DEVICE" test -e QA_CORE="$QA_CORE" -e QA_RT="$QA_RT" -e QA_PASSWORDS="$QA_PASSWORDS" -e QA_TOTP_KEYS="$QA_TOTP_KEYS"          ${PHONE:+-e PHONE="$PHONE"} ${COUNTRY:+-e COUNTRY="$COUNTRY"} \
          "$ROOT/apps/$app/.maestro/$f.yaml" > "$OUT/$app-$(echo "$f" | tr / -).log" 2>&1; then
       echo "PASS $app/$f"
     else
