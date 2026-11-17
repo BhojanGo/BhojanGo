@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "strict": false,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
@@ -37,6 +38,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "test"
   ]
 }

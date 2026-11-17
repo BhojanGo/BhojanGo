@@ -12,11 +12,7 @@ export function useScope(): string {
   return useSearchParams().get("scope") ?? "*";
 }
 
-export function money(v: number | string | null | undefined, currency: string, decimals = 0): string {
-  const n = Number(v ?? 0);
-  const locale = currency === "INR" ? "en-IN" : "en-US";
-  return n.toLocaleString(locale, { style: "currency", currency, maximumFractionDigits: decimals, minimumFractionDigits: decimals });
-}
+export { money } from "@/lib/money";
 
 export function ago(iso: string | null | undefined): string {
   if (!iso) return "";

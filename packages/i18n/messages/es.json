@@ -1644,6 +1644,7 @@
       },
       "note": "¿Algo que debamos saber? (opcional)",
       "callback_failed": "No se pudo enviar tu solicitud. Inténtalo de nuevo.",
+      "earlier_failed": "No se cargó tu solicitud de llamada",
       "update_request": "Actualizar mi solicitud",
       "request": "Pedir que me llamen",
       "refund_note": "Un pedido rechazado o tarde muestra el motivo al cliente y se reembolsa por completo."
