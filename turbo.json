@@ -23,6 +23,7 @@
         "PAYMENT_SVC_URL",
         "REALTIME_SVC_URL",
         "CORE_API_INTERNAL_URL",
+        "APP_ENV",
         "NEXT_PUBLIC_*"
       ]
     },

@@ -1,0 +1,13 @@
+# Production build smoke (R9 item 8): on top of compose.yaml, the web and admin images
+# are built with APP_ENV=production (no test-site banner, no draft banner on published
+# legal documents, indexable website). The services behind them stay as in `make dev`.
+#   docker compose -f infra/docker/compose.yaml -f infra/docker/compose.prod-smoke.yaml --profile all up -d --build
+services:
+  web:
+    build:
+      args:
+        APP_ENV: production
+  admin:
+    build:
+      args:
+        APP_ENV: production
