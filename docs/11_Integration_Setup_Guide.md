@@ -7,29 +7,51 @@
 2. Complete business verification (EIN, bank account)
 3. Enable test mode for development
 
-### API Keys
-- **Test keys:** Dashboard → Developers → API Keys
-- Copy `pk_test_*` (publishable) and `sk_test_*` (secret)
-- Set in `.env`:
+### API Keys (core-api only; never in GitHub)
+- Dashboard → Developers → API Keys: `pk_test_*` (publishable) and `sk_test_*` (secret).
+- core-api (Railway sealed variables):
   ```
   STRIPE_SECRET_KEY=sk_test_...
-  STRIPE_PUBLISHABLE_KEY=pk_test_...
+  STRIPE_PUBLISHABLE_KEY=pk_test_...     # handed to the web and app checkouts by the API
+  STRIPE_WEBHOOK_SECRET=whsec_...        # from the webhook endpoint below
+  PAYMENT_PROVIDER=auto                  # US -> Stripe when STRIPE_SECRET_KEY is set; India stays on the fake until Razorpay keys
+  TAX_PROVIDER=auto                      # US sales tax from Stripe Tax when STRIPE_SECRET_KEY is set
   ```
+- The website and the customer app need no Stripe variable: `POST /api/v1/payments/initiate`
+  returns the publishable key and client secret (and the PaymentSheet customer + ephemeral
+  key), `GET /api/v1/payments/provider?country=US` tells the app which checkout to open.
+  The customer app's Stripe native module (`@stripe/stripe-react-native`, Google Pay enabled)
+  needs a rebuilt APK.
 
 ### Webhook Setup
 1. Dashboard → Developers → Webhooks → Add endpoint
-2. URL: `https://api.bhojango.com/api/v1/payments/webhooks/stripe`
-3. Events to subscribe:
-   - `payment_intent.succeeded`
-   - `payment_intent.payment_failed`
-   - `charge.refunded`
-   - `charge.refund.updated`
-4. Copy signing secret → set `STRIPE_WEBHOOK_SECRET` in env
+2. URL: `https://<core-api host>/api/v1/payments/stripe/webhook`
+3. Events (exactly `stripe_svc.WEBHOOK_EVENTS`):
+   - `payment_intent.succeeded` (the order is placed)
+   - `payment_intent.payment_failed`, `payment_intent.canceled` (the attempt failed; the order stays payable)
+   - `charge.refunded`, `refund.created`, `refund.updated`, `refund.failed`, `charge.refund.updated` (refund status)
+4. Copy the signing secret → `STRIPE_WEBHOOK_SECRET`. Deliveries are idempotent (`processed_webhook_events`).
+
+### Idempotency
+Every create at Stripe carries a key from our ids: Customer `cus:<user id>`, PaymentIntent
+`<order id>:attempt-<n>`, Refund `refund:<refund id>` / `refund-in-full:<payment id>`, Tax calculation
+`taxcalc:<quote id>`, Tax transaction `taxtx:<order id>`, Tax reversal `taxrev:<refund ref>`.
+
+### Stripe Tax (US quotes)
+The quote sends each cart line (prepared food, `txcd_40060003`) and each fee with the delivery
+address; the fair bill's tax lines are Stripe's answer per jurisdiction. The calculation id is
+kept with the quote and the order's pricing snapshot, turned into a tax transaction when the
+payment succeeds, and reversed (partly) by refunds. Needs, in the Stripe account: Settings → Tax
+→ head office address and default tax behaviour (`exclusive`), and a registration for every state
+we deliver in (Dashboard → Tax → Registrations). Without a registration Stripe returns $0 with
+`not_collecting` (the bill shows that $0 line); with Stripe Tax not set up, non-production quotes
+show "Sales tax not calculated" ($0) and production refuses to quote (`payments/service/tax.py`).
 
 ### Testing
-```bash
-stripe trigger payment_intent.succeeded  # Using Stripe CLI
-```
+- GitHub CI: Stripe mocked (unit tests `payments/tests/test_stripe.py`, integration
+  `core_api/integration/test_stripe_webhooks.py`).
+- Real test mode: the `stripe-e2e` job on the Railway qa-runner (`tools/stripe_e2e/`, keys as
+  sealed variables on the runner): `sh tools/railway/qa-runner.sh run stripe-e2e`.
 
 ### Payouts: Stripe Connect Express (R10)
 Kitchen partners and delivery partners in a country whose Markets payout provider is

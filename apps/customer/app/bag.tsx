@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../lib/icons";
-import { startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
+import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome, type Provider } from "../lib/pay";
 import { useWhere } from "../lib/where";
 
 type Quote = CoreSchemas["QuoteOut"];
@@ -34,6 +34,17 @@ export default function Bag() {
   const { country } = useCountry(); // the delivery address's country (Markets): currency, payment methods
   const currency = market?.currency ?? country?.currency ?? "";
   const method: "upi" | "card" = country?.payment_methods.includes("upi") ? "upi" : "card";
+  // Stripe PaymentSheet or the test sheet: the server decides (its keys for this country).
+  const [provider, setProvider] = useState<Provider | null>(null);
+  const payCountry = point?.country || country?.code || "";
+  useEffect(() => {
+    if (!payCountry) return;
+    let live = true;
+    paymentProvider(payCountry).then((p) => live && setProvider(p), () => live && setProvider("fake"));
+    return () => {
+      live = false;
+    };
+  }, [payCountry]);
 
   // Re-price whenever the bag or the tip changes; the quote is what gets charged.
   const lines = bag.lines;
@@ -100,27 +111,55 @@ export default function Bag() {
       : error;
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
 
+  async function placeOrder(): Promise<string> {
+    const order = unwrap(await api.core.POST("/api/v1/orders", {
+      params: { header: { "X-Idempotency-Key": quote!.quote_id } },
+      body: {
+        restaurant_id: bag.restaurantId!, items: cartItems(lines), payment_method: method, quote_token: quote!.token,
+        delivery_address: { street: point!.street, city: point!.city, state: point!.state, zip: point!.zip || "000000", country: point!.country || country?.code || "" },
+      },
+    })) as { id: string };
+    return order.id;
+  }
+
+  async function settle(orderId: string) {
+    const status = await waitForPayment(orderId);
+    if (status.payment_status === "succeeded") {
+      bag.clear();
+      router.replace(`/order/${orderId}`);
+    } else {
+      router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: provider ?? "fake" } });
+    }
+  }
+
+  /** Stripe PaymentSheet (US with Stripe keys): cards, Google Pay; 3-D Secure inside the sheet. */
+  async function payStripe() {
+    if (!quote || !point) return;
+    setPaying(true);
+    setError(null);
+    try {
+      const orderId = await placeOrder();
+      const r = await payWithStripe(orderId, method);
+      if (r.kind === "paid") await settle(orderId);
+      else if (r.kind === "failed") router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: "stripe" } });
+      else if (r.kind === "unavailable") setError(t("checkout.stripe_update_app"));
+      // cancelled: stay on the bag; the order waits with its price held
+    } catch (e) {
+      setError(errorMessage((e as { body?: unknown }).body));
+    } finally {
+      setPaying(false);
+    }
+  }
+
   async function pay(outcome: PayOutcome) {
     if (!quote || !point) return;
     setSheet(false);
     setPaying(true);
     setError(null);
     try {
-      const order = unwrap(await api.core.POST("/api/v1/orders", {
-        params: { header: { "X-Idempotency-Key": quote.quote_id } },
-        body: {
-          restaurant_id: bag.restaurantId!, items: cartItems(lines), payment_method: method, quote_token: quote.token,
-          delivery_address: { street: point.street, city: point.city, state: point.state, zip: point.zip || "000000", country: point.country || country?.code || "" },
-        },
-      })) as { id: string };
-      await startPayment(order.id, method, outcome);
-      const status = await waitForPayment(order.id);
-      if (status.payment_status === "succeeded") {
-        bag.clear();
-        router.replace(`/order/${order.id}`);
-      } else {
-        router.replace({ pathname: "/payment-failed", params: { orderId: order.id, method } });
-      }
+      const orderId = await placeOrder();
+      await startPayment(orderId, method, outcome);
+      await settle(orderId);
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body));
     } finally {
@@ -193,8 +232,8 @@ export default function Bag() {
             size="lg"
             block
             loading={paying}
-            disabled={!quote || held === 0}
-            onPress={() => setSheet(true)}
+            disabled={!quote || held === 0 || provider == null}
+            onPress={() => (provider === "stripe" ? void payStripe() : setSheet(true))}
           />
         )}
       </View>

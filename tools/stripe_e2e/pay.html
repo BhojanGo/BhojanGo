@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stripe e2e: Payment Element</title>
+<!-- The website's Payment Element flow (apps/web/src/app/checkout/pay.ts, mountStripe):
+     Stripe.js v3, elements({clientSecret}), the "payment" element, confirmPayment with
+     redirect "if_required". Query: ?pk=<publishable key>&cs=<client secret>. -->
+<script src="https://js.stripe.com/v3"></script>
+</head>
+<body>
+<form id="f"><div id="pe"></div><button id="pay" type="submit" disabled>Pay</button></form>
+<pre id="out">loading</pre>
+<script>
+  const q = new URLSearchParams(location.search);
+  const stripe = Stripe(q.get("pk"));
+  const elements = stripe.elements({ clientSecret: q.get("cs"), locale: "en" });
+  const payment = elements.create("payment", { layout: { type: "tabs" } });
+  const out = document.getElementById("out");
+  payment.on("ready", () => { out.textContent = "ready"; document.getElementById("pay").disabled = false; });
+  payment.on("loaderror", (e) => { out.textContent = "loaderror " + (e.error && e.error.message); });
+  payment.mount("#pe");
+  document.getElementById("f").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    out.textContent = "confirming";
+    const r = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: location.origin + "/return" } });
+    out.textContent = r.error ? "error " + (r.error.code || "") + " " + r.error.message : "done " + r.paymentIntent.status;
+  });
+</script>
+</body>
+</html>

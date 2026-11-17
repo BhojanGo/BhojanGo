@@ -17,6 +17,7 @@ from core_api.modules.payments.schemas.payment import (
     FakeCompleteRequest,
     PaymentInitiateRequest,
     PaymentInitiateResponse,
+    PaymentProviderOut,
     PaymentResponse,
     RefundRequest,
     RefundResponse,
@@ -34,6 +35,7 @@ from core_api.modules.payments.service.gateways import (
     sign_fake,
 )
 from shared.config import get_settings
+from shared.providers import ProviderConfigError
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 logger = structlog.get_logger(__name__)
@@ -66,12 +68,15 @@ async def initiate_payment(
     attempts = await repo.list_by_order_id(data.order_id)
     open_intent = next((i for i in attempts if i.status in ("pending", "processing", "succeeded")), None)
     if open_intent:
+        checkout = open_intent.metadata_.get("checkout")
+        if open_intent.provider == "stripe" and checkout and open_intent.status != "succeeded":
+            checkout = await gateway_by_name("stripe").refresh_checkout(checkout)  # type: ignore[attr-defined]
         return PaymentInitiateResponse(
             payment_intent_id=str(open_intent.id), provider=open_intent.provider,  # type: ignore[arg-type]
             client_secret=open_intent.metadata_.get("client_secret"),
             razorpay_order_id=open_intent.metadata_.get("razorpay_order_id"),
             amount=open_intent.amount, currency=open_intent.currency,  # type: ignore[arg-type]
-            checkout=_with_ids(open_intent.metadata_.get("checkout"), open_intent.id),
+            checkout=_with_ids(checkout, open_intent.id),
         )
     idempotency_key = f"{data.order_id}:attempt-{len(attempts) + 1}"
 
@@ -107,6 +112,24 @@ async def initiate_payment(
     )
 
 
+@router.get("/provider", response_model=PaymentProviderOut)
+async def payment_provider(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    country: str = Query(..., min_length=2, max_length=2, description="The order's country (ISO 3166-1 alpha-2)"),
+) -> PaymentProviderOut:
+    """Which checkout the apps open for an order in this country (Stripe
+    PaymentSheet, Razorpay Checkout, or the local fake one), decided by the
+    server's keys; and Stripe's publishable key when it is Stripe."""
+    try:
+        name = get_gateway(country.upper()).name
+    except ProviderConfigError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail={"code": "PAYMENTS_UNAVAILABLE", "message": "Payments aren't set up for this country"})
+    return PaymentProviderOut(
+        provider=name,  # type: ignore[arg-type]
+        publishable_key=(get_settings().payments.STRIPE_PUBLISHABLE_KEY or None) if name == "stripe" else None)
+
+
 def _with_ids(checkout: dict | None, intent_id) -> dict | None:  # type: ignore[no-untyped-def]
     if checkout and "complete_path" in checkout:
         checkout = {**checkout, "complete_path": checkout["complete_path"].format(payment_intent_id=intent_id)}
@@ -140,7 +163,42 @@ async def _handle_webhook(gateway_name: str, request: Request, db: AsyncSession)
         event = await gateway.parse_webhook(payload, request.headers.get(gateway.signature_header, ""))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    if event.get("kind") == "refund":
+        return await apply_refund_event(db, gateway_name, event)
     return await apply_payment_event(db, gateway_name, event)
+
+
+async def apply_refund_event(db: AsyncSession, gateway_name: str, event: dict) -> dict:
+    """A refund's outcome from the provider. Our refund rows are written when we
+    ask for the refund; this records the final status. A refund that failed
+    (or was cancelled) is taken back off the payment's refunded amount, so it
+    can be issued again. Idempotent per event and per status."""
+    from sqlalchemy import select
+
+    from core_api.modules.payments.models.payment import PaymentIntent, Refund
+
+    if event.get("event_id") and not await _first_delivery(db, gateway_name, event["event_id"]):
+        return {"received": True, "duplicate": True}
+    changed = 0
+    for r in event.get("refunds", []):
+        if not r.get("refund_id"):
+            continue
+        row = (await db.execute(select(Refund).where(Refund.provider_refund_id == r["refund_id"]).with_for_update())).scalars().first()
+        if row is None or row.status == r["status"] or row.status in ("failed", "canceled"):
+            continue
+        row.status = r["status"]
+        changed += 1
+        if r["status"] in ("failed", "canceled"):
+            intent = await db.get(PaymentIntent, row.payment_intent_id, with_for_update=True)
+            if intent is not None:
+                intent.refunded_amount = max(0, (intent.refunded_amount or 0) - row.amount)
+                intent.status = "succeeded" if intent.refunded_amount == 0 else "partially_refunded"
+            await outbox.add(db, "payment.refund_failed", "order", row.order_id, {
+                "order_id": str(row.order_id), "refund_id": str(row.id), "amount": row.amount, "currency": row.currency,
+                "provider": gateway_name, "provider_refund_id": r["refund_id"]}, "payment-svc")
+            logger.error("refund_failed_at_provider", refund_id=str(row.id), provider_refund_id=r["refund_id"])
+    await db.flush()
+    return {"received": True, "updated": changed}
 
 
 async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) -> dict:
@@ -185,7 +243,7 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
     else:
         intent.metadata_ = {**intent.metadata_, "failure_reason": event.get("failure_reason") or event["event_type"]}
         await outbox.add(db, "payment.failed", "order", intent.order_id,
-                         {**base, "failure_reason": event["event_type"]}, "payment-svc")
+                         {**base, "failure_reason": event.get("failure_reason") or event["event_type"]}, "payment-svc")
         from core_api.modules.orders.service.order import OrderService
 
         await OrderService(db).on_payment_failed(intent.order_id)

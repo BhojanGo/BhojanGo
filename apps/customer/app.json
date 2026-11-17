@@ -48,6 +48,12 @@
       "expo-font",
       "@maplibre/maplibre-react-native",
       [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": true
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "BhojanGo uses the camera for a photo when you report a problem with an order.",

@@ -20,6 +20,12 @@
 #                reset); demo.py itself refuses production before any DB access.
 #   checks       read-only: each backend's /health over the private network,
 #                migrations at head and `alembic check` against the QA database
+#   stripe-e2e   Stripe TEST mode end-to-end (tools/stripe_e2e/run.sh): its own throwaway
+#                database on the QA Postgres server (created and dropped by the job),
+#                Redis db 11, core-api inside this container, webhooks via the Stripe
+#                CLI; never QA's data. Needs STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY
+#                (sk_test_ / pk_test_) as sealed variables on qa-runner; without them:
+#                "SKIPPED: no Stripe test keys". Live keys refused.
 #   g1, integration
 #                refused (exit 3): the G1 and integration suites write test data.
 #                They run in make ci (ci-e2e, ci-migrations) and in CI.
@@ -102,6 +108,9 @@ for name, port in (('core-api', 8001), ('realtime', 8004), ('worker', 8006)):
     # Removed: it rewrote QA's opening hours for tests. Tests never write to QA;
     # the demo seed's hours are what QA shows.
     echo "qa-job: 'hours' was removed (tests never write to QA)"; rc=3 ;;
+  stripe-e2e)
+    sh /repo/tools/stripe_e2e/run.sh
+    rc=$? ;;
   g1|integration)
     # Tests never write to QA or production (tools/target_guard.py): the guard
     # refuses (G1: the QA API's /health says qa; integration: this process is QA's).
