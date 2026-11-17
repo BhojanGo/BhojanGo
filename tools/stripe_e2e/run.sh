@@ -130,9 +130,15 @@ done
 echo "stripe-e2e: core-api on :$PORT, Stripe CLI forwarding $EVENTS"
 
 # Headless Chromium for the Payment Element and 3-D Secure cases (pinned Playwright).
+# The qa-runner image installs Chromium and its libraries at build time (PLAYWRIGHT_BROWSERS_PATH,
+# infra/railway/qa-runner.Dockerfile, same version); elsewhere it is installed here.
 PW="playwright==1.49.0"
-uv run --frozen --with "$PW" python -m playwright install --with-deps chromium >"$WORK/playwright.log" 2>&1 \
-  || echo "stripe-e2e: Playwright/Chromium could not be installed; the browser cases will fail"
+if ls -d "${PLAYWRIGHT_BROWSERS_PATH:-/nonexistent}"/chromium* >/dev/null 2>&1; then
+  echo "stripe-e2e: Chromium from the image (${PLAYWRIGHT_BROWSERS_PATH})"
+elif ! uv run --frozen --with "$PW" python -m playwright install --with-deps chromium >"$WORK/playwright.log" 2>&1; then
+  echo "stripe-e2e: Playwright/Chromium could not be installed; the browser cases will fail. playwright.log (last 25 lines):"
+  tail -25 "$WORK/playwright.log"
+fi
 STRIPE_E2E_CORE="http://127.0.0.1:$PORT" STRIPE_E2E_PSQL="$E2E_PG" STRIPE_E2E_WORK="$WORK" \
   e2e_env uv run --frozen --with "$PW" python -I "$HERE/harness.py" "$@"
 rc=$?
