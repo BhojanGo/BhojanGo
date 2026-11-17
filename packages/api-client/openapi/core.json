@@ -9772,6 +9772,36 @@
         "title": "PaymentMethodOut",
         "type": "object"
       },
+      "PaymentProviderOut": {
+        "description": "Which checkout to open for an order in a country (GET /payments/provider).",
+        "properties": {
+          "provider": {
+            "enum": [
+              "stripe",
+              "razorpay",
+              "fake"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "publishable_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishable Key"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "title": "PaymentProviderOut",
+        "type": "object"
+      },
       "PaymentResponse": {
         "properties": {
           "amount": {
@@ -22155,6 +22185,58 @@
           }
         ],
         "summary": "Payment Status",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/provider": {
+      "get": {
+        "description": "Which checkout the apps open for an order in this country (Stripe\nPaymentSheet, Razorpay Checkout, or the local fake one), decided by the\nserver's keys; and Stripe's publishable key when it is Stripe.",
+        "operationId": "payment_provider_api_v1_payments_provider_get",
+        "parameters": [
+          {
+            "description": "The order's country (ISO 3166-1 alpha-2)",
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "description": "The order's country (ISO 3166-1 alpha-2)",
+              "maxLength": 2,
+              "minLength": 2,
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentProviderOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Payment Provider",
         "tags": [
           "Payments"
         ]

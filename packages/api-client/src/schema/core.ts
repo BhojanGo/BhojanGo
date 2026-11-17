@@ -2500,6 +2500,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment Provider
+         * @description Which checkout the apps open for an order in this country (Stripe
+         *     PaymentSheet, Razorpay Checkout, or the local fake one), decided by the
+         *     server's keys; and Stripe's publishable key when it is Stripe.
+         */
+        get: operations["payment_provider_api_v1_payments_provider_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/razorpay/verify": {
         parameters: {
             query?: never;
@@ -7647,6 +7669,19 @@ export interface components {
             last4: string;
             /** Provider */
             provider: string;
+        };
+        /**
+         * PaymentProviderOut
+         * @description Which checkout to open for an order in a country (GET /payments/provider).
+         */
+        PaymentProviderOut: {
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "stripe" | "razorpay" | "fake";
+            /** Publishable Key */
+            publishable_key?: string | null;
         };
         /** PaymentResponse */
         PaymentResponse: {
@@ -13919,6 +13954,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payment_provider_api_v1_payments_provider_get: {
+        parameters: {
+            query: {
+                /** @description The order's country (ISO 3166-1 alpha-2) */
+                country: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProviderOut"];
                 };
             };
             /** @description Validation Error */

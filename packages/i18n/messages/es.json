@@ -424,7 +424,20 @@
     "test_title": "Pagar (modo de prueba)",
     "test_body": "Esto reemplaza la pantalla de pago del proveedor hasta que se configuren las claves reales. No se cobra nada.",
     "test_decline": "Rechazar",
-    "test_approve": "Aprobar {amount}"
+    "test_approve": "Aprobar {amount}",
+    "stripe_title": "Datos de pago",
+    "stripe_loading": "Cargando el formulario de pago seguro…",
+    "stripe_unavailable": "No pudimos cargar el formulario de pago. Revisa tu conexión e inténtalo de nuevo.",
+    "stripe_note": "Los pagos los procesa Stripe. BhojanGo nunca ve el número completo de tu tarjeta.",
+    "stripe_test_hint": "Modo de prueba: no se mueve dinero real. Usa la tarjeta 4242 4242 4242 4242, cualquier fecha futura y cualquier CVC.",
+    "return_title": "Terminando tu pago",
+    "return_body": "Volviste de tu banco. Estamos esperando la confirmación del pago; suele tardar unos segundos.",
+    "return_slow_title": "Seguimos confirmando tu pago",
+    "return_failed_title": "Tu pago no se completó",
+    "return_missing": "No pudimos saber a qué pedido corresponde este pago. Vuelve a la pantalla de pago para intentarlo de nuevo.",
+    "back_to_checkout": "Volver al pago",
+    "view_order": "Ver tu pedido",
+    "stripe_update_app": "Esta versión de la app no puede abrir la pantalla de pago con tarjeta. Actualiza BhojanGo para pagar."
   },
   "track": {
     "title": "Tu pedido",

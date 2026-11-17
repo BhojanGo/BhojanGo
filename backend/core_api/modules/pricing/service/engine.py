@@ -66,6 +66,7 @@ class ExternalTax:
     jurisdiction: str
     provider: str
     calculation_id: str
+    reason: str | None = None  # why no tax applies (Stripe's taxability_reason, e.g. not_collecting)
 
 
 @dataclass(frozen=True)
@@ -297,7 +298,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             for ext in inp.external_tax:
                 amount = add("tax", ext.label, ext.amount, t, detail={
                     "rate_percent": str(ext.rate_percent), "base": str(money(ext.base)), "jurisdiction": ext.jurisdiction,
-                    "provider": ext.provider, "calculation_id": ext.calculation_id, "targets": external_targets}).amount
+                    "provider": ext.provider, "calculation_id": ext.calculation_id, "targets": external_targets,
+                    **({"reason": ext.reason} if ext.reason else {})}).amount
                 tax_added += amount
                 tax_owed += amount
                 tax_by_collector["platform"] += amount  # marketplace facilitator: the platform collects

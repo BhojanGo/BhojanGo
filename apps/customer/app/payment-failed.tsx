@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../lib/icons";
-import { paymentStatus, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
+import { paymentStatus, payWithStripe, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
 
 export default function PaymentFailed() {
   const { money, t } = useI18n();
-  const { orderId, method } = useLocalSearchParams<{ orderId: string; method: "upi" | "card" }>();
+  const { orderId, method, provider } = useLocalSearchParams<{ orderId: string; method: "upi" | "card"; provider?: string }>();
   const [status, setStatus] = useState<PayStatus | null>(null);
   /** The payment's status didn't load (offline, our servers): Retry, not a "0:00 left" timer. */
   const [failure, setFailure] = useState<unknown>(null);
@@ -50,6 +50,26 @@ export default function PaymentFailed() {
     }
   }
 
+  /** Stripe (US): PaymentSheet again, for a new attempt on the same order. */
+  async function retryStripe() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await payWithStripe(orderId, "card");
+      if (r.kind === "paid") {
+        const s = await waitForPayment(orderId);
+        if (s.payment_status === "succeeded") router.replace(`/order/${orderId}`);
+        else setStatus(s);
+      } else if (r.kind === "failed") setError(r.message);
+      else if (r.kind === "unavailable") setError(t("checkout.stripe_update_app"));
+    } catch (e) {
+      setError(errorMessage((e as { body?: unknown }).body));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const stripe = provider === "stripe";
+
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.sheet}>
@@ -70,8 +90,12 @@ export default function PaymentFailed() {
         {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
         {!status ? null : left > 0 && status.can_retry !== false ? (
           <View style={{ gap: space[2] }}>
-            <Button title={method === "upi" ? t("app.payment_failed.try_upi") : t("app.payment_failed.try_card")} size="lg" block loading={busy} onPress={() => setSheet(method)} />
-            <Button title={t("app.payment_failed.another_way")} variant="secondary" block disabled={busy} onPress={() => setSheet(method === "upi" ? "card" : "upi")} />
+            <Button title={method === "upi" ? t("app.payment_failed.try_upi") : t("app.payment_failed.try_card")} size="lg" block loading={busy}
+              onPress={() => (stripe ? void retryStripe() : setSheet(method))} />
+            {/* Stripe's sheet already offers every way to pay (cards, Google Pay) */}
+            {stripe ? null : (
+              <Button title={t("app.payment_failed.another_way")} variant="secondary" block disabled={busy} onPress={() => setSheet(method === "upi" ? "card" : "upi")} />
+            )}
           </View>
         ) : (
           <Button title={t("app.payment_failed.back_to_bag")} size="lg" block onPress={() => router.replace("/bag")} />

@@ -90,18 +90,63 @@ export async function payWithRazorpay(c: Record<string, unknown>, dismissed: str
   });
 }
 
+interface StripeElement {
+  mount: (el: HTMLElement) => void;
+  destroy: () => void;
+  on: (ev: "ready" | "change" | "loaderror", cb: (e: { complete?: boolean; error?: { message?: string } }) => void) => void;
+}
 interface StripeLike {
-  elements: (o: { clientSecret: string; appearance?: unknown }) => { create: (kind: string) => { mount: (el: HTMLElement) => void; destroy: () => void } };
-  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { message?: string } }>;
+  elements: (o: { clientSecret: string; appearance?: unknown; locale?: string; fonts?: unknown[] }) => { create: (kind: string, o?: unknown) => StripeElement };
+  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { type?: string; message?: string }; paymentIntent?: { status: string } }>;
 }
 
-/** Stripe Payment Element: mount it into `el`; returns confirm() and a cleanup. */
-export async function mountStripe(c: Record<string, unknown>, el: HTMLElement) {
+// Stripe.js translates its own form; these of our languages it has (the rest: the browser's choice).
+const STRIPE_LOCALES = new Set(["en", "es"]);
+
+/** A test-mode key (pk_test_...): the page says so and shows Stripe's test card. */
+export function isStripeTestKey(c: Record<string, unknown>): boolean {
+  return String(c.publishable_key ?? "").startsWith("pk_test_");
+}
+
+/** Where Stripe sends the customer back after a bank page (3-D Secure, wallets that redirect). */
+export function stripeReturnUrl(origin: string, orderId: string): string {
+  return `${origin}/checkout/return?order=${encodeURIComponent(orderId)}`;
+}
+
+/**
+ * Stripe's Payment Element (cards, Apple Pay, Google Pay; 3-D Secure in Stripe's
+ * own pop-up): mount it into `el`. `onComplete` follows whether the form is
+ * filled in. confirm() resolves once Stripe accepted the payment (or it is
+ * processing); the order is placed by the webhook, so callers then wait for it.
+ */
+export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, language: string, onComplete: (complete: boolean) => void) {
+  if (!c.publishable_key || !c.payment_intent_client_secret) throw new Error("stripe checkout without keys");
   await loadScript("https://js.stripe.com/v3");
   const stripe = (window as unknown as { Stripe: (pk: string) => StripeLike }).Stripe(String(c.publishable_key));
-  const elements = stripe.elements({ clientSecret: String(c.payment_intent_client_secret), appearance: { variables: { colorPrimary: "#0B5D66", borderRadius: "12px" } } });
-  const payment = elements.create("payment");
-  payment.mount(el);
+  const elements = stripe.elements({
+    clientSecret: String(c.payment_intent_client_secret),
+    locale: STRIPE_LOCALES.has(language) ? language : "auto",
+    fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" }],
+    appearance: {
+      theme: "stripe",
+      variables: {
+        colorPrimary: "#0B5D66", colorText: "#111418", colorTextSecondary: "#3D4A4E", colorDanger: "#8C1D18",
+        fontFamily: "Inter, system-ui, sans-serif", fontSizeBase: "16px", borderRadius: "12px", spacingUnit: "4px",
+      },
+      rules: { ".Input": { border: "1.5px solid #C9D3D4", boxShadow: "none" }, ".Input:focus": { border: "1.5px solid #0B5D66" } },
+    },
+  });
+  const payment = elements.create("payment", { layout: { type: "tabs" } });
+  await new Promise<void>((resolve, reject) => {
+    const slow = setTimeout(() => reject(new Error("payment form timed out")), 20000);
+    payment.on("ready", () => {
+      clearTimeout(slow);
+      resolve();
+    });
+    payment.on("loaderror", (e) => reject(new Error(e.error?.message ?? "load error")));
+    payment.on("change", (e) => onComplete(!!e.complete));
+    payment.mount(el);
+  });
   return {
     confirm: async (returnUrl: string) => {
       const r = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });

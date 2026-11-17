@@ -19,8 +19,8 @@ const nextConfig = {
       source: "/:path*",
       headers: [...noindex, ...securityHeaders({
         // core_api and realtime; the tracking map's tiles, fonts and sprites (OpenFreeMap, free, no key);
-        // Google sign-in (Google Identity Services)
-        connect: [CORE, REALTIME, MAP_TILES, "https://accounts.google.com/gsi/"],
+        // Google sign-in (Google Identity Services); Stripe.js (Payment Element, 3-D Secure)
+        connect: [CORE, REALTIME, MAP_TILES, "https://accounts.google.com/gsi/", "https://api.stripe.com"],
         // kitchen photos (S3/CloudFront; LocalStack in make dev); map tiles
         img: ["https:", MAP_TILES, ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:4566"])],
         // the payment providers' checkout (Razorpay in India, Stripe in the US); Google sign-in

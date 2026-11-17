@@ -38,6 +38,12 @@ class PaymentInitiateResponse(BaseModel):
     checkout: dict | None = None
 
 
+class PaymentProviderOut(BaseModel):
+    """Which checkout to open for an order in a country (GET /payments/provider)."""
+    provider: Literal["stripe", "razorpay", "fake"]
+    publishable_key: str | None = None  # Stripe (test or live), for the web/app SDK
+
+
 class RazorpayVerifyRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
