@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-15** (after round 5), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-16** (after round 9), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -20,6 +20,31 @@ mostly the accounts (task 4) and the domain (task 3). What is ready and costs no
 - **Every `make ci` stage runs on GitHub** on each pull request, and is the merge gate (#80). The Android apps are
   built there (android-apk.yml), and the app screens that need a throwaway stack are taken there (app-screens.yml, #106).
 - **Pilot dress rehearsal.** A two-hour Boise dinner rush has been run, first with 8 riders and then with 25 ([load/soak-report.md](load/soak-report.md), #50, #55).
+
+## Product quality (rounds 6–9, 2026-11-15 → 16)
+
+The bar since round 8 is "a real product, not a demo": every page and screen is held to
+[specs/page-checklist.md](specs/page-checklist.md), and its status is in
+[specs/page-inventory.md](specs/page-inventory.md).
+
+- **Pages:** every website, admin and app page has a status; after round 9 all website pages and 11
+  of 13 admin pages pass. Two admin pages still read a few labels from the country code instead of Markets
+  (Partners' India document names, the rule editor's units), and a few app screens are only covered
+  by flows.
+- **Layout and type:** Inter with a fluid type scale; 55 page views measured at 12 sizes with no
+  layout problems (#125, #133); admin tables fit phones (#136).
+- **Accessibility:** axe-core runs in the website and admin end-to-end suites and fails on any
+  serious or critical finding; both are at 0 findings of every impact (#136).
+- **Sign-in:** phone or email with a password (Argon2id, breached-password check, lockout), admin
+  two-step sign-in (#126, #132). The apps show "Can't reach BhojanGo" and Retry instead of hanging
+  when the API is down (#135).
+- **Delivery partners:** sign-up checks the country's minimum age and allowed vehicles from Markets (#134).
+- **Content:** "Add your kitchen", "Deliver with BhojanGo", a Help centre managed in admin, and
+  versioned Terms and Privacy per country with acceptance records (#127–#130). The legal text has
+  placeholders until a lawyer fills them in (task 35).
+- **Production builds:** a smoke test builds web and admin exactly as for production; it found and
+  fixed production builds that still showed the test banner and blocked search engines (#137).
+  Production must be rebuilt after #137.
 
 ## What's left before the pilot
 
@@ -94,23 +119,23 @@ In order. Items 1–4 are Srini's; the rest follow from them.
 |---|---|---|---|---|
 | 22 | Final logo artwork and icons | ⛔ Blocked on Srini | #30 | Icons, splash and favicons are generated from the current logo (#30). The final vector from a designer, and its approval, are paid work |
 | 23 | Design tokens and shared components | ✅ Done | #30 | |
-| 24 | Customer app | ✅ Done | #31, #36, #38, #41, #94, #101, #104 | At parity with the website (#94); the tab bar never covers content (#101); order times in the order's city time zone (#104). Every board screen has an app screenshot ([apps-v2](screenshots/apps-v2/README.md), #98, #106). Tested on Android emulators; do a pass on real phones before task 36 |
+| 24 | Customer app | ✅ Done | #31, #36, #38, #41, #94, #101, #104, #135 | At parity with the website (#94); the tab bar never covers content (#101); order times in the order's city time zone (#104); a clear message and Retry when the API can't be reached (#135). Every board screen has an app screenshot ([apps-v2](screenshots/apps-v2/README.md), #98, #106). Tested on Android emulators; do a pass on real phones before task 36 |
 | 25 | Rider app | ✅ Done | #32, #37, #38, #42, #96, #103 | Offer to payout with background GPS (emulator); languages from Markets (#96). The manual demo riders never get the simulator's orders (#103) |
 | 26 | Partner app | ✅ Done | #33, #37, #39, #40, #97, #102 | Tablets in landscape, phones in portrait (#102); dish photos with a customer preview and the rating summary (#97) |
 | 27 | Customer website | ⛔ Blocked on Srini | #34, #37, #41, #84–#88, #104 | Ordering on the web works, and city and kitchen pages are server-rendered with sitemaps and structured data; live on QA (noindex). "Indexed" needs the domain (task 3) and production |
-| 28 | Admin console | ✅ Done | #35, #36 | Country tabs, state chips and the city picker on every page |
+| 28 | Admin console | ✅ Done | #35, #36, #126, #136 | Country tabs, state chips and the city picker on every page; two-step sign-in (#126); tables fit phones and every page reviewed (#136) |
 | 29 | Usability tests | ⬜ Not started | — | 5 customers, 3 riders and 3 kitchens per city: real people. QA is up, so this can start once Srini lines people up (task 5) |
 
 ## Phase 3 · Harden
 
 | # | Task | Status | PR | Notes |
 |---|---|---|---|---|
-| 30 | Automated tests | ✅ Done | #43, #52, #80, #106 | Playwright, G1 and every `make ci` stage on each PR (#80). Maestro: read-only flows on QA from the emulator (customer, rider, partner phone and tablet), and the write paths on a throwaway stack on GitHub (#106). Every scanner proves itself first: gitleaks, semgrep and the access-control sweep must catch planted findings (#52) |
+| 30 | Automated tests | ✅ Done | #43, #52, #80, #106, #136, #137 | Playwright, G1 and every `make ci` stage on each PR (#80). Maestro: read-only flows on QA from the emulator (customer, rider, partner phone and tablet), and the write paths on a throwaway stack on GitHub (#106). Every scanner proves itself first: gitleaks, semgrep and the access-control sweep must catch planted findings (#52). axe accessibility checks in both e2e suites (#136); a production-build smoke test (#137) |
 | 31 | Monitoring and alerts | ⛔ Blocked on Srini | #44, #50 | Dashboards and alerts work locally (`make observe`); alerts reach the admin console and the logs. "Sentry" and "reach on-call phone" need a Sentry account and a paging channel |
 | 32 | Load test | ✅ Done | #45, #50, #55 | 10× pilot peak, 0 failures, every p95 under 100 ms (#45). Two-hour Boise dinner rush: with 25 riders, 100% completion, max wait for a rider 0.5 min, no alerts, 0 errors (#55; the first run with 8 riders found and fixed three problems, #50) |
 | 33 | Security test | ⛔ Blocked on Srini | #46, #48, #52 | The automated pass is done and every High has been fixed (#46). An outside pen test is paid |
 | 34 | Backup drill and runbook | ⛔ Blocked on Srini | #47 | Database restored in the drill. The on-call rota needs the team (task 5) |
-| 35 | Legal pack | ⛔ Blocked on Srini | — | Lawyer (money) |
+| 35 | Legal pack | ⛔ Blocked on Srini | #129 | Lawyer (money). Terms and Privacy per country are versioned and admin-managed with acceptance records (#129); their placeholders (grievance officer, legal entity, governing law, US dispute method) need the lawyer |
 | 36 | App store submission | ⛔ Blocked on Srini | — | Apple and Google developer accounts (money), and the domain for privacy URLs |
 
 ## Phase 4 · Pilot and Phase 5 · Go live
@@ -118,7 +143,7 @@ In order. Items 1–4 are Srini's; the rest follow from them.
 | # | Task | Status | PR | Notes |
 |---|---|---|---|---|
 | 37 | Sign launch restaurants | ⬜ Not started | #37 | Self sign-up and the admin approval queue are ready (#37) |
-| 38 | Onboard riders | ⬜ Not started | #37 | Rider sign-up and the document checklist are ready. Background checks are a paid vendor. Plan for 25 in Boise: they carry the dinner rush with a third free at the peak; 8 can't (#50, #55) |
+| 38 | Onboard riders | ⬜ Not started | #37, #127, #134 | Delivery partner sign-up (website and app) checks the country's minimum age and vehicles (#134), and the document checklist is ready. Background checks are a paid vendor. Plan for 25 in Boise: they carry the dinner rush with a third free at the peak; 8 can't (#50, #55) |
 | 39 | Closed beta | ⬜ Not started | — | Needs production (task 4 accounts) and the apps in the stores (task 36) |
 | 40 | Paid pilot | ⬜ Not started | #44 | KPI dashboards are ready (#44) |
 | 41 | Go / no-go review | ⬜ Not started | — | Srini's decision, after task 40 |

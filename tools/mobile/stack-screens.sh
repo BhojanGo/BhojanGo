@@ -24,6 +24,7 @@ adb -s "$DEVICE" shell settings put global transition_animation_scale 0 >/dev/nu
 adb -s "$DEVICE" shell settings put global animator_duration_scale 0 >/dev/null 2>&1
 # The phone reaches Metro and the stack through adb reverse (localhost on the phone).
 # 8011 is tools/mobile/slow_proxy.py in front of core (the customer app's loading state).
+sh "$ROOT/tools/mobile/metro-host.sh" "$DEVICE"   # before adb reverse: adb root drops it
 for p in 8081 8001 8004 8006 8011; do adb -s "$DEVICE" reverse tcp:$p tcp:$p >/dev/null; done
 
 python3 "$ROOT/tools/mobile/slow_proxy.py" 8011 http://localhost:8001 > "$LOGS/proxy.log" 2>&1 &
@@ -48,13 +49,9 @@ EOF
   METRO=$!
   end=$(( $(date +%s) + 240 ))
   until curl -s -m 3 localhost:8081/status | grep -q running || [ "$(date +%s)" -ge "$end" ]; do sleep 3; done
-  # Open the app once so Metro builds the bundle before the first flow (a cold build is slow).
-  adb -s "$DEVICE" shell monkey -p "$pkg" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-  end=$(( $(date +%s) + 600 ))
-  until grep -q "Android Bundled" "$LOGS/metro-$app.log" || [ "$(date +%s)" -ge "$end" ]; do sleep 5; done
-  grep -q "Android Bundled" "$LOGS/metro-$app.log" || { echo "Metro never bundled $app"; tail -40 "$LOGS/metro-$app.log"; }
-  sleep 15
-  adb -s "$DEVICE" shell am force-stop "$pkg" >/dev/null 2>&1
+  # Open the app once so Metro builds the bundle before the first flow (a cold build is
+  # slow), and close it only once the app has loaded it (see tools/mobile/warm-up.sh).
+  sh "$ROOT/tools/mobile/warm-up.sh" "$DEVICE" "$pkg" "$LOGS/metro-$app.log" 600
   # The phone waits in Madhapur (geo fix: longitude latitude); customers use saved addresses.
   adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
   for flow in $(cd "$ROOT/apps/$app/.maestro/stack" && ls *.yaml); do

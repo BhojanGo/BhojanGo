@@ -15,10 +15,13 @@ tags:
     visible:
       id: "sign-in-screen"
     timeout: 120000
+# The 10 s is read from the run's maestro.log (this step's RUNNING -> COMPLETED times), not
+# enforced here: this Maestro times a wait that follows another wait from the first one's
+# start (a 10000 here failed after 1.6-2.6 s twice, 2026-11-16), so the timeout is roomy.
 - extendedWaitUntil:
     visible:
       id: "load-error"
-    timeout: 10000
+    timeout: 30000
 - assertVisible: ".*reach BhojanGo.*"
 - assertVisible:
     id: "load-error-reason"

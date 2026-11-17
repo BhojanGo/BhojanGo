@@ -74,7 +74,7 @@ export default function Home() {
               <HeartIcon on={false} size={20} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={t("common.your_account")} onPress={() => router.push("/account")} style={styles.avatar}>
-              <Text style={type.label}>{initials(user?.full_name)}</Text>
+              <Text style={type.label} maxFontSizeMultiplier={1.3}>{initials(user?.full_name)}</Text>
             </Pressable>
           </View>
         </View>
@@ -105,7 +105,7 @@ export default function Home() {
 
         <Pressable testID="home-search" accessibilityRole="search" accessibilityLabel={t("common.search_label")} onPress={() => router.push("/search")} style={styles.search}>
           <Icon name="search" size={20} stroke={color.muted} />
-          <Text style={[type.body, { color: color.muted }]}>{t("common.search_placeholder")}</Text>
+          <Text numberOfLines={1} style={[type.body, { color: color.muted, flex: 1 }]}>{t("common.search_placeholder")}</Text>
         </Pressable>
 
         {orders ? <OrderAgain orders={orders} covers={covers} /> : null}
@@ -193,11 +193,12 @@ const styles = StyleSheet.create({
   // Rounded, so the Android focus highlight (after a tap) follows the link instead of a grey box.
   change: { minHeight: 44, justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: 2 },
   avatar: {
-    width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, backgroundColor: color.white,
+    // min, not fixed: the largest phone font setting (200 %) clipped the initial (R9).
+    minWidth: 44, minHeight: 44, paddingHorizontal: 4, borderRadius: radius.pill, borderWidth: 1, borderColor: color.line, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",
   },
   search: {
-    marginHorizontal: space[5], marginTop: space[6], height: 54, borderRadius: radius.pill, backgroundColor: color.white,
+    marginHorizontal: space[5], marginTop: space[6], minHeight: 54, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: color.white,
     flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18,
     borderWidth: 1, borderColor: color.line, // a hairline, not an Android elevation box
   },
