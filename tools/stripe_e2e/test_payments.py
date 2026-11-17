@@ -161,7 +161,8 @@ def _pay_in_browser(h: H, card: str, three_ds: bool = False) -> tuple[dict, str]
     except ImportError:
         raise AssertionError("Playwright isn't installed in the runner")
     customer = h.api(CUSTOMER)
-    rest, address, q, cart = h.boise_quote(customer, {"Teriyaki Chicken Bowl": 1})
+    # The API cases' basket (2 bowls, $29): one bowl ($14.50) is under the zone's $15 minimum.
+    rest, address, q, cart = h.boise_quote(customer)
     order = h.place(customer, rest, address, q, cart)
     c = h.initiate(customer, order["id"])["checkout"]
     srv, port = _serve()

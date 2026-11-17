@@ -3,11 +3,18 @@
 # Not part of .railway/railway.ts: a temporary service, deployed with
 # `railway up` from a staged copy (tools/railway/qa-runner.sh) and deleted after.
 # Postgres and Redis stay private; the job reaches them as the services do.
-FROM python:3.12-slim
+# Debian 12 (bookworm): the release Playwright 1.49's --with-deps knows; on a newer Debian it
+# can't install Chromium's libraries (what the stripe-e2e job hit at run time).
+FROM python:3.12-slim-bookworm
 COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /bin/uv
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
  && rm -rf /var/lib/apt/lists/*
-ENV UV_LINK_MODE=copy PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENV UV_LINK_MODE=copy PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# stripe-e2e (tools/stripe_e2e): headless Chromium and its system libraries, installed at build
+# time (root, apt); keep the version equal to PW in tools/stripe_e2e/run.sh.
+ARG PLAYWRIGHT_VERSION=1.49.0
+RUN uv tool run --from "playwright==${PLAYWRIGHT_VERSION}" playwright install --with-deps chromium \
+ && rm -rf /var/lib/apt/lists/* /root/.cache/uv
 WORKDIR /repo/backend
 COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
 RUN uv sync --frozen --no-install-project

@@ -12,7 +12,7 @@ them (finance falls back to it when its own secrets are empty). The last case st
   connect_onboarding_link  the Boise kitchen partner taps "Set up payouts with Stripe": an Express
                            account and an Account Link (a Stripe page). Stripe's "complete your
                            platform profile" error fails it with the Dashboard setting to change.
-  connect_payout_transfer  a test connected account that can take transfers (Express dashboard,
+  connect_payout_transfer  a test connected account that can take transfers (platform-controlled, no Stripe dashboard,
                            requirements given through the API with Stripe's documented test values),
                            funded by a charge that is available at once (pm_card_bypassPending =
                            4000 0000 0000 0077); an approved weekly run pays it with a real Transfer
@@ -95,12 +95,14 @@ def case_connect_onboarding_link(h: H) -> None:
 
 
 def _test_account(h: H):  # type: ignore[no-untyped-def]
-    """Express dashboard, requirements supplied by the platform with Stripe's test values,
+    """Platform-controlled (no Stripe dashboard), requirements supplied by the platform with Stripe's test values,
     so `transfers` turns active without the hosted pages (https://docs.stripe.com/connect/testing)."""
     email = f"courier-{uuid.uuid4().hex[:8]}@example.com"
     return h.stripe.Account.create(
         country="US", email=email, business_type="individual",
-        controller={"stripe_dashboard": {"type": "express"}, "fees": {"payer": "application"},
+        # A platform-controlled account: when the platform collects the requirements, Stripe
+        # insists it also owns losses and fees and that the account has no Stripe dashboard.
+        controller={"stripe_dashboard": {"type": "none"}, "fees": {"payer": "application"},
                     "losses": {"payments": "application"}, "requirement_collection": "application"},
         capabilities={"transfers": {"requested": True}},
         business_profile={"mcc": "4215", "url": "https://bhojango.example", "product_description": "Food delivery with BhojanGo"},
@@ -116,7 +118,16 @@ def _test_account(h: H):  # type: ignore[no-untyped-def]
 def case_connect_payout_transfer(h: H) -> None:
     try:
         _listen(h)
-        acct = _test_account(h)
+        try:
+            acct = _test_account(h)
+        except h.stripe.StripeError as e:
+            msg = str(getattr(e, "user_message", None) or e)
+            if "platform profile" in msg.lower() or "platform-profile" in msg.lower():
+                raise AssertionError(
+                    "Stripe refuses to create connected accounts until the Connect platform profile is complete: "
+                    "Dashboard (test mode) > Settings > Connect > Platform profile, finish every step, then re-run. "
+                    f"Stripe said: {msg[:300]}") from None
+            raise
         _created(h, acct.id)
         rider = h.api(RIDER)
         rider_id = rider.user["id"]
