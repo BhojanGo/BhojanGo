@@ -1648,6 +1648,7 @@
       },
       "note": "Anything we should know? (optional)",
       "callback_failed": "Couldn't send your request. Try again.",
+      "earlier_failed": "Your call-back request didn't load",
       "update_request": "Update my request",
       "request": "Request a call back",
       "refund_note": "A rejected or late order shows the reason to the customer and is refunded in full."

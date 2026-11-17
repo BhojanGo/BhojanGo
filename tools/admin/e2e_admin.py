@@ -254,6 +254,8 @@ with sync_playwright() as p:
     check("partners: an application with its five steps and the licence", lambda: (
         expect(page.get_by_role("region", name="Application · Kesar Kitchen")).to_be_visible(timeout=15000),
         expect(page.get_by_text("FSSAI licence").first).to_be_visible(),
+        # the documents and their names come from Markets -> India (kitchen_documents)
+        expect(page.get_by_test_id("application-docs")).to_contain_text("GST registration (GSTIN)"),
         expect(page.get_by_role("button", name="Approve and go live")).to_be_visible()))
     page.screenshot(path=f"{OUT}/06-application.png", full_page=True)
 

@@ -18,7 +18,7 @@ import { adminApi } from "@/lib/api";
 import { can, firstCity, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
 import { versionState } from "@/lib/ruleState";
-import { describe, unitsFor } from "@/lib/ruleWords";
+import { describe, type Units, unitsFor } from "@/lib/ruleWords";
 
 interface History {
   versions: Rule[];
@@ -46,16 +46,21 @@ function Pill({ v, all }: { v: Rule; all?: Rule[] }) {
 }
 
 /** The short form for a row: "20% (tier B)", "15%", "$1.00 per order"; otherwise the full sentence. */
-function short(r: Rule): string {
+function short(r: Rule, units: Units): string {
   const p = r.params as Record<string, unknown>;
-  const { cur } = unitsFor(r.market_scope === "*" ? "IN" : r.market_scope);
   if (r.template === "percent") return `${Number(p.percent)}%`;
   if (r.template === "percent_by_tier") {
     const tiers = p.tiers as Record<string, unknown>;
     return `${Number(tiers[String(p.default_tier)])}% (tier ${String(p.default_tier)})`;
   }
-  if (r.template === "flat_per_order") return `${cur}${Number(p.amount).toFixed(2)} per order`;
-  return describe(r.template, r.params, r.market_scope);
+  if (r.template === "flat_per_order") return `${units.money(Number(p.amount), 2)} per order`;
+  return describe(r.template, r.params, units);
+}
+
+/** A rule scope's currency, money format and km/mi, from its country in Markets. */
+function useUnits(): (scope: string) => Units {
+  const { data: markets } = useMarkets();
+  return (scope: string) => unitsFor(scope, markets);
 }
 
 function useNames() {
@@ -87,15 +92,16 @@ function useKitchens(scope: string) {
 }
 
 /** "Inherited from United States · 20% (tier B)" / "Set for Boise · 15%" / "Set for Spice Route Kitchen · 12% until 14 Feb 2027". */
-function source(r: Rule, scope: string, names: Record<string, string>, kitchens: Record<string, string>): string {
+function source(r: Rule, scope: string, names: Record<string, string>, kitchens: Record<string, string>, units: Units): string {
   const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a kitchen" : names[r.market_scope] ?? r.market_scope;
   const inherited = r.scope_level !== "restaurant" && r.market_scope !== scope && scope !== "*" && r.market_scope.length < scope.length;
   const until = r.effective_to && !past(r.effective_to) ? ` until ${day(r.effective_to)}` : "";
-  return `${inherited ? "Inherited from" : "Set for"} ${who} · ${short(r)}${until}`;
+  return `${inherited ? "Inherited from" : "Set for"} ${who} · ${short(r, units)}${until}`;
 }
 
 function Params({ rule }: { rule: Rule }) {
-  return <p className="rounded-xl bg-porcelain p-4 text-body leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, rule.market_scope)}</p>;
+  const units = useUnits();
+  return <p className="rounded-xl bg-porcelain p-4 text-body leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, units(rule.market_scope))}</p>;
 }
 
 const STARTERS: Record<string, Record<string, unknown>> = {
@@ -187,11 +193,11 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
 }
 
 function PreviewBox({ rule }: { rule: Rule }) {
-  const { cur } = unitsFor(rule.market_scope);
+  const units = useUnits()(rule.market_scope);
   const p = useQuery({ queryKey: ["commission-preview", rule.id, JSON.stringify(rule.params)], queryFn: async () => (await adminApi.get<Preview>(`/user/rules/commission/preview/${rule.id}`)).data });
   if (!p.data) return <p className="text-small text-muted">Working out the last 7 days…</p>;
   const diff = Number(p.data.payout_difference);
-  const m = (v: string | number) => `${cur}${Number(v).toFixed(2)}`;
+  const m = (v: string | number) => units.money(Number(v), 2);
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${m(Math.abs(v))}`;
   return (
     <section className="space-y-2 rounded-xl border border-line p-4 text-small" aria-label="Preview: the last 7 days">
@@ -220,6 +226,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const [reason, setReason] = useState("");
   const where = rule.market_scope;
   const { data: markets } = useMarkets();
+  const units = useUnits();
   const simCity = where.split("-").length === 3 ? where : firstCity(markets, where === "*" ? null : where.split("-")[0]);
   const versions = history.data?.versions ?? [];
   const state = versionState(rule, versions);
@@ -323,7 +330,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
             const canRollBack = mayEdit && v.id !== rule.id && (s.key === "replaced" || s.key === "ended" || v.status === "superseded")
               && !versions.some((o) => ["draft", "pending_approval"].includes(o.status));
             return (
-              <li key={v.id} className="flex flex-wrap items-center gap-2"><b>v{v.version}</b> <Pill v={v} all={versions} /> <span className="text-muted">{describe(v.template, v.params, v.market_scope)} · {ago(v.created_at)}
+              <li key={v.id} className="flex flex-wrap items-center gap-2"><b>v{v.version}</b> <Pill v={v} all={versions} /> <span className="text-muted">{describe(v.template, v.params, units(v.market_scope))} · {ago(v.created_at)}
                 {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision}${a.note ? ` (“${a.note}”)` : ""}`).join("")}</span>
                 {canRollBack ? <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${v.id}/rollback`), money ? `Rolling back to v${v.version}: a second admin approves it.` : `Rolled back to v${v.version}.`)}
                   className="h-8 rounded-full border border-line-strong px-3 text-caption">Roll back to v{v.version}</button> : null}
@@ -348,6 +355,7 @@ function PricingPage() {
   const [adding, setAdding] = useState(false);
   const names = useNames();
   const { data: markets } = useMarkets();
+  const units = useUnits();
   const simCity = city ?? firstCity(markets, country);
   const kitchenList = useKitchens(scope);
   const kitchens = useMemo(() => Object.fromEntries((kitchenList.data ?? []).map((k) => [k.id, k.name])), [kitchenList.data]);
@@ -402,7 +410,7 @@ function PricingPage() {
             <button key={r.id} type="button" onClick={() => { setOpen(r.id); setAdding(false); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill v={r} /></div>
-              <div className="text-small" data-testid="row-source">{source(r, scope, names, kitchens)}</div>
+              <div className="text-small" data-testid="row-source">{source(r, scope, names, kitchens, units(r.market_scope))}</div>
             </button>
           ))}
         </section>
@@ -410,7 +418,7 @@ function PricingPage() {
           <AddRule family={tab} scope={scope} templates={catalogue.data ?? []} rules={rules.data ?? []} kitchens={kitchenList.data ?? []}
             names={names} onDone={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => { setAdding(false); setOpen(id || null); })} />
         ) : selected ? (
-          <RuleDetail key={selected.id} rule={selected} label={source(selected, scope, names, kitchens)}
+          <RuleDetail key={selected.id} rule={selected} label={source(selected, scope, names, kitchens, units(selected.market_scope))}
             onChanged={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => setOpen(id ?? null))} />
         ) : <div className="rounded-2xl bg-white p-6 text-muted">Pick a rule to see its settings, history and approvals.</div>}
       </div>

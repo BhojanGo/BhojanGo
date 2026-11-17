@@ -2,10 +2,10 @@
 // support console), this tablet (kitchen, the alert sound, the language: the
 // country's languages from Markets), sign out.
 import {
-  api, ApiError, type CoreSchemas, field, LanguagePicker, SafeAreaView, type, unwrap, useI18n, useSession,
+  api, ApiError, type CoreSchemas, field, LanguagePicker, LoadError, SafeAreaView, type, unwrap, useFirstLoad, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 
 import { useBoard } from "../../lib/board";
@@ -51,32 +51,23 @@ const TOPICS = ["order", "payout", "menu", "account", "other"] as const;
 /** Ask BhojanGo to call the kitchen back: it lands in the admin support console. */
 function CallBack({ restaurantId }: { restaurantId: string }) {
   const { t: tr } = useI18n();
-  const [open, setOpen] = useState<Ticket | null>(null);
+  // The open request, if any (R10: a failed load says so, with Retry, instead of
+  // looking like "no request"); a request sent from here replaces it.
+  const earlier = useFirstLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/callback",
+    { params: { path: { restaurant_id: restaurantId } } })) ?? null, [restaurantId]);
+  const [sent, setSent] = useState<Ticket | null>(null);
+  const open = sent ?? earlier.data ?? null;
   const [topic, setTopic] = useState<(typeof TOPICS)[number]>("order");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const path = { params: { path: { restaurant_id: restaurantId } } };
-  const load = useCallback(async () => {
-    try {
-      return unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/callback", { params: { path: { restaurant_id: restaurantId } } }));
-    } catch {
-      return null;
-    }
-  }, [restaurantId]);
-  useEffect(() => {
-    let live = true;
-    load().then((t) => live && setOpen(t ?? null)).catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [load]);
 
   async function ask() {
     setBusy(true);
     setError(null);
     try {
-      setOpen(unwrap(await api.core.POST("/api/v1/restaurants/{restaurant_id}/callback", { ...path, body: { topic, note: note.trim() || null } })));
+      setSent(unwrap(await api.core.POST("/api/v1/restaurants/{restaurant_id}/callback", { ...path, body: { topic, note: note.trim() || null } })));
       setNote("");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : tr("partner.help.callback_failed"));
@@ -89,6 +80,10 @@ function CallBack({ restaurantId }: { restaurantId: string }) {
   return (
     <View style={[s.panel, { flex: 1 }]} accessibilityLabel={tr("partner.help.support")}>
       <Text style={type.h3}>{tr("partner.help.support")}</Text>
+      {earlier.status === "error" && !open ? (
+        <LoadError testID="callback-load-error" error={earlier.error} onRetry={earlier.retry} title={tr("partner.help.earlier_failed")}
+          style={{ borderWidth: 1, borderColor: color.line }} />
+      ) : null}
       {open ? (
         <>
           <View style={s.done}>

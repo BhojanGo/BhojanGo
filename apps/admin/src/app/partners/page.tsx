@@ -10,6 +10,7 @@ import { Suspense, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { PayoutSetupPanel } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
+import { applicationDocs, collected, marketDocs } from "@/lib/kitchenDocs";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
 
@@ -23,6 +24,8 @@ interface Application {
   restaurant_id: string; name: string; status: string; done: number; total: number; current: string | null;
   fssai_number: string | null; fssai_expires_on: string | null; fssai_document: boolean; fssai_document_key: string | null;
   gstin: string | null; payout_account: string | null; commission_percent: string | null;
+  /** The kitchen's country: its documents come from Markets (kitchen_documents). */
+  country: string | null;
   steps: { key: string; title: string; done: boolean; detail: string }[];
 }
 
@@ -169,6 +172,7 @@ function Kitchens({ scope }: { scope: string }) {
 function Applications({ scope }: { scope: string }) {
   const qc = useQueryClient();
   const { data: me } = useAdminMe();
+  const { data: markets } = useMarkets();
   const cities = useCityNames(scope);
   const pending = useQuery({ queryKey: ["applications"], queryFn: async () => (await adminApi.get<Kitchen[]>("/user/restaurants/admin/pending")).data });
   const mine = (pending.data ?? []).filter((k) => cities.some((c) => c.name === k.city));
@@ -194,6 +198,8 @@ function Applications({ scope }: { scope: string }) {
   }
   const kitchen = mine.find((k) => k.id === open);
   const cityCode = cities.find((c) => c.name === kitchen?.city)?.code ?? "";
+  const country = markets?.find((c) => c.code === app.data?.country);
+  const docs = app.data ? applicationDocs(app.data, country?.settings) : [];
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <section className="rounded-2xl bg-white p-2" aria-label="Kitchens applying">
@@ -218,12 +224,18 @@ function Applications({ scope }: { scope: string }) {
               </li>
             ))}
           </ol>
-          <dl className="grid gap-2 rounded-xl bg-porcelain p-4 text-small sm:grid-cols-2">
-            <div><dt className="font-bold">FSSAI licence</dt><dd>{app.data.fssai_number ?? "not given"}{app.data.fssai_expires_on ? ` · until ${app.data.fssai_expires_on}` : ""}
-              {app.data.fssai_document_key ? <> · <button type="button" className="font-bold text-peacock" onClick={() => void openFile(app.data!.fssai_document_key!)}>View certificate</button></> : null}</dd></div>
-            <div><dt className="font-bold">GSTIN</dt><dd>{app.data.gstin ?? "not given"}</dd></div>
-            <div><dt className="font-bold">Payout account</dt><dd>{app.data.payout_account ?? "not set up"}</dd></div>
-          </dl>
+          <section aria-label="Documents" className="space-y-2 rounded-xl bg-porcelain p-4 text-small">
+            <h3 className="m-0 text-label">Documents{country ? ` · what ${country.name} asks for` : ""}</h3>
+            {country && marketDocs(country.settings).length === 0
+              ? <p className="text-muted">No documents are set for {country.name}. Add them in Markets ▸ {country.name} ▸ Documents kitchens need.</p> : null}
+            <dl className="grid gap-2 sm:grid-cols-2" data-testid="application-docs">
+              {docs.map((d) => (
+                <div key={d.key}><dt className="font-bold">{d.label}</dt>
+                  <dd>{d.value ?? (collected(d.key) ? "not given" : <span className="text-muted">not collected in the application</span>)}
+                    {d.fileKey ? <> · <button type="button" className="font-bold text-peacock" onClick={() => void openFile(d.fileKey!)}>View certificate</button></> : null}</dd></div>
+              ))}
+            </dl>
+          </section>
           {can(me, "partners.edit", cityCode) ? (
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void decide(open, true)} disabled={app.data.done < app.data.total - 1}
