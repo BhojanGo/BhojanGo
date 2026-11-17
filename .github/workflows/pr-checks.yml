@@ -26,6 +26,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       infra: ${{ steps.filter.outputs.infra }}
       terraform: ${{ steps.filter.outputs.terraform }}
+      payments: ${{ steps.filter.outputs.payments }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +47,17 @@ jobs:
               - 'infra/**'
             terraform:
               - 'infra/terraform/**'
+            # Code that takes or sends money through a provider: the real test-mode run below.
+            payments:
+              - 'backend/core_api/modules/payments/**'
+              - 'backend/core_api/modules/finance/**'
+              - 'backend/core_api/modules/orders/service/**'
+              - 'apps/web/src/app/checkout/**'
+              - 'apps/customer/src/**/pay*'
+              - 'tools/stripe_e2e/**'
+              - 'tools/railway/qa-runner.sh'
+              - 'tools/railway/qa-job.sh'
+              - 'infra/railway/qa-runner.Dockerfile'
 
   # ──────────────────────────────────────────
   # Repo checks (always): the quick `make ci` stages that need no stack
@@ -224,12 +236,51 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ──────────────────────────────────────────
+  # Payments: every provider for real, in its TEST mode (PLAYBOOK rule 66)
+  # ──────────────────────────────────────────
+  # The Stripe keys live only on Railway (sealed on QA core-api). This job holds a Railway
+  # project token for the QA environment and runs tools/stripe_e2e on a temporary qa-runner
+  # there: a throwaway database, this PR's code, Stripe test mode with webhooks through the
+  # Stripe CLI, every case (cards, 3-D Secure, refunds, Stripe Tax, Connect payouts). The
+  # runner is deleted afterwards. One run at a time (one runner service).
+  stripe-e2e:
+    name: Payments e2e (Stripe test mode)
+    needs: changes
+    if: needs.changes.outputs.payments == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: stripe-e2e
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_QA_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Railway token present
+        run: |
+          [ -n "$RAILWAY_TOKEN" ] || { echo "::error::RAILWAY_QA_TOKEN (a Railway project token for QA) is not set: the payments e2e cannot run"; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g @railway/cli@5.54.1
+      - name: Runner
+        run: sh tools/railway/qa-runner.sh create
+      - name: Real Stripe test mode, this PR's code
+        run: |
+          set -o pipefail
+          QA_JOB_TIMEOUT=1800 sh tools/railway/qa-runner.sh run stripe-e2e | tee stripe-e2e.log
+          grep -q "stripe-e2e: RESULT PASS" stripe-e2e.log || { echo "::error::payments e2e failed (see the log above)"; exit 1; }
+      - name: Remove the runner
+        if: always()
+        run: sh tools/railway/qa-runner.sh delete
+
+  # ──────────────────────────────────────────
   # Status check gate
   # ──────────────────────────────────────────
   pr-status:
     name: PR Status
     if: always()
-    needs: [repo-checks, frontend-lint, backend-test, backend-checks, terraform-validate, terraform-plan]
+    needs: [repo-checks, frontend-lint, backend-test, backend-checks, terraform-validate, terraform-plan, stripe-e2e]
     runs-on: ubuntu-latest
     steps:
       # Skipped jobs (no matching changes) are fine; failed or cancelled ones are not.

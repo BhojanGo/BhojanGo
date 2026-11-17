@@ -199,6 +199,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 65. **On Windows, Maestro writes `takeScreenshot` files into `~/.maestro/tests/<run>/<flow>/takeScreenshot/`, and an emulator started with host GPU can capture blank screens.**
     Why: the screenshots seemed lost and the phone emulator captured black/white frames; start emulators with `-gpu swiftshader_indirect` for screenshot runs and collect from the run folder.
 
+66. **Every payment provider gets a real test-mode end-to-end run, webhook included, before a PR that touches payments merges; CI runs it whenever payments code changes.**
+    Why: Stripe went live on QA with every mocked test green, and the real run found four bugs in a day: Stripe Tax rejected the delivery fee as a line item (every US quote fell back to $0 tax), a parameter Stripe refuses broke every payment, the webhook handler crashed on Stripe's real event object (no paid order was ever placed; one test payment was charged, cancelled and refunded), and Connect refused v1 account creation. A mock only answers what its author expected. `pr-checks.yml` job `stripe-e2e` runs `tools/stripe_e2e` on a throwaway Railway stack (keys stay on Railway); what a browser CAPTCHA blocks stays a manual release check in the integration guide.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
