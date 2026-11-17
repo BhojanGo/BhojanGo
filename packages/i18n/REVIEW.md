@@ -404,3 +404,10 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
   keep it that narrow. `stripe_test_hint` shows only with a Stripe test key; the card number
   4242 4242 4242 4242 stays in Latin digits in every language (it is typed as is).
 - "Stripe", "BhojanGo", "CVC" and "Google Pay" stay in Latin script.
+
+## Kitchen app Help: call-back request didn't load (round 10)
+
+Machine-translated on 2026-11-16 into all seven languages; needs native review.
+
+- New, BhojanGo Kitchen app: `partner.help.earlier_failed`, the title of the error (with
+  Retry) when the kitchen's open call-back request can't be loaded.
