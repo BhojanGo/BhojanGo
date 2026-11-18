@@ -132,11 +132,17 @@ def _serve() -> tuple[http.server.ThreadingHTTPServer, int]:
 
 
 def _card_frame(page):  # type: ignore[no-untyped-def]
+    """The Payment Element's frame with the card form open. Stripe may add tabs of its own (Link's
+    bank option with a cash-back badge, R12): when the card number isn't showing, pick the Card tab."""
     for _ in range(240):  # up to 2 minutes: the challenge frame loads its content late in headless Chromium
         for f in page.frames:
             try:
-                if f.locator('input[name="number"]').count():
+                number = f.locator('input[name="number"]')
+                if number.count() and number.first.is_visible():
                     return f
+                tab = f.get_by_role("tab", name="Card").or_(f.get_by_role("button", name="Card", exact=True))
+                if tab.count() and tab.first.is_visible():
+                    tab.first.click()
             except Exception:  # noqa: BLE001 (a frame navigating away)
                 pass
         page.wait_for_timeout(500)

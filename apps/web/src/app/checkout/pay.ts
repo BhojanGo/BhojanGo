@@ -135,7 +135,9 @@ export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, l
       rules: { ".Input": { border: "1.5px solid #C9D3D4", boxShadow: "none" }, ".Input:focus": { border: "1.5px solid #0B5D66" } },
     },
   });
-  const payment = elements.create("payment", { layout: { type: "tabs" } });
+  // Card first (R12): Stripe may add Link's own bank option ("Bank", a cash-back badge); the card form
+  // is what opens, whatever Stripe adds.
+  const payment = elements.create("payment", { layout: { type: "tabs" }, paymentMethodOrder: ["card", "apple_pay", "google_pay", "link"] });
   await new Promise<void>((resolve, reject) => {
     const slow = setTimeout(() => reject(new Error("payment form timed out")), 20000);
     payment.on("ready", () => {
