@@ -427,7 +427,7 @@ with sync_playwright() as p:
 
     # Language: Hindi changes the words, never a price; remembered after a reload.
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
-    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹\d+$")).first.inner_text()
+    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹[\d,]+\.\d{2}$")).first.inner_text()
     english_hero = "Real food. Fair prices."
     pill.click()
     page.get_by_role("menuitemradio", name=re.compile("^हिन्दी")).click()
@@ -460,7 +460,7 @@ with sync_playwright() as p:
         expect(page.get_by_text(re.compile(r"^\d+ kitchens? delivers? to Madhapur"))).to_be_visible(timeout=20000),
         expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Kitchen pays")).first).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
-        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹\d+ delivery|Free delivery")),
+        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+\.\d{2} delivery|Free delivery")),
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
     check("personal home: the address is on the page, not in the header; no marketing", lambda: (
         expect(page.get_by_test_id("change-address")).to_contain_text("Madhapur"),
