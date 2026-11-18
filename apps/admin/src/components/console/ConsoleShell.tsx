@@ -51,14 +51,17 @@ export function parseScope(scope: string | null | undefined): { country: string;
 
 /**
  * The signed-in admin, once (R13): "Name · Role (scope)", or just "Role (scope)" when the name
- * already says the role (the seed's "USA Finance" with Finance (US) reads "Finance (US)").
+ * already says the role (the seed's "USA Finance" with Finance (US) reads "Finance (US)";
+ * "BhojanGo Admin", a super admin, reads "Super admin").
  */
 export function whoLine(name: string | null | undefined, role: { role: string; scope: string } | null | undefined): string {
   const label = role ? `${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : "";
-  const roleWord = role ? (ROLE_LABELS[role.role] ?? role.role).toLowerCase() : "";
   if (!name) return label;
   if (!label) return name;
-  return name.toLowerCase().includes(roleWord) ? label : `${name} · ${label}`;
+  // A word of the role already in the name ("USA Finance" / Finance, "BhojanGo Admin" / Super admin): the role alone.
+  const nameWords = new Set(name.toLowerCase().split(/\s+/));
+  const repeats = (ROLE_LABELS[role!.role] ?? role!.role).toLowerCase().split(/[\s_]+/).some((w) => w.length > 2 && nameWords.has(w));
+  return repeats ? label : `${name} · ${label}`;
 }
 
 export function ConsoleShell({
