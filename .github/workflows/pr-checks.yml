@@ -269,7 +269,10 @@ jobs:
         run: |
           set -o pipefail
           QA_JOB_TIMEOUT=1800 sh tools/railway/qa-runner.sh run stripe-e2e | tee stripe-e2e.log
-          grep -q "stripe-e2e: RESULT PASS" stripe-e2e.log || { echo "::error::payments e2e failed (see the log above)"; exit 1; }
+          # Pass: the RESULT line, or the job's exit=0 (the harness exits 1 on any failed case). Railway's
+          # log fetch can drop lines, so a missing RESULT line alone isn't a failure (R13).
+          ! grep -q "stripe-e2e: RESULT FAIL" stripe-e2e.log || { echo "::error::payments e2e failed (see the log above)"; exit 1; }
+          grep -qE "stripe-e2e: RESULT PASS|qa-job: stripe-e2e#[0-9]+ exit=0" stripe-e2e.log || { echo "::error::payments e2e failed (see the log above)"; exit 1; }
       - name: Remove the runner
         if: always()
         run: sh tools/railway/qa-runner.sh delete
