@@ -22,6 +22,8 @@ export interface Country {
   payout_provider: PayoutProviderName;
   settings: Record<string, unknown>;
   status: MarketStatus;
+  /** What the country's payment providers take (R14, from the API): the only methods admin offers. */
+  payment_methods_supported?: string[];
 }
 
 export interface Region {

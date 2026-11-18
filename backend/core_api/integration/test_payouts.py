@@ -104,6 +104,14 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     assert r.status_code == 201, r.text
     run = r.json()
     assert run["status"] == "draft" and run["totals"]["orders"] >= 1
+    # R14: Reconciliation for the same week owes exactly what the run pays (top-ups included),
+    # and captured is every part added up.
+    rec = (await client.get("/api/v1/finance/reconciliation", headers=finance, params={
+        "country": "IN", "start": period["period_start"], "end": period["period_end"]})).json()["money"]
+    cents = lambda v: int((Decimal(v) * 100).to_integral_value())
+    assert rec["restaurant_payable"] == cents(run["totals"]["restaurants"])
+    assert rec["rider_payable"] == cents(run["totals"]["riders"]) and rec["min_pay_top_ups"] == cents(run["totals"]["min_pay_top_ups"])
+    assert rec["captured"] == rec["refunded"] + rec["restaurant_payable"] + rec["rider_payable"] + rec["tax_owed"] + rec["platform_revenue"]
     assert (await client.post("/api/v1/finance/payout-runs", headers=finance, json=period)).status_code == 409  # overlap
 
     detail = (await client.get(f"/api/v1/finance/payout-runs/{run['id']}", headers=finance)).json()
@@ -131,6 +139,16 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     assert (await client.post(f"/api/v1/finance/payout-runs/{run['id']}/approve", headers=ops)).status_code == 403
 
     admin = await login(client, "admin@example.com", ADMIN)
+    # R14: on QA nothing is approved while a payee owed money has no ready payout account.
+    from shared.config import get_settings
+
+    settings, was = get_settings(), get_settings().APP_ENV
+    settings.APP_ENV = "qa"
+    try:
+        r = await client.post(f"/api/v1/finance/payout-runs/{run['id']}/approve", headers=admin)
+        assert r.status_code == 409 and "every payee's payout account is ready" in r.json()["detail"]["message"], r.text
+    finally:
+        settings.APP_ENV = was
     r = await client.post(f"/api/v1/finance/payout-runs/{run['id']}/approve", headers=admin)
     assert r.status_code == 200, r.text
     approved = r.json()

@@ -1,6 +1,6 @@
 """Payment fees in the order split, and contribution per order (item 1), on the
 migrated, seeded database: a card order pays Razorpay's 2%, a UPI order nothing; the
-contribution report adds up (platform - payment fees - refunds = platform keeps)."""
+contribution report adds up (platform - payment fees - refunds - minimum pay top-ups = platform keeps)."""
 import os
 import uuid
 from datetime import date, timedelta
@@ -87,7 +87,7 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
     city = next(c for c in rep["cities"] if c["city"] == "IN-TG-HYD")
     t = {k: Decimal(v) for k, v in city["totals"].items()}
     assert city["orders"] >= 1 and t["payment_fees"] > 0
-    assert t["keeps"] == t["platform"] - t["payment_fees"] - t["refunds"]
+    assert t["keeps"] == t["platform"] - t["payment_fees"] - t["refunds"] - t["min_pay_top_ups"]  # R14: top-ups are ours
     # the platform line is the snapshot's: commission + customer fees - our offers - rider pay (tips excluded)
     assert t["platform"] == t["commission"] + t["customer_fees"] - t["platform_promos"] - t["rider_pay"]
     assert Decimal(city["per_order"]["keeps"]) == (t["keeps"] / city["orders"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

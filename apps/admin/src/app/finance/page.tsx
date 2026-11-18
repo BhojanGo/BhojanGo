@@ -37,6 +37,7 @@ interface Contribution {
 const CONTRIBUTION_ROWS: [string, string, number][] = [
   ["commission", "Commission", 1], ["customer_fees", "Customer fees", 1], ["platform_promos", "Offers we fund", -1],
   ["rider_pay", "Delivery partner pay (tips excluded)", -1], ["payment_fees", "Payment fees", -1], ["refunds", "Refunds we pay", -1],
+  ["min_pay_top_ups", "Minimum pay top-ups", -1],
 ];
 
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
@@ -215,7 +216,7 @@ function FinancePage() {
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
           <h2 className="m-0 mb-3 text-h3">Reconciliation · {weekLabel(start, end)}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"],
+            {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
               ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
               ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"]] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>

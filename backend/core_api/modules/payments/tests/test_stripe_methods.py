@@ -23,3 +23,16 @@ def test_markets_checks_the_setting() -> None:
     for bad in ([], ["card", "card"], ["link"], ["klarna"], "card", ["apple_pay"]):
         with pytest.raises(MarketRuleError):
             check_settings({"payment_methods": bad})
+
+
+def test_methods_follow_the_payment_provider() -> None:  # R14
+    from core_api.modules.markets.service.pay_methods import supported
+
+    assert supported(["stripe"]) == ["card", "apple_pay", "google_pay"]
+    assert supported(["razorpay"]) == ["card", "upi", "wallet", "net_banking"]
+    assert supported([]) == [] and supported(None) == []
+    check_settings({"payment_methods": ["card", "apple_pay"]}, ["stripe"])
+    check_settings({"payment_methods": ["upi", "card", "wallet"]}, ["razorpay"])
+    for bad, providers in ((["card", "upi"], ["stripe"]), (["card", "apple_pay"], ["razorpay"]), (["card"], [])):
+        with pytest.raises(MarketRuleError):
+            check_settings({"payment_methods": bad}, providers)
