@@ -13529,6 +13529,22 @@
             "title": "Local Time",
             "type": "string"
           },
+          "postal_code": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where a tax service needs an address (US sales tax: the ZIP code)",
+            "examples": [
+              "83702"
+            ],
+            "title": "Postal Code"
+          },
           "promo_code": {
             "anyOf": [
               {

@@ -338,7 +338,8 @@ class QuoteService:
         async def side(rules) -> SimSide:  # type: ignore[no-untyped-def]
             try:
                 result = compute(inputs, rules)
-                _, result = await self._with_tax(inputs, rules, result, region.code, city.name, {}, uuid.uuid4())
+                postal = {"postal_code": req.postal_code} if req.postal_code else {}  # R15: US simulations need a ZIP
+                _, result = await self._with_tax(inputs, rules, result, region.code, city.name, postal, uuid.uuid4())
             except NotDeliverable as e:
                 return SimSide(ok=False, message=str(e))
             return SimSide(ok=True, lines=lines_out(result), total=result.total, split=split_out(result), rules=result.rules_used)

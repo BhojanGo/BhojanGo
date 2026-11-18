@@ -14,13 +14,13 @@ import { adminApi } from "@/lib/api";
 import { apiError, firstCity, moneySymbol, useMarkets } from "@/lib/markets";
 
 type Line = { code: string; label: string; amount: string; funded_by: string | null };
-type Split = { restaurant: string; rider: string; tax: string; platform: string };
+type Split = { restaurant: string; rider: string; tax: string; platform: string; detail?: Record<string, string> };
 type Side = { ok: boolean; message: string | null; lines: Line[]; total: string | null; split: Split | null };
 type SimOut = { currency: string; live: Side; draft: Side; changes: { label: string; live: string; draft: string }[] };
 type Rule = { id: string; family: string; template: string; name: string | null; version: number; status: string; market_scope: string };
 type Restaurant = { id: string; name: string; city: string };
 
-const SPLIT_ROWS: [keyof Split, string][] = [
+const SPLIT_ROWS: [Exclude<keyof Split, "detail">, string][] = [
   ["restaurant", "Kitchen gets"],
   ["rider", "Delivery partner gets"],
   ["tax", "Tax"],
@@ -44,6 +44,8 @@ function Simulator() {
   const currency = markets?.find((c) => c.code === country)?.currency;
   const sym = currency ? moneySymbol(currency) : "";
   const unit = markets?.find((c) => c.code === country)?.distance_unit ?? "km";
+  // A sales-tax country prices tax for an address (R15): the simulation asks for a ZIP code there.
+  const needsZip = markets?.find((c) => c.code === country)?.tax_regime === "us_sales_tax";
 
   const [form, setForm] = useState({
     food: "560",
@@ -54,6 +56,7 @@ function Simulator() {
     restaurant: "",
     promo: "",
     firstOrder: false,
+    zip: "",
   });
   const [drafts, setDrafts] = useState<string[]>([]);
 
@@ -88,6 +91,7 @@ function Simulator() {
           first_order: form.firstOrder,
           promo_code: form.promo || null,
           draft_rule_ids: drafts,
+          postal_code: needsZip ? form.zip || null : null,
         })
       ).data,
   });
@@ -134,6 +138,12 @@ function Simulator() {
             Distance ({unit})
             <input required type="number" min="0.1" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} className={field} />
           </label>
+          {needsZip ? (
+            <label className="text-small text-muted">
+              Delivery ZIP code (sales tax)
+              <input required inputMode="numeric" value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} className={field} />
+            </label>
+          ) : null}
           <label className="text-small text-muted">
             Day and time ({cityInfo?.name ?? "city"} time)
             <input required type="datetime-local" value={form.when} onChange={(e) => setForm({ ...form, when: e.target.value })} className={field} />
@@ -234,6 +244,11 @@ function Simulator() {
                     <td className="py-3">Customer pays</td>
                     <td className="text-right">{fmt(sym, sim.data.live.total)}</td>
                     <td className="text-right">{fmt(sym, sim.data.draft.total)}</td>
+                  </tr>
+                  <tr data-testid="sim-commission" className="border-t border-line-soft">
+                    <td className="py-2">Commission (from the kitchen)</td>
+                    <td className="text-right">{fmt(sym, sim.data.live.split?.detail?.commission)}</td>
+                    <td className="text-right">{fmt(sym, sim.data.draft.split?.detail?.commission)}</td>
                   </tr>
                   {SPLIT_ROWS.map(([key, label]) => {
                     const a = sim.data!.live.split?.[key];

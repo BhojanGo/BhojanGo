@@ -97,6 +97,8 @@ class SimulateRequest(BaseModel):
     first_order: bool = False
     promo_code: str | None = None
     draft_rule_ids: list[uuid.UUID] = Field(default=[], description="Drafts to try against what is live now")
+    postal_code: str | None = Field(default=None, max_length=12, examples=["83702"],
+                                    description="Where a tax service needs an address (US sales tax: the ZIP code)")
 
 
 class SimSide(BaseModel):
