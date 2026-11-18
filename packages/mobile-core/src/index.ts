@@ -49,5 +49,5 @@ export type { Tone } from "./ui/locale";
 // R8: the screens' SafeAreaView (follows the test banner's insets; the native one padded the status bar twice).
 export { SafeAreaView, type SafeAreaEdge } from "./ui/safe-area";
 // R10: payout set-up (Stripe Connect Express and the rest): the Payouts screens' words and button.
-export { payoutCopy, providerName, STATEMENT_STATUSES } from "./payouts";
+export { payoutCopy, providerName, repayDay, STATEMENT_NOTES, STATEMENT_STATUSES } from "./payouts";
 export type { PayoutAccount, PayoutCopy, PayoutSetup, PayoutState } from "./payouts";

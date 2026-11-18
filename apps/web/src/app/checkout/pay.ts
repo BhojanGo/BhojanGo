@@ -97,7 +97,7 @@ interface StripeElement {
 }
 interface StripeLike {
   elements: (o: { clientSecret: string; appearance?: unknown; locale?: string; fonts?: unknown[] }) => { create: (kind: string, o?: unknown) => StripeElement };
-  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { type?: string; message?: string }; paymentIntent?: { status: string } }>;
+  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { type?: string; code?: string; message?: string }; paymentIntent?: { status: string } }>;
 }
 
 // Stripe.js translates its own form; these of our languages it has (the rest: the browser's choice).
@@ -149,7 +149,7 @@ export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, l
   return {
     confirm: async (returnUrl: string) => {
       const r = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });
-      if (r.error) throw new Error(r.error.message ?? "declined");
+      if (r.error) throw Object.assign(new Error(r.error.message ?? "declined"), { code: r.error.code });
     },
     destroy: () => payment.destroy(),
   };

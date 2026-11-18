@@ -82,9 +82,8 @@ export function useFormat() {
   const { money, distance, date, time } = useI18n();
   const { countries, country } = useCountry();
   return useMemo(() => ({
-    /** cash(12.5, order.currency): decimals 0 drops ".00" from whole amounts (never rounds cents away). */
-    cash: (v: string | number | null | undefined, currency?: string | null, decimals = 2) =>
-      money(Number(v ?? 0), currency, { whole: decimals === 0 }),
+    /** cash(12.5, order.currency): always with cents, $12.50 (R12). */
+    cash: (v: string | number | null | undefined, currency?: string | null) => money(Number(v ?? 0), currency),
     /** Kilometres in, the country's unit out (or `unit` as the API sends it). */
     dist: (km: number | null | undefined, unit?: string | null) => distance(km, unit),
     /** The distance unit of the country that uses `currency` (an order's), from Markets. */

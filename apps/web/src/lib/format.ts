@@ -2,11 +2,11 @@
 // e.g. en-IN: ₹1,24,050.00), never the visitor's language: a language change
 // never changes how a price reads, let alone what it is.
 
-export function money(amount: number | string | null | undefined, currency: string, formatLocale: string, opts?: { whole?: boolean }): string {
+/** Always two decimals: $29.00, ₹300.00 (one money format everywhere, R12). */
+export function money(amount: number | string | null | undefined, currency: string, formatLocale: string): string {
   const n = Number(amount ?? 0);
   const abs = Math.abs(n);
-  // whole: drop ".00" from whole amounts; never round real cents away.
-  const decimals = opts?.whole && Math.round(abs * 100) % 100 === 0 ? 0 : 2;
+  const decimals = 2;
   const body = new Intl.NumberFormat(formatLocale, {
     style: "currency",
     currency,

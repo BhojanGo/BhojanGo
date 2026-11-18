@@ -105,15 +105,14 @@ export function deviceLocale(): string | null {
 
 /**
  * An amount in a currency, grouped and placed the way the locale writes it (Indian
- * lakh grouping, symbol before or after, ...); a minus sign for a discount. `whole`
- * drops ".00" from a whole amount but never rounds real cents away. The symbol and
+ * lakh grouping, symbol before or after, ...); a minus sign for a discount. Always two
+ * decimals ($29.00, ₹300.00: one money format everywhere, R12). The symbol and
  * grouping come from Intl for the currency code (Markets data), not from a table.
  */
-export function formatMoney(amount: number | string | null | undefined, currency: string, locale?: string,
-                            opts?: { whole?: boolean }): string {
+export function formatMoney(amount: number | string | null | undefined, currency: string, locale?: string): string {
   const n = Number(amount ?? 0);
   const abs = Math.abs(Number.isFinite(n) ? n : 0);
-  const decimals = opts?.whole && Math.round(abs * 100) % 100 === 0 ? 0 : 2;
+  const decimals = 2;
   let body: string;
   try {
     body = new Intl.NumberFormat(locale, {

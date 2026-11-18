@@ -85,7 +85,7 @@ export default function Item() {
                         onPress={() => toggle(g, o.name)} style={[styles.card, on && styles.cardOn]}>
                         <Text style={type.label}>{title}</Text>
                         <Text style={[type.small, { color: color.muted }]}>
-                          {sub ? `${sub[0]?.toUpperCase()}${sub.slice(1)} · ` : ""}{money(Number(item.price) + Number(o.price), currency, { whole: true })}
+                          {sub ? `${sub[0]?.toUpperCase()}${sub.slice(1)} · ` : ""}{money(Number(item.price) + Number(o.price), currency)}
                         </Text>
                       </Pressable>
                     );
@@ -98,7 +98,7 @@ export default function Item() {
                     <Pressable key={o.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={o.name}
                       onPress={() => toggle(g, o.name)} style={styles.addon}>
                       <Text style={[type.body, { flex: 1 }]}>{o.name}</Text>
-                      <Text style={[type.label, num]}>+{money(o.price, currency, { whole: true })}</Text>
+                      <Text style={[type.label, num]}>+{money(o.price, currency)}</Text>
                       <View style={[styles.check, on && styles.checkOn]}>{on ? <Icon name="check" size={16} stroke={color.white} /> : null}</View>
                     </Pressable>
                   );
@@ -131,7 +131,7 @@ export default function Item() {
             style={[styles.addBtn, !complete && { opacity: 0.5 }]}
           >
             <Text style={[type.label, num, { color: color.white }]}>
-              {t("kitchen.add_to_bag", { price: money(unit * qty, currency, { whole: true }) })}
+              {t("kitchen.add_to_bag", { price: money(unit * qty, currency) })}
             </Text>
           </Pressable>
         </View>

@@ -74,7 +74,7 @@ function KitchenFav({ k }: { k: FavKitchen }) {
           {fee !== null && (
             <>
               {" · "}
-              {fee === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : <span className="tabular-nums">{t("common.delivery_fee", { fee: f.money(fee, k.currency, { whole: true }) })}</span>}
+              {fee === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : <span className="tabular-nums">{t("common.delivery_fee", { fee: f.money(fee, k.currency) })}</span>}
             </>
           )}
         </div>
@@ -95,7 +95,7 @@ function DishFav({ d, href }: { d: FavDish; href: string | null }) {
       <span className="min-w-0 flex-grow">
         <b className="block truncate text-label">{d.name}</b>
         <span className="block truncate text-small text-muted">{d.restaurant.name}</span>
-        <b className="mt-1 block tabular-nums">{f.money(d.price, d.currency, { whole: true })}</b>
+        <b className="mt-1 block tabular-nums">{f.money(d.price, d.currency)}</b>
       </span>
     </>
   );

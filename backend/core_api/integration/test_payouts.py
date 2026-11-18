@@ -51,6 +51,27 @@ def ist_today() -> date:
     return datetime.now(ZoneInfo("Asia/Kolkata")).date()
 
 
+def ist_last_week() -> tuple[date, date]:
+    """Last week, Monday to the next Monday in India: a run covers a week that has ended (R12)."""
+    monday = ist_today() - timedelta(days=ist_today().weekday() + 7)
+    return monday, monday + timedelta(days=7)
+
+
+async def deliver_last_week(order_id: str) -> None:
+    """The test's order was delivered today; a run pays only ended weeks, so move it to last Wednesday noon IST."""
+    from sqlalchemy import text
+
+    from shared.db import AsyncSessionLocal
+
+    wednesday = datetime.combine(ist_last_week()[0] + timedelta(days=2), datetime.min.time().replace(hour=12),
+                                 tzinfo=ZoneInfo("Asia/Kolkata"))
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("UPDATE orders SET actual_delivery_time = :t, created_at = :t - interval '40 minutes', "
+                              "rider_assigned_at = :t - interval '30 minutes', picked_up_at = :t - interval '15 minutes' "
+                              "WHERE id = :id"), {"t": wednesday, "id": order_id})
+        await db.commit()
+
+
 async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     cust = await login(client, "customer1.hyd@example.com")
     order = await delivered_order(client, cust)  # 2 × Veg Dum Biryani, rider1.hyd, today
@@ -64,9 +85,19 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
                           json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "damaged_in_transit"})
     assert r.status_code == 201
 
+    await deliver_last_week(order["id"])
+
     finance = await login(client, "finance.in@example.com", ADMIN)
-    period = {"country": "IN", "period_start": (ist_today() - timedelta(days=1)).isoformat(),
-              "period_end": (ist_today() + timedelta(days=1)).isoformat()}
+    # This week hasn't ended, and a run covers Monday to Sunday only (R12).
+    this_monday = ist_last_week()[1]
+    for start, end in ((this_monday, this_monday + timedelta(days=7)), (ist_last_week()[0] + timedelta(days=1), this_monday)):
+        r = await client.post("/api/v1/finance/payout-runs", headers=finance,
+                              json={"country": "IN", "period_start": start.isoformat(), "period_end": end.isoformat()})
+        assert r.status_code == 409 and r.json()["detail"]["code"] == "FINANCE_RULE", r.text
+    weeks = (await client.get("/api/v1/finance/payout-weeks", headers=finance, params={"country": "IN"})).json()
+    assert weeks["weeks"][0] == {"start": ist_last_week()[0].isoformat(), "end": ist_last_week()[1].isoformat()}
+
+    period = {"country": "IN", "period_start": ist_last_week()[0].isoformat(), "period_end": ist_last_week()[1].isoformat()}
     r = await client.post("/api/v1/finance/payout-runs", headers=finance, json=period)
     assert r.status_code == 201, r.text
     run = r.json()
@@ -119,6 +150,32 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     assert any(s["id"] == spice["id"] and s["status"] == "paid" and s["transfer_id"].startswith("fake_tr_") for s in mine)
     other_partner = await login(client, "partner.boi@example.com")
     assert (await client.get(f"/api/v1/finance/statements/{spice['id']}", headers=other_partner)).status_code == 404
+
+    # Sent back by the bank (a reversal): the partner is told the date it's paid again, the
+    # country's next payout day (R12), and on that day the scheduler pays it with a new transfer.
+    from sqlalchemy import text
+
+    from core_api.modules.finance.service.payouts import next_payout_day
+    from core_api.modules.finance.service.schedule import repay_unpaid
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("UPDATE payout_statements SET status = 'reversed', attempts = attempts + 1 WHERE id = :id"),
+                         {"id": spice["id"]})
+        await db.execute(text("UPDATE payout_runs SET status = 'partially_paid' WHERE id = :id"), {"id": run["id"]})
+        await db.commit()
+        pay_day = await next_payout_day(db, "IN")
+    mine = (await client.get("/api/v1/finance/statements/me", headers=partner)).json()
+    reversed_ = next(s for s in mine if s["id"] == spice["id"])
+    assert reversed_["status"] == "reversed" and reversed_["repay_on"] == pay_day.isoformat()
+    async with AsyncSessionLocal() as db:
+        not_today = datetime.combine(pay_day + timedelta(days=1), datetime.min.time().replace(hour=12), tzinfo=ZoneInfo("Asia/Kolkata"))
+        assert await repay_unpaid(db, now=not_today.astimezone(UTC)) == 0
+        on_day = datetime.combine(pay_day, datetime.min.time().replace(hour=12), tzinfo=ZoneInfo("Asia/Kolkata"))
+        assert await repay_unpaid(db, now=on_day.astimezone(UTC)) >= 1
+        await db.commit()
+    mine = (await client.get("/api/v1/finance/statements/me", headers=partner)).json()
+    assert next(s for s in mine if s["id"] == spice["id"])["status"] == "paid"
 
 
 async def test_reconciliation_report(client: AsyncClient) -> None:

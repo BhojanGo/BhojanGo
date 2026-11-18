@@ -42,7 +42,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
   const termsCountry = dir.countries.find((k) => k.code === (ok?.country ?? ctx.country?.code)) ?? ctx.country;
   const loc = termsCountry ? localeOf(termsCountry.locales) : ctx.formatLocale;
   const cityName = ok?.city.name ?? live.find((c) => c.code === code)?.name ?? "";
-  const m = (v: string | number | null | undefined) => (ok ? money(v, ok.currency, loc, { whole: true }) : "");
+  const m = (v: string | number | null | undefined) => (ok ? money(v, ok.currency, loc) : "");
   const hero = libraryPhoto(HERO, 800);
   const ex = ok?.example ?? null;
 

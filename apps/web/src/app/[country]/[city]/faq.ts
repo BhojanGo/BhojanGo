@@ -12,7 +12,7 @@ export function cityFaq(c: CityPage, p: CityPricing | null, t: T, formatLocale: 
   if (!p) {
     return (["cost", "tip", "tax"] as const).map((k) => ({ q: t(`city.faq_${k}_q`, { city }), a: t(`city.faq_${k}_a`) }));
   }
-  const m = (v: number | string | null | undefined) => money(v, p.currency, formatLocale, { whole: true });
+  const m = (v: number | string | null | undefined) => money(v, p.currency, formatLocale);
   const dist = (v: number | string) => t(p.distance_unit === "mi" ? "common.mi" : "common.km", { n: number(Number(v), formatLocale) });
   const out: { q: string; a: string }[] = [];
 

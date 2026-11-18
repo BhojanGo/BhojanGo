@@ -1,4 +1,5 @@
-"""Fail if text a person reads calls a delivery partner a "rider" or names a "Partner app".
+"""Fail if text a person reads calls a delivery partner a "rider", names a "Partner app",
+or writes the brand other than "BhojanGo" (the wordmark: "bhojango", "Bhojango", "Bhojan Go").
 
     python tools/i18n/check_wording.py          (make ci-i18n)
     python tools/i18n/check_wording_test.py     (its unit tests, also in make ci-i18n)
@@ -42,6 +43,11 @@ SCRIPT_WORDS = ("राइडर", "रायडर", "రైడర", "ரைட
 # The old app names.
 APP_NAMES = re.compile(r"\b(?:partner|rider)\s+app\b|BhojanGo\s+(?:Partner|Rider)\b", re.IGNORECASE)
 
+# The wordmark (R12): the brand is written "BhojanGo" (capital B and G) wherever a person reads it,
+# in every app, the admin and email. Code names stay ("bhojango-rider", "@bhojango/ui",
+# "bill.bhojango", "support@bhojango.com", issuer "bhojango" in a test).
+WORDMARK = re.compile(r"(?<![\w./@\-:])bhojan[ \-]?go(?![\w./@\-:_])", re.IGNORECASE)
+
 PLACEHOLDER = re.compile(r"\{[^{}]*\}")  # {rider} in a message, ${x} in a template literal
 
 
@@ -49,6 +55,9 @@ def problem(text: str) -> str | None:
     """Why ``text`` (words a person reads) breaks the wording rule, or None."""
     t = PLACEHOLDER.sub(" ", text)
     t = PLACEHOLDER.sub(" ", t)  # nested ICU: {n, plural, one {..} other {..}}
+    for m in WORDMARK.finditer(t):
+        if m.group(0) != "BhojanGo" and t.strip() != "BHOJANGO":  # "BHOJANGO" alone: the bill's payee code
+            return f'writes the brand "{m.group(0)}": write "BhojanGo"'
     m = APP_NAMES.search(t)
     if m:
         return f'names an old app ("{m.group(0)}"): say BhojanGo Kitchen / BhojanGo Delivery'
@@ -238,9 +247,32 @@ def source_files(root: Path) -> list[Path]:
     return sorted(seen)
 
 
+# Markup a person reads that lives in backend code (the email layout's header row).
+MARKUP_FILES = ("backend/worker/app/services/messages.py", "backend/shared/texts.py")
+TAG_TEXT = re.compile(r">([^<>{}]+)<")
+
+
+def check_markup(root: Path = ROOT) -> list[str]:
+    found = []
+    for rel in MARKUP_FILES:
+        p = root / rel
+        if not p.exists():
+            continue
+        src = p.read_text(encoding="utf-8")
+        for m in TAG_TEXT.finditer(src):
+            text = m.group(1)
+            if not WORDMARK.search(text):
+                continue
+            why = problem(text)
+            if why:
+                found.append(f"{rel}:{src.count(chr(10), 0, m.start(1)) + 1}: {text.strip()[:80]!r} {why}")
+    return found
+
+
 def check_repo(root: Path = ROOT) -> list[str]:
     found = check_messages(root / "packages" / "i18n" / "messages")
     found += check_catalogues(backend_catalogues())
+    found += check_markup(root)
     for app in ("customer", "partner", "rider"):
         manifest = root / "apps" / app / "app.json"
         if manifest.exists():
@@ -256,10 +288,10 @@ def main() -> int:
     for f in found:
         print(f, file=sys.stderr)
     if found:
-        print(f"\n{len(found)} text(s) say rider or an old app name. People read "
-              "\"delivery partner\" (and BhojanGo Kitchen / BhojanGo Delivery).", file=sys.stderr)
+        print(f"\n{len(found)} text(s) say rider, an old app name or a wrong wordmark. People read "
+              "\"delivery partner\", BhojanGo Kitchen / BhojanGo Delivery, and \"BhojanGo\".", file=sys.stderr)
         return 1
-    print("wording ok: no user-facing 'rider' or old app name in messages, backend texts, app names or app code")
+    print("wording ok: no user-facing 'rider', old app name or lowercase wordmark in messages, backend texts, app names or app code")
     return 0
 
 

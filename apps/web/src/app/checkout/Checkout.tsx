@@ -153,7 +153,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const subtotal = foodSubtotal(lines);
   const quote = useQuote({ enabled: hydrated && !!user, restaurantId: bag.restaurant?.id, lines, deliverTo, tip: bag.tip, promo, nonce, fallbackError: t("common.error") });
   const q = quote.quote;
-  const money = (n: number | string, whole = false) => f.money(n, bag.restaurant?.currency ?? q?.currency, { whole });
+  const money = (n: number | string) => f.money(n, bag.restaurant?.currency ?? q?.currency);
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
   // Tip choices are the city's, from the quote, or from a refusal that knows them (a bag
   // under the minimum); kept while the next quote loads. None set: "Other" only.
@@ -393,7 +393,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 const on = !other && bag.tip === n;
                 return (
                   <button key={n} type="button" role="radio" aria-checked={on} onClick={() => { setTipTouched(true); setOther(false); bag.setTip(n); }} className={`h-11 rounded-full px-4 text-label tabular-nums md:h-[50px] md:px-5 ${on ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
-                    {n === 0 ? t("checkout.tip_none") : money(n, true)}
+                    {n === 0 ? t("checkout.tip_none") : money(n)}
                   </button>
                 );
               })}
@@ -458,7 +458,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 {lines.map((l) => (
                   <li key={l.key} className="flex gap-3">
                     <span className="flex-grow">{t("kitchen.line", { count: l.quantity, name: l.name })}{l.summary && <span className="text-muted"> · {l.summary}</span>}</span>
-                    <b className="tabular-nums">{money(l.unitPrice * l.quantity, true)}</b>
+                    <b className="tabular-nums">{money(l.unitPrice * l.quantity)}</b>
                   </li>
                 ))}
               </ul>
@@ -592,8 +592,10 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
       await handle.current.confirm(returnUrl);
       onPaid();
     } catch (e) {
-      // Stripe's own words, in the form's language ("Your card was declined.")
-      setError((e as Error).message);
+      // 3-D Secure failed or was abandoned: our words (R12). Anything else: Stripe's own,
+      // in the form's language ("Your card was declined.").
+      const code = (e as { code?: string }).code;
+      setError(code === "payment_intent_authentication_failure" ? t("checkout.bank_not_confirmed") : (e as Error).message);
     } finally {
       setBusy(false);
     }

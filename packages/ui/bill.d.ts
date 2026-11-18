@@ -12,7 +12,8 @@ export interface BillRow {
   accent?: boolean;
   struck?: string | null;
 }
-export declare function money(amount: string | number, currency: string, opts?: { decimals?: number }): string;
+export declare function money(amount: string | number, currency: string): string;
+export declare function shownLines<L extends { amount: string | number }>(lines: L[]): L[];
 export declare function billRows(lines: BillLine[], currency: string): BillRow[];
 export declare function billTotal(lines: BillLine[]): number;
 export declare const PAYEE: Record<string, string>;

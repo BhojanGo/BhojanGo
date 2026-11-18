@@ -33,6 +33,24 @@ class ProblemTests(unittest.TestCase):
                      "Deliver with BhojanGo", "Ride share", "our payments partner", "Override the price"):
             self.assertIsNone(w.problem(text), text)
 
+    def test_the_wordmark_is_BhojanGo(self) -> None:
+        for text in ("bhojango", "Welcome to Bhojango", "BHOJANGO PAYS", "Bhojan Go", "bhojanGo admin"):
+            self.assertIsNotNone(w.problem(text), text)
+        for text in ("BhojanGo", "BhojanGo Kitchen", "support@bhojango.com", "bhojango-rider", "@bhojango/ui",
+                     "bill.bhojango", "https://bhojango.com/x", "bhojango://pay", "bhojango_test"):
+            self.assertIsNone(w.problem(text), text)
+
+    def test_the_wordmark_in_source_and_email_markup(self) -> None:
+        self.assertTrue(w.check_source('<Text style={s}>bhojango</Text>', "a.tsx"))
+        self.assertFalse(w.check_source('<Text style={s}>{t("common.brand")}</Text>', "a.tsx"))
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, "backend/worker/app/services/messages.py")
+            p.parent.mkdir(parents=True)
+            p.write_text('x = """<td style="a">bhojango</td><a href="https://bhojango.com">y</a>"""', encoding="utf-8")
+            self.assertEqual(len(w.check_markup(Path(d))), 1)
+            p.write_text('x = """<td style="a">BhojanGo</td>"""', encoding="utf-8")
+            self.assertEqual(w.check_markup(Path(d)), [])
+
     def test_placeholders_and_code_names_pass(self) -> None:
         for text in ("{rider} picked it up", "Your delivery partner, {rider}", "{n, plural, one {rider} other {x}}",
                      "rider.brand", "rider_id", "/api/v1/riders/me", "bhojango-rider", "riderId", "rider.sim.boi"):

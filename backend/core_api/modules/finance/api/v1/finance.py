@@ -13,6 +13,7 @@ import io
 import uuid
 from datetime import date
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse, RedirectResponse
@@ -111,6 +112,21 @@ async def payout_preview(
         raise _bad(e)
 
 
+@router.get("/payout-weeks")
+async def payout_weeks(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
+                       country: str = Query(pattern=r"^[A-Z]{2}$")) -> dict:
+    """The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the
+    country's time zone, newest first; `end` is the next Monday (not included)."""
+    admin.require("finance.view", country)
+    try:
+        c = await payouts._country(db, country)
+    except FinanceError as e:
+        raise _bad(e)
+    today = payouts.local_today(ZoneInfo(c.timezone))
+    return {"timezone": c.timezone, "today": today.isoformat(),
+            "weeks": [{"start": a.isoformat(), "end": b.isoformat()} for a, b in payouts.ended_weeks(today)]}
+
+
 @router.get("/payout-runs")
 async def list_runs(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
                     country: str | None = None) -> list[dict]:
@@ -175,7 +191,14 @@ async def my_statements(user: User, db: DB) -> list[dict]:
             PayoutStatement.payee_type == kind, PayoutStatement.payee_id == pid)
             .order_by(PayoutRun.period_start.desc()))).all()
         out += [{**statement_out(s), "period_start": r.period_start.isoformat(), "period_end": r.period_end.isoformat(),
-                 "run_status": r.status} for s, r in rows]
+                 "run_status": r.status, "country": r.country} for s, r in rows]
+    # Sent back or didn't go through: the date it is paid again (the country's next payout day; R12).
+    days: dict[str, str] = {}
+    for st in out:
+        if st["status"] in ("reversed", "failed"):
+            if st["country"] not in days:
+                days[st["country"]] = (await payouts.next_payout_day(db, st["country"])).isoformat()
+            st["repay_on"] = days[st["country"]]
     return out
 
 

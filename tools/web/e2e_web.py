@@ -544,9 +544,9 @@ with sync_playwright() as p:
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
-        expect(page.get_by_text(re.compile(r"₹25 up to 3 km; ₹35 up to 6 km; ₹50 up to 10 km"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5, at most ₹15\)"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10, ₹20, ₹30"))).to_be_attached()))
+        expect(page.get_by_text(re.compile(r"₹25\.00 up to 3 km; ₹35\.00 up to 6 km; ₹50\.00 up to 10 km"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5\.00, at most ₹15\.00\)"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
           expect(page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani")).to_have_count(0))
@@ -730,7 +730,7 @@ with sync_playwright() as p:
     tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
     # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
     check("tip: choices from the tip_presets rule, its default preselected", lambda: (
-        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10", "₹20", "₹30", "Other"],
+        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10.00", "₹20.00", "₹30.00", "Other"],
                 [tips.nth(i).inner_text() for i in range(tips.count())]),
         expect(tips.nth(2)).to_have_attribute("aria-checked", "true")))
     tip_label = tips.nth(2).inner_text().strip()

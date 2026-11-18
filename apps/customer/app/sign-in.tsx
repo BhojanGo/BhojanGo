@@ -46,7 +46,7 @@ export default function SignIn() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
             <LogoMark size={34} />
-            <Text style={[type.h2, styles.word, { flex: 1 }]}>bhojango</Text>
+            <Text style={[type.h2, styles.word, { flex: 1 }]}>{t("common.brand")}</Text>
             <LanguagePill />
           </View>
           <View style={styles.hero}>

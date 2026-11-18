@@ -107,7 +107,7 @@ export default function Bag() {
   // Under the minimum: worded in the app's language, the amount in the country's format (no ".00").
   const shownError =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
-      ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency, { whole: true }) })
+      ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency) })
       : error;
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
 
@@ -141,7 +141,10 @@ export default function Bag() {
       const orderId = await placeOrder();
       const r = await payWithStripe(orderId, method);
       if (r.kind === "paid") await settle(orderId);
-      else if (r.kind === "failed") router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: "stripe" } });
+      else if (r.kind === "failed") {
+        const reason = r.code === "payment_intent_authentication_failure" ? "authentication" : undefined;
+        router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: "stripe", ...(reason ? { reason } : {}) } });
+      }
       else if (r.kind === "unavailable") setError(t("checkout.stripe_update_app"));
       // cancelled: stay on the bag; the order waits with its price held
     } catch (e) {
@@ -194,7 +197,7 @@ export default function Bag() {
                 {l.quantity > 1 ? `${l.quantity} × ` : ""}{l.name}
                 {l.summary ? <Text style={{ color: color.muted }}> · {l.summary}</Text> : null}
               </Text>
-              <Text style={[type.small, num]}>{money(l.unitPrice * l.quantity, currency, { whole: true })}</Text>
+              <Text style={[type.small, num]}>{money(l.unitPrice * l.quantity, currency)}</Text>
             </View>
           ))}
         </View>
@@ -206,7 +209,7 @@ export default function Bag() {
             label={t("checkout.tip_title")}
             value={String(bag.tip)}
             onChange={(v) => bag.setTip(Number(v))}
-            options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency, { whole: true }) }))}
+            options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency) }))}
           />
         </View>
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View>

@@ -8,7 +8,7 @@ export type Offer = CoreSchemas["Offer"];
 export type Order = CoreSchemas["OrderResponse"];
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
-type Money = (amount: number | string | null | undefined, currency?: string | null, opts?: { whole?: boolean }) => string;
+type Money = (amount: number | string | null | undefined, currency?: string | null, ) => string;
 
 // ── photos ────────────────────────────────────────────────────────────────────
 
@@ -125,7 +125,7 @@ export function ofCuisine(kitchens: readonly KitchenCard[], cuisine: string | nu
 
 /** "10% off, up to <money>", "Free delivery", from the offer's own numbers. */
 export function offerTitle(o: Offer, t: T, money: Money, currency?: string | null): string {
-  const m = (v?: string | null) => money(v ?? 0, currency, { whole: true });
+  const m = (v?: string | null) => money(v ?? 0, currency);
   switch (o.template) {
     case "percent_off":
       return o.max_discount ? t("offers.percent_off_upto", { percent: o.percent ?? "", max: m(o.max_discount) }) : t("offers.percent_off", { percent: o.percent ?? "" });
@@ -153,7 +153,7 @@ export function offerPayer(o: Offer, t: T): string {
 
 /** "At {kitchen}, orders over {amount}", "On every order". */
 export function offerSubtitle(o: Offer, t: T, money: Money, currency?: string | null): string {
-  const min = o.min_subtotal && Number(o.min_subtotal) > 0 ? money(o.min_subtotal, currency, { whole: true }) : null;
+  const min = o.min_subtotal && Number(o.min_subtotal) > 0 ? money(o.min_subtotal, currency) : null;
   const kitchen = o.restaurant?.name as string | undefined;
   if (kitchen && min) return t("offers.kitchen_orders_over", { kitchen, amount: min });
   if (kitchen) return t("offers.kitchen_any", { kitchen });

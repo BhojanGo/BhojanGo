@@ -1,7 +1,7 @@
 // Payouts: where the money goes (payout set-up with the country's provider, e.g.
 // Stripe Connect: R10) and past weekly statements. Set-up happens on the provider's
 // own pages; when the delivery partner comes back to the app we ask again.
-import { api, LoadError, num, payoutCopy, type PayoutCopy, type PayoutSetup, providerName, SafeAreaView, STATEMENT_STATUSES, type Translate,
+import { api, LoadError, num, payoutCopy, type PayoutCopy, type PayoutSetup, providerName, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate,
   type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,7 +13,7 @@ import { night, space, ui } from "../lib/theme";
 
 interface Statement {
   id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
-  summary: { deliveries?: number; floor_top_up?: string };
+  summary: { deliveries?: number; floor_top_up?: string }; repay_on?: string | null;
 }
 
 const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`rider.payouts.status.${s}`) : s);
@@ -145,8 +145,13 @@ export default function Payouts() {
                 <Text style={[ui.muted, num]}>
                   {[t("rider.payouts.deliveries", { count: s.summary.deliveries ?? 0 }),
                     Number(s.summary.floor_top_up ?? 0) > 0 ? t("rider.payouts.top_up", { amount: cash(s.summary.floor_top_up, s.currency) }) : null,
-                    statusLabel(t, s.status)].filter(Boolean).join(" · ")}
+                    STATEMENT_NOTES.includes(s.status) ? null : statusLabel(t, s.status)].filter(Boolean).join(" · ")}
                 </Text>
+                {STATEMENT_NOTES.includes(s.status) && repayDay(s.repay_on) ? (
+                  <Text testID={`payout-note-${s.status}`} style={[type.small, { color: night.text, marginTop: space[1] }]}>
+                    {t(`rider.payouts.status.${s.status}`, { amount: cash(s.amount / 100, s.currency), date: date(repayDay(s.repay_on)!) })}
+                  </Text>
+                ) : null}
               </View>
               <Text style={[ui.bold, num]}>{cash(s.amount / 100, s.currency)}</Text>
             </View>

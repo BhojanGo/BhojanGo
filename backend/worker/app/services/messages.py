@@ -337,7 +337,7 @@ def email_html(r: Rendered, *, total: str | None = None, code: str | None = None
 <tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"
  style="max-width:520px;background:#FFFFFF;border-radius:16px;padding:28px;font-family:Inter,
  'Noto Sans Devanagari','Noto Sans Telugu','Noto Sans Tamil','Noto Sans Kannada','Noto Sans Bengali',Arial,sans-serif;color:#111418">
-<tr><td colspan="2" style="font-size:20px;font-weight:700;color:#0B5D66;padding-bottom:16px">bhojango</td></tr>
+<tr><td colspan="2" style="font-size:20px;font-weight:700;color:#0B5D66;padding-bottom:16px">BhojanGo</td></tr>
 <tr><td colspan="2" style="font-size:24px;font-weight:700;padding-bottom:8px">{esc(r.title)}</td></tr>
 <tr><td colspan="2" style="font-size:16px;line-height:1.5">{esc(r.body)}</td></tr>
 {rows}

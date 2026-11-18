@@ -415,6 +415,7 @@
     "pay": "Pagar",
     "pay_with": "Pagar {amount} con {method}",
     "pay_amount": "Pagar {amount}",
+    "bank_not_confirmed": "Tu banco no confirmó el pago. Inténtalo de nuevo o usa otra tarjeta.",
     "paying": "Pagando…",
     "payment_failed": "Tu pago no se procesó. No se te cobró nada; el precio se mantiene, así que puedes intentarlo de nuevo.",
     "payment_failed_reason": "Tu pago no se procesó ({reason}). No se te cobró nada; el precio se mantiene, así que puedes intentarlo de nuevo.",
@@ -1245,9 +1246,9 @@
         "paid": "Pagado",
         "pending": "En camino",
         "no_account": "Esperando tu cuenta de pagos",
-        "failed": "No se completó · lo reintentaremos",
+        "failed": "Este pago de {amount} no se completó. Lo intentaremos de nuevo el {date}.",
         "onboarding": "Esperando a que termines de configurar tus pagos",
-        "reversed": "Nuestro socio de pagos lo devolvió; lo pagaremos de nuevo"
+        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}."
       },
       "ready": "Cuenta de pagos lista",
       "finish": "Termina de configurar los pagos",
@@ -1615,9 +1616,9 @@
         "paid": "Pagado",
         "pending": "En camino",
         "no_account": "Esperando tus datos bancarios",
-        "failed": "No se completó · lo reintentaremos",
+        "failed": "Este pago de {amount} no se completó. Lo intentaremos de nuevo el {date}.",
         "onboarding": "Esperando a que termines de configurar tus pagos",
-        "reversed": "Nuestro socio de pagos lo devolvió; lo pagaremos de nuevo"
+        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}."
       },
       "where": "Dónde te pagamos",
       "paid_through": "Pagos cada lunes a través de {provider}.",

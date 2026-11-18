@@ -1,7 +1,7 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
-import { api, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, SafeAreaView, STATEMENT_STATUSES, type Translate, type,
+import { api, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
   unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -10,7 +10,7 @@ import { useFormat, useKitchen, useLoad } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
 import { Btn, color, radius, t, tone } from "../../lib/ui";
 
-type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
+type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string; repay_on?: string | null;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string } };
 
 const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`partner.payouts.status.${s}`) : s);
@@ -122,10 +122,15 @@ export default function Payouts() {
                 <Text style={t.muted}>
                   {[st.summary.orders != null ? tr("partner.payouts.orders", { count: st.summary.orders }) : null,
                     Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? tr("partner.payouts.offers", { amount: cash(st.summary.restaurant_funded_offers, st.currency) }) : null,
-                    statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
+                    STATEMENT_NOTES.includes(st.status) ? null : statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
+                {STATEMENT_NOTES.includes(st.status) && repayDay(st.repay_on) ? (
+                  <Text testID={`payout-note-${st.status}`} style={[t.body, { marginTop: 4 }]}>
+                    {tr(`partner.payouts.status.${st.status}`, { amount: cash(st.amount / 100, st.currency), date: date(repayDay(st.repay_on)!) })}
+                  </Text>
+                ) : null}
               </View>
-              <Text style={[type.label, num, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency, 2)}</Text>
+              <Text style={[type.label, num, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency)}</Text>
             </View>
           ))}
         </View>

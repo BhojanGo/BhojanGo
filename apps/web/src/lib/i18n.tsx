@@ -50,8 +50,8 @@ export function useFormat() {
       time: (iso: string | Date) => time(iso, formatLocale, tz || country?.timezone),
     });
     return {
-      money: (amount: number | string | null | undefined, currency?: string, opts?: { whole?: boolean }) =>
-        money(amount, currency ?? country?.currency ?? "USD", formatLocale, opts),
+      money: (amount: number | string | null | undefined, currency?: string) =>
+        money(amount, currency ?? country?.currency ?? "USD", formatLocale),
       number: (n: number, digits?: number) => number(n, formatLocale, digits),
       ...inZone(null),
       zone: inZone,

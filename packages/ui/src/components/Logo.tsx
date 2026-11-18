@@ -14,7 +14,7 @@ export function LogoMark({ size = 40, tone = "teal", title = "BhojanGo" }: { siz
 }
 
 /**
- * The lockup as drawn on BrandLogo.html (route C): the mark, then "bhojango" in
+ * The lockup as drawn on BrandLogo.html (route C): the mark, then "BhojanGo" in
  * Inter 700, kohl, spaced from the mark (12 px gap at a 52 px mark).
  * The wordmark is the h3 token (17 px on a phone, fluid to 20 px): only sizes
  * from the type scale. Optional quiet suffix ("admin").
@@ -23,7 +23,7 @@ export function Logo({ size = 32, suffix, tone = "teal" }: { size?: number; suff
   return (
     <span className="inline-flex items-center" style={{ gap: Math.round(size * (12 / 52)) }}>
       <LogoMark size={size} tone={tone} />
-      <span data-testid="logo-wordmark" className={`text-h3 font-bold leading-none tracking-[-0.6px] ${tone === "white" ? "text-white" : "text-kohl"}`}>bhojango</span>
+      <span data-testid="logo-wordmark" className={`text-h3 font-bold leading-none tracking-[-0.6px] ${tone === "white" ? "text-white" : "text-kohl"}`}>BhojanGo</span>
       {suffix && <span className="text-label tracking-normal text-muted" style={{ marginLeft: Math.round(size * 0.15) }}>{suffix}</span>}
     </span>
   );
