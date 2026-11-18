@@ -157,7 +157,8 @@ def _complete_3ds(page) -> bool:  # type: ignore[no-untyped-def]
                 b = f.locator("#test-source-authorize-3ds")
                 if not b.count():
                     b = f.get_by_role("button", name=re.compile(r"^complete", re.I))
-                if b.count():
+                if b.count() and b.first.is_visible():
+                    page.wait_for_timeout(1500)  # the challenge animates in; a click before that is lost (R11, R12)
                     b.first.click()
                     return True
             except Exception:  # noqa: BLE001
