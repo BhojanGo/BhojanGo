@@ -9273,6 +9273,12 @@ export interface components {
              * @example 2026-11-12T20:00:00
              */
             local_time: string;
+            /**
+             * Postal Code
+             * @description Where a tax service needs an address (US sales tax: the ZIP code)
+             * @example 83702
+             */
+            postal_code?: string | null;
             /** Promo Code */
             promo_code?: string | null;
             /** Restaurant Id */
