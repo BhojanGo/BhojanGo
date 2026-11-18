@@ -24,6 +24,8 @@ export interface Country {
   status: MarketStatus;
   /** What the country's payment providers take (R14, from the API): the only methods admin offers. */
   payment_methods_supported?: string[];
+  /** Legal entity fields still empty (R15): each is required before launch. */
+  legal_missing?: string[];
 }
 
 export interface Region {

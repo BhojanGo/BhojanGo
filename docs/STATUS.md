@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-18** (after round 14), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-18** (after round 15), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -69,6 +69,19 @@ The bar since round 8 is "a real product, not a demo": every page and screen is 
 - **Secrets (R13):** `tools/secrets/mask.py` masks every password, token and key in command output and logs; a
   project hook refuses unmasked commands that read the secrets files (PLAYBOOK rule 67). The three QA admin
   passwords that were once printed have been rotated.
+
+## Launch decisions (round 15)
+
+- **Boise is the first live city.** Everything between now and the first real order is in
+  [launch/boise-readiness.md](launch/boise-readiness.md), with owner, status and cost.
+- **US commission is 15%,** changed in admin as a new rule version approved by a second admin; past orders keep
+  their rate. Commission can be set per country, city, zone and kitchen; no rate is written in code.
+- **Legal entities are Markets data:** the US is operated by DeepTrics LLC, India by DeepTrics Software Solutions
+  Pvt Ltd. Each country's legal entity (name, address, support contacts; CIN, GSTIN and grievance officer for India)
+  is edited in admin and shown on the Terms and Privacy pages, the website footer, receipts, emails and Finance.
+  Missing fields are flagged "required before launch". A build check stops any template naming a company.
+- **Payment fees:** Stripe's real fee is recorded per payment. Where a provider doesn't report one (Razorpay,
+  faked), the reports use the expected rate in Business rules (2%) and say "estimated".
 
 ## What's left before the pilot
 

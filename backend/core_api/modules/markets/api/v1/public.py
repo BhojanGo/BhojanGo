@@ -20,7 +20,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone
-from core_api.modules.markets.service import photos, rules
+from core_api.modules.markets.service import legal, photos, rules
 from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
 
@@ -79,6 +79,7 @@ class DirCountry(BaseModel):
     hero_photo: str = Field(description="The landing page's hero: a photo library slug, served at "
                                         "/food/<slug>-<width>.webp (Markets setting hero_photo, else a default)")
     emergency_number: str | None = None  # Markets settings: what the rider app's SOS screen calls (None: not set)
+    legal: dict[str, str] = {}  # R15: who operates BhojanGo here (Markets setting ``legal``; only the filled-in fields)
     live: int
     soon: int
     regions: list[DirRegion]
@@ -137,6 +138,7 @@ async def build_directory(db: AsyncSession) -> Directory:
                 payment_providers=list(country.payment_providers),
                 payment_methods=list((country.settings or {}).get("payment_methods") or ["card"]),
                 hero_photo=photos.hero_photo(country.settings),
+                legal=legal.entity(country.settings, country.tax_regime),
                 emergency_number=emergency_number(country.settings),
                 live=0, soon=0, regions=[])
         r = regions.get(region.code)

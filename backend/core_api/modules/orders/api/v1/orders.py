@@ -423,6 +423,10 @@ async def receipt_pdf(
     lines = bill["lines"] if bill else rcpt.fallback_lines(order.subtotal, order.delivery_fee, order.discount,
                                                            order.taxes, order.tip)
     profile = await user_profile(db, order.customer_id)
+    from core_api.modules.markets.service import legal
+    from core_api.modules.markets.service.markets import MarketService
+
+    c = await MarketService(db).repo.country(country)
     doc = rcpt.Receipt(
         country=country, invoice_no=rcpt.invoice_number(order.id, order.created_at, country),
         issued_at=order.placed_at or order.created_at, order_code="#" + order.id.hex[:6].upper(),
@@ -431,6 +435,7 @@ async def receipt_pdf(
         customer_name=(profile or {}).get("name") or "Customer", delivery_address=order.delivery_address or {},
         items=order.items or [], lines=lines, payment_method=order.payment_method,
         time_zone=(await city_time_zones(db, [order.market_city])).get(order.market_city or ""),
+        operator=legal.entity(c.settings, c.tax_regime) if c else {},  # R15: who operates BhojanGo here
     )
     from starlette.concurrency import run_in_threadpool
 

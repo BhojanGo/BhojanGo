@@ -123,6 +123,22 @@ function Unavailable({ ctx, kind, country, doc }: { ctx: Context; kind: LegalKin
   );
 }
 
+/** "BhojanGo is operated by <legal name>, <address>." and how to reach it, from Markets (R15). */
+function Operator({ ctx, country }: { ctx: Context; country: string }) {
+  const legal = ctx.directory.countries.find((c) => c.code === country)?.legal ?? {};
+  if (!legal.name) return null;
+  const name = [legal.name, legal.address].filter(Boolean).join(", ");
+  const contact = [legal.support_email, legal.support_phone].filter(Boolean).join(" · ");
+  const ids = [legal.cin ? `CIN ${legal.cin}` : "", legal.gstin ? `GSTIN ${legal.gstin}` : ""].filter(Boolean).join(" · ");
+  return (
+    <p className="mt-3 text-body text-[#24383B]" data-testid="legal-operator">
+      {ctx.t("common.operated_by", { name })}
+      {contact ? <span className="block text-small text-muted">{contact}</span> : null}
+      {ids ? <span className="block text-small text-muted">{ids}</span> : null}
+    </p>
+  );
+}
+
 /** The document itself (the current version or an older one). */
 function DocumentView({ ctx, kind, doc, blocks }: { ctx: Context; kind: LegalKind; doc: LegalPage; blocks: Block[] }) {
   const items = contents(blocks);
@@ -157,6 +173,7 @@ function DocumentView({ ctx, kind, doc, blocks }: { ctx: Context; kind: LegalKin
             <Link href={historyHref} className="font-semibold text-peacock underline underline-offset-2 hover:text-peacock-deep print:hidden">{ctx.t("legal.history")}</Link>
             <span className="hidden print:inline">· {countryName(ctx, doc.country)}</span>
           </p>
+          <Operator ctx={ctx} country={doc.country} />
           {doc.language !== ctx.language ? <p className="mt-2 text-small text-muted" data-testid="legal-english-only" lang={ctx.language}>{ctx.t("legal.english_only")}</p> : null}
           <div className="mt-5"><PrintButton label={ctx.t("legal.print")} /></div>
           <div lang={doc.language}>

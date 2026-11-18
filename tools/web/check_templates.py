@@ -26,6 +26,12 @@ Format with mobile-core's useI18n() (money, distance, date) and read the rest
 from useCountry(). A line that really needs one (a regex backreference, the
 km/mi conversion inside the formatter) says why with a marker on that line or
 the line above:   // data-ok: <reason>
+
+Legal entities (R15): who operates BhojanGo in a country is Markets data (country setting
+"legal", edited in admin). No page, screen, message, receipt or email template may name a
+company: "DeepTrics", any seeded legal name, or a company form ("LLC", "Pvt Ltd", "Private
+Limited", "Inc.", "Ltd."). Checked in the website, admin, the apps, mobile-core and ui, the
+messages, and the backend's receipt and email templates.
 """
 import json
 import os
@@ -93,6 +99,36 @@ def app_files():
                     yield path
 
 
+LEGAL_SCAN = [ROOT / "apps" / "web" / "src", ROOT / "apps" / "admin" / "src", ROOT / "apps" / "customer", ROOT / "apps" / "rider",
+              ROOT / "apps" / "partner", ROOT / "packages" / "mobile-core" / "src", ROOT / "packages" / "ui" / "src",
+              ROOT / "packages" / "i18n" / "messages", ROOT / "backend" / "core_api" / "modules" / "orders" / "service" / "receipt.py",
+              ROOT / "backend" / "worker" / "app" / "services" / "messages.py", ROOT / "backend" / "shared" / "texts.py"]
+COMPANY_FORMS = r"DeepTrics|\bLLC\b|\bPvt\.? Ltd\b|\bPrivate Limited\b|\bInc\.|\bLtd\."
+
+
+def legal_names() -> set[str]:
+    """The legal names in the seed's Markets data (what a template must never spell out)."""
+    seed = (ROOT / "tools" / "seed" / "data.py").read_text(encoding="utf-8")
+    return set(re.findall(r'"legal": \{"name": "([^"]+)"', seed))
+
+
+def legal_problems() -> list[str]:
+    names = sorted(legal_names(), key=len, reverse=True)
+    rule = re.compile("|".join([re.escape(n) for n in names] + [COMPANY_FORMS]))
+    found = []
+    for base in LEGAL_SCAN:
+        paths = [base] if base.is_file() else []
+        if base.is_dir():
+            for dirpath, dirnames, filenames in os.walk(base):  # pruned: never into node_modules (deep paths on Windows)
+                dirnames[:] = [d for d in dirnames if d not in APP_SKIP_DIRS and d not in (".next", "node_modules")]
+                paths += [Path(dirpath, f) for f in filenames if f.endswith((".ts", ".tsx", ".js", ".mjs", ".json", ".py"))]
+        for path in paths:
+            for n, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                for m in rule.finditer(line):
+                    found.append(f"{path.relative_to(ROOT)}:{n}: \"{m.group(0)}\" (a legal entity: read it from Markets, country setting \"legal\")")
+    return found
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")  # "₹" on a Windows console
@@ -128,6 +164,11 @@ def main() -> int:
                         continue  # "$1" is a regex backreference there, not money
                     app_problems.append(f"{path.relative_to(ROOT)}:{n}: \"{m.group(0)}\" ({what}; use useI18n()/useCountry() "
                                         "from @bhojango/mobile-core, or mark a legitimate use with // data-ok: <reason>)")
+    legal = legal_problems()
+    if legal:
+        print("\n".join(legal))
+        print(f"\n{len(legal)} legal entity name(s) in templates. Who operates BhojanGo comes from Markets.")
+        return 1
     if problems or app_problems:
         print("\n".join(problems + app_problems))
         if problems:

@@ -6,7 +6,8 @@ import { getContext } from "@/lib/prefs";
 import { LogoMark } from "./Icons";
 
 export async function SiteFooter() {
-  const { t } = await getContext();
+  const { t, country } = await getContext();
+  const operator = country?.legal?.name;  // R15: per detected country, from Markets
   const col = "flex flex-col gap-[10px]";
   return (
     <footer className="mt-[72px] bg-[#F4F6F6] print:hidden">
@@ -37,6 +38,11 @@ export async function SiteFooter() {
           <Link href="/credits">{t("footer.photo_credits")}</Link>
         </div>
       </div>
+      {operator ? (
+        <p data-testid="footer-operator" className="container-page border-t border-[#E2E7E8] py-4 text-small text-muted">
+          {t("common.operated_by", { name: operator })}
+        </p>
+      ) : null}
     </footer>
   );
 }

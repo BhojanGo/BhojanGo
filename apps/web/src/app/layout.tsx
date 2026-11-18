@@ -37,6 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         timezone: ctx.country.timezone,
         distance_unit: ctx.country.distance_unit,
         phone_code: ctx.country.phone_code,
+        legal: ctx.country.legal ?? {},  // R15: who operates BhojanGo here (Markets)
       }
     : null;
   return (

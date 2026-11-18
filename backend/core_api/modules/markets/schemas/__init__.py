@@ -78,6 +78,14 @@ class CountryOut(BaseModel):
 
         return supported(self.payment_providers)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def legal_missing(self) -> list[str]:
+        """Legal entity fields still empty (R15): each is required before the country launches."""
+        from core_api.modules.markets.service.legal import missing
+
+        return missing(self.settings, self.tax_regime)
+
 
 # ── Regions (states) ──────────────────────────────────────────────────────────
 

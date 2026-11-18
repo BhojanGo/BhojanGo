@@ -15,14 +15,30 @@ import { Suspense, useMemo, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { RuleEditor } from "@/components/ops/RuleEditor";
 import { adminApi } from "@/lib/api";
-import { can, firstCity, useAdminMe, useMarkets } from "@/lib/markets";
+import { can, firstCity, useAdminMe, useCity, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
 import { versionState } from "@/lib/ruleState";
 import { describe, type Units, unitsFor } from "@/lib/ruleWords";
 
 interface History {
   versions: Rule[];
-  approvals: Record<string, { requested_at: string; decision: string | null; decided_at: string | null; note: string | null }[]>;
+  approvals: Record<string, { requested_at: string; decision: string | null; decided_by: string | null; decided_at: string | null; note: string | null }[]>;
+  /** Who made or decided a version (R15): user id -> name. */
+  people?: Record<string, string>;
+}
+
+/** The next full hour, as a datetime-local value ("2026-11-18T15:00"). */
+function nextHour(): string {
+  const d = new Date();
+  d.setMinutes(0, 0, 0);
+  d.setHours(d.getHours() + 1);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
+}
+
+/** "18 Nov 2026, 3:00 pm" in the admin's own time zone. */
+function when(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 interface Template { family: string; template: string; money: boolean; allowed_levels: string[] }
 interface KitchenRef { id: string; name: string; city: string; cityCode: string }
@@ -104,9 +120,10 @@ function Params({ rule }: { rule: Rule }) {
   return <p className="rounded-xl bg-porcelain p-4 text-body leading-relaxed" data-testid="rule-words">{describe(rule.template, rule.params, units(rule.market_scope))}</p>;
 }
 
+// Starting values for a brand-new rule's form. No country's rate lives here (R15): a tiered rule
+// starts from the live rule of the same type when there is one.
 const STARTERS: Record<string, Record<string, unknown>> = {
   percent: { percent: 15 },
-  percent_by_tier: { tiers: { A: 25, B: 20, C: 15 }, default_tier: "B" },
   flat_per_order: { amount: 1 },
 };
 const TEMPLATE_WORDS: Record<string, string> = { percent: "Percent of food", percent_by_tier: "Percent by tier", flat_per_order: "Flat per order" };
@@ -120,7 +137,10 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   const mine = templates.filter((t) => t.family === family && t.template !== "payout_schedule");
   const [template, setTemplate] = useState(mine[0]?.template ?? "");
   const t = mine.find((x) => x.template === template);
-  const levels = (t?.allowed_levels ?? []).filter((l) => (l === "country" && country) || (l === "city" && city) || l === "restaurant");
+  // R15: a zone of the chosen city too (commission, fees), picked from the city's zones in Markets.
+  const levels = (t?.allowed_levels ?? []).filter((l) => (l === "country" && country) || (l === "city" && city) || (l === "zone" && city) || l === "restaurant");
+  const cityZones = useCity(city ?? "").data?.zones ?? [];
+  const [zone, setZone] = useState<string>("");
   const [level, setLevel] = useState<string>(city && levels.includes("city") ? "city" : levels[0] ?? "");
   const [kitchenQ, setKitchenQ] = useState("");
   const [kitchen, setKitchen] = useState<string | null>(null);
@@ -129,11 +149,12 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const starter = STARTERS[template] ?? rules.find((r) => r.template === template)?.params ?? {};
+  const starter = STARTERS[template] ?? rules.find((r) => r.template === template)?.params
+    ?? (template === "percent_by_tier" ? { tiers: { A: 0, B: 0, C: 0 }, default_tier: "B" } : {});
   const matches = kitchens.filter((k) => !kitchenQ || k.name.toLowerCase().includes(kitchenQ.toLowerCase())).slice(0, 8);
-  const scopeId = level === "country" ? country : level === "city" ? city : kitchen;
+  const scopeId = level === "country" ? country : level === "city" ? city : level === "zone" ? zone || null : kitchen;
   async function create(params: Record<string, unknown>) {
-    if (!scopeId) return setErr(level === "restaurant" ? "Pick the kitchen." : "Pick a country or city in the scope bar first.");
+    if (!scopeId) return setErr(level === "restaurant" ? "Pick the kitchen." : level === "zone" ? "Pick the zone." : "Pick a country or city in the scope bar first.");
     if (!from) return setErr("A start date is needed.");
     setBusy(true);
     setErr(null);
@@ -163,6 +184,14 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
             {levels.map((l) => <option key={l} value={l}>{l === "country" ? names[country ?? ""] ?? "Country" : l === "city" ? names[city ?? ""] ?? "City" : LEVEL_WORDS[l]}</option>)}
           </select>
         </label>
+        {level === "zone" ? (
+          <label className="font-bold">Zone
+            <select aria-label="Zone" value={zone} onChange={(e) => setZone(e.target.value)} className="mt-1 block h-10 rounded-lg border border-line px-2 font-normal">
+              <option value="">Pick a zone</option>
+              {cityZones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
+            </select>
+          </label>
+        ) : null}
         <label className="font-bold">Name (optional)
           <input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Launch deal" className="mt-1 block h-10 w-56 rounded-lg border border-line px-2 font-normal" />
         </label>
@@ -221,6 +250,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const [editing, setEditing] = useState<"version" | "draft" | null>(null);
   const [note, setNote] = useState("");
   const [endAt, setEndAt] = useState("");
+  const [startsAt, setStartsAt] = useState(nextHour);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
@@ -249,7 +279,8 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const money = rule.money ?? rule.family !== "business";
   async function newVersion(params: Record<string, unknown>) {
     await run(async () => {
-      const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params })).data;
+      // R15: a new version starts when chosen (the next full hour by default), not when it's approved.
+      const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params, effective_from: new Date(startsAt).toISOString() })).data;
       await adminApi.post(`/user/rules/${v.id}/submit`);
     }, money ? "Sent for approval: a second admin approves it." : "Saved and live.");
   }
@@ -265,6 +296,13 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
         <h2 className="m-0 text-h2">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
         <Pill v={rule} all={versions} /> <span className="text-small text-muted" data-testid="rule-source">{label} · v{rule.version}</span>
       </div>
+      {editing === "version" ? (
+        <label className="block text-small font-bold">Starts
+          <input aria-label="Starts at" type="datetime-local" step={3600} value={startsAt} min={nextHour()} onChange={(e) => setStartsAt(e.target.value)}
+            className="ml-2 h-10 rounded-lg border border-line px-2 font-normal" />
+          <span className="ml-2 font-normal text-muted">Orders placed before this keep the rate they were priced with.</span>
+        </label>
+      ) : null}
       {editing === "version" ? (
         <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(null)} onSave={(p) => void newVersion(p)} saveLabel={money ? "Send for approval" : "Save"} />
       ) : editing === "draft" ? (
@@ -330,8 +368,9 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
             const canRollBack = mayEdit && v.id !== rule.id && (s.key === "replaced" || s.key === "ended" || v.status === "superseded")
               && !versions.some((o) => ["draft", "pending_approval"].includes(o.status));
             return (
-              <li key={v.id} className="flex flex-wrap items-center gap-2"><b>v{v.version}</b> <Pill v={v} all={versions} /> <span className="text-muted">{describe(v.template, v.params, units(v.market_scope))} · {ago(v.created_at)}
-                {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision}${a.note ? ` (“${a.note}”)` : ""}`).join("")}</span>
+              <li key={v.id} className="flex flex-wrap items-center gap-2"><b>v{v.version}</b> <Pill v={v} all={versions} /> <span className="text-muted">{describe(v.template, v.params, units(v.market_scope))} · made by {(v.created_by && history.data?.people?.[v.created_by]) || "the seed"} {ago(v.created_at)}
+                {(history.data?.approvals[v.id] ?? []).filter((a) => a.decision).map((a) => ` · ${a.decision} by ${(a.decided_by && history.data?.people?.[a.decided_by]) || "an admin"}${a.decided_at ? ` on ${when(a.decided_at)}` : ""}${a.note ? ` (“${a.note}”)` : ""}`).join("")}
+                {` · effective ${when(v.effective_from)}${v.effective_to ? ` to ${when(v.effective_to)}` : ""}`}</span>
                 {canRollBack ? <button type="button" disabled={busy} onClick={() => void run(() => adminApi.post(`/user/rules/${v.id}/rollback`), money ? `Rolling back to v${v.version}: a second admin approves it.` : `Rolled back to v${v.version}.`)}
                   className="h-8 rounded-full border border-line-strong px-3 text-caption">Roll back to v{v.version}</button> : null}
               </li>

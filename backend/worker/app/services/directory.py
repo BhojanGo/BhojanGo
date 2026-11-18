@@ -67,6 +67,13 @@ class Directory:
         tz = (await self.db.execute(text("SELECT timezone FROM countries WHERE code = :c"), {"c": code})).scalar()
         return tz or COUNTRY_TZ.get(code, "UTC")
 
+    async def operator(self, country: str | None) -> dict:
+        """Who operates BhojanGo in a country (R15: Markets setting "legal"): its filled-in fields."""
+        if not country:
+            return {}
+        legal = (await self.db.execute(text("SELECT settings -> 'legal' FROM countries WHERE code = :c"), {"c": country})).scalar()
+        return {k: str(v) for k, v in (legal or {}).items() if v} if isinstance(legal, dict) else {}
+
     async def payout_period(self, run_id: str) -> tuple[date, date] | None:
         row = (await self.db.execute(text("SELECT period_start, period_end FROM payout_runs WHERE id = :id"),
                                      {"id": run_id})).first()

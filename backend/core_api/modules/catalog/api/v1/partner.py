@@ -303,11 +303,20 @@ async def _application(db: AsyncSession, r: Restaurant) -> ApplicationOut:
     ]
     done = sum(1 for s in steps if s.done)
     current = next((s.key for s in steps if not s.done), None)
+    # R15: the commission the kitchen will pay comes from the commission rules (its own, its city's,
+    # its country's), never from the old per-restaurant column.
+    from core_api.modules.rules.api.v1.commission import _city_code, _ctx_for_city
+    from core_api.modules.rules.service import templates as rule_templates
+    from core_api.modules.rules.service.rules import RuleService
+
+    rate = (await RuleService(db).resolve(_ctx_for_city(await _city_code(db, r), str(r.id)))).get("commission:rate")
+    commission_percent = (rule_templates.commission_percent(rate.template, rate.params, r.tier).quantize(Decimal("0.1"))
+                          if rate else None)
     return ApplicationOut(restaurant_id=str(r.id), fssai_number=r.fssai_number,
                           fssai_expires_on=r.fssai_expires_on.isoformat() if r.fssai_expires_on else None,
                           fssai_document=bool(r.fssai_document_key), fssai_document_key=r.fssai_document_key, gstin=r.gstin, payout_account=bank.status if bank else None, name=r.name, area=(r.address or {}).get("landmark") or r.city, status=r.status,
                           done=done, total=len(steps), current=current,
-                          commission_percent=(Decimal(str(r.commission_rate)) * 100).quantize(Decimal("0.1")),
+                          commission_percent=commission_percent,
                           steps=steps, street=(r.address or {}).get("street"), zip=(r.address or {}).get("zip"),
                           city=r.city, country=r.country, cuisines=list(r.cuisine_types or []))
 

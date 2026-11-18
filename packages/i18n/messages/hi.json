@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "BhojanGo",
+    "operated_by": "BhojanGo का संचालन {name} करती है।",
     "tagline": "असली खाना। सही दाम।",
     "home": "BhojanGo होम",
     "sign_in": "साइन इन करें",

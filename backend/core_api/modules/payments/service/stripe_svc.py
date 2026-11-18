@@ -111,3 +111,13 @@ async def create_refund(
     refund = await asyncio.to_thread(s.Refund.create, **kwargs)
     logger.info("stripe_refund_created", refund_id=refund.id, amount=refund.amount, status=refund.status)
     return {"refund_id": refund.id, "status": refund.status, "amount": refund.amount}
+
+
+def actual_fee(payment_intent_id: str) -> int | None:
+    """What Stripe kept of a succeeded payment (R15), in minor units: the charge's balance
+    transaction fee. None when Stripe doesn't say (yet); the reports then estimate it."""
+    s = get_stripe()
+    pi = s.PaymentIntent.retrieve(payment_intent_id, expand=["latest_charge.balance_transaction"])
+    bt = _get(_get(pi, "latest_charge"), "balance_transaction")
+    fee = _get(bt, "fee")
+    return int(fee) if isinstance(fee, int) else None

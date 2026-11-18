@@ -526,6 +526,13 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     def split_sum(key: str) -> Decimal:
         return S.m(sum((S.D(s.split.get(key, 0)) for s in week_snaps.values()), Decimal(0)))
 
+    # Payment fees (R15): what the provider reported it kept, else the expected rate (the order's split).
+    fee_of: dict[uuid.UUID, Decimal] = {}
+    for i in week_intents:
+        if isinstance((i.metadata_ or {}).get("provider_fee"), int):
+            fee_of[i.order_id] = fee_of.get(i.order_id, Decimal(0)) + Decimal(i.metadata_["provider_fee"]) / 100
+    fees = S.m(sum((fee_of[oid] if oid in fee_of else S.D(s.split.get("payment_fees", 0)) for oid, s in week_snaps.items()), Decimal(0)))
+    fees_estimated = sum(1 for oid in week_snaps if oid not in fee_of)
     captured_total = sum(i.amount for i in week_intents)
     refunded_total = sum(r.amount for r in week_refunds if r.status not in ("failed", "rejected"))
     kitchens, riders, top_ups, tax = week.restaurants_total, week.riders_total, week.top_ups, split_sum("tax")
@@ -543,8 +550,9 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
                   "platform_revenue": S._minor_str(platform),
                   # What the payment providers keep, and the platform after them (orders priced before
                   # fees were recorded count as 0 here; the contribution report estimates them).
-                  "payment_fees": S._minor_str(split_sum("payment_fees")),
-                  "platform_after_payment_fees": S._minor_str(platform - split_sum("payment_fees"))},
+                  "payment_fees": S._minor_str(fees),
+                  "platform_after_payment_fees": S._minor_str(platform - fees)},
+        "payment_fees_estimated": fees_estimated,  # orders whose fee is the expected rate, not the provider's (R15)
         "by_provider": by_provider, "refunds_not_settled": pending_refunds,
         "issues": issues,
     }

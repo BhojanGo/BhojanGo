@@ -14,7 +14,9 @@ interface I18n {
   language: string;
   languages: string[];
   formatLocale: string;
-  country: { code: string; name: string; currency: string; timezone: string; distance_unit: string; phone_code: string } | null;
+  country: { code: string; name: string; currency: string; timezone: string; distance_unit: string; phone_code: string;
+    /** Who operates BhojanGo in the country (R15, Markets "legal": name, address, support contacts...). */
+    legal?: Record<string, string> } | null;
   messages: Messages;
   fallback: Messages;
 }
@@ -29,6 +31,11 @@ function useI18n(): I18n {
   const v = useContext(Ctx);
   if (!v) throw new Error("I18nProvider missing");
   return v;
+}
+
+/** The visitor's country (Markets), with who operates BhojanGo there (R15). */
+export function useCountry() {
+  return useI18n().country;
 }
 
 export function useT() {

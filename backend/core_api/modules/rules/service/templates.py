@@ -335,7 +335,7 @@ ALLOWED_LEVELS: dict[str, frozenset[str]] = {
     "delivery_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "customer_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "tax": frozenset({"country", "region", "city"}),
-    "commission": frozenset({"country", "city", "restaurant"}),
+    "commission": frozenset({"country", "city", "zone", "restaurant"}),  # R15: zones too
     "rider_pay": frozenset({"country", "region", "city"}),
     "business": frozenset({"platform", "country", "city"}),
     "promotion": frozenset({"country", "city", "restaurant"}),

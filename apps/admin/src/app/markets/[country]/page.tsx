@@ -8,6 +8,7 @@ import { Suspense, useState } from "react";
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { DeliveryPartners } from "@/components/markets/DeliveryPartners";
 import { HeroDish } from "@/components/markets/HeroDish";
+import { LegalEntity } from "@/components/markets/LegalEntity";
 import { PaymentMethods } from "@/components/markets/PaymentMethods";
 import { KitchenDocuments } from "@/components/markets/KitchenDocuments";
 import { PayoutProvider } from "@/components/markets/PayoutProvider";
@@ -115,6 +116,7 @@ function CountryView() {
           <DemandCard countryCode={country.code} />
           <SettingsCards country={country} />
           <PayoutProvider country={country} />
+          <LegalEntity country={country} />
           <PaymentMethods country={country} />
           <HeroDish country={country} />
           <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
