@@ -250,7 +250,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const [editing, setEditing] = useState<"version" | "draft" | null>(null);
   const [note, setNote] = useState("");
   const [endAt, setEndAt] = useState("");
-  const [startsAt, setStartsAt] = useState(nextHour);
+  const [startsAt, setStartsAt] = useState("");  // empty: as soon as it's approved
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
@@ -279,8 +279,8 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
   const money = rule.money ?? rule.family !== "business";
   async function newVersion(params: Record<string, unknown>) {
     await run(async () => {
-      // R15: a new version starts when chosen (the next full hour by default), not when it's approved.
-      const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params, effective_from: new Date(startsAt).toISOString() })).data;
+      // R15: a new version can start at a chosen hour; empty: as soon as it's approved (a switch, a fix).
+      const v = (await adminApi.post<Rule>(`/user/rules/${rule.id}/versions`, { params, ...(startsAt ? { effective_from: new Date(startsAt).toISOString() } : {}) })).data;
       await adminApi.post(`/user/rules/${v.id}/submit`);
     }, money ? "Sent for approval: a second admin approves it." : "Saved and live.");
   }
@@ -297,11 +297,14 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
         <Pill v={rule} all={versions} /> <span className="text-small text-muted" data-testid="rule-source">{label} · v{rule.version}</span>
       </div>
       {editing === "version" ? (
-        <label className="block text-small font-bold">Starts
-          <input aria-label="Starts at" type="datetime-local" step={3600} value={startsAt} min={nextHour()} onChange={(e) => setStartsAt(e.target.value)}
-            className="ml-2 h-10 rounded-lg border border-line px-2 font-normal" />
-          <span className="ml-2 font-normal text-muted">Orders placed before this keep the rate they were priced with.</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-2 text-small">
+          <label className="font-bold">Starts
+            <input aria-label="Starts at" type="datetime-local" step={3600} value={startsAt} min={nextHour()} onChange={(e) => setStartsAt(e.target.value)}
+              className="ml-2 h-10 rounded-lg border border-line px-2 font-normal" />
+          </label>
+          {startsAt ? null : <button type="button" onClick={() => setStartsAt(nextHour())} className="h-10 rounded-full border border-line-strong px-3 font-bold">From the next hour</button>}
+          <span className="text-muted">{startsAt ? "Orders placed before then keep the rate they were priced with." : "Empty: as soon as it's approved."}</span>
+        </div>
       ) : null}
       {editing === "version" ? (
         <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(null)} onSave={(p) => void newVersion(p)} saveLabel={money ? "Send for approval" : "Save"} />
