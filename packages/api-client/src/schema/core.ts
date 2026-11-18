@@ -942,6 +942,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/payout-weeks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout Weeks
+         * @description The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the
+         *     country's time zone, newest first; `end` is the next Monday (not included).
+         */
+        get: operations["payout_weeks_api_v1_finance_payout_weeks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/reconciliation": {
         parameters: {
             query?: never;
@@ -11283,6 +11304,39 @@ export interface operations {
             path: {
                 run_id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payout_weeks_api_v1_finance_payout_weeks_get: {
+        parameters: {
+            query: {
+                country: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
