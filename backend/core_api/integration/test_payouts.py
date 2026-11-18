@@ -66,9 +66,11 @@ async def deliver_last_week(order_id: str) -> None:
     wednesday = datetime.combine(ist_last_week()[0] + timedelta(days=2), datetime.min.time().replace(hour=12),
                                  tzinfo=ZoneInfo("Asia/Kolkata"))
     async with AsyncSessionLocal() as db:
-        await db.execute(text("UPDATE orders SET actual_delivery_time = :t, created_at = :t - interval '40 minutes', "
-                              "rider_assigned_at = :t - interval '30 minutes', picked_up_at = :t - interval '15 minutes' "
-                              "WHERE id = :id"), {"t": wednesday, "id": order_id})
+        await db.execute(text("UPDATE orders SET actual_delivery_time = CAST(:t AS timestamptz), "
+                              "created_at = CAST(:t AS timestamptz) - interval '40 minutes', "
+                              "rider_assigned_at = CAST(:t AS timestamptz) - interval '30 minutes', "
+                              "picked_up_at = CAST(:t AS timestamptz) - interval '15 minutes' "
+                              "WHERE id = CAST(:id AS uuid)"), {"t": wednesday, "id": order_id})
         await db.commit()
 
 

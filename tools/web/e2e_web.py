@@ -736,7 +736,7 @@ with sync_playwright() as p:
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
-        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(re.sub(r"\D", "", tip_label), timeout=15000)))
+        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(tip_label, timeout=15000)))  # the chip and the bill read alike (R12: two decimals)
     shot(page, "11-checkout")
     a11y(page, "checkout")
     page.get_by_role("button", name=re.compile(r"^Pay ")).click()
@@ -1295,8 +1295,8 @@ with sync_playwright() as p:
     # ── Deliver with BhojanGo (/deliver, R8 F8): real pay for each seed city ───
     symbols = {"INR": "₹", "USD": "$"}  # the test may know the seed's currencies
 
-    def whole(v: str) -> str:
-        return v[:-3] if v.endswith(".00") else v
+    def whole(v: str) -> str:  # R12: one money format, always two decimals (under 1,000 here: no grouping)
+        return f"{float(v):.2f}"
 
     dl = b.new_context(viewport={"width": 1366, "height": 900}).new_page()
     for code in ("IN-TG-HYD", "US-ID-BOI"):
