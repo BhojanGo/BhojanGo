@@ -1,4 +1,4 @@
-"""Unit tests for tools/secrets/mask.py and .claude/hooks/guard_secrets.py (stdlib; make ci-guard)."""
+"""Unit tests for tools/secrets/mask.py and guard_secrets.py (stdlib; make ci-guard)."""
 import importlib.util
 import os
 import sys
@@ -17,7 +17,7 @@ Path(tmp, "BhojanGo_Stripe_Keys.txt").write_text("secret_key: sk_test_abcdefghij
 sys.path.insert(0, str(ROOT / "tools" / "secrets"))
 import mask as m  # noqa: E402
 
-spec = importlib.util.spec_from_file_location("guard", ROOT / ".claude" / "hooks" / "guard_secrets.py")
+spec = importlib.util.spec_from_file_location("guard", ROOT / "tools" / "secrets" / "guard_secrets.py")
 guard = importlib.util.module_from_spec(spec)
 assert spec.loader
 spec.loader.exec_module(guard)

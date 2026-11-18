@@ -148,6 +148,23 @@ def _card_frame(page):  # type: ignore[no-untyped-def]
     raise AssertionError("the Payment Element's card form didn't appear")
 
 
+def _fill_number(f, card: str) -> None:  # type: ignore[no-untyped-def]
+    """Type the card number and read it back: a fill while Stripe's field is still settling can
+    land partly ("Your card number is incomplete", R13); then type it again, slowly."""
+    box = f.locator('input[name="number"]')
+    box.wait_for(state="visible", timeout=30000)
+    for attempt in range(3):
+        box.click()
+        box.fill("")
+        if attempt == 0:
+            box.fill(card)
+        else:
+            box.press_sequentially(card, delay=60)
+        if re.sub(r"\D", "", box.input_value()) == card:
+            return
+    raise AssertionError("the card number didn't take in Stripe's field")
+
+
 def _complete_3ds(page) -> bool:  # type: ignore[no-untyped-def]
     """Stripe's test 3-D Secure page: press "Complete" (it sits in nested frames)."""
     for _ in range(240):  # up to 2 minutes: the challenge frame loads its content late in headless Chromium
@@ -191,7 +208,7 @@ def _pay_in_browser(h: H, card: str, three_ds: bool = False) -> tuple[dict, str]
             assert not NOT_OFFERED.search(shown), f"the Payment Element offers more than cards: {NOT_OFFERED.search(shown).group(0)!r}"
             pi_id = c["payment_intent_client_secret"].split("_secret_")[0]
             assert h.stripe.PaymentIntent.retrieve(pi_id).payment_method_types == ["card"], "not cards only (R13)"
-            f.locator('input[name="number"]').fill(card)
+            _fill_number(f, card)
             f.locator('input[name="expiry"]').fill("12 / 34")
             f.locator('input[name="cvc"]').fill("123")
             if f.locator('input[name="postalCode"]').count():
