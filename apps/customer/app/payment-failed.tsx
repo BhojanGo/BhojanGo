@@ -11,7 +11,7 @@ import { paymentStatus, payWithStripe, startPayment, waitForPayment, type PayOut
 
 export default function PaymentFailed() {
   const { money, t } = useI18n();
-  const { orderId, method, provider } = useLocalSearchParams<{ orderId: string; method: "upi" | "card"; provider?: string }>();
+  const { orderId, method, provider, reason } = useLocalSearchParams<{ orderId: string; method: "upi" | "card"; provider?: string; reason?: string }>();
   const [status, setStatus] = useState<PayStatus | null>(null);
   /** The payment's status didn't load (offline, our servers): Retry, not a "0:00 left" timer. */
   const [failure, setFailure] = useState<unknown>(null);
@@ -76,7 +76,7 @@ export default function PaymentFailed() {
         <View style={styles.icon}><Icon name="alert" size={28} stroke={color.chili} /></View>
         <Txt variant="h1" accessibilityRole="header">{t("app.payment_failed.title")}</Txt>
         <Txt style={{ color: color.muted }}>
-          {method === "upi" ? t("app.payment_failed.declined_upi") : t("app.payment_failed.declined_card")}{" "}
+          {reason === "authentication" ? t("checkout.bank_not_confirmed") : method === "upi" ? t("app.payment_failed.declined_upi") : t("app.payment_failed.declined_card")}{" "}
           <Text style={[textFont("700"), { color: color.kohl }]}>{t("app.payment_failed.not_charged")}</Text>
         </Txt>
         {status ? (

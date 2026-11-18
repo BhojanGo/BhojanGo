@@ -558,10 +558,16 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Reconciliation")).to_be_visible(timeout=20000)))
     page.screenshot(path=f"{OUT}/09-finance.png", full_page=True)
     page.goto(f"{BASE}/finance?scope=US", wait_until="networkidle")
-    page.get_by_label("to").fill(str(date.today() + timedelta(days=1)))  # this run's orders are today's
+    # R12: a run covers an ended week (Monday to Sunday) and the reports follow it: the week picker lists
+    # only ended weeks, and the contribution shows last week's figures, or "—" and why when it had none.
+    weeks = api.get(f"{CORE}/finance/payout-weeks", headers=fin_us, params={"country": "US"}).json()["weeks"]
+    check("finance: the week picker lists only weeks that have ended, newest first", lambda: _ok(
+        page.get_by_test_id("payout-week").locator("option").first.get_attribute("value") == weeks[0]["start"]
+        and date.fromisoformat(weeks[0]["end"]) <= date.today() + timedelta(days=1)))
     check("finance: contribution per order, after payment fees", lambda: (
         expect(page.get_by_role("region", name="Contribution per order")).to_contain_text("Payment fees", timeout=20000),
-        expect(page.get_by_test_id("platform-keeps")).to_contain_text("$", timeout=20000)))
+        expect(page.get_by_role("region", name="Contribution per order")).to_contain_text(
+            re.compile(r"\$[\d,]+\.\d{2}|No delivered orders in this week"), timeout=20000)))
     page.get_by_role("region", name="Contribution per order").screenshot(path=f"{OUT}/09b-contribution.png")
 
     page.goto(f"{BASE}/settings", wait_until="networkidle")

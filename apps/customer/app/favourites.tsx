@@ -78,7 +78,7 @@ export default function FavouritesScreen() {
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={type.label}>{d.name}</Text>
                 <Text numberOfLines={1} style={[type.small, { color: color.muted }]}>{d.restaurant.name}</Text>
-                <Text style={[type.label, num]}>{d.available ? money(d.price, d.currency, { whole: true }) : t("favourites.sold_out")}</Text>
+                <Text style={[type.label, num]}>{d.available ? money(d.price, d.currency) : t("favourites.sold_out")}</Text>
               </View>
             </Pressable>
             <FavouriteHeart kind="item" id={d.id} name={d.name} size={36} />

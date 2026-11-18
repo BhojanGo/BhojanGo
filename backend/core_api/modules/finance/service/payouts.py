@@ -12,7 +12,7 @@ and a run pays each payee's account with that provider.
 """
 import uuid
 from collections import defaultdict
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -133,10 +133,51 @@ async def _rule(db: AsyncSession, city: str, slot: str) -> dict | None:
     return r.params if r else None
 
 
-async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: date, end: date) -> PayoutRun:
+DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def local_today(tz: ZoneInfo, now: datetime | None = None) -> date:
+    return (now or datetime.now(UTC)).astimezone(tz).date()
+
+
+def check_week(start: date, end: date, today: date) -> None:
+    """A run pays one week that has ended (R12): Monday to Sunday in the country's time zone,
+    sent as Monday to the next Monday (end not included). No unfinished week: its orders
+    could still change."""
+    if start.weekday() != 0 or end != start + timedelta(days=7):
+        raise FinanceError("A payout run covers one week, Monday to Sunday")
+    if end > today:
+        raise FinanceError(f"The week {start.isoformat()} to {(end - timedelta(days=1)).isoformat()} hasn't ended yet; "
+                           f"prepare it from Monday {end.isoformat()}")
+
+
+def ended_weeks(today: date, n: int = 8) -> list[tuple[date, date]]:
+    """The last ``n`` weeks that have ended by ``today`` (a local date), newest first."""
+    this_monday = today - timedelta(days=today.weekday())
+    return [(this_monday - timedelta(days=7 * i), this_monday - timedelta(days=7 * (i - 1))) for i in range(1, n + 1)]
+
+
+async def payout_weekday(db: AsyncSession, country: str) -> int:
+    """The country's payout day (business rule payout_schedule; Monday by default), 0 = Monday."""
+    sched = await _rule(db, country, "commission:payout_schedule") or {}
+    day = sched.get("day", "mon")
+    return DAYS.index(day) if day in DAYS else 0
+
+
+async def next_payout_day(db: AsyncSession, country: str, now: datetime | None = None) -> date:
+    """The date unpaid (reversed or failed) statements are paid again: the country's next
+    payout day, today if today is one (the scheduler retries them hourly on that day)."""
+    c = await _country(db, country)
+    today = local_today(ZoneInfo(c.timezone), now)
+    return today + timedelta(days=(await payout_weekday(db, country) - today.weekday()) % 7)
+
+
+async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: date, end: date,
+                     now: datetime | None = None) -> PayoutRun:
     if end <= start:
         raise FinanceError("The period must end after it starts")
     c = await _country(db, country)
+    check_week(start, end, local_today(ZoneInfo(c.timezone), now))
     overlapping = (await db.execute(select(PayoutRun).where(
         PayoutRun.country == country, PayoutRun.period_start < end, PayoutRun.period_end > start))).scalars().first()
     if overlapping:

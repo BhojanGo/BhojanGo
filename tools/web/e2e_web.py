@@ -427,7 +427,7 @@ with sync_playwright() as p:
 
     # Language: Hindi changes the words, never a price; remembered after a reload.
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
-    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹\d+$")).first.inner_text()
+    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹[\d,]+\.\d{2}$")).first.inner_text()
     english_hero = "Real food. Fair prices."
     pill.click()
     page.get_by_role("menuitemradio", name=re.compile("^हिन्दी")).click()
@@ -460,7 +460,7 @@ with sync_playwright() as p:
         expect(page.get_by_text(re.compile(r"^\d+ kitchens? delivers? to Madhapur"))).to_be_visible(timeout=20000),
         expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Kitchen pays")).first).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
-        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹\d+ delivery|Free delivery")),
+        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+\.\d{2} delivery|Free delivery")),
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
     check("personal home: the address is on the page, not in the header; no marketing", lambda: (
         expect(page.get_by_test_id("change-address")).to_contain_text("Madhapur"),
@@ -544,9 +544,9 @@ with sync_playwright() as p:
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
-        expect(page.get_by_text(re.compile(r"₹25 up to 3 km; ₹35 up to 6 km; ₹50 up to 10 km"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5, at most ₹15\)"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10, ₹20, ₹30"))).to_be_attached()))
+        expect(page.get_by_text(re.compile(r"₹25\.00 up to 3 km; ₹35\.00 up to 6 km; ₹50\.00 up to 10 km"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5\.00, at most ₹15\.00\)"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
           expect(page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani")).to_have_count(0))
@@ -730,13 +730,13 @@ with sync_playwright() as p:
     tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
     # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
     check("tip: choices from the tip_presets rule, its default preselected", lambda: (
-        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10", "₹20", "₹30", "Other"],
+        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10.00", "₹20.00", "₹30.00", "Other"],
                 [tips.nth(i).inner_text() for i in range(tips.count())]),
         expect(tips.nth(2)).to_have_attribute("aria-checked", "true")))
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
-        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(re.sub(r"\D", "", tip_label), timeout=15000)))
+        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(tip_label, timeout=15000)))  # the chip and the bill read alike (R12: two decimals)
     shot(page, "11-checkout")
     a11y(page, "checkout")
     page.get_by_role("button", name=re.compile(r"^Pay ")).click()
@@ -1295,8 +1295,8 @@ with sync_playwright() as p:
     # ── Deliver with BhojanGo (/deliver, R8 F8): real pay for each seed city ───
     symbols = {"INR": "₹", "USD": "$"}  # the test may know the seed's currencies
 
-    def whole(v: str) -> str:
-        return v[:-3] if v.endswith(".00") else v
+    def whole(v: str) -> str:  # R12: one money format, always two decimals (under 1,000 here: no grouping)
+        return f"{float(v):.2f}"
 
     dl = b.new_context(viewport={"width": 1366, "height": 900}).new_page()
     for code in ("IN-TG-HYD", "US-ID-BOI"):

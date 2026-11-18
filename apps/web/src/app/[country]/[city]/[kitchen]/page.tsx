@@ -50,7 +50,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const card: KitchenCard | null = near?.restaurants?.find((k) => k.id === r.id) ?? null;
   const currency = r.currency;
   const unit = near?.distance_unit ?? country?.distance_unit ?? "km";
-  const fmt = (v: number | string | null | undefined) => money(v, currency, formatLocale, { whole: true });
+  const fmt = (v: number | string | null | undefined) => money(v, currency, formatLocale);
 
   // Distance: discover's (already in the country's unit), else from the address to the kitchen.
   let distance: string | null = null;

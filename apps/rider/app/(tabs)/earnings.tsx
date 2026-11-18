@@ -77,13 +77,13 @@ export default function Earnings() {
             <Text style={ui.statLabel}>{t("rider.earnings.deliveries")}</Text>
           </View>
           <View style={ui.stat}>
-            <Text style={ui.statValue}>{cash(s.tips, cur, 0)}</Text>
+            <Text style={ui.statValue}>{cash(s.tips, cur)}</Text>
             <Text style={ui.statLabel}>{t("rider.earnings.tips")}</Text>
           </View>
         </View>
 
         <View style={[styles.box, styles.chart]}
-          accessibilityLabel={t("rider.earnings.daily", { days: w.days.map((d) => `${date(d.date, { weekday: "short" })} ${cash(d.total, cur, 0)}`).join(", ") })}>
+          accessibilityLabel={t("rider.earnings.daily", { days: w.days.map((d) => `${date(d.date, { weekday: "short" })} ${cash(d.total, cur)}`).join(", ") })}>
           <View style={styles.bars}>
             {w.days.map((d) => {
               const v = Number(d.total);
@@ -91,7 +91,7 @@ export default function Earnings() {
               const future = d.date > todayIso;
               return (
                 <View key={d.date} style={styles.barCol}>
-                  <Text style={[type.caption, num, { color: today ? night.text : night.muted }]}>{future ? "–" : cash(v, cur, 0)}</Text>
+                  <Text style={[type.caption, num, { color: today ? night.text : night.muted }]}>{future ? "–" : cash(v, cur)}</Text>
                   <View style={{ width: "100%", borderRadius: 6, height: future || v === 0 ? 4 : Math.max(8, (v / max) * 110),
                     backgroundColor: today ? night.kesar : future ? night.raised : night.line }} />
                 </View>

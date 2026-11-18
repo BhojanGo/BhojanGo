@@ -415,6 +415,7 @@
     "pay": "Pay",
     "pay_with": "Pay {amount} with {method}",
     "pay_amount": "Pay {amount}",
+    "bank_not_confirmed": "Your bank didn't confirm the payment. Try again or use another card.",
     "paying": "Paying…",
     "payment_failed": "Your payment didn't go through. You weren't charged; the price is held, so you can try again.",
     "payment_failed_reason": "Your payment didn't go through ({reason}). You weren't charged; the price is held, so you can try again.",
@@ -1245,9 +1246,9 @@
         "paid": "Paid",
         "pending": "On its way",
         "no_account": "Waiting for your payout account",
-        "failed": "Didn't go through · we'll retry",
+        "failed": "This payment of {amount} didn't go through. We'll try again on {date}.",
         "onboarding": "Waiting for you to finish payout set-up",
-        "reversed": "Sent back by our payments partner; we'll pay it again"
+        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}."
       },
       "ready": "Payout account ready",
       "finish": "Finish setting up payouts",
@@ -1615,9 +1616,9 @@
         "paid": "Paid",
         "pending": "On its way",
         "no_account": "Waiting for your bank details",
-        "failed": "Didn't go through · we'll retry",
+        "failed": "This payment of {amount} didn't go through. We'll try again on {date}.",
         "onboarding": "Waiting for you to finish payout set-up",
-        "reversed": "Sent back by our payments partner; we'll pay it again"
+        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}."
       },
       "where": "Where we pay you",
       "paid_through": "Paid every Monday through {provider}.",

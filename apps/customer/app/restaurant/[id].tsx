@@ -75,10 +75,11 @@ export default function RestaurantScreen() {
       </View>
       {inBag > 0 ? (
         <Pressable testID="view-bag" accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
-          <Text style={[type.label, { color: color.white }]}>
-            {t("kitchen.view_bag")} · {t("kitchen.bar_summary", { count: inBag, total: money(total, r.currency, { whole: true }) })}
+          {/* As the website's bar: "View bag", then the summary; no "·" between them (R12). */}
+          <Text style={[type.label, { color: color.white }]}>{t("kitchen.view_bag")}</Text>
+          <Text style={[type.label, { color: color.white, flexShrink: 1 }]} numberOfLines={1}>
+            {t("kitchen.bar_summary", { count: inBag, total: money(total, r.currency) })}
           </Text>
-          <Icon name="arrow" stroke={color.white} />
         </Pressable>
       ) : null}
     </View>
@@ -104,7 +105,7 @@ function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantI
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[type.label, { color: color.kohl }]}>{item.name}</Text>
         <Text style={[type.label, { color: color.kohl }]}>
-          {off ? t("kitchen.sold_out_today") : money(item.price, currency, { whole: true })}
+          {off ? t("kitchen.sold_out_today") : money(item.price, currency)}
         </Text>
         {item.description ? (
           <Text numberOfLines={2} style={[type.small, { color: color.muted }]}>{item.description}</Text>
@@ -141,6 +142,6 @@ const styles = StyleSheet.create({
   },
   bagBar: {
     position: "absolute", left: space[5], right: space[5], bottom: space[6], height: 56, borderRadius: radius.pill,
-    backgroundColor: color.peacock, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22,
+    backgroundColor: color.peacock, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3], paddingHorizontal: 22,
   },
 });

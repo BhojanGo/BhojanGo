@@ -73,7 +73,7 @@ export default function Report() {
       <SafeAreaView style={[s.screen, { justifyContent: "center", gap: space[4] }]}>
         <Text accessibilityRole="header" style={s.h1}>{done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}</Text>
         <Text style={[type.bodyLg, { color: color.kohl }]}>{done.message}</Text>
-        {done.outcome === "ticket" ? <Text style={s.muted}>{t("account.report.ticket_note", { amount: money(done.limit, done.currency, { whole: true }) })}</Text> : null}
+        {done.outcome === "ticket" ? <Text style={s.muted}>{t("account.report.ticket_note", { amount: money(done.limit, done.currency) })}</Text> : null}
         <Button testID="back-to-order" title={t("account.report.back_to_order")} size="lg" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/account/receipt/${id}`))} />
       </SafeAreaView>
     );

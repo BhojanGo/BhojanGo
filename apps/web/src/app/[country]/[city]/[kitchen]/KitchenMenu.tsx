@@ -75,7 +75,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
   const [active, setActive] = useState(categories[0]?.key ?? "");
   const [open, setOpen] = useState<Item | null>(null);
   const [pending, setPending] = useState<{ line: NewLine } | null>(null);
-  const fmt = (n: number | string) => f.money(n, restaurant.currency, { whole: true });
+  const fmt = (n: number | string) => f.money(n, restaurant.currency);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -274,7 +274,7 @@ function Customise({ item, currency, onClose, onAdd }: { item: Item; currency: s
   const [picks, setPicks] = useState<Record<string, string[]>>(() => defaults(groups));
   const [qty, setQty] = useState(1);
   useEscape(onClose);
-  const fmt = (n: number) => f.money(n, currency, { whole: true });
+  const fmt = (n: number) => f.money(n, currency);
   const base = Number(item.price);
   const extra = groups.reduce((sum, g) => sum + g.options.filter((o) => picks[g.name]?.includes(o.name)).reduce((a, o) => a + Number(o.price), 0), 0);
   const unit = base + extra;
@@ -423,7 +423,7 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
               <button type="button" aria-label={t("kitchen.one_less", { name: l.name })} onClick={() => setQuantity(l.key, l.quantity - 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E2E7E8] hover:bg-[#F4F6F6]"><Minus size={12} /></button>
               <button type="button" aria-label={t("kitchen.one_more", { name: l.name })} onClick={() => setQuantity(l.key, l.quantity + 1)} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E2E7E8] hover:bg-[#F4F6F6]"><Plus size={12} /></button>
             </span>
-            <b className="min-w-[64px] shrink-0 text-right tabular-nums">{f.money(l.unitPrice * l.quantity, currency, { whole: true })}</b>
+            <b className="min-w-[64px] shrink-0 text-right tabular-nums">{f.money(l.unitPrice * l.quantity, currency)}</b>
           </li>
         ))}
       </ul>

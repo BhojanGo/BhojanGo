@@ -30,7 +30,7 @@ export default async function Partner() {
     billCity ? exampleBill(billCity.code) : Promise.resolve(null),
   ]);
   const commission = commissionSummary(terms, here?.code);
-  const fmtMoney = (v: string | number) => money(v, terms?.currency ?? country?.currency ?? "USD", formatLocale, { whole: true });
+  const fmtMoney = (v: string | number) => money(v, terms?.currency ?? country?.currency ?? "USD", formatLocale);
   const pct = (n: number) => new Intl.NumberFormat(formatLocale, { maximumFractionDigits: 1 }).format(n);
   const weekly = (terms?.payout.frequency ?? "weekly") === "weekly";
   const openCities = terms?.cities.length ?? 0;

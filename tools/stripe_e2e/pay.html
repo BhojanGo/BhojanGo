@@ -15,7 +15,7 @@
   const q = new URLSearchParams(location.search);
   const stripe = Stripe(q.get("pk"));
   const elements = stripe.elements({ clientSecret: q.get("cs"), locale: "en" });
-  const payment = elements.create("payment", { layout: { type: "tabs" } });
+  const payment = elements.create("payment", { layout: { type: "tabs" }, paymentMethodOrder: ["card", "apple_pay", "google_pay", "link"] });
   const out = document.getElementById("out");
   payment.on("ready", () => { out.textContent = "ready"; document.getElementById("pay").disabled = false; });
   payment.on("loaderror", (e) => { out.textContent = "loaderror " + (e.error && e.error.message); });

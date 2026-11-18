@@ -70,7 +70,7 @@ export default function Gallery() {
           {["Biryani", "Dosa", "Thali", "Pizza"].map((c) => <Chip key={c} label={c} selected={chip === c} onPress={() => setChip(c)} />)}
         </View>
         <Segmented label="Tip your delivery partner" value={tip} onChange={setTip}
-          options={[{ value: "0", label: "None" }, ...[10, 20, 30].map((n) => ({ value: String(n), label: money(n, cur, { whole: true }) }))]} />
+          options={[{ value: "0", label: "None" }, ...[10, 20, 30].map((n) => ({ value: String(n), label: money(n, cur) }))]} />
       </View>
 
       <View style={{ gap: 12 }}>
@@ -116,7 +116,7 @@ export default function Gallery() {
       ]} />
 
       <Sheet visible={sheet} onClose={() => setSheet(false)} title="Chicken Dum Biryani"
-        footer={<Button title={`Add to bag · ${money(340, cur, { whole: true })}`} size="lg" block onPress={() => setSheet(false)} />}>
+        footer={<Button title={`Add to bag · ${money(340, cur)}`} size="lg" block onPress={() => setSheet(false)} />}>
         <Txt style={{ color: color.muted }}>Pick a size, spice level and add-ons.</Txt>
       </Sheet>
     </ScrollView>

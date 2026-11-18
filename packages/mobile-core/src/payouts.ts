@@ -70,3 +70,14 @@ export function payoutCopy(t: T, s: PayoutSetup): PayoutCopy {
 
 /** Statement statuses each app labels (anything else is shown as sent). */
 export const STATEMENT_STATUSES = ["paid", "pending", "no_account", "onboarding", "failed", "reversed"] as const;
+
+/** Statuses told as a sentence of their own (R12): what happened, the amount, the date it's paid. */
+export const STATEMENT_NOTES: readonly string[] = ["failed", "reversed"];
+
+/**
+ * The day a returned or failed payment is paid again: the API's `repay_on` (the country's
+ * next payout day), as a local noon so no time zone moves it to the day before.
+ */
+export function repayDay(repayOn: string | null | undefined): string | null {
+  return repayOn && /^\d{4}-\d{2}-\d{2}$/.test(repayOn) ? `${repayOn}T12:00:00` : null;
+}

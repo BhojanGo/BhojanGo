@@ -173,11 +173,15 @@ def case_connect_payout_transfer(h: H) -> None:
         h.wait(lambda: rider.call("GET", "/finance/payout-accounts/me/setup", 200, params={
             "payee_type": "rider", "refresh": "true"})["state"] == "ready", 120, 3, "the delivery partner's payouts to be ready")
 
-        # The delivery: the order paid through Stripe, delivered by the delivery partner a minute ago.
+        # The delivery: the order paid through Stripe, delivered by the delivery partner last week
+        # (Wednesday noon in Boise): a run pays only a week that has ended (R12).
         order = _paid_order(h)
-        h.sql(f"UPDATE orders SET status = 'delivered', driver_id = '{rider_id}', "
-              "rider_assigned_at = now() - interval '25 minutes', picked_up_at = now() - interval '12 minutes', "
-              f"actual_delivery_time = now() - interval '1 minute' WHERE id = '{order['id']}'")
+        monday = date.fromisoformat(h.sql("SELECT (date_trunc('week', now() AT TIME ZONE 'America/Boise'))::date")[0][0])
+        monday -= timedelta(days=7)
+        wednesday = f"(TIMESTAMP '{monday + timedelta(days=2)} 12:00' AT TIME ZONE 'America/Boise')"
+        h.sql(f"UPDATE orders SET status = 'delivered', driver_id = '{rider_id}', created_at = {wednesday} - interval '40 minutes', "
+              f"rider_assigned_at = {wednesday} - interval '25 minutes', picked_up_at = {wednesday} - interval '12 minutes', "
+              f"actual_delivery_time = {wednesday} WHERE id = '{order['id']}'")
 
         # Money in the platform's balance to transfer (4000 0000 0000 0077: "available at once", but
         # Stripe's available balance shows it a few seconds later; transfers before that are refused).
@@ -191,10 +195,11 @@ def case_connect_payout_transfer(h: H) -> None:
         assert pi.status == "succeeded", pi.status
         h.wait(lambda: available() >= before + 9000, 120, 3, "the funding charge to reach the available balance")
 
-        # This week's run (Boise's Monday to next Monday), prepared by one admin and approved by
-        # a second (the run refuses one person doing both).
-        monday = date.fromisoformat(h.sql("SELECT (date_trunc('week', now() AT TIME ZONE 'America/Boise'))::date")[0][0])
+        # Last week's run (Boise's Monday to Sunday), prepared by one admin and approved by
+        # a second (the run refuses one person doing both). This week can't be prepared yet.
         maker, checker = h.api(MAKER), h.api(FINANCE)
+        maker.call("POST", "/finance/payout-runs", 409, json={
+            "country": "US", "period_start": str(monday + timedelta(days=7)), "period_end": str(monday + timedelta(days=14))})
         run = maker.call("POST", "/finance/payout-runs", 201, json={
             "country": "US", "period_start": str(monday), "period_end": str(monday + timedelta(days=7))})
         run = checker.call("POST", f"/finance/payout-runs/{run['id']}/approve", 200)
@@ -227,6 +232,10 @@ def case_connect_payout_transfer(h: H) -> None:
 
             h.wait(reversed_, 90, 3, "transfer.reversed to mark the payout line reversed")
             assert int(h.sql("SELECT count(*) FROM processed_webhook_events WHERE provider = 'stripe_connect'")[0][0]) >= 1
+            # The Delivery app's line: sent back, the amount, and the date it's paid again (R12).
+            mine = next(s for s in rider.call("GET", "/finance/statements/me", 200) if s["id"] == ours["rider"]["id"])
+            assert mine["status"] == "reversed" and date.fromisoformat(mine["repay_on"]) >= date.today() - timedelta(days=1), mine
+            print(f"  the delivery partner sees: sent back, paid again on {mine['repay_on']}")
         else:
             print("  note: no Stripe CLI found in STRIPE_E2E_WORK; the reversal webhook wasn't checked")
     finally:

@@ -79,7 +79,7 @@ export function ReportView({ id }: { id: string }) {
           {done.outcome === "refunded" ? t("account.report.refunded") : t("account.report.ticket")}
         </h1>
         <p className="mt-3 text-body-lg">{done.message}</p>
-        {done.outcome === "ticket" && <p className="mt-2 tabular-nums text-muted">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency, { whole: true }) })}</p>}
+        {done.outcome === "ticket" && <p className="mt-2 tabular-nums text-muted">{t("account.report.ticket_note", { amount: f.money(done.limit, done.currency) })}</p>}
         <Link href={back} className="mt-6 inline-flex h-12 items-center rounded-full bg-[#0B5D66] px-6 font-bold text-white hover:bg-[#083F46] hover:text-white">
           {t("account.report.back_to_order")}
         </Link>

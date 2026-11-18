@@ -58,7 +58,7 @@ export function useQuote(opts: {
   const refusal = fresh?.refusal ?? null;
   const error =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
-      ? t("checkout.min_order", { zone: refusal.zone, amount: f.money(refusal.amount, refusal.currency ?? undefined, { whole: true }) })
+      ? t("checkout.min_order", { zone: refusal.zone, amount: f.money(refusal.amount, refusal.currency ?? undefined) })
       : fresh?.error ?? null;
   return { quote: fresh?.quote ?? null, error, refusal, loading: !!key && !fresh };
 }

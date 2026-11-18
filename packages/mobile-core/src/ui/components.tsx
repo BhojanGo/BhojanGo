@@ -1,6 +1,6 @@
 // The design system for the Expo apps (P16): the same components as
 // @bhojango/ui on the web, in React Native, from the same tokens.
-import { billTotal, PAYEE, type BillLine } from "@bhojango/ui/bill";
+import { billTotal, PAYEE, shownLines, type BillLine } from "@bhojango/ui/bill";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ActivityIndicator, Animated, Image, Modal, Pressable, StyleSheet, Text, TextInput, View,
@@ -172,12 +172,12 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
   const free = delivery && lines.find((ln) => ln.code === "promotion" && Number(delivery.amount) > 0 &&
     Math.abs(Number(ln.amount) + Number(delivery.amount)) < 0.005);
   const rows: FairRow[] = [];
-  for (const ln of lines) {
+  for (const ln of shownLines(lines)) { // a line of 0 (a tax of 0.00) is not shown (R12)
     if (ln === free) continue;
     const amount = Number(ln.amount);
     if (ln === delivery && free) {
       rows.push({ label: ln.label, payee: t(free.funded_by === "restaurant" ? "app.bill.kitchens_treat" : "app.bill.on_us"),
-                  amount: money(0, currency, { whole: true }), struck: money(amount, currency, { whole: true }) });
+                  amount: money(0, currency), struck: money(amount, currency) });
     } else if (ln.code === "promotion") {
       const by = ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO";
       rows.push({ label: ln.label, payee: payee(by), amount: money(amount, currency), accent: true });
@@ -381,7 +381,7 @@ export function LogoMark({ size = 40, tone = "teal" }: { size?: number; tone?: "
 // The fair bill's rows: label, who gets it (a caption), amount (tabular figures).
 const text = textStyles({
   billLabel: ["small", { flex: 1, color: color.kohl }],
-  payee: ["caption", { color: color.muted }],
+  payee: ["small", { color: color.muted }], // not the uppercase caption: the wordmark reads "BhojanGo" (R12)
   billAmount: ["small", { color: color.kohl, textAlign: "right", fontVariant: ["tabular-nums"] }],
 });
 

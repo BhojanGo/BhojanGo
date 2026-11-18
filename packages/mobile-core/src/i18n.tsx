@@ -176,8 +176,8 @@ export interface I18n {
   setLanguage: (language: Language) => Promise<void>;
   /** The country's first Markets locale; undefined (the phone's) until a country is known. */
   formatLocale: string | undefined;
-  /** money(250, order.currency) in the country's format; {whole: true} drops ".00". No currency: the country's (Markets). */
-  money: (amount: number | string | null | undefined, currency?: string | null, opts?: { whole?: boolean }) => string;
+  /** money(250, order.currency) in the country's format, always two decimals (29.00). No currency: the country's (Markets). */
+  money: (amount: number | string | null | undefined, currency?: string | null) => string;
   /** number(1234.5) -> "1,234.5" (country grouping), `digits` decimals at most (1). */
   number: (n: number, digits?: number) => string;
   /** distance(2.14): kilometres in, the country's unit out (or `unit` as the API sends it), one decimal, translated unit. */
@@ -205,10 +205,10 @@ export function useI18n(): I18n {
     const t = createTranslator(language, MESSAGES[language], MESSAGES.en);
     return {
       t, language, languages, options, setLanguage, formatLocale: loc, script,
-      money: (amount, currency, opts) => {
+      money: (amount, currency) => {
         const cur = currency || country?.currency;
         if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
-        return formatMoney(amount, cur, localeForCurrency(cur, country, countries), opts);
+        return formatMoney(amount, cur, localeForCurrency(cur, country, countries));
       },
       number: (n, digits = 1) => formatNumber(n, loc, digits),
       distance: (km, unit) => {

@@ -279,7 +279,7 @@ function OfferSheet({ offer, onDone, onAccepted }: { offer: Offer; onDone: () =>
           <Text style={ui.statLabel}>{t("rider.offer.time")}</Text>
         </View>
         <View style={ui.stat}>
-          <Text style={ui.statValue}>{rate ? t("rider.offer.per_hour", { amount: cash(rate, cur, 0) }) : "–"}</Text>
+          <Text style={ui.statValue}>{rate ? t("rider.offer.per_hour", { amount: cash(rate, cur) }) : "–"}</Text>
           <Text style={ui.statLabel}>{t("rider.offer.rate")}</Text>
         </View>
       </View>

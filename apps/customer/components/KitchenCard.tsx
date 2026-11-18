@@ -74,7 +74,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
               k.free_delivery || fee === 0 ? (
                 <Text style={[textFont("700"), { color: color.peacock }]}>{t("common.free_delivery")}</Text>
               ) : (
-                t("common.delivery_fee", { fee: money(fee, currency, { whole: true }) })
+                t("common.delivery_fee", { fee: money(fee, currency) })
               )
             ) : null}
             {!k.open_now && k.opens_at ? <Text style={{ color: color.muted }}> · {t("common.closed_opens", { time: wallTime(k.opens_at, time) })}</Text> : null}

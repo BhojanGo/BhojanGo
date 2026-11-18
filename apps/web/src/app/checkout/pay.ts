@@ -97,7 +97,7 @@ interface StripeElement {
 }
 interface StripeLike {
   elements: (o: { clientSecret: string; appearance?: unknown; locale?: string; fonts?: unknown[] }) => { create: (kind: string, o?: unknown) => StripeElement };
-  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { type?: string; message?: string }; paymentIntent?: { status: string } }>;
+  confirmPayment: (o: { elements: unknown; redirect: "if_required"; confirmParams: { return_url: string } }) => Promise<{ error?: { type?: string; code?: string; message?: string }; paymentIntent?: { status: string } }>;
 }
 
 // Stripe.js translates its own form; these of our languages it has (the rest: the browser's choice).
@@ -135,7 +135,9 @@ export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, l
       rules: { ".Input": { border: "1.5px solid #C9D3D4", boxShadow: "none" }, ".Input:focus": { border: "1.5px solid #0B5D66" } },
     },
   });
-  const payment = elements.create("payment", { layout: { type: "tabs" } });
+  // Card first (R12): Stripe may add Link's own bank option ("Bank", a cash-back badge); the card form
+  // is what opens, whatever Stripe adds.
+  const payment = elements.create("payment", { layout: { type: "tabs" }, paymentMethodOrder: ["card", "apple_pay", "google_pay", "link"] });
   await new Promise<void>((resolve, reject) => {
     const slow = setTimeout(() => reject(new Error("payment form timed out")), 20000);
     payment.on("ready", () => {
@@ -149,7 +151,7 @@ export async function mountStripe(c: Record<string, unknown>, el: HTMLElement, l
   return {
     confirm: async (returnUrl: string) => {
       const r = await stripe.confirmPayment({ elements, redirect: "if_required", confirmParams: { return_url: returnUrl } });
-      if (r.error) throw new Error(r.error.message ?? "declined");
+      if (r.error) throw Object.assign(new Error(r.error.message ?? "declined"), { code: r.error.code });
     },
     destroy: () => payment.destroy(),
   };

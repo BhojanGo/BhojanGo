@@ -2,6 +2,9 @@
 // Finance: weekly payout runs for a country (prepare → a second finance admin
 // approves and pays → retry what's waiting), each statement, and the week's
 // reconciliation (money in vs owed). Each country in its own currency.
+// R12: a run covers a week that has ended (Monday to Sunday in the country's time
+// zone; the API lists them), and contribution and reconciliation show the week of
+// the selected run. An empty figure is "—" with the reason.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
@@ -42,14 +45,32 @@ const STATEMENT_STATUS: Record<string, string> = {
 };
 const STATUS_STYLE: Record<string, string> = { paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink" };
 
-function lastWeek(): [string, string] {
-  const d = new Date();
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
-  const next = new Date(monday);
-  next.setDate(monday.getDate() + 7);
-  const iso = (x: Date) => x.toISOString().slice(0, 10);
-  return [iso(monday), iso(next)];
+// Why a row of the contribution table, or a reconciliation figure, is empty.
+const CONTRIBUTION_EMPTY: Record<string, string> = {
+  commission: "no delivered orders", customer_fees: "no customer fees charged", platform_promos: "no offers we fund were used",
+  rider_pay: "no deliveries", payment_fees: "no payment fee recorded", refunds: "no refunds we pay",
+};
+
+interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[] }
+
+/** "Mon 9 Nov – Sun 15 Nov" for a run's period (end is the next Monday, not included). */
+function weekLabel(start: string, end: string): string {
+  const day = (iso: string, back = 0) => {
+    const d = new Date(`${iso}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - back);
+    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "");
+  };
+  return `${day(start)} – ${day(end, 1)}`;
+}
+
+function addDays(iso: string, n: number): string {
+  return new Date(Date.parse(`${iso}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+}
+
+/** A figure, or "—" and why it's empty (R12). */
+function Figure({ value, currency, empty }: { value: number; currency: string; empty: string }) {
+  if (value) return <>{money(value, currency, 2)}</>;
+  return <span title={empty}>— <span className="block text-small font-normal text-muted">{empty}</span></span>;
 }
 
 function FinancePage() {
@@ -65,20 +86,30 @@ function FinancePage() {
   const target = country === "ALL" ? markets?.[0]?.code ?? ownCountry : country;
   const runs = useQuery({ queryKey: ["payout-runs", target], enabled: Boolean(target), queryFn: async () => (await adminApi.get<Run[]>("/user/finance/payout-runs", { params: { country: target } })).data });
   const [open, setOpen] = useState<string | null>(null);
+  // The selected run (the newest until another is picked): its statements, and the reports' week.
+  const selected = open ?? runs.data?.[0]?.id ?? null;
   const run = useQuery({
-    queryKey: ["payout-run", open], enabled: Boolean(open),
-    queryFn: async () => (await adminApi.get<Run & { statements: Statement[] }>(`/user/finance/payout-runs/${open}`)).data,
+    queryKey: ["payout-run", selected], enabled: Boolean(selected),
+    queryFn: async () => (await adminApi.get<Run & { statements: Statement[] }>(`/user/finance/payout-runs/${selected}`)).data,
   });
-  const [[start, end], setPeriod] = useState(lastWeek);
+  // The weeks a run may cover (ended, Monday to Sunday in the country's zone), newest first.
+  const weeks = useQuery({ queryKey: ["payout-weeks", target], enabled: Boolean(target),
+    queryFn: async () => (await adminApi.get<Weeks>("/user/finance/payout-weeks", { params: { country: target } })).data });
+  const [picked, setPicked] = useState<string | null>(null);
+  const week = weeks.data?.weeks.find((w) => w.start === picked) ?? weeks.data?.weeks[0] ?? null;
+  const prepared = new Set((runs.data ?? []).map((r) => r.period_start));
+  // The reports follow the selected run (the newest one until another is picked); no run: the picked week.
+  const shown = (runs.data ?? []).find((r) => r.id === selected);
+  const [start, end] = shown ? [shown.period_start, shown.period_end] : week ? [week.start, week.end] : ["", ""];
   const recon = useQuery({
     queryKey: ["recon", target, start, end],
     queryFn: async () => (await adminApi.get<Recon>("/user/finance/reconciliation", { params: { country: target, start, end } })).data,
-    enabled: Boolean(target) && can(me, "finance.view", target),
+    enabled: Boolean(target && start) && can(me, "finance.view", target),
   });
   const contribution = useQuery({
     queryKey: ["contribution", scope, target, start, end],
     queryFn: async () => (await adminApi.get<Contribution>("/user/finance/contribution", { params: { scope: city ?? region ?? target, start, end } })).data,
-    enabled: Boolean(target) && can(me, "finance.view", city ?? region ?? target),
+    enabled: Boolean(target && start) && can(me, "finance.view", city ?? region ?? target),
   });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   async function act(fn: () => Promise<unknown>, ok: string) {
@@ -96,7 +127,7 @@ function FinancePage() {
     <ConsoleShell section="Finance" country={country} region={region} city={city} scopeHref={(s) => `/finance?scope=${s.split("-")[0]}`}>
       <div>
         <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? target}` : ""}</h1>
-        <p className="mt-1 text-small text-muted">Payouts run weekly per country (Monday to Monday, local time). The admin who prepares a run can&apos;t approve it.</p>
+        <p className="mt-1 text-small text-muted">Payouts run weekly per country, for a week that has ended: Monday to Sunday in the country&apos;s time zone{weeks.data ? ` (${weeks.data.timezone})` : ""}. The admin who prepares a run can&apos;t approve it.</p>
         {country === "ALL" && (markets?.length ?? 0) > 1 ? (
           <p className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">Money stays in each country&apos;s currency, so Finance shows one country at a time. Pick a country above to see another.</p>
         ) : null}
@@ -104,23 +135,32 @@ function FinancePage() {
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Payout runs">
         <div className="flex flex-wrap items-end gap-3">
           <h2 className="m-0 flex-1 text-h3">Payout runs</h2>
-          <label className="text-label">From <input type="date" value={start} onChange={(e) => setPeriod([e.target.value, end])} className="ml-1 h-9 rounded-lg border border-line px-2" /></label>
-          <label className="text-label">to <input type="date" value={end} onChange={(e) => setPeriod([start, e.target.value])} className="ml-1 h-9 rounded-lg border border-line px-2" /></label>
-          {can(me, "finance.edit", target) ? (
-            <button type="button" onClick={() => void act(() => adminApi.post("/user/finance/payout-runs", { country: target, period_start: start, period_end: end }), "Run prepared: a second finance admin approves it.")}
-              className="h-10 rounded-full bg-peacock px-4 font-bold text-white">Prepare payouts for this week</button>
+          {can(me, "finance.edit", target) && weeks.data ? (
+            <>
+              <label className="text-label">Week{" "}
+                <select data-testid="payout-week" value={week?.start ?? ""} onChange={(e) => setPicked(e.target.value)} className="ml-1 h-10 rounded-lg border border-line bg-white px-2">
+                  {weeks.data.weeks.map((w) => <option key={w.start} value={w.start}>{weekLabel(w.start, w.end)}{prepared.has(w.start) ? " · prepared" : ""}</option>)}
+                </select>
+              </label>
+              <button type="button" disabled={!week || prepared.has(week.start)}
+                onClick={() => week && void act(() => adminApi.post("/user/finance/payout-runs", { country: target, period_start: week.start, period_end: week.end }), "Run prepared: a second finance admin approves it.")}
+                className="h-10 rounded-full bg-peacock px-4 font-bold text-white disabled:bg-[#8FB3B7]">
+                {week && prepared.has(week.start) ? "Already prepared" : "Prepare payouts"}
+              </button>
+            </>
           ) : null}
         </div>
+        {can(me, "finance.edit", target) && weeks.data ? <p className="m-0 text-small text-muted">This week ({weekLabel(weeks.data.weeks[0].end, addDays(weeks.data.weeks[0].end, 7))}) can be prepared once it ends.</p> : null}
         {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
         <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
           <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Kitchens</th><th>Delivery partners</th><th><span className="sr-only">Actions</span></th></tr></thead>
           <tbody className="divide-y divide-line">
             {(runs.data ?? []).map((r) => (
-              <tr key={r.id} className={open === r.id ? "bg-peacock-wash" : ""}>
-                <td className="stack-title py-3 font-bold"><span className="whitespace-nowrap">{r.period_start} →</span> <span className="whitespace-nowrap">{r.period_end}</span></td><td data-label="Status">{RUN_STATUS[r.status] ?? r.status}</td><td data-label="Orders">{r.totals.orders ?? 0}</td>
+              <tr key={r.id} className={selected === r.id ? "bg-peacock-wash" : ""}>
+                <td className="stack-title py-3 font-bold"><span className="whitespace-nowrap">{weekLabel(r.period_start, r.period_end)}</span></td><td data-label="Status">{RUN_STATUS[r.status] ?? r.status}</td><td data-label="Orders">{r.totals.orders ?? 0}</td>
                 <td data-label="Kitchens"><span>{money(r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span></td><td data-label="Delivery partners"><span>{money(r.totals.riders, r.currency, 2)} <span className="text-muted">· {r.totals.rider_statements ?? 0}</span></span></td>
                 <td className="stack-actions space-x-2 space-y-2 text-right">
-                  <button type="button" onClick={() => setOpen(r.id)} className="h-8 rounded-full border border-line-strong px-3 text-label">Statements</button>
+                  <button type="button" aria-pressed={selected === r.id} onClick={() => setOpen(r.id)} className="h-8 rounded-full border border-line-strong px-3 text-label">{selected === r.id ? "Selected" : "Select"}</button>
                   {r.status === "draft" && can(me, "payouts.approve", r.country) && r.created_by !== me?.user_id ? (
                     <button type="button" onClick={() => void act(() => adminApi.post(`/user/finance/payout-runs/${r.id}/approve`), "Approved and paid.")} className="h-8 rounded-full bg-peacock px-3 text-label text-white">Approve and pay</button>
                   ) : null}
@@ -137,9 +177,9 @@ function FinancePage() {
         {runs.isError ? <p role="alert" className="text-small">The payout runs didn&apos;t load. <button type="button" onClick={() => void runs.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
         {runs.data && runs.data.length === 0 ? <p className="text-small text-muted">No payout runs yet. Prepare one for a week once it has delivered orders; a second finance admin approves and pays it.</p> : null}
       </section>
-      {open && run.data ? (
+      {selected && run.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Statements">
-          <h2 className="m-0 mb-3 text-h3">Statements · {run.data.period_start} → {run.data.period_end}</h2>
+          <h2 className="m-0 mb-3 text-h3">Statements · {weekLabel(run.data.period_start, run.data.period_end)}</h2>
           <p className="mb-3 text-small text-muted">Transfers go only to payout accounts that are ready. Anyone still onboarding waits and is paid as soon as their account is ready; send them a set-up link.</p>
           <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
             <thead className="text-caption text-muted"><tr><th className="py-2">Payee</th><th>Type</th><th>Amount</th><th>Transfer</th><th>Payout set-up</th><th><span className="sr-only">Actions</span></th></tr></thead>
@@ -160,11 +200,11 @@ function FinancePage() {
           {run.data.statements.length === 0 ? <p className="text-small text-muted">No statements: nothing was delivered in this period.</p> : null}
         </section>
       ) : null}
-      {open && run.isLoading ? <p aria-busy="true" className="rounded-2xl bg-white p-6 text-small text-muted">Loading statements…</p> : null}
-      {open && run.isError ? <p role="alert" className="rounded-2xl bg-white p-6 text-small">The statements didn&apos;t load. <button type="button" onClick={() => void run.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
+      {selected && run.isLoading ? <p aria-busy="true" className="rounded-2xl bg-white p-6 text-small text-muted">Loading statements…</p> : null}
+      {selected && run.isError ? <p role="alert" className="rounded-2xl bg-white p-6 text-small">The statements didn&apos;t load. <button type="button" onClick={() => void run.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
       {contribution.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
-          <h2 className="m-0 mb-1 text-h3">Contribution per order · {start} → {end}</h2>
+          <h2 className="m-0 mb-1 text-h3">Contribution per order · {weekLabel(start, end)}</h2>
           <p className="mb-3 text-small text-muted">What the platform keeps of an average delivered order, after payment fees, delivery partner pay (tips are the delivery partner&apos;s), the offers we fund and the refunds we pay.
             {contribution.data.fees_estimated ? ` ${contribution.data.fees_estimated} older orders had no payment fee recorded; it's worked out from today's rule.` : ""}</p>
           <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
@@ -172,22 +212,27 @@ function FinancePage() {
               {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {c.orders} orders</th>)}</tr></thead>
             <tbody className="divide-y divide-line tabular-nums">
               {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
-                <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => <td key={c.city} className="text-right">{sign < 0 ? "−" : ""}{money(Number(c.per_order[k] ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+                <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => {
+                  const v = Number(c.per_order[k] ?? 0);
+                  return <td key={c.city} className="text-right">{v ? `${sign < 0 ? "−" : ""}${money(v, contribution.data!.currency, 2)}` : <Figure value={0} currency={contribution.data!.currency} empty={CONTRIBUTION_EMPTY[k]} />}</td>;
+                })}</tr>
               ))}
-              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.keeps ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right"><Figure value={Number(c.per_order.keeps ?? 0)} currency={contribution.data!.currency} empty="no delivered orders" /></td>)}</tr>
             </tbody>
           </table></div>
-          {contribution.data.cities.length === 0 ? <p className="text-small text-muted">No delivered orders in this period.</p> : null}
+          {contribution.data.cities.length === 0 ? <p className="text-small text-muted">— No delivered orders in this week, so there is nothing to average.</p> : null}
         </section>
       ) : null}
       {recon.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
-          <h2 className="m-0 mb-3 text-h3">Reconciliation · {start} → {end}</h2>
+          <h2 className="m-0 mb-3 text-h3">Reconciliation · {weekLabel(start, end)}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            {[["Captured", recon.data.money.captured], ["Refunded", recon.data.money.refunded], ["Kitchens are owed", recon.data.money.restaurant_payable], ["Delivery partners are owed", recon.data.money.rider_payable],
-              ["Tax owed", recon.data.money.tax_owed], ["Platform revenue", recon.data.money.platform_revenue], ["Payment fees", recon.data.money.payment_fees],
-              ["Platform after payment fees", recon.data.money.platform_after_payment_fees], ["Delivered GMV", recon.data.money.delivered_gmv], ["Net collected", recon.data.money.net_collected]]
-              .map(([l, v]) => <div key={l as string} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div><div className="text-h3 tabular-nums">{money(Number(v ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}
+            {([["Captured", "captured", "no card or UPI payments captured"], ["Refunded", "refunded", "no refunds"],
+              ["Kitchens are owed", "restaurant_payable", "nothing delivered"], ["Delivery partners are owed", "rider_payable", "nothing delivered"],
+              ["Tax owed", "tax_owed", "no tax charged"], ["Platform revenue", "platform_revenue", "no fees or commission"], ["Payment fees", "payment_fees", "no payment fee recorded"],
+              ["Platform after payment fees", "platform_after_payment_fees", "no fees or commission"], ["Delivered GMV", "delivered_gmv", "nothing delivered"], ["Net collected", "net_collected", "no payments captured"]] as const)
+              .map(([l, k, why]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
+                <div className="text-h3 tabular-nums"><Figure value={Number(recon.data!.money[k] ?? 0) / 100} currency={recon.data!.currency} empty={why} /></div></div>)}
           </div>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{recon.data.issues.length} issues to look at</b> : <span className="text-peacock">everything lines up</span>}</p>

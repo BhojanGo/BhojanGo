@@ -41,8 +41,8 @@ test("money follows the country's locale and the currency, never the language", 
   assert.equal(formatMoney(124050, "INR", "en-IN"), "₹1,24,050.00");
   assert.equal(formatMoney("1240.5", "USD", "en-US"), "$1,240.50");
   assert.equal(formatMoney(-50, "INR", "en-IN"), "−₹50.00");
-  assert.equal(formatMoney(250, "INR", "en-IN", { whole: true }), "₹250");
-  assert.equal(formatMoney(14.5, "USD", "en-US", { whole: true }), "$14.50"); // never rounds cents away
+  assert.equal(formatMoney(300, "INR", "en-IN"), "₹300.00"); // one format everywhere (R12)
+  assert.equal(formatMoney(29, "USD", "en-US"), "$29.00");
   assert.equal(formatMoney(null, "USD", "en-US"), "$0.00");
 });
 

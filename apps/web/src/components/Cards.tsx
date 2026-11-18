@@ -12,7 +12,7 @@ type T = (key: string, vars?: Record<string, string | number>) => string;
 
 /** "10% off, up to ₹50", "Free delivery", built from the offer's own numbers (translatable). */
 export function offerTitle(o: Offer, t: T, currency: string, formatLocale: string): string {
-  const m = (v?: string | null) => money(v ?? 0, currency, formatLocale, { whole: true });
+  const m = (v?: string | null) => money(v ?? 0, currency, formatLocale);
   switch (o.template) {
     case "percent_off":
       return o.max_discount ? t("offers.percent_off_upto", { percent: o.percent ?? "", max: m(o.max_discount) }) : t("offers.percent_off", { percent: o.percent ?? "" });
@@ -35,7 +35,7 @@ export function offerBadge(o: Offer, t: T, currency: string, formatLocale: strin
 
 export function offerSubtitle(o: Offer, t: T, currency: string, formatLocale: string): string {
   // "0" (or no minimum) means every order qualifies: no "Orders over 0".
-  const min = o.min_subtotal && Number(o.min_subtotal) > 0 ? money(o.min_subtotal, currency, formatLocale, { whole: true }) : null;
+  const min = o.min_subtotal && Number(o.min_subtotal) > 0 ? money(o.min_subtotal, currency, formatLocale) : null;
   const kitchen = o.restaurant?.name as string | undefined;
   if (kitchen && min) return t("offers.kitchen_orders_over", { kitchen, amount: min });
   if (kitchen) return t("offers.kitchen_any", { kitchen });
@@ -105,14 +105,14 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {k.free_delivery || fee === 0 ? (
                 <b className="text-[#0B5D66]">{t("common.free_delivery")}</b>
               ) : (
-                t("common.delivery_fee", { fee: money(fee, currency, formatLocale, { whole: true }) })
+                t("common.delivery_fee", { fee: money(fee, currency, formatLocale) })
               )}
             </>
           )}
           {fee === null && feeFrom != null && (
             <>
               {" · "}
-              {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale, { whole: true }) })}
+              {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale) })}
             </>
           )}
           {!k.open_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}

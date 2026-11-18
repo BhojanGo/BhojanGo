@@ -2,6 +2,7 @@
 // every line with who gets it. Lines come from the engine (quote, order bill or
 // example bill); amounts are never computed here.
 import { fairSplit, payeeOf, type Payee, type Shares } from "@/lib/fairSplit";
+import { shownLines } from "@bhojango/ui/bill";
 import { money } from "@/lib/format";
 import type { BillLine } from "@/lib/server";
 
@@ -46,7 +47,7 @@ export function FairBill({
     <div>
       <table className="w-full border-collapse text-body tabular-nums">
         <tbody>
-          {lines.map((ln, i) => {
+          {shownLines(lines).map((ln, i) => { // a line of 0 (a $0.00 tax) is not shown (R12)
             const promo = ln.code === "promotion";
             return (
               <tr key={`${ln.code}-${i}`}>

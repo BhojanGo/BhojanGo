@@ -50,7 +50,7 @@ function stripeSdk(): StripeSdk | null {
   return sdk;
 }
 
-export type SheetResult = { kind: "paid" } | { kind: "cancelled" } | { kind: "failed"; message: string } | { kind: "unavailable" };
+export type SheetResult = { kind: "paid" } | { kind: "cancelled" } | { kind: "failed"; message: string; code?: string } | { kind: "unavailable" };
 
 /**
  * Stripe PaymentSheet for an order waiting for payment: initiate (the server
@@ -69,7 +69,8 @@ export async function payWithStripe(orderId: string, method: "upi" | "card", who
   const r = await stripe.presentPaymentSheet();
   if (!r.error) return { kind: "paid" };
   if (r.error.code === "Canceled") return { kind: "cancelled" };
-  return { kind: "failed", message: r.error.message };
+  // stripeErrorCode "payment_intent_authentication_failure": the bank's 3-D Secure check failed.
+  return { kind: "failed", message: r.error.message, code: r.error.stripeErrorCode ?? undefined };
 }
 
 export async function paymentStatus(orderId: string): Promise<PayStatus> {
