@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "BhojanGo",
+    "operated_by": "BhojanGoను {name} నిర్వహిస్తుంది.",
     "tagline": "అసలైన భోజనం. న్యాయమైన ధరలు.",
     "home": "BhojanGo హోమ్",
     "sign_in": "సైన్ ఇన్",

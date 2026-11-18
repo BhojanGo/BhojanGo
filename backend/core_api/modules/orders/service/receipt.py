@@ -12,7 +12,7 @@ HarfBuzz (uharfbuzz), so a customer or kitchen named "శ్రీనివా�
 prints in its own script, and amounts read "₹617.39" / "$31.42".
 """
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -118,6 +118,8 @@ class Receipt:
     payment_method: str = ""
     # The order's city time zone (Markets); the date is printed in it.
     time_zone: str | None = None
+    # Who operates BhojanGo in the country (R15: Markets setting "legal"; only the filled-in fields).
+    operator: dict = field(default_factory=dict)
 
     @property
     def title(self) -> str:
@@ -216,6 +218,14 @@ def render(r: Receipt) -> bytes:
     rule()
     row("Total", money(r.total, r.currency), "B", 12)
     pdf.ln(4)
+    op = r.operator or {}
+    if op.get("name"):  # R15: the platform's legal entity, from Markets
+        text(f"BhojanGo is operated by {op['name']}" + (f", {op['address']}" if op.get("address") else "") + ".", 8)
+        ids = [f"GSTIN: {op['gstin']}" if op.get("gstin") else "", f"CIN: {op['cin']}" if op.get("cin") else ""]
+        if any(ids):
+            text("    ".join(i for i in ids if i), 8)
+        if op.get("support_email") or op.get("support_phone"):
+            text("Help: " + " · ".join(v for v in (op.get("support_email"), op.get("support_phone")) if v), 8)
     text(f"All amounts in {r.currency}.", 8)
     if r.country == "IN":
         text("This is a computer-generated invoice and needs no signature.", 8)

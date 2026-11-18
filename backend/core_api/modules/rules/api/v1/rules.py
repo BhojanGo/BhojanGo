@@ -133,10 +133,18 @@ async def rule_history(rule_id: uuid.UUID, admin: Viewer, db: DB) -> RuleHistory
     r = await _rule_for(admin, db, rule_id, "rules.view")
     svc = RuleService(db)
     versions = await svc.versions(r.rule_key)
+    approvals = {str(v.id): [ApprovalOut.model_validate(a) for a in await svc.approvals(v.id)] for v in versions}
+    from core_api.modules.identity.service.profile import user_profile
+
+    ids = {v.created_by for v in versions if v.created_by} | {a.decided_by for al in approvals.values() for a in al if a.decided_by}
+    people = {}
+    for uid in ids:
+        p = await user_profile(db, uid) or {}
+        people[str(uid)] = p.get("name") or p.get("email") or "an admin"
     return RuleHistory(
-        versions=[out(v) for v in versions],
-        approvals={str(v.id): [ApprovalOut.model_validate(a) for a in await svc.approvals(v.id)] for v in versions},
+        versions=[out(v) for v in versions], approvals=approvals,
         audit=[AuditOut.model_validate(a) for a in await audit.history(db, "rule", [str(r.rule_key)])],
+        people=people,
     )
 
 

@@ -222,6 +222,17 @@ EMAIL_FOOTER = {
     "bn": "BhojanGo · আসল খাবার, ন্যায্য দাম। এই ইমেলগুলি আপনার BhojanGo অর্ডার নিয়ে।",
     "es": "BhojanGo · La mesa honesta. Estos correos son sobre tus pedidos de BhojanGo.",
 }
+# R15: who operates BhojanGo in the recipient's country (Markets setting "legal"); {name} is data.
+EMAIL_OPERATOR = {
+    "en": "BhojanGo is operated by {name}.",
+    "hi": "BhojanGo का संचालन {name} करती है।",
+    "te": "BhojanGoను {name} నిర్వహిస్తుంది.",
+    "ta": "BhojanGo-ஐ {name} நடத்துகிறது.",
+    "kn": "BhojanGo ಅನ್ನು {name} ನಡೆಸುತ್ತದೆ.",
+    "mr": "BhojanGo चे संचालन {name} करते.",
+    "bn": "BhojanGo পরিচালনা করে {name}।",
+    "es": "BhojanGo es operado por {name}.",
+}
 EMAIL_TOTAL = {"en": "Total", "hi": "कुल", "te": "మొత్తం", "ta": "மொத்தம்", "kn": "ಒಟ್ಟು", "mr": "एकूण",
                "bn": "মোট", "es": "Total"}
 EMAIL_ORDER = {"en": "Order", "hi": "ऑर्डर", "te": "ఆర్డర్", "ta": "ஆர்டர்", "kn": "ಆರ್ಡರ್", "mr": "ऑर्डर",
@@ -238,6 +249,7 @@ def entries() -> dict[str, dict[str, str]]:
     out["items.one"] = {lang: t[0] for lang, t in ITEMS.items()}
     out["items.other"] = {lang: t[1] for lang, t in ITEMS.items()}
     out["email.footer"], out["email.total"], out["email.order"] = EMAIL_FOOTER, EMAIL_TOTAL, EMAIL_ORDER
+    out["email.operator"] = EMAIL_OPERATOR
     return out
 
 
@@ -325,13 +337,24 @@ def period(start: date, end_exclusive: date) -> str:
     return f"{start.day} {start.strftime('%b')} – {last.day} {last.strftime('%b')}"
 
 
-def email_html(r: Rendered, *, total: str | None = None, code: str | None = None) -> str:
+def operator_line(language: str, operator: dict | None) -> str:
+    """ "BhojanGo is operated by <legal name>, <address>." from Markets, or "" when the country has none set."""
+    op = operator or {}
+    if not op.get("name"):
+        return ""
+    name = op["name"] + (f", {op['address']}" if op.get("address") else "")
+    return EMAIL_OPERATOR.get(language, EMAIL_OPERATOR["en"]).format(name=name)
+
+
+def email_html(r: Rendered, *, total: str | None = None, code: str | None = None, operator: dict | None = None) -> str:
     """The brand email: Peacock heading, the message, an optional total line."""
     esc = html.escape
     rows = ""
     if total:
         rows = (f'<tr><td style="padding:12px 0 0;color:#3D4A4E">{esc(EMAIL_ORDER[r.language])} {esc(code or "")}</td>'
                 f'<td style="padding:12px 0 0;text-align:right;font-weight:700">{esc(EMAIL_TOTAL[r.language])} {esc(total)}</td></tr>')
+    op = operator_line(r.language, operator)
+    op_row = f'<tr><td colspan="2" style="font-size:12px;color:#3D4A4E;padding-top:8px">{esc(op)}</td></tr>' if op else ""
     return f"""<!doctype html><html lang="{r.language}"><body style="margin:0;background:#F4F6F6">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F6;padding:24px 12px">
 <tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -342,4 +365,5 @@ def email_html(r: Rendered, *, total: str | None = None, code: str | None = None
 <tr><td colspan="2" style="font-size:16px;line-height:1.5">{esc(r.body)}</td></tr>
 {rows}
 <tr><td colspan="2" style="font-size:13px;color:#3D4A4E;padding-top:24px">{esc(EMAIL_FOOTER[r.language])}</td></tr>
+{op_row}
 </table></td></tr></table></body></html>"""

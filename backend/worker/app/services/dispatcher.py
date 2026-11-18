@@ -205,8 +205,10 @@ class Sender:
             if nid:
                 code = out.params.get("code")  # receipts carry the order code even when the message doesn't
                 subject = f"{r.title} · {code}" if code and code not in r.title else r.title
-                ok = await self.email.send(person.email, subject, m.email_html(r, total=out.total, code=code),
-                                           text=f"{r.title}\n\n{r.body}")
+                operator = await self.d.operator(person.country)  # R15: the legal entity, from Markets
+                op = m.operator_line(r.language, operator)
+                ok = await self.email.send(person.email, subject, m.email_html(r, total=out.total, code=code, operator=operator),
+                                           text=f"{r.title}\n\n{r.body}" + (f"\n\n{op}" if op else ""))
                 await self._done(nid, ok)
                 results["email"] = "sent" if ok else "failed"
         logger.info("message_sent", event_id=event_id, user_id=out.user_id, message=out.key, language=r.language, **results)

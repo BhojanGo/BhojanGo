@@ -399,7 +399,7 @@ with sync_playwright() as p:
 
     page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
     check("commissions: each row says where it comes from", lambda: expect(
-        page.get_by_role("region", name="Rules").get_by_test_id("row-source").filter(has_text="Inherited from United States · 20% (tier B)").first).to_be_visible(timeout=15000))
+        page.get_by_role("region", name="Rules").get_by_test_id("row-source").filter(has_text="Inherited from United States · 15% (tier B)").first).to_be_visible(timeout=15000))
     for r in api.get(f"{CORE}/rules", headers=fin_us, params={"family": "commission"}).json():  # left from an earlier run
         if r["market_scope"] == "US-ID-BOI" and r["status"] in ("draft", "rejected"):
             api.delete(f"{CORE}/rules/{r['id']}", headers=token("cm.us@example.com", PW))
@@ -463,7 +463,7 @@ with sync_playwright() as p:
     o2 = delivered_boise_order()
     got2, _ = commission_of(o2["id"])
     food2 = next(Decimal(ln["amount"]) for ln in api.get(f"{CORE}/pricing/orders/{o2['id']}/snapshot", headers=fin_us).json()["lines"] if ln["code"] == "food")
-    check("commissions: the next order uses the country rate again (20%, tier B)", lambda: _ok(got2 == str((food2 * Decimal("0.20")).quantize(Decimal("0.01")))))
+    check("commissions: the next order uses the country rate again (15%, tier B; R15)", lambda: _ok(got2 == str((food2 * Decimal("0.15")).quantize(Decimal("0.01")))))
 
     page.goto(f"{BASE}/pricing?scope=US-ID-BOI&tab=commission", wait_until="networkidle")
     page.get_by_role("region", name="Rules").get_by_role("button", name="Add").click()
@@ -481,7 +481,7 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Boise Bowl Co.").click()
     kc = page.get_by_role("region", name="Commission · Boise Bowl Co.")
     check("kitchen page: effective commission, where it comes from, tier", lambda: (
-        expect(kc.get_by_test_id("kitchen-commission")).to_contain_text("20%", timeout=15000),
+        expect(kc.get_by_test_id("kitchen-commission")).to_contain_text("15%", timeout=15000),
         expect(kc.get_by_test_id("kitchen-commission")).to_contain_text("country"),
         expect(kc.get_by_test_id("kitchen-tier")).to_have_text("B")))
     page.screenshot(path=f"{OUT}/06b-kitchen-commission.png", full_page=True)

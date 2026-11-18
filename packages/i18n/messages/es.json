@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "BhojanGo",
+    "operated_by": "BhojanGo es operado por {name}.",
     "tagline": "Comida de verdad. Precios justos.",
     "home": "Inicio de BhojanGo",
     "sign_in": "Iniciar sesión",

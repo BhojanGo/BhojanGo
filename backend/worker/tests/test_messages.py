@@ -128,3 +128,11 @@ def test_email_in_spanish_and_bengali() -> None:
     assert 'lang="es"' in page and "Pedido #AB12CD" in page and "La mesa honesta" in page
     page = m.email_html(m.render("refund_items", "bn", amount="₹99.00", code="#AB12CD"), total="₹99.00", code="#AB12CD")
     assert "মোট ₹99.00" in page
+
+
+def test_email_footer_names_the_operator_from_markets() -> None:  # R15
+    r = m.render("order_delivered", "en", restaurant="Spice Route")
+    page = m.email_html(r, total="$39.73", code="#AB12CD", operator={"name": "Example Co", "address": "1 Main St"})
+    assert "BhojanGo is operated by Example Co, 1 Main St." in page
+    assert "operated by" not in m.email_html(r, total="$39.73", code="#AB12CD")  # none set: no line
+    assert m.operator_line("es", {"name": "Example Co"}) == "BhojanGo es operado por Example Co."

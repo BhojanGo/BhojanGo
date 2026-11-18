@@ -2824,6 +2824,15 @@
             "title": "Id",
             "type": "string"
           },
+          "legal_missing": {
+            "description": "Legal entity fields still empty (R15): each is required before the country launches.",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "title": "Legal Missing",
+            "type": "array"
+          },
           "locales": {
             "items": {
               "type": "string"
@@ -2904,7 +2913,8 @@
           "payout_provider",
           "settings",
           "status",
-          "payment_methods_supported"
+          "payment_methods_supported",
+          "legal_missing"
         ],
         "title": "CountryOut",
         "type": "object"
@@ -2927,6 +2937,15 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "legal_missing": {
+            "description": "Legal entity fields still empty (R15): each is required before the country launches.",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "title": "Legal Missing",
+            "type": "array"
           },
           "locales": {
             "items": {
@@ -3016,7 +3035,8 @@
           "settings",
           "status",
           "regions",
-          "payment_methods_supported"
+          "payment_methods_supported",
+          "legal_missing"
         ],
         "title": "CountrySummary",
         "type": "object"
@@ -3641,6 +3661,14 @@
             "description": "The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)",
             "title": "Hero Photo",
             "type": "string"
+          },
+          "legal": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Legal",
+            "type": "object"
           },
           "live": {
             "title": "Live",
@@ -12775,6 +12803,14 @@
             },
             "title": "Audit",
             "type": "array"
+          },
+          "people": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "People",
+            "type": "object"
           },
           "versions": {
             "items": {

@@ -26,6 +26,8 @@ interface Statement {
 interface Recon {
   currency: string; orders: { total: number; delivered: number; cancelled: number; open: number };
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
+  /** Orders whose payment fee is the expected rate, not what the provider reported (R15). */
+  payment_fees_estimated?: number;
 }
 
 interface Contribution {
@@ -116,6 +118,11 @@ function FinancePage() {
     <ConsoleShell section="Finance" country={country} region={region} city={city} scopeHref={(s) => `/finance?scope=${s.split("-")[0]}`}>
       <div>
         <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? target}` : ""}</h1>
+        {(() => {
+          // R15: whose money this is: the country's legal entity (Markets), never a name in code.
+          const legal = (markets?.find((c) => c.code === target)?.settings.legal ?? {}) as Record<string, string>;
+          return legal.name ? <p data-testid="finance-entity" className="mt-1 text-label text-kohl">{legal.name}{legal.gstin ? ` · GSTIN ${legal.gstin}` : ""}</p> : null;
+        })()}
         <p className="mt-1 text-small text-muted">Payouts run weekly per country, for a week that has ended: Monday to Sunday in the country&apos;s time zone{weeks.data ? ` (${weeks.data.timezone})` : ""}. The admin who prepares a run can&apos;t approve it.</p>
         {country === "ALL" && (markets?.length ?? 0) > 1 ? (
           <p className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">Money stays in each country&apos;s currency, so Finance shows one country at a time. Pick a country above to see another.</p>
@@ -195,13 +202,13 @@ function FinancePage() {
         <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
           <h2 className="m-0 mb-1 text-h3">Contribution per order · {weekLabel(start, end)}</h2>
           <p className="mb-3 text-small text-muted">What the platform keeps of an average delivered order, after payment fees, delivery partner pay (tips are the delivery partner&apos;s), the offers we fund and the refunds we pay.
-            {contribution.data.fees_estimated ? ` ${contribution.data.fees_estimated} older orders had no payment fee recorded; it's worked out from today's rule.` : ""}</p>
+            {contribution.data.fees_estimated ? ` Payment fees are estimated for ${contribution.data.fees_estimated} of these orders: the payment provider doesn't report its fee, so the expected rate in Business rules is used.` : ""}</p>
           <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted"><tr><th className="py-2">Per order</th>
               {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {c.orders} orders</th>)}</tr></thead>
             <tbody className="divide-y divide-line tabular-nums">
               {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
-                <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => {
+                <tr key={k}><td className="py-2">{label}{k === "payment_fees" && contribution.data!.fees_estimated ? <span data-testid="fees-estimated" className="ml-2 rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">estimated</span> : null}</td>{contribution.data!.cities.map((c) => {
                   const v = Number(c.per_order[k] ?? 0);
                   return <td key={c.city} className="text-right">{v ? `${sign < 0 ? "−" : ""}${money(v, contribution.data!.currency, 2)}` : money(0, contribution.data!.currency, 2)}</td>;
                 })}</tr>
@@ -219,6 +226,7 @@ function FinancePage() {
             {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
               ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
               ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"]] as const)
+              .map(([l0, k]) => [k === "payment_fees" && recon.data!.payment_fees_estimated ? `${l0} (estimated)` : l0, k] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
                 <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}
           </div>

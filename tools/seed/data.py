@@ -412,6 +412,9 @@ COUNTRIES = [
         "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
         "payout_provider": "razorpay_route",  # who pays kitchens and riders (Markets; fake when no keys: providers.py)
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
+                     # R15: who operates BhojanGo here (Srini's decision). The rest (address, support,
+                     # CIN, GSTIN, grievance officer) is filled in admin before launch: never invented.
+                     "legal": {"name": "DeepTrics Software Solutions Pvt Ltd"},
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali",
                      "emergency_number": "112",  # the rider app's SOS button
@@ -461,6 +464,7 @@ COUNTRIES = [
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
+                     "legal": {"name": "DeepTrics LLC"},  # R15 (Srini's decision); the rest is filled in admin
                      "emergency_number": "911",
                      "delivery_partner": {"min_age": 18, "vehicles": ["car", "motorcycle", "scooter"],
                                           "documents": ["drivers_license", "vehicle_insurance", "payout_account",
@@ -532,7 +536,7 @@ RULES = [
     ("business", "auto_refund_limit", None, "Automatic refunds for problem reports", "city", "IN-TG-HYD", {"max_per_order": 100}),
     # USA
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
-    ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 25, "B": 20, "C": 15}, "default_tier": "B"}),
+    ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 15, "B": 15, "C": 15}, "default_tier": "B"}),  # R15: 15% in the US
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",
      {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
@@ -561,9 +565,10 @@ RULES = [
     # Razorpay in India (2% on cards, wallets and net banking; UPI free). Editable in admin.
     ("business", "payment_fees", None, "Payment fees (Stripe)", "country", "US",
      {"methods": {"card": {"percent": 2.9, "fixed": 0.30}, "wallet": {"percent": 2.9, "fixed": 0.30}}, "tax_service_percent": 0.5}),
-    ("business", "payment_fees", None, "Payment fees (Razorpay)", "country", "IN",
+    # R15: the expected rate, used while the provider doesn't report its fees (Razorpay is faked): 2% on every method.
+    ("business", "payment_fees", None, "Expected payment fees (Razorpay)", "country", "IN",
      {"methods": {"card": {"percent": 2, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0},
-                  "net_banking": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}}, "tax_service_percent": 0}),
+                  "net_banking": {"percent": 2, "fixed": 0}, "upi": {"percent": 2, "fixed": 0}}, "tax_service_percent": 0}),
     # Task 43: live batching is a per-city switch, off; the engine runs in shadow everywhere.
     ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "IN-TG-HYD", {"live": False}),
     ("business", "batching", None, "Batching (one delivery partner, two orders)", "city", "US-ID-BOI", {"live": False}),

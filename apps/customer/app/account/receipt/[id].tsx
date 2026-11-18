@@ -3,7 +3,7 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, color, FairBill, inZone, num, SafeAreaView, space, type, useBag, useI18n } from "@bhojango/mobile-core";
+import { Button, color, FairBill, inZone, num, SafeAreaView, space, type, useBag, useCountry, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -17,6 +17,7 @@ import { ScreenBar, Section, Status, ui } from "../../../lib/account-ui";
 
 export default function Receipt() {
   const { t, money, date, time } = useI18n();
+  const { countries } = useCountry();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<{ order: Order; bill: Bill | null } | null | "error">(null);
   const [busy, setBusy] = useState<"pdf" | "again" | null>(null);
@@ -164,6 +165,11 @@ export default function Receipt() {
           {!cancelled && order.placed_at ? (
             <Text testID="receipt-time" style={ui.small}>{t("account.receipt.paid_with", { method: payLabel(t, order.payment_method), date: date(order.placed_at, tz), time: time(order.placed_at, tz) })}</Text>
           ) : null}
+          {(() => {
+            // R15: who operates BhojanGo in the order's country (Markets), never a name in code.
+            const operator = countries.find((c) => c.currency === order.currency)?.legal?.name;
+            return operator ? <Text testID="receipt-operator" style={ui.small}>{t("common.operated_by", { name: operator })}</Text> : null;
+          })()}
         </View>
 
         {addr.street || addr.label ? (

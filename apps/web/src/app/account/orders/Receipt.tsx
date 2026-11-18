@@ -14,7 +14,7 @@ import { FairBill } from "@/components/FairBill";
 import { RateOrder } from "@/components/order/RateOrder";
 import { authed, useBag } from "@/lib/client";
 import { photo } from "@/lib/format";
-import { useFormat, useT } from "@/lib/i18n";
+import { useCountry, useFormat, useT } from "@/lib/i18n";
 import type { BillLine } from "@/lib/server";
 
 interface Bill {
@@ -46,6 +46,7 @@ const ghost = `${btn} border-[1.5px] border-[#C9D3D4] text-[#111418] hover:bg-[#
 export function Receipt({ id }: { id: string }) {
   const t = useT();
   const f = useFormat();
+  const operator = useCountry()?.legal?.name;  // R15: who operates BhojanGo here (Markets)
   const router = useRouter();
   const [data, setData] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState<"pdf" | "again" | null>(null);
@@ -234,6 +235,7 @@ export function Receipt({ id }: { id: string }) {
           {!cancelled && order.placed_at && (
             <p data-testid="receipt-time" className="mt-[6px] text-small text-muted">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>
           )}
+          {operator ? <p data-testid="receipt-operator" className="mt-[6px] text-small text-muted">{t("common.operated_by", { name: operator })}</p> : null}
         </div>
 
         {(addr.street || addr.label) && (

@@ -33,7 +33,7 @@ from core_api.modules.markets.schemas import (
     ZonePause,
     ZoneUpdate,
 )
-from core_api.modules.markets.service import delivery, kitchen_docs, pay_methods, photos, rules
+from core_api.modules.markets.service import delivery, kitchen_docs, legal, pay_methods, photos, rules
 from core_api.modules.markets.service.rules import MarketRuleError, ZoneState
 from shared import authz
 from shared.providers.routing import haversine_km
@@ -158,6 +158,7 @@ class MarketService:
             raise Conflict(f"Country {data.code} already exists")
         photos.check_settings(data.settings)
         pay_methods.check_settings(data.settings, data.payment_providers)
+        legal.check_settings(data.settings, data.tax_regime)
         kitchen_docs.check_settings(data.settings)
         delivery.check_settings(data.settings)
         rules.check_country_payouts("draft", data.payout_provider, production=_production())
@@ -178,6 +179,8 @@ class MarketService:
         if "settings" in data.model_fields_set or "payment_providers" in patch:
             # R14: the methods must be ones the country's providers take (also after a provider change).
             pay_methods.check_settings(c.settings, patch.get("payment_providers", c.payment_providers))
+        if "settings" in data.model_fields_set or "tax_regime" in patch:
+            legal.check_settings(c.settings, patch.get("tax_regime", c.tax_regime))  # R15: the legal entity
         if "status" in patch or "payout_provider" in patch:
             rules.check_country_payouts(patch.get("status", c.status), patch.get("payout_provider", c.payout_provider),
                                         production=_production())

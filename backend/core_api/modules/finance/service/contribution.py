@@ -14,8 +14,10 @@ For each delivered order, from its pricing snapshot:
     their orders that week (payouts.week_statements, the run's own numbers)
   = platform keeps
 
-Orders priced before payment fees were recorded get them worked out from the rule in
-force now and the order's payment method; they're counted in ``fees_estimated``.
+Payment fees (R15): what the provider actually kept when it reports it (Stripe: the charge's
+fee, recorded when the payment succeeds); otherwise the expected rate, the country's
+``payment_fees`` rule (the order's own, or the rule in force now for orders priced before
+fees were recorded). Those orders are counted in ``fees_estimated``.
 """
 import uuid
 from collections import defaultdict
@@ -55,6 +57,14 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
                *([Order.id.in_([uuid.UUID(i) for i in order_ids])] if order_ids is not None else []))
     )).all()
     ids = [o.id for o, _ in rows]
+    from core_api.modules.payments.models.payment import PaymentIntent
+
+    actual_fee: dict[uuid.UUID, Decimal] = {}  # what the provider reported it kept (minor units -> major)
+    if ids:
+        for pi in (await db.execute(select(PaymentIntent).where(
+                PaymentIntent.order_id.in_(ids), PaymentIntent.status.in_(("succeeded", "partially_refunded", "refunded"))))).scalars():
+            if isinstance((pi.metadata_ or {}).get("provider_fee"), int):
+                actual_fee[pi.order_id] = actual_fee.get(pi.order_id, Decimal(0)) + Decimal(pi.metadata_["provider_fee"]) / 100
     refunded: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
     refund_lines: dict[uuid.UUID, list[dict]] = defaultdict(list)
     if ids:
@@ -83,8 +93,11 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         split, detail = snap.split, snap.split.get("detail", {})
         amt = lambda *codes: sum((S.D(ln["amount"]) for ln in snap.lines if ln["code"] in codes), Decimal(0))  # noqa: E731
         platform = S.D(split.get("platform"))
-        if "payment_fees" in split:
+        if o.id in actual_fee:
+            fees = actual_fee[o.id]
+        elif "payment_fees" in split:
             fees = S.D(split["payment_fees"])
+            estimated += 1
         else:  # priced before fees were recorded: the rule in force now, the order's method
             city = o.market_city or ""
             if city not in rules_now:
@@ -126,4 +139,4 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
     total = {k: sum((v[k] for v in by_city.values()), Decimal(0)) for k in FIELDS}
     n = sum(counts.values())
     return {"scope": scope, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
-            "cities": cities, "all": out(scope, n, total), "fees_estimated": estimated}
+            "cities": cities, "all": out(scope, n, total), "fees_estimated": estimated, "fees_actual": n - estimated}

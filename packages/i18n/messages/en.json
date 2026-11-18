@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "BhojanGo",
+    "operated_by": "BhojanGo is operated by {name}.",
     "tagline": "Real food. Fair prices.",
     "home": "BhojanGo home",
     "sign_in": "Sign in",

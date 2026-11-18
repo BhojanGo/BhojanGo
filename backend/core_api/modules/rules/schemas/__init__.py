@@ -103,6 +103,7 @@ class RuleHistory(BaseModel):
     versions: list[RuleOut]
     approvals: dict[str, list[ApprovalOut]]
     audit: list[AuditOut]
+    people: dict[str, str] = {}  # R15: user id -> name (or email) of whoever made or decided a version
 
 
 class ResolvedRule(BaseModel):

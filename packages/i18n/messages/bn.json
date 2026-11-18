@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "BhojanGo",
+    "operated_by": "BhojanGo পরিচালনা করে {name}।",
     "tagline": "আসল খাবার। ন্যায্য দাম।",
     "home": "BhojanGo হোম",
     "sign_in": "সাইন ইন",

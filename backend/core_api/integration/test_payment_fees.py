@@ -58,7 +58,10 @@ async def test_payment_fees_in_the_split_by_method(client: AsyncClient) -> None:
     assert Decimal(s_card["payment_fees"]) == (total * 2 / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)  # Razorpay cards: 2%
     assert Decimal(s_card["platform_keeps"]) == Decimal(s_card["platform"]) - Decimal(s_card["payment_fees"])
     assert s_card["detail"]["payment_fees"]["method"] == "card"
-    assert Decimal(s_upi["payment_fees"]) == 0 and s_upi["platform_keeps"] == s_upi["platform"]  # UPI: free
+    # R15: the expected Razorpay rate is 2% on every method (UPI too) until Razorpay reports real fees.
+    upi_total = Decimal(str(upi["total"]))
+    assert Decimal(s_upi["payment_fees"]) == (upi_total * 2 / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    assert s_upi["detail"]["payment_fees"]["method"] == "upi"
 
 
 async def test_contribution_adds_up(client: AsyncClient) -> None:

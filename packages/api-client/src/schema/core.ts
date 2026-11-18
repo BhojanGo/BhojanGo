@@ -5321,6 +5321,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Legal Missing
+             * @description Legal entity fields still empty (R15): each is required before the country launches.
+             */
+            readonly legal_missing: string[];
             /** Locales */
             locales: string[];
             /** Name */
@@ -5366,6 +5371,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Legal Missing
+             * @description Legal entity fields still empty (R15): each is required before the country launches.
+             */
+            readonly legal_missing: string[];
             /** Locales */
             locales: string[];
             /** Name */
@@ -5609,6 +5619,13 @@ export interface components {
              * @description The landing page's hero: a photo library slug, served at /food/<slug>-<width>.webp (Markets setting hero_photo, else a default)
              */
             hero_photo: string;
+            /**
+             * Legal
+             * @default {}
+             */
+            legal?: {
+                [key: string]: string;
+            };
             /** Live */
             live: number;
             /** Locales */
@@ -8954,6 +8971,13 @@ export interface components {
             };
             /** Audit */
             audit: components["schemas"]["AuditOut"][];
+            /**
+             * People
+             * @default {}
+             */
+            people?: {
+                [key: string]: string;
+            };
             /** Versions */
             versions: components["schemas"]["RuleOut"][];
         };
