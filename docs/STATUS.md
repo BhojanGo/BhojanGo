@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-17** (after round 13), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-18** (after round 14), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -57,6 +57,13 @@ The bar since round 8 is "a real product, not a demo": every page and screen is 
 - **Payouts:** Stripe Connect Express (Accounts v2). Weekly runs cover only a finished Monday-to-Sunday week, a second
   finance admin approves, and transfers go to each payee. A returned payment is paid again on the next payout day,
   and the apps say so with the amount and the date.
+- **Finance adds up (R14):** Reconciliation and the contribution report use the payout run's own statements, so
+  "Delivery partners are owed" is what the run pays. The minimum pay top-up counts as a platform cost: it has its own
+  line, and "Platform keeps" and platform revenue are lower by it. An invariant test checks every recent week in
+  every country to the cent (PLAYBOOK rule 68). The hourly finance job drafts last week's run on the payout day; on
+  QA "Approve and pay" is refused until every payee who is owed money has a ready payout account.
+- **Payment methods follow the provider (R14):** admin offers only what the country's payment provider takes
+  (Stripe: cards, Apple Pay, Google Pay; Razorpay: cards, UPI, wallets, net banking), and the API refuses the rest.
 - **CI:** `pr-checks.yml` runs the 9 real-Stripe tests on a throwaway Railway stack whenever payments code changes
   (PLAYBOOK rule 66). Express onboarding through Stripe's hosted pages stays a manual release check (a CAPTCHA).
 - **Secrets (R13):** `tools/secrets/mask.py` masks every password, token and key in command output and logs; a

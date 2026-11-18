@@ -12,6 +12,7 @@ and a run pays each payee's account with that provider.
 """
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -30,6 +31,7 @@ from core_api.modules.finance.service.providers import (
     country_payout_provider,
 )
 from shared import outbox
+from shared.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -172,6 +174,55 @@ async def next_payout_day(db: AsyncSession, country: str, now: datetime | None =
     return today + timedelta(days=(await payout_weekday(db, country) - today.weekday()) % 7)
 
 
+@dataclass
+class WeekStatements:
+    """A period's statements exactly as a payout run makes them (R14: the one source for the run,
+    reconciliation and the contribution report). Amounts in major units."""
+    orders: list[S.OrderForPayout]
+    restaurants: list[tuple[str, Decimal, dict, list[dict]]]       # (restaurant id, total, summary, lines)
+    riders: list[tuple[str, Decimal, dict, list[dict], list[str]]]  # (rider id, total, summary, lines, order ids)
+
+    @property
+    def restaurants_total(self) -> Decimal:
+        return S.m(sum((t for _, t, _, _ in self.restaurants), Decimal(0)))
+
+    @property
+    def riders_total(self) -> Decimal:
+        return S.m(sum((t for _, t, _, _, _ in self.riders), Decimal(0)))
+
+    @property
+    def top_ups(self) -> Decimal:
+        """Minimum pay top-ups: what the platform adds so active hours earn the city's minimum."""
+        return S.m(sum((S.D(s.get("floor_top_up")) for _, _, s, _, _ in self.riders), Decimal(0)))
+
+    def top_up_per_order(self) -> dict[str, Decimal]:
+        """Each delivery partner's top-up shared evenly across their orders (for per-order and per-city views)."""
+        out: dict[str, Decimal] = {}
+        for _, _, s, _, ids in self.riders:
+            if ids:
+                for oid in ids:
+                    out[oid] = S.D(s.get("floor_top_up")) / len(ids)
+        return out
+
+
+async def week_statements(db: AsyncSession, country: str, start: date, end: date) -> WeekStatements:
+    orders = await _orders_for_period(db, country, start, end)  # each city's own Monday to Monday
+    by_restaurant: dict[str, list[S.OrderForPayout]] = defaultdict(list)
+    by_rider: dict[str, list[S.OrderForPayout]] = defaultdict(list)
+    for o in orders:
+        by_restaurant[o.restaurant_id].append(o)
+        if o.rider_id:
+            by_rider[o.rider_id].append(o)
+    restaurants = [(rid, *S.restaurant_statement(items)) for rid, items in by_restaurant.items()]
+    riders = []
+    for rider_id, items in by_rider.items():
+        city = await _city_of(db, items[0].order_id)
+        floor = await _rule(db, city, "rider_pay:hourly_floor") if city else None
+        total, summary, lines = S.rider_statement(items, Decimal(str(floor["per_active_hour"])) if floor else None)
+        riders.append((rider_id, total, summary, lines, [i.order_id for i in items]))
+    return WeekStatements(orders, restaurants, riders)
+
+
 async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: date, end: date,
                      now: datetime | None = None) -> PayoutRun:
     if end <= start:
@@ -182,7 +233,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
         PayoutRun.country == country, PayoutRun.period_start < end, PayoutRun.period_end > start))).scalars().first()
     if overlapping:
         raise FinanceError(f"Payouts for {overlapping.period_start}–{overlapping.period_end} already cover part of this period")
-    orders = await _orders_for_period(db, country, start, end)  # each city's own Monday to Monday
+    week = await week_statements(db, country, start, end)
 
     run = PayoutRun(country=country, currency=c.currency, period_start=start, period_end=end, status="draft", created_by=actor)
     db.add(run)
@@ -191,30 +242,17 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
     from core_api.modules.catalog.models.restaurant import Restaurant
     from core_api.modules.identity.service.profile import user_profile
 
-    by_restaurant: dict[str, list[S.OrderForPayout]] = defaultdict(list)
-    by_rider: dict[str, list[S.OrderForPayout]] = defaultdict(list)
-    for o in orders:
-        by_restaurant[o.restaurant_id].append(o)
-        if o.rider_id:
-            by_rider[o.rider_id].append(o)
-
-    totals = {"restaurants": Decimal(0), "riders": Decimal(0)}
-    for rid, items in by_restaurant.items():
+    for rid, total, summary, lines in week.restaurants:
         r = await db.get(Restaurant, uuid.UUID(rid))
-        total, summary, lines = S.restaurant_statement(items)
         db.add(PayoutStatement(run_id=run.id, payee_type="restaurant", payee_id=uuid.UUID(rid), payee_name=r.name if r else "",
                                currency=c.currency, amount=_minor(total), summary=summary, lines=lines))
-        totals["restaurants"] += total
-    for rider_id, items in by_rider.items():
-        city = await _city_of(db, items[0].order_id)
-        floor = await _rule(db, city, "rider_pay:hourly_floor") if city else None
-        total, summary, lines = S.rider_statement(items, Decimal(str(floor["per_active_hour"])) if floor else None)
+    for rider_id, total, summary, lines, _ in week.riders:
         profile = await user_profile(db, uuid.UUID(rider_id)) or {}
         db.add(PayoutStatement(run_id=run.id, payee_type="rider", payee_id=uuid.UUID(rider_id), payee_name=profile.get("name", ""),
                                currency=c.currency, amount=_minor(total), summary=summary, lines=lines))
-        totals["riders"] += total
-    run.totals = {"orders": len(orders), "restaurants": str(S.m(totals["restaurants"])), "riders": str(S.m(totals["riders"])),
-                  "restaurant_statements": len(by_restaurant), "rider_statements": len(by_rider)}
+    run.totals = {"orders": len(week.orders), "restaurants": str(week.restaurants_total), "riders": str(week.riders_total),
+                  "min_pay_top_ups": str(week.top_ups),
+                  "restaurant_statements": len(week.restaurants), "rider_statements": len(week.riders)}
     await db.flush()
     await audit.record(db, actor_id=actor, action="payout_run.created", entity_type="payout_run", entity_id=run.id,
                        scope=country, after={"period": f"{start}..{end}", **run.totals})
@@ -251,11 +289,29 @@ async def approve_and_pay(db: AsyncSession, actor: uuid.UUID, run_id: uuid.UUID)
     if run.created_by == actor:
         raise FinanceError("A second finance admin must approve the payouts you prepared")
     provider = await _provider(db, run.country)
+    if get_settings().APP_ENV == "qa":
+        # R14: QA (demo data, real test-mode payouts) approves a run only when every payee who is
+        # owed money has a ready payout account; otherwise nothing is approved or sent.
+        waiting = await _payees_not_ready(db, run, provider)
+        if waiting:
+            raise FinanceError(f"On QA a run is approved only when every payee's payout account is ready: {waiting} "
+                               "aren't yet. Send them a set-up link from Statements first.")
     run.status, run.approved_by, run.approved_at = "approved", actor, datetime.now(UTC)
     await audit.record(db, actor_id=actor, action="payout_run.approved", entity_type="payout_run", entity_id=run.id,
                        scope=run.country, after=run.totals)
     await pay_pending(db, run, provider)
     return run
+
+
+async def _payees_not_ready(db: AsyncSession, run: PayoutRun, provider: PayoutProvider) -> int:
+    """How many of the run's payees with money owed have no active payout account with the provider."""
+    owed = (await db.execute(select(PayoutStatement).where(PayoutStatement.run_id == run.id, PayoutStatement.amount > 0))).scalars().all()
+    if not owed:
+        return 0
+    ready = {(a.payee_type, a.payee_id) for a in (await db.execute(select(PayoutAccount).where(
+        PayoutAccount.country == run.country, PayoutAccount.provider == provider.name, PayoutAccount.status == "active",
+        PayoutAccount.payee_id.in_([s.payee_id for s in owed])))).scalars()}
+    return sum(1 for s in owed if (s.payee_type, s.payee_id) not in ready)
 
 
 async def pay_pending(db: AsyncSession, run: PayoutRun, provider: PayoutProvider,
@@ -410,7 +466,14 @@ async def open_account(db: AsyncSession, payee_type: str, payee_id: uuid.UUID, c
 
 async def reconciliation(db: AsyncSession, country: str, start: date, end: date) -> dict:
     """Money in vs money owed for a period: orders, captured payments, refunds,
-    tax, payouts, platform revenue; and anything that doesn't line up."""
+    tax, payouts, platform revenue; and anything that doesn't line up.
+
+    R14: the money is the payout run's: the orders delivered in the period (each city's
+    Monday to Monday) and the statements a run makes for them (week_statements). So
+    "kitchens / delivery partners are owed" is what the run pays, minimum pay top-ups
+    included, and platform revenue is what is left after them:
+        captured = refunded + kitchens owed + delivery partners owed + tax + platform revenue.
+    Order counts and issues stay per order placed in the period."""
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import PaymentIntent, Refund
     from core_api.modules.pricing.models import OrderPricingSnapshot
@@ -450,23 +513,38 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
             issues.append({"order_id": str(o.id), "issue": "snapshot_total_mismatch"})
     pending_refunds = sum(1 for r in refunds if r.status not in ("succeeded", "processed"))
 
-    def split_sum(key: str) -> Decimal:
-        return S.m(sum((Decimal(str(snaps[o.id].split.get(key, 0))) for o in delivered if o.id in snaps), Decimal(0)))
+    # The money: the run's orders and statements (R14).
+    week = await week_statements(db, country, start, end)
+    week_ids = [uuid.UUID(o.order_id) for o in week.orders]
+    week_snaps = {s.order_id: s for s in (await db.execute(select(OrderPricingSnapshot).where(
+        OrderPricingSnapshot.order_id.in_(week_ids)))).scalars()} if week_ids else {}
+    week_intents = (await db.execute(select(PaymentIntent).where(
+        PaymentIntent.order_id.in_(week_ids), PaymentIntent.status.in_(("succeeded", "partially_refunded", "refunded"))))
+    ).scalars().all() if week_ids else []
+    week_refunds = (await db.execute(select(Refund).where(Refund.order_id.in_(week_ids)))).scalars().all() if week_ids else []
 
-    captured_total = sum(by_order.values())
-    refunded_total = sum(refunded_by_order.values())
+    def split_sum(key: str) -> Decimal:
+        return S.m(sum((S.D(s.split.get(key, 0)) for s in week_snaps.values()), Decimal(0)))
+
+    captured_total = sum(i.amount for i in week_intents)
+    refunded_total = sum(r.amount for r in week_refunds if r.status not in ("failed", "rejected"))
+    kitchens, riders, top_ups, tax = week.restaurants_total, week.riders_total, week.top_ups, split_sum("tax")
+    platform = Decimal(captured_total - refunded_total) / 100 - kitchens - riders - tax
     return {
         "country": country, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
         "orders": {"total": len(orders), "delivered": len(delivered), "cancelled": sum(1 for o in orders if o.status == "cancelled"),
                    "open": sum(1 for o in orders if o.status not in ("delivered", "cancelled"))},
         "money": {"captured": captured_total, "refunded": refunded_total, "net_collected": captured_total - refunded_total,
-                  "delivered_gmv": S._minor_str(sum((Decimal(o.total) for o in delivered), Decimal(0))),
-                  "tax_owed": S._minor_str(split_sum("tax")), "restaurant_payable": S._minor_str(split_sum("restaurant")),
-                  "rider_payable": S._minor_str(split_sum("rider")), "platform_revenue": S._minor_str(split_sum("platform")),
-                  # Item 1: what the payment providers keep, and the platform after them (orders priced
-                  # before fees were recorded count as 0 here; the contribution report estimates them).
+                  "delivered_gmv": S._minor_str(sum((S.D(s.total) for s in week_snaps.values()), Decimal(0))),
+                  "tax_owed": S._minor_str(tax), "restaurant_payable": S._minor_str(kitchens),
+                  # What the payout run pays delivery partners: trip pay, tips and the minimum pay top-ups.
+                  "rider_payable": S._minor_str(riders), "min_pay_top_ups": S._minor_str(top_ups),
+                  # What is left after kitchens, delivery partners (top-ups included), tax and refunds.
+                  "platform_revenue": S._minor_str(platform),
+                  # What the payment providers keep, and the platform after them (orders priced before
+                  # fees were recorded count as 0 here; the contribution report estimates them).
                   "payment_fees": S._minor_str(split_sum("payment_fees")),
-                  "platform_after_payment_fees": S._minor_str(split_sum("platform") - split_sum("payment_fees"))},
+                  "platform_after_payment_fees": S._minor_str(platform - split_sum("payment_fees"))},
         "by_provider": by_provider, "refunds_not_settled": pending_refunds,
         "issues": issues,
     }

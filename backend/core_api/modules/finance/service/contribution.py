@@ -9,11 +9,13 @@ For each delivered order, from its pricing snapshot:
   - payment fees (what Stripe / Razorpay keep: the ``payment_fees`` rule at order time)
   - refunds the platform pays (everything refunded on the order, less what the kitchen
     is charged for its own mistakes: the same rule as payout statements)
+  - minimum pay top-ups (R14): what the week's payout run adds so a delivery partner's
+    active hours earn the city's minimum; each partner's top-up is shared evenly across
+    their orders that week (payouts.week_statements, the run's own numbers)
   = platform keeps
 
 Orders priced before payment fees were recorded get them worked out from the rule in
 force now and the order's payment method; they're counted in ``fees_estimated``.
-The hourly-floor top-up is paid per week, not per order, so it isn't in here.
 """
 import uuid
 from collections import defaultdict
@@ -26,12 +28,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.finance.service import statements as S
 
 FEE_CODES = ("delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee")
-FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "payment_fees", "refunds", "keeps")
+FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "payment_fees", "refunds",
+          "min_pay_top_ups", "keeps")
 
 
 async def contribution(db: AsyncSession, scope: str, start: date, end: date, order_ids: list[str] | None = None) -> dict:
     """``order_ids``: only these orders (the soak reports exactly the orders it placed)."""
-    from core_api.modules.finance.service.payouts import _country, _in_period
+    from core_api.modules.finance.service.payouts import (
+        _country,
+        _in_period,
+        week_statements,
+    )
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import Refund
     from core_api.modules.pricing.models import OrderPricingSnapshot
@@ -58,6 +65,7 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
             if r.kind == "items":
                 refund_lines[r.order_id] += [{**ln, "reason": r.reason, "fault": r.fault or "restaurant"}
                                              for ln in r.lines if ln.get("menu_item_id")]
+    top_up_of = (await week_statements(db, country, start, end)).top_up_per_order()
     rules_now: dict[str, dict | None] = {}
     # Item 2: a later drop-off of a batch pays no base but the batch bonus; the split was
     # priced before the batch, so the base comes from the order's own rider pay rule.
@@ -105,7 +113,9 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         b["platform"] += platform
         b["payment_fees"] += fees
         b["refunds"] += platform_refunds
-        b["keeps"] += platform - fees - platform_refunds
+        top_up = top_up_of.get(str(o.id), Decimal(0))
+        b["min_pay_top_ups"] += top_up
+        b["keeps"] += platform - fees - platform_refunds - top_up
         counts[o.market_city or "?"] += 1
 
     def out(code: str, n: int, v: dict[str, Decimal]) -> dict:

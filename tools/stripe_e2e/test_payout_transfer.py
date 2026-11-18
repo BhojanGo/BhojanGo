@@ -198,6 +198,10 @@ def case_connect_payout_transfer(h: H) -> None:
         # Last week's run (Boise's Monday to Sunday), prepared by one admin and approved by
         # a second (the run refuses one person doing both). This week can't be prepared yet.
         maker, checker = h.api(MAKER), h.api(FINANCE)
+        # The stack's hourly finance job drafts last week's run itself once the payout day has passed
+        # (R14); this throwaway database's draft is cleared so the test prepares (and approves) its own.
+        h.sql(f"DELETE FROM payout_statements WHERE run_id IN (SELECT id FROM payout_runs WHERE period_start = '{monday}')")
+        h.sql(f"DELETE FROM payout_runs WHERE period_start = '{monday}'")
         maker.call("POST", "/finance/payout-runs", 409, json={
             "country": "US", "period_start": str(monday + timedelta(days=7)), "period_end": str(monday + timedelta(days=14))})
         run = maker.call("POST", "/finance/payout-runs", 201, json={

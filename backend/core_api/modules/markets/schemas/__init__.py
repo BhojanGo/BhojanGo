@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 Status = Literal["draft", "soon", "beta", "live", "paused"]
 # Who pays restaurants and riders in a country. "fake" moves no money (never in
@@ -69,6 +69,14 @@ class CountryOut(BaseModel):
     payout_provider: PayoutProviderName
     settings: dict[str, Any]
     status: Status
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def payment_methods_supported(self) -> list[str]:
+        """What the country's payment providers take (R14): admin offers only these."""
+        from core_api.modules.markets.service.pay_methods import supported
+
+        return supported(self.payment_providers)
 
 
 # ── Regions (states) ──────────────────────────────────────────────────────────

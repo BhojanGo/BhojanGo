@@ -2835,6 +2835,15 @@
             "title": "Name",
             "type": "string"
           },
+          "payment_methods_supported": {
+            "description": "What the country's payment providers take (R14): admin offers only these.",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "title": "Payment Methods Supported",
+            "type": "array"
+          },
           "payment_providers": {
             "items": {
               "type": "string"
@@ -2894,7 +2903,8 @@
           "tax_regime",
           "payout_provider",
           "settings",
-          "status"
+          "status",
+          "payment_methods_supported"
         ],
         "title": "CountryOut",
         "type": "object"
@@ -2928,6 +2938,15 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "payment_methods_supported": {
+            "description": "What the country's payment providers take (R14): admin offers only these.",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "title": "Payment Methods Supported",
+            "type": "array"
           },
           "payment_providers": {
             "items": {
@@ -2996,7 +3015,8 @@
           "payout_provider",
           "settings",
           "status",
-          "regions"
+          "regions",
+          "payment_methods_supported"
         ],
         "title": "CountrySummary",
         "type": "object"

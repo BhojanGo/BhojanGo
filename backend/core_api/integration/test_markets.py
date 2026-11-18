@@ -252,6 +252,22 @@ async def test_sign_up_and_kitchens_follow_the_countries_table(client: AsyncClie
     assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text
 
 
+async def test_payment_methods_follow_the_payment_provider(client: AsyncClient) -> None:
+    """R14: a country offers only what its payment providers take (Markets), and says so."""
+    us_cm = await auth(client, "cm.us@example.com")
+    us = next(c for c in (await client.get("/api/v1/markets", headers=us_cm)).json() if c["code"] == "US")
+    assert us["payment_providers"] == ["stripe"] and us["payment_methods_supported"] == ["card", "apple_pay", "google_pay"]
+    r = await client.patch("/api/v1/markets/countries/US", headers=us_cm, json={"settings": {"payment_methods": ["card", "upi"]}})
+    assert r.status_code == 409 and "UPI isn't offered by Stripe" in r.text, r.text
+    r = await client.patch("/api/v1/markets/countries/US", headers=us_cm, json={"settings": {"payment_methods": ["card", "apple_pay", "google_pay"]}})
+    assert r.status_code == 200, r.text
+    in_cm = await auth(client, "cm.in@example.com")
+    india = (await client.patch("/api/v1/markets/countries/IN", headers=in_cm, json={"settings": {}})).json()
+    assert india["payment_methods_supported"] == ["card", "upi", "wallet", "net_banking"]
+    r = await client.patch("/api/v1/markets/countries/IN", headers=in_cm, json={"settings": {"payment_methods": ["upi", "apple_pay", "card"]}})
+    assert r.status_code == 409 and "Apple Pay isn't offered by Razorpay" in r.text, r.text
+
+
 async def test_hero_photo_is_a_country_setting(client: AsyncClient) -> None:
     """The website's landing hero per country (Markets -> country -> Hero dish): a photo
     library slug, validated, country-level only, on the public directory."""

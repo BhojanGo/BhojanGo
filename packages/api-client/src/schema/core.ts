@@ -5325,6 +5325,11 @@ export interface components {
             locales: string[];
             /** Name */
             name: string;
+            /**
+             * Payment Methods Supported
+             * @description What the country's payment providers take (R14): admin offers only these.
+             */
+            readonly payment_methods_supported: string[];
             /** Payment Providers */
             payment_providers: string[];
             /**
@@ -5365,6 +5370,11 @@ export interface components {
             locales: string[];
             /** Name */
             name: string;
+            /**
+             * Payment Methods Supported
+             * @description What the country's payment providers take (R14): admin offers only these.
+             */
+            readonly payment_methods_supported: string[];
             /** Payment Providers */
             payment_providers: string[];
             /**

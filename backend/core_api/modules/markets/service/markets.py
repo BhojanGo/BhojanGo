@@ -157,7 +157,7 @@ class MarketService:
         if await self.repo.country(data.code):
             raise Conflict(f"Country {data.code} already exists")
         photos.check_settings(data.settings)
-        pay_methods.check_settings(data.settings)
+        pay_methods.check_settings(data.settings, data.payment_providers)
         kitchen_docs.check_settings(data.settings)
         delivery.check_settings(data.settings)
         rules.check_country_payouts("draft", data.payout_provider, production=_production())
@@ -172,10 +172,12 @@ class MarketService:
         if "settings" in patch:
             s = patch.pop("settings") or {}
             photos.check_settings(s)
-            pay_methods.check_settings(s)
             kitchen_docs.check_settings(s)
             delivery.check_settings(s)
             c.settings = rules.merge_settings(c.settings, s)
+        if "settings" in data.model_fields_set or "payment_providers" in patch:
+            # R14: the methods must be ones the country's providers take (also after a provider change).
+            pay_methods.check_settings(c.settings, patch.get("payment_providers", c.payment_providers))
         if "status" in patch or "payout_provider" in patch:
             rules.check_country_payouts(patch.get("status", c.status), patch.get("payout_provider", c.payout_provider),
                                         production=_production())
