@@ -61,7 +61,7 @@ export const useKitchen = create<KitchenStore>()((set) => ({
 export function useFormat() {
   const { money, time, date } = useI18n();
   return useMemo(() => ({
-    /** cash(250, order.currency): always with cents, $250.00 (R12). No currency: the country's. */
+    /** cash(250, order.currency): always two decimals, 250.00 (R12). No currency: the country's. */
     cash: (v: string | number | null | undefined, currency?: string | null) => money(Number(v ?? 0), currency),
     /** "7:05 pm" in the country's clock, in a time zone: the order's (order.time_zone) or the kitchen's city (today.time_zone), never the tablet's. */
     clock: (iso: string | null | undefined, zone?: string | null) => (iso ? time(iso, inZone(zone)) : ""),

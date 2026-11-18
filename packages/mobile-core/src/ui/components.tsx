@@ -172,7 +172,7 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
   const free = delivery && lines.find((ln) => ln.code === "promotion" && Number(delivery.amount) > 0 &&
     Math.abs(Number(ln.amount) + Number(delivery.amount)) < 0.005);
   const rows: FairRow[] = [];
-  for (const ln of shownLines(lines)) { // a line of 0 (a $0.00 tax) is not shown (R12)
+  for (const ln of shownLines(lines)) { // a line of 0 (a tax of 0.00) is not shown (R12)
     if (ln === free) continue;
     const amount = Number(ln.amount);
     if (ln === delivery && free) {

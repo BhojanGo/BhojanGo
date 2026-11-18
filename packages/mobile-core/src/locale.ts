@@ -106,7 +106,7 @@ export function deviceLocale(): string | null {
 /**
  * An amount in a currency, grouped and placed the way the locale writes it (Indian
  * lakh grouping, symbol before or after, ...); a minus sign for a discount. Always two
- * decimals ($29.00, ₹300.00: one money format everywhere, R12). The symbol and
+ * decimals (29.00, 300.00: one money format everywhere, R12). The symbol and
  * grouping come from Intl for the currency code (Markets data), not from a table.
  */
 export function formatMoney(amount: number | string | null | undefined, currency: string, locale?: string): string {

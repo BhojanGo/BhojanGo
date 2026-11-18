@@ -176,7 +176,7 @@ export interface I18n {
   setLanguage: (language: Language) => Promise<void>;
   /** The country's first Markets locale; undefined (the phone's) until a country is known. */
   formatLocale: string | undefined;
-  /** money(250, order.currency) in the country's format, always with cents ($29.00). No currency: the country's (Markets). */
+  /** money(250, order.currency) in the country's format, always two decimals (29.00). No currency: the country's (Markets). */
   money: (amount: number | string | null | undefined, currency?: string | null) => string;
   /** number(1234.5) -> "1,234.5" (country grouping), `digits` decimals at most (1). */
   number: (n: number, digits?: number) => string;
