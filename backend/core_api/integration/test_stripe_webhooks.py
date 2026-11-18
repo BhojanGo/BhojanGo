@@ -92,12 +92,12 @@ async def test_webhooks_drive_the_order_and_refunds(client: AsyncClient, stripe_
     pi1 = c["payment_intent_client_secret"].split("_secret_")[0]
     assert stripe_mock["pi"][0]["idempotency_key"] == f"{order['id']}:attempt-1"
     assert stripe_mock["pi"][0]["automatic_payment_methods"] == {"enabled": True}
-    # R13: the US setting (card, Apple Pay, Google Pay) becomes a configuration with those on and Link off.
+    # R13: the country's setting picks the configuration. This order is in Hyderabad (India lists
+    # upi, card, wallet: UPI and wallets are Razorpay's), so Stripe gets cards only, Link off.
     assert stripe_mock["pi"][0]["payment_method_configuration"] == "pmc_ci_cards"
     made = stripe_mock["pmc"][0]
-    assert made["name"] == "BhojanGo apple_pay+card+google_pay"
-    assert {k for k, v in made.items() if isinstance(v, dict) and v["display_preference"]["preference"] == "on"} == {
-        "card", "apple_pay", "google_pay"}
+    assert made["name"] == "BhojanGo card"
+    assert {k for k, v in made.items() if isinstance(v, dict) and v["display_preference"]["preference"] == "on"} == {"card"}
     assert made["link"]["display_preference"]["preference"] == "off" and made["klarna"]["display_preference"]["preference"] == "off"
 
     # A forged webhook is refused; a declined attempt keeps the order payable.
