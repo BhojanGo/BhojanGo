@@ -37,10 +37,21 @@ def stripe_mock(monkeypatch):  # type: ignore[no-untyped-def]
     import stripe
 
     from core_api.modules.payments.api.v1 import payments as api
-    from core_api.modules.payments.service import gateways
+    from core_api.modules.payments.service import gateways, stripe_methods
     from shared.config import get_settings
 
-    calls: dict[str, list] = {"pi": [], "refund": []}
+    calls: dict[str, list] = {"pi": [], "refund": [], "pmc": []}
+
+    def pmc_create(**kw):  # type: ignore[no-untyped-def]
+        calls["pmc"].append(kw)
+        return type("PMC", (), {"to_dict": lambda self: {"id": "pmc_ci_cards", **kw}})()
+
+    template = {"id": "pmc_default", "is_default": True, "active": True, "application": None,
+                **{m: {"display_preference": {"value": "on"}} for m in ("card", "apple_pay", "google_pay", "link", "klarna")}}
+    monkeypatch.setattr(stripe.PaymentMethodConfiguration, "list",
+                        lambda **kw: type("L", (), {"to_dict": lambda self: {"data": [template]}})())
+    monkeypatch.setattr(stripe.PaymentMethodConfiguration, "create", pmc_create)
+    monkeypatch.setattr(stripe_methods, "_ids", {})
 
     def pi_create(**kw):  # type: ignore[no-untyped-def]
         calls["pi"].append(kw)
@@ -81,6 +92,13 @@ async def test_webhooks_drive_the_order_and_refunds(client: AsyncClient, stripe_
     pi1 = c["payment_intent_client_secret"].split("_secret_")[0]
     assert stripe_mock["pi"][0]["idempotency_key"] == f"{order['id']}:attempt-1"
     assert stripe_mock["pi"][0]["automatic_payment_methods"] == {"enabled": True}
+    # R13: the US setting (card, Apple Pay, Google Pay) becomes a configuration with those on and Link off.
+    assert stripe_mock["pi"][0]["payment_method_configuration"] == "pmc_ci_cards"
+    made = stripe_mock["pmc"][0]
+    assert made["name"] == "BhojanGo apple_pay+card+google_pay"
+    assert {k for k, v in made.items() if isinstance(v, dict) and v["display_preference"]["preference"] == "on"} == {
+        "card", "apple_pay", "google_pay"}
+    assert made["link"]["display_preference"]["preference"] == "off" and made["klarna"]["display_preference"]["preference"] == "off"
 
     # A forged webhook is refused; a declined attempt keeps the order payable.
     assert (await hook(client, {"id": "evt_x", "type": "payment_intent.succeeded", "data": {"object": {"id": pi1}}},

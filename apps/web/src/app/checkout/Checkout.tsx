@@ -520,7 +520,11 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+/**
+ * A checkout dialog (R13): never taller than the screen (down to 1280x720 and 360x640). The
+ * header with the close button and the footer (the Pay button) stay put; only the middle scrolls.
+ */
+function Modal({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
   const t = useT();
   const id = useId();
   useEffect(() => {
@@ -530,12 +534,14 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(17,20,24,0.5)] md:items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby={id} onClick={(e) => e.stopPropagation()} className="w-full rounded-t-[28px] bg-white p-6 md:w-[480px] md:rounded-[28px]">
-        <div className="mb-3 flex items-center">
+      <div role="dialog" aria-modal="true" aria-labelledby={id} onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[calc(100dvh-12px)] w-full flex-col rounded-t-[28px] bg-white md:max-h-[calc(100dvh-48px)] md:w-[480px] md:rounded-[28px]">
+        <div className="flex shrink-0 items-center gap-3 px-6 pb-3 pt-5">
           <h2 id={id} className="m-0 flex-grow text-h2">{title}</h2>
-          <button type="button" aria-label={t("common.close")} onClick={onClose}><Close color="#3D4A4E" /></button>
+          <button type="button" aria-label={t("common.close")} onClick={onClose} className="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full"><Close color="#3D4A4E" /></button>
         </div>
-        {children}
+        <div data-testid="dialog-body" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-4">{children}</div>
+        {footer ? <div className="shrink-0 border-t border-[#E2E7E8] px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">{footer}</div> : null}
       </div>
     </div>
   );
@@ -601,7 +607,17 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
     }
   }
   return (
-    <Modal title={t("checkout.stripe_title")} onClose={busy ? () => undefined : onClose}>
+    <Modal title={t("checkout.stripe_title")} onClose={busy ? () => undefined : onClose} footer={
+      <>
+        {error && <p role="alert" className="m-0 mb-3 text-label text-[#8C1D18]">{error}</p>}
+        <button type="button" disabled={!ready || busy || !complete} onClick={() => void confirm()} className="h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
+          {busy ? t("checkout.paying") : t("checkout.pay_amount", { amount })}
+        </button>
+        <p className="mb-0 mt-2 flex items-start justify-center gap-1.5 text-center text-small text-muted">
+          <Lock /> {t("checkout.stripe_note")}
+        </p>
+      </>
+    }>
       {isStripeTestKey(checkout) && (
         <p data-testid="stripe-test-hint" className="mb-4 rounded-xl bg-[#FFF4D6] px-3 py-2 text-small text-[#5C4400]">{t("checkout.stripe_test_hint")}</p>
       )}
@@ -616,13 +632,6 @@ function StripePay({ checkout, returnUrl, amount, onClose, onPaid }: { checkout:
       ) : (
         <div ref={box} data-testid="stripe-payment-element" className={ready ? "min-h-[120px]" : "h-0 overflow-hidden"} />
       )}
-      {error && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{error}</p>}
-      <button type="button" disabled={!ready || busy || !complete} onClick={() => void confirm()} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] text-label tabular-nums text-white disabled:bg-[#8FB3B7]">
-        {busy ? t("checkout.paying") : t("checkout.pay_amount", { amount })}
-      </button>
-      <p className="mb-0 mt-3 flex items-start justify-center gap-1.5 text-center text-small text-muted">
-        <Lock /> {t("checkout.stripe_note")}
-      </p>
     </Modal>
   );
 }

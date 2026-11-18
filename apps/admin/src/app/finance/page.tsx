@@ -4,7 +4,7 @@
 // reconciliation (money in vs owed). Each country in its own currency.
 // R12: a run covers a week that has ended (Monday to Sunday in the country's time
 // zone; the API lists them), and contribution and reconciliation show the week of
-// the selected run. An empty figure is "—" with the reason.
+// the selected run. An empty figure is $0.00 (R13).
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
@@ -45,12 +45,6 @@ const STATEMENT_STATUS: Record<string, string> = {
 };
 const STATUS_STYLE: Record<string, string> = { paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink" };
 
-// Why a row of the contribution table, or a reconciliation figure, is empty.
-const CONTRIBUTION_EMPTY: Record<string, string> = {
-  commission: "no delivered orders", customer_fees: "no customer fees charged", platform_promos: "no offers we fund were used",
-  rider_pay: "no deliveries", payment_fees: "no payment fee recorded", refunds: "no refunds we pay",
-};
-
 interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[] }
 
 /** "Mon 9 Nov – Sun 15 Nov" for a run's period (end is the next Monday, not included). */
@@ -65,12 +59,6 @@ function weekLabel(start: string, end: string): string {
 
 function addDays(iso: string, n: number): string {
   return new Date(Date.parse(`${iso}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
-}
-
-/** A figure, or "—" and why it's empty (R12). */
-function Figure({ value, currency, empty }: { value: number; currency: string; empty: string }) {
-  if (value) return <>{money(value, currency, 2)}</>;
-  return <span title={empty}>— <span className="block text-small font-normal text-muted">{empty}</span></span>;
 }
 
 function FinancePage() {
@@ -214,25 +202,24 @@ function FinancePage() {
               {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
                 <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => {
                   const v = Number(c.per_order[k] ?? 0);
-                  return <td key={c.city} className="text-right">{v ? `${sign < 0 ? "−" : ""}${money(v, contribution.data!.currency, 2)}` : <Figure value={0} currency={contribution.data!.currency} empty={CONTRIBUTION_EMPTY[k]} />}</td>;
+                  return <td key={c.city} className="text-right">{v ? `${sign < 0 ? "−" : ""}${money(v, contribution.data!.currency, 2)}` : money(0, contribution.data!.currency, 2)}</td>;
                 })}</tr>
               ))}
-              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right"><Figure value={Number(c.per_order.keeps ?? 0)} currency={contribution.data!.currency} empty="no delivered orders" /></td>)}</tr>
+              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.keeps ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
             </tbody>
           </table></div>
-          {contribution.data.cities.length === 0 ? <p className="text-small text-muted">— No delivered orders in this week, so there is nothing to average.</p> : null}
+          {contribution.data.cities.length === 0 ? <p className="text-small text-muted">No delivered orders in this week, so there is nothing to average.</p> : null}
         </section>
       ) : null}
       {recon.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
           <h2 className="m-0 mb-3 text-h3">Reconciliation · {weekLabel(start, end)}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            {([["Captured", "captured", "no card or UPI payments captured"], ["Refunded", "refunded", "no refunds"],
-              ["Kitchens are owed", "restaurant_payable", "nothing delivered"], ["Delivery partners are owed", "rider_payable", "nothing delivered"],
-              ["Tax owed", "tax_owed", "no tax charged"], ["Platform revenue", "platform_revenue", "no fees or commission"], ["Payment fees", "payment_fees", "no payment fee recorded"],
-              ["Platform after payment fees", "platform_after_payment_fees", "no fees or commission"], ["Delivered GMV", "delivered_gmv", "nothing delivered"], ["Net collected", "net_collected", "no payments captured"]] as const)
-              .map(([l, k, why]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
-                <div className="text-h3 tabular-nums"><Figure value={Number(recon.data!.money[k] ?? 0) / 100} currency={recon.data!.currency} empty={why} /></div></div>)}
+            {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"],
+              ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
+              ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"]] as const)
+              .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
+                <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}
           </div>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{recon.data.issues.length} issues to look at</b> : <span className="text-peacock">everything lines up</span>}</p>

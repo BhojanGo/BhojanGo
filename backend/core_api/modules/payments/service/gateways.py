@@ -21,7 +21,7 @@ from typing import Protocol
 import httpx
 import structlog
 
-from core_api.modules.payments.service import razorpay_svc, stripe_svc
+from core_api.modules.payments.service import razorpay_svc, stripe_methods, stripe_svc
 from shared.config import get_settings
 from shared.providers import ProviderConfigError
 
@@ -83,15 +83,18 @@ class StripeGateway:
                         "metadata": {"order_id": order_id, "attempt": idempotency_key},
                         "description": f"BhojanGo order {order_id}",
                         "idempotency_key": idempotency_key,
-                        # Which methods show is the account's payment method configuration (Stripe no
-                        # longer takes payment_method_types): cards (incl. Apple Pay / Google Pay) and Link
-                        # only; bank debits, Klarna and Cash App Pay are off there (docs/11 Integration guide).
-                        "automatic_payment_methods": {"enabled": True}}
+                        # Which methods show comes from the country's payment_methods setting (Markets),
+                        # through a payment method configuration with exactly those on (Stripe no longer
+                        # takes payment_method_types; R13: cards, Apple Pay, Google Pay; no Link).
+                        "automatic_payment_methods": {"enabled": True},
+                        "payment_method_configuration": await stripe_methods.configuration_id(
+                            stripe_methods.stripe_methods(customer.get("methods")))}
         if customer.get("provider_customer_id"):
             kwargs["customer"] = customer["provider_customer_id"]
         if payment_method_id:  # server-side confirm (saved card)
             kwargs.update(payment_method=payment_method_id, confirm=True)
             kwargs.pop("automatic_payment_methods")
+            kwargs.pop("payment_method_configuration")
         pi = await asyncio.to_thread(s.PaymentIntent.create, **kwargs)
         checkout = {"sdk": "stripe_payment_sheet", "payment_intent_client_secret": pi.client_secret,
                     "publishable_key": get_settings().payments.STRIPE_PUBLISHABLE_KEY,

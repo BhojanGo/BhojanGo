@@ -77,7 +77,7 @@ export function DeliveryPartners({ country }: { country: CountrySummary }) {
       </div>
       <p className="mt-1 text-small text-muted">
         What the website&apos;s Deliver with BhojanGo page lists for {country.name}. Each document is a step the BhojanGo Delivery app
-        asks for. Pay on that page comes from the pricing rules (delivery partner pay, hourly floor, batch bonus).
+        asks for. Pay on that page comes from the pricing rules (delivery partner pay, minimum hourly pay, batch bonus).
       </p>
       <fieldset disabled={!editable || busy} className="mt-4 grid gap-5 border-0 p-0 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
         <label className="text-small text-muted">

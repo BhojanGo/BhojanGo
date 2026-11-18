@@ -48,7 +48,7 @@ Who: V visitor, C customer, K kitchen partner, D delivery partner, A admin.
 | Change city | `/cities?choose=1` | V C | **Pass** (reviewed, #124 shots) | Visitor's country first, search, "Other countries" | Fail |
 | City | `/[country]/[city]` | V C | **Pass** (reviewed R9) | Hyderabad and Boise at 390 / 1366; the "no kitchens match" search state reads right | Review pending |
 | Kitchen | `/[country]/[city]/[kitchen]` | V C | **Pass** (reviewed) | Bottom bag bar under 1024; cover photo still large at 1366 @125 % (acceptable, noted) | Fail |
-| Checkout | `/checkout` | C | **Pass** (empty state reviewed; full checkout covered by e2e, B's shots) | Summary under the form below 1024 | Fail |
+| Checkout | `/checkout` | C | **Pass** (empty state reviewed; full checkout covered by e2e, B's shots) | Summary under the form below 1024 R13: the payment dialog fits 1280 × 720 and 390 × 844 (title and close stay, the inside scrolls, Pay stays reachable) [3.6]; cards only, no Link [8.5]. | Fail |
 | Orders and receipt | `/account/orders` | C | **Pass** (reviewed) | Photos or branded tile, no overlapping initials; "Delivery partner" payee | Fail |
 | Report a problem | `/account/orders/[id]/report` | C | **Pass** (R9: failed [5.3, 1.4], fixed in #134) | The browser's untranslatable "Choose file" became an "Add a photo" button with Remove; "Tell us more" is a text area; a hint says why Send is greyed | Review pending |
 | Profile | `/account/profile` | C | **Pass** (reviewed) | Sign-in and security: link phone / email, password; formatted numbers | Fail |
@@ -74,10 +74,10 @@ Who: V visitor, C customer, K kitchen partner, D delivery partner, A admin.
 | Partners | `/partners` | **Fail** [rule 4, minor] (most fixed in #136) | Fixed: stacked rows, states on all 3 tabs, money from the formatter, no `country === "IN"` check, "kitchen" wording. Left: the Applications panel still labels India's documents "FSSAI licence" / "GSTIN" in code instead of from the Markets kitchen documents | Fail |
 | Pricing and rules | `/pricing` | **Fail** [rule 4, minor] (most fixed in #136) | Fixed: "kitchen" wording, simulator links to the first live city from Markets, states. Left: `lib/ruleWords.ts` takes the currency symbol and km/mi from the country code, not Markets | Review pending |
 | Pricing simulator | `/pricing/simulator` | **Pass** (R9: failed [rule 4, 2.5], fixed in #136) | Default city, country tabs and currency from Markets; default time today 8 pm | Review pending |
-| Markets | `/markets` | **Pass** (R9: failed [rule 4, 3.3], fixed in #136) | No "Open US" special case; button no longer wraps at 390 | Review pending |
+| Markets | `/markets` | **Pass** (R9: failed [rule 4, 3.3], fixed in #136) | No "Open US" special case; button no longer wraps at 390 R13: a country's Payment methods are edited here (saved as its payment_methods setting). | Review pending |
 | Country | `/markets/[country]` | **Pass** (reviewed R9) | Holds kitchen documents and delivery-partner requirements (min age, vehicles now enforced at sign-up); table scrolls in its card with an edge shadow | Review pending |
 | City | `/markets/[country]/[city]` | **Pass** (reviewed R9) | — | Fail |
-| Finance | `/finance` | **Pass** (R11: failed [6.3], fixed) | A US finance admin (no Markets permission) saw an empty runs table and no error: the page now falls back to the admin's own finance country. Checked against real Stripe test mode: a run with a paid kitchen transfer and a reversed delivery-partner transfer | Reviewed (R11) |
+| Finance | `/finance` | **Pass** (R11: failed [6.3], fixed) | A US finance admin (no Markets permission) saw an empty runs table and no error: the page now falls back to the admin's own finance country. Checked against real Stripe test mode: a run with a paid kitchen transfer and a reversed delivery-partner transfer R12: runs only for ended weeks, reports follow the selected run; R13: an empty figure reads $0.00 [6.5]; the header shows the role once. | Reviewed (R11) |
 | Settings | `/settings` | **Pass** (R9 fix in #136) | Stacked rows under 768 px, Remove buttons 44 px and visible | Fail |
 | Content → Help | `/content/help` | **Pass** (R9 fix in #136) | Table from 1280 px, rows below it: "Updated" no longer cut at 1366 @125 % | Missing |
 | Content → Legal | `/content/legal` | Layout pass · reviewed in F10's shots | — | Missing |
@@ -101,7 +101,7 @@ Round 9 flow results (2026-11-16):
 
 | App · screen | Status | Notes | Baseline |
 |---|---|---|---|
-| BhojanGo · Sign in | **Pass** (R9 fix in #135) | Phone / Email tabs; when the API can't be reached: message, reason and Retry within 8 s instead of placeholder tiles and "…" forever | Fail |
+| BhojanGo · Sign in | **Pass** (R9 fix in #135) | Phone / Email tabs; when the API can't be reached: message, reason and Retry within 8 s instead of placeholder tiles and "…" forever R12: real food photos, "BhojanGo"; R13: Terms and Privacy policy open the website's pages [8.4]. | Fail |
 | BhojanGo · Home | **Pass** (reviewed) | No empty band under the banner, kitchen photos, "Delivery partner", nothing under the tab bar at rest. Cuisine names cut ("North Ind…"), minor. Offline: the same error state | Fail |
 | BhojanGo · Kitchen, dish, bag | **Pass** (reviewed in flows) | A closed kitchen's bag says when it opens and offers no bill | Pass |
 | BhojanGo · Tracking | **Pass** (flow) | Route = current leg; Cancel order card while allowed | Fail |
@@ -116,7 +116,7 @@ Round 9 flow results (2026-11-16):
 | BhojanGo Delivery · Sign in, join | **Pass** (R9) | Offline error state (#135); join asks date of birth and vehicle from the country's rules (#134) | Fail |
 | BhojanGo Delivery · Drive | **Pass** (reviewed) | Real dark map (MapLibre + OpenFreeMap) with credit; offline sheet | Fail |
 | BhojanGo Delivery · Earnings | **Pass** (reviewed) | "Today" no longer covered; "Paid weekly" is a footer | Fail |
-| BhojanGo Delivery · Documents, document, delivery, payouts | **Pass** (R11 phone: payouts failed [7.2], fixed) | Payouts on a phone: not set up, in progress, ready, a reversed week ("Sent back by our payments partner; we'll pay it again"). Set-up and Check again read as "busy" after a press; now labelled | Payouts reviewed (phone, R11) |
+| BhojanGo Delivery · Documents, document, delivery, payouts | **Pass** (R11 phone: payouts failed [7.2], fixed) | Payouts on a phone: not set up, in progress, ready, a reversed week ("Sent back by our payments partner; we'll pay it again"). Set-up and Check again read as "busy" after a press; now labelled R13: "Minimum pay top-up" (no "floor" anywhere); a returned payment says the amount and the date it is paid again. | Payouts reviewed (phone, R11) |
 | BhojanGo Delivery · SOS, account, language | **Pass** (code review / flows) | — | Review pending |
 
 Font sizes on screen (font audit, all three apps): every size inside its role's fluid range

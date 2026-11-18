@@ -147,7 +147,7 @@
     "kitchens_cta": "Add your kitchen",
     "riders_eyebrow": "For delivery partners",
     "riders_title": "Deliver with BhojanGo",
-    "riders_body": "See the full pay before you accept. An hourly floor. Tips are 100% yours.",
+    "riders_body": "See the full pay before you accept. A minimum hourly pay. Tips are 100% yours.",
     "riders_cta": "Start delivering",
     "greeting": "Hello",
     "greeting_morning": "Good morning",
@@ -847,8 +847,8 @@
     "pay_title": "What the pay looks like",
     "pay_offer_title": "The full pay, up front.",
     "pay_offer_body": "Every trip shows its whole pay before you accept: pickup, distance and any extras.",
-    "pay_floor_title": "An hourly floor.",
-    "pay_floor_body": "When you're online and busy, your earnings for the hour never fall below the floor for your city.",
+    "pay_floor_title": "A minimum hourly pay.",
+    "pay_floor_body": "When you're online and busy, your earnings for the hour never fall below your city's minimum pay.",
     "pay_tips_title": "Tips are all yours.",
     "pay_tips_body": "Customers can tip before or after delivery, and we keep none of it.",
     "pay_weekly_title": "Paid every week.",
@@ -1056,7 +1056,7 @@
     },
     "join": {
       "title": "Sign up to deliver",
-      "sub": "Full pay shown before you accept, tips stay 100% yours, and an hourly floor in every city. Next: a few documents.",
+      "sub": "Full pay shown before you accept, tips stay 100% yours, and a minimum hourly pay in every city. Next: a few documents.",
       "name": "Your full name",
       "name_hint": "As on your licence",
       "city": "Where you'll deliver",
@@ -1082,7 +1082,7 @@
       "progress": "{done} of {total} steps done",
       "progress_short": "{done} of {total}",
       "how_pay_title": "How pay works.",
-      "how_pay": "You see the full pay before you accept, tips stay 100% yours, and every city has a floor per active hour.",
+      "how_pay": "You see the full pay before you accept, tips stay 100% yours, and every city has a minimum pay per active hour.",
       "how_pay_floor": "You see the full pay before you accept, tips stay 100% yours, and {floor}.",
       "cta_payouts": "Set up payouts",
       "cta_licence": "Upload licence",
@@ -1127,7 +1127,7 @@
       "sending": "Sending…"
     },
     "drive": {
-      "floor": "{city} has a {amount} per active hour floor",
+      "floor": "{city} has a minimum pay of {amount} per active hour",
       "location_needed": "Allow location so we can offer you deliveries nearby.",
       "no_fix": "We can't find your location yet. Try again in a moment.",
       "online_failed": "Couldn't go online. Try again.",
@@ -1267,7 +1267,7 @@
         "one": "{count} delivery",
         "other": "{count} deliveries"
       },
-      "top_up": "floor top-up {amount}"
+      "top_up": "Minimum pay top-up {amount}"
     },
     "account": {
       "title": "Account",
@@ -1304,11 +1304,11 @@
       "daily": "Daily earnings: {days}",
       "your_city": "your city",
       "floor_none": "Pay per active hour shows here once you've delivered this week.",
-      "floor_amount": "{amount} per active hour floor",
+      "floor_amount": "{amount} minimum pay per active hour",
       "floor_in": "in {city}. Short weeks get topped up.",
       "per_hour": "{amount} per active hour",
-      "below_floor": "— below {city}'s {floor} floor, so we add {top_up}.",
-      "above_floor": "— above {city}'s {floor} floor. Short weeks get topped up.",
+      "below_floor": "— below {city}'s minimum pay of {floor}, so we add {top_up}.",
+      "above_floor": "— above {city}'s minimum pay of {floor}. Short weeks get topped up.",
       "today": "Today",
       "none_today": "No deliveries yet today.",
       "base": "base {amount}",
