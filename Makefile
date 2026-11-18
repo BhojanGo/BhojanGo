@@ -126,6 +126,7 @@ web-third-city:
 ci-guard:
 	python tools/target_guard_test.py
 	python tools/seed/demo_test.py
+	python tools/secrets/mask_test.py
 
 # Photo credits: apps/web/src/content/photo-credits.json matches docs/design/photos/LICENSES.md.
 ci-photos:

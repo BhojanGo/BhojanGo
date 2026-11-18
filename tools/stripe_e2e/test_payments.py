@@ -131,22 +131,38 @@ def _serve() -> tuple[http.server.ThreadingHTTPServer, int]:
     return srv, srv.server_address[1]
 
 
+# R13: cards only (Apple Pay / Google Pay ride on cards). Nothing of Link may show.
+NOT_OFFERED = re.compile(r"Pay with Link|\bLink\b|\bBank\b|Klarna|\$5 back|Save my information", re.I)
+
+
 def _card_frame(page):  # type: ignore[no-untyped-def]
-    """The Payment Element's frame with the card form open. Stripe may add tabs of its own (Link's
-    bank option with a cash-back badge, R12): when the card number isn't showing, pick the Card tab."""
+    """The Payment Element's frame with the card form: the only method, so it is open at once."""
     for _ in range(240):  # up to 2 minutes: the challenge frame loads its content late in headless Chromium
         for f in page.frames:
             try:
-                number = f.locator('input[name="number"]')
-                if number.count() and number.first.is_visible():
+                if f.locator('input[name="number"]').count():
                     return f
-                tab = f.get_by_role("tab", name="Card").or_(f.get_by_role("button", name="Card", exact=True))
-                if tab.count() and tab.first.is_visible():
-                    tab.first.click()
             except Exception:  # noqa: BLE001 (a frame navigating away)
                 pass
         page.wait_for_timeout(500)
     raise AssertionError("the Payment Element's card form didn't appear")
+
+
+def _fill_number(f, card: str) -> None:  # type: ignore[no-untyped-def]
+    """Type the card number and read it back: a fill while Stripe's field is still settling can
+    land partly ("Your card number is incomplete", R13); then type it again, slowly."""
+    box = f.locator('input[name="number"]')
+    box.wait_for(state="visible", timeout=30000)
+    for attempt in range(3):
+        box.click()
+        box.fill("")
+        if attempt == 0:
+            box.fill(card)
+        else:
+            box.press_sequentially(card, delay=60)
+        if re.sub(r"\D", "", box.input_value()) == card:
+            return
+    raise AssertionError("the card number didn't take in Stripe's field")
 
 
 def _complete_3ds(page) -> bool:  # type: ignore[no-untyped-def]
@@ -188,7 +204,11 @@ def _pay_in_browser(h: H, card: str, three_ds: bool = False) -> tuple[dict, str]
             page.wait_for_function("document.getElementById('out').textContent !== 'loading'", timeout=30000)
             assert page.inner_text("#out") == "ready", page.inner_text("#out")
             f = _card_frame(page)
-            f.locator('input[name="number"]').fill(card)
+            shown = " ".join(fr.inner_text("body") for fr in page.frames if fr.url.startswith("https://js.stripe.com/v3/elements-inner"))
+            assert not NOT_OFFERED.search(shown), f"the Payment Element offers more than cards: {NOT_OFFERED.search(shown).group(0)!r}"
+            pi_id = c["payment_intent_client_secret"].split("_secret_")[0]
+            assert h.stripe.PaymentIntent.retrieve(pi_id).payment_method_types == ["card"], "not cards only (R13)"
+            _fill_number(f, card)
             f.locator('input[name="expiry"]').fill("12 / 34")
             f.locator('input[name="cvc"]').fill("123")
             if f.locator('input[name="postalCode"]').count():

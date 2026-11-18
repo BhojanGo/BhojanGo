@@ -49,6 +49,18 @@ export function parseScope(scope: string | null | undefined): { country: string;
   return { country: p[0]!, region: p.length >= 2 ? `${p[0]}-${p[1]}` : null, city: p.length >= 3 ? scope : null };
 }
 
+/**
+ * The signed-in admin, once (R13): "Name · Role (scope)", or just "Role (scope)" when the name
+ * already says the role (the seed's "USA Finance" with Finance (US) reads "Finance (US)").
+ */
+export function whoLine(name: string | null | undefined, role: { role: string; scope: string } | null | undefined): string {
+  const label = role ? `${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : "";
+  const roleWord = role ? (ROLE_LABELS[role.role] ?? role.role).toLowerCase() : "";
+  if (!name) return label;
+  if (!label) return name;
+  return name.toLowerCase().includes(roleWord) ? label : `${name} · ${label}`;
+}
+
 export function ConsoleShell({
   section,
   country,
@@ -137,10 +149,7 @@ export function ConsoleShell({
         <Logo size={30} suffix="admin" />
         <div className="ml-auto flex min-w-0 items-center gap-2.5 text-small">
           <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-peacock-tint sm:flex text-small text-peacock-dark">{initials}</span>
-          <span data-testid="who" className="hidden truncate md:inline">
-            {user?.full_name}
-            {role ? ` · ${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : ""}
-          </span>
+          <span data-testid="who" className="hidden truncate md:inline">{whoLine(user?.full_name, role)}</span>
           <button type="button" onClick={() => { logout(); router.replace("/login"); }}
             className="h-9 shrink-0 whitespace-nowrap rounded-full px-3 font-semibold text-peacock hover:bg-peacock-wash md:ml-2">Sign out</button>
         </div>

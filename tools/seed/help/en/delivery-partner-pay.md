@@ -3,7 +3,7 @@ slug: delivery-partner-pay
 topic: delivery-partners
 country: *
 title: How does delivery partner pay work?
-summary: Every trip shows its full pay before you accept. Your city has an hourly floor for active time, tips are 100% yours, and you're paid weekly.
+summary: Every trip shows its full pay before you accept. Your city has a minimum hourly pay for active time, tips are 100% yours, and you're paid weekly.
 popular: 0
 related: become-a-delivery-partner, delivery-app-guide, tipping-your-delivery-partner
 ---
@@ -21,13 +21,13 @@ In cities where combined trips are switched on, you may be offered two orders fr
 
 The offer shows this pay as **Guaranteed**, together with the tip, before you accept.
 
-## The hourly floor
+## The minimum hourly pay
 
-Every city has a floor: a minimum you earn for each active hour.
+Every city has a minimum pay: the least you earn for each active hour.
 
 - **Active time** runs from when you accept an offer to when you drop off. Driving to the kitchen and waiting there count. Overlapping deliveries count once.
-- At the end of the week, if your trip pay for your active hours comes to less than the floor, we top it up.
-- Tips don't count towards the floor. They're always on top.
+- At the end of the week, if your trip pay for your active hours comes to less than the minimum pay, we top it up.
+- Tips don't count towards the minimum pay. They're always on top.
 
 The **Earnings** tab shows your week so far, day by day, your pay per active hour and any top-up.
 

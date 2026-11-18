@@ -23,7 +23,7 @@ Your tip shows on the fair bill as its own line, tagged **DELIVERY PARTNER**.
 
 - **100% to your delivery partner.** BhojanGo takes nothing from tips.
 - It's paid on top of their pay for the trip, not instead of it.
-- It doesn't count towards the hourly floor we guarantee delivery partners, so your tip is always extra.
+- It doesn't count towards the minimum hourly pay we guarantee delivery partners, so your tip is always extra.
 - Your delivery partner sees the tip as part of the trip's pay when the delivery is offered to them.
 
 ## If your order is cancelled

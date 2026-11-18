@@ -202,6 +202,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 66. **Every payment provider gets a real test-mode end-to-end run, webhook included, before a PR that touches payments merges; CI runs it whenever payments code changes.**
     Why: Stripe went live on QA with every mocked test green, and the real run found four bugs in a day: Stripe Tax rejected the delivery fee as a line item (every US quote fell back to $0 tax), a parameter Stripe refuses broke every payment, the webhook handler crashed on Stripe's real event object (no paid order was ever placed; one test payment was charged, cancelled and refunded), and Connect refused v1 account creation. A mock only answers what its author expected. `pr-checks.yml` job `stripe-e2e` runs `tools/stripe_e2e` on a throwaway Railway stack (keys stay on Railway); what a browser CAPTCHA blocks stays a manual release check in the integration guide.
 
+67. **Never print a secret: read logins, tokens and keys only through `tools/secrets/mask.py`, and mask every command's output that touches them.**
+    Why: a one-line command that listed the QA logins file printed three admin passwords into a tool log, and they had to be rotated (`tools/secrets/rotate_password.py`). Scripts use `mask.login()` / `set_password()` and print nothing secret; command output goes through `mask.py` (pipe, or `mask.py run -- <cmd>`); `mask.py files <dir>` cleans logs. A hook (`tools/secrets/guard_secrets.py`, wired in each machine's `.claude/settings.json`) refuses any shell command that names a secrets file without masking.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

@@ -510,7 +510,7 @@ RULES = [
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "IN",
      {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
-    ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "IN-TG-HYD", {"per_active_hour": 120}),
+    ("rider_pay", "hourly_floor", None, "Minimum hourly pay", "city", "IN-TG-HYD", {"per_active_hour": 120}),
     ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "IN-TG-HYD", {"per_extra_order": 10}),
     # Country defaults: a city launched in admin prices orders from day one (Hyderabad's own rules win there).
     ("delivery_fee", "distance_slabs", None, "India delivery fee", "country", "IN",
@@ -536,7 +536,7 @@ RULES = [
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",
      {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
-    ("rider_pay", "hourly_floor", None, "Hourly floor", "city", "US-ID-BOI", {"per_active_hour": 15}),
+    ("rider_pay", "hourly_floor", None, "Minimum hourly pay", "city", "US-ID-BOI", {"per_active_hour": 15}),
     # Item 2: a later drop-off of a batch pays no base, but distance + waiting + this.
     ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "US-ID-BOI", {"per_extra_order": 1.5}),
     ("delivery_fee", "distance_slabs", None, "United States delivery fee", "country", "US",

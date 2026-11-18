@@ -54,6 +54,9 @@ How each item is checked is in brackets: **[auto]** by a tool on every run,
   under 1024 px. [review]
 - 3.5 Apps: works on a 360 dp phone, a large phone and a tablet (the kitchen app
   in landscape), and with the phone's largest font setting. [review]
+- 3.6 Dialogs and sheets fit the screen down to 1280 × 720 and 360 × 640: at most
+  the screen's height, the inside scrolls, the title and close button stay visible,
+  and the main button (Pay) is always reachable. [review]
 
 ## 4. Type
 
@@ -83,6 +86,8 @@ How each item is checked is in brackets: **[auto]** by a tool on every run,
 - 6.3 Error: says what went wrong in plain words and how to recover (retry, go
   back, contact support); never a raw error, stack trace or code. [review] [test]
 - 6.4 Offline / slow network in the apps: the screen says so and recovers. [review]
+- 6.5 A money figure that is zero reads as zero ($0.00, ₹0.00), with no "—" and no
+  extra line; a line of zero on a customer's bill is not shown. [review]
 
 ## 7. Accessible
 
@@ -99,6 +104,11 @@ How each item is checked is in brackets: **[auto]** by a tool on every run,
   reveal whether an account exists. [test]
 - 8.2 Anything that costs money or can't be undone asks once, clearly. [review]
 - 8.3 The test-site banner shows on every non-production page. [test]
+- 8.4 Wherever "Terms" or "Privacy policy" is named (sign-in, checkout), it is a link
+  to the country's page. [review]
+- 8.5 Checkout offers only the country's payment methods from Markets (the US: cards,
+  Apple Pay, Google Pay); nothing a provider adds on its own (Link, bank, Klarna,
+  cash-back offers). [test: stripe-e2e]
 
 ## How to record a result
 

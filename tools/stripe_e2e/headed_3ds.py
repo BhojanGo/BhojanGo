@@ -120,15 +120,7 @@ def run(stack: Stack, path: str, out: Path, headless: bool, browser_path: str | 
             page.wait_for_function("document.getElementById('out').textContent !== 'loading'", timeout=30000)
             card = None
             for _ in range(120):
-                card = next((f for f in page.frames if f.locator('input[name="number"]').count()
-                             and f.locator('input[name="number"]').first.is_visible()), None)
-                for f in page.frames:  # Stripe's own extra tabs (Link's bank option): pick Card
-                    try:
-                        tab = f.get_by_role("tab", name="Card")
-                        if not card and tab.count() and tab.first.is_visible():
-                            tab.first.click()
-                    except Exception:  # noqa: BLE001
-                        pass
+                card = next((f for f in page.frames if f.locator('input[name="number"]').count()), None)
                 if card:
                     break
                 page.wait_for_timeout(500)

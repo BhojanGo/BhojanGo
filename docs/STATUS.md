@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-16** (after round 9), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-17** (after round 13), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -45,6 +45,23 @@ The bar since round 8 is "a real product, not a demo": every page and screen is 
 - **Production builds:** a smoke test builds web and admin exactly as for production; it found and
   fixed production builds that still showed the test banner and blocked search engines (#137).
   Production must be rebuilt after #137.
+
+## Payments (rounds 10–13, 2026-11-17)
+
+- **Stripe in test mode on QA** (US): card payments with 3-D Secure, declines, refunds by item, Stripe Tax, and the
+  webhook that places the order. Keys are sealed Railway variables only.
+- **Cards only (R13):** what checkout offers is the country's `payment_methods` setting, edited in admin (Markets →
+  country → Payment methods). The US is cards, Apple Pay and Google Pay (they run on cards). Stripe gets a payment
+  method configuration with exactly those on and everything else off, so no Link, bank tab, Klarna or cash-back offer.
+  India stays on Razorpay (faked) until its keys arrive.
+- **Payouts:** Stripe Connect Express (Accounts v2). Weekly runs cover only a finished Monday-to-Sunday week, a second
+  finance admin approves, and transfers go to each payee. A returned payment is paid again on the next payout day,
+  and the apps say so with the amount and the date.
+- **CI:** `pr-checks.yml` runs the 9 real-Stripe tests on a throwaway Railway stack whenever payments code changes
+  (PLAYBOOK rule 66). Express onboarding through Stripe's hosted pages stays a manual release check (a CAPTCHA).
+- **Secrets (R13):** `tools/secrets/mask.py` masks every password, token and key in command output and logs; a
+  project hook refuses unmasked commands that read the secrets files (PLAYBOOK rule 67). The three QA admin
+  passwords that were once printed have been rotated.
 
 ## What's left before the pilot
 
@@ -108,7 +125,7 @@ In order. Items 1–4 are Srini's; the rest follow from them.
 | 15 | Tax | ✅ Done | #19 | Stripe Tax for the US (fake locally), GST rules for India |
 | 16 | Menu modifiers and store hours | ✅ Done | #20 | |
 | 17 | Order flow with payments | ✅ Done | #21 | Payment first, timeouts, outbox |
-| 18 | Payments and refunds | ⛔ Blocked on Srini | #22, #41 | Refund by item is done. "Stripe + Razorpay live in test mode" needs the two accounts (free test mode); the code runs against fakes with the providers' real flows |
+| 18 | Payments and refunds | ⛔ Blocked on Srini | #22, #41, #139–#151 | Stripe runs in test mode on QA (cards only, refunds, tax, Connect payouts; 9 real-Stripe tests in CI). Razorpay still needs its account (India runs on the fake) |
 | 19 | Payouts | ✅ Done | #23, #27, #42 | Weekly only (#42) |
 | 20 | Dispatch and live tracking | ✅ Done | #24, #45, #50, #53 | Nearest rider, 30 s offer, re-offer; holds 10× pilot load (#45); waiting orders served oldest first (#50); pair offers when batching is on (#53) |
 | 21 | Notifications | ✅ Done | #25, #38, #105 | Push, SMS, email and quick chat in every language a country lists in Markets (India 7, US English and Spanish), machine translations awaiting native review; CI fails on a missing one (#105). Fakes until the accounts (task 4); India DLT templates per message and language come with the MSG91 account |
