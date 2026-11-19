@@ -78,7 +78,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const backAt = avail?.back_at ? new Intl.DateTimeFormat(formatLocale, { hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.back_at)) : null;
   const nextOpen = avail?.next_open_at ? new Intl.DateTimeFormat(formatLocale, { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.next_open_at)) : opens;
   const hours = forNow
-    ? { label: t("kitchen.closed_for_now"), value: backAt ? t("kitchen.back_at", { time: backAt }) : t("kitchen.closed_for_now") }
+    ? { label: t("kitchen.closed_for_now"), value: backAt ? t("kitchen.back_at", { time: backAt }) : t("kitchen.back_soon") }
     : closedNow
     ? { label: t("kitchen.closed_now"), value: nextOpen ? t("kitchen.opens_at", { time: nextOpen }) : t("kitchen.closed_now") }
     : opens && closes

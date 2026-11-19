@@ -27,7 +27,7 @@ from shared import authz
 from shared.db import get_db
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
-DB = Annotated[AsyncSession, Depends(get_db)]
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 Reason = Annotated[str, Field(min_length=5, max_length=500, description="Why (kept in the audit log)")]
 
 

@@ -365,7 +365,8 @@
     "view_bag": "Ver carrito",
     "closed_for_now": "Cerrado por ahora",
     "closed_for_now_note": "Esta cocina está cerrada por ahora. Puedes ver el menú; podrás pedir cuando vuelva.",
-    "back_at": "Vuelve sobre las {time}"
+    "back_at": "Vuelve sobre las {time}",
+    "back_soon": "Vuelve pronto"
   },
   "checkout": {
     "title": "Pagar",

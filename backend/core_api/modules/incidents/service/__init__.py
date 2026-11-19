@@ -312,7 +312,7 @@ def is_test_account(email: str | None, phone: str | None) -> bool:
     reaches outside production."""
     from shared.config import get_settings
 
-    s = get_settings()
+    s = get_settings().providers
     domains = [d.lower() for d in s.OTP_FIXED_CODE_EMAIL_DOMAINS]
     if email and email.rsplit("@", 1)[-1].lower() in domains:
         return True
