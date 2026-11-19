@@ -73,12 +73,17 @@ export default defineRailway((ctx, project) => {
     CORS_ORIGINS: prod ? preserve() : origins, // production: the custom domains
     // Providers: local fakes until each account exists (docs/11_Integration_Setup_Guide.md).
     // Production refuses to start with a fake, the fixed OTP or the fixed delivery PIN (shared/config.py).
+    // Production (R19, Srini's decisions): email through Amazon SES; sign-in codes through Twilio
+    // Verify (core-api, OTP_PROVIDER below; no sender number or 10DLC); order updates by push (Expo),
+    // so no SMS at all ("off": chosen, not a fake).
     PAYMENT_PROVIDER: prod ? "live" : "fake",
     PAYOUT_PROVIDER: prod ? "live" : "fake",
-    SMS_PROVIDER: prod ? "live" : "log",
+    SMS_PROVIDER: prod ? "off" : "log",
     PUSH_PROVIDER: prod ? "live" : "log",
-    EMAIL_PROVIDER: prod ? "sendgrid" : "log",
+    EMAIL_PROVIDER: prod ? "ses" : "log",
     ...(prod ? { OTP_FIXED_CODE: "", DELIVERY_PIN_FIXED: "" } : {}),
+    // Error reports (Sentry, free plan; shared/observability.py): one backend project, sealed.
+    ...(prod ? { SENTRY_DSN: preserve() } : {}),
     ROUTING_PROVIDER: "straight_line",
     LOG_FORMAT: "json",
     // The client's address for rate limits (sign-in, OTP) and logs: Railway's edge puts it in
@@ -128,10 +133,31 @@ export default defineRailway((ctx, project) => {
     AWS_ACCESS_KEY_ID: preserve(), // sealed
     AWS_SECRET_ACCESS_KEY: preserve(), // sealed
     S3_ADDRESSING_STYLE: preserve(), // its urlStyle: "virtual" (new buckets) or "path"
-    FAKE_PAYMENT_WEBHOOK_URL: "http://core-api.railway.internal:8001/api/v1/payments/fake/webhook",
-    FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: "2",
-    FAKE_PAYMENT_WEBHOOK_SECRET: preserve(), // sealed outside local dev
     ALERT_WEBHOOK_TOKEN: preserve(),
+    // The fake payment gateway: every environment but production.
+    ...(prod ? {} : {
+      FAKE_PAYMENT_WEBHOOK_URL: "http://core-api.railway.internal:8001/api/v1/payments/fake/webhook",
+      FAKE_PAYMENT_AUTO_COMPLETE_SECONDS: "2",
+      FAKE_PAYMENT_WEBHOOK_SECRET: preserve(), // sealed outside local dev
+    }),
+    // Production only (R19). core-api refuses to start without the public https addresses,
+    // IDENTITY_DATA_KEYS and a way to send sign-in codes (shared/config.py core_api_production_problems).
+    // Values are set once in Railway (sealed when secret): docs/launch/production-config.md.
+    ...(prod ? {
+      PUBLIC_WEB_URL: preserve(), // the website's custom domain, https://<domain> (reset links, Stripe returns)
+      PUBLIC_API_URL: preserve(), // the API's custom domain, https://api.<domain> (payout onboarding links)
+      IDENTITY_DATA_KEYS: preserve(), // sealed; python tools/secrets/identity_data_keys.py, once
+      STRIPE_SECRET_KEY: preserve(), // sealed; Stripe live (sk_live_ or a restricted rk_live_)
+      STRIPE_PUBLISHABLE_KEY: preserve(), // Stripe live (pk_live_); handed to the checkouts by the API
+      STRIPE_WEBHOOK_SECRET: preserve(), // sealed; payments endpoint
+      STRIPE_CONNECT_WEBHOOK_SECRET: preserve(), // sealed; Connect endpoint
+      STRIPE_PAYOUTS_WEBHOOK_SECRET: preserve(), // sealed; transfers endpoint
+      TAX_PROVIDER: "stripe_tax",
+      OTP_PROVIDER: "twilio_verify",
+      TWILIO_ACCOUNT_SID: preserve(), // sealed
+      TWILIO_AUTH_TOKEN: preserve(), // sealed
+      TWILIO_VERIFY_SERVICE_SID: preserve(), // sealed; Verify service (VA...)
+    } : {}),
   }, { preDeploy: "alembic upgrade head", cpu: 1, memoryGiB: 1 });
 
   const realtime = backend("realtime", "realtime", 8004, "app.main:app", {
@@ -147,6 +173,15 @@ export default defineRailway((ctx, project) => {
     // QA only: the demo rider delivers the demo customers' orders through the normal APIs
     // (worker/app/demo_sim). Never staging or production: production refuses to start with it.
     ...(qa ? { DEMO_RIDER_SIM: "1" } : {}),
+    // Production email: Amazon SES (shared/providers/email.py SesEmail), an IAM user allowed
+    // ses:SendEmail only. The worker refuses to start without these (worker/app/main.py).
+    ...(prod ? {
+      SES_REGION: "us-west-2", // where the domain identity is verified (Oregon)
+      SES_ACCESS_KEY_ID: preserve(), // sealed
+      SES_SECRET_ACCESS_KEY: preserve(), // sealed
+      EMAIL_FROM: preserve(), // e.g. orders@<domain>: an address on the domain verified in SES
+      EMAIL_FROM_NAME: "BhojanGo",
+    } : {}),
   }, { cpu: 0.5, memoryGiB: 0.5 });
 
   // ── Web and admin (Next.js, infra/docker/next-app.Dockerfile) ──────────
@@ -171,6 +206,8 @@ export default defineRailway((ctx, project) => {
         REALTIME_URL: "http://realtime.railway.internal:8004",
         NEXT_PUBLIC_CORE_URL: `https://\${{core-api.RAILWAY_PUBLIC_DOMAIN}}`,
         NEXT_PUBLIC_REALTIME_URL: `https://\${{realtime.RAILWAY_PUBLIC_DOMAIN}}`,
+        // Error reports from the browser (Sentry; R19). A build arg: empty = off.
+        ...(prod ? { NEXT_PUBLIC_SENTRY_DSN: preserve() } : {}),
         ...extra,
       },
     });
@@ -178,6 +215,8 @@ export default defineRailway((ctx, project) => {
   const web = next("web", "@bhojango/web", "apps/web", "/", {
     CORE_API_INTERNAL_URL: "http://core-api.railway.internal:8001",
     NEXT_PUBLIC_APP_URL: prod ? preserve() : `https://\${{web.RAILWAY_PUBLIC_DOMAIN}}`, // production: the custom domain
+    // Production pays through Stripe (a build arg; unset = the fake one, which production refuses: lib/payments.ts).
+    ...(prod ? { NEXT_PUBLIC_PAYMENTS_PROVIDER: "stripe" } : {}),
   });
   const admin = next("admin", "@bhojango/admin", "apps/admin", "/login", {});
 

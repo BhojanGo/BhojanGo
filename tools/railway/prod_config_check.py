@@ -8,11 +8,14 @@ variable NAMES and a kind (sealed, set, empty, reference), never a value.
 What it reads:
 - backend/shared/config.py: every Settings field (the environment variable names the backends read);
 - os.environ reads in the backend, process.env reads in web/admin, EXPO_PUBLIC_* in the apps;
-- worker/app/main.py: _REQUIRED_PROD_SETTINGS (the worker refuses to start without them);
+- worker/app/main.py: _REQUIRED_PROD_SETTINGS (the worker refuses to start without the keys of
+  the providers production chooses: SES email, SMS off since R19);
 - infra/docker/next-app.Dockerfile: build args and the variables derived from them;
 - .railway/railway.ts, evaluated for the production environment by a small parser
   (object literals, spreads, `prod ? a : b`, `const` bindings and the helper functions).
 The list of what production needs (REQUIRED below) points at the code line that needs it.
+Values set by hand in Railway (preserve()) can't be checked from the repo: section 7 lists them
+with where each comes from (generated, an address, Railway, or one of Srini's accounts).
 See docs/launch/production-config.md.
 """
 from __future__ import annotations
@@ -275,12 +278,14 @@ def regex_reads(bases: list[Path], exts: tuple[str, ...], pattern: str) -> dict[
     return out
 
 
-def worker_required() -> tuple[list[str], str]:
+def worker_required() -> tuple[dict[str, list[str]], str]:
+    """_REQUIRED_PROD_SETTINGS: {"email:ses": [names], "sms:live": [...], ...} (by provider)."""
     path = BACKEND / "worker" / "app" / "main.py"
     for node in ast.parse(path.read_text(encoding="utf-8")).body:
-        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "_REQUIRED_PROD_SETTINGS":
-            return [e.value for e in node.value.elts], f"{rel(path)}:{node.lineno}"  # type: ignore[attr-defined]
-    return [], rel(path)
+        target = node.target if isinstance(node, ast.AnnAssign) else node.targets[0] if isinstance(node, ast.Assign) else None
+        if getattr(target, "id", "") == "_REQUIRED_PROD_SETTINGS":
+            return ast.literal_eval(node.value), f"{rel(path)}:{node.lineno}"  # type: ignore[arg-type]
+    return {}, rel(path)
 
 
 def dockerfile() -> tuple[set[str], dict[str, str]]:
@@ -311,23 +316,26 @@ REQUIRED: list[tuple[str, tuple[str, ...], str, str, str]] = [
     ("OTP_FIXED_CODE", BACKENDS, "empty", "backend/shared/config.py", "if p.OTP_FIXED_CODE:"),
     ("DELIVERY_PIN_FIXED", BACKENDS, "empty", "backend/shared/config.py", "if p.DELIVERY_PIN_FIXED:"),
     ("DEMO_RIDER_SIM", W, "off", "backend/shared/config.py", "if self.worker.DEMO_RIDER_SIM"),
-    ("IDENTITY_DATA_KEYS", C, "sealed", "backend/core_api/modules/identity/service/totp.py", "IDENTITY_DATA_KEYS is not set"),
-    ("PUBLIC_WEB_URL", C, "set", "backend/core_api/modules/finance/service/connect.py", "PUBLIC_WEB_URL"),
-    ("PUBLIC_API_URL", C, "set", "backend/core_api/modules/finance/service/connect.py", "PUBLIC_API_URL"),
+    ("IDENTITY_DATA_KEYS", C, "sealed", "backend/shared/config.py", "IDENTITY_DATA_KEYS is not set"),
+    ("PUBLIC_WEB_URL", C, "set", "backend/shared/config.py", "public_url_problem(\"PUBLIC_WEB_URL\""),
+    ("PUBLIC_API_URL", C, "set", "backend/shared/config.py", "public_url_problem(\"PUBLIC_API_URL\""),
     ("STRIPE_SECRET_KEY", C, "sealed", "backend/core_api/modules/payments/service/gateways.py", "return bool(p.STRIPE_SECRET_KEY)"),
     ("STRIPE_PUBLISHABLE_KEY", C, "set", "backend/core_api/modules/payments/service/gateways.py", "STRIPE_PUBLISHABLE_KEY"),
     ("STRIPE_WEBHOOK_SECRET", C, "sealed", "backend/core_api/modules/payments/service/stripe_svc.py", "STRIPE_WEBHOOK_SECRET"),
     ("STRIPE_CONNECT_WEBHOOK_SECRET", C, "sealed", "backend/core_api/modules/finance/api/v1/finance.py", "STRIPE_CONNECT_WEBHOOK_SECRET"),
     ("STRIPE_PAYOUTS_WEBHOOK_SECRET", C, "sealed", "backend/core_api/modules/finance/api/v1/finance.py", "STRIPE_PAYOUTS_WEBHOOK_SECRET"),
-    ("SMS_PROVIDER", W, "live", "backend/shared/providers/sms.py", "refuse_in_production"),
-    ("EMAIL_PROVIDER", W, "set", "backend/shared/providers/email.py", "refuse_in_production"),
-    ("PUSH_PROVIDER", W, "live", "backend/shared/providers/push.py", "refuse_in_production"),
-    ("TWILIO_AUTH_TOKEN", W, "sealed", "backend/shared/providers/sms.py", "TWILIO_AUTH_TOKEN"),
-    ("TWILIO_PHONE_NUMBER", W, "set", "backend/shared/providers/sms.py", "TWILIO_PHONE_NUMBER"),
-    ("SENDGRID_FROM_EMAIL", W, "set", "backend/shared/providers/email.py", "SENDGRID_FROM_EMAIL"),
-    ("FIREBASE_PRIVATE_KEY_ID", W, "sealed", "backend/worker/app/services/fcm.py", "FIREBASE_PRIVATE_KEY_ID"),
-    ("FIREBASE_PRIVATE_KEY", W, "sealed", "backend/worker/app/services/fcm.py", "FIREBASE_PRIVATE_KEY"),
-    ("FIREBASE_CLIENT_EMAIL", W, "set", "backend/worker/app/services/fcm.py", "FIREBASE_CLIENT_EMAIL"),
+    # R19: SMS off (order updates by push), email through SES, sign-in codes through Twilio Verify.
+    ("SMS_PROVIDER", BACKENDS, "one_of:off|live", "backend/worker/app/main.py", "_PROD_PROVIDERS"),
+    ("EMAIL_PROVIDER", BACKENDS, "one_of:ses|sendgrid", "backend/worker/app/main.py", "_PROD_PROVIDERS"),
+    ("PUSH_PROVIDER", BACKENDS, "one_of:live", "backend/worker/app/main.py", "_PROD_PROVIDERS"),
+    ("OTP_PROVIDER", C, "one_of:twilio_verify", "backend/shared/config.py", "OTP_PROVIDER='twilio_verify' needs"),
+    ("TWILIO_ACCOUNT_SID", C, "sealed", "backend/core_api/modules/identity/service/twilio_verify.py", "TWILIO_ACCOUNT_SID"),
+    ("TWILIO_AUTH_TOKEN", C, "sealed", "backend/core_api/modules/identity/service/twilio_verify.py", "TWILIO_AUTH_TOKEN"),
+    ("TWILIO_VERIFY_SERVICE_SID", C, "sealed", "backend/core_api/modules/identity/service/twilio_verify.py",
+     "TWILIO_VERIFY_SERVICE_SID"),
+    ("EMAIL_FROM_NAME", W, "set", "backend/shared/providers/email.py", "EMAIL_FROM_NAME"),
+    ("TAX_PROVIDER", C, "one_of:stripe_tax", "backend/core_api/modules/payments/service/tax.py", "stripe_tax"),
+    ("SENTRY_DSN", BACKENDS, "sealed", "backend/shared/observability.py", "SENTRY_DSN"),
     ("STORAGE_PROVIDER", C, "set", "backend/shared/providers/storage.py", "STORAGE_PROVIDER"),
     ("UPLOADS_BUCKET", C, "set", "backend/shared/config.py", "UPLOADS_BUCKET"),
     ("AWS_ACCESS_KEY_ID", C, "sealed", "backend/shared/providers/storage.py", "aws_access_key_id"),
@@ -342,23 +350,63 @@ REQUIRED: list[tuple[str, tuple[str, ...], str, str, str]] = [
     ("NEXT_PUBLIC_APP_URL", ("web",), "set", "apps/web/src/lib/server.ts", "NEXT_PUBLIC_APP_URL"),
     ("CORE_API_INTERNAL_URL", ("web",), "set", "apps/web/src/lib/server.ts", "CORE_API_INTERNAL_URL"),
     ("CORE_API_URL", ("web", "admin"), "set", "apps/admin/next.config.mjs", "must be set in production"),
-    ("NEXT_PUBLIC_PAYMENTS_PROVIDER", ("web",), "not_fake", "apps/web/src/app/account/profile/Payments.tsx", "NEXT_PUBLIC_PAYMENTS_PROVIDER"),
+    ("NEXT_PUBLIC_PAYMENTS_PROVIDER", ("web",), "not_fake", "apps/web/src/lib/payments.ts", "NEXT_PUBLIC_PAYMENTS_PROVIDER"),
+    ("NEXT_PUBLIC_SENTRY_DSN", ("web", "admin"), "sealed", "apps/web/src/instrumentation-client.ts", "NEXT_PUBLIC_SENTRY_DSN"),
 ]
 # Set in production but only meant for the fakes, the demo or QA.
 QA_ONLY = ["FAKE_PAYMENT_WEBHOOK_URL", "FAKE_PAYMENT_AUTO_COMPLETE_SECONDS", "FAKE_PAYMENT_WEBHOOK_SECRET",
            "DEMO_RIDER_SIM", "SEED_PASSWORDS", "APNS_SANDBOX", "JWT_SECRET"]
 FAKE_VALUES = {"fake", "log", "auto", "local", "smtp", "1", "true"}
 OPTIONAL = {  # production can start without these; each turns a feature on
-    "SENTRY_DSN": "error tracking (also needs sentry-sdk in backend/pyproject.toml)",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "traces",
     "GOOGLE_WEB_CLIENT_ID": "Sign in with Google on the website (GOOGLE_CLIENT_IDS for the apps)",
     "APPLE_CLIENT_ID": "Sign in with Apple",
     "EXPO_ACCESS_TOKEN": "Expo push security",
     "APNS_KEY_ID": "direct APNs push (iOS tokens not from Expo)",
-    "TAX_PROVIDER": "explicit stripe_tax (auto picks Stripe Tax when STRIPE_SECRET_KEY is set)",
+    "SES_CONFIGURATION_SET": "SES bounce and complaint events",
+    "TWILIO_PHONE_NUMBER": "SMS from our own number (SMS_PROVIDER=live; production sends none: R19)",
     "TWILIO_PHONE_NUMBER_IN": "India SMS (not Boise)",
     "MSG91_AUTH_KEY": "India SMS (not Boise)",
     "RAZORPAY_KEY_ID": "India payments (not Boise)",
+}
+
+# Frontend names filled from another variable the service has (not image build args).
+FRONTEND_DERIVED = {
+    "NEXT_PUBLIC_APP_ENV": "APP_ENV",  # next.config.mjs env: the environment for the browser bundle
+    "SENTRY_DSN": "NEXT_PUBLIC_SENTRY_DSN",  # instrumentation.ts falls back to the browser's DSN
+}
+
+# Where each value set by hand (preserve()) comes from: (source, how). "account" = one of Srini's
+# accounts (only he can get it); the rest Claude Code can make or read without one.
+BY_HAND: dict[str, tuple[str, str]] = {
+    "POSTGRES_PASSWORD": ("generated", "openssl rand -hex 24"),
+    "INTERNAL_SERVICE_SECRET": ("generated", "openssl rand -hex 32; the same on core-api, realtime and worker"),
+    "JWT_PRIVATE_KEY": ("generated", "openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048"),
+    "IDENTITY_DATA_KEYS": ("generated", "python tools/secrets/identity_data_keys.py (stdout only)"),
+    "ALERT_WEBHOOK_TOKEN": ("generated", "openssl rand -hex 32"),
+    "CORS_ORIGINS": ("address", '["https://<domain>","https://admin.<domain>"] once the domain is bought'),
+    "PUBLIC_WEB_URL": ("address", "https://<domain>"),
+    "PUBLIC_API_URL": ("address", "https://api.<domain>"),
+    "NEXT_PUBLIC_APP_URL": ("address", "https://<domain>"),
+    "EMAIL_FROM": ("address", "e.g. orders@<domain>, on the domain verified in SES"),
+    "UPLOADS_BUCKET": ("railway", "railway bucket credentials --bucket uploads"),
+    "AWS_ENDPOINT_URL": ("railway", "railway bucket credentials --bucket uploads"),
+    "AWS_REGION": ("railway", "railway bucket credentials --bucket uploads"),
+    "AWS_ACCESS_KEY_ID": ("railway", "railway bucket credentials --bucket uploads"),
+    "AWS_SECRET_ACCESS_KEY": ("railway", "railway bucket credentials --bucket uploads"),
+    "S3_ADDRESSING_STYLE": ("railway", "railway bucket credentials --bucket uploads (urlStyle)"),
+    "STRIPE_SECRET_KEY": ("account", "Stripe (live mode): Developers > API keys (or a restricted key)"),
+    "STRIPE_PUBLISHABLE_KEY": ("account", "Stripe (live mode): Developers > API keys"),
+    "STRIPE_WEBHOOK_SECRET": ("account", "Stripe (live mode): Webhooks > payments endpoint > signing secret"),
+    "STRIPE_CONNECT_WEBHOOK_SECRET": ("account", "Stripe (live mode): Webhooks > Connect endpoint > signing secret"),
+    "STRIPE_PAYOUTS_WEBHOOK_SECRET": ("account", "Stripe (live mode): Webhooks > transfers endpoint > signing secret"),
+    "TWILIO_ACCOUNT_SID": ("account", "Twilio console: Account Info"),
+    "TWILIO_AUTH_TOKEN": ("account", "Twilio console: Account Info (or an API key pair)"),
+    "TWILIO_VERIFY_SERVICE_SID": ("account", "Twilio console: Verify > Services > create one (VA...)"),
+    "SES_ACCESS_KEY_ID": ("account", "AWS: IAM user with ses:SendEmail only > access key"),
+    "SES_SECRET_ACCESS_KEY": ("account", "AWS: the same IAM access key"),
+    "SENTRY_DSN": ("account", "Sentry: backend project > Settings > Client Keys (DSN)"),
+    "NEXT_PUBLIC_SENTRY_DSN": ("account", "Sentry: web (or admin) project > Client Keys (DSN)"),
 }
 
 
@@ -372,6 +420,8 @@ def check(v: Val | None, rule: str) -> str | None:
         return f"defined as {v.kind}"
     if rule == "live" and (v.kind != "set" or v.value not in ("live", "sendgrid")):
         return "not a live provider"
+    if rule.startswith("one_of:") and (v.kind != "set" or v.value not in rule[7:].split("|")):
+        return f"must be one of {rule[7:].replace('|', ', ')}"
     if rule == "not_fake" and v.kind == "set" and (v.value or "").lower() in FAKE_VALUES:
         return "a fake or fall-back value"
     if rule == "empty" and v.kind != "empty":
@@ -409,8 +459,11 @@ def main() -> int:
           f"backend, {len(web_reads)} web and {len(admin_reads)} admin process.env names, {len(expo_names)} EXPO_PUBLIC names.")
 
     # 1. Required for production
-    required = list(REQUIRED) + [(n, W, "sealed" if "KEY" in n or "SID" in n else "set", wreq_at.split(":")[0],
-                                  "_REQUIRED_PROD_SETTINGS") for n in wreq]
+    wenv = prod.get("worker", {})
+    chosen = [f"{ch}:{getattr(wenv.get(var), 'value', '')}" for ch, var in (("email", "EMAIL_PROVIDER"), ("sms", "SMS_PROVIDER"))]
+    wnames = [n for key in chosen for n in wreq.get(key, [])]
+    required = list(REQUIRED) + [(n, W, "sealed" if any(x in n for x in ("KEY", "SID", "TOKEN", "SECRET")) else "set",
+                                  wreq_at.split(":")[0], "_REQUIRED_PROD_SETTINGS") for n in wnames]
     print("\n1. What production needs, against railway.ts (production)")
     for name, services, rule, path, pattern in required:
         for svc in services:
@@ -455,7 +508,7 @@ def main() -> int:
         for name, at in sorted(reads.items()):
             if name in env or name == "NODE_ENV":
                 continue
-            src = derived.get(name)
+            src = derived.get(name) or FRONTEND_DERIVED.get(name)
             if src and src in env:
                 continue
             how = "the image's build-arg default" if (name in args or (src and src in args)) else "the code's fallback"
@@ -495,7 +548,27 @@ def main() -> int:
         if gsf and not (ROOT / f"apps/{app}" / gsf).exists():
             print(f"  note apps/{app}: {gsf} is not in the checkout (Firebase; app.config.js drops it, so no FCM)")
 
-    print(f"\nResult: {len(gaps)} gap(s), {warn} warning(s).")
+    # 7. Values set by hand in Railway (preserve()): not checkable from the repo
+    print("\n7. Set by hand in Railway before go-live (preserve(): the repo holds no value)")
+    by_hand: dict[str, list[str]] = {}
+    for svc in sorted(prod):
+        for name, v in sorted(prod[svc].items()):
+            if isinstance(v, Val) and v.kind == "by-hand":
+                by_hand.setdefault(name, []).append(svc)
+    for kind, title in (("account", "from Srini's accounts"), ("address", "addresses (the domain)"),
+                        ("generated", "generated once (Claude Code; sealed without printing)"),
+                        ("railway", "from Railway")):
+        names = [n for n in sorted(by_hand) if BY_HAND.get(n, ("",))[0] == kind]
+        print(f"  {title}: {len(names)}")
+        for n in names:
+            print(f"    {n} ({', '.join(by_hand[n])}): {BY_HAND[n][1]}")
+    for n in sorted(set(by_hand) - set(BY_HAND)):
+        gaps.append(f"{n}: set by hand but its source isn't listed in BY_HAND")
+        print(f"  GAP  {n} ({', '.join(by_hand[n])}): no source listed (add it to BY_HAND)")
+    accounts = sum(1 for n in by_hand if BY_HAND.get(n, ("",))[0] == "account")
+
+    print(f"\nResult: {len(gaps)} gap(s), {warn} warning(s); {len(by_hand)} value(s) to set by hand in Railway, "
+          f"{accounts} of them from Srini's accounts.")
     return 1 if gaps else 0
 
 
