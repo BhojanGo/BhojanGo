@@ -27,9 +27,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "qa",
-        "EXPO_PUBLIC_CORE_URL": "https://{QA_CORE_API_HOST}",
-        "EXPO_PUBLIC_REALTIME_URL": "https://{QA_REALTIME_HOST}",
-        "EXPO_PUBLIC_WEB_URL": "https://{QA_WEB_HOST}"
+        "EXPO_PUBLIC_CORE_URL": "https://api.qa.bhojango.com",
+        "EXPO_PUBLIC_REALTIME_URL": "https://rt.qa.bhojango.com",
+        "EXPO_PUBLIC_WEB_URL": "https://qa.bhojango.com"
       },
       "android": {
         "buildType": "apk"

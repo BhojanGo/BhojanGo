@@ -61,6 +61,8 @@ class ApiTests(unittest.TestCase):
 
     def test_silent_hosted_target_is_refused_silent_local_one_allowed(self) -> None:
         self.assertIsNotNone(g.api_problem("https://core-api-qa.up.railway.app", health(None)))
+        # QA's own address on bhojango.com (2026-11-19) is refused the same way: by what /health reports
+        self.assertIsNotNone(g.api_problem("https://api.qa.bhojango.com/api/v1", health("qa")))
         self.assertIsNone(g.api_problem("http://core-api:8001/api/v1", health(None)))
         self.assertIsNone(g.api_problem("http://localhost:8001", health(None)))
 

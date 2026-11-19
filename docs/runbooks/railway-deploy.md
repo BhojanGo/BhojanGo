@@ -266,8 +266,9 @@ Notes:
 Run once while QA was being built, before the rule above: QA no longer gets the G1, integration, Playwright,
 Maestro, WebSocket, restart or k6 runs that wrote test data (`reset` clears what they left).
 
-URLs: web https://web-qa-3fd3b3f8.up.railway.app, admin https://admin-qa-df130aa4.up.railway.app,
+URLs then: web https://web-qa-3fd3b3f8.up.railway.app, admin https://admin-qa-df130aa4.up.railway.app,
 API https://core-api-qa-03da2a58.up.railway.app (realtime https://realtime-qa-2a1e9d2e.up.railway.app).
+Since 2026-11-19 QA has its own addresses (below, "QA's addresses on bhojango.com").
 
 | Check | Result |
 |---|---|
@@ -283,6 +284,33 @@ API https://core-api-qa-03da2a58.up.railway.app (realtime https://realtime-qa-2a
 | Restart each service | postgres, redis, core-api, realtime, worker, web, admin: healthy within about 15 s. The order was kept, the session refreshed (refresh tokens survived Redis's restart), and a status change made during each backend restart reached the customer's tracking socket |
 | Cold start (sleeping frontends) | web 2.9 s, admin 1.8 s for the first request; 0.2–0.3 s after that |
 | Cost | about $7 a month for the seven services (Railway metrics); the workspace limit is unchanged (see Cost control) |
+
+## QA's addresses on bhojango.com (2026-11-19)
+
+| Address | Service |
+|---|---|
+| https://qa.bhojango.com | web |
+| https://admin.qa.bhojango.com | admin |
+| https://api.qa.bhojango.com | core-api |
+| https://rt.qa.bhojango.com | realtime |
+
+- **How they were added:** Railway custom domains on each service (API `customDomainCreate`, the same port as the
+  service's own domain). Railway asks for a CNAME (`qa` → `<id>.up.railway.app`) and a TXT record
+  (`_railway-verify.qa` → `railway-verify=...`) per name; both went into GoDaddy's DNS for `bhojango.com`. Verified
+  and with Let's Encrypt certificates about 15 minutes later. No CAA record on the domain.
+- **Variables:** `railway.ts` gives QA these addresses (`QA_HOSTS`): `PUBLIC_WEB_URL`, `PUBLIC_API_URL`, `CORS_ORIGINS`,
+  the web's and admin's `NEXT_PUBLIC_CORE_URL` / `NEXT_PUBLIC_REALTIME_URL` and the web's `NEXT_PUBLIC_APP_URL`
+  (canonical links, sitemap). Cookies are host-only (no `Domain` attribute), so nothing changes for them.
+- **Gotcha:** once a service has a custom domain, `${{<service>.RAILWAY_PUBLIC_DOMAIN}}` resolves to the custom
+  domain. The old `*.up.railway.app` origins are therefore named in `railway.ts` (`QA_OLD_ORIGINS`), allowed until
+  2026-11-26, then removed (docs/STATUS.md).
+- **Stripe (test mode):** the three webhook endpoints moved to `https://api.qa.bhojango.com/...` (payments, payouts,
+  and Connect, which now listens to connected accounts as designed); their signing secrets are sealed on core-api; the
+  old endpoints are disabled. Checked with a test payment (200 on the new endpoint) and an `account.updated` on a
+  test Express account (200 on the Connect endpoint).
+- **Indexing:** QA sends `X-Robots-Tag: noindex, nofollow` and a robots.txt that blocks everything
+  (`apps/web/src/lib/indexing.ts`, tested in `apps/web/test/indexing.test.ts`); production doesn't.
+- The apps' `eas.json` preview profile and `tools/mobile/env-profile.sh qa` use these addresses.
 
 ## Every deploy after that
 
