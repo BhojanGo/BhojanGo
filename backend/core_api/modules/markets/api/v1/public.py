@@ -20,7 +20,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone
-from core_api.modules.markets.service import legal, photos, rules
+from core_api.modules.markets.service import legal, photos, review, rules
 from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
 
@@ -34,10 +34,14 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-def public_status(country: Country, region: Region, city: City) -> str | None:
+def public_status(country: Country, region: Region, city: City, *, show_review: bool = False) -> str | None:
     """What a visitor sees for a city: "live" (orders open), "soon" (announced), or
     None (hidden: still a draft, or closed). A soon city needs its country to be past
-    draft; its state may still be a draft (the state opens with its first city)."""
+    draft; its state may still be a draft (the state opens with its first city).
+    A review-only city (R19, markets.service.review) is hidden too, unless
+    ``show_review`` (discover, for one of its review accounts)."""
+    if not show_review and review.is_review_only(getattr(city, "settings", None)):
+        return None
     if rules.chain_open(country.status, region.status, city.status):
         return "live"
     if city.status == "soon" and country.status != "draft":

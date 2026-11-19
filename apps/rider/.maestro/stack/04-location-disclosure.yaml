@@ -1,0 +1,55 @@
+# R19 (Google Play): the prominent disclosure before the background location prompt.
+# The approved seeded delivery partner goes online with location "while using the app"
+# only (the app is relaunched with location allowed and everything else denied, so
+# background access is not granted); the disclosure shows right after going online.
+# "No thanks" keeps foreground location; then offline again. Throwaway stack only
+# (.github/workflows/app-screens.yml); the phone waits in Madhapur (stack-screens.sh).
+appId: com.bhojango.rider
+---
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: "9000000201"
+      INDIA: "true"
+- extendedWaitUntil:
+    visible: "You're offline|Looking for deliveries"
+    timeout: 60000
+- stopApp
+- launchApp:
+    clearState: false
+    permissions:
+      all: deny
+      location: allow
+- extendedWaitUntil:
+    visible: "You're offline|Looking for deliveries"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000
+- tapOn:
+    id: "go-online"
+- extendedWaitUntil:
+    visible:
+      id: "bg-disclosure"
+    timeout: 30000
+- assertVisible: ".*even when the app is closed or not in use.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-location-disclosure
+- tapOn:
+    id: "bg-no-thanks"
+- extendedWaitUntil:
+    visible:
+      id: "bg-banner"
+    timeout: 10000
+- takeScreenshot: stack-rider-location-banner
+- tapOn:
+    id: "go-offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000

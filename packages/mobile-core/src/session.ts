@@ -16,6 +16,8 @@ export const urls = {
   core: env("EXPO_PUBLIC_CORE_URL", "http://localhost:8001"),
   realtime: env("EXPO_PUBLIC_REALTIME_URL", "http://localhost:8004"),
   worker: env("EXPO_PUBLIC_WORKER_URL", "http://localhost:8006"),
+  /** The website (legal pages, the photo library): R19 Account -> Legal in the Kitchen and Delivery apps. */
+  web: env("EXPO_PUBLIC_WEB_URL", "http://localhost:3000"),
 };
 
 const ACCESS = "access_token";

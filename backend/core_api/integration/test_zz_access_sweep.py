@@ -248,6 +248,11 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
     ("POST", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd",
                                                          body=lambda c: {"preset": "outside"}),
+    # R19 report or block (Apple 1.2): the order's customer and rider only
+    ("POST", "/api/v1/orders/{order_id}/messages/{message_id}/report"): user(
+        "other_customer", "other_partner", "other_rider", "partner", "ops_hyd", body=lambda c: {"reason": "spam"}),
+    ("POST", "/api/v1/orders/{order_id}/messages/block"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
+    ("DELETE", "/api/v1/orders/{order_id}/messages/block"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
     ("GET", "/api/v1/orders/{order_id}/timeline"): user("other_customer", "other_partner", "other_rider", "ops_boi"),
     ("POST", "/api/v1/orders/{order_id}/cancel"): user("other_customer", "other_partner", "other_rider", "ops_boi",
                                                        body=lambda c: {"reason": "customer_cancelled"}),
@@ -481,7 +486,7 @@ class Ctx:
                   "payment_method_id": self.payment_method, "article_id": self.help_article, "topic": "orders", "kind": "restaurant", "target_id": self.spice,
                   "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
-                  "pause_id": str(uuid.UUID(int=11)), "refund_id": str(uuid.UUID(int=12)),
+                  "pause_id": str(uuid.UUID(int=11)), "refund_id": str(uuid.UUID(int=12)), "message_id": str(uuid.UUID(int=13)),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
 

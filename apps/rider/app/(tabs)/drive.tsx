@@ -12,11 +12,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, Vibration, View } from 
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
 
 import { Checklist } from "../../lib/checklist";
+import { BackgroundDisclosure } from "../../lib/disclosure";
 import { askForBackgroundLocation, askForLocation, hasBackgroundLocation, sendNow, setTrackingNotice, startTracking, stopTracking,
   trackingHere } from "../../lib/location";
 import { RouteMap } from "../../lib/map";
 import { useFormat, useLive, useLiveRider, useOnboarding, useWeek, type Offer } from "../../lib/rider";
 import { night, radius, space, ui } from "../../lib/theme";
+
+/** The background location disclosure shows by itself once per app run (going online); the banner reopens it. */
+let disclosedThisRun = false;
 
 export default function Drive() {
   const { cash, cityName, cityCentre } = useFormat();
@@ -31,6 +35,7 @@ export default function Drive() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [background, setBackground] = useState(true);
+  const [disclose, setDisclose] = useState(false);
   /** Does this phone share its GPS? null until known. */
   const [here, setHere] = useState<boolean | null>(null);
   // The map fills the screen; the part above the sheet is where the route is fitted.
@@ -44,6 +49,7 @@ export default function Drive() {
   }, []));
 
   const status = now?.state.status ?? "offline";
+  const known = now != null; // the server's state has arrived (until then "offline" is only a default)
   const finished = useLive((s) => s.finished);
   const busyWith = status === "busy" && !finished.includes(now?.state.order_id ?? "") ? now?.state.order_id : undefined;
   // Open the delivery only while this tab is on screen. After a batch's first drop-off the
@@ -73,6 +79,9 @@ export default function Drive() {
     void (async () => {
       const mine = await trackingHere();
       if (status !== "offline" && mine) await startTracking();
+      // Offline by the server's word (another phone, a timeout, an admin) once it is
+      // known: the background task stops here too. Location runs only on shift (R19).
+      if (status === "offline" && known && mine) await stopTracking();
       if (live) setHere(mine);
       const bg = await hasBackgroundLocation();
       if (live) setBackground(bg);
@@ -80,7 +89,7 @@ export default function Drive() {
     return () => {
       live = false;
     };
-  }, [status]);
+  }, [status, known]);
 
   if (!onboarding.data) {
     return (
@@ -113,6 +122,11 @@ export default function Drive() {
       setHere(true);
       await sendNow();
       await refresh();
+      // On shift: offer background location, explained first (R19, Google Play's prominent disclosure).
+      if (!(await hasBackgroundLocation()) && !disclosedThisRun) {
+        disclosedThisRun = true;
+        setDisclose(true);
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t("rider.drive.online_failed"));
     } finally {
@@ -126,6 +140,7 @@ export default function Drive() {
     try {
       unwrap(await api.realtime.POST("/api/v1/riders/me/offline"));
       await stopTracking();
+      setDisclose(false);
       setHere(false);
       await refresh();
     } catch (e) {
@@ -158,6 +173,9 @@ export default function Drive() {
   const statusText = online ? (city ? t("rider.drive.online_in", { city }) : t("rider.drive.online")) : t("rider.drive.offline");
   return (
     <View style={ui.screen} onLayout={(e) => setScreenH(Math.round(e.nativeEvent.layout.height))}>
+      <BackgroundDisclosure visible={disclose && online && here === true}
+        onAllow={async () => { setDisclose(false); setBackground(await askForBackgroundLocation()); }}
+        onNoThanks={() => setDisclose(false)} />
       <RouteMap rider={fix} pickup={now?.offer?.pickup} dropoff={now?.offer?.dropoff} height={screenH}
         visible={screenH - (status === "offered" && now?.offer ? (now.offer.batch && now.offer.batch.length > 1 ? 540 : 470) : panelH) - 10}
         center={cityCentre(w?.city)} label={t("rider.map.label")} />
@@ -194,7 +212,7 @@ export default function Drive() {
             </Pressable>
           ) : null}
           {online && here && !background ? (
-            <Pressable accessibilityRole="button" onPress={async () => setBackground(await askForBackgroundLocation())} style={styles.bg}>
+            <Pressable testID="bg-banner" accessibilityRole="button" onPress={() => setDisclose(true)} style={styles.bg}>
               <Text style={ui.note}>
                 <Text style={ui.bold}>{t("rider.drive.background_title")}</Text> {t("rider.drive.background_sub")}
               </Text>

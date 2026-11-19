@@ -386,9 +386,11 @@ class MarketService:
         return Demand(cities=out, suggested=suggested)
 
     # ── locate (used by apps and the quote engine) ───────────────────────────
-    async def locate(self, lat: float, lng: float) -> LocateResult:
+    async def locate(self, lat: float, lng: float, hide: frozenset[str] | set[str] = frozenset()) -> LocateResult:
+        """``hide``: city codes to treat as if they weren't there (R19: review-only
+        cities, for the public locate and discover only; pricing and orders pass nothing)."""
         now = datetime.now(UTC)
-        hits = await self.repo.zones_containing(lat, lng)
+        hits = [h for h in await self.repo.zones_containing(lat, lng) if h[1].code not in hide]
         for zone, city, region, country in hits:
             if ZoneState(zone.status, zone.paused_until).is_open(now) and rules.chain_open(
                 country.status, region.status, city.status

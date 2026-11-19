@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
@@ -13,7 +14,7 @@ from core_api.modules.identity.models.account import Favourite, NotificationPref
 from core_api.modules.identity.models.address import Address
 from core_api.modules.identity.models.admin_role import AdminRoleAssignment
 from core_api.modules.identity.models.recovery_code import RecoveryCode
-from core_api.modules.identity.models.rider import RiderProfile
+from core_api.modules.identity.models.rider import RiderDocument, RiderProfile
 from core_api.modules.identity.models.user import User
 from core_api.modules.legal.models import LegalAcceptance, LegalDocument
 from core_api.modules.payments.models.payment_method import PaymentMethod
@@ -36,7 +37,7 @@ TestSessionLocal = async_sessionmaker(
 # types), so only create identity's tables in SQLite.
 IDENTITY_TABLES = [User.__table__, Address.__table__, AdminRoleAssignment.__table__, PaymentMethod.__table__,
                    Favourite.__table__, NotificationPreference.__table__, RecoveryCode.__table__,
-                   LegalDocument.__table__, LegalAcceptance.__table__, RiderProfile.__table__]
+                   LegalDocument.__table__, LegalAcceptance.__table__, RiderProfile.__table__, RiderDocument.__table__]
 
 
 class FakeBreaches:
@@ -107,6 +108,19 @@ async def fake_country(db, code: str):  # type: ignore[no-untyped-def]
     return CountryInfo(code, row[0], row[1], row[2], row[3]) if row else None
 
 
+@contextlib.contextmanager
+def deletion_lookups():  # type: ignore[no-untyped-def]
+    """R19: what account deletion checks first (kitchens owned, orders in progress, payouts
+    not paid yet) and the kitchens it closes: Postgres-only tables too."""
+    with (
+        patch("core_api.modules.catalog.service.lookup.owned_restaurant_ids", AsyncMock(return_value=[])),
+        patch("core_api.modules.catalog.service.lookup.close_for_departed_owner", AsyncMock(return_value=0)),
+        patch("core_api.modules.orders.service.lookup.orders_in_progress", AsyncMock(return_value=0)),
+        patch("core_api.modules.finance.service.lookup.money_owed", AsyncMock(return_value={})),
+    ):
+        yield
+
+
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession, audit_log, outbox) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
@@ -152,6 +166,7 @@ async def client(db_session: AsyncSession, audit_log, outbox) -> AsyncGenerator[
         # changes to them are tested in core_api/integration/test_account.py.
         patch("core_api.modules.orders.service.lookup.forget_customer", AsyncMock(return_value=0)),
         patch("core_api.modules.catalog.service.lookup.forget_reviewer", AsyncMock()),
+        deletion_lookups(),
         # Markets' countries table is Postgres-only; the seeded two stand in for it here.
         patch("core_api.modules.markets.service.countries.lookup", fake_country),
         patch("core_api.modules.markets.service.countries.open_currencies", AsyncMock(return_value={"INR", "USD"})),

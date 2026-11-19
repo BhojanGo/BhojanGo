@@ -1,6 +1,7 @@
 // Help and settings: ask BhojanGo to call you back (B3: a ticket in the admin
 // support console), this tablet (kitchen, the alert sound, the language: the
-// country's languages from Markets), sign out.
+// country's languages from Markets), sign out, and Account and legal (R19:
+// Privacy policy, Terms, delete the account: app/account.tsx).
 import {
   api, ApiError, type CoreSchemas, field, LanguagePicker, LoadError, SafeAreaView, type, unwrap, useFirstLoad, useI18n, useSession,
 } from "@bhojango/mobile-core";
@@ -38,6 +39,11 @@ export default function Help() {
           <View testID="language-section" style={s.panel}>
             <Text accessibilityRole="header" style={type.h3}>{tr("partner.help.language")}</Text>
             <LanguagePicker />
+          </View>
+          <View testID="account-section" style={s.panel}>
+            <Text accessibilityRole="header" style={type.h3}>{tr("partner.help.account")}</Text>
+            <Text style={t.muted}>{tr("partner.help.account_detail")}</Text>
+            <Btn testID="open-account" title={tr("partner.help.account")} onPress={() => router.push("/account")} />
           </View>
         </View>
       </ScrollView>

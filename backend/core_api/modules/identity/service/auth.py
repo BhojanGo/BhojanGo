@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.identity.models.address import Address
 from core_api.modules.identity.models.recovery_code import RecoveryCode
-from core_api.modules.identity.models.rider import RiderProfile
+from core_api.modules.identity.models.rider import RiderDocument, RiderProfile
 from core_api.modules.identity.models.user import User
 from core_api.modules.identity.repository.admin_role import AdminRoleRepository
 from core_api.modules.identity.repository.user import UserRepository
@@ -255,10 +255,48 @@ class AuthService:
         logger.info("user_logged_in", user_id=str(user.id), method=data.provider)
         return await finish_sign_in(self.db, user, data.provider, is_new_user=is_new)
 
-    async def delete_account(self, user: User, access_token: str | None = None) -> None:
+    async def deletion_blocker(self, user: User) -> dict | None:
+        """Why this account can't be deleted yet (R19), or None.
+
+        A delivery partner or kitchen owner we still owe money to (a payout statement
+        not paid yet) waits until it is paid: deleting first would remove the payout
+        details we pay it with. Orders still on their way wait too. Customers have
+        nothing to wait for. The answer is shown in the apps (code + amount)."""
+        from core_api.modules.catalog.service import lookup as catalog_lookup
+        from core_api.modules.finance.service import lookup as finance_lookup
+        from core_api.modules.orders.service import lookup as order_lookup
+
+        rider = user.role == "driver"
+        kitchens = await catalog_lookup.owned_restaurant_ids(self.db, user.id)
+        if not rider and not kitchens:
+            return None
+        if await order_lookup.orders_in_progress(self.db, driver_id=user.id if rider else None, restaurant_ids=kitchens):
+            return {"code": "ORDERS_IN_PROGRESS",
+                    "message": "Finish or hand over the orders in progress first, then delete your account."}
+        owed = await finance_lookup.money_owed(self.db, rider_id=user.id if rider else None, restaurant_ids=kitchens)
+        if owed:
+            from decimal import Decimal
+
+            from shared.money import format_money
+
+            currency, minor = sorted(owed.items())[0]
+            amount = format_money(Decimal(minor) / 100, currency, user.preferred_locale)
+            return {"code": "MONEY_OWED", "amount": amount, "currency": currency,
+                    "message": f"We still owe you {amount}. You can delete your account once it is paid out."}
+        return None
+
+    async def delete_account(self, user: User, access_token: str | None = None, *, check: bool = True) -> None:
         """Account deletion (app store requirement, GDPR/DPDP): remove personal
         data, end every session, drop admin roles. Orders keep the anonymous id,
-        with the street, map pin and notes removed (orders.service.lookup.forget_customer)."""
+        with the street, map pin and notes removed (orders.service.lookup.forget_customer).
+
+        R19: a delivery partner's documents go too (rows and the stored licence and
+        insurance photos: the user row is only updated, so ON DELETE CASCADE never
+        fires); a kitchen owner's kitchens stop taking orders and leave every listing.
+        ``check``: refuse (409) while money is owed or orders are in progress
+        (deletion_blocker); an admin's right-to-erasure request skips it."""
+        if check and (why := await self.deletion_blocker(user)):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=why)
         uid = str(user.id)
         await self.repo.update(
             user.id,
@@ -279,6 +317,7 @@ class AuthService:
         )
         await self.db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
         await self.db.execute(delete(RiderProfile).where(RiderProfile.user_id == user.id))  # date of birth, vehicle
+        await self._forget_rider_documents(user.id)
         await AdminRoleRepository(self.db).delete_for_user(user.id)
         await self.db.execute(delete(Address).where(Address.user_id == user.id))
         # Saved cards, favourites and preferences go; orders and reviews stay
@@ -292,10 +331,32 @@ class AuthService:
         await account.forget(self.db, user.id)
         await order_lookup.forget_customer(self.db, user.id)
         await catalog_lookup.forget_reviewer(self.db, user.id)
+        closed = await catalog_lookup.close_for_departed_owner(self.db, user.id)
+        if closed:
+            logger.info("kitchens_closed_owner_deleted", user_id=uid, kitchens=closed)
         await revoke_all_sessions(uid)
         if access_token:
             await blacklist_access_token(access_token)
         logger.info("user_account_deleted", user_id=uid)
+
+    async def _forget_rider_documents(self, user_id: uuid.UUID) -> None:
+        """A delivery partner's onboarding documents: the rows and the stored photos.
+        A file the storage can't remove now is logged (the row goes regardless)."""
+        from sqlalchemy import select
+
+        from shared.providers.storage import get_storage
+
+        keys = [k for k in (await self.db.execute(
+            select(RiderDocument.file_key).where(RiderDocument.rider_id == user_id))).scalars() if k]
+        await self.db.execute(delete(RiderDocument).where(RiderDocument.rider_id == user_id))
+        if not keys:
+            return
+        storage = get_storage()
+        for key in keys:
+            try:
+                await storage.delete(key)
+            except Exception as e:  # noqa: BLE001 - the account is deleted; the leftover file is logged for cleanup
+                logger.warning("rider_document_file_not_deleted", user_id=str(user_id), key=key, error=str(e))
 
     @staticmethod
     def _require_active(user: User) -> None:

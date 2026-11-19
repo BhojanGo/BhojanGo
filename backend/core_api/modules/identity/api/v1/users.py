@@ -74,6 +74,11 @@ async def delete_me(
     session at once and deactivates the account. Orders keep the anonymous
     user id so restaurant and tax records stay intact, without the street,
     map pin or notes (city, state, postal code and country stay for tax).
+
+    A delivery partner's documents (and their photos) are deleted; a kitchen
+    owner's kitchens close and leave every listing. 409 ``MONEY_OWED`` (with
+    ``amount``) while a payout to them is not paid yet, or ``ORDERS_IN_PROGRESS``
+    while their orders are on the way: they can delete once that is settled.
     """
     await AuthService(db).delete_account(current_user, credentials.credentials)
     return MessageResponse(message="Account deleted and data anonymized successfully")
@@ -104,6 +109,6 @@ async def admin_anonymize_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     admin.require("customers.edit", user.country, within=True)
-    await AuthService(db).delete_account(user)
+    await AuthService(db).delete_account(user, check=False)  # erasure on request: support settles any payout by hand
     logger.info("admin_user_anonymized", user_id=str(user_id), by=str(admin.user.id))
     return MessageResponse(message="User data anonymized successfully")

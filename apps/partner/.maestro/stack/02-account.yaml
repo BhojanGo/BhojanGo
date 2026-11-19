@@ -1,0 +1,48 @@
+# R19 (app store review): Help and settings > Account and legal: the Privacy policy and
+# Terms links and the delete-account confirmation, as the seeded kitchen owner.
+# Only opens the sheet and keeps the account; 03-delete-account deletes a new one.
+# Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.partner
+---
+- runFlow: ../sign-in.yaml
+- runFlow:
+    when:
+      visible: "Which kitchen is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible:
+      id: "rail-help"
+    timeout: 60000
+- tapOn:
+    id: "rail-help"
+- scrollUntilVisible:
+    element:
+      id: "open-account"
+- tapOn:
+    id: "open-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- assertVisible:
+    id: "legal-privacy"
+- assertVisible:
+    id: "legal-terms"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-account
+- tapOn:
+    id: "delete-account"
+- extendedWaitUntil:
+    visible:
+      id: "delete-sheet"
+    timeout: 10000
+- assertVisible: "Delete your account?"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-delete-confirm
+- tapOn:
+    id: "keep-account"
+- assertNotVisible:
+    id: "delete-sheet"

@@ -9,6 +9,7 @@ Public (no sign-in): prices are the same for everyone at an address.
 """
 import json
 import re
+import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal
@@ -20,10 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.service.photos import cuisine_photo, photos_for
 from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
+from shared.auth import optional_viewer
 from shared.db import get_db
 
 router = APIRouter(prefix="/discover", tags=["Discover"])
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
+Looker = Annotated[uuid.UUID | None, Depends(optional_viewer)]
 
 KM_PER_MI = Decimal("1.609344")
 NEW_FOR_DAYS = 30
@@ -95,23 +98,32 @@ def _offer(c, restaurant: dict | None) -> Offer:  # type: ignore[no-untyped-def]
 
 
 @router.get("", response_model=Discover)
-async def discover(db: DB, lat: float | None = Query(None, ge=-90, le=90), lng: float | None = Query(None, ge=-180, le=180),
+async def discover(db: DB, viewer: Looker, lat: float | None = Query(None, ge=-90, le=90), lng: float | None = Query(None, ge=-180, le=180),
                    city: str | None = Query(None, pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")) -> Discover:
+    """Kitchens, cuisines and offers for a point (or a whole city). A review-only city
+    (R19) exists only for its review accounts: anyone else gets "not served" there
+    (a point) or 404 (its code)."""
     if city is None and (lat is None or lng is None):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Give lat and lng, or a city code")
+    from core_api.modules.markets.service import review
     from shared.redis import get_redis
 
-    key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}"
+    hidden = await review.hidden_for(db, viewer)
+    if hidden.city(city):  # before the cache: a review account's cached answer is never anyone else's
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
+    # A review account's answers are cached apart, so they never reach anyone else.
+    key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}" + (":review" if hidden.sees_review else "")
     r = await get_redis()
     cached = await r.get(key)
     if cached:
         return Discover(**json.loads(cached))
-    out = await _discover(db, lat, lng, city)
+    out = await _discover(db, lat, lng, city, hide=hidden.codes)
     await r.set(key, out.model_dump_json(), ex=CACHE_SECONDS)
     return out
 
 
-async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city_code: str | None) -> Discover:
+async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city_code: str | None,
+                    hide: frozenset[str] = frozenset()) -> Discover:
     from core_api.modules.catalog.models.restaurant import Restaurant
     from core_api.modules.catalog.service import geo
     from core_api.modules.catalog.service import menu as menu_svc
@@ -124,7 +136,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
 
     zone_id = zone_name = None
     if city_code is None:
-        loc = await MarketService(db).locate(lat, lng)  # type: ignore[arg-type]
+        loc = await MarketService(db).locate(lat, lng, hide=hide)  # type: ignore[arg-type]
         if not loc.serviceable:
             return Discover(served=False, reason=loc.reason,
                             city={"code": loc.city_code, "name": loc.city_name} if loc.city_code else None)
@@ -134,7 +146,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
     city, region, country = row
-    st = public_status(country, region, city)
+    st = public_status(country, region, city, show_review=city.code not in hide)
     if st is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
     city_path = f"/{country.code.lower()}/{slugify(city.name)}"

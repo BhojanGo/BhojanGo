@@ -5,6 +5,8 @@
   automatically (B5).
 - message: a signed-in customer wrote to support from Help (F9).
 - contact: someone not signed in used the Help contact form (F9).
+- chat_report: a customer or delivery partner reported a quick message from the
+  other side of an order (R19, Apple 1.2); the conversation is in details.
 
 Tickets show in the admin support console for the city; whoever deals with one
 resolves it with a note (audited).
@@ -24,7 +26,7 @@ class SupportTicket(Base):
     __table_args__ = (Index("ix_support_tickets_open", "status", "market_city", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # callback | problem
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # callback | problem | message | contact | chat_report
     status: Mapped[str] = mapped_column(String(12), nullable=False, default="open")  # open | resolved
     market_city: Mapped[str | None] = mapped_column(String(20), nullable=True)
     country: Mapped[str] = mapped_column(String(2), nullable=False)

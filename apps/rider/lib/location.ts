@@ -8,6 +8,11 @@
 // rider on QA whose position the demo simulator sends, sees the server's state
 // without this phone's GPS fighting the other source; "Use this phone's
 // location" on the Drive tab takes over deliberately.
+//
+// R19 (Google Play background location policy): the background task runs only while
+// the delivery partner is online (on shift): it starts when they go online, and
+// stops when they go offline, sign out or delete the account (stopTracking), or
+// when the server says they are offline.
 import { api, useSession, urls } from "@bhojango/mobile-core";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
@@ -63,13 +68,18 @@ export async function hasBackgroundLocation(): Promise<boolean> {
 }
 
 /** "Allow all the time", asked separately (Android only shows it in Settings), then
- * switch from following in the app to the foreground service. */
+ * switch from following in the app to the foreground service. Only ever asked while
+ * the delivery partner is online, after the prominent disclosure (lib/disclosure.tsx,
+ * R19): never at start-up, sign-in or sign-up. */
 export async function askForBackgroundLocation(): Promise<boolean> {
   const bg = await Location.requestBackgroundPermissionsAsync().catch(() => null);
   if (bg?.status !== "granted") return false;
-  watcher?.remove();
-  watcher = null;
-  await startTracking();
+  if (await trackingHere()) {
+    // Still on shift here: the background task takes over from following in the app.
+    watcher?.remove();
+    watcher = null;
+    await startTracking();
+  }
   return true;
 }
 

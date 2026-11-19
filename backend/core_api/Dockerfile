@@ -27,6 +27,8 @@ COPY alembic.ini alembic.ini
 COPY migrations migrations
 COPY worker/app/__init__.py worker/app/__init__.py
 COPY worker/app/models worker/app/models
+# R19: the store review accounts, run once in production at go-live (`python tools/review_accounts.py`).
+COPY tools/review_accounts.py tools/review_accounts.py
 
 # Optional: the website's "near you" hint from the visitor's IP (shared/geoip.py), from
 # DB-IP's free City Lite database (CC BY 4.0). GEOIP=1 fetches it at build time; without

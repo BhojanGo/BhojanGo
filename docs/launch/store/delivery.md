@@ -102,8 +102,14 @@ codes, the background check provider if one is used, and the customer of each or
 
 - Encrypted in transit: Yes, with `https://` production URLs (README item 3). Note
   that the background task posts to `urls.realtime` (`apps/rider/lib/location.ts:36`).
-- Deletion: **not in the app yet** (README item 1). Also, the server keeps the
-  licence and insurance records and images after deletion today (README item 1).
+- Deletion: Yes (R19). In the app: Account tab > "Delete account" > "Delete my account",
+  then confirm (`apps/rider/app/(tabs)/account.tsx`, shared sheet
+  `packages/mobile-core/src/account.tsx`). Location sharing stops first. The server
+  removes the name, email, phone, date of birth, vehicle, the onboarding documents and
+  their stored licence and insurance photos (`delete_account` in
+  `backend/core_api/modules/identity/service/auth.py`). It waits (HTTP 409, shown in the
+  app with the amount) while a payout statement is unpaid or a delivery is in
+  progress. Past deliveries and payouts stay for tax without personal details.
   On the web: `{DELETE_ACCOUNT_URL}`.
 
 ### App Store "nutrition label" answers
@@ -139,15 +145,15 @@ location) and the Foreground service declaration, each with a video (README item
 
 | Permission | Platform | Where declared | Text shown to the user | Requested in code | Status |
 |---|---|---|---|---|---|
-| Location when in use | iOS | `app.json:16` | "BhojanGo Delivery uses your location to show nearby deliveries and share your position with customers." | `lib/location.ts:57` (going online, `app/(tabs)/drive.tsx`) | Used. Expo's plugin may replace it with its default unless `locationWhenInUsePermission` is set; set it to this text. |
-| Location always and when in use | iOS | `app.json:17` and plugin `app.json:51` (the plugin's wins) | Plugin: "BhojanGo Delivery shares your location while you are online, even with the screen off, so you get nearby offers and customers can follow their order." | `lib/location.ts:68`, from the Drive tab banner (`app/(tabs)/drive.tsx:196-199`) | Used. Remove the `infoPlist` copy so there is one text. |
-| Location always | iOS | Added by `expo-location` default | Expo default ("Allow $(PRODUCT_NAME) to access your location") | `lib/location.ts:68` | Generic: set `locationAlwaysPermission` (README item 2). |
+| Location when in use | iOS | `expo-location` plugin `locationWhenInUsePermission` | "BhojanGo Delivery uses your location while you are online, to offer you nearby deliveries and show customers where their order is." | `lib/location.ts` `askForLocation` (going online, `app/(tabs)/drive.tsx`) | Used. Set once, in the plugin (R19). |
+| Location always and when in use | iOS | plugin `locationAlwaysAndWhenInUsePermission` | "BhojanGo Delivery uses your location while you are online, even when the app is closed or not in use, to offer you nearby deliveries and show customers where their order is. Going offline stops it." | `lib/location.ts` `askForBackgroundLocation`, only after the disclosure (`lib/disclosure.tsx`) while online | Used. The `infoPlist` copies are gone (R19). |
+| Location always | iOS | plugin `locationAlwaysPermission` | Same text as above | As above | Set explicitly (R19), no Expo default. |
 | Background mode `location` | iOS | `app.json:18-20` | Blue status bar indicator (`showsBackgroundLocationIndicator: true`, `lib/location.ts:109`) | `lib/location.ts:104` | Used. |
 | Camera | iOS / Android | `app.json:21`, plugin `app.json:78` | "BhojanGo Delivery uses the camera for photos at the door and of your documents." | `app/delivery/[id].tsx:153`, `app/document.tsx:23` | Used. |
 | Photo library | iOS | `app.json:22`, plugin `app.json:79` | "BhojanGo Delivery lets you choose a photo of your documents." | `app/document.tsx:23` | Used. |
-| Microphone | iOS / Android | Added by `expo-image-picker` default | Expo default | Never | Unused. Set `microphonePermission: false`. |
+| Microphone | iOS / Android | None | None | Never | Removed (R19): `expo-image-picker` `microphonePermission: false` (no `NSMicrophoneUsageDescription`, `RECORD_AUDIO` blocked). Confirm after prebuild. |
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | Android | `app.json` | System dialog | `lib/location.ts:57` | Used. |
-| `ACCESS_BACKGROUND_LOCATION` | Android | `app.json:34`, plugin `app.json:52` | System dialog ("Allow all the time" in Settings) | `lib/location.ts:68` | Used. Needs a stronger prominent disclosure, the Play declaration and a video (README item 2). |
+| `ACCESS_BACKGROUND_LOCATION` | Android | `app.json`, plugin `isAndroidBackgroundLocationEnabled` | Prominent disclosure first (`lib/disclosure.tsx`), then the system's "Allow all the time" | `lib/location.ts` `askForBackgroundLocation`, only while online | Used. Disclosure in place (R19); the Play declaration text and video shot list: [play-location-declaration.md](play-location-declaration.md). |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` | Android | `app.json:35-36`, plugin `app.json:53` | Ongoing "You're online" notification (`lib/location.ts:110-114`) | `lib/location.ts:104-116` | Used. Needs the Play foreground service declaration. |
 | `POST_NOTIFICATIONS` | Android 13+ | `expo-notifications` plugin | System dialog | Never requested | Without it the "You're online" notification is hidden (README item 7). |
 | `RECEIVE_BOOT_COMPLETED`, `VIBRATE` | Android | `app.json` | None (normal) | Notifications plugin | Keep only if push is added. |

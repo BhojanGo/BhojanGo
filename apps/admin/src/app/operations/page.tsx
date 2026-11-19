@@ -152,11 +152,18 @@ function waited(iso: string): string {
   return min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${Math.floor(min / 1440)} d`;
 }
 
+/** What the person did, by ticket kind (the rest: "Reported a problem"). */
+const TICKET_WORDS = {
+  callback: "Asked for a call back", message: "Wrote to support from Help", contact: "Used the Help contact form",
+  chat_report: "Reported a chat message",
+};
+
 function ticketTitle(t: OpsTicket): string {
   if (t.kind === "callback") return `Call back · ${t.restaurant_name ?? t.requester_name}`;
   // From Help (F9): a signed-in customer's message, or the contact form (not signed in).
   if (t.kind === "message") return `Message · ${t.order_code ? `${t.order_code} · ` : ""}${t.requester_name}`;
   if (t.kind === "contact") return `Contact form · ${t.requester_name}`;
+  if (t.kind === "chat_report") return `Chat report · ${t.order_code ? `${t.order_code} · ` : ""}${t.requester_name}`;
   return `Problem · ${t.order_code ?? ""} · ${t.requester_name}`;
 }
 
@@ -235,7 +242,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={ticketTitle(t)}>
       <div>
         <h2 className="m-0 text-h2">{ticketTitle(t)}</h2>
-        <p className="text-small text-muted">{({ callback: "Asked for a call back", message: "Wrote to support from Help", contact: "Used the Help contact form" } as Record<string, string>)[t.kind] ?? "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
+        <p className="text-small text-muted">{(TICKET_WORDS as Record<string, string>)[t.kind] ?? "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
       </div>
       <dl className="grid gap-3 text-small sm:grid-cols-2">
         <div><dt className="font-bold">Who</dt><dd>{t.requester_name}{t.requester_role === "partner" && t.restaurant_name ? ` · ${t.restaurant_name}` : ""}</dd></div>
@@ -248,6 +255,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
         <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>
       </dl>
       {t.kind === "problem" ? <ProblemDetails t={t} /> : null}
+      {t.kind === "chat_report" ? <ChatReportDetails t={t} /> : null}
       {t.status === "resolved" ? (
         <p className="rounded-xl bg-porcelain p-4 text-small"><b>Resolved:</b> {t.resolution}</p>
       ) : mayResolve ? (
@@ -263,6 +271,33 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
       ) : <p className="text-small text-muted">You can see this ticket; city ops or support resolve it.</p>}
       {msg ? <p role="alert" className="text-label text-chili">{msg}</p> : null}
     </section>
+  );
+}
+
+/** A reported quick message (R19, Apple 1.2): who wrote it, what it said, and the conversation around it. */
+function ChatReportDetails({ t }: { t: OpsTicket }) {
+  const d = t.details as {
+    reported_role?: string; reported_user_id?: string; message_id?: string; message_text?: string; reason_words?: string; blocked?: boolean;
+    conversation?: { id?: string; role: string; text: string; at: string }[];
+  };
+  const who = (role?: string) => (role === "rider" ? "Delivery partner" : role === "customer" ? "Customer" : role ?? "Unknown");
+  return (
+    <div className="space-y-3 rounded-xl bg-porcelain p-4 text-small" aria-label="The reported message">
+      <p><b>{who(t.requester_role)}</b> reported a message from the order&apos;s <b>{who(d.reported_role).toLowerCase()}</b>
+        {d.reported_user_id ? <span className="text-muted"> (user {d.reported_user_id.slice(0, 8)})</span> : null}
+        {" "}for <b>{d.reason_words ?? t.topic}</b>.{d.blocked ? " They also blocked them." : ""}</p>
+      <blockquote className="border-l-4 border-chili pl-3">“{d.message_text ?? ""}”</blockquote>
+      {d.conversation?.length ? (
+        <ol className="space-y-1" aria-label="The conversation">
+          {d.conversation.map((m, i) => (
+            <li key={m.id ?? i} className={m.id && m.id === d.message_id ? "font-bold" : undefined}>
+              <span className="text-muted">{clock(m.at)} · {who(m.role)}:</span> {m.text}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      <p className="text-muted">Contact the reported person if needed, and note what you did. Messages are only open while an order is on its way.</p>
+    </div>
   );
 }
 
