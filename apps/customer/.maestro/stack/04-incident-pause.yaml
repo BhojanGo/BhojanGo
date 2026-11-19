@@ -23,10 +23,39 @@ appId: com.bhojango.app
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-customer-kitchen-closed-for-now
+# R19: every dish's "+" is off and says why (the city's pause is named first).
+- scrollUntilVisible:
+    element:
+      id: "dish-blocked-reason"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Ordering is paused"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-kitchen-dish-add-off
+# The dish still opens to read about it; its add button is off and says why.
+- tapOn:
+    id: "dish-blocked-reason"
+- extendedWaitUntil:
+    visible:
+      id: "add-to-bag-blocked"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-item-add-off
 - openLink: bhojango://bag
 - extendedWaitUntil:
     visible:
       id: "bag-blocked"
     timeout: 30000
 - assertVisible: "Ordering is paused"
+# R19: centred, the admin's note from the pause, and Back to home.
+- assertVisible:
+    id: "bag-pause-note"
+    text: "Back by 9 pm"
+- assertVisible:
+    id: "bag-back-home"
+- assertVisible: "Back to home"
+- waitForAnimationToEnd:
+    timeout: 3000
 - takeScreenshot: stack-customer-bag-ordering-paused
