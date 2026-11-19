@@ -67,6 +67,22 @@ jobs:
         working-directory: backend
         run: uv run alembic check
 
+      # R19: production's base data on a database of its own (fresh, migrated), with production's
+      # settings, twice (idempotent); the full seed refuses production.
+      - name: Markets-only seed on a fresh database (as production)
+        working-directory: backend
+        run: |
+          psql "$PSQL_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE bhojango_markets"
+          psql "${PSQL_URL%/*}/bhojango_markets" -v ON_ERROR_STOP=1 -q -f ../infra/docker/db/init.sql
+          export DATABASE_URL="${DATABASE_URL%/*}/bhojango_markets"
+          uv run alembic upgrade head
+          for run in 1 2; do
+            APP_ENV=production PAYMENT_PROVIDER=live PAYOUT_PROVIDER=live OTP_FIXED_CODE= DELIVERY_PIN_FIXED= \
+              uv run python ../tools/seed/markets.py
+          done
+          if APP_ENV=production uv run python ../tools/seed/seed.py; then echo "the full seed ran in production"; exit 1; fi
+          RUN_MARKETS_ONLY_DB_TESTS=1 uv run pytest core_api/integration/test_markets_only_seed.py -v --tb=short
+
       - name: Seed test data
         working-directory: backend
         run: |

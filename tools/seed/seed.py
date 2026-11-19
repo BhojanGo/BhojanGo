@@ -1,5 +1,8 @@
 """Load the Hyderabad + Boise seed data into the database at DATABASE_URL.
 
+Test environments only (make dev, CI, QA): it refuses production (R19). Production's base data
+(markets, rules, help, legal drafts; no accounts or kitchens) is tools/seed/markets.py.
+
 Idempotent: users are upserted by email, restaurants by slug, and categories,
 menu items and addresses by deterministic UUIDs, so running it again updates
 rows instead of duplicating them.
@@ -17,6 +20,13 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+
+if __name__ == "__main__":  # before any database driver is imported (tools/seed/markets_test.py)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from demo_guard import refuse_production
+
+    refuse_production(what="full seed (tools/seed/seed.py: @example.com accounts, seed kitchens, fake payout "
+                           "accounts); production's base data is tools/seed/markets.py")
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
