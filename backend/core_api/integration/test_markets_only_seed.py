@@ -6,6 +6,7 @@ RUN_MARKETS_ONLY_DB_TESTS=1. Skipped otherwise (the main integration run has the
 """
 import os
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -48,7 +49,7 @@ async def test_legal_entities_and_rules(db) -> None:  # type: ignore[no-untyped-
     assert names == {"US": "DeepTrics LLC", "IN": "DeepTrics Software Solutions Pvt Ltd"}
     commission = await scalar(db, "SELECT params FROM rules WHERE family = 'commission' AND template = 'percent_by_tier' "
                                   "AND scope_level = 'country' AND scope_id = 'US' AND status = 'published'")
-    assert set(commission["tiers"].values()) == {15}
+    assert {Decimal(str(v)) for v in commission["tiers"].values()} == {Decimal(15)}
     for family, template in (("business", "commission_tax"), ("business", "payout_tds"), ("business", "payment_fees")):
         assert await scalar(db, "SELECT count(*) FROM rules WHERE family = :f AND template = :t AND scope_id = 'IN'",
                             f=family, t=template) == 1
