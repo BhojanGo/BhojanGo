@@ -2061,6 +2061,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Device
+         * @description Push this phone's token to the signed-in person (it moves from anyone else).
+         */
+        post: operations["register_device_api_v1_me_devices_post"];
+        /**
+         * Remove Device
+         * @description Stop pushing to this phone (sign-out). Only the person's own token; an unknown one is fine.
+         */
+        delete: operations["remove_device_api_v1_me_devices_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/email": {
         parameters: {
             query?: never;
@@ -5929,6 +5953,25 @@ export interface components {
             signups: number;
             /** Text */
             text: string;
+        };
+        /** DeviceIn */
+        DeviceIn: {
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "ios" | "android" | "web";
+            /** Provider */
+            provider?: ("expo" | "fcm" | "apns") | null;
+            /** Token */
+            token: string;
+        };
+        /** DeviceOut */
+        DeviceOut: {
+            /** Platform */
+            platform: string;
+            /** Provider */
+            provider: string;
         };
         /** DirCity */
         DirCity: {
@@ -13913,6 +13956,68 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AddressResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_device_api_v1_me_devices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_device_api_v1_me_devices_delete: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -173,6 +173,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/me/notification-preferences"): user(),
     ("PUT", "/api/v1/me/notification-preferences"): user(body=lambda c: {"offers": {"email": False}}),
     ("GET", "/api/v1/me/export"): user(),
+    # R19: this phone's push token (own rows only: the delete filters by the signed-in person)
+    ("POST", "/api/v1/me/devices"): user(body=lambda c: {"token": "ExponentPushToken[sweep-device-0001]", "platform": "android"}),
+    ("DELETE", "/api/v1/me/devices"): user(params=lambda c: {"token": "ExponentPushToken[sweep-device-0001]"}),
     # "We updated our Terms" (R8 F10): your own acceptances only
     ("GET", "/api/v1/me/legal/pending"): user(),
     ("POST", "/api/v1/me/legal/accept"): user(body=lambda c: {"kinds": ["terms"]}),

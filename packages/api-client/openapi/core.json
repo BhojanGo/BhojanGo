@@ -3627,6 +3627,65 @@
         "title": "DemandText",
         "type": "object"
       },
+      "DeviceIn": {
+        "properties": {
+          "platform": {
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ],
+            "title": "Platform",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "expo",
+                  "fcm",
+                  "apns"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "token": {
+            "maxLength": 4096,
+            "minLength": 10,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "platform"
+        ],
+        "title": "DeviceIn",
+        "type": "object"
+      },
+      "DeviceOut": {
+        "properties": {
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "provider"
+        ],
+        "title": "DeviceOut",
+        "type": "object"
+      },
       "DirCity": {
         "properties": {
           "beta": {
@@ -21245,6 +21304,94 @@
         "summary": "Set Default Address",
         "tags": [
           "Addresses"
+        ]
+      }
+    },
+    "/api/v1/me/devices": {
+      "delete": {
+        "description": "Stop pushing to this phone (sign-out). Only the person's own token; an unknown one is fine.",
+        "operationId": "remove_device_api_v1_me_devices_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 4096,
+              "minLength": 10,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Remove Device",
+        "tags": [
+          "Account"
+        ]
+      },
+      "post": {
+        "description": "Push this phone's token to the signed-in person (it moves from anyone else).",
+        "operationId": "register_device_api_v1_me_devices_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Register Device",
+        "tags": [
+          "Account"
         ]
       }
     },
