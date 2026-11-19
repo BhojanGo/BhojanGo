@@ -4,7 +4,8 @@
 //   customer app's rule, apps/customer/app/account/privacy.tsx), and the server's
 //   reasons to wait (money still owed on a payout, orders on their way) in words.
 import { useState } from "react";
-import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { deleteAccountProblem, legalPageUrl } from "./account-text";
 import { useI18n } from "./i18n";
@@ -65,6 +66,9 @@ export function DeleteAccount({ tone = "light", body, note, before, undo, onDele
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const c = TONES[tone];
+  // The sheet clears the system navigation bar and scrolls when the screen is short (a tablet held
+  // sideways): the delete button must always be reachable (R19).
+  const insets = useSafeAreaInsets();
 
   async function remove() {
     setBusy(true);
@@ -94,7 +98,8 @@ export function DeleteAccount({ tone = "light", body, note, before, undo, onDele
 
       <Modal transparent visible={confirming} animationType="slide" onRequestClose={() => { if (!busy) setConfirming(false); }}>
         <Pressable style={s.scrim} onPress={() => { if (!busy) setConfirming(false); }} accessibilityLabel={t("common.close")} />
-        <View accessibilityViewIsModal testID="delete-sheet" style={[s.sheet, { backgroundColor: c.bg }]}>
+        <ScrollView accessibilityViewIsModal testID="delete-sheet" style={[s.sheetBox, { backgroundColor: c.bg }]}
+          contentContainerStyle={[s.sheet, { paddingBottom: 32 + insets.bottom }]}>
           <Text accessibilityRole="header" style={[type.h3, { color: c.text }]}>{t("account.privacy.confirm_title")}</Text>
           <Text testID="delete-body" style={[type.body, { color: c.text }]}>{body}</Text>
           <Pressable testID="keep-account" accessibilityRole="button" disabled={busy} onPress={() => setConfirming(false)}
@@ -106,7 +111,7 @@ export function DeleteAccount({ tone = "light", body, note, before, undo, onDele
             {busy ? <ActivityIndicator color={c.danger} /> : null}
             <Text style={[type.label, { color: c.danger }]}>{busy ? t("account.privacy.deleting") : t("account.privacy.confirm")}</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </Modal>
     </View>
   );
@@ -117,5 +122,6 @@ const s = StyleSheet.create({
   btn: { minHeight: 48, borderRadius: radius.pill, borderWidth: 1.5, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   big: { minHeight: 56 },
   scrim: { flex: 1, backgroundColor: "rgba(17, 20, 24, 0.4)" },
-  sheet: { padding: 24, paddingBottom: 32, borderTopLeftRadius: 28, borderTopRightRadius: 28, gap: 16 },
+  sheetBox: { flexGrow: 0, maxHeight: "85%", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  sheet: { padding: 24, gap: 16 },
 });

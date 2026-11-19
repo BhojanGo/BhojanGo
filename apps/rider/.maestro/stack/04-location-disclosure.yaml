@@ -31,12 +31,16 @@ appId: com.bhojango.rider
 - extendedWaitUntil:
     visible: "You're offline"
     timeout: 30000
+# A fresh position after the relaunch, or going online waits for a fix that never comes.
+- setLocation:
+    latitude: 17.4495
+    longitude: 78.3925
 - tapOn:
     id: "go-online"
 - extendedWaitUntil:
     visible:
       id: "bg-disclosure"
-    timeout: 30000
+    timeout: 90000
 - assertVisible: ".*even when the app is closed or not in use.*"
 - waitForAnimationToEnd:
     timeout: 3000
