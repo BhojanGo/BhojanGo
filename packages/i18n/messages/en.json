@@ -803,6 +803,18 @@
       "err_email_required": "Add an email first: you sign in with it and your password.",
       "err_already": "This is already on your account.",
       "err_phone_country": "That number doesn't match the country code. Check both."
+    },
+    "legal": {
+      "title": "Legal",
+      "opens": "Opens the website"
+    },
+    "delete": {
+      "kitchen_body": "We remove your name, email and phone number and sign you out everywhere. Your kitchen stops taking orders and is taken off BhojanGo. Past orders and payouts stay in our tax records without your personal details. This can't be undone.",
+      "kitchen_note": "Deleting your account closes your kitchen on BhojanGo. If we still owe you a payout, you can delete once it's paid.",
+      "delivery_body": "We remove your name, email, phone number, date of birth, vehicle and documents with their photos, stop using your location and sign you out everywhere. Past deliveries and payouts stay in our tax records without your personal details. This can't be undone.",
+      "delivery_note": "If we still owe you a payout, you can delete once it's paid.",
+      "money_owed": "We still owe you {amount}. You can delete your account once it's paid out.",
+      "orders_in_progress": "You have orders on their way. Finish them first, then delete your account."
     }
   },
   "favourites": {
@@ -1174,7 +1186,7 @@
       "elsewhere_title": "You're online on another device.",
       "elsewhere_sub": "Its location is used now. Tap to share this phone's location instead.",
       "background_title": "Keep offers coming with the screen off.",
-      "background_sub": "Allow location “all the time”; you can turn it off by going offline.",
+      "background_sub": "Tap to allow location in the background while you're online.",
       "go_offline": "Go offline",
       "go_online": "Go online",
       "going_online": "Going online…",
@@ -1310,7 +1322,9 @@
       "safety_detail": "SOS and emergency numbers",
       "language": "Language",
       "sign_out": "Sign out",
-      "sign_out_note": "Signing out here signs you out on every device."
+      "sign_out_note": "Signing out here signs you out on every device.",
+      "legal": "Legal",
+      "delete": "Delete account"
     },
     "sos": {
       "title": "Get help now",
@@ -1349,6 +1363,14 @@
       "paid_weekly": "Paid weekly · next payout {day}",
       "no_cashout": "Everything you earn this week goes to your bank together. There's no instant cash-out.",
       "distance": "distance"
+    },
+    "location": {
+      "title": "Share your location in the background?",
+      "body": "BhojanGo Delivery collects location data to offer you nearby deliveries and to show customers where their order is, even when the app is closed or not in use. This happens only while you're online; going offline stops it.",
+      "shared": "Your location goes to BhojanGo and, during a delivery, to that order's customer. It isn't sold or used for ads.",
+      "next": "On the next screen, choose \"Allow all the time\".",
+      "allow": "Allow",
+      "no_thanks": "No thanks"
     }
   },
   "partner": {
@@ -1700,11 +1722,17 @@
       "earlier_failed": "Your call-back request didn't load",
       "update_request": "Update my request",
       "request": "Request a call back",
-      "refund_note": "A rejected or late order shows the reason to the customer and is refunded in full."
+      "refund_note": "A rejected or late order shows the reason to the customer and is refunded in full.",
+      "account": "Account and legal",
+      "account_detail": "Privacy policy, terms and deleting your account."
     },
     "offer": {
       "amount_off": "{amount} off",
       "flat_off": "Amount off"
+    },
+    "account": {
+      "title": "Account and legal",
+      "delete": "Delete account"
     }
   },
   "location": {

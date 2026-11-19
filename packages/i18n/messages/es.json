@@ -803,6 +803,18 @@
       "err_email_required": "Añade primero un correo: inicias sesión con él y tu contraseña.",
       "err_already": "Esto ya está en tu cuenta.",
       "err_phone_country": "Ese número no coincide con el prefijo del país. Revisa ambos."
+    },
+    "legal": {
+      "title": "Legal",
+      "opens": "Abre el sitio web"
+    },
+    "delete": {
+      "kitchen_body": "Borramos tu nombre, correo y teléfono, y cerramos tu sesión en todos los dispositivos. Tu cocina deja de recibir pedidos y sale de BhojanGo. Los pedidos y pagos anteriores quedan en nuestros registros fiscales sin tus datos personales. No se puede deshacer.",
+      "kitchen_note": "Al borrar tu cuenta se cierra tu cocina en BhojanGo. Si aún te debemos un pago, podrás borrarla cuando esté pagado.",
+      "delivery_body": "Borramos tu nombre, correo, teléfono, fecha de nacimiento, vehículo y documentos con sus fotos, dejamos de usar tu ubicación y cerramos tu sesión en todos los dispositivos. Las entregas y pagos anteriores quedan en nuestros registros fiscales sin tus datos personales. No se puede deshacer.",
+      "delivery_note": "Si aún te debemos un pago, podrás borrar tu cuenta cuando esté pagado.",
+      "money_owed": "Aún te debemos {amount}. Podrás borrar tu cuenta cuando esté pagado.",
+      "orders_in_progress": "Tienes pedidos en camino. Termínalos y después borra tu cuenta."
     }
   },
   "favourites": {
@@ -1174,7 +1186,7 @@
       "elsewhere_title": "Estás conectado en otro dispositivo.",
       "elsewhere_sub": "Ahora se usa su ubicación. Toca para compartir la ubicación de este teléfono.",
       "background_title": "Sigue recibiendo ofertas con la pantalla apagada.",
-      "background_sub": "Permite la ubicación “todo el tiempo”; puedes desactivarla al desconectarte.",
+      "background_sub": "Toca para permitir la ubicación en segundo plano mientras estás en línea.",
       "go_offline": "Desconectarme",
       "go_online": "Conectarme",
       "going_online": "Conectando…",
@@ -1310,7 +1322,9 @@
       "safety_detail": "SOS y números de emergencia",
       "language": "Idioma",
       "sign_out": "Cerrar sesión",
-      "sign_out_note": "Cerrar sesión aquí la cierra en todos tus dispositivos."
+      "sign_out_note": "Cerrar sesión aquí la cierra en todos tus dispositivos.",
+      "legal": "Legal",
+      "delete": "Borrar cuenta"
     },
     "sos": {
       "title": "Pide ayuda ahora",
@@ -1349,6 +1363,14 @@
       "paid_weekly": "Pago semanal · próximo pago {day}",
       "no_cashout": "Todo lo que ganas esta semana llega junto a tu banco. No hay retiro instantáneo.",
       "distance": "distancia"
+    },
+    "location": {
+      "title": "¿Compartir tu ubicación en segundo plano?",
+      "body": "BhojanGo Delivery recopila datos de ubicación para ofrecerte entregas cercanas y mostrar a los clientes dónde está su pedido, incluso cuando la app está cerrada o no se usa. Solo mientras estás en línea; al desconectarte se detiene.",
+      "shared": "Tu ubicación va a BhojanGo y, durante una entrega, al cliente de ese pedido. No se vende ni se usa para anuncios.",
+      "next": "En la siguiente pantalla, elige \"Permitir todo el tiempo\".",
+      "allow": "Permitir",
+      "no_thanks": "No, gracias"
     }
   },
   "partner": {
@@ -1700,11 +1722,17 @@
       "earlier_failed": "No se cargó tu solicitud de llamada",
       "update_request": "Actualizar mi solicitud",
       "request": "Pedir que me llamen",
-      "refund_note": "Un pedido rechazado o tarde muestra el motivo al cliente y se reembolsa por completo."
+      "refund_note": "Un pedido rechazado o tarde muestra el motivo al cliente y se reembolsa por completo.",
+      "account": "Cuenta y legal",
+      "account_detail": "Política de privacidad, términos y borrar tu cuenta."
     },
     "offer": {
       "amount_off": "{amount} de descuento",
       "flat_off": "Descuento fijo"
+    },
+    "account": {
+      "title": "Cuenta y legal",
+      "delete": "Borrar cuenta"
     }
   },
   "location": {
