@@ -65,9 +65,13 @@ def _sentry(service: str) -> None:
     except ImportError:
         logger.warning("sentry_dsn_set_but_sdk_missing", service=service)
         return
-    # Errors only (no tracing, no request bodies or personal data).
-    sentry_sdk.init(dsn=s.SENTRY_DSN, environment=s.environment_name, release=s.VERSION, server_name=service,
-                    traces_sample_rate=0.0, send_default_pii=False, max_request_body_size="never")
+    # Errors only (no tracing, no request bodies or personal data). A malformed DSN is logged, never fatal.
+    try:
+        sentry_sdk.init(dsn=s.SENTRY_DSN, environment=s.environment_name, release=s.VERSION, server_name=service,
+                        traces_sample_rate=0.0, send_default_pii=False, max_request_body_size="never")
+    except Exception as e:  # noqa: BLE001 - sentry_sdk's BadDsn and friends
+        logger.warning("sentry_init_failed", service=service, error=type(e).__name__)
+        return
     sentry_sdk.set_tag("service", service)
     _sentry_on = True
 
