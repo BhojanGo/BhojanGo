@@ -126,7 +126,10 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     assert -Decimal(line["refunds"]) == (Decimal("240") * (1 - commission / food)).quantize(Decimal("0.01"))
     assert [(d["reason"], d["charged_to"]) for d in line["refund_details"]] == [
         ("missing_item", "restaurant"), ("damaged_in_transit", "platform")]
-    assert Decimal(line["net"]) == food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
+    # R16: GST on our commission (India 18%) and TDS (0% until a CA confirms) come off the kitchen's payout too
+    assert Decimal(line["commission_tax"]) == -(commission * Decimal("0.18")).quantize(Decimal("0.01")) and Decimal(line["tds"]) == 0
+    assert Decimal(line["net"]) == (food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
+                                    + Decimal(line["commission_tax"]) + Decimal(line["tds"]))
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()
     rl = next(ln for ln in rs["lines"] if ln["order_id"] == order["id"])
@@ -168,6 +171,17 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
 
     mine = (await client.get("/api/v1/finance/statements/me", headers=partner)).json()
     assert any(s["id"] == spice["id"] and s["status"] == "paid" and s["transfer_id"].startswith("fake_tr_") for s in mine)
+    # R16: the commission tax invoice to the kitchen: as a PDF for its owner (and finance), and through
+    # a one-hour link the Kitchen app opens in a browser; another partner can't get it.
+    r = await client.get(f"/api/v1/finance/statements/{spice['id']}/commission-invoice", headers=partner)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf" and r.content[:4] == b"%PDF", r.text[:200]
+    link = (await client.post(f"/api/v1/finance/statements/{spice['id']}/commission-invoice/link", headers=partner)).json()["url"]
+    token = link.split("t=", 1)[1]
+    r = await client.get("/api/v1/finance/commission-invoice", params={"t": token})
+    assert r.status_code == 200 and r.content[:4] == b"%PDF"
+    assert (await client.get("/api/v1/finance/commission-invoice", params={"t": token[:-2] + "xx"})).status_code == 404
+    assert (await client.get(f"/api/v1/finance/statements/{spice['id']}/commission-invoice",
+                             headers=await login(client, "partner.boi@example.com"))).status_code == 404
     other_partner = await login(client, "partner.boi@example.com")
     assert (await client.get(f"/api/v1/finance/statements/{spice['id']}", headers=other_partner)).status_code == 404
 

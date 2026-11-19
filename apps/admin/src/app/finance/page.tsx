@@ -28,6 +28,8 @@ interface Recon {
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
   /** Orders whose payment fee is the expected rate, not what the provider reported (R15). */
   payment_fees_estimated?: number;
+  /** R16: tax owed by type: what customers paid, GST on our commission, TDS on kitchen payouts. */
+  tax_owed_by_type?: { customer: number; commission: number; tds: number };
 }
 
 interface Contribution {
@@ -228,7 +230,15 @@ function FinancePage() {
               ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"]] as const)
               .map(([l0, k]) => [k === "payment_fees" && recon.data!.payment_fees_estimated ? `${l0} (estimated)` : l0, k] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
-                <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div></div>)}
+                <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div>
+                {k === "tax_owed" && recon.data!.tax_owed_by_type ? (
+                  // R16: by type: customers' tax, GST on our commission, TDS (both taken from kitchen payouts)
+                  <div data-testid="tax-by-type" className="mt-1 text-small text-muted">
+                    Customers {money(recon.data!.tax_owed_by_type.customer / 100, recon.data!.currency, 2)}
+                    {" · "}On commission {money(recon.data!.tax_owed_by_type.commission / 100, recon.data!.currency, 2)}
+                    {" · "}TDS {money(recon.data!.tax_owed_by_type.tds / 100, recon.data!.currency, 2)}
+                  </div>
+                ) : null}</div>)}
           </div>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{recon.data.issues.length} issues to look at</b> : <span className="text-peacock">everything lines up</span>}</p>

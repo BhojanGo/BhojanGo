@@ -1634,7 +1634,11 @@
         "one": "{count} order",
         "other": "{count} orders"
       },
-      "offers": "offers {amount}"
+      "offers": "offers {amount}",
+      "commission_tax": "tax on commission {amount}",
+      "tds": "tax deducted at source {amount}",
+      "tax_invoice": "Tax invoice",
+      "tax_invoice_failed": "The invoice didn't open. Try again."
     },
     "help": {
       "title": "Help and settings",

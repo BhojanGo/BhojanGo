@@ -5,7 +5,7 @@ migrated, seeded database: an override wins and an ended one falls back, old
 orders keep the rate they were priced with, only admins with the scope can touch
 a rule, tier changes and batching need a second admin, and the preview.
 Everything these tests change is put back, so the rest of the suite (and its
-₹638.22 worked example) sees the seeded rates."""
+₹640.72 worked example) sees the seeded rates."""
 import os
 import uuid
 from decimal import Decimal

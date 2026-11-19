@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-18** (after round 15), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-18** (after round 16), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -82,6 +82,20 @@ The bar since round 8 is "a real product, not a demo": every page and screen is 
   Missing fields are flagged "required before launch". A build check stops any template naming a company.
 - **Payment fees:** Stripe's real fee is recorded per payment. Where a provider doesn't report one (Razorpay,
   faked), the reports use the expected rate in Business rules (2%) and say "estimated".
+
+## India tax rules (round 16)
+
+All three are business rules per country, editable in admin and flagged **"Confirm with CA"** until Srini checks them:
+- **Discounts and the tax base:** a kitchen-funded discount lowers it; a platform-funded one has its own setting
+  (India: it doesn't, so the Hyderabad worked example is ₹640.72, GST on food ₹28.50 instead of ₹26.00).
+- **Tax on commission:** India 18% GST on our commission, taken from the kitchen's payout and owed by the platform,
+  with a commission tax invoice to the kitchen (Kitchen app and API); US 0%.
+- **TDS (section 194-O)** on kitchen payouts: India 0% until confirmed, US 0%.
+Reconciliation shows tax owed by type (customers, on commission, TDS), and the weekly invariant test checks them.
+The old per-kitchen commission column is removed: commission comes only from rules.
+Launch: [boise-readiness.md](launch/boise-readiness.md) now has costs, insurance, delivery partner checks and 1099s;
+[incident-plan.md](launch/incident-plan.md) is drafted, with four admin gaps (pause a kitchen, bulk refunds,
+a platform-wide pause, messaging many customers).
 
 ## What's left before the pilot
 

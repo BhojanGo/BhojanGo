@@ -63,9 +63,6 @@ async def open_kitchen(db: AsyncSession, owner_id: uuid.UUID, kitchen_name: str,
         minimum_order_amount=0, delivery_fee=0, currency=country.currency, country=country.code, city=city.name, tags=[],
         status="pending_approval", is_active=True, avg_prep_minutes=20,
     )
-    percent = await starting_commission(db, country.code, region.code, city.code)
-    if percent is not None:
-        r.commission_rate = percent / 100
     db.add(r)
     await db.flush()
     return r

@@ -10042,22 +10042,6 @@
       "PricingConfigRequest": {
         "description": "Configure a restaurant's commission / fee model.",
         "properties": {
-          "commission_rate": {
-            "anyOf": [
-              {
-                "maximum": 1.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Commission Rate"
-          },
           "flat_fee_per_order": {
             "anyOf": [
               {
@@ -11827,11 +11811,6 @@
               }
             ],
             "title": "Closes At"
-          },
-          "commission_rate": {
-            "default": 0.0,
-            "title": "Commission Rate",
-            "type": "number"
           },
           "country": {
             "title": "Country",
@@ -16729,6 +16708,46 @@
         ]
       }
     },
+    "/api/v1/finance/commission-invoice": {
+      "get": {
+        "description": "The commission tax invoice from a signed link (commission-invoice/link).",
+        "operationId": "commission_invoice_by_link_api_v1_finance_commission_invoice_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "t",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "title": "T",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Commission Invoice By Link",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
     "/api/v1/finance/contribution": {
       "get": {
         "description": "Contribution per order, by city: what the platform keeps after payment fees, rider\npay (tips excluded), platform-funded offers and the refunds it pays.",
@@ -17748,6 +17767,102 @@
           }
         ],
         "summary": "Get Statement",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/statements/{statement_id}/commission-invoice": {
+      "get": {
+        "description": "R16: the tax invoice for the tax on our commission, to the kitchen, for a weekly statement\n(India: GST; issued where the statement charged it). Supplier: the country's legal entity.",
+        "operationId": "commission_invoice_api_v1_finance_statements__statement_id__commission_invoice_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "statement_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Statement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Commission Invoice",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/statements/{statement_id}/commission-invoice/link": {
+      "post": {
+        "description": "R16: a link (one hour) that opens the commission tax invoice in a browser (the Kitchen app).",
+        "operationId": "commission_invoice_link_api_v1_finance_statements__statement_id__commission_invoice_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "statement_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Statement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Commission Invoice Link Api V1 Finance Statements  Statement Id  Commission Invoice Link Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Commission Invoice Link",
         "tags": [
           "Finance"
         ]

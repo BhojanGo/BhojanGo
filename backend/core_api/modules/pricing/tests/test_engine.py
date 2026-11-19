@@ -212,7 +212,8 @@ def test_tax_lines_show_rate_and_base() -> None:
     q = quote()
     food_gst = next(ln for ln in q.lines if ln.label == "GST on food")
     fee_gst = next(ln for ln in q.lines if ln.label == "GST on platform fees")
-    assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform", "targets": "food,packaging"}
+    assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform", "targets": "food,packaging",
+                               "platform_discounts_reduce_base": True}
     assert fee_gst.detail["base"] == "61.20" and fee_gst.detail["rate_percent"] == "18"
     assert "delivery_fee" in fee_gst.detail["targets"]
 
@@ -304,3 +305,34 @@ def test_payment_fee(total: str, method: str, params, tax_calc: bool, fee: str) 
     from core_api.modules.pricing.service.engine import payment_fee
 
     assert payment_fee(Decimal(total), method, params, tax_calc)[0] == Decimal(fee)
+
+
+def test_r16_platform_discount_and_the_gst_base() -> None:
+    """R15's Hyderabad bill (food ₹693, the platform's 10% off up to ₹50, ₹35 delivery, ₹13.86 service fee)
+    under both settings of "a discount the platform funds reduces the tax base"."""
+    def bill(reduce: bool):  # type: ignore[no-untyped-def]
+        gst = {"rate_percent": 5, "target_lines": ["food", "packaging"], "platform_discounts_reduce_base": reduce}
+        fees = {"rate_percent": 18, "target_lines": ["delivery_fee", "service_fee"], "platform_discounts_reduce_base": reduce}
+        rules = [
+            rule("delivery_fee", "distance_slabs", {"slabs": [{"up_to": 3, "fee": 25}, {"up_to": 6, "fee": 35}]}),
+            rule("customer_fee", "service_fee", {"percent": 2, "min": 5, "max": 15}),
+            rule("promotion", "percent_off", {"percent": 10, "max_discount": 50, "funded_by": "platform"}, key="hyd_launch"),
+            rule("tax", "rate_on_lines", {"label": "GST on food", **gst}, key="gst_food"),
+            rule("tax", "rate_on_lines", {"label": "GST on platform fees", **fees}, key="gst_fees"),
+        ]
+        return compute(QuoteInputs(currency="INR", lines=[CartLine("Food", 1, Decimal("693.00"))], distance=Decimal("4.67"),
+                                   local_time=datetime(2026, 11, 12, 13, 0, tzinfo=IST)), {r.slot: r for r in rules})
+
+    no, yes = bill(False), bill(True)
+    gst = lambda q: next(ln for ln in q.lines if ln.label == "GST on food")  # noqa: E731
+    assert (gst(no).detail["base"], gst(no).amount) == ("693.00", Decimal("34.65"))  # India's default (to confirm with a CA)
+    assert (gst(yes).detail["base"], gst(yes).amount) == ("643.00", Decimal("32.15"))  # as R15 priced it
+    assert no.total == Decimal("735.30") and yes.total == Decimal("732.80")
+    # a discount the kitchen funds always lowers the base
+    kitchen = [rule("delivery_fee", "flat", {"amount": 35}),
+               rule("promotion", "flat_off", {"amount": 50, "funded_by": "restaurant"}, key="k50"),
+               rule("tax", "rate_on_lines", {"label": "GST on food", "rate_percent": 5, "target_lines": ["food"],
+                                             "platform_discounts_reduce_base": False}, key="gst_food")]
+    k = compute(QuoteInputs(currency="INR", lines=[CartLine("Food", 1, Decimal("693.00"))], distance=Decimal("2"),
+                            local_time=datetime(2026, 11, 12, 13, 0, tzinfo=IST)), {r.slot: r for r in kitchen})
+    assert next(ln for ln in k.lines if ln.label == "GST on food").detail["base"] == "643.00"

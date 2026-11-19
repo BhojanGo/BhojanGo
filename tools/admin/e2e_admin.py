@@ -552,10 +552,27 @@ with sync_playwright() as p:
     page.screenshot(path=f"{OUT}/08c-markets-hero-dish.png", full_page=True)
     api.patch(f"{CORE}/markets/countries/IN", headers=admin_h, data={"settings": {"hero_photo": was}})
 
+    # R16: India's tax settings are rules, flagged until a CA confirms them.
+    page.goto(f"{BASE}/pricing?scope=IN&tab=tax", wait_until="networkidle")
+    check("tax rules: India's GST settings say 'Confirm with CA' until confirmed", lambda: expect(
+        page.get_by_role("region", name="Rules").get_by_test_id("ca-warning").first).to_be_visible(timeout=15000))
+    page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("GST on food")).first.click()
+    page.wait_for_timeout(1500)
+    page.screenshot(path=f"{OUT}/07f-tax-rules-ca.png", full_page=True)
+    page.goto(f"{BASE}/pricing?scope=IN&tab=business", wait_until="networkidle")
+    check("business rules: GST on commission (18%) and TDS (0%), both to confirm with a CA", lambda: (
+        expect(page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("GST on commission"))).not_to_have_count(0, timeout=15000),
+        expect(page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("TDS on kitchen payouts"))).not_to_have_count(0)))
+    page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("GST on commission")).first.click()
+    page.wait_for_timeout(1500)
+    page.screenshot(path=f"{OUT}/07g-commission-tax-rule.png", full_page=True)
+
     page.goto(f"{BASE}/finance?scope=IN", wait_until="networkidle")
     check("finance: payout runs and reconciliation", lambda: (
         expect(page.get_by_role("region", name="Payout runs")).to_be_visible(timeout=15000),
         expect(page.get_by_role("region", name="Reconciliation")).to_be_visible(timeout=20000)))
+    check("reconciliation: tax owed by type (customers, on commission, TDS)", lambda: expect(
+        page.get_by_test_id("tax-by-type")).to_contain_text("On commission", timeout=20000))
     page.screenshot(path=f"{OUT}/09-finance.png", full_page=True)
     page.goto(f"{BASE}/finance?scope=US", wait_until="networkidle")
     # R12: a run covers an ended week (Monday to Sunday) and the reports follow it: the week picker lists

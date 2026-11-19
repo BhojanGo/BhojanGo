@@ -4,7 +4,7 @@ Customer pays (fake provider) → restaurant accepts through the API → dispatc
 offers it to the nearest rider → rider accepts → pickup → delivered →
 restaurant and rider are in the weekly payout run → messages were sent.
 
-Run twice: the Hyderabad worked example (₹638.22, restaurant nets ₹486.00)
+Run twice: the Hyderabad worked example (₹640.72, restaurant nets ₹470.88)
 and a Boise order with Idaho sales tax from the tax provider.
 """
 import asyncio
@@ -183,7 +183,7 @@ def test_g1_hyderabad_worked_example() -> None:
             return q
 
     q = run(price())
-    assert q.total == Decimal("638.22"), q.lines
+    assert q.total == Decimal("640.72"), q.lines  # R16: GST on food before the platform's discount
 
     r = customer.core("POST", "/orders", headers=idem(), json={
         "restaurant_id": rid, "items": cart, "payment_method": "upi", "quote_token": q.token,
@@ -191,19 +191,19 @@ def test_g1_hyderabad_worked_example() -> None:
                              "zip": "500033", "country": "IN"}})
     assert r.status_code == 201, r.text
     order = r.json()
-    assert Decimal(str(order["total"])) == Decimal("638.22")
+    assert Decimal(str(order["total"])) == Decimal("640.72")
 
     deliver_through_dispatch(order, customer, partner, rider, SPICE_AT)
     pay = customer.core("GET", f"/payments/{order['id']}").json()
-    assert pay["amount"] == 63822 and pay["status"] == "succeeded", pay
+    assert pay["amount"] == 64072 and pay["status"] == "succeeded", pay
     bill = customer.core("GET", f"/pricing/orders/{order['id']}/bill").json()
-    assert bill["total"] == "638.22"
+    assert bill["total"] == "640.72"
 
     delivered_on = datetime.now(IST).date()
     weekly_payout_job(delivered_on, "Asia/Kolkata")
     week_start = delivered_on - timedelta(days=delivered_on.weekday())
     rest = statement_line("restaurant", rid, order["id"], week_start)
-    assert rest["net"] == "486.00", rest  # 560 food + 10 packaging - 84 commission
+    assert rest["net"] == "470.88", rest  # 560 food + 10 packaging - 84 commission - 15.12 GST on it (R16, 18%)
     ride = statement_line("rider", rider.user["id"], order["id"], week_start)
     assert ride["base"] == "25.00" and ride["tip"] == "20.00", ride
 

@@ -406,10 +406,10 @@ async def seed(database_url: str) -> list[tuple[str, ...]]:
                 await conn.execute(text("""
                     INSERT INTO restaurants (id, name, slug, owner_id, description, cuisine_types, address, lat, lng, rating,
                         review_count, is_open, delivery_time_min, delivery_time_max, minimum_order_amount, delivery_fee,
-                        currency, country, city, tags, status, is_active, avg_prep_minutes, commission_rate,
+                        currency, country, city, tags, status, is_active, avg_prep_minutes,
                         busy_extra_minutes, created_at, updated_at)
                     VALUES (:id, :name, :slug, :owner, '', :cuisines, CAST(:address AS jsonb), :lat, :lng, 0, 0, true, 30, 40,
-                        0, 0, :currency, :country, :city, '{}', 'pending_approval', true, 20, 0.15, 0, now(), now())
+                        0, 0, :currency, :country, :city, '{}', 'pending_approval', true, 20, 0, now(), now())
                     ON CONFLICT (slug) DO UPDATE SET status = 'pending_approval', fssai_number = NULL, gstin = NULL"""), {
                     "id": sid("restaurant", ap["slug"]), "name": ap["restaurant"], "slug": ap["slug"], "owner": owner,
                     "cuisines": ap["cuisines"], "lat": ap["lat"], "lng": ap["lng"], "currency": m["currency"],

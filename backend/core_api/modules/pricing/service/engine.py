@@ -306,13 +306,19 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             continue
         tp = t.params
         targets = set(tp["target_lines"])
-        base = sum(
-            (bl.amount for bl in lines
-             if bl.taxable_as in targets and (bl.code != "promotion" or tp.get("after_promotions", True))),
-            ZERO,
-        )
+        def in_base(bl: BillLine) -> bool:
+            # R16: a discount lowers the base by who funds it (the kitchen: after_promotions; the
+            # platform: platform_discounts_reduce_base; India's default is that it doesn't).
+            if bl.code != "promotion":
+                return True
+            if bl.funded_by == "platform":
+                return bool(tp.get("platform_discounts_reduce_base", True))
+            return bool(tp.get("after_promotions", True))
+
+        base = sum((bl.amount for bl in lines if bl.taxable_as in targets and in_base(bl)), ZERO)
         rate = D(tp["rate_percent"]) / 100
         detail = {"rate_percent": str(D(tp["rate_percent"]).normalize()), "base": str(money(base)),
+                  "platform_discounts_reduce_base": bool(tp.get("platform_discounts_reduce_base", True)),
                   "collected_by": tp.get("collected_by", "platform"), "targets": ",".join(tp["target_lines"])}
         if tp.get("inclusive"):
             amount = money(base - base / (1 + rate))  # already inside the prices

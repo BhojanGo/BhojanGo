@@ -243,6 +243,14 @@ function PreviewBox({ rule }: { rule: Rule }) {
   );
 }
 
+/** R16: a tax setting nobody has checked with a chartered accountant yet (params.ca_confirmed false). */
+function CaWarning() {
+  return (
+    <span data-testid="ca-warning" title="Set ca_confirmed when a chartered accountant has checked this value"
+      className="ml-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">Confirm with CA</span>
+  );
+}
+
 function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onChanged: (id?: string) => void }) {
   const { data: me } = useAdminMe();
   const qc = useQueryClient();
@@ -295,6 +303,7 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="m-0 text-h2">{rule.name ?? rule.template.replace(/_/g, " ")}</h2>
         <Pill v={rule} all={versions} /> <span className="text-small text-muted" data-testid="rule-source">{label} · v{rule.version}</span>
+        {rule.params.ca_confirmed === false ? <CaWarning /> : null}
       </div>
       {editing === "version" ? (
         <div className="flex flex-wrap items-center gap-2 text-small">
@@ -452,7 +461,7 @@ function PricingPage() {
             <button key={r.id} type="button" onClick={() => { setOpen(r.id); setAdding(false); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === r.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
               <div className="flex items-center justify-between gap-2"><b>{r.name ?? r.template.replace(/_/g, " ")}</b><Pill v={r} /></div>
-              <div className="text-small" data-testid="row-source">{source(r, scope, names, kitchens, units(r.market_scope))}</div>
+              <div className="text-small" data-testid="row-source">{source(r, scope, names, kitchens, units(r.market_scope))}{r.params.ca_confirmed === false ? <> <CaWarning /></> : null}</div>
             </button>
           ))}
         </section>

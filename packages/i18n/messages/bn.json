@@ -1634,7 +1634,11 @@
         "one": "{count}টি অর্ডার",
         "other": "{count}টি অর্ডার"
       },
-      "offers": "অফার {amount}"
+      "offers": "অফার {amount}",
+      "commission_tax": "কমিশনের উপর কর {amount}",
+      "tds": "উৎসে কর কর্তন (TDS) {amount}",
+      "tax_invoice": "ট্যাক্স ইনভয়েস",
+      "tax_invoice_failed": "ইনভয়েস খোলেনি। আবার চেষ্টা করুন।"
     },
     "help": {
       "title": "সাহায্য ও সেটিংস",

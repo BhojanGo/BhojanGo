@@ -11,12 +11,13 @@
 import csv
 import io
 import uuid
+from decimal import Decimal
 from datetime import date
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -224,6 +225,75 @@ async def get_statement(statement_id: uuid.UUID, user: User, db: DB) -> dict:
     if not mine and not authz.can([authz.Assignment.parse(a) for a in user.admin], "finance.view", run.country):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Statement not found")
     return statement_out(s)
+
+
+async def _invoice_statement(db: AsyncSession, statement_id: uuid.UUID, user: CurrentUser | None):  # type: ignore[no-untyped-def]
+    """The kitchen statement and its run, if ``user`` may see it (None: a signed link already decided)."""
+    s = await db.get(PayoutStatement, statement_id)
+    if s is None or s.payee_type != "restaurant":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Statement not found")
+    run = await _run(db, s.run_id)
+    if user is not None:
+        mine = (s.payee_type, s.payee_id) in await _payee_ids(db, user)
+        if not mine and not authz.can([authz.Assignment.parse(a) for a in user.admin], "finance.view", run.country):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Statement not found")
+    if Decimal(str((s.summary or {}).get("commission_tax") or 0)) <= 0:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "NO_COMMISSION_TAX",
+                                                              "message": "No tax was charged on the commission in this statement"})
+    return s, run
+
+
+async def _invoice_pdf(db: AsyncSession, s, run) -> Response:  # type: ignore[no-untyped-def]
+    from core_api.modules.catalog.service.lookup import restaurant_brief
+    from core_api.modules.finance.service import commission_invoice as ci
+    from core_api.modules.markets.service import legal
+
+    summary = s.summary or {}
+    c = await payouts._country(db, run.country)
+    issued = run.approved_at or run.created_at
+    inv = ci.CommissionInvoice(
+        invoice_no=ci.invoice_number(str(s.id), issued), issued_at=issued, period_start=run.period_start, period_end=run.period_end,
+        currency=s.currency, supplier=legal.entity(c.settings, c.tax_regime),
+        kitchen=await restaurant_brief(db, s.payee_id) or {"name": s.payee_name},
+        commission=Decimal(str(summary.get("commission") or 0)), rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)),
+        tax=Decimal(str(summary.get("commission_tax") or 0)), orders=int(summary.get("orders") or 0))
+    from starlette.concurrency import run_in_threadpool
+
+    pdf = await run_in_threadpool(ci.render, inv)
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{inv.invoice_no}.pdf"', "Cache-Control": "private, no-store"})
+
+
+@router.post("/statements/{statement_id}/commission-invoice/link")
+async def commission_invoice_link(statement_id: uuid.UUID, user: User, db: DB) -> dict:
+    """R16: a link (one hour) that opens the commission tax invoice in a browser (the Kitchen app)."""
+    from core_api.modules.finance.service.commission_invoice import make_token
+    from shared.config import get_settings
+
+    await _invoice_statement(db, statement_id, user)
+    api = get_settings().payments.PUBLIC_API_URL.rstrip("/")
+    return {"url": f"{api}/api/v1/finance/commission-invoice?t={make_token(statement_id)}"}
+
+
+@router.get("/commission-invoice", response_class=Response, responses={200: {"content": {"application/pdf": {}}}})
+async def commission_invoice_by_link(db: DB, t: str = Query(..., max_length=200)) -> Response:
+    """The commission tax invoice from a signed link (commission-invoice/link)."""
+    from core_api.modules.finance.service.commission_invoice import read_token
+
+    statement_id = read_token(t)
+    if statement_id is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="This link has expired: open the invoice again from the app")
+    s, run = await _invoice_statement(db, statement_id, None)
+    return await _invoice_pdf(db, s, run)
+
+
+@router.get("/statements/{statement_id}/commission-invoice", response_class=Response,
+            responses={200: {"content": {"application/pdf": {}}}})
+async def commission_invoice(statement_id: uuid.UUID, user: User, db: DB) -> Response:
+    """R16: the tax invoice for the tax on our commission, to the kitchen, for a weekly statement
+    (India: GST; issued where the statement charged it). Supplier: the country's legal entity."""
+    s, run = await _invoice_statement(db, statement_id, user)
+    return await _invoice_pdf(db, s, run)
 
 
 async def _payee(db: AsyncSession, kind: str, payee_id: uuid.UUID) -> tuple[uuid.UUID, str, str | None, dict]:

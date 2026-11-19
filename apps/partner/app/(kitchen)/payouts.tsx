@@ -11,7 +11,8 @@ import { useLayout } from "../../lib/layout";
 import { Btn, color, radius, t, tone } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string; repay_on?: string | null;
-  summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string } };
+  summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string;
+    commission_tax?: string; tds?: string } };
 
 const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`partner.payouts.status.${s}`) : s);
 // The set-up badge's colours per state (R10).
@@ -70,6 +71,18 @@ export default function Payouts() {
     return () => sub.remove();
   }, [reload]);
 
+  /** R16: the commission tax invoice, opened in the browser through a link that works for an hour. */
+  async function openInvoice(statementId: string) {
+    setMsg(null);
+    try {
+      const r = unwrap(await api.core.POST("/api/v1/finance/statements/{statement_id}/commission-invoice/link",
+        { params: { path: { statement_id: statementId } } })) as { url: string };
+      await Linking.openURL(r.url);
+    } catch {
+      setMsg(tr("partner.payouts.tax_invoice_failed"));
+    }
+  }
+
   async function setUp() {
     setBusy(true);
     setMsg(null);
@@ -122,8 +135,14 @@ export default function Payouts() {
                 <Text style={t.muted}>
                   {[st.summary.orders != null ? tr("partner.payouts.orders", { count: st.summary.orders }) : null,
                     Number(st.summary.restaurant_funded_offers ?? 0) > 0 ? tr("partner.payouts.offers", { amount: cash(st.summary.restaurant_funded_offers, st.currency) }) : null,
+                    // R16: what the platform took for the government (tax on its commission; TDS)
+                    Number(st.summary.commission_tax ?? 0) > 0 ? tr("partner.payouts.commission_tax", { amount: cash(st.summary.commission_tax, st.currency) }) : null,
+                    Number(st.summary.tds ?? 0) > 0 ? tr("partner.payouts.tds", { amount: cash(st.summary.tds, st.currency) }) : null,
                     STATEMENT_NOTES.includes(st.status) ? null : statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
+                {Number(st.summary.commission_tax ?? 0) > 0 ? (
+                  <Btn testID={`tax-invoice-${st.id}`} title={tr("partner.payouts.tax_invoice")} onPress={() => void openInvoice(st.id)} />
+                ) : null}
                 {STATEMENT_NOTES.includes(st.status) && repayDay(st.repay_on) ? (
                   <Text testID={`payout-note-${st.status}`} style={[t.body, { marginTop: 4 }]}>
                     {tr(`partner.payouts.status.${st.status}`, { amount: cash(st.amount / 100, st.currency), date: date(repayDay(st.repay_on)!) })}

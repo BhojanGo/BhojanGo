@@ -27,6 +27,16 @@ def test_restaurant_statement_matches_the_split() -> None:
     assert (summary["food"], summary["packaging"], summary["commission"]) == ("560.00", "10.00", "84.00")
 
 
+def test_commission_gst_and_tds_come_off_the_kitchen() -> None:  # R16
+    total, summary, lines = restaurant_statement([worked_example()], Decimal("18"), Decimal("1"))
+    # 84 commission x 18% = 15.12 GST; TDS 1% of 570 gross sales (food + packaging) = 5.70
+    assert (summary["commission_tax"], summary["tds"]) == ("15.12", "5.70")
+    assert lines[0]["commission_tax"] == "-15.12" and lines[0]["tds"] == "-5.70"
+    assert total == Decimal("486.00") - Decimal("15.12") - Decimal("5.70")
+    assert (summary["commission_tax_percent"], summary["tds_percent"]) == ("18", "1")
+    assert restaurant_statement([worked_example()])[0] == Decimal("486.00")  # none set: nothing taken
+
+
 def tikka(reason: str, fault: str) -> list[dict]:
     return [{"menu_item_id": "tikka", "name": "Chicken Tikka", "food": "220.00", "quantity": 1,
              "reason": reason, "fault": fault}]
