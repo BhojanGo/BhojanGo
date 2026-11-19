@@ -1,6 +1,6 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, ApiError, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, FIRST_LOAD_TIMEOUT_MS, LoadError, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, timeoutFetch, Txt, type, unwrap, useBag, useCountry, useI18n,
+  api, ApiError, appEnv, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, FIRST_LOAD_TIMEOUT_MS, LoadError, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, timeoutFetch, Txt, type, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -8,7 +8,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
-import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome, type Provider } from "../lib/pay";
+import { payMode, type ProviderAnswer } from "../lib/ordering";
+import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
 import { useWhere } from "../lib/where";
 
 type Quote = CoreSchemas["QuoteOut"];
@@ -44,16 +45,21 @@ export default function Bag() {
     return () => { live = false; };
   }, [bag.restaurantId, attempt]);
   const blocked = pauses.length ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : null;
+  // R19: the admin's note on the pause, as written (e.g. when ordering comes back).
+  const notes = pauses.length ? [...new Set(pauses.map((p) => p.note?.trim()).filter((n): n is string => !!n))] : [];
   const { country } = useCountry(); // the delivery address's country (Markets): currency, payment methods
   const currency = market?.currency ?? country?.currency ?? "";
   const method: "upi" | "card" = country?.payment_methods.includes("upi") ? "upi" : "card";
   // Stripe PaymentSheet or the test sheet: the server decides (its keys for this country).
-  const [provider, setProvider] = useState<Provider | null>(null);
+  // R19: fails closed. No answer, or no live provider in production: "Payments aren't available
+  // in this city yet" and Pay is off; the test sheet only ever opens in a test build (lib/ordering.ts).
+  const [provider, setProvider] = useState<ProviderAnswer>(null);
+  const mode = payMode(provider, appEnv() === "production");
   const payCountry = point?.country || country?.code || "";
   useEffect(() => {
     if (!payCountry) return;
     let live = true;
-    paymentProvider(payCountry).then((p) => live && setProvider(p), () => live && setProvider("fake"));
+    paymentProvider(payCountry).then((p) => live && setProvider(p), () => live && setProvider("error"));
     return () => {
       live = false;
     };
@@ -107,10 +113,13 @@ export default function Bag() {
   }, []);
 
   if (lines.length === 0) {
+    // Centred: the reason (or "empty"), the pause's note, then home.
     return (
-      <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center", gap: space[4] }]}>
-        <Txt variant="h2" testID={blocked ? "bag-blocked" : undefined}>{blocked ?? t("checkout.empty_title")}</Txt>
-        <Button title={t("checkout.find_food")} onPress={() => router.replace("/home")} />
+      <SafeAreaView style={[styles.screen, styles.empty]}>
+        <Txt variant="h2" testID={blocked ? "bag-blocked" : undefined} style={{ textAlign: "center" }}>{blocked ?? t("checkout.empty_title")}</Txt>
+        {notes.map((n) => <Txt key={n} testID="bag-pause-note" style={{ textAlign: "center", color: color.muted }}>{n}</Txt>)}
+        <Button testID={blocked ? "bag-back-home" : "bag-find-food"} title={t(blocked ? "checkout.back_home" : "checkout.find_food")}
+          style={{ alignSelf: "center" }} onPress={() => router.replace("/home")} />
       </SafeAreaView>
     );
   }
@@ -141,7 +150,7 @@ export default function Bag() {
       bag.clear();
       router.replace(`/order/${orderId}`);
     } else {
-      router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: provider ?? "fake" } });
+      router.replace({ pathname: "/payment-failed", params: { orderId, method, provider: mode === "stripe" ? "stripe" : "fake" } });
     }
   }
 
@@ -168,7 +177,7 @@ export default function Bag() {
   }
 
   async function pay(outcome: PayOutcome) {
-    if (!quote || !point) return;
+    if (!quote || !point || mode !== "test") return; // never outside a test build
     setSheet(false);
     setPaying(true);
     setError(null);
@@ -229,6 +238,7 @@ export default function Bag() {
           : unreachable ? <LoadError error={unreachable} onRetry={() => setAttempt((a) => a + 1)} />
           : error ? null : <ActivityIndicator color={color.peacock} />}
         {shownError ? <Text style={[type.label, { color: color.chili }]}>{shownError}</Text> : null}
+        {blocked ? notes.map((n) => <Text key={n} testID="bag-pause-note" style={[type.small, { color: color.muted }]}>{n}</Text>) : null}
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.method}>
@@ -243,17 +253,18 @@ export default function Bag() {
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
         ) : (
           <Button
-            testID={blocked ? "pay-blocked" : "pay"}
-            title={blocked ?? (quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
+            testID={blocked ? "pay-blocked" : mode === "unavailable" ? "pay-unavailable" : "pay"}
+            title={blocked ?? (mode === "unavailable" ? t("checkout.payments_unavailable")
+              : quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
             size="lg"
             block
             loading={paying}
-            disabled={!!blocked || !quote || held === 0 || provider == null}
-            onPress={() => (provider === "stripe" ? void payStripe() : setSheet(true))}
+            disabled={!!blocked || !quote || held === 0 || (mode !== "stripe" && mode !== "test")}
+            onPress={() => (mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true) : undefined)}
           />
         )}
       </View>
-      <Sheet visible={sheet} onClose={() => setSheet(false)} title={t("checkout.test_title")}
+      <Sheet visible={sheet && mode === "test"} onClose={() => setSheet(false)} title={t("checkout.test_title")}
         footer={
           <View style={{ gap: space[2] }}>
             <Button testID="pay-approve" title={t("checkout.test_approve", { amount: quote ? money(quote.total, quote.currency) : "" })} size="lg" block onPress={() => pay("approve")} />
@@ -268,6 +279,7 @@ export default function Bag() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.porcelain },
+  empty: { alignItems: "center", justifyContent: "center", gap: space[4], paddingHorizontal: space[6] },
   top: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: space[2], paddingRight: space[5], paddingTop: space[3], paddingBottom: space[2] },
   back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   held: { borderRadius: radius.pill, backgroundColor: color.white, borderWidth: 1, borderColor: "#D5E4E5", paddingHorizontal: 11, paddingVertical: 7 },

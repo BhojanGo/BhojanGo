@@ -8,7 +8,7 @@ digits that look like a phone number are hidden in free text.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,3 +26,17 @@ class OrderMessage(Base):
     preset: Mapped[str | None] = mapped_column(String(30), nullable=True)  # a quick message's key
     text: Mapped[str] = mapped_column(String(200), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False)
+
+
+class ChatBlock(Base):
+    """One person stopped getting quick messages from another (R19, Apple 1.2): per pair
+    of users, so it holds for every later order between them. Their messages are still
+    stored (support can read them) but are not shown or pushed to the blocker."""
+
+    __tablename__ = "chat_blocks"
+    __table_args__ = (UniqueConstraint("blocker_id", "blocked_id", name="uq_chat_blocks_pair"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    blocker_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    blocked_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -205,8 +205,9 @@ publishable key from the API, so no Stripe variable is needed in a build. No app
 
 ### Checker output
 
-`python tools/railway/prod_config_check.py`, 2026-11-19, on `r19/prod-config` (exit 1: the 7 gaps left are the app
-builds in section 6, another branch's work and Expo's project ids):
+`python tools/railway/prod_config_check.py`, 2026-11-19, after round 19 (both PRs): exit 0. No gaps; what is
+left is values from Srini's accounts (Railway secrets below, and the store ids in `config/store.json`, which a
+production build refuses to run without) and addresses once the domain is bought:
 
 ```
 Production config dry run (names only; no values, no network)
@@ -248,16 +249,19 @@ Code reads: 151 backend settings (config.py), 2 direct os.environ reads in the b
 
 6. App builds (customer, partner, rider): build-time names, set outside Railway
   read by the apps: EXPO_PUBLIC_APP_ENV, EXPO_PUBLIC_CORE_URL, EXPO_PUBLIC_ENV, EXPO_PUBLIC_FONT_AUDIT, EXPO_PUBLIC_REALTIME_URL, EXPO_PUBLIC_SENTRY_DSN, EXPO_PUBLIC_WEB_URL, EXPO_PUBLIC_WORKER_URL
-  GAP  tools/mobile/env-profile.sh has profiles qa, local; none for production (tools/mobile/env-profile.sh:25)
-  GAP  apps/customer: no eas.json (no store build profile)
-  GAP  apps/customer: EAS projectId is a placeholder (apps/customer/app.json:76)
   note apps/customer: ./google-services.json is not in the checkout (Firebase; app.config.js drops it, so no FCM)
-  GAP  apps/partner: no eas.json (no store build profile)
-  GAP  apps/partner: EAS projectId is a placeholder (apps/partner/app.json:71)
   note apps/partner: ./google-services.json is not in the checkout (Firebase; app.config.js drops it, so no FCM)
-  GAP  apps/rider: no eas.json (no store build profile)
-  GAP  apps/rider: EAS projectId is a placeholder (apps/rider/app.json:86)
   note apps/rider: ./google-services.json is not in the checkout (Firebase; app.config.js drops it, so no FCM)
+  store ids still to fill from Srini's accounts (config/store.json; a production build refuses until they are): 9
+    apple.teamId = {APPLE_TEAM_ID}
+    apple.applePayMerchantId = {APPLE_PAY_MERCHANT_ID}
+    google.serviceAccountKeyPath = {PLAY_SERVICE_ACCOUNT_JSON_PATH}
+    apps.customer.easProjectId = {EAS_PROJECT_ID_CUSTOMER}
+    apps.customer.ascAppId = {ASC_APP_ID_CUSTOMER}
+    apps.partner.easProjectId = {EAS_PROJECT_ID_KITCHEN}
+    apps.partner.ascAppId = {ASC_APP_ID_KITCHEN}
+    apps.rider.easProjectId = {EAS_PROJECT_ID_DELIVERY}
+    apps.rider.ascAppId = {ASC_APP_ID_DELIVERY}
 
 7. Set by hand in Railway before go-live (preserve(): the repo holds no value)
   from Srini's accounts: 12
@@ -293,7 +297,7 @@ Code reads: 151 backend settings (config.py), 2 direct os.environ reads in the b
     S3_ADDRESSING_STYLE (core-api): railway bucket credentials --bucket uploads (urlStyle)
     UPLOADS_BUCKET (core-api): railway bucket credentials --bucket uploads
 
-Result: 7 gap(s), 0 warning(s); 28 value(s) to set by hand in Railway, 12 of them from Srini's accounts.
+Result: 0 gap(s), 0 warning(s); 28 value(s) to set by hand in Railway, 12 of them from Srini's accounts.
 ```
 
 ### Secrets from Srini's accounts
@@ -318,7 +322,8 @@ a log.
 | `NEXT_PUBLIC_SENTRY_DSN` | web, admin | Sentry | a JavaScript/Next.js project (one for both, or one each) → Client Keys (DSN) |
 
 Outside Railway, also from Srini's accounts: `EXPO_PUBLIC_SENTRY_DSN` (a React Native project) in the app build
-profiles; the three EAS project ids; `google-services.json` and the FCM V1 key (Firebase → EAS); the APNs key
+profiles (each app's `eas.json`); the store ids in `config/store.json` (the three EAS project ids, the three App Store
+Connect app ids, the Apple team id, the Apple Pay merchant id, the Play service account key); `google-services.json` and the FCM V1 key (Firebase → EAS); the APNs key
 (Apple → EAS).
 
 The other values set by hand need no account of Srini's: addresses once the domain is bought (`CORS_ORIGINS`,

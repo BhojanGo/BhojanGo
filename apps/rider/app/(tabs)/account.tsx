@@ -1,12 +1,16 @@
 // Account: who you are, your language (the country's, from Markets), documents,
-// payouts, safety and sign-out.
-import { LanguagePicker, SafeAreaView, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+// payouts, safety, legal (the country's Privacy policy and Terms on the website),
+// sign-out and deleting the account (R19: location sharing stops first).
+import { DeleteAccount, LanguagePicker, LegalLinks, SafeAreaView, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Icon, type IconName } from "../../lib/icons";
-import { stopTracking } from "../../lib/location";
+import { startTracking, stopTracking, trackingHere } from "../../lib/location";
 import { night, space, ui } from "../../lib/theme";
+
+/** Was this phone sharing its location when deleting started (to restart it if the server says no)? */
+let wasSharing = false;
 
 export default function Account() {
   const user = useSession((s) => s.user);
@@ -50,6 +54,19 @@ export default function Account() {
           <Text style={ui.bold}>{t("rider.account.sign_out")}</Text>
         </Pressable>
         <Text style={[ui.muted, { textAlign: "center" }]}>{t("rider.account.sign_out_note")}</Text>
+        <View testID="legal-section" style={[styles.card, { paddingVertical: space[2] }]}>
+          <Text accessibilityRole="header" style={[ui.bold, { paddingTop: space[2] }]}>{t("rider.account.legal")}</Text>
+          <LegalLinks tone="dark" country={user?.country} />
+        </View>
+        <View testID="delete-section" style={[styles.card, { gap: space[3] }]}>
+          <Text accessibilityRole="header" style={ui.bold}>{t("rider.account.delete")}</Text>
+          <DeleteAccount tone="dark" body={t("account.delete.delivery_body")} note={t("account.delete.delivery_note")}
+            // Location sharing stops before the account goes; if the server keeps it (a payout
+            // still owed, a delivery on its way), sharing starts again where it was on.
+            before={async () => { wasSharing = await trackingHere(); await stopTracking(); }}
+            undo={async () => { if (wasSharing) await startTracking(); }}
+            onDeleted={() => router.replace("/sign-in")} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

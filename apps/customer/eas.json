@@ -1,0 +1,61 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "20.18.0"
+    },
+    "development": {
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "local"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "buildConfiguration": "Debug",
+        "simulator": true
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "qa",
+        "EXPO_PUBLIC_CORE_URL": "https://{QA_CORE_API_HOST}",
+        "EXPO_PUBLIC_REALTIME_URL": "https://{QA_REALTIME_HOST}",
+        "EXPO_PUBLIC_WEB_URL": "https://{QA_WEB_HOST}"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "distribution": "store",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_CORE_URL": "https://{CORE_API_HOST}",
+        "EXPO_PUBLIC_REALTIME_URL": "https://{REALTIME_HOST}",
+        "EXPO_PUBLIC_WEB_URL": "https://{WEB_HOST}"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}

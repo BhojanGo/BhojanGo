@@ -15,7 +15,10 @@ export { aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEI
   tabBarZone } from "./tabbar";
 
 // P17: generated API client, session and bag.
-export { AdminAccountError, api, emailAuth, urls, useSession, wsUrl } from "./session";
+export { AdminAccountError, api, beforeSignOut, emailAuth, urls, useSession, wsUrl } from "./session";
+// R19: push notifications (Expo push tokens registered with core_api after sign-in, removed on sign-out).
+export { registerPush, unregisterPush, usePushRegistration, type PushModule } from "./push";
+export { easProjectId, pushPlatform } from "./push-config";
 // Round 8 (D5): Phone and Email as equal ways in; email + password, email codes, forgot password.
 export { authErrorText, codeSendErrorText, EmailSignIn, SignInWays, waitText } from "./ui/signin";
 export type { Way as SignInWay } from "./ui/signin";
@@ -28,6 +31,10 @@ export type { LoadErrorProps } from "./ui/load-error";
 export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
+// R19: Account -> Legal and Delete account in the Kitchen and Delivery apps.
+export { DeleteAccount, LegalLinks, legalUrl } from "./account";
+export { deleteAccountProblem, legalPageUrl } from "./account-text";
+export type { AccountTone } from "./account";
 export type { BagLine, OptionGroup, Pick } from "./bag";
 export { ACTIVE_STATUSES, ApiError, errorMessage, quoteRefusal, unwrap, type QuoteRefusal } from "@bhojango/api-client";
 export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";

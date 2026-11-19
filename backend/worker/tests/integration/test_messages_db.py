@@ -74,9 +74,11 @@ async def test_order_messages_in_telugu_once(capsys) -> None:  # type: ignore[no
         live, dead = f"ExponentPushToken[{uuid.uuid4().hex[:20]}]", f"ExponentPushToken[{uuid.uuid4().hex[:20]}]"
         async with AsyncSessionLocal() as db:
             await db.execute(DeviceToken.__table__.delete().where(DeviceToken.user_id == uuid.UUID(user_id(cust))))
-            db.add_all([DeviceToken(user_id=uuid.UUID(user_id(cust)), token=t, platform="ios", provider="expo")
-                        for t in (live, dead)])
             await db.commit()
+        # R19: registered the way the apps do it, through core_api (the worker's table).
+        for t in (live, dead):
+            r = await client.post("/api/v1/me/devices", headers=cust, json={"token": t, "platform": "ios"})
+            assert r.status_code == 201 and r.json()["provider"] == "expo", r.text
         try:
             order = await new_order(client, cust)
             await pay(client, cust, order)

@@ -130,3 +130,30 @@ def test_fake_gateway_is_refused_in_production(monkeypatch) -> None:
 
 def test_outbox_model_is_importable() -> None:
     assert OutboxEvent.__tablename__ == "outbox_events"
+
+
+@pytest.mark.parametrize("mode", ["auto", "fake"])
+async def test_the_apps_never_hear_fake_in_production(client, monkeypatch, mode) -> None:  # type: ignore[no-untyped-def]
+    """R19: GET /payments/provider tells the apps which checkout to open. In production with
+    no live keys (or PAYMENT_PROVIDER=fake) it answers 503 PAYMENTS_UNAVAILABLE, never "fake",
+    so the app says payments aren't available rather than opening the test sheet."""
+    from types import SimpleNamespace
+
+    from core_api.modules.payments.api.dependencies import get_current_user
+
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=uuid.uuid4(), role="customer")
+    try:
+        p = get_settings().payments
+        for k in ("STRIPE_SECRET_KEY", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"):
+            monkeypatch.setattr(p, k, "")
+        monkeypatch.setattr(get_settings().providers, "PAYMENT_PROVIDER", mode)
+        # Not production: the fake checkout (local and QA).
+        r = await client.get("/api/v1/payments/provider", params={"country": "IN"})
+        assert r.status_code == 200 and r.json()["provider"] == "fake"
+        monkeypatch.setattr(get_settings(), "APP_ENV", "production")
+        for country in ("IN", "US"):
+            r = await client.get("/api/v1/payments/provider", params={"country": country})
+            assert r.status_code == 503, r.text
+            assert r.json()["detail"]["code"] == "PAYMENTS_UNAVAILABLE" and "fake" not in r.text
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

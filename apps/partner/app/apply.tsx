@@ -90,7 +90,10 @@ export default function Apply() {
           <Text accessibilityRole="header" style={t.h1}>{tr("partner.apply.title")}</Text>
           <Text style={t.muted}>{[a?.name ?? kitchen.name, a?.area, kitchen.city].filter(Boolean).join(" · ")}</Text>
         </View>
-        <Btn title={tr("partner.apply.save_exit")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
+        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Btn testID="open-account" title={tr("partner.help.account")} onPress={() => router.push("/account")} />
+          <Btn title={tr("partner.apply.save_exit")} onPress={async () => { await signOut(); router.replace("/sign-in"); }} />
+        </View>
       </View>
       <Scroller on={phone}>
       <View style={phone ? { gap: 12 } : { flex: 1, flexDirection: "row", padding: narrow ? 16 : 24, gap: narrow ? 16 : 24 }}>

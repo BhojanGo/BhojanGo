@@ -47,9 +47,25 @@ Ltd, that is a second account per store.
 ## Likely review problems
 
 Ordered by how likely each one is to stop a release. Each item gives the evidence,
-the store rule, and the fix. None of these fixes has been made.
+the store rule, and the fix. Round 19 (2026-11-19) fixed items 1, 2 (in the app),
+5, 6 (purpose strings and microphone), 8 (Kitchen and Delivery) and 9 (quick
+messages); each says so in a **Status** line. The rest is still open.
 
 ### 1. Kitchen and Delivery apps have no in-app account deletion (Apple: blocker)
+
+**Status (R19): fixed.** BhojanGo Kitchen: Help and settings > "Account and legal" >
+"Delete my account" (`apps/partner/app/account.tsx`, also linked from the application
+screen). BhojanGo Delivery: Account tab > "Delete account"
+(`apps/rider/app/(tabs)/account.tsx`), which stops location sharing first. Both use the
+shared confirmation sheet (`packages/mobile-core/src/account.tsx`) with the customer
+app's wording rules. Server (`delete_account`, `identity/service/auth.py`): a delivery
+partner's `rider_documents` rows and their stored licence and insurance photos are
+deleted; a kitchen owner's kitchens close at once and leave every listing
+(`paused_reason` `owner_deleted`); deletion waits with HTTP 409 `MONEY_OWED` (the app
+shows the amount) while a payout statement is unpaid, or `ORDERS_IN_PROGRESS`. The
+customer app has no such wait: customers are never owed payouts. An admin's erasure
+request skips the wait (support settles any payout by hand). Update the privacy
+policy and Data safety answers to say documents are deleted with the account.
 
 - Evidence: only the customer app calls the delete endpoint
   (`apps/customer/app/account/privacy.tsx:52`, `packages/mobile-core/src/session.ts:129-131`).
@@ -75,6 +91,15 @@ the store rule, and the fix. None of these fixes has been made.
   how long, and say so in the privacy policy and on the Data safety form.
 
 ### 2. Background location in the Delivery app (Google: declaration, disclosure and video; Apple: wording)
+
+**Status (R19): fixed in the app; the Play Console forms and the video are still to
+do.** The prominent disclosure (`apps/rider/lib/disclosure.tsx`, keys
+`rider.location.*`) shows right after going online (once per app run, and from the
+Drive tab banner) before the system prompt, with "Allow" and "No thanks". Background
+location is asked for and used only while online; the task also stops when the server
+says the partner is offline. The `expo-location` plugin now sets all three iOS strings
+and the `infoPlist` copies are gone. Declaration texts and the video shot list:
+[play-location-declaration.md](play-location-declaration.md).
 
 - Evidence: `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE` and
   `FOREGROUND_SERVICE_LOCATION` (`apps/rider/app.json:34-36`);
@@ -171,6 +196,9 @@ the store rule, and the fix. None of these fixes has been made.
 
 ### 5. Reviewers cannot receive the sign-in code (both stores: "unable to sign in")
 
+**Status (R19): fixed** by `tools/review_accounts.py` (email and password accounts in a
+hidden review city; see "Reviewer access"). Run it in production at go-live.
+
 - Sign-in is phone + SMS code or email (password, email code, or new account)
   (`apps/customer/app/sign-in.tsx:1-2`, shared `EmailSignIn` in
   `packages/mobile-core/src/ui/signin.tsx:96`). The Kitchen and Delivery apps use the
@@ -184,6 +212,16 @@ the store rule, and the fix. None of these fixes has been made.
   (App access). See "Reviewer access" below.
 
 ### 6. Purpose strings that are generic, wrong or unused (Apple 5.1.1)
+
+**Status (R19): purpose strings and microphone fixed.** Customer: the "always" location
+keys are gone (plugin options `false`) and the when-in-use text is accurate. Delivery:
+see item 2. Microphone: `microphonePermission: false` on `expo-image-picker` in all
+three apps, and `microphonePermission: false` / `recordAudioAndroid: false` on
+`expo-audio` in the Kitchen app. Still to check after `expo prebuild`: no
+`NSMicrophoneUsageDescription` or `RECORD_AUDIO`, the photo permissions below, and
+`WAKE_LOCK`. Also note `expo-audio` still adds `UIBackgroundModes: audio` by default
+(`enableBackgroundPlayback`); the Kitchen app plays its alert only in the foreground,
+so consider `enableBackgroundPlayback: false` before submitting (Apple 2.5.4).
 
 - Customer: `NSLocationAlwaysAndWhenInUseUsageDescription` says "for real-time
   delivery tracking" (`apps/customer/app.json:17`), but the app only asks for
@@ -228,6 +266,13 @@ the store rule, and the fix. None of these fixes has been made.
 
 ### 8. Privacy policy link inside the Kitchen and Delivery apps (Apple 5.1.1(i))
 
+**Status (R19): fixed for Kitchen and Delivery.** Privacy policy and Terms of use open the
+account country's pages on the website (`/privacy?country=XX`, `/terms?country=XX`,
+base `EXPO_PUBLIC_WEB_URL`): Kitchen: Help and settings > "Account and legal";
+Delivery: Account tab > "Legal". Still open: links on the Kitchen and Delivery sign-in
+screens and on the customer Account tab, and `EXPO_PUBLIC_WEB_URL` in the production
+build profile (item 3).
+
 - The customer sign-in screen links to Terms and Privacy
   (`apps/customer/app/sign-in.tsx:95-101`). The Kitchen and Delivery apps have no
   link to the privacy policy anywhere (no match for "privacy" in `apps/partner/app`
@@ -237,6 +282,12 @@ the store rule, and the fix. None of these fixes has been made.
   Account screens. Also add them to the customer Account tab.
 
 ### 9. User-generated content: quick messages (Apple 1.2), photos, ratings
+
+**Status (R19): report and block fixed.** In the quick messages sheet (customer and
+Delivery apps; the Kitchen app has no chat): press and hold a message, or tap "Report",
+to report it with a reason (a `chat_report` ticket in the admin support queue with the
+conversation), and "Block" in the header (per pair of people: the blocker no longer
+receives that person's messages or pushes). Dish photo removal by admins is not checked.
 
 - Customers and riders exchange preset messages and free text up to 140 characters
   while an order is active (`backend/core_api/modules/orders/api/v1/messages.py:1-8`,
@@ -303,35 +354,98 @@ the store rule, and the fix. None of these fixes has been made.
 
 ## Reviewer access
 
-Create these in **production** before submitting. They sign in with email and
-password (codes are not sent to reviewers). Record them only in the store consoles
-and the team's password manager, not in this repo.
+Reviewers sign in with **email and password** (sign-in codes are not sent to them).
+The accounts are made by one command, run **once, in production, at go-live**
+(it may also be tried on a dev stack; it refuses on QA):
 
-| Account | For | Needs |
+```sh
+# inside the production core-api container (Railway: the core-api service's shell)
+python tools/review_accounts.py --email-domain <a domain the team owns>
+# options: --country US (default) --region US-ID --code US-ID-REV
+#          --centre LAT,LNG (open sea; required outside the US) --postal-code 83702
+```
+
+It creates, in one transaction (`backend/tools/review_accounts.py`):
+
+| Account | App | What it has |
 |---|---|---|
-| `{REVIEW_CUSTOMER_EMAIL}` | BhojanGo | A saved address inside the Boise delivery zone, so the reviewer sees kitchens and the bag even when testing from outside Idaho. Mention the "Change city" browse option. |
-| `{REVIEW_KITCHEN_EMAIL}` | BhojanGo Kitchen | Linked to an approved kitchen that real customers cannot order from (paused or in a hidden test zone), with a few menu items and photos, and some past orders and ratings. |
-| `{REVIEW_RIDER_EMAIL}` | BhojanGo Delivery | An approved rider (documents done) in Boise, with some past deliveries and earnings. |
+| `review.customer@<domain>` | BhojanGo | A customer with a saved "Home" address inside the review zone, so the home screen shows the review kitchen wherever the reviewer is. |
+| `review.kitchen@<domain>` | BhojanGo Kitchen | The owner of "BhojanGo Review Kitchen": approved, open around the clock, with a small menu (mains, breads, drinks). |
+| `review.delivery@<domain>` | BhojanGo Delivery | An approved delivery partner: phone step, licence, insurance and background check marked done (no document images are stored). |
 
-Review notes to paste (adapt per app):
+- **The review zone is hidden.** The command adds a city "App Review" (code
+  `<region>-REV`) whose only zone is a square of open sea, about 11 km across (for
+  the US: the North Pacific around 30N 140W, far from any coast), so no real address
+  is ever inside it. The city's Markets settings say `review_only: true` and list the
+  three account ids in `review_accounts` (`core_api/modules/markets/service/review.py`).
+  Everyone else never sees it: it is left out of the city lists, the website's
+  directory and city pages, the address search, locate and discover, and the public
+  kitchen lists; the review kitchen's page and menu answer 404 to anyone but the
+  review accounts. Pricing and placing an order are not filtered (they need the
+  kitchen's id and an address in the zone, which only the review accounts have).
+- **Passwords** are random and printed **once** at the end. Copy them straight into
+  App Store Connect, Play Console and the team's password manager; they are not
+  written to a file or the logs, and never go in this repo.
+- **Idempotent by refusing**: if the review city or any of the three emails already
+  exists, it changes nothing and exits with an error. To start over, delete those rows.
+- After running it, sign in once with each account on a production build and check:
+  the customer sees "BhojanGo Review Kitchen" and can price a cart (if sales tax needs
+  a real postal code, rerun on a fresh database with `--postal-code`), the kitchen app
+  opens the kitchen, the Delivery app shows the partner as ready to go online.
+- No delivery partner is ever near the zone, so an order placed there is not offered
+  to anyone real, and the review delivery partner gets no offers. That is why the
+  Delivery app's notes point to a screen recording. Payments are real in production:
+  the notes tell reviewers they do not need to pay to review the app.
 
-> BhojanGo is a food delivery service. It delivers only inside its live cities
-> (currently Boise, Idaho, United States). Sign in with the email and password above
-> ("Email" tab, then "Password"). Payments are for food and delivery (physical goods
-> and services) and go through Stripe; tips go to the delivery partner for a
-> real-world service. No digital goods are sold. Quick messages between a customer
-> and their rider are open only while an order is on its way; numbers are masked and
-> the chat closes when the order is delivered. Accounts can be deleted in the app:
-> {WHERE_IN_APP}.
+### App Store Connect "App Review Information" / Play Console "App access"
 
-For the Delivery app add a short screen recording link showing going online, the
-location disclosure and an offer, because a reviewer cannot receive a real order.
+Choose "All or some functionality is restricted" (Play) and enter the email and
+password of that app's account. Notes per app:
+
+**BhojanGo** (`review.customer@<domain>`)
+
+> BhojanGo is a food delivery service. It delivers only inside its live cities.
+> Sign in with the email and password above ("Email" tab, then "Password"). This
+> account has a saved address in a test area with one test kitchen, "BhojanGo Review
+> Kitchen", so you can browse its menu, add dishes to the bag and see the checkout
+> from anywhere. You do not need to pay to review the app. Payments are for food and
+> delivery (physical goods and services) and go through Stripe; tips go to the
+> delivery partner for a real-world service. No digital goods are sold. Quick
+> messages between a customer and their delivery partner are open only while an
+> order is on its way; numbers are masked, a message can be reported or the person
+> blocked, and the chat closes when the order is delivered. The account can be
+> deleted in the app: Account, Privacy and your data, Delete my account.
+
+**BhojanGo Kitchen** (`review.kitchen@<domain>`)
+
+> BhojanGo Kitchen is the app restaurants use to take BhojanGo orders, run on a
+> tablet or phone in the kitchen. Sign in with the email and password above ("Email"
+> tab, then "Password"). The account owns a test kitchen that real customers cannot
+> see. You can open and close the kitchen, pause orders, edit the menu (dish names,
+> prices, photos, sold out), see payouts and ask support for a call back. Kitchens
+> sign up in the app; it is a public listing for restaurant partners. The account can
+> be deleted in the app: Help and settings, Account and legal, Delete my account.
+
+**BhojanGo Delivery** (`review.delivery@<domain>`)
+
+> BhojanGo Delivery is the app delivery partners use to receive and deliver
+> BhojanGo orders. Sign in with the email and password above ("Email" tab, then
+> "Password"). The account is an approved delivery partner. Delivery offers depend
+> on real orders near the partner, so a reviewer will not receive one; this video
+> shows going online, the location disclosure, an offer and a delivery: {VIDEO_URL}.
+> Location is used only while the partner is online (on shift), including in the
+> background with a visible notification, to offer nearby deliveries and show
+> customers where their order is; going offline stops it. Delivery partners sign up
+> in the app; it is a public listing. The account can be deleted in the app:
+> Account, Delete account, Delete my account.
 
 ## Checklist before the first submission
 
-- [ ] Fix items 1 to 4 above (deletion, rider location disclosure, production build
-      profile, test payment sheet).
-- [ ] Decide item 7 (push) and item 9 (report in chat).
+- [x] Item 1 (in-app deletion) and item 2 in the app (disclosure, strings): round 19.
+- [ ] Item 2 in Play Console: both declarations and the video
+      ([play-location-declaration.md](play-location-declaration.md)).
+- [ ] Fix items 3 and 4 (production build profile, test payment sheet).
+- [ ] Decide item 7 (push). Item 9 (report and block in chat): done in round 19.
 - [ ] Pages live: `{SUPPORT_URL}`, `{PRIVACY_URL}`, `{TERMS_URL}`, `{DELETE_ACCOUNT_URL}`.
 - [ ] Reviewer accounts created in production.
 - [ ] `expo prebuild` per app; read the generated `Info.plist` and merged

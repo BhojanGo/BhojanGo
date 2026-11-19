@@ -100,3 +100,19 @@ class BearerAuth(HTTPBearer):
                 )
             return None
         return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
+
+
+_optional_bearer = BearerAuth(auto_error=False)
+
+
+async def optional_viewer(request: HTTPConnection) -> uuid.UUID | None:
+    """Who is looking at a public route, if they sent a valid access token (R19: the
+    store review accounts see their review-only city). No token, or a bad or expired
+    one: None, and the route answers as for anyone. Never a 401."""
+    credentials = await _optional_bearer(request)
+    if credentials is None:
+        return None
+    try:
+        return uuid.UUID(decode_access_token(credentials.credentials)["sub"])
+    except (InvalidTokenError, ValueError, KeyError):
+        return None

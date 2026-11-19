@@ -107,3 +107,23 @@ def test_provider_selection(monkeypatch) -> None:  # type: ignore[no-untyped-def
     assert isinstance(get_push_provider(), LogPush)
     monkeypatch.setattr(get_settings().providers, "PUSH_PROVIDER", "live")
     assert isinstance(get_push_provider(), LivePush)
+
+
+async def test_live_push_reaches_an_app_token_through_expo(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """R19: a token the apps register (POST /api/v1/me/devices: provider "expo") goes to Expo's
+    push service, with the access token when one is set. Mocked HTTP: nothing is really sent."""
+    seen: list[httpx.Request] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        return httpx.Response(200, json={"data": [{"status": "ok", "id": "t1"}]})
+
+    monkeypatch.setattr(get_settings().providers, "EXPO_ACCESS_TOKEN", "expo-test-access")
+    token = "ExponentPushToken[r19-app-device]"
+    expo = ExpoPush(httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    res = await LivePush({"expo": expo, "fcm": Fake("fcm"), "apns": Fake("apns")}).send(
+        [Device(token, provider_for_token(token, "android"))], MSG)
+    assert res.sent == 1 and res.invalid == []
+    assert str(seen[0].url) == "https://exp.host/--/api/v2/push/send"
+    assert seen[0].headers["authorization"] == "Bearer expo-test-access"
+    assert json.loads(seen[0].content)[0]["to"] == token

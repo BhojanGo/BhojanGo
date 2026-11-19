@@ -1,6 +1,6 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
 import {
-  Button, color, errorMessage, LoadError, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n,
+  appEnv, Button, color, errorMessage, LoadError, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n,
 } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -69,6 +69,8 @@ export default function PaymentFailed() {
     }
   }
   const stripe = provider === "stripe";
+  // R19: the test sheet never opens in production; there, a non-Stripe retry goes back to the bag.
+  const testSheet = !stripe && appEnv() !== "production";
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -88,7 +90,7 @@ export default function PaymentFailed() {
           </View>
         ) : failure ? <LoadError error={failure} onRetry={loadStatus} style={{ backgroundColor: color.porcelain }} /> : null}
         {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
-        {!status ? null : left > 0 && status.can_retry !== false ? (
+        {!status ? null : left > 0 && status.can_retry !== false && (stripe || testSheet) ? (
           <View style={{ gap: space[2] }}>
             <Button title={method === "upi" ? t("app.payment_failed.try_upi") : t("app.payment_failed.try_card")} size="lg" block loading={busy}
               onPress={() => (stripe ? void retryStripe() : setSheet(method))} />
@@ -101,7 +103,7 @@ export default function PaymentFailed() {
           <Button title={t("app.payment_failed.back_to_bag")} size="lg" block onPress={() => router.replace("/bag")} />
         )}
       </View>
-      <Sheet visible={sheet != null} onClose={() => setSheet(null)} title={sheet === "card" ? t("app.payment_failed.sheet_card") : t("app.payment_failed.sheet_upi")}
+      <Sheet visible={sheet != null && testSheet} onClose={() => setSheet(null)} title={sheet === "card" ? t("app.payment_failed.sheet_card") : t("app.payment_failed.sheet_upi")}
         footer={
           <View style={{ gap: space[2] }}>
             <Button title={t("app.payment_failed.approve", { total })} size="lg" block onPress={() => sheet && retry(sheet, "approve")} />

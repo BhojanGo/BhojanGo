@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-19** (after round 18), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-19** (after round 19), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -143,6 +143,32 @@ Launch: [boise-readiness.md](launch/boise-readiness.md) now has costs, insurance
   and push credentials, the web payments provider, a markets-only production seed, a way to create the first admin,
   push registration, Sentry, and store builds. The go-live runbook orders the steps from "accounts ready" to the
   first real order, each with its check and rollback, and lists when to stop.
+
+## Store blockers and production gaps fixed (round 19)
+
+Decisions: production is Boise only (India's markets kept, switched off); a markets-only seed; email through
+Amazon SES; sign-in codes through Twilio Verify; order updates by push; Sentry on the free plan.
+
+- **Apps (store review):** account deletion inside BhojanGo Kitchen and BhojanGo Delivery (waits while a payout is
+  owed or orders are under way; deletes a delivery partner's documents; closes a departing owner's kitchen);
+  background location only on shift, with Google's prominent disclosure first
+  ([play-location-declaration.md](launch/store/play-location-declaration.md)); no unused microphone or "always"
+  location strings; Privacy and Terms in the Kitchen and Delivery apps; report or block a chat message (reports in
+  admin's support queue); push tokens registered after sign-in and removed at sign-out (Expo); checkout fails
+  closed ("Payments aren't available in this city yet"); `eas.json` for the three apps with the store ids in one
+  file (`config/store.json`) and a production build that refuses placeholders; reviewer accounts in a hidden city
+  (`backend/tools/review_accounts.py`, run once at go-live). In the customer app a closed kitchen or paused city
+  greys every dish's "+", and the paused bag shows the note and "Back to home".
+- **Production config:** core-api refuses to start without https public addresses, `IDENTITY_DATA_KEYS` or a way to
+  send sign-in codes (the error names the variable); the website never shows the fake card form in production;
+  a tool for `IDENTITY_DATA_KEYS`; the markets-only seed (Boise live, India off, no demo data); a one-time first
+  super admin command (password set by email, authenticator at first sign-in); SES and Twilio Verify with fakes
+  for dev and CI; Sentry everywhere, off without a DSN; the worker no longer needs SMS credentials.
+- **What is left for production** (`tools/railway/prod_config_check.py`: no gaps): 12 secrets from Srini's accounts
+  (Stripe live keys and three webhook secrets, Twilio and its Verify service, the SES access key, two Sentry DSNs),
+  9 store ids (three Expo project ids, three App Store Connect app ids, the Apple team id, the Apple Pay merchant
+  id, the Play service account key), and the addresses once the domain is bought
+  ([production-config.md](launch/production-config.md), [go-live.md](launch/go-live.md)).
 
 ## What's left before the pilot
 

@@ -1,0 +1,40 @@
+# R19 (app store review): the Account tab's Legal links and the delete-account
+# confirmation (the seeded delivery partner still signing up). Only opens the sheet and
+# keeps the account. Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.rider
+---
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: "2085550291"
+- extendedWaitUntil:
+    visible: "Almost ready to deliver.*"
+    timeout: 60000
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "delete-account"
+- assertVisible:
+    id: "legal-privacy"
+- assertVisible:
+    id: "legal-terms"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-account-legal
+- tapOn:
+    id: "delete-account"
+- extendedWaitUntil:
+    visible:
+      id: "delete-sheet"
+    timeout: 10000
+- assertVisible: "Delete your account?"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-delete-confirm
+- tapOn:
+    id: "keep-account"

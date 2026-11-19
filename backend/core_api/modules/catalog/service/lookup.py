@@ -116,3 +116,26 @@ async def forget_reviewer(db: AsyncSession, customer_id: uuid.UUID) -> None:
 
     await db.execute(update(Review).where(Review.customer_id == customer_id)
                      .values(customer_name="Deleted user", customer_avatar=None))
+
+
+async def owned_restaurant_ids(db: AsyncSession, owner_id: uuid.UUID) -> list[uuid.UUID]:
+    """The kitchens this account owns (account deletion: money owed, orders in progress)."""
+    from sqlalchemy import select
+
+    return list((await db.execute(select(Restaurant.id).where(
+        Restaurant.owner_id == owner_id, Restaurant.deleted_at.is_(None)))).scalars())
+
+
+OWNER_DELETED = "owner_deleted"  # Restaurant.paused_reason when its owner deleted the account (R19)
+
+
+async def close_for_departed_owner(db: AsyncSession, owner_id: uuid.UUID) -> int:
+    """Account deletion by a kitchen owner (R19): the kitchen stops taking orders at
+    once and leaves every listing (is_active off, paused_reason "owner_deleted").
+    The row stays: past orders, payouts and tax records point at it. Support can
+    hand it to a new owner and turn it back on. Returns how many were closed."""
+    from sqlalchemy import update
+
+    r = await db.execute(update(Restaurant).where(Restaurant.owner_id == owner_id, Restaurant.deleted_at.is_(None))
+                         .values(is_open=False, is_active=False, paused_reason=OWNER_DELETED, paused_until=None))
+    return int(r.rowcount or 0)  # type: ignore[attr-defined]

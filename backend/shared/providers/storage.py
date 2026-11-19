@@ -23,6 +23,8 @@ class Storage(Protocol):
 
     async def get(self, key: str) -> tuple[bytes, str] | None: ...
 
+    async def delete(self, key: str) -> None: ...
+
 
 class LocalStorage:
     name = "local"
@@ -50,6 +52,10 @@ class LocalStorage:
             return None
         ext = path.suffix.lower()
         return path.read_bytes(), {".pdf": "application/pdf", ".png": "image/png", ".webp": "image/webp"}.get(ext, "image/jpeg")
+
+    async def delete(self, key: str) -> None:
+        """Remove a file (account deletion); a file that isn't there is fine."""
+        self._path(key).unlink(missing_ok=True)
 
 
 class S3Storage:
@@ -93,6 +99,10 @@ class S3Storage:
         except ClientError:
             return None
         return await asyncio.to_thread(r["Body"].read), r.get("ContentType") or "application/octet-stream"
+
+    async def delete(self, key: str) -> None:
+        """Remove a file (account deletion). S3 answers a missing key with success too."""
+        await asyncio.to_thread(self._client().delete_object, Bucket=self.bucket, Key=key)
 
 
 def get_storage() -> Storage:

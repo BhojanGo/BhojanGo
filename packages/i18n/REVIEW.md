@@ -447,6 +447,41 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
   `order_cancelled`, `refund_sent`, `delay`, `area_paused`, `area_back`, `payment_problem`. `{amount}` is a
   formatted amount, `{code}` an order code, `{time}` a time an admin typed (e.g. "8:30 pm").
 
+## Checkout fails closed; the paused bag (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, customer app (BhojanGo): `checkout.payments_unavailable` (the Pay button when this city's
+  payment provider isn't live yet; calm, no blame, "yet") and `checkout.back_home` (the button on the
+  bag while ordering is paused).
+
+## Report or block in quick messages (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo and BhojanGo Delivery apps (the quick messages sheet): `app.chat.report`, `report_title`,
+  `report_intro`, `reason_abusive`, `reason_harassment`, `reason_spam`, `reason_unsafe`, `reason_other`,
+  `report_note`, `also_block`, `send_report`, `sending`, `report_sent`, `report_sent_body`, `report_failed`,
+  `block`, `unblock`, `block_title`, `block_body`, `block_confirm`, `cancel`, `blocked_note`, `block_failed`,
+  `report_hint`. `{name}` is the other person's first name. Calm and short; `report_sent_body` points to the
+  local emergency number without naming one.
+
+## Account deletion, legal links and background location (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo Kitchen (Help and settings → Account and legal) and BhojanGo Delivery (Account tab):
+  `account.legal.title`, `account.legal.opens`, `account.delete.kitchen_body`, `kitchen_note`,
+  `delivery_body`, `delivery_note`, `money_owed` (`{amount}` is a formatted amount), `orders_in_progress`,
+  `partner.help.account`, `partner.help.account_detail`, `partner.account.title`, `partner.account.delete`,
+  `rider.account.legal`, `rider.account.delete`. The delete texts must stay exact about what is removed and
+  what is kept for tax; they mirror the customer app's `account.privacy.*`.
+- New, BhojanGo Delivery (the background location disclosure, Google Play's "prominent disclosure"):
+  `rider.location.title`, `body`, `shared`, `next`, `allow`, `no_thanks`. `rider.location.body` must keep
+  every part Google asks for in each language: that location is collected, for what (nearby deliveries,
+  showing customers where their order is), "even when the app is closed or not in use", and only while
+  online. `rider.location.next` names the system's "Allow all the time" option: use the words the phone
+  shows in that language. Changed: `rider.drive.background_sub`.
 ## Payments not set up in production (round 19)
 
 Machine-translated on 2026-11-19 into all seven languages; needs native review.

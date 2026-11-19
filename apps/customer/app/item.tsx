@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { FavouriteHeart } from "../components/Heart";
+import { useKitchenBlock } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
 import { photo, Photo } from "../lib/plate";
 import { useMenu } from "../lib/restaurants";
@@ -21,6 +22,8 @@ export default function Item() {
   const [picks, setPicks] = useState<Pick[] | null>(null);
   const [qty, setQty] = useState(1);
   const add = useBag((s) => s.add);
+  // R19: the city's ordering paused or the kitchen closed: no adding, and the button says why.
+  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined);
   if (!menu || !item) return null;
   const chosen = picks ?? defaultPicks(groups);
   const currency = menu.restaurant.currency;
@@ -118,20 +121,20 @@ export default function Item() {
             </Pressable>
           </View>
           <Pressable
-            testID="add-to-bag"
+            testID={blocked ? "add-to-bag-blocked" : "add-to-bag"}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !complete }}
-            disabled={!complete}
+            accessibilityState={{ disabled: !complete || !!blocked }}
+            disabled={!complete || !!blocked}
             onPress={() => {
               const summary = chosen.map((p) => p.option.split(" · ")[0]?.toLowerCase()).join(", ");
               add({ id: menu.restaurant.id, name: menu.restaurant.name },
                 { menuItemId: item.id, name: item.name, unitPrice: unit, quantity: qty, picks: chosen, summary });
               router.back();
             }}
-            style={[styles.addBtn, !complete && { opacity: 0.5 }]}
+            style={[styles.addBtn, (!complete || !!blocked) && { opacity: 0.5 }]}
           >
-            <Text style={[type.label, num, { color: color.white }]}>
-              {t("kitchen.add_to_bag", { price: money(unit * qty, currency) })}
+            <Text numberOfLines={1} style={[type.label, num, { color: color.white, flexShrink: 1 }]}>
+              {blocked ?? t("kitchen.add_to_bag", { price: money(unit * qty, currency) })}
             </Text>
           </Pressable>
         </View>

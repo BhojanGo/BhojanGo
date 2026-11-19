@@ -13,8 +13,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.bhojango.rider",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BhojanGo Delivery uses your location to show nearby deliveries and share your position with customers.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo Delivery shares your location during an active delivery.",
         "UIBackgroundModes": [
           "location"
         ],
@@ -48,7 +46,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "BhojanGo Delivery shares your location while you are online, even with the screen off, so you get nearby offers and customers can follow their order.",
+          "locationWhenInUsePermission": "BhojanGo Delivery uses your location while you are online, to offer you nearby deliveries and show customers where their order is.",
+          "locationAlwaysAndWhenInUsePermission": "BhojanGo Delivery uses your location while you are online, even when the app is closed or not in use, to offer you nearby deliveries and show customers where their order is. Going offline stops it.",
+          "locationAlwaysPermission": "BhojanGo Delivery uses your location while you are online, even when the app is closed or not in use, to offer you nearby deliveries and show customers where their order is. Going offline stops it.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -76,7 +76,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "BhojanGo Delivery uses the camera for photos at the door and of your documents.",
-          "photosPermission": "BhojanGo Delivery lets you choose a photo of your documents."
+          "photosPermission": "BhojanGo Delivery lets you choose a photo of your documents.",
+          "microphonePermission": false
         }
       ]
     ],
