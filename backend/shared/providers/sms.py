@@ -3,7 +3,8 @@
 India requires DLT-registered templates for every SMS, so messages carry a
 template key and its variables as well as the rendered text. Twilio sends the
 text; MSG91 sends the template id mapped from the key (MSG91_TEMPLATE_IDS)
-with the variables. The log provider prints the text.
+with the variables. The log provider prints the text. "off" sends nothing (production, R19: order updates go by
+push and email, sign-in codes through Twilio Verify in core_api's otp.py).
 """
 from typing import Protocol
 
@@ -31,6 +32,20 @@ class LogSms:
         logger.info("sms_local", to=to, country=country, template=template, body=body)
         print(f"[SMS to {to}] {body}", flush=True)  # easy to spot in `make logs`
         return True
+
+
+class NoSms:
+    """SMS switched off on purpose (SMS_PROVIDER=off): nothing is sent, the caller sees False."""
+
+    name = "off"
+
+    async def send(self, to: str, body: str, country: str, template: str = "", params: dict | None = None) -> bool:
+        logger.info("sms_off", to=to[-4:], template=template)
+        return False
+
+
+def sms_enabled() -> bool:
+    return get_settings().providers.SMS_PROVIDER != "off"
 
 
 class TwilioSms:
@@ -92,4 +107,6 @@ def get_sms_provider(country: str = "US") -> SmsProvider:
         return Msg91Sms() if country == "IN" else TwilioSms()
     if name == "twilio":
         return TwilioSms()
-    raise ProviderConfigError(f"Unknown SMS_PROVIDER '{name}' (log | live)")
+    if name == "off":
+        return NoSms()
+    raise ProviderConfigError(f"Unknown SMS_PROVIDER '{name}' (log | live | off)")

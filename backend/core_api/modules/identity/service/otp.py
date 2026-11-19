@@ -3,12 +3,16 @@
 Sending is limited per phone number (service/guard.py code_send_wait: 1 per 30 s,
 5 per hour, 10 per day), not per IP: many people share an IP behind carrier-grade NAT.
 A code allows MAX_WRONG_TRIES wrong tries, then it is burnt (ask for a new one).
+
+OTP_PROVIDER=twilio_verify (production, R19): Twilio Verify makes, sends and checks the
+code (service/twilio_verify.py) and nothing is kept here; the send limits above still apply.
+Seed phones' fixed code (outside production only) always stays local.
 """
 import hmac
 
 import structlog
 
-from core_api.modules.identity.service import guard
+from core_api.modules.identity.service import guard, twilio_verify
 from core_api.modules.identity.service.redis_keys import otp_attempts_key, otp_key
 from core_api.modules.identity.service.security import generate_otp
 from shared import notify
@@ -33,6 +37,13 @@ async def send_otp(phone: str, country: str, language: str = "en") -> bool:
         logger.info("otp_send_limited", phone=phone[-4:], wait=wait)
         raise guard.too_many_codes(wait, "number")
 
+    language = language if language in OTP_SMS else "en"
+    if not fixed and _uses_verify():
+        try:
+            return await twilio_verify.start(phone, language)
+        except twilio_verify.TooManyCodes:
+            raise guard.too_many_codes(600, "number") from None
+
     otp = fixed or generate_otp(settings.identity.OTP_LENGTH)
     ttl_seconds = settings.identity.OTP_EXPIRE_MINUTES * 60
     redis = await get_redis()
@@ -43,10 +54,13 @@ async def send_otp(phone: str, country: str, language: str = "en") -> bool:
 
     # The worker sends it (locally: printed in the worker log).
     minutes = settings.identity.OTP_EXPIRE_MINUTES
-    language = language if language in OTP_SMS else "en"
     body = pick(OTP_SMS, language).format(otp=otp, minutes=minutes)
     return await notify.send("sms", phone, body, country=country, template=f"otp_{language}",
                              params={"otp": otp, "minutes": minutes})
+
+
+def _uses_verify() -> bool:
+    return settings.identity.OTP_PROVIDER == "twilio_verify"
 
 
 def _fixed_code_for(phone: str) -> str | None:
@@ -60,6 +74,8 @@ def _fixed_code_for(phone: str) -> str | None:
 async def verify_otp(phone: str, otp: str) -> bool:
     """True if ``otp`` is the live code for ``phone`` (and it is used up). Wrong tries
     count; after MAX_WRONG_TRIES the code is burnt."""
+    if _uses_verify() and not _fixed_code_for(phone):
+        return await twilio_verify.check(phone, otp)
     redis = await get_redis()
     stored_otp = await redis.get(otp_key(phone))
 

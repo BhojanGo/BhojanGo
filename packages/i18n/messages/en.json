@@ -447,7 +447,7 @@
     "view_order": "View your order",
     "stripe_update_app": "This version of the app can't open the card payment screen. Please update BhojanGo to pay.",
     "back_home": "Back to home",
-    "payments_unavailable": "Payments aren't available in this city yet"
+    "payments_unavailable": "Payments aren't available in this city yet."
   },
   "track": {
     "title": "Your order",
@@ -1188,7 +1188,7 @@
       "elsewhere_title": "You're online on another device.",
       "elsewhere_sub": "Its location is used now. Tap to share this phone's location instead.",
       "background_title": "Keep offers coming with the screen off.",
-      "background_sub": "Tap to allow location in the background while you're online.",
+      "background_sub": "Allow location “all the time”; you can turn it off by going offline.",
       "go_offline": "Go offline",
       "go_online": "Go online",
       "going_online": "Going online…",

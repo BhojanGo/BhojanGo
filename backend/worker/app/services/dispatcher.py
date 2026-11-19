@@ -32,7 +32,7 @@ from app.services.directory import Directory, Person
 from shared import notify
 from shared.providers.email import EmailProvider, get_email_provider
 from shared.providers.push import PushMessage, PushProvider, get_push_provider
-from shared.providers.sms import get_sms_provider
+from shared.providers.sms import get_sms_provider, sms_enabled
 
 logger = structlog.get_logger(__name__)
 
@@ -202,7 +202,8 @@ class Sender:
                 pushed = res.sent > 0
                 results["push"] = "sent" if pushed else "failed"
         # SMS when it matters and push reached no device (none registered, or all failed).
-        wants_sms = "sms" in channels or ("sms_fallback" in channels and not pushed)
+        # SMS_PROVIDER=off (production, R19): no SMS at all, so nothing is claimed as failed.
+        wants_sms = sms_enabled() and ("sms" in channels or ("sms_fallback" in channels and not pushed))
         if wants_sms and person.phone:
             nid = await self._claim(event_id, person, r, "sms", data)
             if nid:

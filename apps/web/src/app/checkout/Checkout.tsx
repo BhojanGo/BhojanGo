@@ -16,6 +16,7 @@ import { api, authed, cartItems, useBag, useHydrated, useSession } from "@/lib/c
 import { tipPresetsOf, type TipPresets } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
+import { fakeCheckoutAllowed } from "@/lib/payments";
 import type { Place } from "@/lib/prefs";
 import { slugify } from "../[country]/[city]/[kitchen]/data";
 import { completeFake, isStripeTestKey, mountStripe, payWithRazorpay, stripeReturnUrl, waitForPayment, type PayType } from "./pay";
@@ -257,6 +258,11 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       );
       const c = (init.checkout ?? {}) as Record<string, unknown>;
       if (init.provider === "fake" || c.sdk === "fake") {
+        // Production never opens the fake gateway (R19: fail closed).
+        if (!fakeCheckoutAllowed()) {
+          setError(t("checkout.payments_unavailable"));
+          return;
+        }
         setFake({ orderId, checkout: c });
         return;
       }

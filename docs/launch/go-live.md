@@ -34,9 +34,9 @@ that reads a file outside the repo and seals them without printing (as on QA, ro
 
 | Item | Who | Check |
 |---|---|---|
-| Accounts open: domain, Stripe live (activated for DeepTrics LLC), SendGrid, Twilio (US number registered for 10DLC or toll-free), Firebase, Apple Developer, Google Play, Expo, Sentry (optional) | Srini | Each account signs in; Stripe shows "live mode" activated |
+| Accounts open: domain, Stripe live (activated for DeepTrics LLC), AWS (Amazon SES), Twilio (Verify; no sender number or 10DLC needed), Firebase (only for the FCM key Expo needs), Apple Developer, Google Play, Expo, Sentry (free plan) | Srini | Each account signs in; Stripe shows "live mode" activated |
 | Readiness items 6, 7, 10, 11 done or dated: Idaho permit, lawyer-reviewed Terms and Privacy, background-check vendor, insurance | Srini | [boise-readiness.md](boise-readiness.md) updated |
-| The code gaps from [production-config.md](production-config.md#gaps) are fixed, merged to `dev`, and pass `make ci` and the GitHub checks: production variables in `railway.ts` (Stripe, worker providers, `PUBLIC_*`, `IDENTITY_DATA_KEYS`, `NEXT_PUBLIC_PAYMENTS_PROVIDER`; fake payment settings QA only), a markets-only seed, a first-admin script, push token registration, `eas.json` and a production app profile, `sentry-sdk`, an alert path | Claude Code (Srini approves each PR) | `python tools/railway/prod_config_check.py` exits 0 |
+| The code gaps from [production-config.md](production-config.md#gaps-found-on-2026-11-19-and-what-round-19-did) are fixed, merged to `dev`, and pass `make ci` and the GitHub checks. Done in round 19: production variables in `railway.ts`, SES email, Twilio Verify codes, the markets-only seed, the first-admin command, the `IDENTITY_DATA_KEYS` tool, Sentry, the website failing closed without a payment provider. Still to merge: push token registration, `eas.json` and a production app profile, an alert path | Claude Code (Srini approves each PR) | `python tools/railway/prod_config_check.py` exits 0 (section 7 then lists only the values set by hand) |
 | The release is on `main`: a PR from `dev` to `main`, approved by Srini. Production deploys from `main` | Srini merges | `main` has the release commit; QA ran it for at least a day with no new errors |
 
 Roll back: nothing to undo; production doesn't exist yet.
@@ -95,16 +95,46 @@ Roll back: nothing to undo; production doesn't exist yet.
 - **Verify:** `https://` on each name shows a valid certificate and HTTP redirects to HTTPS. HSTS is sent.
 - **Roll back:** remove the custom domain in Railway and the DNS record. The Railway domains keep working.
 
-### 6. Email sender DNS
+### 6. Email (Amazon SES) and sign-in codes (Twilio Verify)
 
-- **Who:** Srini (SendGrid account); Claude Code lists and checks the records.
-- **How:** SendGrid → Sender Authentication → authenticate the domain (its CNAMEs for DKIM and the return path).
-  Add SPF if SendGrid asks, and DMARC (`_dmarc`, start with `p=none` and a report address, move to `quarantine` after
-  two clean weeks). Create a restricted API key (Mail Send only). Decide the sender (`SENDGRID_FROM_EMAIL`, for
-  example `orders@<domain>`) and name.
-- **Verify:** SendGrid shows the domain as verified. A test email from SendGrid's own page lands in the inbox, not
-  spam, at Gmail and Outlook, with DKIM and SPF "pass" in the headers.
-- **Roll back:** delete the API key; remove the records.
+**Email through Amazon SES** (worker: `EMAIL_PROVIDER=ses`, [`SesEmail`](../../backend/shared/providers/email.py)).
+
+- **Who:** Srini (AWS account, the IAM user); Claude Code lists and checks the DNS records.
+- **How:**
+  1. SES console in **us-west-2** (the `SES_REGION` in `railway.ts`; if another region is used, change it there):
+     Identities → Create identity → **Domain** `<domain>`, with **Easy DKIM** (RSA 2048). SES shows three CNAME
+     records (`<token>._domainkey.<domain>`): add them at the registrar.
+  2. Custom MAIL FROM domain `mail.<domain>`: SES shows an MX record and an SPF TXT record
+     (`v=spf1 include:amazonses.com ~all`); add both, so SPF aligns with the sender domain.
+  3. DMARC: TXT `_dmarc.<domain>` = `v=DMARC1; p=none; rua=mailto:<a report address>`; move to `p=quarantine`
+     after two clean weeks.
+  4. **Request production access** (Account dashboard → "Request production access"): a new SES account is in the
+     sandbox and can only send to verified addresses. Use case: transactional (sign-in codes, receipts, password
+     resets), no marketing. AWS answers within about a day.
+  5. IAM → Users → `bhojango-ses-production` with an inline policy allowing only `ses:SendEmail` (resource: the
+     domain identity's ARN) → Security credentials → Create access key → paste the key id and secret straight into
+     Railway (worker, sealed): `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`.
+  6. Decide the sender: `EMAIL_FROM` (for example `orders@<domain>`, by hand in Railway, worker); the name is
+     `EMAIL_FROM_NAME=BhojanGo` in `railway.ts`. Optional: a configuration set for bounces and complaints
+     (`SES_CONFIGURATION_SET`).
+- **Verify:** SES shows the domain "Verified" and DKIM "Successful"; the account is out of the sandbox. After step
+  10, "Forgot password" on the website reaches a Gmail and an Outlook inbox (not spam) with DKIM, SPF and DMARC
+  "pass" in the headers.
+- **Roll back:** deactivate the access key; delete the identity and the records.
+
+**Phone sign-in codes through Twilio Verify** (core-api: `OTP_PROVIDER=twilio_verify`,
+[`twilio_verify.py`](../../backend/core_api/modules/identity/service/twilio_verify.py)). Verify makes, sends and
+checks the code from Twilio's own numbers: no sender number and no A2P 10DLC or toll-free registration. Order
+updates go by push, so production sends no other SMS (`SMS_PROVIDER=off`).
+
+- **Who:** Srini (Twilio account); Claude Code checks.
+- **How:** Twilio console → Verify → Services → Create: friendly name `BhojanGo` (shown in the SMS), code length 6,
+  SMS channel on (others off). Geo permissions: allow the United States (and nothing else for now). Paste into
+  Railway (core-api, sealed): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (Account Info) and
+  `TWILIO_VERIFY_SERVICE_SID` (the service's `VA...` SID).
+- **Verify:** after step 10, the app's phone sign-in sends a code to a US phone within a minute and the code signs
+  in; a wrong code is refused. Twilio's Verify logs show the attempt.
+- **Roll back:** delete the service (sign-in by phone stops; email sign-in keeps working) or rotate the auth token.
 
 ### 7. Stripe live
 
@@ -135,13 +165,17 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 
 ### 8. Push credentials
 
+Order updates reach people by push only (no SMS in production), through Expo's push service: the worker sends Expo
+push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
+
 - **Who:** Srini (Firebase, Apple Developer, Expo accounts); Claude Code wires them.
-- **How:** Firebase project with the three Android packages (`com.bhojango.app`, `.partner`, `.rider`): download
-  `google-services.json` for the builds and a service account key for the worker. Apple: an APNs auth key (.p8) for
-  the team. Expo: one EAS project per app; upload the FCM V1 key and the APNs key as EAS credentials. Optional: an Expo
-  access token with enhanced push security on.
+- **How:** one EAS project per app (`com.bhojango.app`, `.partner`, `.rider`). Firebase project with the three
+  Android packages: download `google-services.json` for the builds and an **FCM V1 service account key**, uploaded
+  to EAS (`eas credentials` → Android → Google Service Account Key for push), not to Railway. Apple: an APNs auth key
+  (.p8) for the team, uploaded to EAS for each app. Optional: Expo "enhanced push security" with an access token
+  (`EXPO_ACCESS_TOKEN`, sealed, worker).
 - **Verify:** EAS shows push credentials for Android and iOS on each app. After step 14, a test push from Expo's push
-  tool reaches a phone with the production build.
+  tool reaches a phone with the production build, and an order status change arrives as a push.
 - **Roll back:** revoke the keys in Firebase and Apple; delete them in EAS.
 
 ### 9. Sealed variables
@@ -151,16 +185,20 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 - **How:** every variable in [production-config.md](production-config.md) marked *by hand*, with production's own
   values:
   - generated, new for production: `POSTGRES_PASSWORD`, `JWT_PRIVATE_KEY`, `INTERNAL_SERVICE_SECRET` (the same on
-    core-api, realtime and worker), `IDENTITY_DATA_KEYS`, `ALERT_WEBHOOK_TOKEN`;
+    core-api, realtime and worker), `ALERT_WEBHOOK_TOKEN`, and `IDENTITY_DATA_KEYS`:
+    `python tools/secrets/identity_data_keys.py` prints a new key list once, to the terminal only (it refuses to
+    write into a file); paste it straight into Railway as a sealed variable on core-api and clear the terminal.
+    Never save it: a copy goes only into Srini's password manager. core-api refuses to start without it;
   - from Railway: the bucket credentials;
   - addresses: `CORS_ORIGINS` (the web and admin custom domains), `NEXT_PUBLIC_APP_URL`, `PUBLIC_WEB_URL`,
-    `PUBLIC_API_URL`;
-  - accounts: the Stripe keys and three webhook secrets (core-api); SendGrid, Twilio and Firebase (worker); Sentry
-    (all three, if used).
+    `PUBLIC_API_URL` (both `https://`; core-api refuses localhost or plain http), `EMAIL_FROM` (worker);
+  - accounts ([the list](production-config.md#secrets-from-srinis-accounts)): the Stripe keys and three webhook
+    secrets, Twilio's account SID, auth token and Verify service SID (core-api); the SES access key (worker);
+    `SENTRY_DSN` (all three backends) and `NEXT_PUBLIC_SENTRY_DSN` (web, admin; a build variable).
   Seal each one (`environmentPatchCommit` with `isSealed: true`). Keep a copy of each generated secret in Srini's
   password manager, never in the repo, chat or logs.
-- **Verify:** `python tools/railway/prod_config_check.py` exits 0. In the dashboard every secret shows as sealed.
-  Nothing secret appears in `git diff`.
+- **Verify:** `python tools/railway/prod_config_check.py` exits 0, and every name in its section 7 has a value in
+  the dashboard. Every secret shows as sealed. Nothing secret appears in `git diff`.
 - **Roll back:** replace the value (rotate). For `JWT_PRIVATE_KEY`, put the old public key in `JWT_PUBLIC_KEYS`
   while sessions move over; for `IDENTITY_DATA_KEYS`, put the new key first and keep the old one after it.
 
@@ -172,8 +210,10 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 - **Verify:**
   - every service passes its health check (`/health/ready`; web `/`; admin `/login`);
   - `GET https://api.<domain>/health` reports environment `production`;
-  - core-api's log shows the migration reached head; no `ProductionConfigError`; the worker's production check
-    passed;
+  - core-api's log shows the migration reached head; no `ProductionConfigError` (it names the variable: a public
+    address, `IDENTITY_DATA_KEYS`, the Twilio Verify values); the worker's production check passed (SES keys,
+    `EMAIL_FROM`, push live, SMS off);
+  - Sentry: a deliberate test error from each service appears in its project (then resolve it);
   - web and admin show **no** test-site banner and web is indexable (`robots.txt`); admin is `noindex`;
   - CORS answers only the custom web and admin origins.
 - **Roll back:** a failed migration stops the deploy and nothing serves; fix forward. Before launch, the database
@@ -182,20 +222,42 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 
 ### 11. Base data without demo data
 
-- **Who:** Claude Code runs it from inside the private network (a temporary runner, as on QA, deleted afterwards).
-- **How:** the markets-only seed (one of the code gaps): US, Idaho, Boise, its zones, the rule templates and
-  published rules, the help articles. No users, kitchens, menus, orders or payout accounts. **Never** `demo.py` (it
-  refuses production anyway) and never the full `seed.py`.
-- **Verify:** counts: 1 country, Boise only, its zones, rules, help articles; **0** users with `@example.com`,
-  **0** restaurants, **0** payout accounts with provider `fake`. The website shows Boise with no kitchens yet.
+- **Who:** Claude Code. The seed lives in `tools/`, outside the core-api image, so it runs from a checkout of
+  `main` over a database tunnel (`railway connect postgres --tunnel-only` with the production token), or from a
+  temporary runner in the environment, deleted afterwards.
+- **How:** the markets-only seed, [`tools/seed/markets.py`](../../tools/seed/markets.py), with production's
+  settings in the environment (`APP_ENV=production`, `PAYMENT_PROVIDER=live`, `PAYOUT_PROVIDER=live`,
+  `OTP_FIXED_CODE=`, `DELIVERY_PIN_FIXED=`, `DATABASE_URL` = the tunnel):
+
+  ```
+  cd backend && uv run python ../tools/seed/markets.py
+  ```
+
+  It adds: US (DeepTrics LLC) and India (DeepTrics Software Solutions Pvt Ltd, **draft**: kept, switched off), their
+  states and cities with **Boise live** and Hyderabad draft, the zones, the market rules (15% commission in the US,
+  India's tax rules from round 16, payment fees, delivery fees, pay for delivery partners, refund limits; no
+  promotions, no kitchen's rules), the help articles, and Terms and Privacy as **unpublished drafts** for the
+  lawyer's text. No users, kitchens, menus, orders or payout accounts. It only adds what's missing (running it again
+  changes nothing an admin edited). **Never** `seed.py` or `demo.py`: both refuse production.
+- **Verify:** its last line: 2 countries; open cities: 1 (US-ID-BOI); **0** `@example.com` users, **0** restaurants,
+  **0** fake payout accounts. The website shows Boise with no kitchens yet.
 - **Roll back:** before launch, drop and recreate the schema and run it again.
 
 ### 12. Admin accounts and two-step sign-in
 
-- **Who:** Claude Code runs the first-admin script for Srini's own email (super admin). Srini signs in and grants
+- **Who:** Claude Code runs the first-admin command for Srini's own email (super admin). Srini signs in and grants
   the other roles in admin.
-- **How:** Srini sets the password from the email link, then enrols the authenticator at first sign-in: an email
-  code, the QR code, and 10 recovery codes shown once (store them offline). Then grant, with real people's emails:
+- **How:** inside core-api (`railway ssh` into core-api with Srini's login; the command is in the image) or over the
+  database tunnel of step 11:
+
+  ```
+  python -m core_api.modules.identity.first_admin --email <Srini's email> --name "<full name>"
+  ```
+
+  It refuses when any super admin exists, and prints nothing secret: the account has no password yet. Srini opens
+  the website's "Forgot password" with that email (the link comes through SES, good for 30 minutes, once), sets the
+  password, then signs in to the admin console, which enrols the authenticator at first sign-in: an email code,
+  the QR code, and 10 recovery codes shown once (store them offline). Then grant, with real people's emails:
   country manager US, Boise city ops, Boise support, US finance. A second finance or country manager is needed for
   refunds above the limit (two-person approval).
 - **Verify:** each admin signs in with password and authenticator. The role list in admin shows exactly these
@@ -209,11 +271,12 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 - **How:**
   - United States: payment provider Stripe, payout provider `stripe_connect`, payment methods card, Apple Pay,
     Google Pay; legal entity DeepTrics LLC with its registered address, support email and phone.
-  - Terms and Privacy: the lawyer's versions published for the US (no "Draft" banner).
+  - Terms and Privacy: the seed left drafts (Content → Legal); paste the lawyer's versions over them and publish
+    for the US (no "Draft" banner).
   - Rules: commission 15% (all tiers), weekly payouts, delivery fees, minimum order, minimum pay for delivery
     partners in Boise, unpaid-order timeout, automatic refund limit, tax on commission 0% in the US.
-  - Boise: status `live`; zones `live` only where kitchens and partners exist.
-  - India: not live in production.
+  - Boise: `live` from the seed; set zones back to `draft` where no kitchens and partners exist yet.
+  - India: kept, switched off (`draft`) by the seed; it stays that way.
 - **Verify:** the simulator, for a Boise address and a sample cart: the customer total, Idaho sales tax line,
   15% commission, the partner's pay and "who gets your money" all as expected. The website shows Boise as open.
 - **Roll back:** set Boise back to `beta` or pause ordering in Boise (Incidents). Rule versions: end the new version;
@@ -225,9 +288,10 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
   [store/README.md](store/README.md)).
 - **How:** the production profile in each app's `eas.json`: `EXPO_PUBLIC_APP_ENV=production`,
   `EXPO_PUBLIC_CORE_URL=https://api.<domain>`, `EXPO_PUBLIC_REALTIME_URL=https://rt.<domain>`,
-  `EXPO_PUBLIC_WEB_URL=https://<domain>`; the real EAS project ids; `google-services.json`; EAS-managed signing.
+  `EXPO_PUBLIC_WEB_URL=https://<domain>`, `EXPO_PUBLIC_SENTRY_DSN` (the app's Sentry project); the real EAS
+  project ids; `google-services.json`; EAS-managed signing.
   Submit to TestFlight and the Play internal track first.
-- **Verify:** an internal tester installs each app: no test banner; sign-in by SMS code arrives; the customer sees
+- **Verify:** an internal tester installs each app: no test banner; the sign-in code (Twilio Verify) arrives; the customer sees
   Boise; a push from Expo's tool arrives; the customer's payment sheet opens in live mode (don't pay yet).
 - **Roll back:** stop the rollout or remove the build from the track; the previous build stays. Store review can take
   days: start this early.
@@ -248,7 +312,10 @@ Follow [the integration guide](../11_Integration_Setup_Guide.md) section 1, in l
 ### 16. Monitoring and alerts
 
 - **Who:** Srini (Sentry, a paging channel); Claude Code wires them.
-- **How:** Sentry projects for the backends (and web if added), `SENTRY_DSN` set. Uptime checks (free tier of an
+- **How:** Sentry (free plan): a backend project (`SENTRY_DSN` on core-api, realtime, worker), a Next.js project
+  for web and admin (`NEXT_PUBLIC_SENTRY_DSN`, a build variable: redeploy after setting it) and a React Native
+  project for the apps (`EXPO_PUBLIC_SENTRY_DSN` in the build profile). Without a DSN nothing is initialised and
+  nothing is sent. Alert rules in Sentry: a new issue, and a spike. Uptime checks (free tier of an
   uptime service) on the website, `api.../health/ready`, `rt.../health/ready` and admin `/login`. The alerts from
   [observe.md](../runbooks/observe.md) (orders without a rider, payment failures, error spikes, no orders in a dinner
   hour) on the path Srini chose. Stripe's own email alerts for failed webhooks. Railway usage alerts on the workspace.
@@ -304,7 +371,8 @@ Abort or delay the launch (and pause ordering if it's already open) when any of 
    Stripe Tax not collecting in Idaho while orders would be taxed.
 6. Idaho seller's permit, lawyer-reviewed Terms and Privacy, or insurance (general liability and delivery auto cover)
    missing.
-7. Sign-in codes (SMS or email) don't arrive within a minute in the rehearsal, or emails land in spam.
+7. Sign-in codes (Twilio Verify or email through SES) don't arrive within a minute in the rehearsal, emails land
+   in spam, or SES is still in the sandbox.
 8. In the rehearsal: any order paid but not placed, any refund not reaching the card, Finance not matching Stripe,
    tax not recorded, or a payout draft that's wrong.
 9. Fewer kitchens or delivery partners with payouts enabled than Srini's minimum for a dinner hour.

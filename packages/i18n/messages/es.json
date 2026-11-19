@@ -447,7 +447,7 @@
     "view_order": "Ver tu pedido",
     "stripe_update_app": "Esta versión de la app no puede abrir la pantalla de pago con tarjeta. Actualiza BhojanGo para pagar.",
     "back_home": "Volver al inicio",
-    "payments_unavailable": "Los pagos aún no están disponibles en esta ciudad"
+    "payments_unavailable": "Los pagos aún no están disponibles en esta ciudad."
   },
   "track": {
     "title": "Tu pedido",
@@ -1188,7 +1188,7 @@
       "elsewhere_title": "Estás conectado en otro dispositivo.",
       "elsewhere_sub": "Ahora se usa su ubicación. Toca para compartir la ubicación de este teléfono.",
       "background_title": "Sigue recibiendo ofertas con la pantalla apagada.",
-      "background_sub": "Toca para permitir la ubicación en segundo plano mientras estás en línea.",
+      "background_sub": "Permite la ubicación “todo el tiempo”; puedes desactivarla al desconectarte.",
       "go_offline": "Desconectarme",
       "go_online": "Conectarme",
       "going_online": "Conectando…",

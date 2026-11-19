@@ -482,3 +482,10 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
   showing customers where their order is), "even when the app is closed or not in use", and only while
   online. `rider.location.next` names the system's "Allow all the time" option: use the words the phone
   shows in that language. Changed: `rider.drive.background_sub`.
+## Payments not set up in production (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, website (account → Payment methods, and checkout): `checkout.payments_unavailable` ("Payments aren't
+  available in this city yet."). Shown only in production when the site was built without a payment provider,
+  instead of the test card form. Calm and short; it doesn't say why.

@@ -2,6 +2,7 @@ import {
   color, FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, usePushRegistration, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
 import Constants from "expo-constants";
+import * as Sentry from "@sentry/react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
@@ -12,6 +13,12 @@ import { useEffect } from "react";
 import { useOrientationLock } from "../lib/layout";
 
 void SplashScreen.preventAutoHideAsync();
+
+// Error reports to Sentry (R19, the free plan), only when the build sets EXPO_PUBLIC_SENTRY_DSN
+// (without it: no init, no network).
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.EXPO_PUBLIC_SENTRY_DSN, environment: process.env.EXPO_PUBLIC_APP_ENV || "development", tracesSampleRate: 0 });
+}
 
 export default function RootLayout() {
   useKeepAwake(); // a kitchen tablet stays on: new orders must never wait for the screen

@@ -27,6 +27,28 @@ class ProductionConfigError(RuntimeError):
     """A local-only fake is configured in an environment named production."""
 
 
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"})
+
+
+def public_url_problem(name: str, url: str) -> str | None:
+    """Why ``url`` can't be a public address in production (links in emails, Stripe return
+    URLs), naming the variable; None when it's a usable https address."""
+    from urllib.parse import urlsplit
+
+    url = (url or "").strip()
+    if not url:
+        return f"{name} is not set (the public https address)"
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    if parts.scheme != "https" or not host:
+        return f"{name} must be an https:// address"
+    if host in _LOCAL_HOSTS or host.endswith(".localhost") or host.startswith("127."):
+        return f"{name} points at {host} (it must be the public address)"
+    if host.endswith(".railway.internal"):
+        return f"{name} points at the private network (it must be the public address)"
+    return None
+
+
 class IdentitySettings(BaseSettings):
     """Was services/user-svc."""
 
@@ -42,6 +64,11 @@ class IdentitySettings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_PHONE_NUMBER: str = ""
     TWILIO_PHONE_NUMBER_IN: str = ""
+    # Phone sign-in codes (service/otp.py): "local" = we make the code, keep it in Redis and the
+    # worker texts it (SMS_PROVIDER); "twilio_verify" = Twilio Verify sends and checks the code
+    # (no sender number or A2P 10DLC registration needed). Production uses twilio_verify.
+    OTP_PROVIDER: str = "local"  # local | twilio_verify
+    TWILIO_VERIFY_SERVICE_SID: str = ""  # VA..., Twilio console: Verify > Services
 
     # Sign in with Google / Apple: the OAuth client ids whose ID tokens we
     # accept (web, iOS and Android each have one). Verifying needs no account:
@@ -218,6 +245,16 @@ class WorkerSettings(BaseSettings):
     SENDGRID_API_KEY: str = ""
     SENDGRID_FROM_EMAIL: str = "noreply@bhojango.com"
     SENDGRID_FROM_NAME: str = "BhojanGo"
+    # The sender for every email provider (an address on a verified domain); empty = SENDGRID_FROM_*.
+    EMAIL_FROM: str = ""
+    EMAIL_FROM_NAME: str = ""
+
+    # Amazon SES email (EMAIL_PROVIDER=ses, shared/providers/email.py): the SES v2 API through boto3,
+    # with an IAM user allowed only ses:SendEmail. Own names, so they never mix with the bucket's AWS_* keys.
+    SES_REGION: str = ""  # e.g. us-west-2: where the domain identity is verified
+    SES_ACCESS_KEY_ID: str = ""
+    SES_SECRET_ACCESS_KEY: str = ""
+    SES_CONFIGURATION_SET: str = ""  # optional: bounce and complaint events
 
     # SQS polling
     SQS_MAX_MESSAGES: int = 10
@@ -248,11 +285,13 @@ class ProviderSettings(BaseSettings):
     # auto | live | fake (P13). Which provider a country pays with is its Markets field
     # countries.payout_provider; this only says whether real money may move (finance/service/providers.py).
     PAYOUT_PROVIDER: str = "auto"
-    SMS_PROVIDER: str = "log"  # log | live (Twilio for US, MSG91 for India)
+    # log | live (Twilio for US, MSG91 for India) | off (no SMS at all: order updates go by push and
+    # email, sign-in codes by Twilio Verify (OTP_PROVIDER); allowed in production because it's chosen)
+    SMS_PROVIDER: str = "log"
     MSG91_AUTH_KEY: str = ""
     # DLT-registered template id per message key, e.g. {"otp": "6650..."}
     MSG91_TEMPLATE_IDS: dict[str, str] = {}
-    EMAIL_PROVIDER: str = "log"  # log | smtp | sendgrid
+    EMAIL_PROVIDER: str = "log"  # log | smtp | sendgrid | ses
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
     PUSH_PROVIDER: str = "log"  # log | live (Expo, FCM or APNs by the device's token)
@@ -404,6 +443,30 @@ class Settings(BaseSettings):
         if problems:
             raise ProductionConfigError("refusing to start in production: " + "; ".join(problems))
         return self
+
+    def core_api_production_problems(self) -> list[str]:
+        """What core_api (only it builds links and signs people in) needs in production beyond
+        refuse_fakes_in_production. Each problem names its variable. Empty outside production."""
+        if not self.production_named:
+            return []
+        problems = [p for p in (public_url_problem("PUBLIC_WEB_URL", self.identity.PUBLIC_WEB_URL),
+                                public_url_problem("PUBLIC_API_URL", self.payments.PUBLIC_API_URL)) if p]
+        if not [k for k in self.identity.IDENTITY_DATA_KEYS if k]:
+            problems.append("IDENTITY_DATA_KEYS is not set (generate it once: python tools/secrets/identity_data_keys.py)")
+        i = self.identity
+        if i.OTP_PROVIDER == "twilio_verify":
+            missing = [n for n in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_VERIFY_SERVICE_SID") if not getattr(i, n)]
+            if missing:
+                problems.append("OTP_PROVIDER='twilio_verify' needs " + ", ".join(missing))
+        elif self.providers.SMS_PROVIDER not in ("live", "twilio"):
+            problems.append(f"OTP_PROVIDER={i.OTP_PROVIDER!r} with SMS_PROVIDER={self.providers.SMS_PROVIDER!r}: "
+                            "phone sign-in codes would never be sent (use OTP_PROVIDER='twilio_verify')")
+        return problems
+
+    def check_core_api_production(self) -> None:
+        problems = self.core_api_production_problems()
+        if problems:
+            raise ProductionConfigError("refusing to start in production: " + "; ".join(problems))
 
     @field_validator("EVENT_BUS")
     @classmethod

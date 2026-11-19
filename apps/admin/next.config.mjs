@@ -15,15 +15,26 @@ function svc(envVar, devFallback) {
 
 import { securityHeaders } from "@bhojango/ui/security-headers";
 
+// Sentry (R19): the browser sends error reports to the DSN's host, only when a DSN is set.
+const SENTRY = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SENTRY_DSN ? [new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin] : [];
+  } catch {
+    return [];
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  // The environment for the browser bundle too (Sentry's environment tag).
+  env: { NEXT_PUBLIC_APP_ENV: process.env.APP_ENV ?? "" },
   async headers() {
     // The console talks to the services through its own /api rewrites ('self');
     // the dispatch map draws OpenStreetMap tiles.
     // The admin console is never for search engines, in any environment (header as well as meta).
     const noindex = { key: "X-Robots-Tag", value: "noindex, nofollow" };
-    return [{ source: "/:path*", headers: [noindex, ...securityHeaders({ img: ["https://tile.openstreetmap.org"] })] }];
+    return [{ source: "/:path*", headers: [noindex, ...securityHeaders({ img: ["https://tile.openstreetmap.org"], connect: SENTRY })] }];
   },
   async rewrites() {
     return [
