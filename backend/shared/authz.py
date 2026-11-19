@@ -34,11 +34,14 @@ PERMISSIONS: dict[str, frozenset[str]] = {
         "customers.edit", "refunds.issue", "admins.grant", "zones.pause",
         "legal.edit",  # write and publish the country's Terms and Privacy (Content → Legal)
         "content.edit",  # write and publish their country's Help articles (F9); global ones are the super admin's
+        # R17 incident tools: pause a kitchen or ordering, bulk refunds (and approving another admin's), bulk messages
+        "kitchens.pause", "ordering.pause", "refunds.bulk", "refunds.approve", "customers.message",
     }),
     "city_ops": frozenset({
         "markets.view", "rules.view", "pricing.simulate", "partners.view", "partners.edit",
         "riders.view", "riders.edit", "orders.view", "orders.edit", "dispatch.edit",
         "customers.view", "refunds.issue", "reports.view", "zones.pause", "legal.view",
+        "kitchens.pause", "ordering.pause", "refunds.bulk", "customers.message",  # R17 incident tools in their city
     }),
     "support_agent": frozenset({
         "orders.view", "customers.view", "customers.edit", "refunds.issue", "partners.view", "riders.view",
@@ -48,6 +51,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "finance": frozenset({
         "finance.view", "finance.edit", "payouts.approve", "refunds.issue", "rules.view", "pricing.simulate",
         "rules.approve", "orders.view", "reports.view", "partners.view", "riders.view", "legal.view",
+        "refunds.bulk", "refunds.approve",  # R17: bulk refunds, and the second admin's approval above the limit
     }),
     "viewer": frozenset(VIEW - {"admins.view"}),
 }

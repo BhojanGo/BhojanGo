@@ -32,7 +32,8 @@ export default function RestaurantScreen() {
   }
   const r = menu.restaurant;
   const offer = card?.offer ?? null;
-  const open = r.is_open !== false;
+  const forNow = Boolean((r as { closed_for_now?: boolean }).closed_for_now); // R17: paused by BhojanGo (an incident)
+  const open = r.is_open !== false && !forNow;
   const total = bag.lines.reduce((n, l) => n + l.unitPrice * l.quantity, 0);
   return (
     <View testID="kitchen" style={{ flex: 1, backgroundColor: color.porcelain }}>
@@ -57,7 +58,7 @@ export default function RestaurantScreen() {
                   <Text style={[type.label, { color: color.kohl }]}>{offerBadge(offer, t, money, r.currency)}</Text>
                 </View>
               ) : null}
-              {!open ? <Txt variant="small" style={{ color: color.chili }}>{t("kitchen.closed_note")}</Txt> : null}
+              {!open ? <Txt testID={forNow ? "kitchen-closed-for-now" : undefined} variant="small" style={{ color: color.chili }}>{t(forNow ? "kitchen.closed_for_now_note" : "kitchen.closed_note")}</Txt> : null}
               {r.description ? <Txt variant="small" style={{ color: color.muted }}>{r.description}</Txt> : null}
             </View>
           </View>

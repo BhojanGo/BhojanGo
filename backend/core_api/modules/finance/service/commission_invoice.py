@@ -5,6 +5,11 @@ Supplier: the platform's legal entity in the country (Markets setting "legal": n
 GSTIN once it is set; until then the invoice says the GSTIN is pending, never an invented one).
 Recipient: the kitchen (name, address, GSTIN when it has one). Lines: the week's commission, the
 tax on it at the statement's rate, and the total, which was taken from the kitchen's payout.
+
+Rounding (R17), one method everywhere: GST on commission is worked out on each order's commission
+and rounded to the paisa (cent) on the kitchen's statement (statements.restaurant_statement); the
+invoice adds those per-order amounts up and never re-rounds the total, so its GST equals the sum of
+"Tax on commission" on the kitchen's statements for the period to the paisa (the invariant test).
 """
 import base64
 import hashlib
@@ -32,7 +37,24 @@ class CommissionInvoice:
     tax: Decimal
     label: str = "GST on commission"
     orders: int = 0
-    notes: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=lambda: [ROUNDING_NOTE])
+
+
+def totals(statement_lines: list[list[dict]]) -> tuple[Decimal, Decimal, int]:
+    """Commission, the tax on it and the number of orders, added up from the statements' order lines
+    (lines store deductions as negative amounts). Per order, never re-rounded: see the module notes."""
+    commission = tax = Decimal(0)
+    orders = 0
+    for lines in statement_lines:
+        for ln in lines:
+            commission -= Decimal(str(ln.get("commission") or 0))
+            tax -= Decimal(str(ln.get("commission_tax") or 0))
+            orders += 1
+    return commission, tax, orders
+
+
+ROUNDING_NOTE = ("Tax on commission is worked out on each order's commission and rounded to the paisa, as on your "
+                 "weekly statement; this invoice adds those amounts up.")
 
 
 def invoice_number(statement_id: str, issued_at: datetime) -> str:

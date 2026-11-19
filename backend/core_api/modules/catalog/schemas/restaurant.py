@@ -152,6 +152,9 @@ class PublicRestaurant(BaseModel):
     is_active: bool
     fssai_number: str | None = None
     paused_reason: str | None = None
+    # R17: an admin paused it (an incident): "Closed for now", back by itself at back_at if set. The reason stays with admins.
+    closed_for_now: bool = False
+    back_at: datetime | None = None
     # The kitchen's city time zone (IANA), on GET /restaurants/by-slug: checkout's "arrives 7:05-7:20" is on its clock.
     time_zone: str | None = None
     created_at: datetime

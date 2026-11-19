@@ -175,6 +175,11 @@ class QuoteService:
         where = await MarketService(self.db).locate(lat, lng)
         if not where.serviceable:
             raise QuoteError(where.reason or "We don't deliver here yet")
+        from core_api.modules.incidents.service import pause_for, pause_message
+
+        paused = await pause_for(self.db, where.city_code)  # R17: an admin paused ordering here (an incident)
+        if paused is not None:
+            raise QuoteError(pause_message(paused))
         city, region, country, tz = await city_chain(self.db, where.city_code)  # type: ignore[arg-type]
         if rest.country != country.code:
             raise QuoteError("This restaurant doesn't deliver to that address")

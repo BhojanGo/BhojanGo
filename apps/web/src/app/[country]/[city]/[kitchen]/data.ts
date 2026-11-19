@@ -15,6 +15,8 @@ export interface Availability {
   timezone?: string | null;
   opens_at?: string | null;
   closes_at?: string | null;
+  closed_for_now?: boolean; // R17: paused by an admin
+  back_at?: string | null;
 }
 
 export async function availability(id: string): Promise<Availability | null> {

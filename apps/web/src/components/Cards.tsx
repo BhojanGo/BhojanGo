@@ -115,7 +115,8 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale) })}
             </>
           )}
-          {!k.open_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
+          {!k.open_now && k.closed_for_now && <span className="text-muted" data-testid="closed-for-now"> · {t("kitchen.closed_for_now")}</span>}
+          {!k.open_now && !k.closed_for_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">

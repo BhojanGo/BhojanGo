@@ -220,6 +220,48 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
     return refund
 
 
+async def refund_amount(db: AsyncSession, *, order_id: uuid.UUID, minor: int, reason: str, actor_id: uuid.UUID,
+                        note: str | None = None) -> Refund | None:
+    """R17 bulk refunds: give back ``minor`` (capped at what is left) of an order's captured payment,
+    not tied to items; the platform pays it (fault "goodwill"), so the kitchen's payout is unchanged.
+    None when nothing is left to refund. Through the provider like a refund by item."""
+    intent = (await db.execute(
+        select(PaymentIntent).where(PaymentIntent.order_id == order_id, PaymentIntent.status.in_(("succeeded", "partially_refunded")))
+        .with_for_update()
+    )).scalars().first()
+    if intent is None:
+        return None
+    minor = min(minor, intent.amount - (intent.refunded_amount or 0))
+    if minor <= 0:
+        return None
+    first = not (intent.refunded_amount or 0)
+    refund = Refund(order_id=order_id, payment_intent_id=intent.id, amount=minor, currency=intent.currency, kind="amount",
+                    reason=reason[:60], fault="goodwill", note=note, lines=[], requested_by=actor_id, status="pending")
+    db.add(refund)
+    await db.flush()
+    if intent.provider == "wallet":
+        from core_api.modules.payments.repository.payment import WalletRepository
+
+        await WalletRepository(db).credit(intent.user_id, Decimal(minor) / 100, f"Refund: {reason}",
+                                          reference_id=str(order_id), reference_type="refund")
+        result = {"refund_id": f"wallet_refund_{uuid.uuid4()}", "status": "succeeded"}
+    else:
+        result = await gateway_by_name(intent.provider).refund(
+            intent.provider_payment_id, minor, f"refund:{refund.id}",
+            {**intent.metadata_, "order_id": str(order_id), "refund_id": str(refund.id)})
+    refund.provider_refund_id, refund.status = result["refund_id"], result["status"]
+    intent.refunded_amount = (intent.refunded_amount or 0) + minor
+    intent.status = "refunded" if intent.refunded_amount >= intent.amount else "partially_refunded"
+    await reverse_tax(intent, f"refund:{refund.id}", minor, full=intent.status == "refunded" and first)
+    await outbox.add(db, "payment.refunded", "order", order_id, {
+        "order_id": str(order_id), "user_id": str(intent.user_id), "refund_id": str(refund.id), "amount": minor,
+        "currency": intent.currency, "reason": reason, "fault": "goodwill", "provider": intent.provider,
+    }, "payment-svc")
+    await db.flush()
+    logger.info("refund_amount", order_id=str(order_id), amount=minor, by=str(actor_id))
+    return refund
+
+
 async def reverse_tax(intent: PaymentIntent, reference: str, amount_minor: int, full: bool) -> None:
     """US: give back the refund's share of the Stripe Tax transaction recorded
     when the payment succeeded (kept on the payment)."""

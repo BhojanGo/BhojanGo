@@ -26,7 +26,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from shared.money import format_money
-from shared.texts import LANGUAGES, fallback_name, language_for, preset_text
+from shared.texts import INCIDENT_MESSAGES, LANGUAGES, fallback_name, language_for, preset_text
 
 __all__ = ["LANGUAGES", "language_for"]
 
@@ -251,6 +251,10 @@ def entries() -> dict[str, dict[str, str]]:
     out["email.footer"], out["email.total"], out["email.order"] = EMAIL_FOOTER, EMAIL_TOTAL, EMAIL_ORDER
     out["email.operator"] = EMAIL_OPERATOR
     return out
+
+
+# R17: incident messages (admin's bulk message tool) live in shared.texts, so admin can preview them.
+CATALOGUE.update({f"incident_{k}": v for k, v in INCIDENT_MESSAGES.items()})
 
 
 @dataclass(frozen=True)

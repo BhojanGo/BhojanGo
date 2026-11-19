@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-18** (after round 16), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-19** (after round 17), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -94,8 +94,31 @@ All three are business rules per country, editable in admin and flagged **"Confi
 Reconciliation shows tax owed by type (customers, on commission, TDS), and the weekly invariant test checks them.
 The old per-kitchen commission column is removed: commission comes only from rules.
 Launch: [boise-readiness.md](launch/boise-readiness.md) now has costs, insurance, delivery partner checks and 1099s;
-[incident-plan.md](launch/incident-plan.md) is drafted, with four admin gaps (pause a kitchen, bulk refunds,
-a platform-wide pause, messaging many customers).
+[incident-plan.md](launch/incident-plan.md) is drafted.
+
+## Incident tools and tax follow-ups (round 17)
+
+- **On QA:** round 16 is live there (its migration dropped the old commission column). The India rules from round 16
+  are added on QA through admin by two admins (maker-checker), not by a reseed. Admin's rule form now shows every
+  setting of a rule's type, including ones added after the rule was made (#157).
+- **One rounding method for GST on commission:** per order, rounded to the paisa on the kitchen's statement; the
+  commission tax invoice adds those amounts up and never rounds again, so its GST equals the statements' "Tax on
+  commission" to the paisa. The weekly invariant test checks it for every kitchen.
+- **Admin → Incidents** (the gaps round 16 listed): pause or resume a kitchen ("Closed for now" for customers, an
+  optional "back at" time; the kitchen can't undo it); pause ordering for a city, a country or everywhere, with a
+  note shown on the website and in the customer app; bulk refunds by kitchen, zone or time window, in full or a
+  percentage, with a second admin's approval above the city's automatic refund limit; messages to a bulk refund's
+  customers or a city's, by push and email in each customer's language (outside production only test accounts).
+  Each needs its role, a reason and a confirmation step, and is in the audit log. Orders already placed carry on.
+  [incident-plan.md](launch/incident-plan.md) now uses these tools.
+- **PLAYBOOK rule 69:** in production, drop or rename a column only in a release after the code that stops using it is live.
+- **Pricing models (checked, nothing built):** a flat fee per order for a kitchen can be set today: the commission
+  rule "Flat per order" for that kitchen, with a 0% "Percent of food" rule for it too if the fee replaces the
+  percentage (the two add up). GST on commission applies to it like any commission. A monthly subscription can't be
+  expressed: rules price each order, and nothing charges a kitchen once a month. The restaurants table still has
+  `pricing_model`, `flat_fee_per_order` and `monthly_subscription_fee`, saved by the kitchen pricing endpoint but
+  read by nothing (the pricing engine and payouts use only rules). A subscription would need a periodic rule and a
+  line on the weekly statement.
 
 ## What's left before the pilot
 

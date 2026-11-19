@@ -251,12 +251,19 @@ async def _invoice_pdf(db: AsyncSession, s, run) -> Response:  # type: ignore[no
     summary = s.summary or {}
     c = await payouts._country(db, run.country)
     issued = run.approved_at or run.created_at
+    # R17: the kitchen's statements for the same period (a run never overlaps another, so one today),
+    # added up per order exactly as the statements did.
+    same_period = (await db.execute(
+        select(PayoutStatement.lines).join(PayoutRun, PayoutRun.id == PayoutStatement.run_id)
+        .where(PayoutStatement.payee_type == "restaurant", PayoutStatement.payee_id == s.payee_id,
+               PayoutRun.country == run.country, PayoutRun.period_start == run.period_start,
+               PayoutRun.period_end == run.period_end))).scalars().all()
+    commission, tax, orders = ci.totals([list(x or []) for x in same_period])
     inv = ci.CommissionInvoice(
         invoice_no=ci.invoice_number(str(s.id), issued), issued_at=issued, period_start=run.period_start, period_end=run.period_end,
         currency=s.currency, supplier=legal.entity(c.settings, c.tax_regime),
         kitchen=await restaurant_brief(db, s.payee_id) or {"name": s.payee_name},
-        commission=Decimal(str(summary.get("commission") or 0)), rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)),
-        tax=Decimal(str(summary.get("commission_tax") or 0)), orders=int(summary.get("orders") or 0))
+        commission=commission, rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)), tax=tax, orders=orders)
     from starlette.concurrency import run_in_threadpool
 
     pdf = await run_in_threadpool(ci.render, inv)

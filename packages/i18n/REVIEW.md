@@ -427,3 +427,22 @@ Machine-translated on 2026-11-16 into all seven languages; needs native review.
   expired set-up link lands. App names (BhojanGo Kitchen, BhojanGo Delivery) stay in English.
 - Backend (worker/app/services/messages.py `payout_setup`): the push and email an admin sends with
   the set-up link ("works for 7 days").
+
+## Tax on commission and the tax invoice (round 16)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo Kitchen app Payouts: `partner.payouts.commission_tax`, `tds`, `tax_invoice`,
+  `tax_invoice_failed`. "TDS" stays as the acronym in every Indian language.
+
+## Incidents: "Closed for now" and ordering paused (round 17)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, website and customer app: `kitchen.closed_for_now`, `kitchen.closed_for_now_note`, `kitchen.back_at`, `kitchen.back_soon`
+  (a kitchen BhojanGo paused), `incident.paused_area` and `incident.paused_everywhere` (the strip shown while
+  ordering is paused; `{area}` is a city or country name from Markets). Plain and calm: no blame, and say that
+  orders on their way still arrive.
+- Backend (`backend/shared/texts.py` `INCIDENT_MESSAGES`, sent by push and email from admin → Incidents):
+  `order_cancelled`, `refund_sent`, `delay`, `area_paused`, `area_back`, `payment_problem`. `{amount}` is a
+  formatted amount, `{code}` an order code, `{time}` a time an admin typed (e.g. "8:30 pm").

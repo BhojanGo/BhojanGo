@@ -154,3 +154,22 @@ async def test_a_preset_quick_message_reaches_the_other_person_in_their_language
     assert out[0].params == {"name": "", "text": "I'm outside.", "preset": "outside", "from_role": "rider"}
     r = m.render("order_message", "te", **out[0].params)
     assert (r.title, r.body) == ("మీ డెలివరీ పార్ట్‌నర్ నుండి సందేశం", "నేను బయట ఉన్నాను.")
+
+
+async def test_incident_messages_go_to_each_customer_in_their_language() -> None:  # R17
+    from app.services import messages as m
+
+    d = FakeDirectory()
+    out = (await plan(ev("incident.message", user_id=CUSTOMER, template="refund_sent",  # type: ignore[arg-type]
+                         params={"amount": "₹319.11"}, bulk_message_id="b1"), d))[0]
+    assert (out.user_id, out.key, out.order_id) == (CUSTOMER, "incident_refund_sent", str(ORDER))
+    assert out.params == {"amount": "₹319.11", "code": "#AB12CD", "restaurant": "Spice Route Kitchen"}
+    assert POLICY["incident_refund_sent"] == ("push", "email") and out.data == {"bulk_message_id": "b1"}
+    en, hi = m.render(out.key, "en", **out.params), m.render(out.key, "hi", **out.params)
+    assert "#AB12CD" in en.body and "₹319.11" in en.body and "Spice Route Kitchen" in en.body
+    assert "₹319.11" in hi.body and hi.title == "रिफंड भेजा गया"
+    # a city's customers: no order, the admin's words only
+    city = (await plan({"event_type": "incident.message", "event_id": "e2", "payload": {  # type: ignore[arg-type]
+        "user_id": CUSTOMER, "order_id": None, "template": "area_paused", "params": {"area": "Hyderabad"}}}, d))[0]
+    assert city.order_id is None and m.render(city.key, "te", **city.params).body.startswith("ఒక సమస్యను")
+    assert {f"incident_{k}" for k in m.INCIDENT_MESSAGES} <= set(POLICY)

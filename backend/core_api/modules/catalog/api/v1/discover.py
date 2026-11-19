@@ -62,6 +62,7 @@ class Card(BaseModel):
     is_new: bool
     open_now: bool
     opens_at: str | None  # next opening, local ISO, when closed
+    closed_for_now: bool = False  # R17: an admin paused it (opens_at = its "back at", if set)
     eta_min: int
     eta_max: int
     distance: float | None  # in the country's unit, from the address
@@ -200,7 +201,9 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             rating=float(k.rating or 0), review_count=int(getattr(k, "review_count", 0) or 0),
             rating_display=rating_display(k.rating, getattr(k, "review_count", 0)),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
-            opens_at=a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
+            opens_at=(a.back_at.isoformat() if a.back_at else None) if a.closed_for_now
+            else a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
+            closed_for_now=a.closed_for_now,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
             distance=float(round(distance, 1)) if distance is not None else None, delivery_fee=fee,
             free_delivery=any(c.template == "free_delivery" for c in promos), offer=card_offer))

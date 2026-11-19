@@ -1258,6 +1258,277 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/incidents/kitchens/paused": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paused Kitchens
+         * @description Kitchens an admin has paused, in the scopes I can see.
+         */
+        get: operations["paused_kitchens_api_v1_incidents_kitchens_paused_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/kitchens/{restaurant_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Kitchen */
+        post: operations["pause_kitchen_api_v1_incidents_kitchens__restaurant_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/kitchens/{restaurant_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume Kitchen */
+        post: operations["resume_kitchen_api_v1_incidents_kitchens__restaurant_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Incident Log
+         * @description The audit entries of incident actions, newest first, in the scopes I can see.
+         */
+        get: operations["incident_log_api_v1_incidents_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Messages */
+        get: operations["list_messages_api_v1_incidents_messages_get"];
+        put?: never;
+        /** Send Message */
+        post: operations["send_message_api_v1_incidents_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/messages/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Message */
+        post: operations["preview_message_api_v1_incidents_messages_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/messages/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Message Templates
+         * @description The incident plan's customer messages, in English, with what each needs filled in.
+         */
+        get: operations["message_templates_api_v1_incidents_messages_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/ordering-pauses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ordering Pauses */
+        get: operations["ordering_pauses_api_v1_incidents_ordering_pauses_get"];
+        put?: never;
+        /** Pause Ordering */
+        post: operations["pause_ordering_api_v1_incidents_ordering_pauses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/ordering-pauses/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active Ordering Pauses
+         * @description Public: where new orders are paused now, and the customer-facing note (the website and app banner).
+         *     The admin's reason stays private.
+         */
+        get: operations["active_ordering_pauses_api_v1_incidents_ordering_pauses_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/ordering-pauses/{pause_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End Ordering Pause */
+        post: operations["end_ordering_pause_api_v1_incidents_ordering_pauses__pause_id__end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Refunds */
+        get: operations["list_refunds_api_v1_incidents_refunds_get"];
+        put?: never;
+        /** Create Refund */
+        post: operations["create_refund_api_v1_incidents_refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/refunds/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Refund */
+        post: operations["preview_refund_api_v1_incidents_refunds_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/refunds/{refund_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Refund */
+        get: operations["get_refund_api_v1_incidents_refunds__refund_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/refunds/{refund_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Refund */
+        post: operations["approve_refund_api_v1_incidents_refunds__refund_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/refunds/{refund_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Refund */
+        post: operations["reject_refund_api_v1_incidents_refunds__refund_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kitchens/apply": {
         parameters: {
             query?: never;
@@ -4789,6 +5060,24 @@ export interface components {
             /** Topic */
             topic?: ("orders" | "payments-refunds" | "delivery" | "account" | "kitchen-partners" | "delivery-partners") | null;
         };
+        /** AudienceIn */
+        AudienceIn: {
+            /** Bulk Refund Id */
+            bulk_refund_id?: string | null;
+            /** City */
+            city?: string | null;
+            /**
+             * Days
+             * @default 30
+             */
+            days?: number;
+            /** Params */
+            params?: {
+                [key: string]: string;
+            };
+            /** Template */
+            template: string;
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -4922,6 +5211,11 @@ export interface components {
         Card: {
             /** Area */
             area: string | null;
+            /**
+             * Closed For Now
+             * @default false
+             */
+            closed_for_now?: boolean;
             /** Cover Url */
             cover_url: string | null;
             /** Cuisine Types */
@@ -5863,6 +6157,19 @@ export interface components {
              */
             email: string;
         };
+        /** EndIn */
+        EndIn: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
+        };
         /** EndRule */
         EndRule: {
             /** At */
@@ -6261,6 +6568,37 @@ export interface components {
             title: string;
             /** Why */
             why: string;
+        };
+        /** KitchenPause */
+        KitchenPause: {
+            /**
+             * Back At
+             * @description Opens again by itself then; empty: until resumed
+             */
+            back_at?: string | null;
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
+        };
+        /** KitchenResume */
+        KitchenResume: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
         };
         /**
          * KitchenSignUp
@@ -6896,6 +7234,34 @@ export interface components {
              * @default true
              */
             success?: boolean;
+        };
+        /** MessageSend */
+        MessageSend: {
+            /** Bulk Refund Id */
+            bulk_refund_id?: string | null;
+            /** City */
+            city?: string | null;
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Days
+             * @default 30
+             */
+            days?: number;
+            /** Params */
+            params?: {
+                [key: string]: string;
+            };
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
+            /** Template */
+            template: string;
         };
         /**
          * MfaChallengeResponse
@@ -7705,6 +8071,31 @@ export interface components {
             /** Timeline */
             timeline: components["schemas"]["StatusTimelineEntry"][];
         };
+        /** OrderingPauseIn */
+        OrderingPauseIn: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Note
+             * @description Shown to customers as written
+             */
+            note?: string | null;
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
+            /**
+             * Scope
+             * @description "*" (everywhere), a country ("IN") or a city ("IN-TG-HYD")
+             */
+            scope: string;
+            /** Until */
+            until?: string | null;
+        };
         /** OtpSendRequest */
         OtpSendRequest: {
             /**
@@ -8108,8 +8499,15 @@ export interface components {
              * @default 20
              */
             avg_prep_minutes?: number;
+            /** Back At */
+            back_at?: string | null;
             /** City */
             city: string;
+            /**
+             * Closed For Now
+             * @default false
+             */
+            closed_for_now?: boolean;
             /** Closes At */
             closes_at: string | null;
             /** Country */
@@ -8387,6 +8785,42 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** RefundCreate */
+        RefundCreate: {
+            /** City */
+            city: string;
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "full" | "percent";
+            /** Percent */
+            percent?: number | string | null;
+            /**
+             * Placed From
+             * Format: date-time
+             */
+            placed_from: string;
+            /**
+             * Placed To
+             * Format: date-time
+             */
+            placed_to: string;
+            /**
+             * Reason
+             * @description Why (kept in the audit log)
+             */
+            reason: string;
+            /** Restaurant Id */
+            restaurant_id?: string | null;
+            /** Zone Id */
+            zone_id?: string | null;
+        };
         /** RefundItem */
         RefundItem: {
             /**
@@ -8396,6 +8830,32 @@ export interface components {
             menu_item_id: string;
             /** Quantity */
             quantity: number;
+        };
+        /** RefundPickIn */
+        RefundPickIn: {
+            /** City */
+            city: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "full" | "percent";
+            /** Percent */
+            percent?: number | string | null;
+            /**
+             * Placed From
+             * Format: date-time
+             */
+            placed_from: string;
+            /**
+             * Placed To
+             * Format: date-time
+             */
+            placed_to: string;
+            /** Restaurant Id */
+            restaurant_id?: string | null;
+            /** Zone Id */
+            zone_id?: string | null;
         };
         /** RegionCreate */
         RegionCreate: {
@@ -8687,8 +9147,15 @@ export interface components {
              * @default 20
              */
             avg_prep_minutes?: number;
+            /** Back At */
+            back_at?: string | null;
             /** City */
             city: string;
+            /**
+             * Closed For Now
+             * @default false
+             */
+            closed_for_now?: boolean;
             /** Closes At */
             closes_at: string | null;
             /** Country */
@@ -9848,6 +10315,19 @@ export interface components {
             status: "done" | "in_review" | "needed" | "waiting" | "rejected";
             /** Title */
             title: string;
+        };
+        /** Decision */
+        core_api__modules__incidents__api__v1__incidents__Decision: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+            /**
+             * Note
+             * @description Why (kept in the audit log)
+             */
+            note: string;
         };
         /** TermsCity */
         core_api__modules__markets__api__v1__delivery__TermsCity: {
@@ -11908,6 +12388,597 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    paused_kitchens_api_v1_incidents_kitchens_paused_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    pause_kitchen_api_v1_incidents_kitchens__restaurant_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenPause"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_kitchen_api_v1_incidents_kitchens__restaurant_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenResume"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incident_log_api_v1_incidents_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_messages_api_v1_incidents_messages_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_incidents_messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageSend"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_message_api_v1_incidents_messages_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    message_templates_api_v1_incidents_messages_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    ordering_pauses_api_v1_incidents_ordering_pauses_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_ordering_api_v1_incidents_ordering_pauses_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderingPauseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    active_ordering_pauses_api_v1_incidents_ordering_pauses_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    end_ordering_pause_api_v1_incidents_ordering_pauses__pause_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pause_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_refunds_api_v1_incidents_refunds_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_refund_api_v1_incidents_refunds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_refund_api_v1_incidents_refunds_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundPickIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refund_api_v1_incidents_refunds__refund_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_refund_api_v1_incidents_refunds__refund_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["core_api__modules__incidents__api__v1__incidents__Decision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_refund_api_v1_incidents_refunds__refund_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["core_api__modules__incidents__api__v1__incidents__Decision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

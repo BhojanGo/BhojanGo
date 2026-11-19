@@ -3,11 +3,12 @@ import type { Metadata, Viewport } from "next";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TabBar } from "@/components/TabBar";
+import { OrderingPauseBanner } from "@/components/OrderingPauseBanner";
 import { TestSiteBanner } from "@/components/TestSiteBanner";
 import { UpdatedTermsNotice } from "@/components/legal/UpdatedTermsNotice";
 import { I18nProvider } from "@/lib/i18n";
 import { getContext } from "@/lib/prefs";
-import { INDEXABLE, SITE } from "@/lib/server";
+import { INDEXABLE, orderingPauses, SITE } from "@/lib/server";
 import { fontVariables } from "./fonts";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         >
           <TestSiteBanner text={ctx.t("common.test_site_banner")} />
+          <OrderingPauseBanner pauses={await orderingPauses()} />
           <SiteHeader />
           <UpdatedTermsNotice />
           <main id="main" className="min-h-[60vh]">

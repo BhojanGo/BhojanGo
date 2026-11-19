@@ -37,6 +37,24 @@ def test_commission_gst_and_tds_come_off_the_kitchen() -> None:  # R16
     assert restaurant_statement([worked_example()])[0] == Decimal("486.00")  # none set: nothing taken
 
 
+def test_gst_on_commission_is_rounded_per_order_on_statement_and_invoice_alike() -> None:  # R17
+    from core_api.modules.finance.service import commission_invoice as ci
+
+    def small(oid: str) -> OrderForPayout:  # commission 0.25 each: 18% = 0.045 -> 0.05 per order
+        return OrderForPayout(order_id=oid, delivered_at=T, restaurant_id="r1", rider_id=None,
+                              lines=[{"code": "food", "amount": "2.50"}], split={"detail": {"commission": "0.25"}},
+                              distance=Decimal(0), rider_rule=None, started_at=None)
+
+    _, summary, lines = restaurant_statement([small("a"), small("b"), small("c")], Decimal("18"))
+    assert [ln["commission_tax"] for ln in lines] == ["-0.05"] * 3 and summary["commission_tax"] == "0.15"
+    # one invoice over two statements of the same period adds the per-order amounts, never re-rounds:
+    # 0.75 x 18% would be 0.135 -> 0.14; the statements took 0.15, and so does the invoice
+    commission, tax, orders = ci.totals([lines[:2], lines[2:]])
+    assert (commission, tax, orders) == (Decimal("0.75"), Decimal("0.15"), 3)
+    _, worked, wl = restaurant_statement([worked_example()], Decimal("18"))
+    assert ci.totals([wl])[1] == Decimal(worked["commission_tax"]) == Decimal("15.12")
+
+
 def tikka(reason: str, fault: str) -> list[dict]:
     return [{"menu_item_id": "tikka", "name": "Chicken Tikka", "food": "220.00", "quantity": 1,
              "reason": reason, "fault": fault}]
