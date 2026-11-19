@@ -391,6 +391,13 @@ def check_template(template: str, params: dict[str, str], audience: Audience) ->
     return admin
 
 
+async def with_area(db: AsyncSession, template: str, admin: dict[str, str], city: str) -> dict[str, str]:
+    """R18: {area} is the recipients' city, named as in Markets (never typed by the admin)."""
+    if "area" in incident_placeholders(template):
+        return {**admin, "area": await area_name(db, city)}
+    return admin
+
+
 def sample(template: str, language: str, params: dict[str, str]) -> dict[str, str]:
     """The message as a customer in ``language`` would read it (placeholders filled where known)."""
     title, body = INCIDENT_MESSAGES[template].get(language, INCIDENT_MESSAGES[template]["en"])
@@ -404,6 +411,7 @@ def sample(template: str, language: str, params: dict[str, str]) -> dict[str, st
 async def preview_message(db: AsyncSession, audience: Audience, template: str, params: dict[str, str]) -> dict:
     admin = check_template(template, params, audience)
     city, rows, skipped = await recipients(db, audience)
+    admin = await with_area(db, template, admin, city)
     first = rows[0]["params"] if rows else {}
     return {"city": city, "recipients": len(rows), "skipped": skipped, "only_test_accounts": only_test_accounts(),
             "sample": sample(template, "en", {**first, **admin})}
@@ -413,6 +421,7 @@ async def send_message(db: AsyncSession, audience: Audience, template: str, para
                        actor_id: uuid.UUID) -> BulkMessage:
     admin = check_template(template, params, audience)
     city, rows, skipped = await recipients(db, audience)
+    admin = await with_area(db, template, admin, city)
     if not rows:
         raise IncidentError("Nobody to send it to" + (" (outside production only test accounts get it)" if skipped else ""))
     m = BulkMessage(scope=city, audience={"bulk_refund_id": str(audience.bulk_refund_id) if audience.bulk_refund_id else None,

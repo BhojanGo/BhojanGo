@@ -439,7 +439,7 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 
 Machine-translated on 2026-11-19 into all seven languages; needs native review.
 
-- New, website and customer app: `kitchen.closed_for_now`, `kitchen.closed_for_now_note`, `kitchen.back_at`, `kitchen.back_soon`
+- New, website and customer app: `kitchen.closed_for_now`, `kitchen.closed_for_now_note`, `kitchen.back_at`, `kitchen.back_soon`, `kitchen.bag_paused`, `kitchen.bag_closed_for_now` (the bag and its checkout button, round 18)
   (a kitchen BhojanGo paused), `incident.paused_area` and `incident.paused_everywhere` (the strip shown while
   ordering is paused; `{area}` is a city or country name from Markets). Plain and calm: no blame, and say that
   orders on their way still arrive.

@@ -24,9 +24,11 @@ appId: com.bhojango.rider
 - tapOn:
     id: "dob-day"
 - inputText: "15"
+- hideKeyboard  # the number pad covers the next field (R18)
 - tapOn:
     id: "dob-month"
 - inputText: "6"
+- hideKeyboard  # the number pad covers the next field (R18)
 - tapOn:
     id: "dob-year"
 - inputText: "1995"
@@ -39,6 +41,9 @@ appId: com.bhojango.rider
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-rider-signup
+- scrollUntilVisible:  # below the vehicles on a phone (R18)
+    element:
+      id: "join-continue"
 - tapOn:
     id: "join-continue"
 - extendedWaitUntil:

@@ -10,7 +10,8 @@ import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
 import { BrandTile, kitchenPhoto } from "@/components/KitchenPhoto";
 import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
-import { discover, menu, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
+import { shownPauses } from "@/lib/pauses";
+import { discover, menu, orderingPauses, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
 import { KitchenActions } from "./KitchenActions";
 import { KitchenMenu, type Category } from "./KitchenMenu";
@@ -46,7 +47,9 @@ export default async function KitchenPage({ params }: { params: Params }) {
   if (!hit) notFound();
   const { r, path } = hit;
   const { t, place, formatLocale, country } = await getContext();
-  const [m, avail, near] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null)]);
+  const [m, avail, near, pauses] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null), orderingPauses()]);
+  // R18: ordering paused where this kitchen is (the city, its country or everywhere): the bag says so
+  const orderingPaused = shownPauses(pauses, path).length > 0;
   const card: KitchenCard | null = near?.restaurants?.find((k) => k.id === r.id) ?? null;
   const currency = r.currency;
   const unit = near?.distance_unit ?? country?.distance_unit ?? "km";
@@ -189,6 +192,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
         deliverTo={place ? (place.address_id ? { address_id: place.address_id } : { lat: place.lat, lng: place.lng }) : null}
         closed={closedNow}
         forNow={forNow}
+        orderingPaused={orderingPaused}
       />
     </div>
   );

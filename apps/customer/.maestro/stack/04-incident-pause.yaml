@@ -1,0 +1,32 @@
+# R18: an incident pause as customers see it. Before this flow the host pauses ordering in Hyderabad
+# and Spice Route Kitchen through admin's incident API, and resumes both after it
+# (tools/mobile/incident_pause.py, run by tools/mobile/stack-screens.sh for this flow).
+# Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.app
+---
+- runFlow: common/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "ordering-paused"
+    timeout: 90000
+- assertVisible: "Ordering in Hyderabad is paused.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-ordering-paused
+# A closed kitchen sorts after the open ones: open it by its link instead of scrolling the list.
+- runScript: scripts/spice_route.js
+- openLink: bhojango://restaurant/${output.kitchen}
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-closed-for-now"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-kitchen-closed-for-now
+- openLink: bhojango://bag
+- extendedWaitUntil:
+    visible:
+      id: "bag-blocked"
+    timeout: 30000
+- assertVisible: "Ordering is paused"
+- takeScreenshot: stack-customer-bag-ordering-paused

@@ -13,7 +13,8 @@ appId: com.bhojango.app
     timeout: 3000
 - takeScreenshot: stack-customer-loading
 - runScript: scripts/release.js
-- extendedWaitUntil:
-    visible:
+# The list sits below the offers now (R18): scroll down to it.
+- scrollUntilVisible:
+    element:
       id: "kitchens"
     timeout: 60000

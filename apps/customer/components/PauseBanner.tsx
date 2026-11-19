@@ -1,16 +1,17 @@
 // R17: "Ordering in <city> is paused for now…" while an admin has paused ordering (incident tools),
 // for the city the app is in (or everywhere, or the whole country). Checked every minute; orders already
 // on their way carry on. Text in the app's language; the admin's note as written.
+// R18: useOrderingPauses() also tells the bag, which then can't be paid for.
 import { api, space, type, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import { useWhere } from "../lib/where";
 
-interface Pause { id: string; scope: string; area: string; note?: string | null }
+export interface Pause { id: string; scope: string; area: string; note?: string | null }
 
-export function PauseBanner() {
-  const { t } = useI18n();
+/** The ordering pauses that cover the app's city now (every pause while the city isn't known yet). */
+export function useOrderingPauses(): Pause[] {
   const city = useWhere((s) => s.market?.city_code ?? null);
   const [pauses, setPauses] = useState<Pause[]>([]);
   useEffect(() => {
@@ -21,7 +22,12 @@ export function PauseBanner() {
     const timer = setInterval(load, 60_000);
     return () => { live = false; clearInterval(timer); };
   }, []);
-  const shown = pauses.filter((p) => p.scope === "*" || (city ? city === p.scope || city.startsWith(`${p.scope}-`) : true));
+  return pauses.filter((p) => p.scope === "*" || (city ? city === p.scope || city.startsWith(`${p.scope}-`) : true));
+}
+
+export function PauseBanner() {
+  const { t } = useI18n();
+  const shown = useOrderingPauses();
   if (!shown.length) return null;
   return (
     <View accessibilityRole="alert" testID="ordering-paused">

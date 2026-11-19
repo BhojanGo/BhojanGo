@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-19** (after round 17), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-19** (after round 18), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -119,6 +119,30 @@ Launch: [boise-readiness.md](launch/boise-readiness.md) now has costs, insurance
   `pricing_model`, `flat_fee_per_order` and `monthly_subscription_fee`, saved by the kitchen pricing endpoint but
   read by nothing (the pricing engine and payouts use only rules). A subscription would need a periodic rule and a
   line on the weekly statement.
+
+## Store and production readiness (round 18)
+
+- **Merging:** a PR is merged once its CI is green, unless it drops or renames a column, writes to QA or costs money
+  (PLAYBOOK rule 70).
+- **Incidents follow-ups:** admin's bulk message picks a city from the admin's own cities (no typed area); while
+  ordering is paused or a kitchen is closed for now, the bag on the website and in the app says why and its
+  checkout button is disabled with the same words. Customer app screenshots of the incident states come from a
+  throwaway stack (app-screens.yml, flow 04-incident-pause).
+- **App stores** ([store/README.md](launch/store/README.md)): listing text, App Store privacy labels, Google Play Data
+  safety answers and permission reasons for the three apps, screenshot sizes and `tools/mobile/store_shots.sh`.
+  Likely rejections to fix before submitting: no in-app account deletion in BhojanGo Kitchen and BhojanGo Delivery
+  (Apple 5.1.1(v)); the Delivery app's background location needs Google's prominent disclosure and declarations;
+  no production build profile (`eas.json`); the test payment sheet can show outside the US; reviewers need
+  password accounts (no fixed sign-in codes in production); unused microphone and "always" location strings; no
+  privacy link in the partner apps; no report on quick messages; push tokens never registered. Sign in with Apple
+  isn't needed (no third-party sign-in).
+- **Production dry run** ([production-config.md](launch/production-config.md), [go-live.md](launch/go-live.md)):
+  every variable per service and where it comes from; `tools/railway/prod_config_check.py` (names only, no network)
+  finds 25 gaps in what `.railway/railway.ts` would give production: Stripe live keys and webhook secrets, the public
+  web and API URLs, `IDENTITY_DATA_KEYS` (admins couldn't set up two-step sign-in), the worker's required email, SMS
+  and push credentials, the web payments provider, a markets-only production seed, a way to create the first admin,
+  push registration, Sentry, and store builds. The go-live runbook orders the steps from "accounts ready" to the
+  first real order, each with its check and rollback, and lists when to stop.
 
 ## What's left before the pilot
 
