@@ -48,6 +48,7 @@ dependencies = [
     "uharfbuzz>=0.50,<1",
     "argon2-cffi>=25.1.0,<26",
     "segno>=1.6.6,<2",
+    "sentry-sdk[fastapi]>=2.40,<3",
 ]
 
 [dependency-groups]

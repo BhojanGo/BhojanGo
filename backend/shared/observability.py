@@ -1,15 +1,15 @@
 """Observability (P23), zero spend: OpenTelemetry traces to a local collector
-(→ Tempo, seen in Grafana: `make observe`), and an error-reporting adapter for
-Sentry that stays off.
+(→ Tempo, seen in Grafana: `make observe`), and Sentry error reporting (R19:
+the free plan) that stays off until SENTRY_DSN is set.
 
 - Traces: on when OTEL_EXPORTER_OTLP_ENDPOINT is set (the observe overlay sets
   it to the collector). FastAPI requests, SQLAlchemy queries and outgoing httpx
   calls become spans; log lines carry the trace id so Grafana links Loki → Tempo.
 - Metrics: every service already exposes Prometheus /metrics; core_api adds the
   pilot KPIs (core_api/modules/orders/service/kpi.py).
-- Errors: report_error() goes to Sentry only if SENTRY_DSN is set and sentry-sdk
-  is installed. Neither is true here (no paid services); errors are in the logs
-  and the error-spike alert.
+- Errors: with SENTRY_DSN set, sentry-sdk (a dependency since R19) reports
+  unhandled errors and report_error() calls. No DSN (dev, CI, QA): no init and
+  no network; errors are in the logs and the error-spike alert.
 """
 from typing import Any
 
@@ -65,7 +65,10 @@ def _sentry(service: str) -> None:
     except ImportError:
         logger.warning("sentry_dsn_set_but_sdk_missing", service=service)
         return
-    sentry_sdk.init(dsn=s.SENTRY_DSN, environment=s.APP_ENV, release=s.VERSION, traces_sample_rate=0.0)
+    # Errors only (no tracing, no request bodies or personal data).
+    sentry_sdk.init(dsn=s.SENTRY_DSN, environment=s.environment_name, release=s.VERSION, server_name=service,
+                    traces_sample_rate=0.0, send_default_pii=False, max_request_body_size="never")
+    sentry_sdk.set_tag("service", service)
     _sentry_on = True
 
 

@@ -24,25 +24,36 @@ _start_time = time.time()
 
 _sqs_task: asyncio.Task | None = None
 
-# Provider credentials that MUST be present in production — otherwise channels silently no-op
-# and customers never receive order confirmations, OTPs, or push updates.
-_REQUIRED_PROD_SETTINGS = [
-    "SENDGRID_API_KEY",
-    "TWILIO_ACCOUNT_SID",
-    "FIREBASE_PROJECT_ID",
-]
+# What the worker needs in production, by the provider each channel uses. R19: email through
+# Amazon SES; sign-in codes go through Twilio Verify in core_api (not the worker); order updates
+# by push (Expo tokens: no Firebase or APNs keys on the worker), so SMS can be "off". A channel's
+# keys are required only when its provider is chosen.
+_REQUIRED_PROD_SETTINGS: dict[str, list[str]] = {
+    "email:ses": ["SES_REGION", "SES_ACCESS_KEY_ID", "SES_SECRET_ACCESS_KEY", "EMAIL_FROM"],
+    "email:sendgrid": ["SENDGRID_API_KEY"],
+    "sms:live": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER"],
+}
+_PROD_PROVIDERS = {"EMAIL_PROVIDER": ("ses", "sendgrid"), "PUSH_PROVIDER": ("live",), "SMS_PROVIDER": ("live", "off")}
+
+
+def production_missing(s=settings) -> list[str]:  # type: ignore[no-untyped-def]
+    """What's missing for production (empty when nothing is, or outside production)."""
+    if not s.production_named:
+        return []
+    p = s.providers
+    missing = [f"{name} (one of: {', '.join(ok)})" for name, ok in _PROD_PROVIDERS.items() if getattr(p, name) not in ok]
+    for key in (f"email:{p.EMAIL_PROVIDER}", f"sms:{p.SMS_PROVIDER}"):
+        missing += [n for n in _REQUIRED_PROD_SETTINGS.get(key, []) if not getattr(s.worker, n, "")]
+    if not bus.configured():
+        missing.append("SQS_QUEUE_URL_NOTIFICATION or EVENT_BUS=redis")
+    return missing
 
 
 def _validate_production_config() -> None:
-    if settings.APP_ENV != "production":
-        return
-    missing = [name for name in _REQUIRED_PROD_SETTINGS if not getattr(settings.worker, name, "")]
-    if not bus.configured():
-        missing.append("SQS_QUEUE_URL_NOTIFICATION or EVENT_BUS=redis")
+    missing = production_missing()
     if missing:
         raise RuntimeError(
-            "notification-svc is misconfigured for production; missing required settings: "
-            + ", ".join(missing)
+            "notification-svc is misconfigured for production; missing required settings: " + ", ".join(missing)
         )
 
 
