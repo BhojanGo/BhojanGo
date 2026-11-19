@@ -529,24 +529,41 @@ def main() -> int:
     # 6. The three app builds (outside Railway)
     print("\n6. App builds (customer, partner, rider): build-time names, set outside Railway")
     print("  read by the apps: " + ", ".join(expo_names))
-    profile = (ROOT / "tools/mobile/env-profile.sh").read_text(encoding="utf-8")
-    profiles = re.findall(r"^\s{2}(\w+)\)", profile, re.M)
-    if "production" not in profiles:
-        gaps.append("apps: no production profile")
-        print(f"  GAP  tools/mobile/env-profile.sh has profiles {', '.join(profiles)}; none for production "
-              f"({line_of('tools/mobile/env-profile.sh', 'case')})")
+    # R19: the production build profile is each app's eas.json (EXPO_PUBLIC_APP_ENV=production); the store
+    # ids live in config/store.json, where {LIKE_THIS} is a placeholder only Srini's accounts can fill
+    # (an Expo project, App Store Connect, Apple Developer, Google Play): listed, not counted as gaps.
+    store = json.loads((ROOT / "config/store.json").read_text(encoding="utf-8"))
+    account_ids: list[str] = []
+
+    def placeholders(node, path: str = "") -> None:  # type: ignore[no-untyped-def]
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if not k.startswith("_"):
+                    placeholders(v, f"{path}.{k}" if path else k)
+        elif isinstance(node, str) and node.startswith("{") and node.endswith("}"):
+            account_ids.append(f"{path} = {node}")
+
+    placeholders(store)
     for app in ("customer", "partner", "rider"):
         cfg = json.loads((ROOT / f"apps/{app}/app.json").read_text(encoding="utf-8"))["expo"]
-        pid = cfg.get("extra", {}).get("eas", {}).get("projectId", "")
-        if not (ROOT / f"apps/{app}/eas.json").exists():
+        eas = ROOT / f"apps/{app}/eas.json"
+        if not eas.exists():
             gaps.append(f"{app}: no eas.json")
             print(f"  GAP  apps/{app}: no eas.json (no store build profile)")
-        if not pid or pid.startswith("your-"):
-            gaps.append(f"{app}: EAS projectId placeholder")
-            print(f"  GAP  apps/{app}: EAS projectId is a placeholder ({line_of(f'apps/{app}/app.json', 'projectId')})")
+        else:
+            prod_env = json.loads(eas.read_text(encoding="utf-8")).get("build", {}).get("production", {}).get("env", {})
+            if prod_env.get("EXPO_PUBLIC_APP_ENV") != "production":
+                gaps.append(f"{app}: eas.json production profile without EXPO_PUBLIC_APP_ENV=production")
+                print(f"  GAP  apps/{app}: eas.json production profile doesn't set EXPO_PUBLIC_APP_ENV=production")
         gsf = cfg.get("android", {}).get("googleServicesFile")
         if gsf and not (ROOT / f"apps/{app}" / gsf).exists():
             print(f"  note apps/{app}: {gsf} is not in the checkout (Firebase; app.config.js drops it, so no FCM)")
+
+    if account_ids:
+        print(f"  store ids still to fill from Srini's accounts (config/store.json; a production build refuses "
+              f"until they are): {len(account_ids)}")
+        for line in account_ids:
+            print(f"    {line}")
 
     # 7. Values set by hand in Railway (preserve()): not checkable from the repo
     print("\n7. Set by hand in Railway before go-live (preserve(): the repo holds no value)")
