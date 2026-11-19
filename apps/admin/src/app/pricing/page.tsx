@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
-import { RuleEditor } from "@/components/ops/RuleEditor";
+import { type ParamsSchema, RuleEditor } from "@/components/ops/RuleEditor";
 import { adminApi } from "@/lib/api";
 import { can, firstCity, useAdminMe, useCity, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
@@ -40,7 +40,7 @@ function nextHour(): string {
 function when(iso: string): string {
   return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
-interface Template { family: string; template: string; money: boolean; allowed_levels: string[] }
+interface Template { family: string; template: string; money: boolean; allowed_levels: string[]; params_schema?: ParamsSchema }
 interface KitchenRef { id: string; name: string; city: string; cityCode: string }
 interface Preview {
   orders: number; days: number; commission_now: string; commission_new: string; payout_difference: string;
@@ -214,7 +214,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
           </div>
         </div>
       ) : null}
-      {template ? <RuleEditor key={template} params={starter as Record<string, unknown>} busy={busy} onCancel={() => onDone("")} onSave={(p) => void create(p)} saveLabel="Create draft" /> : null}
+      {template ? <RuleEditor key={template} params={starter as Record<string, unknown>} schema={t?.params_schema} busy={busy} onCancel={() => onDone("")} onSave={(p) => void create(p)} saveLabel="Create draft" /> : null}
       {err ? <p role="alert" className="text-label text-chili">{err}</p> : null}
       <p className="text-small text-muted">A new rule starts as a draft. {t?.money ? "Submitting sends it to a second admin to approve." : "Submitting makes it live."}</p>
     </section>
@@ -251,7 +251,7 @@ function CaWarning() {
   );
 }
 
-function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onChanged: (id?: string) => void }) {
+function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: string; schema?: ParamsSchema; onChanged: (id?: string) => void }) {
   const { data: me } = useAdminMe();
   const qc = useQueryClient();
   const history = useQuery({ queryKey: ["rule-history", rule.id], queryFn: async () => (await adminApi.get<History>(`/user/rules/${rule.id}/history`)).data });
@@ -316,9 +316,9 @@ function RuleDetail({ rule, label, onChanged }: { rule: Rule; label: string; onC
         </div>
       ) : null}
       {editing === "version" ? (
-        <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(null)} onSave={(p) => void newVersion(p)} saveLabel={money ? "Send for approval" : "Save"} />
+        <RuleEditor params={rule.params} schema={schema} busy={busy} onCancel={() => setEditing(null)} onSave={(p) => void newVersion(p)} saveLabel={money ? "Send for approval" : "Save"} />
       ) : editing === "draft" ? (
-        <RuleEditor params={rule.params} busy={busy} onCancel={() => setEditing(null)}
+        <RuleEditor params={rule.params} schema={schema} busy={busy} onCancel={() => setEditing(null)}
           onSave={(p) => void run(() => adminApi.patch(`/user/rules/${rule.id}`, { params: p }), "Draft saved.", rule.id)} saveLabel="Save draft" />
       ) : <Params rule={rule} />}
       {isDraft && rule.family === "commission" && rule.template !== "payout_schedule" ? <PreviewBox rule={rule} /> : null}
@@ -470,6 +470,7 @@ function PricingPage() {
             names={names} onDone={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => { setAdding(false); setOpen(id || null); })} />
         ) : selected ? (
           <RuleDetail key={selected.id} rule={selected} label={source(selected, scope, names, kitchens, units(selected.market_scope))}
+            schema={catalogue.data?.find((c) => c.family === selected.family && c.template === selected.template)?.params_schema}
             onChanged={(id) => void qc.invalidateQueries({ queryKey: ["rules"] }).then(() => setOpen(id ?? null))} />
         ) : <div className="rounded-2xl bg-white p-6 text-muted">Pick a rule to see its settings, history and approvals.</div>}
       </div>

@@ -4,6 +4,10 @@
 // backend checks the result against the rule's template before saving.
 import { useState } from "react";
 
+import { type ParamsSchema, withTemplateSettings } from "@/lib/ruleSettings";
+
+export type { ParamsSchema };
+
 type V = unknown;
 
 function label(k: string): string {
@@ -11,9 +15,10 @@ function label(k: string): string {
   return words[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function Field({ k, v, onChange }: { k: string; v: V; onChange: (v: V) => void }) {
+function Field({ k, v, onChange, hint }: { k: string; v: V; onChange: (v: V) => void; hint?: string }) {
   if (typeof v === "boolean") {
-    return <label className="flex items-center gap-2 text-small"><input type="checkbox" checked={v} onChange={(e) => onChange(e.target.checked)} /> {label(k)}</label>;
+    // R17: a yes/no setting reads as its template's description ("A discount the platform funds reduces the tax base").
+    return <label className="flex items-center gap-2 text-small"><input type="checkbox" checked={v} onChange={(e) => onChange(e.target.checked)} /> {hint ?? label(k)}</label>;
   }
   if (Array.isArray(v) && v.every((x) => typeof x === "object" && x !== null)) {
     const rows = v as Record<string, V>[];
@@ -58,14 +63,14 @@ function Field({ k, v, onChange }: { k: string; v: V; onChange: (v: V) => void }
   );
 }
 
-export function RuleEditor({ params, onSave, onCancel, busy, saveLabel }: {
-  params: Record<string, V>; onSave: (p: Record<string, V>) => void; onCancel: () => void; busy: boolean; saveLabel: string;
+export function RuleEditor({ params, schema, onSave, onCancel, busy, saveLabel }: {
+  params: Record<string, V>; schema?: ParamsSchema; onSave: (p: Record<string, V>) => void; onCancel: () => void; busy: boolean; saveLabel: string;
 }) {
-  const [draft, setDraft] = useState<Record<string, V>>(params);
+  const [draft, setDraft] = useState<Record<string, V>>(() => withTemplateSettings(params, schema));
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
-        {Object.entries(draft).map(([k, v]) => <Field key={k} k={k} v={v} onChange={(nv) => setDraft((d) => ({ ...d, [k]: nv }))} />)}
+        {Object.entries(draft).map(([k, v]) => <Field key={k} k={k} v={v} hint={schema?.properties?.[k]?.description} onChange={(nv) => setDraft((d) => ({ ...d, [k]: nv }))} />)}
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={() => onSave(draft)} disabled={busy} className="h-10 rounded-full bg-peacock px-4 font-bold text-white">{saveLabel}</button>

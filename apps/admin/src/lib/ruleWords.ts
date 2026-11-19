@@ -97,7 +97,13 @@ export function describe(template: string, params: P, units: Units): string {
     case "late_night_fee": return `${m(p.amount, cur)} during ${window(p.window)}`;
     case "rate_on_lines": case "rate":
       return `${String(p.label ?? "Tax")}: ${n(p.rate_percent)}% on ${((p.target_lines as string[]) ?? []).map((l) => LINE_NAMES[l] ?? l).join(", ")}`
-        + ` · collected by ${p.collected_by === "restaurant" ? "the kitchen" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`;
+        + ` · collected by ${p.collected_by === "restaurant" ? "the kitchen" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`
+        // R17: who funds a discount decides whether it lowers the tax base (R16)
+        + (p.platform_discounts_reduce_base === false ? " · discounts BhojanGo pays for don't reduce it" : "");
+    case "commission_tax": return `${String(p.label ?? "Tax on commission")}: ${n(p.rate_percent)}% of BhojanGo's commission, taken from the kitchen's payout`;
+    case "payout_tds": return Number(p.rate_percent) > 0
+      ? `${String(p.label ?? "TDS")}: ${n(p.rate_percent)}% of the kitchen's food and packaging sales, taken from its payout`
+      : `${String(p.label ?? "TDS")}: none deducted (0%)`;
     case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo";
     case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";

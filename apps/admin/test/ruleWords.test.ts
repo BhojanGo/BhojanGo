@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { money } from "../src/lib/money.ts";
+import { withTemplateSettings } from "../src/lib/ruleSettings.ts";
 import { describe, unitsFor } from "../src/lib/ruleWords.ts";
 
 const MARKETS = [
@@ -66,4 +67,27 @@ test("pay, radius and money settings use the same units", () => {
     "Free at ₹499 of food or more · ₹29 below that");
   assert.equal(describe("flat", { amount: null }, us), "not set per order");
   assert.equal(describe("cod_limit", { max_amount: 0 }, us), "Cash on delivery is off");
+});
+
+test("R17: India's tax settings in words, and a form that shows settings an older rule lacks", () => {
+  const inr = unitsFor("IN", MARKETS);
+  const gst = { label: "GST on food", rate_percent: "5", target_lines: ["food", "packaging"], collected_by: "platform" };
+  assert.equal(describe("rate_on_lines", { ...gst, platform_discounts_reduce_base: false }, inr),
+    "GST on food: 5% on food, packaging · collected by BhojanGo · discounts BhojanGo pays for don't reduce it");
+  assert.equal(describe("rate_on_lines", gst, inr), "GST on food: 5% on food, packaging · collected by BhojanGo");
+  assert.equal(describe("commission_tax", { label: "GST on commission", rate_percent: 18 }, inr),
+    "GST on commission: 18% of BhojanGo's commission, taken from the kitchen's payout");
+  assert.equal(describe("payout_tds", { label: "TDS (section 194-O)", rate_percent: 0 }, inr), "TDS (section 194-O): none deducted (0%)");
+  const schema = {
+    properties: {
+      label: { default: "GST on commission", type: "string" }, rate_percent: { anyOf: [{ type: "number" }, { type: "string" }] },
+      ca_confirmed: { default: false, type: "boolean" }, target_lines: { type: "array" },
+    },
+    required: ["rate_percent", "target_lines"],
+  };
+  assert.deepEqual(withTemplateSettings({}, schema), { label: "GST on commission", rate_percent: null, ca_confirmed: false });
+  // a version's own values win; a missing yes/no setting comes with its default
+  assert.deepEqual(withTemplateSettings({ rate_percent: "5", target_lines: ["food"] }, schema),
+    { rate_percent: "5", target_lines: ["food"], label: "GST on commission", ca_confirmed: false });
+  assert.deepEqual(withTemplateSettings({ a: 1 }), { a: 1 });
 });
