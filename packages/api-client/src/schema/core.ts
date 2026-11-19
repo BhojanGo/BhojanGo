@@ -658,7 +658,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Discover */
+        /**
+         * Discover
+         * @description Kitchens, cuisines and offers for a point (or a whole city). A review-only city
+         *     (R19) exists only for its review accounts: anyone else gets "not served" there
+         *     (a point) or 404 (its code).
+         */
         get: operations["discover_api_v1_discover_get"];
         put?: never;
         post?: never;
@@ -1861,7 +1866,8 @@ export interface paths {
         /**
          * Locate
          * @description Is this point served? Returns the zone, city and country, or why not
-         *     (the app's "not in your area" screen).
+         *     (the app's "not in your area" screen). A review-only city (R19) is served only
+         *     for its review accounts; for anyone else it isn't there.
          */
         get: operations["locate_api_v1_markets_locate_get"];
         put?: never;
@@ -2747,6 +2753,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/messages/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block Other
+         * @description Block the other person on this order: from now on (this and later orders) their
+         *     messages are neither shown nor pushed to me.
+         */
+        post: operations["block_other_api_v1_orders__order_id__messages_block_post"];
+        /**
+         * Unblock Other
+         * @description Unblock the other person on this order: their messages show again.
+         */
+        delete: operations["unblock_other_api_v1_orders__order_id__messages_block_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/messages/{message_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Message
+         * @description Report a message from the other person (also after the order ended): a ticket
+         *     for support with the conversation attached; ``block`` also blocks them. Reporting
+         *     the same message again returns the open report.
+         */
+        post: operations["report_message_api_v1_orders__order_id__messages__message_id__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}/problems": {
         parameters: {
             query?: never;
@@ -3364,7 +3417,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Restaurant */
+        /**
+         * Get Restaurant
+         * @description A kitchen. In a review-only city (R19): 404 except for its review accounts
+         *     (checked before the cache, so a cached copy never reaches anyone else).
+         */
         get: operations["get_restaurant_api_v1_restaurants__restaurant_id__get"];
         /** Update Restaurant */
         put: operations["update_restaurant_api_v1_restaurants__restaurant_id__put"];
@@ -3608,6 +3665,7 @@ export interface paths {
         /**
          * Get Restaurant Menu
          * @description The menu with option groups (min/max picks, prices) and what is sold out today.
+         *     In a review-only city (R19): 404 except for its review accounts.
          */
         get: operations["get_restaurant_menu_api_v1_restaurants__restaurant_id__menu_get"];
         put?: never;
@@ -5151,6 +5209,11 @@ export interface components {
             funded_by?: string | null;
             /** Label */
             label: string;
+        };
+        /** BlockOut */
+        BlockOut: {
+            /** Blocked */
+            blocked: boolean;
         };
         /** Body_upload_api_v1_uploads_post */
         Body_upload_api_v1_uploads_post: {
@@ -8635,6 +8698,11 @@ export interface components {
         /** QuickMessagesOut */
         QuickMessagesOut: {
             /**
+             * Blocked
+             * @default false
+             */
+            blocked?: boolean;
+            /**
              * Me
              * @enum {string}
              */
@@ -8997,6 +9065,33 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** ReportIn */
+        ReportIn: {
+            /**
+             * Block
+             * @default false
+             */
+            block?: boolean;
+            /** Note */
+            note?: string | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "abusive" | "harassment" | "spam" | "unsafe" | "other";
+        };
+        /** ReportOut */
+        ReportOut: {
+            /** Blocked */
+            blocked: boolean;
+            /** Message */
+            message: string;
+            /**
+             * Ticket Id
+             * Format: uuid
+             */
+            ticket_id: string;
         };
         /** Requirements */
         Requirements: {
@@ -15160,6 +15255,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    block_other_api_v1_orders__order_id__messages_block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unblock_other_api_v1_orders__order_id__messages_block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_message_api_v1_orders__order_id__messages__message_id__report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOut"];
                 };
             };
             /** @description Validation Error */

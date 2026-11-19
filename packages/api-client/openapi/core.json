@@ -1481,6 +1481,19 @@
         "title": "BillLineOut",
         "type": "object"
       },
+      "BlockOut": {
+        "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "blocked"
+        ],
+        "title": "BlockOut",
+        "type": "object"
+      },
       "Body_upload_api_v1_uploads_post": {
         "properties": {
           "file": {
@@ -10940,6 +10953,11 @@
       },
       "QuickMessagesOut": {
         "properties": {
+          "blocked": {
+            "default": false,
+            "title": "Blocked",
+            "type": "boolean"
+          },
           "me": {
             "enum": [
               "customer",
@@ -11847,6 +11865,67 @@
           "currency"
         ],
         "title": "ReorderRestaurant",
+        "type": "object"
+      },
+      "ReportIn": {
+        "properties": {
+          "block": {
+            "default": false,
+            "title": "Block",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reason": {
+            "enum": [
+              "abusive",
+              "harassment",
+              "spam",
+              "unsafe",
+              "other"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReportIn",
+        "type": "object"
+      },
+      "ReportOut": {
+        "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "ticket_id": {
+            "format": "uuid",
+            "title": "Ticket Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "blocked",
+          "message"
+        ],
+        "title": "ReportOut",
         "type": "object"
       },
       "Requirements": {
@@ -17103,6 +17182,7 @@
     },
     "/api/v1/discover": {
       "get": {
+        "description": "Kitchens, cuisines and offers for a point (or a whole city). A review-only city\n(R19) exists only for its review accounts: anyone else gets \"not served\" there\n(a point) or 404 (its code).",
         "operationId": "discover_api_v1_discover_get",
         "parameters": [
           {
@@ -20623,7 +20703,7 @@
     },
     "/api/v1/markets/locate": {
       "get": {
-        "description": "Is this point served? Returns the zone, city and country, or why not\n(the app's \"not in your area\" screen).",
+        "description": "Is this point served? Returns the zone, city and country, or why not\n(the app's \"not in your area\" screen). A review-only city (R19) is served only\nfor its review accounts; for anyone else it isn't there.",
         "operationId": "locate_api_v1_markets_locate_get",
         "parameters": [
           {
@@ -23478,6 +23558,171 @@
         ]
       }
     },
+    "/api/v1/orders/{order_id}/messages/block": {
+      "delete": {
+        "description": "Unblock the other person on this order: their messages show again.",
+        "operationId": "unblock_other_api_v1_orders__order_id__messages_block_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Unblock Other",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "post": {
+        "description": "Block the other person on this order: from now on (this and later orders) their\nmessages are neither shown nor pushed to me.",
+        "operationId": "block_other_api_v1_orders__order_id__messages_block_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Block Other",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/messages/{message_id}/report": {
+      "post": {
+        "description": "Report a message from the other person (also after the order ended): a ticket\nfor support with the conversation attached; ``block`` also blocks them. Reporting\nthe same message again returns the open report.",
+        "operationId": "report_message_api_v1_orders__order_id__messages__message_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Message Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Report Message",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
     "/api/v1/orders/{order_id}/problems": {
       "post": {
         "description": "The customer reports a problem with a delivered order: which items, why,\nand a photo if they like. Up to the city's automatic refund limit per order\nit's refunded at once to the original payment (who pays follows the reason:\nthe kitchen for its own mistakes, BhojanGo for delivery problems). Above the\nlimit, support gets a ticket and gets back to them.",
@@ -25311,6 +25556,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}": {
       "get": {
+        "description": "A kitchen. In a review-only city (R19): 404 except for its review accounts\n(checked before the cache, so a cached copy never reaches anyone else).",
         "operationId": "get_restaurant_api_v1_restaurants__restaurant_id__get",
         "parameters": [
           {
@@ -26194,7 +26440,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}/menu": {
       "get": {
-        "description": "The menu with option groups (min/max picks, prices) and what is sold out today.",
+        "description": "The menu with option groups (min/max picks, prices) and what is sold out today.\nIn a review-only city (R19): 404 except for its review accounts.",
         "operationId": "get_restaurant_menu_api_v1_restaurants__restaurant_id__menu_get",
         "parameters": [
           {

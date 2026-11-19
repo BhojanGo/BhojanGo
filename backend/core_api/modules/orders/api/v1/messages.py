@@ -5,6 +5,12 @@ channel (realtime WebSocket) and by push to the other person. Open from the
 moment a rider is assigned until the order is delivered or cancelled; after
 that the conversation is hidden from both sides. Nobody sees a phone number:
 people appear by first name and phone-like digits in free text are masked.
+
+Report and block (R19, Apple 1.2): either side can report a message from the
+other (a "chat_report" ticket in the admin support console, with the
+conversation attached) and block the other person: per pair of users, their
+messages are then neither shown nor pushed to the blocker (still stored, so
+support can read them). Unblocking shows them again.
 """
 import json
 import re
@@ -15,11 +21,11 @@ from typing import Annotated, Literal
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
-from core_api.modules.orders.models import Order, OrderMessage
+from core_api.modules.orders.models import ChatBlock, Order, OrderMessage
 from core_api.modules.orders.service.state_machine import TERMINAL_STATES
 from shared import outbox
 from shared.db import get_db
@@ -64,6 +70,7 @@ class QuickMessagesOut(BaseModel):
     other_name: str  # first name only
     presets: list[QuickPreset]
     messages: list[QuickMessage]
+    blocked: bool = False  # R19: I blocked the other person (their messages are left out)
 
 
 class QuickMessageIn(BaseModel):
@@ -111,6 +118,18 @@ async def _load(db: AsyncSession, order_id: uuid.UUID, me: CurrentUser) -> tuple
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
 
+def _other_id(order: Order, me: str) -> uuid.UUID | None:
+    return order.driver_id if me == "customer" else order.customer_id
+
+
+async def has_blocked(db: AsyncSession, blocker: uuid.UUID | None, blocked: uuid.UUID | None) -> bool:
+    """Did ``blocker`` block ``blocked`` (R19)? False when either is unknown."""
+    if blocker is None or blocked is None:
+        return False
+    return (await db.execute(select(ChatBlock.id).where(
+        ChatBlock.blocker_id == blocker, ChatBlock.blocked_id == blocked))).first() is not None
+
+
 def is_open(order: Order) -> bool:
     return order.driver_id is not None and order.status not in TERMINAL_STATES
 
@@ -134,12 +153,16 @@ async def list_messages(
     other_role = "rider" if me == "customer" else "customer"
     other = (await _first_name(db, order.driver_id if me == "customer" else order.customer_id)
              or fallback_name(other_role, language))
+    other_id = _other_id(order, me)
+    blocked = await has_blocked(db, uuid.UUID(current_user.user_id), other_id)
     if not is_open(order):
-        return QuickMessagesOut(open=False, me=me, other_name=other, presets=[], messages=[])
-    rows = (await db.execute(select(OrderMessage).where(OrderMessage.order_id == order.id)
-                             .order_by(OrderMessage.created_at))).scalars().all()
+        return QuickMessagesOut(open=False, me=me, other_name=other, presets=[], messages=[], blocked=blocked)
+    q = select(OrderMessage).where(OrderMessage.order_id == order.id)
+    if blocked:  # R19: what the blocked person sends stays stored, but isn't shown to me
+        q = q.where(OrderMessage.sender_id != other_id)
+    rows = (await db.execute(q.order_by(OrderMessage.created_at))).scalars().all()
     return QuickMessagesOut(
-        open=True, me=me, other_name=other,
+        open=True, me=me, other_name=other, blocked=blocked,
         presets=[QuickPreset(key=k, text=preset_text(me, k, language) or v) for k, v in PRESETS[me].items()],
         messages=[QuickMessage(id=r.id, mine=r.sender_role == me, sender_role=r.sender_role,  # type: ignore[arg-type]
                                text=_shown(r, language), at=r.created_at)
@@ -182,10 +205,12 @@ async def send_message(
     await db.refresh(msg)
     to = order.driver_id if me == "customer" else order.customer_id
     name = await _first_name(db, uuid.UUID(current_user.user_id))  # "": the worker says "Your delivery partner" in the reader's language
-    # Push to the other person (worker, via the outbox), who reads a preset in their own language ...
-    await outbox.add(db, "order.message", "order", order.id,
-                     {"order_id": str(order.id), "message_id": str(msg.id), "to_user_id": str(to),
-                      "from_role": me, "from_name": name, "text": text, "preset": data.preset}, "order-svc")
+    # Push to the other person (worker, via the outbox), who reads a preset in their own language,
+    # unless they blocked me (R19: stored for support, never pushed to them) ...
+    if not await has_blocked(db, to, uuid.UUID(current_user.user_id)):
+        await outbox.add(db, "order.message", "order", order.id,
+                         {"order_id": str(order.id), "message_id": str(msg.id), "to_user_id": str(to),
+                          "from_role": me, "from_name": name, "text": text, "preset": data.preset}, "order-svc")
     # Commit before telling anyone: with a preset the watchers fetch the conversation
     # again, and a fetch that beats the request's own commit (get_db commits after the
     # endpoint returns) gets the list without this message until the next poll (R7:
@@ -204,3 +229,113 @@ async def send_message(
         logger.warning("chat_publish_failed", order_id=str(order.id), error=str(e))
     language = await _language(db, current_user, lang)
     return QuickMessage(id=msg.id, mine=True, sender_role=me, text=_shown(msg, language), at=msg.created_at)  # type: ignore[arg-type]
+
+
+# ── Report and block (R19, Apple 1.2) ───────────────────────────────────────────
+
+ReportReason = Literal["abusive", "harassment", "spam", "unsafe", "other"]
+REASON_WORDS = {"abusive": "Abusive or offensive", "harassment": "Harassment", "spam": "Spam or scam",
+                "unsafe": "Makes them feel unsafe", "other": "Something else"}
+CONVERSATION_KEPT = 20  # the last messages attached to a report
+
+
+class ReportIn(BaseModel):
+    reason: ReportReason
+    note: str | None = Field(default=None, max_length=300)
+    block: bool = False  # also block the person
+
+
+class ReportOut(BaseModel):
+    ticket_id: uuid.UUID
+    blocked: bool
+    message: str
+
+
+class BlockOut(BaseModel):
+    blocked: bool
+
+
+async def _block(db: AsyncSession, blocker: uuid.UUID, blocked: uuid.UUID) -> None:
+    if not await has_blocked(db, blocker, blocked):
+        db.add(ChatBlock(blocker_id=blocker, blocked_id=blocked))
+        await db.flush()
+
+
+@router.post("/{order_id}/messages/{message_id}/report", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
+async def report_message(
+    order_id: uuid.UUID,
+    message_id: uuid.UUID,
+    data: ReportIn,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> ReportOut:
+    """Report a message from the other person (also after the order ended): a ticket
+    for support with the conversation attached; ``block`` also blocks them. Reporting
+    the same message again returns the open report."""
+    from core_api.modules.support.models import SupportTicket
+
+    order, me = await _load(db, order_id, current_user)
+    me_id = uuid.UUID(current_user.user_id)
+    msg = await db.get(OrderMessage, message_id)
+    if msg is None or msg.order_id != order.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+    if msg.sender_role == me:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            detail={"code": "OWN_MESSAGE", "message": "You can only report the other person's messages."})
+    if data.block:
+        await _block(db, me_id, msg.sender_id)
+    blocked = await has_blocked(db, me_id, msg.sender_id)
+    thanks = "Thanks for telling us. Our team will look at it."
+    earlier = (await db.execute(select(SupportTicket).where(
+        SupportTicket.kind == "chat_report", SupportTicket.requester_id == me_id, SupportTicket.order_id == order.id,
+        SupportTicket.status == "open"))).scalars().all()
+    for t in earlier:
+        if (t.details or {}).get("message_id") == str(msg.id):
+            return ReportOut(ticket_id=t.id, blocked=blocked, message=thanks)
+    rows = (await db.execute(select(OrderMessage).where(OrderMessage.order_id == order.id)
+                             .order_by(OrderMessage.created_at.desc()).limit(CONVERSATION_KEPT))).scalars().all()
+    t = SupportTicket(
+        kind="chat_report", status="open", market_city=order.market_city, country=(order.market_city or "IN")[:2],
+        requester_id=me_id, requester_role=me, restaurant_id=order.restaurant_id, order_id=order.id,
+        topic=data.reason, note=(data.note or "").strip() or None,
+        details={"reported_user_id": str(msg.sender_id), "reported_role": msg.sender_role, "message_id": str(msg.id),
+                 "message_text": _shown(msg, "en"), "reason_words": REASON_WORDS[data.reason], "blocked": blocked,
+                 "conversation": [{"id": str(r.id), "role": r.sender_role, "text": _shown(r, "en"),
+                                   "at": r.created_at.isoformat()} for r in reversed(rows)]})
+    db.add(t)
+    await db.flush()
+    await db.refresh(t)
+    logger.info("chat_message_reported", order_id=str(order.id), ticket_id=str(t.id), reason=data.reason)
+    return ReportOut(ticket_id=t.id, blocked=blocked, message=thanks)
+
+
+@router.post("/{order_id}/messages/block", response_model=BlockOut)
+async def block_other(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> BlockOut:
+    """Block the other person on this order: from now on (this and later orders) their
+    messages are neither shown nor pushed to me."""
+    order, me = await _load(db, order_id, current_user)
+    other = _other_id(order, me)
+    if other is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail={"code": "NOBODY_TO_BLOCK", "message": "There's no one to block on this order yet."})
+    await _block(db, uuid.UUID(current_user.user_id), other)
+    return BlockOut(blocked=True)
+
+
+@router.delete("/{order_id}/messages/block", response_model=BlockOut)
+async def unblock_other(
+    order_id: uuid.UUID,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> BlockOut:
+    """Unblock the other person on this order: their messages show again."""
+    order, me = await _load(db, order_id, current_user)
+    other = _other_id(order, me)
+    if other is not None:
+        await db.execute(delete(ChatBlock).where(ChatBlock.blocker_id == uuid.UUID(current_user.user_id),
+                                                 ChatBlock.blocked_id == other))
+    return BlockOut(blocked=False)

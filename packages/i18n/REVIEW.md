@@ -446,3 +446,14 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 - Backend (`backend/shared/texts.py` `INCIDENT_MESSAGES`, sent by push and email from admin → Incidents):
   `order_cancelled`, `refund_sent`, `delay`, `area_paused`, `area_back`, `payment_problem`. `{amount}` is a
   formatted amount, `{code}` an order code, `{time}` a time an admin typed (e.g. "8:30 pm").
+
+## Report or block in quick messages (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo and BhojanGo Delivery apps (the quick messages sheet): `app.chat.report`, `report_title`,
+  `report_intro`, `reason_abusive`, `reason_harassment`, `reason_spam`, `reason_unsafe`, `reason_other`,
+  `report_note`, `also_block`, `send_report`, `sending`, `report_sent`, `report_sent_body`, `report_failed`,
+  `block`, `unblock`, `block_title`, `block_body`, `block_confirm`, `cancel`, `blocked_note`, `block_failed`,
+  `report_hint`. `{name}` is the other person's first name. Calm and short; `report_sent_body` points to the
+  local emergency number without naming one.
