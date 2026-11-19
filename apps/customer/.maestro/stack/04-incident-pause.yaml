@@ -13,10 +13,9 @@ appId: com.bhojango.app
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-customer-ordering-paused
-- scrollUntilVisible:
-    element: "Spice Route Kitchen"
-    timeout: 30000
-- tapOn: "Spice Route Kitchen"
+# A closed kitchen sorts after the open ones: open it by its link instead of scrolling the list.
+- runScript: scripts/spice_route.js
+- openLink: bhojango://restaurant/${output.kitchen}
 - extendedWaitUntil:
     visible:
       id: "kitchen-closed-for-now"
