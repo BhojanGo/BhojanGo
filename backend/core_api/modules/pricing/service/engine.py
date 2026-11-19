@@ -318,7 +318,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         base = sum((bl.amount for bl in lines if bl.taxable_as in targets and in_base(bl)), ZERO)
         rate = D(tp["rate_percent"]) / 100
         detail = {"rate_percent": str(D(tp["rate_percent"]).normalize()), "base": str(money(base)),
-                  "platform_discounts_reduce_base": bool(tp.get("platform_discounts_reduce_base", True)),
+                  "platform_discounts_reduce_base": str(bool(tp.get("platform_discounts_reduce_base", True))).lower(),
                   "collected_by": tp.get("collected_by", "platform"), "targets": ",".join(tp["target_lines"])}
         if tp.get("inclusive"):
             amount = money(base - base / (1 + rate))  # already inside the prices

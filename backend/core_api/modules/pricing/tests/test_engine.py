@@ -213,7 +213,7 @@ def test_tax_lines_show_rate_and_base() -> None:
     food_gst = next(ln for ln in q.lines if ln.label == "GST on food")
     fee_gst = next(ln for ln in q.lines if ln.label == "GST on platform fees")
     assert food_gst.detail == {"rate_percent": "5", "base": "520.00", "collected_by": "platform", "targets": "food,packaging",
-                               "platform_discounts_reduce_base": True}
+                               "platform_discounts_reduce_base": "true"}
     assert fee_gst.detail["base"] == "61.20" and fee_gst.detail["rate_percent"] == "18"
     assert "delivery_fee" in fee_gst.detail["targets"]
 
