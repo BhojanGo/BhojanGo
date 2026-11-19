@@ -24,9 +24,11 @@ appId: com.bhojango.rider
 - tapOn:
     id: "dob-day"
 - inputText: "15"
+- hideKeyboard  # the number pad covers the next field (R18)
 - tapOn:
     id: "dob-month"
 - inputText: "6"
+- hideKeyboard  # the number pad covers the next field (R18)
 - tapOn:
     id: "dob-year"
 - inputText: "1995"
