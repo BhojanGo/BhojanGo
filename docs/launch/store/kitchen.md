@@ -88,11 +88,14 @@ without names) is not collected from the kitchen user, so it is not declared her
 is declared in the customer app.
 
 - Encrypted in transit: Yes, with `https://` production URLs (README item 3).
-- Deletion: **not in the app yet** (README item 1). Until it is, the Apple review
-  will fail. On the web: `{DELETE_ACCOUNT_URL}`. Server endpoint exists
-  (`DELETE /api/v1/users/me`). Licence documents and tax ids are business records;
-  decide how long they are kept after an account is deleted and say so in the
-  privacy policy.
+- Deletion: Yes (R19). In the app: Help and settings > "Account and legal" > "Delete
+  my account", then confirm (`apps/partner/app/account.tsx`; also reachable from the
+  application screen). The server removes the owner's personal details and closes
+  the kitchen at once (no new orders, off every listing; `paused_reason`
+  `owner_deleted`). It waits (HTTP 409, shown with the amount) while a payout
+  statement is unpaid or orders are in progress. On the web: `{DELETE_ACCOUNT_URL}`.
+  The kitchen's licence documents and tax ids stay with the kitchen record as
+  business records; decide how long they are kept and say so in the privacy policy.
 
 ### App Store "nutrition label" answers
 
@@ -121,7 +124,7 @@ Track You: none.
 |---|---|---|---|---|---|
 | Camera | iOS | `app.json:17` and `expo-image-picker` plugin `app.json:45` | "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu." | `app/(kitchen)/menu.tsx:272` | Used. The same text is set twice; keep the plugin one. |
 | Photo library | iOS | `app.json:18` and plugin `app.json:44` | "BhojanGo Kitchen lets you choose photos of your dishes for your menu." | `app/(kitchen)/menu.tsx:272` | Used. |
-| Microphone | iOS / Android | Added by default by `expo-image-picker` and `expo-audio` plugins | Expo default | Never | Unused. Turn off in both plugins (README item 6). |
+| Microphone | iOS / Android | None | None | Never | Removed (R19): `expo-image-picker` `microphonePermission: false`, `expo-audio` `microphonePermission: false` and `recordAudioAndroid: false`. Confirm after prebuild. |
 | `CAMERA` | Android | `app.json:28` | System dialog | `app/(kitchen)/menu.tsx:272` | Used. |
 | `WAKE_LOCK` | Android | `app.json:31` | None (normal) | Not needed by `useKeepAwake` (`app/_layout.tsx:15`) | Can be removed. |
 | `RECEIVE_BOOT_COMPLETED`, `VIBRATE` | Android | `app.json` | None (normal) | Notifications plugin | Keep only if push is added. |

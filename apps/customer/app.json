@@ -12,10 +12,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bhojango.app",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BhojanGo uses your location to find nearby restaurants and track your delivery.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhojanGo uses your location for real-time delivery tracking."
-      }
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +33,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-location",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "BhojanGo uses your location only while you use the app, to find kitchens near you and set your delivery address.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -57,7 +61,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "BhojanGo uses the camera for a photo when you report a problem with an order.",
-          "photosPermission": "BhojanGo lets you choose a photo when you report a problem with an order."
+          "photosPermission": "BhojanGo lets you choose a photo when you report a problem with an order.",
+          "microphonePermission": false
         }
       ],
       [

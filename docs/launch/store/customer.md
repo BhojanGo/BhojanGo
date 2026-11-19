@@ -152,12 +152,11 @@ linked).
 
 | Permission | Platform | Where declared | Text shown to the user | Requested in code | Status |
 |---|---|---|---|---|---|
-| Location when in use | iOS | `app.json:16` | "BhojanGo uses your location to find nearby restaurants and track your delivery." | `lib/where.ts:49`, `lib/account.ts:205` | Used. Wording: the customer's location is not used to track the delivery; suggest "BhojanGo uses your location to find kitchens near you and set your delivery address." |
-| Location always and when in use | iOS | `app.json:17` | "BhojanGo uses your location for real-time delivery tracking." | Never requested | Declared, unused, and inaccurate. Reword or drop (README item 6). |
-| Location always | iOS | Added by `expo-location` plugin default | Expo default ("Allow $(PRODUCT_NAME) to access your location") | Never requested | Set the plugin string or drop. |
+| Location when in use | iOS | `expo-location` plugin `locationWhenInUsePermission` | "BhojanGo uses your location only while you use the app, to find kitchens near you and set your delivery address." | `lib/where.ts:49`, `lib/account.ts:205` | Used. Set once, in the plugin (R19). |
+| Location always (both keys) | iOS | None | None | Never requested | Removed (R19): the plugin's `locationAlwaysAndWhenInUsePermission` and `locationAlwaysPermission` are `false`, so neither key is written. |
 | Camera | iOS / Android | `expo-image-picker` plugin, `app.json:59` | "BhojanGo uses the camera for a photo when you report a problem with an order." | `app/report/[id].tsx:36-38` | Used. |
 | Photo library | iOS | `expo-image-picker` plugin, `app.json:60` | "BhojanGo lets you choose a photo when you report a problem with an order." | `app/report/[id].tsx:39` (no separate permission request; picker) | Used. |
-| Microphone | iOS / Android | Added by `expo-image-picker` plugin default | Expo default | Never | Unused. Set `microphonePermission: false`. |
+| Microphone | iOS / Android | None | None | Never | Removed (R19): `expo-image-picker` `microphonePermission: false`. Confirm after prebuild. |
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | Android | `app.json` `android.permissions` | System dialog | As above | Used. |
 | `POST_NOTIFICATIONS` | Android 13+ | `expo-notifications` | System dialog | Never requested | See README item 7. |
 | `RECEIVE_BOOT_COMPLETED`, `VIBRATE` | Android | `app.json` `android.permissions` | None (normal) | Notifications | Keep only if push is added. |

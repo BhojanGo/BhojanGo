@@ -37,12 +37,19 @@
     },
     "plugins": [
       "expo-router",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       [
         "expo-image-picker",
         {
           "photosPermission": "BhojanGo Kitchen lets you choose photos of your dishes for your menu.",
-          "cameraPermission": "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu."
+          "cameraPermission": "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu.",
+          "microphonePermission": false
         }
       ],
       [
