@@ -1,0 +1,61 @@
+# R19: a brand-new kitchen applicant deletes the account from the application screen
+# (Account and legal > Delete my account > confirm) and lands on sign-in. Creates and
+# deletes an account, so throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.partner
+---
+- runScript: ../scripts/new_phone.js
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+- extendedWaitUntil:
+    visible: "Apply with your kitchen"
+    timeout: 60000
+- tapOn:
+    id: "full_name"
+- inputText: "Meera Iyer"
+- hideKeyboard
+- tapOn:
+    id: "kitchen_name"
+- inputText: "Meera Tiffins"
+- hideKeyboard
+- tapOn: "Hyderabad"
+- tapOn:
+    id: "street"
+- inputText: "Plot 4, Road 2"
+- hideKeyboard
+- tapOn:
+    id: "area"
+- inputText: "Banjara Hills"
+- hideKeyboard
+- tapOn:
+    id: "zip"
+- inputText: "500034"
+- hideKeyboard
+- tapOn:
+    id: "cuisines"
+- inputText: "Tiffins"
+- hideKeyboard
+- tapOn:
+    id: "send-application"
+- extendedWaitUntil:
+    visible: "Kitchen partner application"
+    timeout: 60000
+- tapOn:
+    id: "open-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- tapOn:
+    id: "delete-account"
+- extendedWaitUntil:
+    visible:
+      id: "delete-sheet"
+    timeout: 10000
+- tapOn:
+    id: "confirm-delete"
+- extendedWaitUntil:
+    visible: "Sign in to your kitchen"
+    timeout: 30000
+- takeScreenshot: stack-partner-deleted
