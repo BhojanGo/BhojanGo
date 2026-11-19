@@ -45,6 +45,8 @@ New orders stop; **orders already placed carry on** (they can still be paid, coo
 - An ordering pause has an optional **note for customers** ("Back by 9 pm") and an optional end time. The website
   and the customer app show "Ordering in {area} is paused for now while we fix a problem. Orders already on their
   way will still arrive." in the customer's language, plus the note as written. The reason stays with admins.
+- While ordering is paused, the bag on the website and in the app says "Ordering is paused" (or "This kitchen is
+  closed for now") and its checkout button is disabled with the same words.
 - A paused kitchen shows **"Closed for now"** to customers (and "Back around {time}" when a time is set); its menu
   can be read but not ordered from. The kitchen can't undo it from its tablet; it reopens at the "Back at" time
   or when an admin resumes it.
@@ -67,7 +69,8 @@ New orders stop; **orders already placed carry on** (they can still be paid, coo
 ## Customer messages (templates)
 
 Incidents → **Message customers**: to the customers of a bulk refund (one message per refunded order, with its
-kitchen and amount) or to everyone who ordered in the city in the last day, 7 or 30 days. Push and email, each
+kitchen and amount) or to everyone who ordered in a city in the last day, 7 or 30 days (the city is picked from
+the cities you look after; {area} in a message is that city's name from Markets, never typed). Push and email, each
 customer in their own language (8 languages; texts in `backend/shared/texts.py` `INCIDENT_MESSAGES`). Preview first:
 how many people, and the message in English. **Outside production only test accounts get it** (the seed's
 `@example.com` addresses and test phone numbers); the preview says how many others were left out.
@@ -77,8 +80,8 @@ how many people, and the message in English. **Outside production only test acco
 | **Order can't be completed:** "We're sorry: {restaurant} can't finish your order {code}. We've cancelled it and refunded {amount} to how you paid; it usually shows in 3–5 working days." | from each order | A bulk refund's customers |
 | **Refund sent:** "We're sorry about your order {code} from {restaurant}. We've refunded {amount} to how you paid; it usually shows in 3–5 working days." | from each order | A bulk refund's customers |
 | **Delay:** "Your order is running late because of a problem on our side. It should arrive by {time}. We're sorry for the wait." | {time}: typed by the admin | Either |
-| **Ordering paused:** "Ordering in {area} is paused for now while we fix a problem. Orders already on their way will still arrive. We'll let you know when we're back." | {area}: the city, or typed | Either |
-| **We're back:** "Ordering in {area} is open again. Thank you for waiting." | {area} | Either |
+| **Ordering paused:** "Ordering in {area} is paused for now while we fix a problem. Orders already on their way will still arrive. We'll let you know when we're back." | {area}: the recipients' city | Either |
+| **We're back:** "Ordering in {area} is open again. Thank you for waiting." | {area}: the recipients' city | Either |
 | **Payment problem:** "Your payment didn't go through because of a problem with our payment provider, not your card. You haven't been charged. Please try again in a few minutes." | none | Either |
 
 Kitchens and delivery partners (support line or the partner apps, one at a time for now):

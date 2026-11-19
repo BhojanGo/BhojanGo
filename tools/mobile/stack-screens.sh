@@ -58,6 +58,9 @@ EOF
     # Every flow starts with a fresh sign-in: reset the OTP send counters.
     $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_*' | xargs -r redis-cli -n 0 del" >/dev/null 2>&1
     name="$app-${flow%.yaml}"
+    # R18: a flow that needs an incident pause on the stack (tools/mobile/incident_pause.py on/off around it).
+    pause=0
+    case "$flow" in *incident-pause*) pause=1; python3 "$ROOT/tools/mobile/incident_pause.py" on > "$LOGS/$name-pause.log" 2>&1 ;; esac
     if (cd "$OUT" && timeout 600 maestro --device "$DEVICE" test "$ROOT/apps/$app/.maestro/stack/$flow") > "$LOGS/$name.log" 2>&1; then
       echo "PASS $name"
     else
@@ -68,6 +71,7 @@ EOF
       [ -n "$last" ] && cp -r "$last" "$LOGS/$name-maestro" 2>/dev/null
     fi
     curl -s -m 5 localhost:8011/__slow/off >/dev/null
+    [ "$pause" = 1 ] && python3 "$ROOT/tools/mobile/incident_pause.py" off >> "$LOGS/$name-pause.log" 2>&1
   done
   kill "$METRO" 2>/dev/null; wait "$METRO" 2>/dev/null
   pkill -f "expo start" 2>/dev/null; pkill -f "metro" 2>/dev/null; sleep 3

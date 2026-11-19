@@ -65,8 +65,10 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean }) {
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false, orderingPaused = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean; orderingPaused?: boolean }) {
   const t = useT();
+  // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button
+  const blocked = orderingPaused ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : null;
   const f = useFormat();
   const hydrated = useHydrated();
   const bag = useBag();
@@ -216,12 +218,12 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow 
       {/* from 1024 px the bag sits beside the menu; under it, a bottom bar that opens the bag */}
       <aside className="hidden lg:block" aria-label={t("kitchen.your_bag")}>
         <div className="sticky top-[100px]">
-          <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} />
+          <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} blocked={blocked} />
         </div>
       </aside>
 
       <BagBar quote={quote.quote?.total ?? null}>
-        <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} />
+        <BagPanel quote={quote} signedIn={!!user} hasAddress={!!deliverTo} kitchenId={restaurant.id} blocked={blocked} />
       </BagBar>
 
       {open && <Customise key={open.id} item={open} currency={restaurant.currency} onClose={() => setOpen(null)} onAdd={(line) => { setOpen(null); put(line); }} />}
@@ -385,7 +387,7 @@ function NewBag({ from, dish, onKeep, onStart }: { from: string; dish: string; o
 
 // ── your bag ─────────────────────────────────────────────────────────────────
 
-function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnType<typeof useQuote>; signedIn: boolean; hasAddress: boolean; kitchenId: string }) {
+function BagPanel({ quote, signedIn, hasAddress, kitchenId, blocked = null }: { quote: ReturnType<typeof useQuote>; signedIn: boolean; hasAddress: boolean; kitchenId: string; blocked?: string | null }) {
   const t = useT();
   const f = useFormat();
   const hydrated = useHydrated();
@@ -402,7 +404,7 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
     return (
       <div className={box}>
         {head}
-        <p className="mt-2 text-body text-muted">{t("kitchen.bag_empty")}</p>
+        <p className="mt-2 text-body text-muted" data-testid={blocked ? "bag-blocked" : undefined}>{blocked ?? t("kitchen.bag_empty")}</p>
       </div>
     );
   }
@@ -451,9 +453,15 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId }: { quote: ReturnTyp
           </>
         )}
       </div>
-      <Link href="/checkout" className="mt-4 flex h-14 w-full items-center justify-center rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] hover:text-white">
-        {t("kitchen.go_to_checkout")}
-      </Link>
+      {blocked ? (
+        <button type="button" disabled data-testid="checkout-blocked" className="mt-4 flex h-14 w-full cursor-not-allowed items-center justify-center rounded-full bg-[#E2E7E8] px-[22px] text-label text-[#4A5459]">
+          {blocked}
+        </button>
+      ) : (
+        <Link href="/checkout" className="mt-4 flex h-14 w-full items-center justify-center rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] hover:text-white">
+          {t("kitchen.go_to_checkout")}
+        </Link>
+      )}
     </div>
   );
 }

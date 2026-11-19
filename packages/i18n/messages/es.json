@@ -366,7 +366,9 @@
     "closed_for_now": "Cerrado por ahora",
     "closed_for_now_note": "Esta cocina está cerrada por ahora. Puedes ver el menú; podrás pedir cuando vuelva.",
     "back_at": "Vuelve sobre las {time}",
-    "back_soon": "Vuelve pronto"
+    "back_soon": "Vuelve pronto",
+    "bag_paused": "Los pedidos están en pausa",
+    "bag_closed_for_now": "Esta cocina está cerrada por ahora"
   },
   "checkout": {
     "title": "Pagar",

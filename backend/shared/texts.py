@@ -414,7 +414,8 @@ DELIVERY_SIGN_UP: dict[str, dict[str, str]] = {
 # R17 incident messages (docs/launch/incident-plan.md "Customer messages"): sent by admin's bulk
 # message tool by push and email, each customer in their own language. (title, body) per language,
 # like the worker's CATALOGUE, which takes these in as "incident_<key>". Placeholders: {restaurant},
-# {code} and {amount} come from each order (customers of a bulk refund); {time} and {area} from the admin.
+# {code} and {amount} come from each order (customers of a bulk refund); {time} from the admin; {area} is the
+# recipients' city.
 INCIDENT_MESSAGES: dict[str, dict[str, tuple[str, str]]] = {
     "order_cancelled": {
         "en": ("Your order was cancelled", "We're sorry: {restaurant} can't finish your order {code}. We've cancelled it and refunded {amount} to how you paid; it usually shows in 3–5 working days."),
@@ -480,7 +481,7 @@ INCIDENT_MESSAGES: dict[str, dict[str, tuple[str, str]]] = {
 # What each template needs: placeholders filled from each order (only with a bulk refund's customers)
 # and the ones the admin types in.
 INCIDENT_FROM_ORDER = {"restaurant", "code", "amount"}
-INCIDENT_ADMIN_PARAMS = {"time", "area"}
+INCIDENT_ADMIN_PARAMS = {"time"}  # {area} is filled from the recipients' city in Markets (R18)
 
 
 def incident_placeholders(key: str) -> set[str]:

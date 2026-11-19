@@ -230,11 +230,16 @@ async def test_bulk_messages_reach_test_accounts_in_their_language(client: Async
     templates = {t["key"]: t for t in (await client.get(f"{BASE}/messages/templates", headers=ops)).json()}
     assert templates["refund_sent"]["per_order"] and templates["delay"]["needs"] == ["time"]
     assert (await client.get(f"{BASE}/messages/templates", headers=support)).status_code == 403
-    # a per-order message needs a bulk refund's customers; a city message needs what the admin fills in
+    # a per-order message needs a bulk refund's customers; "delay" needs the time the admin types
     r = await client.post(f"{BASE}/messages/preview", headers=ops, json={"city": "IN-TG-HYD", "template": "refund_sent"})
     assert r.status_code == 409
-    r = await client.post(f"{BASE}/messages/preview", headers=ops, json={"city": "IN-TG-HYD", "template": "area_paused"})
-    assert r.status_code == 409 and "area" in r.text
+    r = await client.post(f"{BASE}/messages/preview", headers=ops, json={"city": "IN-TG-HYD", "template": "delay"})
+    assert r.status_code == 409 and "time" in r.text
+    # R18: {area} is the city from Markets, whatever the admin sends
+    r = await client.post(f"{BASE}/messages/preview", headers=ops, json={"city": "IN-TG-HYD", "template": "area_paused",
+                                                                         "params": {"area": "Somewhere else"}})
+    assert r.status_code == 200 and "Ordering in Hyderabad is paused" in r.json()["sample"]["body"], r.text
+    assert "area" not in templates["area_paused"]["needs"]
 
     p = (await client.post(f"{BASE}/messages/preview", headers=ops, json={"bulk_refund_id": bulk["id"], "template": "refund_sent"})).json()
     assert p["recipients"] == 1 and p["only_test_accounts"] is True and "Spice Route Kitchen" in p["sample"]["body"]
@@ -257,11 +262,11 @@ async def test_bulk_messages_reach_test_accounts_in_their_language(client: Async
         await db.commit()
     try:
         p = (await client.post(f"{BASE}/messages/preview", headers=ops, json={
-            "city": "IN-TG-HYD", "template": "area_paused", "params": {"area": "Hyderabad"}})).json()
+            "city": "IN-TG-HYD", "template": "area_paused"})).json()
         assert p["skipped"] >= 1 and p["recipients"] >= 1, p
         before = p["recipients"]
         r = await client.post(f"{BASE}/messages", headers=ops, json={"city": "IN-TG-HYD", "template": "area_paused",
-                                                                     "params": {"area": "Hyderabad"}, "reason": WHY, "confirm": True})
+                                                                     "reason": WHY, "confirm": True})
         assert r.json()["recipients"] == before and r.json()["skipped"] == p["skipped"]
         async with AsyncSessionLocal() as db:
             ev = (await db.execute(select(OutboxEvent).where(OutboxEvent.aggregate_id == r.json()["id"]))).scalars().all()

@@ -323,28 +323,33 @@ function Refunds({ scope }: { scope: string }) {
 
 function Messages({ scope }: { scope: string }) {
   const { data: me } = useAdminMe();
-  const { city } = parseScope(scope);
-  const cityName = useCity(city ?? "").data?.name ?? "";
+  const { data: markets } = useMarkets();
+  const { city: scopeCity } = parseScope(scope);
+  // R18: who gets it comes only from "To": a city the admin looks after (from Markets), or a bulk refund's customers.
+  const cities = (markets ?? []).flatMap((c) => c.regions.flatMap((r) => r.cities))
+    .filter((c) => can(me, "customers.message", c.code));
   const templates = useQuery({ queryKey: ["incidents", "templates"], queryFn: async () => (await adminApi.get<Template[]>("/user/incidents/messages/templates")).data,
-    enabled: can(me, "customers.message", city ?? scope) });
+    enabled: cities.length > 0 });
   const refunds = useQuery({ queryKey: ["incidents", "refunds"], queryFn: async () => (await adminApi.get<BulkRefund[]>("/user/incidents/refunds")).data });
-  const done = (refunds.data ?? []).filter((b) => b.refunded > 0);
-  const [audience, setAudience] = useState("city");
+  const done = (refunds.data ?? []).filter((b) => b.refunded > 0 && can(me, "customers.message", b.market_city));
+  const [to, setTo] = useState("");
   const [template, setTemplate] = useState("area_paused");
-  const [params, setParams] = useState<Record<string, string>>({});
+  const [time, setTime] = useState("");
   const [days, setDays] = useState("1");
   const [preview, setPreview] = useState<MessagePreview | null>(null);
   const [confirming, setConfirming] = useState(false);
   const { busy, act, note } = useAct();
+  const audience = to || (scopeCity && cities.some((c) => c.code === scopeCity) ? `city:${scopeCity}` : cities[0] ? `city:${cities[0].code}` : "");
+  const isCity = audience.startsWith("city:");
   const t = (templates.data ?? []).find((x) => x.key === template);
-  const usable = (templates.data ?? []).filter((x) => audience !== "city" || !x.per_order);
-  const filled = { ...(t?.needs.includes("area") && !params.area && cityName ? { area: cityName } : {}), ...params };
-  const body = audience === "city" ? { city, days: Number(days) || 1, template, params: filled } : { bulk_refund_id: audience, template, params: filled };
-  if (!city || !can(me, "customers.message", city)) {
+  const usable = (templates.data ?? []).filter((x) => !isCity || !x.per_order);
+  const params = t?.needs.includes("time") ? { time } : {};
+  const body = isCity ? { city: audience.slice(5), days: Number(days) || 1, template, params } : { bulk_refund_id: audience, template, params };
+  if (!cities.length) {
     return (
       <section aria-label="Message customers" className="space-y-2 rounded-2xl bg-white p-6">
         <h2 className="m-0 text-h2">Message customers</h2>
-        <p className="m-0 text-small text-muted">Pick a city in the scope bar to message its customers.</p>
+        <p className="m-0 text-small text-muted">Your role doesn&apos;t include messaging customers.</p>
       </section>
     );
   }
@@ -354,12 +359,15 @@ function Messages({ scope }: { scope: string }) {
       <p className="m-0 text-small text-muted">One of the incident plan&apos;s messages, by push and email, each customer in their own language. Outside production it only reaches test accounts.</p>
       <div className="flex flex-wrap items-end gap-3 text-small">
         <label className="font-bold">To
-          <select aria-label="To" value={audience} onChange={(e) => { setAudience(e.target.value); setPreview(null); if (e.target.value === "city" && t?.per_order) setTemplate("area_paused"); }} className={field}>
-            <option value="city">Customers who ordered in {cityName || city}</option>
-            {done.map((b) => <option key={b.id} value={b.id}>Customers of the bulk refund of {when(b.created_at)} ({b.count} orders)</option>)}
+          <select aria-label="To" value={audience} onChange={(e) => {
+            setTo(e.target.value); setPreview(null);
+            if (e.target.value.startsWith("city:") && t?.per_order) setTemplate("area_paused");
+          }} className={field}>
+            {cities.map((c) => <option key={c.code} value={`city:${c.code}`}>Customers who ordered in {c.name}</option>)}
+            {done.map((b) => <option key={b.id} value={b.id}>Customers of the bulk refund of {when(b.created_at)} ({b.count} orders, {b.market_city})</option>)}
           </select>
         </label>
-        {audience === "city" ? (
+        {isCity ? (
           <label className="font-bold">In the last
             <select aria-label="In the last" value={days} onChange={(e) => { setDays(e.target.value); setPreview(null); }} className={field}>
               {["1", "7", "30"].map((d) => <option key={d} value={d}>{d === "1" ? "day" : `${d} days`}</option>)}
@@ -371,13 +379,12 @@ function Messages({ scope }: { scope: string }) {
             {usable.map((x) => <option key={x.key} value={x.key}>{x.title}</option>)}
           </select>
         </label>
-        {(t?.needs ?? []).map((k) => (
-          <label key={k} className="font-bold">{k === "time" ? "Arrives by" : "Area"}
-            <input aria-label={k === "time" ? "Arrives by" : "Area"} value={filled[k] ?? ""} onChange={(e) => { setParams((p) => ({ ...p, [k]: e.target.value })); setPreview(null); }}
-              placeholder={k === "time" ? "e.g. 8:30 pm" : ""} className={`${field} w-40`} />
+        {t?.needs.includes("time") ? (
+          <label className="font-bold">Arrives by
+            <input aria-label="Arrives by" value={time} onChange={(e) => { setTime(e.target.value); setPreview(null); }} placeholder="e.g. 8:30 pm" className={`${field} w-40`} />
           </label>
-        ))}
-        <button type="button" disabled={busy} className={secondary}
+        ) : null}
+        <button type="button" disabled={busy || !audience} className={secondary}
           onClick={() => void act(async () => setPreview((await adminApi.post<MessagePreview>("/user/incidents/messages/preview", body)).data), "Preview ready.")}>Preview</button>
       </div>
       {preview ? (

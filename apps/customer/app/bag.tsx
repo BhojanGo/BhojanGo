@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
 import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome, type Provider } from "../lib/pay";
 import { useWhere } from "../lib/where";
@@ -31,6 +32,18 @@ export default function Bag() {
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const { t, money } = useI18n();
+  // R18: an incident pause (the city's ordering, or the kitchen closed for now): the bag says so and can't be paid.
+  const pauses = useOrderingPauses();
+  const [forNow, setForNow] = useState(false);
+  useEffect(() => {
+    if (!bag.restaurantId) return;
+    let live = true;
+    api.core.GET("/api/v1/restaurants/{restaurant_id}/availability", { params: { path: { restaurant_id: bag.restaurantId } } })
+      .then((r) => { if (live) setForNow(Boolean((r.data as { closed_for_now?: boolean } | undefined)?.closed_for_now)); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [bag.restaurantId, attempt]);
+  const blocked = pauses.length ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : null;
   const { country } = useCountry(); // the delivery address's country (Markets): currency, payment methods
   const currency = market?.currency ?? country?.currency ?? "";
   const method: "upi" | "card" = country?.payment_methods.includes("upi") ? "upi" : "card";
@@ -96,7 +109,7 @@ export default function Bag() {
   if (lines.length === 0) {
     return (
       <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center", gap: space[4] }]}>
-        <Txt variant="h2">{t("checkout.empty_title")}</Txt>
+        <Txt variant="h2" testID={blocked ? "bag-blocked" : undefined}>{blocked ?? t("checkout.empty_title")}</Txt>
         <Button title={t("checkout.find_food")} onPress={() => router.replace("/home")} />
       </SafeAreaView>
     );
@@ -230,12 +243,12 @@ export default function Bag() {
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
         ) : (
           <Button
-            testID="pay"
-            title={quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay")}
+            testID={blocked ? "pay-blocked" : "pay"}
+            title={blocked ?? (quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
             size="lg"
             block
             loading={paying}
-            disabled={!quote || held === 0 || provider == null}
+            disabled={!!blocked || !quote || held === 0 || provider == null}
             onPress={() => (provider === "stripe" ? void payStripe() : setSheet(true))}
           />
         )}

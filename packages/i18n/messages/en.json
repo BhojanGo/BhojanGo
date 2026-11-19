@@ -366,7 +366,9 @@
     "closed_for_now": "Closed for now",
     "closed_for_now_note": "This kitchen is closed for now. You can look at the menu; ordering opens again when it's back.",
     "back_at": "Back around {time}",
-    "back_soon": "Back soon"
+    "back_soon": "Back soon",
+    "bag_paused": "Ordering is paused",
+    "bag_closed_for_now": "This kitchen is closed for now"
   },
   "checkout": {
     "title": "Checkout",

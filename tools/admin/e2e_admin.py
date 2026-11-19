@@ -780,6 +780,8 @@ with sync_playwright() as p:
             check("website: the customers' note, not the admin's reason", lambda: (
                 expect(wp.get_by_test_id("ordering-paused")).to_contain_text("Back by 9 pm"),
                 expect(wp.get_by_text("E2E drill")).to_have_count(0)))
+            check("website: the bag says ordering is paused instead of 'Pick a dish' (R18)", lambda: expect(
+                wp.get_by_test_id("bag-blocked")).to_have_text("Ordering is paused"))
             wp.screenshot(path=f"{OUT}/13c-web-ordering-paused-kitchen-closed.png", full_page=False)
             wp.set_viewport_size({"width": 390, "height": 844})
             wp.reload(wait_until="networkidle")

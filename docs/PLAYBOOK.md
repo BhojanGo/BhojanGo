@@ -211,6 +211,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 69. **In production, drop or rename a column only in a release after the one whose code stops using it is live.**
     Why: a deploy runs the migration before every instance runs the new code, so instances still on the old code read a column that is gone and fail until they restart (R16 dropped `restaurants.commission_rate` in the same release that stopped using it, which was safe only on QA). Release 1: stop reading and writing the column (and give it a default or make it nullable); release 2, once release 1 is live everywhere: the migration that drops or renames it. A rename is "add the new column, write both, backfill, read the new one" across releases.
 
+70. **Merge a PR once its CI is green, unless it drops or renames a column, writes to QA, or costs money: those wait for Srini's approval.**
+    Why: Srini's standing rule from round 18. Rounds stalled on approvals for ordinary PRs, while the three risky kinds (rule 69's column changes, QA data, spend) still need a person. Say in the PR which kind it is, if any.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.
