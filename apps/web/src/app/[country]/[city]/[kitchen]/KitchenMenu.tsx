@@ -65,7 +65,7 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean }) {
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean }) {
   const t = useT();
   const f = useFormat();
   const hydrated = useHydrated();
@@ -153,7 +153,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed }: { res
           </label>
         </div>
 
-        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t("kitchen.closed_note")}</p>}
+        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t(forNow ? "kitchen.closed_for_now_note" : "kitchen.closed_note")}</p>}
         {categories.length === 0 && <p className="mt-8 text-muted">{t("kitchen.menu_unavailable")}</p>}
         {q.trim() && shown.length === 0 && <p className="mt-8 text-muted">{t("kitchen.no_match", { q: q.trim() })}</p>}
 

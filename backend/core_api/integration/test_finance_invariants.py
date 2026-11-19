@@ -6,6 +6,8 @@ that is rolled back, so nothing stays) and compared with Reconciliation for the 
     partners are owed" to the cent (minimum pay top-ups included on both sides);
   - captured = refunded + kitchens owed + delivery partners owed + tax owed + platform revenue;
   - tax owed = customers' tax + GST on our commission + TDS, the last two equal to the run's (R16);
+  - each kitchen's commission tax invoice: GST = the sum of "Tax on commission" on its statements for
+    the week, to the paisa, each order's amount rounded once (R17);
   - platform after payment fees = platform revenue - payment fees;
   - the top-ups in the run, Reconciliation and the contribution report are the same amount.
 """
@@ -27,7 +29,10 @@ WEEKS = 4
 async def test_runs_and_reconciliation_agree_every_week() -> None:
     from sqlalchemy import select
 
+    from core_api.modules.finance.models import PayoutStatement
+    from core_api.modules.finance.service import commission_invoice as ci
     from core_api.modules.finance.service import payouts
+    from core_api.modules.finance.service.statements import m
     from core_api.modules.finance.service.contribution import contribution
     from core_api.modules.markets.models import Country
     from shared.db import AsyncSessionLocal, engine
@@ -59,6 +64,17 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                         assert sum(by_type.values()) == rec["tax_owed"], (where, by_type, rec["tax_owed"])
                         assert payouts._minor(Decimal(run.totals["commission_tax"])) == by_type["commission"], where
                         assert payouts._minor(Decimal(run.totals["tds"])) == by_type["tds"], where
+                        # R17: one rounding method (per order) on statements and invoices alike
+                        stmts = (await db.execute(select(PayoutStatement).where(
+                            PayoutStatement.run_id == run.id, PayoutStatement.payee_type == "restaurant"))).scalars().all()
+                        for s in stmts:
+                            pct = Decimal(s.summary.get("commission_tax_percent") or 0)
+                            for ln in s.lines:
+                                assert -Decimal(ln["commission_tax"]) == m(-Decimal(ln["commission"]) * pct / 100), (where, ln)
+                            commission, tax, orders = ci.totals([s.lines])
+                            assert tax == Decimal(s.summary["commission_tax"]), (where, s.payee_name, tax)
+                            assert commission == Decimal(s.summary["commission"]) and orders == s.summary["orders"], where
+                        assert sum((ci.totals([s.lines])[1] for s in stmts), Decimal(0)) == Decimal(run.totals["commission_tax"]), where
                         rep = await contribution(db, c.code, start, end)
                         top_ups = Decimal(rep["all"]["totals"]["min_pay_top_ups"])
                         assert abs(payouts._minor(top_ups) - rec["min_pay_top_ups"]) <= len(rep["cities"]), where  # per-order shares round

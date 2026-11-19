@@ -71,6 +71,12 @@ class Restaurant(Base):
     paused_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     busy_extra_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     busy_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # R17: paused by an admin (incident tools): customers see "Closed for now"; the kitchen can't undo it
+    # from its tablet. Ends at admin_paused_until ("back at"), or when an admin resumes it.
+    admin_paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    admin_paused_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    admin_pause_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    admin_paused_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     gstin: Mapped[str | None] = mapped_column(String(15), nullable=True)  # India: GST registration
     fssai_document_key: Mapped[str | None] = mapped_column(String(300), nullable=True)  # uploaded licence (P19)
 
@@ -97,3 +103,15 @@ class Restaurant(Base):
     reviews: Mapped[list["Review"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "Review", back_populates="restaurant", cascade="all, delete-orphan"
     )
+
+    @property
+    def closed_for_now(self) -> bool:
+        """R17: an admin paused it and the "back at" time (if any) hasn't come yet."""
+        from datetime import UTC
+
+        until = self.admin_paused_until
+        return self.admin_paused_at is not None and (until is None or until > datetime.now(UTC))
+
+    @property
+    def back_at(self) -> datetime | None:
+        return self.admin_paused_until if self.closed_for_now else None

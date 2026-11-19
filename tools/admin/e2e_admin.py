@@ -731,6 +731,103 @@ with sync_playwright() as p:
     ops.goto(f"{BASE}/overview?scope=US", wait_until="networkidle")
     check("city ops: another country is refused", lambda: expect(ops.get_by_text("You can't see this part of BhojanGo.")).to_be_visible(timeout=15000))
 
+    # R17: the incident tools (docs/launch/incident-plan.md), as Hyderabad's city ops: pause ordering and a
+    # kitchen (the website shows both), preview a bulk refund, message the city's customers, resume everything.
+    # They write, so only on the CI / make dev stack: never on QA (tests never write to QA).
+    if not os.environ.get("QA_ADMIN"):
+        ops_h = token("ops.hyd@example.com", PW)
+        forward(3002, ("web", 3000))
+        web = "http://localhost:3002"
+        try:
+            ops.goto(f"{BASE}/incidents?scope=IN-TG-HYD", wait_until="networkidle")
+            check("incidents: pause ordering, pause a kitchen, bulk refund, message customers and the log", lambda: [
+                expect(ops.get_by_role("region", name=n)).to_be_visible(timeout=15000)
+                for n in ("Pause ordering", "Pause a kitchen", "Bulk refund", "Message customers", "Incident log")])
+            ops.screenshot(path=f"{OUT}/13-incidents.png", full_page=True)
+            sec = ops.get_by_role("region", name="Pause ordering")
+            sec.get_by_label("Note for customers").fill("Back by 9 pm")
+            sec.get_by_role("button", name="Pause ordering…").click()
+            dlg = ops.get_by_test_id("confirm-pause-ordering")
+            check("incidents: pausing needs a reason before it can be confirmed", lambda:
+                  expect(dlg.get_by_role("button", name="Yes, pause ordering")).to_be_disabled())
+            dlg.get_by_label("Reason").fill("E2E drill: the payment provider is down")
+            ops.screenshot(path=f"{OUT}/13a-incidents-confirm-pause.png", full_page=True)
+            dlg.get_by_role("button", name="Yes, pause ordering").click()
+            check("incidents: ordering in Hyderabad paused, with its reason", lambda: expect(
+                sec.get_by_test_id("pause-row")).to_contain_text("E2E drill: the payment provider is down", timeout=15000))
+            kit = ops.get_by_role("region", name="Pause a kitchen")
+            kit.get_by_label("Find a kitchen").fill("Spice Route")
+            kit.get_by_role("button", name="Spice Route Kitchen").first.click()
+            kit.get_by_role("button", name="Pause Spice Route Kitchen…").click()
+            kd = ops.get_by_test_id("confirm-pause-kitchen")
+            kd.get_by_label("Reason").fill("E2E drill: gas supply cut")
+            kd.get_by_role("button", name="Yes, pause the kitchen").click()
+            check("incidents: Spice Route Kitchen closed for now", lambda: expect(
+                kit.get_by_test_id("paused-kitchen")).to_contain_text("Spice Route Kitchen", timeout=15000))
+            ops.screenshot(path=f"{OUT}/13b-incidents-paused.png", full_page=True)
+
+            wp = b.new_page(viewport={"width": 1280, "height": 900})
+
+            def web_shows_both() -> None:  # the site caches the pause 30 s and availability 60 s
+                for _ in range(24):
+                    wp.goto(f"{web}/in/hyderabad/spice-route-kitchen-madhapur", wait_until="networkidle")
+                    if wp.get_by_test_id("ordering-paused").count() and wp.get_by_text("This kitchen is closed for now").count():
+                        return
+                    page_wait(5000)
+                fail("the website didn't show the ordering pause and 'Closed for now' within 2 minutes")
+
+            check("website: the city's ordering pause and the kitchen's 'Closed for now'", web_shows_both)
+            check("website: the customers' note, not the admin's reason", lambda: (
+                expect(wp.get_by_test_id("ordering-paused")).to_contain_text("Back by 9 pm"),
+                expect(wp.get_by_text("E2E drill")).to_have_count(0)))
+            wp.screenshot(path=f"{OUT}/13c-web-ordering-paused-kitchen-closed.png", full_page=False)
+            wp.set_viewport_size({"width": 390, "height": 844})
+            wp.reload(wait_until="networkidle")
+            wp.screenshot(path=f"{OUT}/13d-web-phone-paused.png", full_page=False)
+            wp.close()
+
+            ref = ops.get_by_role("region", name="Bulk refund")
+            ref.get_by_label("Kitchen").select_option(label="Spice Route Kitchen")
+            ref.get_by_label("Refund", exact=True).select_option("percent")
+            ref.get_by_label("Percent").fill("50")
+            ref.get_by_role("button", name="Preview").click()
+            check("bulk refund: the preview counts the orders and the total", lambda: expect(
+                ref.get_by_test_id("refund-preview")).to_contain_text("order", timeout=15000))
+            ref.get_by_role("button", name=re.compile(r"^Refund \d+ orders?…$")).click()
+            ref.get_by_test_id("confirm-bulk-refund").get_by_label("Reason").fill("E2E drill: cold food in the outage")
+            ops.screenshot(path=f"{OUT}/13e-incidents-bulk-refund-confirm.png", full_page=True)
+            ref.get_by_test_id("confirm-bulk-refund").get_by_role("button", name="Cancel").click()  # previewed only
+
+            msg = ops.get_by_role("region", name="Message customers")
+            msg.get_by_label("Message", exact=True).select_option("area_paused")
+            msg.get_by_role("button", name="Preview").click()
+            check("message customers: the preview says who gets it and shows the message", lambda: expect(
+                msg.get_by_test_id("message-preview")).to_contain_text("Ordering in Hyderabad is paused", timeout=15000))
+            msg.get_by_role("button", name=re.compile(r"^Send to \d+…$")).click()
+            msg.get_by_test_id("confirm-send-message").get_by_label("Reason").fill("E2E drill: tell the city's customers")
+            ops.screenshot(path=f"{OUT}/13f-incidents-message-confirm.png", full_page=True)
+            msg.get_by_test_id("confirm-send-message").get_by_role("button", name="Yes, send").click()
+            check("message customers: sent", lambda: expect(msg.get_by_role("status")).to_contain_text("Sending now", timeout=15000))
+
+            kit.get_by_role("button", name="Resume").first.click()
+            ops.get_by_test_id("confirm-resume-kitchen").get_by_label("Reason").fill("E2E drill: gas back on")
+            ops.get_by_test_id("confirm-resume-kitchen").get_by_role("button", name="Yes, resume").click()
+            sec.get_by_role("button", name="Resume ordering").first.click()
+            ops.get_by_test_id("confirm-resume-ordering").get_by_label("Reason").fill("E2E drill: provider is back")
+            ops.get_by_test_id("confirm-resume-ordering").get_by_role("button", name="Yes, resume ordering").click()
+            check("incidents: everything resumed, and the log has each step", lambda: (
+                expect(sec.get_by_test_id("no-pauses")).to_be_visible(timeout=15000),
+                expect(kit.get_by_test_id("paused-kitchen")).to_have_count(0, timeout=15000),
+                expect(ops.get_by_test_id("incident-log")).to_contain_text("Customers messaged", timeout=15000),
+                expect(ops.get_by_test_id("incident-log")).to_contain_text("Ordering resumed")))
+            ops.screenshot(path=f"{OUT}/13g-incidents-log.png", full_page=True)
+        finally:  # whatever failed above, Hyderabad and Spice Route are open again for anything after
+            for pz in api.get(f"{CORE}/incidents/ordering-pauses/active").json():
+                if pz["scope"] == "IN-TG-HYD":
+                    api.post(f"{CORE}/incidents/ordering-pauses/{pz['id']}/end", headers=ops_h,
+                             data={"reason": "E2E clean-up", "confirm": True})
+            api.post(f"{CORE}/incidents/kitchens/{rest['id']}/resume", headers=ops_h, data={"reason": "E2E clean-up", "confirm": True})
+
     sup = b.new_page(viewport={"width": 1440, "height": 1000})
     sign_in(sup, "support.hyd@example.com")
     nav = sup.get_by_role("navigation", name="Admin sections")

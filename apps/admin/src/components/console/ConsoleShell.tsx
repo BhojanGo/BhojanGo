@@ -23,6 +23,7 @@ import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 const SECTIONS = [
   { href: "/overview", label: "Overview", perm: "orders.view" },
   { href: "/operations", label: "Operations", perm: "orders.view" },
+  { href: "/incidents", label: "Incidents", perm: "orders.view" },  // R17: pause, bulk refunds, bulk messages
   { href: "/partners", label: "Partners", perm: "partners.view" },
   { href: "/pricing", label: "Pricing & Rules", perm: "rules.view" },
   { href: "/markets", label: "Markets", perm: "markets.view" },

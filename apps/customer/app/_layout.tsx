@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { PauseBanner } from "../components/PauseBanner";
 import { useWhere } from "../lib/where";
 
 void SplashScreen.preventAutoHideAsync();
@@ -42,6 +43,7 @@ export default function RootLayout() {
       {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner>
         {/* Signed in, but the API didn't answer at start: say so, Retry (the person stays signed in). */}
+        {status === "unreachable" ? null : <PauseBanner />}
         {status === "unreachable" ? <UnreachableScreen error={failure} onRetry={initialize} /> : (
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }}>
             <Stack.Screen name="item" options={{ presentation: "modal" }} />

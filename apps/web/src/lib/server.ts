@@ -57,6 +57,11 @@ async function get<T>(path: string, revalidate = 60): Promise<T | null> {
 
 const EMPTY_DIRECTORY: Directory = { countries: [], totals: { countries: 0, live: 0, soon: 0, restaurants: 0 } };
 
+/** R17: where an admin has paused ordering now (public: scope, area, the customers' note). */
+export async function orderingPauses(): Promise<import("@/lib/pauses").OrderingPause[]> {
+  return (await get<import("@/lib/pauses").OrderingPause[]>("/incidents/ordering-pauses/active", 30)) ?? [];
+}
+
 /** Countries -> states -> cities (live and coming soon), from Markets. */
 export async function directory(): Promise<Directory> {
   return (await get<Directory>("/markets/directory", 60)) ?? EMPTY_DIRECTORY;

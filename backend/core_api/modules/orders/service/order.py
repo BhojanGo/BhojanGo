@@ -175,6 +175,14 @@ class OrderService:
         from core_api.modules.catalog.models.restaurant import Restaurant
 
         rest = await self.db.get(Restaurant, data.restaurant_id)
+        # R17: a quote is good for 10 minutes; an incident pause since then still stops the order.
+        from core_api.modules.incidents.service import pause_for, pause_message
+
+        paused = await pause_for(self.db, ctx.get("city"))
+        if paused is not None:
+            raise _err(status.HTTP_409_CONFLICT, "ORDERING_PAUSED", pause_message(paused))
+        if rest is not None and rest.closed_for_now:
+            raise _err(status.HTTP_409_CONFLICT, "KITCHEN_PAUSED", f"{rest.name} is closed for now")
         drop = ctx.get("deliver_to") or {}
         from core_api.modules.catalog.service.menu import busy_minutes
 

@@ -32,6 +32,7 @@ import core_api.modules.payments.models  # noqa: F401
 import core_api.modules.support.models  # noqa: F401
 import core_api.modules.legal.models  # noqa: F401
 import core_api.modules.content.models  # noqa: F401
+import core_api.modules.incidents.models  # noqa: F401
 import worker.app.models  # noqa: F401
 from shared.config import get_settings
 from shared.db import Base

@@ -208,6 +208,9 @@ Each is one rule and the reason for it. Follow them unless a PR says why not.
 68. **Every money report computes from the same source as the payout, and a test checks they agree to the cent every week.**
     Why: the minimum pay top-up lived only in the payout run, so Reconciliation said delivery partners were owed $207.67 while the run paid $226.95, and the platform's revenue looked $19.28 better than it was. Reconciliation and contribution now use `payouts.week_statements` (the run's own orders and statements), the top-up is a platform cost in both, and `test_finance_invariants.py` checks, for every recent week in every country, that the run's totals equal what Reconciliation says is owed and that captured equals the sum of its parts.
 
+69. **In production, drop or rename a column only in a release after the one whose code stops using it is live.**
+    Why: a deploy runs the migration before every instance runs the new code, so instances still on the old code read a column that is gone and fail until they restart (R16 dropped `restaurants.commission_rate` in the same release that stopped using it, which was safe only on QA). Release 1: stop reading and writing the column (and give it a default or make it nullable); release 2, once release 1 is live everywhere: the migration that drops or renames it. A rename is "add the new column, write both, backfill, read the new one" across releases.
+
 ## How to add a lesson
 
 Whenever a bug, stall or surprise costs more than an hour, add a rule here in the same PR as the fix.

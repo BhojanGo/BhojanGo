@@ -411,6 +411,84 @@ DELIVERY_SIGN_UP: dict[str, dict[str, str]] = {
 }
 
 
+# R17 incident messages (docs/launch/incident-plan.md "Customer messages"): sent by admin's bulk
+# message tool by push and email, each customer in their own language. (title, body) per language,
+# like the worker's CATALOGUE, which takes these in as "incident_<key>". Placeholders: {restaurant},
+# {code} and {amount} come from each order (customers of a bulk refund); {time} and {area} from the admin.
+INCIDENT_MESSAGES: dict[str, dict[str, tuple[str, str]]] = {
+    "order_cancelled": {
+        "en": ("Your order was cancelled", "We're sorry: {restaurant} can't finish your order {code}. We've cancelled it and refunded {amount} to how you paid; it usually shows in 3–5 working days."),
+        "hi": ("आपका ऑर्डर रद्द हुआ", "माफ़ कीजिए: {restaurant} आपका ऑर्डर {code} पूरा नहीं कर सकता। हमने इसे रद्द करके {amount} आपके भुगतान के तरीके में वापस कर दिए हैं; आमतौर पर 3–5 कार्यदिवस में दिखता है।"),
+        "te": ("మీ ఆర్డర్ రద్దయింది", "క్షమించండి: {restaurant} మీ ఆర్డర్ {code}ని పూర్తి చేయలేదు. మేము దాన్ని రద్దు చేసి {amount} మీరు చెల్లించిన విధానానికి తిరిగి ఇచ్చాం; సాధారణంగా 3–5 పని దినాల్లో కనిపిస్తుంది."),
+        "ta": ("உங்கள் ஆர்டர் ரத்து செய்யப்பட்டது", "மன்னிக்கவும்: {restaurant} உங்கள் ஆர்டர் {code}-ஐ முடிக்க முடியாது. அதை ரத்து செய்து {amount} திருப்பி அனுப்பினோம்; 3–5 வேலை நாட்களில் தெரியும்."),
+        "kn": ("ನಿಮ್ಮ ಆರ್ಡರ್ ರದ್ದಾಗಿದೆ", "ಕ್ಷಮಿಸಿ: {restaurant} ನಿಮ್ಮ ಆರ್ಡರ್ {code} ಪೂರ್ಣಗೊಳಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾವು ಅದನ್ನು ರದ್ದುಮಾಡಿ {amount} ನೀವು ಪಾವತಿಸಿದ ರೀತಿಗೆ ಮರುಪಾವತಿಸಿದ್ದೇವೆ; ಸಾಮಾನ್ಯವಾಗಿ 3–5 ಕೆಲಸದ ದಿನಗಳಲ್ಲಿ ಕಾಣುತ್ತದೆ."),
+        "mr": ("तुमची ऑर्डर रद्द झाली", "माफ करा: {restaurant} तुमची ऑर्डर {code} पूर्ण करू शकत नाही. आम्ही ती रद्द करून {amount} तुम्ही ज्या प्रकारे पैसे दिले तिथे परत केले आहेत; साधारण 3–5 कामकाजाच्या दिवसांत दिसतात."),
+        "bn": ("আপনার অর্ডার বাতিল হয়েছে", "দুঃখিত: {restaurant} আপনার অর্ডার {code} সম্পূর্ণ করতে পারছে না। আমরা এটি বাতিল করে {amount} আপনি যেভাবে পেমেন্ট করেছেন সেখানে ফেরত দিয়েছি; সাধারণত 3–5 কার্যদিবসে দেখা যায়।"),
+        "es": ("Tu pedido se canceló", "Lo sentimos: {restaurant} no puede terminar tu pedido {code}. Lo cancelamos y te devolvimos {amount} a tu forma de pago; suele verse en 3–5 días hábiles."),
+    },
+    "refund_sent": {
+        "en": ("Refund sent", "We're sorry about your order {code} from {restaurant}. We've refunded {amount} to how you paid; it usually shows in 3–5 working days."),
+        "hi": ("रिफंड भेजा गया", "{restaurant} से आपके ऑर्डर {code} के लिए हमें खेद है। हमने {amount} आपके भुगतान के तरीके में वापस कर दिए हैं; आमतौर पर 3–5 कार्यदिवस में दिखता है।"),
+        "te": ("రిఫండ్ పంపాం", "{restaurant} నుండి మీ ఆర్డర్ {code} విషయంలో క్షమించండి. {amount} మీరు చెల్లించిన విధానానికి తిరిగి ఇచ్చాం; సాధారణంగా 3–5 పని దినాల్లో కనిపిస్తుంది."),
+        "ta": ("ரீஃபண்ட் அனுப்பப்பட்டது", "{restaurant}-இலிருந்து உங்கள் ஆர்டர் {code}-க்கு வருந்துகிறோம். {amount} நீங்கள் பணம் செலுத்திய வழிக்கே திருப்பி அனுப்பியுள்ளோம்; பொதுவாக 3–5 வேலை நாட்களில் தெரியும்."),
+        "kn": ("ಮರುಪಾವತಿ ಕಳುಹಿಸಲಾಗಿದೆ", "{restaurant} ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ {code} ಬಗ್ಗೆ ಕ್ಷಮಿಸಿ. {amount} ನೀವು ಪಾವತಿಸಿದ ರೀತಿಗೆ ಮರುಪಾವತಿಸಿದ್ದೇವೆ; ಸಾಮಾನ್ಯವಾಗಿ 3–5 ಕೆಲಸದ ದಿನಗಳಲ್ಲಿ ಕಾಣುತ್ತದೆ."),
+        "mr": ("परतावा पाठवला", "{restaurant} कडील तुमच्या ऑर्डर {code} बद्दल आम्हाला खेद आहे. आम्ही {amount} तुम्ही ज्या प्रकारे पैसे दिले तिथे परत केले आहेत; साधारण 3–5 कामकाजाच्या दिवसांत दिसतात."),
+        "bn": ("রিফান্ড পাঠানো হয়েছে", "{restaurant} থেকে আপনার অর্ডার {code}-এর জন্য আমরা দুঃখিত। {amount} আপনি যেভাবে পেমেন্ট করেছেন সেখানে ফেরত দিয়েছি; সাধারণত 3–5 কার্যদিবসে দেখা যায়।"),
+        "es": ("Reembolso enviado", "Lamentamos lo de tu pedido {code} de {restaurant}. Te devolvimos {amount} a tu forma de pago; suele verse en 3–5 días hábiles."),
+    },
+    "delay": {
+        "en": ("Your order is running late", "Your order is running late because of a problem on our side. It should arrive by {time}. We're sorry for the wait."),
+        "hi": ("आपके ऑर्डर में देर हो रही है", "हमारी तरफ़ की एक समस्या के कारण आपके ऑर्डर में देर हो रही है। यह {time} तक पहुँच जाना चाहिए। इंतज़ार के लिए माफ़ी।"),
+        "te": ("మీ ఆర్డర్ ఆలస్యమవుతోంది", "మా వైపు సమస్య వల్ల మీ ఆర్డర్ ఆలస్యమవుతోంది. ఇది {time}కల్లా చేరాలి. వేచి ఉంచినందుకు క్షమించండి."),
+        "ta": ("உங்கள் ஆர்டர் தாமதமாகிறது", "எங்கள் பக்கப் பிரச்சினையால் உங்கள் ஆர்டர் தாமதமாகிறது. இது {time}-க்குள் வந்து சேர வேண்டும். காத்திருப்புக்கு மன்னிக்கவும்."),
+        "kn": ("ನಿಮ್ಮ ಆರ್ಡರ್ ತಡವಾಗುತ್ತಿದೆ", "ನಮ್ಮ ಕಡೆಯ ಸಮಸ್ಯೆಯಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ತಡವಾಗುತ್ತಿದೆ. ಇದು {time} ರೊಳಗೆ ತಲುಪಬೇಕು. ಕಾಯಿಸಿದ್ದಕ್ಕೆ ಕ್ಷಮಿಸಿ."),
+        "mr": ("तुमच्या ऑर्डरला उशीर होत आहे", "आमच्या बाजूच्या अडचणीमुळे तुमच्या ऑर्डरला उशीर होत आहे. ती {time} पर्यंत पोहोचली पाहिजे. वाट पाहायला लावल्याबद्दल माफ करा."),
+        "bn": ("আপনার অর্ডারে দেরি হচ্ছে", "আমাদের দিকের একটি সমস্যার কারণে আপনার অর্ডারে দেরি হচ্ছে। এটি {time}-এর মধ্যে পৌঁছানোর কথা। অপেক্ষার জন্য দুঃখিত।"),
+        "es": ("Tu pedido va con retraso", "Tu pedido va con retraso por un problema de nuestra parte. Debería llegar a las {time}. Sentimos la espera."),
+    },
+    "area_paused": {
+        "en": ("Ordering is paused", "Ordering in {area} is paused for now while we fix a problem. Orders already on their way will still arrive. We'll let you know when we're back."),
+        "hi": ("ऑर्डर करना रुका है", "एक समस्या ठीक करने तक {area} में ऑर्डर करना अभी रुका है। जो ऑर्डर रास्ते में हैं वे पहुँचेंगे। वापस आने पर हम बताएँगे।"),
+        "te": ("ఆర్డర్లు ఆగాయి", "ఒక సమస్యను సరిచేస్తున్నందున {area}లో ఆర్డర్లు ప్రస్తుతం ఆగాయి. దారిలో ఉన్న ఆర్డర్లు చేరుతాయి. మళ్లీ మొదలవగానే తెలియజేస్తాం."),
+        "ta": ("ஆர்டர் செய்வது நிறுத்தப்பட்டுள்ளது", "ஒரு பிரச்சினையைச் சரிசெய்யும் வரை {area}-இல் ஆர்டர் செய்வது தற்போது நிறுத்தப்பட்டுள்ளது. வழியில் உள்ள ஆர்டர்கள் வந்து சேரும். மீண்டும் தொடங்கியதும் தெரிவிப்போம்."),
+        "kn": ("ಆರ್ಡರ್ ಮಾಡುವುದು ನಿಂತಿದೆ", "ಸಮಸ್ಯೆಯೊಂದನ್ನು ಸರಿಪಡಿಸುತ್ತಿರುವುದರಿಂದ {area} ನಲ್ಲಿ ಆರ್ಡರ್ ಮಾಡುವುದು ಸದ್ಯಕ್ಕೆ ನಿಂತಿದೆ. ದಾರಿಯಲ್ಲಿರುವ ಆರ್ಡರ್‌ಗಳು ತಲುಪುತ್ತವೆ. ಮತ್ತೆ ಆರಂಭವಾದಾಗ ತಿಳಿಸುತ್ತೇವೆ."),
+        "mr": ("ऑर्डर करणे थांबले आहे", "एक अडचण दूर करेपर्यंत {area} मध्ये ऑर्डर करणे सध्या थांबले आहे. वाटेत असलेल्या ऑर्डर पोहोचतील. पुन्हा सुरू झाल्यावर आम्ही कळवू."),
+        "bn": ("অর্ডার করা বন্ধ আছে", "একটি সমস্যা ঠিক করা পর্যন্ত {area}-এ অর্ডার করা আপাতত বন্ধ। যে অর্ডারগুলি পথে আছে সেগুলি পৌঁছাবে। আবার চালু হলে আমরা জানাব।"),
+        "es": ("Los pedidos están en pausa", "Los pedidos en {area} están en pausa mientras arreglamos un problema. Los pedidos en camino llegarán. Te avisamos cuando volvamos."),
+    },
+    "area_back": {
+        "en": ("We're back", "Ordering in {area} is open again. Thank you for waiting."),
+        "hi": ("हम वापस आ गए", "{area} में ऑर्डर करना फिर से शुरू हो गया है। इंतज़ार के लिए धन्यवाद।"),
+        "te": ("మళ్లీ వచ్చేశాం", "{area}లో ఆర్డర్లు మళ్లీ మొదలయ్యాయి. వేచి ఉన్నందుకు ధన్యవాదాలు."),
+        "ta": ("மீண்டும் வந்துவிட்டோம்", "{area}-இல் மீண்டும் ஆர்டர் செய்யலாம். காத்திருந்ததற்கு நன்றி."),
+        "kn": ("ಮತ್ತೆ ಬಂದಿದ್ದೇವೆ", "{area} ನಲ್ಲಿ ಮತ್ತೆ ಆರ್ಡರ್ ಮಾಡಬಹುದು. ಕಾಯ್ದಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು."),
+        "mr": ("आम्ही परत आलो", "{area} मध्ये पुन्हा ऑर्डर करता येते. वाट पाहिल्याबद्दल धन्यवाद."),
+        "bn": ("আমরা ফিরে এসেছি", "{area}-এ আবার অর্ডার করা যাচ্ছে। অপেক্ষার জন্য ধন্যবাদ।"),
+        "es": ("Ya volvimos", "Ya puedes volver a pedir en {area}. Gracias por esperar."),
+    },
+    "payment_problem": {
+        "en": ("Your payment didn't go through", "Your payment didn't go through because of a problem with our payment provider, not your card. You haven't been charged. Please try again in a few minutes."),
+        "hi": ("आपका भुगतान नहीं हुआ", "हमारे भुगतान प्रदाता की समस्या के कारण आपका भुगतान नहीं हुआ, आपके कार्ड की वजह से नहीं। आपसे कोई पैसा नहीं लिया गया। कुछ मिनट बाद फिर से कोशिश करें।"),
+        "te": ("మీ చెల్లింపు జరగలేదు", "మా చెల్లింపు ప్రొవైడర్ సమస్య వల్ల మీ చెల్లింపు జరగలేదు, మీ కార్డ్ వల్ల కాదు. మీ నుండి డబ్బు తీసుకోలేదు. కొన్ని నిమిషాల తర్వాత మళ్లీ ప్రయత్నించండి."),
+        "ta": ("உங்கள் பணம் செலுத்துதல் நடக்கவில்லை", "எங்கள் பணம் செலுத்தும் சேவையின் பிரச்சினையால் உங்கள் பணம் செலுத்துதல் நடக்கவில்லை, உங்கள் கார்டால் அல்ல. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை. சில நிமிடங்களில் மீண்டும் முயற்சிக்கவும்."),
+        "kn": ("ನಿಮ್ಮ ಪಾವತಿ ಆಗಲಿಲ್ಲ", "ನಮ್ಮ ಪಾವತಿ ಸೇವೆಯ ಸಮಸ್ಯೆಯಿಂದ ನಿಮ್ಮ ಪಾವತಿ ಆಗಲಿಲ್ಲ, ನಿಮ್ಮ ಕಾರ್ಡ್‌ನಿಂದಲ್ಲ. ನಿಮ್ಮಿಂದ ಹಣ ಕಡಿತವಾಗಿಲ್ಲ. ಕೆಲವು ನಿಮಿಷಗಳ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."),
+        "mr": ("तुमचे पेमेंट झाले नाही", "आमच्या पेमेंट सेवेतील अडचणीमुळे तुमचे पेमेंट झाले नाही, तुमच्या कार्डमुळे नाही. तुमच्याकडून पैसे घेतलेले नाहीत. काही मिनिटांनी पुन्हा प्रयत्न करा."),
+        "bn": ("আপনার পেমেন্ট হয়নি", "আমাদের পেমেন্ট পরিষেবার একটি সমস্যার কারণে আপনার পেমেন্ট হয়নি, আপনার কার্ডের কারণে নয়। আপনার থেকে টাকা কাটা হয়নি। কয়েক মিনিট পরে আবার চেষ্টা করুন।"),
+        "es": ("Tu pago no se completó", "Tu pago no se completó por un problema de nuestro proveedor de pagos, no de tu tarjeta. No se te cobró nada. Inténtalo de nuevo en unos minutos."),
+    },
+}
+# What each template needs: placeholders filled from each order (only with a bulk refund's customers)
+# and the ones the admin types in.
+INCIDENT_FROM_ORDER = {"restaurant", "code", "amount"}
+INCIDENT_ADMIN_PARAMS = {"time", "area"}
+
+
+def incident_placeholders(key: str) -> set[str]:
+    import string
+
+    title, body = INCIDENT_MESSAGES[key]["en"]
+    return {f for _, f, _, _ in string.Formatter().parse(title + body) if f}
+
 def entries() -> dict[str, dict[str, str]]:
     """Every text here as "<name>" → {language: text}, for the CI check."""
     out: dict[str, dict[str, str]] = {}

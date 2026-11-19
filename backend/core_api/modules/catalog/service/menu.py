@@ -39,6 +39,8 @@ class Availability:
     timezone: str
     city_code: str | None
     paused_reason: str | None
+    closed_for_now: bool = False  # R17: paused by an admin; customers see "Closed for now"
+    back_at: datetime | None = None  # when it opens again by itself, if the admin set a time
 
 
 async def restaurant_market(db: AsyncSession, r: Restaurant) -> tuple[str | None, ZoneInfo, dict | None, bool]:
@@ -100,6 +102,8 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
     nxt = H.next_open(local, weekly, overrides) if weekly or overrides else None
     if not r.is_active:
         reason = "Not taking orders"
+    elif r.closed_for_now:  # R17: an admin paused it (an incident); before the kitchen's own settings
+        reason = "Closed for now"
     elif paused:
         reason = "Temporarily unavailable"
     elif paused_by_kitchen(r, local):
@@ -116,6 +120,7 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
         restaurant_id=str(r.id), listed=r.is_active and not paused, open_now=reason is None, reason=reason,
         next_open_at=nxt.replace(tzinfo=tz) if nxt else None, local_time=local, timezone=str(tz), city_code=code,
         paused_reason=r.paused_reason or (FSSAI_EXPIRED if licence_problem(r, local.date(), fssai) else None),
+        closed_for_now=r.closed_for_now, back_at=r.admin_paused_until if r.closed_for_now else None,
     )
 
 

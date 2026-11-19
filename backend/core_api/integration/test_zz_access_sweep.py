@@ -75,6 +75,10 @@ def admin(*refused: str, body=None, params=None) -> Policy:  # type: ignore[no-u
 
 
 # Bodies (valid, so a refusal isn't a validation error)
+def _bulk(c: "Ctx") -> dict:  # R17: a bulk refund's selection in Hyderabad
+    return {"city": "IN-TG-HYD", "placed_from": "2026-11-01T00:00:00Z", "placed_to": "2026-11-02T00:00:00Z", "mode": "full"}
+
+
 def _items(c: "Ctx") -> list[dict]:
     return [{"menu_item_id": c.item, "quantity": 1}]
 
@@ -401,6 +405,39 @@ POLICY: dict[tuple[str, str], Policy] = {
     # R16: the commission tax invoice to the kitchen, by the same rule as its statement
     ("GET", "/api/v1/finance/statements/{statement_id}/commission-invoice"): user("other_partner", "other_rider", "customer", "finance_us"),
     ("POST", "/api/v1/finance/statements/{statement_id}/commission-invoice/link"): user("other_partner", "other_rider", "customer", "finance_us"),
+    # R17 incident tools: each needs its permission in the scope (another city's or country's admin, a viewer,
+    # support and finance where they lack it are refused); a valid body with a reason and confirm.
+    ("POST", "/api/v1/incidents/kitchens/{restaurant_id}/pause"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in", body=lambda c: {"reason": "sweep check", "confirm": True}),
+    ("POST", "/api/v1/incidents/kitchens/{restaurant_id}/resume"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in", body=lambda c: {"reason": "sweep check", "confirm": True}),
+    ("GET", "/api/v1/incidents/kitchens/paused"): admin(),
+    ("GET", "/api/v1/incidents/ordering-pauses/active"): public(
+        "the website and app banner: where ordering is paused and the customers' note, never the admin's reason (R17)"),
+    ("GET", "/api/v1/incidents/ordering-pauses"): admin(),
+    ("POST", "/api/v1/incidents/ordering-pauses"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in",
+        body=lambda c: {"scope": "IN-TG-HYD", "reason": "sweep check", "confirm": True}),
+    ("POST", "/api/v1/incidents/ordering-pauses/{pause_id}/end"): admin(
+        "viewer", "support_hyd", "finance_in", body=lambda c: {"reason": "sweep check", "confirm": True}),
+    ("POST", "/api/v1/incidents/refunds/preview"): admin("ops_boi", "cm_us", "viewer", "support_hyd", "finance_us", body=_bulk),
+    ("POST", "/api/v1/incidents/refunds"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_us",
+        body=lambda c: {**_bulk(c), "reason": "sweep check", "confirm": True}),
+    ("GET", "/api/v1/incidents/refunds"): admin(),
+    ("GET", "/api/v1/incidents/refunds/{refund_id}"): admin("ops_boi"),
+    ("POST", "/api/v1/incidents/refunds/{refund_id}/approve"): admin(
+        "ops_boi", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
+    ("POST", "/api/v1/incidents/refunds/{refund_id}/reject"): admin(
+        "ops_boi", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
+    ("GET", "/api/v1/incidents/messages/templates"): admin("viewer", "support_hyd", "finance_in"),
+    ("POST", "/api/v1/incidents/messages/preview"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in", body=lambda c: {"city": "IN-TG-HYD", "template": "payment_problem"}),
+    ("POST", "/api/v1/incidents/messages"): admin(
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in",
+        body=lambda c: {"city": "IN-TG-HYD", "template": "payment_problem", "reason": "sweep check", "confirm": True}),
+    ("GET", "/api/v1/incidents/messages"): admin(),
+    ("GET", "/api/v1/incidents/log"): admin(),
 }
 
 
@@ -441,6 +478,7 @@ class Ctx:
                   "payment_method_id": self.payment_method, "article_id": self.help_article, "topic": "orders", "kind": "restaurant", "target_id": self.spice,
                   "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
+                  "pause_id": str(uuid.UUID(int=11)), "refund_id": str(uuid.UUID(int=12)),
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
 

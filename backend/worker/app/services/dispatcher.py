@@ -52,6 +52,8 @@ POLICY: dict[str, tuple[str, ...]] = {
     "payout_paid": ("push", "email"),
     "payout_setup": ("push", "email"),
     "order_message": ("push",),
+    # R17: admin's bulk incident messages (shared.texts.INCIDENT_MESSAGES), by push and email
+    **{f"incident_{k}": ("push", "email") for k in m.INCIDENT_MESSAGES},
 }
 # Live conversation (B2): pushed only; never kept in the inbox, so it is gone after delivery.
 NO_INBOX = {"order_message"}
@@ -92,6 +94,14 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
             return []
         return [Outgoing(str(user), "payout_setup", {"link": p.get("link", "")},
                          data={"screen": "payouts", "link": p.get("link", "")})]
+    if kind == "incident.message":  # R17: one customer of an admin's bulk message, in their own language
+        params = dict(p.get("params") or {})
+        if order_id:
+            params.setdefault("code", m.order_code(str(order_id)))
+            if order is not None:
+                params.setdefault("restaurant", order["restaurant_name"])
+        return [Outgoing(str(p["user_id"]), f"incident_{p['template']}", params, str(order_id) if order_id else None,
+                         data={"bulk_message_id": str(p.get("bulk_message_id", ""))})]
     if order is None:
         return []
     if kind == "order.message":

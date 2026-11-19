@@ -24,7 +24,7 @@ DeepTrics LLC; commission is 15%. Nothing here has been bought or done for produ
 | 13 | **Support:** who answers in-app chat and call-backs and when, the support email and phone in admin, refund rules | Srini | Not started | — | Phone number $1–2 + usage |
 | 14 | **Monitoring:** error tracking (Sentry) and alerts to a paging channel; uptime checks on the website, API and webhooks | Srini opens accounts; Claude Code wires them | Ready (alert rules written) | — | $0 (free tiers), ~$26 (Sentry Team) |
 | 15 | **Backups:** daily database backups with a restore test, bucket versioning | Claude Code | Ready on QA (to repeat in production) | — | $1–5 (storage) |
-| 16 | **Incident plan** ([incident-plan.md](incident-plan.md)): who is called, pausing, refunds, customer messages; build the two admin gaps it lists (pause a kitchen, bulk refunds) | Claude Code drafts and builds; Srini approves | Draft written | — | — |
+| 16 | **Incident plan** ([incident-plan.md](incident-plan.md)): who is called, pausing, refunds, customer messages; admin → Incidents pauses a kitchen, a city, a country or everywhere, refunds in bulk (a second admin above the limit) and messages customers in bulk | Claude Code drafts and builds; Srini approves | Ready (tools built and tested in CI, round 17); plan waiting for Srini's approval and phone numbers | — | — |
 | 17 | **Launch rehearsal:** a dinner rush on production with internal orders, then refunds; then the first real order | Srini and Claude Code | Not started | Card fees on test orders (not returned on refunds): under $20 | — |
 
 Rough total before the first order: about $2,000–6,000 one-off (mostly the lawyer, tablets and app stores) and
