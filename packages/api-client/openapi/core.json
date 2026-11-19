@@ -29280,7 +29280,7 @@
     },
     "/api/v1/users/me": {
       "delete": {
-        "description": "Delete my account (GDPR / India DPDP / app store rules).\n\nRemoves personal data (name, email, phone, social ids, addresses, saved\ncards, favourites, notification preferences, admin roles), ends every\nsession at once and deactivates the account. Orders keep the anonymous\nuser id so restaurant and tax records stay intact, without the street,\nmap pin or notes (city, state, postal code and country stay for tax).",
+        "description": "Delete my account (GDPR / India DPDP / app store rules).\n\nRemoves personal data (name, email, phone, social ids, addresses, saved\ncards, favourites, notification preferences, admin roles), ends every\nsession at once and deactivates the account. Orders keep the anonymous\nuser id so restaurant and tax records stay intact, without the street,\nmap pin or notes (city, state, postal code and country stay for tax).\n\nA delivery partner's documents (and their photos) are deleted; a kitchen\nowner's kitchens close and leave every listing. 409 ``MONEY_OWED`` (with\n``amount``) while a payout to them is not paid yet, or ``ORDERS_IN_PROGRESS``\nwhile their orders are on the way: they can delete once that is settled.",
         "operationId": "delete_me_api_v1_users_me_delete",
         "responses": {
           "200": {

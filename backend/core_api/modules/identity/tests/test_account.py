@@ -233,3 +233,103 @@ async def test_deleting_the_account_removes_cards_favourites_and_preferences(cli
     # Orders and reviews are kept but anonymised (checked on Postgres in the integration tests).
     order_lookup.forget_customer.assert_awaited_with(db_session, uid)  # type: ignore[attr-defined]
     catalog_lookup.forget_reviewer.assert_awaited_with(db_session, uid)  # type: ignore[attr-defined]
+
+
+# ── account deletion by delivery partners and kitchen owners (R19) ──────────
+
+async def signed_in_as(client: AsyncClient, db_session, role: str, country: str = "US") -> tuple[dict, uuid.UUID]:  # type: ignore[no-untyped-def]
+    email = f"{role}-{uuid.uuid4().hex[:8]}@example.com"
+    user = await make_user(db_session, email, country=country, role=role)
+    return bearer(await login(client, email)), user.id
+
+
+async def test_a_delivery_partners_documents_and_their_photos_go_with_the_account(client: AsyncClient, db_session, tmp_path) -> None:
+    from unittest.mock import patch
+
+    from core_api.modules.identity.models.rider import RiderDocument
+    from shared.providers.storage import LocalStorage
+
+    h, uid = await signed_in_as(client, db_session, "driver")
+    storage = LocalStorage(str(tmp_path))
+    keys = [f"rider_document/{uid}/{uuid.uuid4().hex}.jpg" for _ in range(2)]
+    for key, kind in zip(keys, ("licence", "insurance"), strict=True):
+        await storage.put(key, b"photo", "image/jpeg")
+        db_session.add(RiderDocument(rider_id=uid, kind=kind, status="approved", file_key=key))
+    db_session.add(RiderDocument(rider_id=uid, kind="background", status="submitted"))  # no file
+    other = await make_user(db_session, f"other-{uuid.uuid4().hex[:6]}@example.com", role="driver")
+    db_session.add(RiderDocument(rider_id=other.id, kind="licence", status="approved", file_key=f"rider_document/{other.id}/x.jpg"))
+    await db_session.flush()
+
+    with patch("shared.providers.storage.get_storage", lambda: storage):
+        r = await client.delete("/api/v1/users/me", headers=h)
+    assert r.status_code == 200, r.text
+    left = (await db_session.execute(select(RiderDocument.rider_id).where(RiderDocument.rider_id.in_([uid, other.id])))).scalars().all()
+    assert left == [other.id]  # only someone else's
+    assert not any([await storage.exists(k) for k in keys])
+
+
+async def test_a_photo_the_storage_cant_remove_does_not_stop_the_deletion(client: AsyncClient, db_session) -> None:
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from core_api.modules.identity.models.rider import RiderDocument
+
+    h, uid = await signed_in_as(client, db_session, "driver")
+    db_session.add(RiderDocument(rider_id=uid, kind="licence", status="approved", file_key=f"rider_document/{uid}/a.jpg"))
+    await db_session.flush()
+    broken = MagicMock(delete=AsyncMock(side_effect=OSError("bucket unreachable")))
+    with patch("shared.providers.storage.get_storage", lambda: broken):
+        assert (await client.delete("/api/v1/users/me", headers=h)).status_code == 200
+    assert (await db_session.execute(select(RiderDocument).where(RiderDocument.rider_id == uid))).first() is None
+
+
+async def test_deletion_waits_while_a_payout_is_owed(client: AsyncClient, db_session) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from core_api.modules.identity.models.user import User
+
+    h, uid = await signed_in_as(client, db_session, "driver")
+    owed = AsyncMock(return_value={"USD": 1250})
+    with patch("core_api.modules.finance.service.lookup.money_owed", owed):
+        r = await client.delete("/api/v1/users/me", headers=h)
+    assert r.status_code == 409, r.text
+    detail = r.json()["detail"]
+    assert detail["code"] == "MONEY_OWED" and detail["currency"] == "USD" and "12.50" in detail["amount"]
+    assert owed.await_args.kwargs == {"rider_id": uid, "restaurant_ids": []}
+    user = await db_session.get(User, uid)
+    assert user.is_active and user.email  # nothing was removed
+    assert (await client.get("/api/v1/users/me", headers=h)).status_code == 200  # still signed in
+
+
+async def test_deletion_waits_for_orders_in_progress(client: AsyncClient, db_session) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    h, _ = await signed_in_as(client, db_session, "driver")
+    with patch("core_api.modules.orders.service.lookup.orders_in_progress", AsyncMock(return_value=1)):
+        r = await client.delete("/api/v1/users/me", headers=h)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "ORDERS_IN_PROGRESS"
+
+
+async def test_a_kitchen_owners_kitchens_close_when_the_account_goes(client: AsyncClient, db_session) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    h, uid = await signed_in_as(client, db_session, "restaurant_owner")
+    kitchen = uuid.uuid4()
+    close = AsyncMock(return_value=1)
+    owed = AsyncMock(return_value={})
+    with (patch("core_api.modules.catalog.service.lookup.owned_restaurant_ids", AsyncMock(return_value=[kitchen])),
+          patch("core_api.modules.finance.service.lookup.money_owed", owed),
+          patch("core_api.modules.catalog.service.lookup.close_for_departed_owner", close)):
+        assert (await client.delete("/api/v1/users/me", headers=h)).status_code == 200
+    assert owed.await_args.kwargs == {"rider_id": None, "restaurant_ids": [kitchen]}
+    close.assert_awaited_once()
+    assert close.await_args.args[1] == uid
+
+
+async def test_customers_have_nothing_to_wait_for(client: AsyncClient, db_session) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    h, _ = await signed_in_as(client, db_session, "customer")
+    owed = AsyncMock(return_value={"USD": 100})
+    with patch("core_api.modules.finance.service.lookup.money_owed", owed):
+        assert (await client.delete("/api/v1/users/me", headers=h)).status_code == 200
+    owed.assert_not_awaited()

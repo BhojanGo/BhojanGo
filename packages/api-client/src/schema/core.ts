@@ -4535,6 +4535,11 @@ export interface paths {
          *     session at once and deactivates the account. Orders keep the anonymous
          *     user id so restaurant and tax records stay intact, without the street,
          *     map pin or notes (city, state, postal code and country stay for tax).
+         *
+         *     A delivery partner's documents (and their photos) are deleted; a kitchen
+         *     owner's kitchens close and leave every listing. 409 ``MONEY_OWED`` (with
+         *     ``amount``) while a payout to them is not paid yet, or ``ORDERS_IN_PROGRESS``
+         *     while their orders are on the way: they can delete once that is settled.
          */
         delete: operations["delete_me_api_v1_users_me_delete"];
         options?: never;

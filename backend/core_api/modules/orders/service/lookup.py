@@ -89,3 +89,22 @@ async def forget_customer(db: AsyncSession, customer_id: uuid.UUID) -> int:
             o.delivery_proof = {"method": o.delivery_proof.get("method")}  # how, not the photo of the door
     await db.flush()
     return len(rows)
+
+
+async def orders_in_progress(db: AsyncSession, *, driver_id: uuid.UUID | None = None,
+                             restaurant_ids: list[uuid.UUID] | None = None) -> int:
+    """Paid orders not yet delivered or cancelled that this delivery partner carries or
+    these kitchens make (account deletion waits for them: R19)."""
+    from core_api.modules.orders.service.state_machine import TERMINAL_STATES
+
+    who = []
+    if driver_id is not None:
+        who.append(Order.driver_id == driver_id)
+    if restaurant_ids:
+        who.append(Order.restaurant_id.in_(restaurant_ids))
+    if not who:
+        return 0
+    from sqlalchemy import or_
+
+    return int((await db.execute(select(func.count()).select_from(Order).where(
+        or_(*who), Order.status.notin_(TERMINAL_STATES | {"pending_payment"})))).scalar_one())
