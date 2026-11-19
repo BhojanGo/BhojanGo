@@ -1,6 +1,7 @@
 import {
-  FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
+  FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, usePushRegistration, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
+import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -21,6 +22,7 @@ export default function RootLayout() {
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
+  usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId); // R19: after sign-in
   useKnownCountry(useSession((s) => s.user?.country)); // the rider's account country (Markets)
 
   useEffect(() => {

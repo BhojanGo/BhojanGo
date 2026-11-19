@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FavouriteHeart } from "../../components/Heart";
 import { RatingBadge } from "../../components/KitchenCard";
+import { useKitchenBlock } from "../../components/PauseBanner";
 import { offerBadge } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
 import { kitchenPhoto, KitchenCover, photo, Photo } from "../../lib/plate";
@@ -22,6 +23,8 @@ export default function RestaurantScreen() {
   const floatTop = useSafeAreaInsets().top + space[3];
   const bag = useBag();
   const inBag = bag.restaurantId === id ? bag.lines.reduce((n, l) => n + l.quantity, 0) : 0;
+  // R19: the city's ordering paused, or the kitchen closed: every dish's "+" is off, with the reason.
+  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined);
 
   if (!menu) {
     return (
@@ -66,7 +69,7 @@ export default function RestaurantScreen() {
         renderSectionHeader={({ section }) => (
           <Txt variant="h2" accessibilityRole="header" style={{ paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[2] }}>{section.title}</Txt>
         )}
-        renderItem={({ item }) => <DishRow item={item} restaurantId={r.id} currency={r.currency} />}
+        renderItem={({ item }) => <DishRow item={item} restaurantId={r.id} currency={r.currency} blocked={blocked} />}
       />
       <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} style={[styles.round, { left: 16, top: floatTop }]}>
         <Icon name="back" />
@@ -87,9 +90,16 @@ export default function RestaurantScreen() {
   );
 }
 
-function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantId: string; currency: string }) {
+function DishRow({ item, restaurantId, currency, blocked }: { item: MenuItem; restaurantId: string; currency: string; blocked: string | null }) {
   const { t, money } = useI18n();
   const off = !item.is_available || !!item.sold_out_today;
+  // Blocked (paused or closed): the dish still opens to read about it; its "+" is off and says why.
+  const plus = (
+    <View testID={blocked ? "dish-add-blocked" : undefined} accessibilityState={{ disabled: !!blocked }}
+      style={[styles.add, blocked ? styles.addOff : null]}>
+      <Text style={[type.h2, { color: blocked ? color.muted : color.peacock }]}>+</Text>
+    </View>
+  );
   // Only the dish's own photo, never a stand-in.
   const pic = photo(item.image_url, 400);
   return (
@@ -97,7 +107,7 @@ function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantI
       testID={`dish-${item.id}`}
       accessibilityRole="button"
       accessibilityLabel={item.name}
-      accessibilityHint={off ? t("kitchen.sold_out_today") : t("kitchen.add_dish", { name: item.name })}
+      accessibilityHint={off ? t("kitchen.sold_out_today") : blocked ?? t("kitchen.add_dish", { name: item.name })}
       accessibilityState={{ disabled: off }}
       disabled={off}
       onPress={() => router.push({ pathname: "/item", params: { restaurantId, itemId: item.id } })}
@@ -111,15 +121,14 @@ function DishRow({ item, restaurantId, currency }: { item: MenuItem; restaurantI
         {item.description ? (
           <Text numberOfLines={2} style={[type.small, { color: color.muted }]}>{item.description}</Text>
         ) : null}
+        {blocked && !off ? <Text testID="dish-blocked-reason" style={[type.small, { color: color.chili }]}>{blocked}</Text> : null}
       </View>
       {pic ? (
         <View>
           <Photo uri={pic} label={item.name} style={styles.dishPhoto} testID="photo-dish"
-            fallback={<View style={styles.add}><Text style={[type.h2, { color: color.peacock }]}>+</Text></View>} />
+            fallback={plus} />
         </View>
-      ) : (
-        <View style={styles.add}><Text style={[type.h2, { color: color.peacock }]}>+</Text></View>
-      )}
+      ) : plus}
     </Pressable>
   );
 }
@@ -137,6 +146,7 @@ const styles = StyleSheet.create({
   },
   dishPhoto: { width: 104, height: 96, borderRadius: radius.card },
   add: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.lineStrong, alignItems: "center", justifyContent: "center" },
+  addOff: { borderColor: color.line, backgroundColor: color.porcelain, opacity: 0.6 },
   round: {
     position: "absolute", width: 44, height: 44, borderRadius: radius.pill, backgroundColor: color.white,
     alignItems: "center", justifyContent: "center",

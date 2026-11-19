@@ -446,3 +446,11 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 - Backend (`backend/shared/texts.py` `INCIDENT_MESSAGES`, sent by push and email from admin → Incidents):
   `order_cancelled`, `refund_sent`, `delay`, `area_paused`, `area_back`, `payment_problem`. `{amount}` is a
   formatted amount, `{code}` an order code, `{time}` a time an admin typed (e.g. "8:30 pm").
+
+## Checkout fails closed; the paused bag (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, customer app (BhojanGo): `checkout.payments_unavailable` (the Pay button when this city's
+  payment provider isn't live yet; calm, no blame, "yet") and `checkout.back_home` (the button on the
+  bag while ordering is paused).

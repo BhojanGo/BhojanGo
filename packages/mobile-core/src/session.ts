@@ -42,6 +42,13 @@ interface SessionState {
   adopt: (tokens: { access_token: string; refresh_token: string }) => Promise<void>;
 }
 
+// R19: steps that need the session to still work, run before sign-out ends it (push.ts
+// removes this phone's push token). Each is quiet: a failure never stops the sign-out.
+const signOutSteps: (() => Promise<void>)[] = [];
+export function beforeSignOut(step: () => Promise<void>): void {
+  if (!signOutSteps.includes(step)) signOutSteps.push(step);
+}
+
 export const useSession = create<SessionState>()((set, get) => ({
   status: "loading",
   failure: null,
@@ -112,7 +119,10 @@ export const useSession = create<SessionState>()((set, get) => ({
 
   signOut: async () => {
     const token = get().accessToken;
-    if (token) await api.core.POST("/api/v1/auth/logout").catch(() => undefined);
+    if (token) {
+      for (const step of signOutSteps) await step().catch(() => undefined);
+      await api.core.POST("/api/v1/auth/logout").catch(() => undefined);
+    }
     await SecureStore.deleteItemAsync(ACCESS).catch(() => undefined);
     await SecureStore.deleteItemAsync(REFRESH).catch(() => undefined);
     set({ status: "signed-out", accessToken: null, user: null });

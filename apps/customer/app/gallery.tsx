@@ -1,9 +1,11 @@
 // The mobile component gallery (P16): every design-system component on a
 // phone, for design review. Open it at bhojango://gallery (not linked in the app).
+// R19: test builds only; a production build sends the link home.
 import {
-  Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill,
+  appEnv, Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill,
   TabBar, TestBanner, Txt, useCountry, useI18n,
 } from "@bhojango/mobile-core";
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -29,7 +31,12 @@ function icon(d: string) {
   };
 }
 
-export default function Gallery() {
+export default function GalleryScreen() {
+  if (appEnv() === "production") return <Redirect href="/" />;
+  return <Gallery />;
+}
+
+function Gallery() {
   const [tip, setTip] = useState("20");
   const [chip, setChip] = useState("Biryani");
   const [sheet, setSheet] = useState(false);

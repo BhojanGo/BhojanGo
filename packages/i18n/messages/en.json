@@ -445,7 +445,9 @@
     "return_missing": "We couldn't tell which order this payment was for. Go back to checkout to try again.",
     "back_to_checkout": "Back to checkout",
     "view_order": "View your order",
-    "stripe_update_app": "This version of the app can't open the card payment screen. Please update BhojanGo to pay."
+    "stripe_update_app": "This version of the app can't open the card payment screen. Please update BhojanGo to pay.",
+    "back_home": "Back to home",
+    "payments_unavailable": "Payments aren't available in this city yet"
   },
   "track": {
     "title": "Your order",

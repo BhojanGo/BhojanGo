@@ -1,6 +1,7 @@
 import {
-  color, FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
+  color, FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, usePushRegistration, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
+import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -21,6 +22,7 @@ export default function RootLayout() {
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
+  usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId); // R19: after sign-in
   // The country (as on the website, no country selector): the delivery address's
   // (its Markets city's country, else the address's own), else the IP hint, else
   // the phone's region (detectCountry, in the locale store).
