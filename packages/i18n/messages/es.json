@@ -445,7 +445,8 @@
     "return_missing": "No pudimos saber a qué pedido corresponde este pago. Vuelve a la pantalla de pago para intentarlo de nuevo.",
     "back_to_checkout": "Volver al pago",
     "view_order": "Ver tu pedido",
-    "stripe_update_app": "Esta versión de la app no puede abrir la pantalla de pago con tarjeta. Actualiza BhojanGo para pagar."
+    "stripe_update_app": "Esta versión de la app no puede abrir la pantalla de pago con tarjeta. Actualiza BhojanGo para pagar.",
+    "payments_unavailable": "Los pagos aún no están disponibles en esta ciudad."
   },
   "track": {
     "title": "Tu pedido",

@@ -446,3 +446,11 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 - Backend (`backend/shared/texts.py` `INCIDENT_MESSAGES`, sent by push and email from admin → Incidents):
   `order_cancelled`, `refund_sent`, `delay`, `area_paused`, `area_back`, `payment_problem`. `{amount}` is a
   formatted amount, `{code}` an order code, `{time}` a time an admin typed (e.g. "8:30 pm").
+
+## Payments not set up in production (round 19)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, website (account → Payment methods, and checkout): `checkout.payments_unavailable` ("Payments aren't
+  available in this city yet."). Shown only in production when the site was built without a payment provider,
+  instead of the test card form. Calm and short; it doesn't say why.

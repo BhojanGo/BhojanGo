@@ -26,6 +26,8 @@ ARG NEXT_PUBLIC_CORE_URL=http://localhost:8001
 ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:8004
 ARG NEXT_PUBLIC_WORKER_URL=http://localhost:8006
 ARG NEXT_PUBLIC_APP_URL=https://bhojango.com
+# The website's payment provider (stripe | razorpay; unset = the fake one, refused in production: lib/payments.ts)
+ARG NEXT_PUBLIC_PAYMENTS_PROVIDER=
 # Only production is indexable by search engines (robots.txt, meta, X-Robots-Tag); the
 # headers are fixed at build time, so the environment is a build argument too. turbo.json
 # lists APP_ENV in the build's env, or turbo's strict env mode would hide it from `next build`.
@@ -34,6 +36,7 @@ ENV NEXT_PUBLIC_CORE_URL=${NEXT_PUBLIC_CORE_URL} \
     NEXT_PUBLIC_REALTIME_URL=${NEXT_PUBLIC_REALTIME_URL} \
     NEXT_PUBLIC_WORKER_URL=${NEXT_PUBLIC_WORKER_URL} \
     NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
+    NEXT_PUBLIC_PAYMENTS_PROVIDER=${NEXT_PUBLIC_PAYMENTS_PROVIDER} \
     APP_ENV=${APP_ENV}
 ENV USER_SVC_URL=${CORE_API_URL} \
     REALTIME_SVC_URL=${REALTIME_URL} \

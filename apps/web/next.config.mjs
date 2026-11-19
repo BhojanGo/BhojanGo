@@ -12,6 +12,9 @@ const MAP_TILES = "https://tiles.openfreemap.org";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  // The environment for the browser bundle too (APP_ENV is a build arg): client code that must
+  // fail closed in production reads it (lib/payments.ts: never the fake payment forms).
+  env: { NEXT_PUBLIC_APP_ENV: process.env.APP_ENV ?? "" },
   async headers() {
     // Outside production, a header keeps search engines out too (not only robots.txt).
     const noindex = process.env.APP_ENV === "production" ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
