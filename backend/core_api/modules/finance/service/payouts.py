@@ -190,6 +190,10 @@ class WeekStatements:
     def riders_total(self) -> Decimal:
         return S.m(sum((t for _, t, _, _, _ in self.riders), Decimal(0)))
 
+    def kitchen_sum(self, key: str) -> Decimal:
+        """A kitchen statement total across the week (commission_tax, tds, commission ...)."""
+        return S.m(sum((S.D(s.get(key)) for _, _, s, _ in self.restaurants), Decimal(0)))
+
     @property
     def top_ups(self) -> Decimal:
         """Minimum pay top-ups: what the platform adds so active hours earn the city's minimum."""
@@ -205,6 +209,13 @@ class WeekStatements:
         return out
 
 
+async def kitchen_tax_rates(db: AsyncSession, scope: str) -> tuple[Decimal, Decimal]:
+    """(commission tax %, TDS %) for a kitchen's city or country (R16 business rules; none set: 0)."""
+    ct = await _rule(db, scope, "business:commission_tax")
+    tds = await _rule(db, scope, "business:payout_tds")
+    return Decimal(str((ct or {}).get("rate_percent", 0))), Decimal(str((tds or {}).get("rate_percent", 0)))
+
+
 async def week_statements(db: AsyncSession, country: str, start: date, end: date) -> WeekStatements:
     orders = await _orders_for_period(db, country, start, end)  # each city's own Monday to Monday
     by_restaurant: dict[str, list[S.OrderForPayout]] = defaultdict(list)
@@ -213,7 +224,10 @@ async def week_statements(db: AsyncSession, country: str, start: date, end: date
         by_restaurant[o.restaurant_id].append(o)
         if o.rider_id:
             by_rider[o.rider_id].append(o)
-    restaurants = [(rid, *S.restaurant_statement(items)) for rid, items in by_restaurant.items()]
+    restaurants = []
+    for rid, items in by_restaurant.items():
+        pct = await kitchen_tax_rates(db, await _city_of(db, items[0].order_id) or country)
+        restaurants.append((rid, *S.restaurant_statement(items, *pct)))
     riders = []
     for rider_id, items in by_rider.items():
         city = await _city_of(db, items[0].order_id)
@@ -252,6 +266,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
                                currency=c.currency, amount=_minor(total), summary=summary, lines=lines))
     run.totals = {"orders": len(week.orders), "restaurants": str(week.restaurants_total), "riders": str(week.riders_total),
                   "min_pay_top_ups": str(week.top_ups),
+                  "commission_tax": str(week.kitchen_sum("commission_tax")), "tds": str(week.kitchen_sum("tds")),
                   "restaurant_statements": len(week.restaurants), "rider_statements": len(week.riders)}
     await db.flush()
     await audit.record(db, actor_id=actor, action="payout_run.created", entity_type="payout_run", entity_id=run.id,
@@ -265,7 +280,8 @@ async def preview_restaurant(db: AsyncSession, country: str, start: date, end: d
     if end <= start:
         raise FinanceError("The period must end after it starts")
     orders = [o for o in await _orders_for_period(db, country, start, end) if o.restaurant_id == str(restaurant_id)]
-    total, summary, lines = S.restaurant_statement(orders)
+    pct = await kitchen_tax_rates(db, (await _city_of(db, orders[0].order_id) if orders else None) or country)
+    total, summary, lines = S.restaurant_statement(orders, *pct)
     return {"restaurant_id": str(restaurant_id), "period": {"start": start.isoformat(), "end": end.isoformat()},
             "total": str(total), "summary": summary, "lines": lines}
 
@@ -535,7 +551,11 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     fees_estimated = sum(1 for oid in week_snaps if oid not in fee_of)
     captured_total = sum(i.amount for i in week_intents)
     refunded_total = sum(r.amount for r in week_refunds if r.status not in ("failed", "rejected"))
-    kitchens, riders, top_ups, tax = week.restaurants_total, week.riders_total, week.top_ups, split_sum("tax")
+    kitchens, riders, top_ups = week.restaurants_total, week.riders_total, week.top_ups
+    # R16: tax owed by type: what customers paid (GST / sales tax), GST on our commission and TDS
+    # (both taken from kitchen payouts; the platform owes them).
+    tax_by_type = {"customer": split_sum("tax"), "commission": week.kitchen_sum("commission_tax"), "tds": week.kitchen_sum("tds")}
+    tax = S.m(sum(tax_by_type.values(), Decimal(0)))
     platform = Decimal(captured_total - refunded_total) / 100 - kitchens - riders - tax
     return {
         "country": country, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
@@ -552,7 +572,8 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
                   # fees were recorded count as 0 here; the contribution report estimates them).
                   "payment_fees": S._minor_str(fees),
                   "platform_after_payment_fees": S._minor_str(platform - fees)},
-        "payment_fees_estimated": fees_estimated,  # orders whose fee is the expected rate, not the provider's (R15)
+        "payment_fees_estimated": fees_estimated,
+        "tax_owed_by_type": {k: S._minor_str(v) for k, v in tax_by_type.items()},  # orders whose fee is the expected rate, not the provider's (R15)
         "by_provider": by_provider, "refunds_not_settled": pending_refunds,
         "issues": issues,
     }

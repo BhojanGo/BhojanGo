@@ -61,7 +61,8 @@ async def test_hyderabad_quote_from_the_database(client: AsyncClient) -> None:
         q = await QuoteService(db).quote(uuid.uuid4(), req, now=THU_8PM_IST)
     lines = {ln.label: ln.amount for ln in q.lines}
     assert lines["Food"] == 560  # biryani 300 + extra raita 40 + paneer tikka 220
-    assert q.total == Decimal("638.22"), q.lines
+    # R16: the platform's 10% off doesn't lower the GST base in India: 5% of 570, not 520 (+2.50)
+    assert q.total == Decimal("640.72"), q.lines
     assert lines["Delivery fee"] == 35 and lines["Busy-hour fee"] == 15 and lines["GST on platform fees"] == Decimal("11.02")
     assert q.zone == "Jubilee Hills" and q.city == "Hyderabad" and 3 < q.distance < 6
 
@@ -142,8 +143,9 @@ async def test_simulator_live_vs_draft(client: AsyncClient) -> None:
         r = await client.post("/api/v1/pricing/simulate", headers=maker, json=body)
         assert r.status_code == 200, r.text
         sim = r.json()
-        # No restaurant picked, so no ₹10 packaging: 638.22 - 10.00 - 0.50 (GST on food is 5% of 510, not 520).
-        assert sim["live"]["total"] == "627.72"
+        # No restaurant picked, so no ₹10 packaging: 640.72 - 10.00 - 0.50 (GST on food is 5% of 560, not 570;
+        # R16: the platform's discount doesn't lower the base).
+        assert sim["live"]["total"] == "630.22"
     finally:
         await client.delete(f"/api/v1/rules/{draft['id']}", headers=maker)
     changes = {c["label"]: (c["live"], c["draft"]) for c in sim["changes"]}

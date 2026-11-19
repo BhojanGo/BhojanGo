@@ -668,6 +668,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/commission-invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Commission Invoice By Link
+         * @description The commission tax invoice from a signed link (commission-invoice/link).
+         */
+        get: operations["commission_invoice_by_link_api_v1_finance_commission_invoice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/contribution": {
         parameters: {
             query?: never;
@@ -1015,6 +1035,47 @@ export interface paths {
         get: operations["get_statement_api_v1_finance_statements__statement_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/statements/{statement_id}/commission-invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Commission Invoice
+         * @description R16: the tax invoice for the tax on our commission, to the kitchen, for a weekly statement
+         *     (India: GST; issued where the statement charged it). Supplier: the country's legal entity.
+         */
+        get: operations["commission_invoice_api_v1_finance_statements__statement_id__commission_invoice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/statements/{statement_id}/commission-invoice/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commission Invoice Link
+         * @description R16: a link (one hour) that opens the commission tax invoice in a browser (the Kitchen app).
+         */
+        post: operations["commission_invoice_link_api_v1_finance_statements__statement_id__commission_invoice_link_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7950,8 +8011,6 @@ export interface components {
          * @description Configure a restaurant's commission / fee model.
          */
         PricingConfigRequest: {
-            /** Commission Rate */
-            commission_rate?: number | string | null;
             /** Flat Fee Per Order */
             flat_fee_per_order?: number | string | null;
             /** Monthly Subscription Fee */
@@ -8632,11 +8691,6 @@ export interface components {
             city: string;
             /** Closes At */
             closes_at: string | null;
-            /**
-             * Commission Rate
-             * @default 0
-             */
-            commission_rate?: number;
             /** Country */
             country: string;
             /** Cover Url */
@@ -10902,6 +10956,37 @@ export interface operations {
             };
         };
     };
+    commission_invoice_by_link_api_v1_finance_commission_invoice_get: {
+        parameters: {
+            query: {
+                t: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     contribution_api_v1_finance_contribution_get: {
         parameters: {
             query: {
@@ -11460,6 +11545,70 @@ export interface operations {
         };
     };
     get_statement_api_v1_finance_statements__statement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commission_invoice_api_v1_finance_statements__statement_id__commission_invoice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                statement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commission_invoice_link_api_v1_finance_statements__statement_id__commission_invoice_link_post: {
         parameters: {
             query?: never;
             header?: never;

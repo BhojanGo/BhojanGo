@@ -128,7 +128,11 @@ class TaxRateOnLines(_P):
     target_lines: list[TaxLine] = Field(min_length=1)
     collected_by: Literal["platform", "restaurant"] = "platform"
     inclusive: bool = False
-    after_promotions: bool = Field(default=True, description="Tax food after the discount")
+    after_promotions: bool = Field(default=True, description="A discount the kitchen funds reduces the tax base")
+    # R16: who funds a discount decides whether it lowers the tax base. India's default: a discount the
+    # platform funds does NOT (5% GST on the food before it). Until a CA confirms, admin says so.
+    platform_discounts_reduce_base: bool = Field(default=True, description="A discount the platform funds reduces the tax base")
+    ca_confirmed: bool = Field(default=False, description="Checked with a chartered accountant (admin warns until it is)")
 
 
 class TaxExternal(_P):
@@ -249,6 +253,25 @@ class MethodFee(_P):
     fixed: Money = Field(default=Decimal(0), ge=0, description="Per charge")
 
 
+class CommissionTax(_P):
+    """Tax on the platform's commission (R16): India 18% GST, deducted from the kitchen's payout
+    and owed by the platform (the commission tax invoice to the kitchen); US 0%."""
+
+    label: str = Field(default="GST on commission", min_length=2)
+    rate_percent: Decimal = Pct
+    ca_confirmed: bool = Field(default=False, description="Checked with a chartered accountant (admin warns until it is)")
+
+
+class PayoutTds(_P):
+    """Tax deducted at source from kitchen payouts (R16; India section 194-O): a percent of the
+    kitchen's gross sales (food and packaging), deducted on its statement and owed by the platform."""
+
+    label: str = Field(default="TDS (section 194-O)", min_length=2)
+    rate_percent: Decimal = Pct
+    base: Literal["gross_sales"] = "gross_sales"
+    ca_confirmed: bool = Field(default=False, description="Checked with a chartered accountant (admin warns until it is)")
+
+
 class PaymentFees(_P):
     """What the payment provider keeps of each order (item 1): a percentage plus a fixed
     amount per payment method, and the tax service where one calculates tax (US: Stripe Tax
@@ -310,7 +333,7 @@ FAMILIES = ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "b
 MONEY_FAMILIES = frozenset(FAMILIES) - {"business"}
 # Business rules publish at once, except these: they change what riders are paid or
 # offered (batching: a second drop-off's pay), so a second admin approves them too.
-APPROVAL_TEMPLATES = frozenset({("business", "batching")})
+APPROVAL_TEMPLATES = frozenset({("business", "batching"), ("business", "commission_tax"), ("business", "payout_tds")})  # R16: they move money
 # The commission rate: whichever of these is most specific wins (restaurant > city >
 # country). A flat fee per order is added on top, in its own slot.
 COMMISSION_RATE_TEMPLATES = frozenset({"percent", "percent_by_tier"})
@@ -376,6 +399,8 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "support_refund_limit": SupportRefundLimit,
         "auto_refund_limit": AutoRefundLimit,
         "payment_fees": PaymentFees,
+        "commission_tax": CommissionTax,
+        "payout_tds": PayoutTds,
         "batching": Batching,
     },
     "promotion": {

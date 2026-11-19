@@ -1634,7 +1634,11 @@
         "one": "{count} ఆర్డర్",
         "other": "{count} ఆర్డర్‌లు"
       },
-      "offers": "ఆఫర్‌లు {amount}"
+      "offers": "ఆఫర్‌లు {amount}",
+      "commission_tax": "కమీషన్‌పై పన్ను {amount}",
+      "tds": "మూలం వద్ద కోత (TDS) {amount}",
+      "tax_invoice": "పన్ను ఇన్‌వాయిస్",
+      "tax_invoice_failed": "ఇన్‌వాయిస్ తెరవలేదు. మళ్లీ ప్రయత్నించండి."
     },
     "help": {
       "title": "సహాయం మరియు సెట్టింగ్‌లు",

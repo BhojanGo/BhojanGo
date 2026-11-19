@@ -5,6 +5,7 @@ that is rolled back, so nothing stays) and compared with Reconciliation for the 
   - the run's kitchen and delivery partner totals equal "Kitchens are owed" and "Delivery
     partners are owed" to the cent (minimum pay top-ups included on both sides);
   - captured = refunded + kitchens owed + delivery partners owed + tax owed + platform revenue;
+  - tax owed = customers' tax + GST on our commission + TDS, the last two equal to the run's (R16);
   - platform after payment fees = platform revenue - payment fees;
   - the top-ups in the run, Reconciliation and the contribution report are the same amount.
 """
@@ -52,6 +53,12 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                         assert rec["captured"] == (rec["refunded"] + rec["restaurant_payable"] + rec["rider_payable"]
                                                    + rec["tax_owed"] + rec["platform_revenue"]), (where, rec)
                         assert rec["platform_after_payment_fees"] == rec["platform_revenue"] - rec["payment_fees"], where
+                        # R16: tax owed by type (customers' tax, GST on our commission, TDS) adds up, and the
+                        # two taken from kitchen payouts are exactly what the run takes.
+                        by_type = (await payouts.reconciliation(db, c.code, start, end))["tax_owed_by_type"]
+                        assert sum(by_type.values()) == rec["tax_owed"], (where, by_type, rec["tax_owed"])
+                        assert payouts._minor(Decimal(run.totals["commission_tax"])) == by_type["commission"], where
+                        assert payouts._minor(Decimal(run.totals["tds"])) == by_type["tds"], where
                         rep = await contribution(db, c.code, start, end)
                         top_ups = Decimal(rep["all"]["totals"]["min_pay_top_ups"])
                         assert abs(payouts._minor(top_ups) - rec["min_pay_top_ups"]) <= len(rep["cities"]), where  # per-order shares round

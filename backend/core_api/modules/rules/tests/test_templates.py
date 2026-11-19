@@ -36,6 +36,8 @@ GOOD = {
     ("business", "support_refund_limit"): {"max_per_order": 500},
     ("business", "auto_refund_limit"): {"max_per_order": 100},
     ("business", "payment_fees"): {"methods": {"card": {"percent": 2.9, "fixed": 0.3}}, "tax_service_percent": 0.5},
+    ("business", "commission_tax"): {"label": "GST on commission", "rate_percent": 18},
+    ("business", "payout_tds"): {"label": "TDS (section 194-O)", "rate_percent": 0.1},
     ("promotion", "percent_off"): {"percent": 10, "max_discount": 50, "funded_by": "platform"},
     ("promotion", "flat_off"): {"amount": 75, "funded_by": "restaurant", "min_subtotal": 299, "code": "SAVE75"},
     ("promotion", "free_delivery"): {"funded_by": "restaurant", "budget_cap": 5000},

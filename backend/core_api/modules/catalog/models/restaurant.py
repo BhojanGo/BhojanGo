@@ -43,7 +43,6 @@ class Restaurant(Base):
     # ── Pain-Point Layer: restaurant-friendly commission model ────────────────
     # pricing_model: percentage_commission | flat_fee_per_order | monthly_subscription
     pricing_model: Mapped[str] = mapped_column(String(30), nullable=False, default="percentage_commission")
-    commission_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False, default=Decimal("0.2000"))  # fraction
     flat_fee_per_order: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     monthly_subscription_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
 

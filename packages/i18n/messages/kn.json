@@ -1634,7 +1634,11 @@
         "one": "{count} ಆರ್ಡರ್",
         "other": "{count} ಆರ್ಡರ್‌ಗಳು"
       },
-      "offers": "ಆಫರ್‌ಗಳು {amount}"
+      "offers": "ಆಫರ್‌ಗಳು {amount}",
+      "commission_tax": "ಕಮಿಷನ್ ಮೇಲಿನ ತೆರಿಗೆ {amount}",
+      "tds": "ಮೂಲದಲ್ಲಿ ಕಡಿತ (TDS) {amount}",
+      "tax_invoice": "ತೆರಿಗೆ ಇನ್‌ವಾಯ್ಸ್",
+      "tax_invoice_failed": "ಇನ್‌ವಾಯ್ಸ್ ತೆರೆಯಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
     },
     "help": {
       "title": "ಸಹಾಯ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳು",

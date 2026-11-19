@@ -51,9 +51,14 @@ class OrderForPayout:
     batch_bonus: Decimal | None = None
 
 
-def restaurant_statement(orders: list[OrderForPayout]) -> tuple[Decimal, dict, list[dict]]:
+def restaurant_statement(orders: list[OrderForPayout], commission_tax_pct: Decimal = ZERO,
+                         tds_pct: Decimal = ZERO) -> tuple[Decimal, dict, list[dict]]:
+    """R16: ``commission_tax_pct`` (India 18% GST on our commission) and ``tds_pct`` (section 194-O, a
+    percent of the kitchen's gross sales: food and packaging) come off the kitchen's payout; the
+    platform owes both to the government (Reconciliation's tax owed, by type)."""
     lines: list[dict] = []
-    totals = {k: ZERO for k in ("food", "packaging", "commission", "restaurant_funded_offers", "restaurant_tax", "refunds")}
+    totals = {k: ZERO for k in ("food", "packaging", "commission", "commission_tax", "tds", "restaurant_funded_offers",
+                                "restaurant_tax", "refunds")}
     for o in orders:
         amt = lambda code: sum((D(ln["amount"]) for ln in o.lines if ln["code"] == code), ZERO)  # noqa: E731
         food, packaging = amt("food"), amt("packaging")
@@ -70,16 +75,20 @@ def restaurant_statement(orders: list[OrderForPayout]) -> tuple[Decimal, dict, l
                          "fault": r.get("fault", "restaurant"),
                          "charged_to": "restaurant" if r.get("fault", "restaurant") == "restaurant" else "platform"}
                         for r in o.refund_lines]
-        net = m(food + packaging - commission - funded + tax - refund)
+        commission_tax = m(commission * D(commission_tax_pct) / 100)
+        tds = m((food + packaging) * D(tds_pct) / 100)
+        net = m(food + packaging - commission - commission_tax - tds - funded + tax - refund)
         lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "food": str(food),
-                      "packaging": str(packaging), "commission": str(-commission), "restaurant_funded_offers": str(-funded),
+                      "packaging": str(packaging), "commission": str(-commission), "commission_tax": str(-commission_tax),
+                      "tds": str(-tds), "restaurant_funded_offers": str(-funded),
                       "restaurant_tax": str(tax), "refunds": str(-refund), "refund_details": refund_notes,
                       "net": str(net)})
-        for k, v in (("food", food), ("packaging", packaging), ("commission", commission),
-                     ("restaurant_funded_offers", funded), ("restaurant_tax", tax), ("refunds", refund)):
+        for k, v in (("food", food), ("packaging", packaging), ("commission", commission), ("commission_tax", commission_tax),
+                     ("tds", tds), ("restaurant_funded_offers", funded), ("restaurant_tax", tax), ("refunds", refund)):
             totals[k] += v
     total = m(sum((D(ln["net"]) for ln in lines), ZERO))
-    summary = {"orders": len(orders), **{k: str(m(v)) for k, v in totals.items()}, "net": str(total)}
+    summary = {"orders": len(orders), **{k: str(m(v)) for k, v in totals.items()}, "net": str(total),
+               "commission_tax_percent": str(D(commission_tax_pct).normalize()), "tds_percent": str(D(tds_pct).normalize())}
     return total, summary, lines
 
 

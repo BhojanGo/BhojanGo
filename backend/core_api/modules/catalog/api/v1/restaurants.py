@@ -303,8 +303,6 @@ async def configure_pricing(
     repo = RestaurantRepository(db)
 
     values: dict = {"pricing_model": data.pricing_model}
-    if data.commission_rate is not None:
-        values["commission_rate"] = data.commission_rate
     if data.flat_fee_per_order is not None:
         values["flat_fee_per_order"] = data.flat_fee_per_order
     if data.monthly_subscription_fee is not None:

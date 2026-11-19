@@ -1634,7 +1634,11 @@
         "one": "{count} ऑर्डर",
         "other": "{count} ऑर्डर"
       },
-      "offers": "ऑफर {amount}"
+      "offers": "ऑफर {amount}",
+      "commission_tax": "कमिशनवरील कर {amount}",
+      "tds": "उद्गम कर कपात (TDS) {amount}",
+      "tax_invoice": "कर बीजक",
+      "tax_invoice_failed": "बीजक उघडले नाही. पुन्हा प्रयत्न करा."
     },
     "help": {
       "title": "मदत आणि सेटिंग्ज",

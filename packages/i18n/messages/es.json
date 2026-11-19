@@ -1634,7 +1634,11 @@
         "one": "{count} pedido",
         "other": "{count} pedidos"
       },
-      "offers": "ofertas {amount}"
+      "offers": "ofertas {amount}",
+      "commission_tax": "impuesto sobre la comisión {amount}",
+      "tds": "impuesto retenido {amount}",
+      "tax_invoice": "Factura del impuesto",
+      "tax_invoice_failed": "La factura no se abrió. Inténtalo de nuevo."
     },
     "help": {
       "title": "Ayuda y ajustes",

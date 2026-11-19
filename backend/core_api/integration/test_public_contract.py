@@ -115,10 +115,10 @@ def test_canary_the_static_check_catches_a_leak() -> None:
     doc = openapi()
     components = doc["components"]["schemas"]
     bad = forbidden_in_schema({"$ref": "#/components/schemas/RestaurantResponse"}, components)
-    assert {"commission_rate", "pricing_model", "owner_id", "flat_fee_per_order", "monthly_subscription_fee",
+    assert {"pricing_model", "owner_id", "flat_fee_per_order", "monthly_subscription_fee",
             "tier", "fssai_expires_on"} <= set(bad), bad
     nested = {"type": "object", "properties": {"items": {"type": "array", "items": {"$ref": "#/components/schemas/RestaurantResponse"}}}}
-    assert "items[].commission_rate" in forbidden_in_schema(nested, components)
+    assert "items[].owner_id" in forbidden_in_schema(nested, components)
     assert forbidden_in_json({"a": [{"x": {"payout_account": 1}}], "fssai_number": "1"}) == ["a[0].x.payout_account"]
 
 

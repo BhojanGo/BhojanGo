@@ -505,10 +505,19 @@ COUNTRIES = [
 RULES = [
     # India
     ("tax", "rate_on_lines", "gst_food", "GST on food and packaging", "country", "IN",
-     {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"], "collected_by": "platform"}),
+     # R16: a discount the platform funds doesn't lower the GST base (to confirm with a CA).
+     {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"], "collected_by": "platform",
+      "platform_discounts_reduce_base": False, "ca_confirmed": False}),
     ("tax", "rate_on_lines", "gst_fees", "GST on platform fees", "country", "IN",
      {"label": "GST on platform fees", "rate_percent": 18,
-      "target_lines": ["delivery_fee", "service_fee", "surge", "small_order_fee", "late_night_fee"], "collected_by": "platform"}),
+      "target_lines": ["delivery_fee", "service_fee", "surge", "small_order_fee", "late_night_fee"], "collected_by": "platform",
+      "platform_discounts_reduce_base": False, "ca_confirmed": False}),
+    # R16: GST on our commission (deducted from the kitchen's payout, owed by us) and TDS under section
+    # 194-O on kitchen payouts. Values to confirm with a CA; admin says so until ca_confirmed.
+    ("business", "commission_tax", None, "GST on commission", "country", "IN",
+     {"label": "GST on commission", "rate_percent": 18, "ca_confirmed": False}),
+    ("business", "payout_tds", None, "TDS on kitchen payouts (194-O)", "country", "IN",
+     {"label": "TDS (section 194-O)", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "IN",
      {"tiers": {"A": 18, "B": 15, "C": 12}, "default_tier": "B"}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
@@ -536,6 +545,9 @@ RULES = [
     ("business", "auto_refund_limit", None, "Automatic refunds for problem reports", "city", "IN-TG-HYD", {"max_per_order": 100}),
     # USA
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
+    ("business", "commission_tax", None, "Tax on commission", "country", "US", {"label": "Tax on commission", "rate_percent": 0, "ca_confirmed": False}),
+    ("business", "payout_tds", None, "Tax withheld from kitchen payouts", "country", "US",
+     {"label": "Tax withheld", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
     ("commission", "percent_by_tier", None, "Commission by tier", "country", "US", {"tiers": {"A": 15, "B": 15, "C": 15}, "default_tier": "B"}),  # R15: 15% in the US
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",

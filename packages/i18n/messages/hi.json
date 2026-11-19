@@ -1634,7 +1634,11 @@
         "one": "{count} ऑर्डर",
         "other": "{count} ऑर्डर"
       },
-      "offers": "ऑफ़र {amount}"
+      "offers": "ऑफ़र {amount}",
+      "commission_tax": "कमीशन पर टैक्स {amount}",
+      "tds": "स्रोत पर कटा टैक्स (TDS) {amount}",
+      "tax_invoice": "टैक्स इनवॉइस",
+      "tax_invoice_failed": "इनवॉइस नहीं खुला। फिर से कोशिश करें।"
     },
     "help": {
       "title": "मदद और सेटिंग",

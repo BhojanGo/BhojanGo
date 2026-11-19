@@ -83,14 +83,11 @@ class PricingConfigRequest(BaseModel):
     """Configure a restaurant's commission / fee model."""
 
     pricing_model: PricingModel
-    commission_rate: Decimal | None = Field(default=None, ge=0, le=1, max_digits=5, decimal_places=4)
     flat_fee_per_order: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     monthly_subscription_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
 
     def require_fields_for_model(self) -> str | None:
         """Return an error message if the required field for the chosen model is missing."""
-        if self.pricing_model == "percentage_commission" and self.commission_rate is None:
-            return "commission_rate is required for percentage_commission"
         if self.pricing_model == "flat_fee_per_order" and self.flat_fee_per_order is None:
             return "flat_fee_per_order is required for flat_fee_per_order"
         if self.pricing_model == "monthly_subscription" and self.monthly_subscription_fee is None:
@@ -168,7 +165,6 @@ class RestaurantResponse(PublicRestaurant):
     owner_id: uuid.UUID
     # Pain-point layer
     pricing_model: str = "percentage_commission"
-    commission_rate: float = 0.0
     flat_fee_per_order: float = 0.0
     monthly_subscription_fee: float = 0.0
     tier: str | None = None

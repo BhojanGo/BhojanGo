@@ -109,6 +109,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/finance/stripe/connect/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/finance/stripe/webhook"): public("signature-checked webhook (payout transfers, R10)"),
     ("GET", "/api/v1/finance/payout-onboarding"): public("a signed link that expires (Stripe's refresh_url, admins' copy): R10"),
+    ("GET", "/api/v1/finance/commission-invoice"): public("a signed link that expires in an hour (the Kitchen app opens the invoice): R16"),
     ("POST", "/api/v1/payments/fake/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/razorpay/webhook"): public("signature-checked webhook"),
     ("POST", "/api/v1/payments/stripe/webhook"): public("signature-checked webhook"),
@@ -295,7 +296,7 @@ POLICY: dict[tuple[str, str], Policy] = {
         "street": "Road 1", "area": "Madhapur", "zip": "500081", "cuisines": ["Thali"]}),
     ("PUT", f"{R}/gst"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"gstin": "36AABCU9603R1ZM"}),
     ("PUT", f"{R}/pricing"): user("customer", "rider", "other_partner", "ops_boi",
-                                  body=lambda c: {"pricing_model": "percentage_commission", "commission_rate": "0.15"}),
+                                  body=lambda c: {"pricing_model": "percentage_commission"}),
     ("POST", f"{R}/menu-items"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: MENU_ITEM),
     ("PUT", f"{R}/menu-items/{{item_id}}"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"price": 999}),
     ("DELETE", f"{R}/menu-items/{{item_id}}"): user("customer", "rider", "other_partner", "ops_boi"),
@@ -397,6 +398,9 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/finance/payees/{kind}/{target_id}/payout-account/link"): admin(
         "viewer", "support_hyd", "ops_boi", "finance_us", "cm_us", body=lambda c: {"send": False}),
     ("GET", "/api/v1/finance/statements/{statement_id}"): user("other_partner", "other_rider", "customer", "finance_us"),
+    # R16: the commission tax invoice to the kitchen, by the same rule as its statement
+    ("GET", "/api/v1/finance/statements/{statement_id}/commission-invoice"): user("other_partner", "other_rider", "customer", "finance_us"),
+    ("POST", "/api/v1/finance/statements/{statement_id}/commission-invoice/link"): user("other_partner", "other_rider", "customer", "finance_us"),
 }
 
 
