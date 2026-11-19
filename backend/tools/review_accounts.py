@@ -8,7 +8,7 @@ refuses on QA). Inside the core-api container:
 It creates, in one transaction:
 
 - a city "App Review" (code <region>-REV, or --code) in a live country (--country,
-  default US), in the region of one of its live cities (or --region). Its one
+  default US), in the region of one of its live cities (else a beta one; or --region). Its one
   delivery zone is a small square of open sea (default for US: the North Pacific
   around 30N 140W, about 2,000 km from any coast), so no real address is ever in
   it. The city is *review-only* (settings ``review_only``; markets.service.review):
@@ -170,10 +170,11 @@ async def create(db, args: argparse.Namespace) -> list[Login]:  # type: ignore[n
         if region is None:
             raise Refused(f"No region {args.region} in {args.country}")
     else:
-        ref = (await db.execute(select(City).where(City.country_id == country.id, City.status == "live")
-                                .order_by(City.name))).scalars().first()
+        # A live city's region (production: Boise); a beta one when none is live yet (a dev or CI stack).
+        ref = (await db.execute(select(City).where(City.country_id == country.id, City.status.in_(("live", "beta")))
+                                .order_by(City.status != "live", City.name))).scalars().first()
         if ref is None:
-            raise Refused(f"{args.country} has no live city: pass --region")
+            raise Refused(f"{args.country} has no live or beta city: pass --region")
         region = await db.get(Region, ref.region_id)
     code = city_code(region.code, args.code)
     lat, lng = centre_for(country.code, args.centre)
