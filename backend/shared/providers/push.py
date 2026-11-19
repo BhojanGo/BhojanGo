@@ -115,8 +115,10 @@ class FcmPush:
 
         app = get_firebase_app()
         if app is None:
+            # Locally a stand-in success; in production nothing was sent (the apps use Expo tokens:
+            # a raw FCM token without Firebase keys is a miss, so the SMS fallback can take over).
             logger.info("fcm_not_configured", devices=len(devices), title=message.title)
-            return PushResult(sent=len(devices))
+            return PushResult(sent=0 if get_settings().production_named else len(devices))
         from firebase_admin import messaging
 
         tokens = [d.token for d in devices]

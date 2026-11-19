@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { authed } from "@/lib/client";
 import { useT } from "@/lib/i18n";
+import { PAYMENTS_MODE } from "@/lib/payments";
 import { card, ghost, h2, input, link, primary, Row } from "./ui";
 
 interface Method {
@@ -21,8 +22,9 @@ interface Method {
   is_default: boolean;
 }
 
-// Local and QA run the fake payment provider; a live site sets its real one.
-const TEST_PROVIDER = (process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "fake") === "fake";
+// Local and QA run the fake payment provider; a live site sets its real one. Production
+// without one fails closed: no test card form (lib/payments.ts).
+const MODE = PAYMENTS_MODE;
 const BRANDS = ["visa", "mastercard", "amex", "rupay", "discover"];
 const brandName = (b: string) => (b === "amex" ? "Amex" : b.charAt(0).toUpperCase() + b.slice(1));
 
@@ -166,7 +168,9 @@ export function Payments() {
         </div>
       )}
       {problem && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{problem}</p>}
-      {TEST_PROVIDER ? (
+      {MODE === "unavailable" ? (
+        <p role="status" className="mt-[14px] text-small text-muted">{t("checkout.payments_unavailable")}</p>
+      ) : MODE === "test" ? (
         adding ? (
           <AddCard onCancel={() => setAdding(false)} onDone={() => { setAdding(false); refresh(); }} />
         ) : (

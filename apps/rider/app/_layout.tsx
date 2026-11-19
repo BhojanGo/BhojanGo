@@ -1,6 +1,7 @@
 import {
   FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, useSession, WithTestBanner,
 } from "@bhojango/mobile-core";
+import * as Sentry from "@sentry/react-native";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -11,6 +12,12 @@ import { stopTracking } from "../lib/location"; // also defines the background l
 import { night } from "../lib/theme";
 
 void SplashScreen.preventAutoHideAsync();
+
+// Error reports to Sentry (R19, the free plan), only when the build sets EXPO_PUBLIC_SENTRY_DSN
+// (without it: no init, no network).
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.EXPO_PUBLIC_SENTRY_DSN, environment: process.env.EXPO_PUBLIC_APP_ENV || "development", tracesSampleRate: 0 });
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),

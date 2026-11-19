@@ -72,3 +72,70 @@ async def test_public_health_reports_the_environment() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/health")
     assert r.json()["environment"] == get_settings().environment_name
+
+
+# ── R19: what core_api needs in production (public addresses, two-step key, sign-in codes) ──
+
+CORE_OK = {"PUBLIC_WEB_URL": "https://web.example.org", "PUBLIC_API_URL": "https://api.example.org",
+           "OTP_PROVIDER": "twilio_verify", "TWILIO_ACCOUNT_SID": "AC1", "TWILIO_AUTH_TOKEN": "t",
+           "TWILIO_VERIFY_SERVICE_SID": "VA1", "SMS_PROVIDER": "off"}
+
+
+def core(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
+    for k in (*CORE_OK, "IDENTITY_DATA_KEYS"):
+        monkeypatch.delenv(k, raising=False)
+    from cryptography.fernet import Fernet
+
+    return make(monkeypatch, APP_ENV="production", **LIVE,
+                **{"IDENTITY_DATA_KEYS": f'["{Fernet.generate_key().decode()}"]', **CORE_OK, **env})
+
+
+def test_core_api_production_ready(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    s = core(monkeypatch)
+    assert s.core_api_production_problems() == []
+    s.check_core_api_production()
+
+
+@pytest.mark.parametrize(("name", "value", "says"), [
+    ("PUBLIC_WEB_URL", "", "PUBLIC_WEB_URL is not set"),
+    ("PUBLIC_WEB_URL", "http://localhost:3000", "PUBLIC_WEB_URL must be an https"),
+    ("PUBLIC_WEB_URL", "https://localhost:3000", "PUBLIC_WEB_URL points at localhost"),
+    ("PUBLIC_WEB_URL", "http://web.example.org", "PUBLIC_WEB_URL must be an https"),
+    ("PUBLIC_API_URL", "https://127.0.0.1:8001", "PUBLIC_API_URL points at 127.0.0.1"),
+    ("PUBLIC_API_URL", "https://core-api.railway.internal", "PUBLIC_API_URL points at the private network"),
+    ("PUBLIC_API_URL", "api.example.org", "PUBLIC_API_URL must be an https"),
+])
+def test_core_api_refuses_bad_public_addresses(monkeypatch, name, value, says) -> None:  # type: ignore[no-untyped-def]
+    s = core(monkeypatch, **{name: value})
+    with pytest.raises(ProductionConfigError, match=says):
+        s.check_core_api_production()
+
+
+def test_core_api_defaults_are_localhost_and_refused(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Left unset, both addresses are the localhost defaults: production names both."""
+    monkeypatch.delenv("PUBLIC_WEB_URL", raising=False)
+    s = core(monkeypatch)
+    s.identity.PUBLIC_WEB_URL = "http://localhost:3000"
+    s.payments.PUBLIC_API_URL = "http://localhost:8001"
+    problems = " ".join(s.core_api_production_problems())
+    assert "PUBLIC_WEB_URL" in problems and "PUBLIC_API_URL" in problems
+
+
+def test_core_api_needs_identity_data_keys(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    s = core(monkeypatch, IDENTITY_DATA_KEYS="[]")
+    with pytest.raises(ProductionConfigError, match="IDENTITY_DATA_KEYS"):
+        s.check_core_api_production()
+
+
+def test_core_api_needs_a_way_to_send_sign_in_codes(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    with pytest.raises(ProductionConfigError, match="TWILIO_VERIFY_SERVICE_SID"):
+        core(monkeypatch, TWILIO_VERIFY_SERVICE_SID="").check_core_api_production()
+    with pytest.raises(ProductionConfigError, match="OTP_PROVIDER"):
+        core(monkeypatch, OTP_PROVIDER="local").check_core_api_production()
+    # Our own codes are fine when the worker can text them
+    core(monkeypatch, OTP_PROVIDER="local", SMS_PROVIDER="live").check_core_api_production()
+
+
+def test_core_api_checks_nothing_outside_production(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    s = make(monkeypatch, APP_ENV="qa", RAILWAY_ENVIRONMENT_NAME="QA")
+    assert s.core_api_production_problems() == []

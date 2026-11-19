@@ -58,6 +58,8 @@ MODULES = [
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("core_api_starting", env=settings.APP_ENV, version=settings.VERSION)
+    # Production: public https addresses, the two-step key, a way to send sign-in codes (R19).
+    settings.check_core_api_production()
     # Warm up Redis connection
     await get_redis()
     async with AsyncExitStack() as stack:

@@ -1,14 +1,23 @@
-# Production configuration (dry run, 2026-11-19)
+# Production configuration (dry run, 2026-11-19; updated in round 19)
 
 Every variable and secret production needs, per service. Nothing here was created, bought or deployed.
 Production does not exist yet. No value is written here: only names, where each comes from, and what kind of
 value QA has.
 
+Round 19 applied Srini's decisions: production is **Boise (US) only** (India's markets are kept, switched off);
+email through **Amazon SES**; phone sign-in codes through **Twilio Verify** (no sender number, no A2P 10DLC);
+order updates by **push**, not SMS; **Sentry** (free plan) now; a **markets-only seed**. `railway.ts` now defines
+every variable the code needs for production. What is left is values set once in Railway by hand, 12 of them from
+Srini's accounts ([the list](#secrets-from-srinis-accounts)), and the app store build inputs.
+
 How this list was made:
 
 - the backend settings in [`backend/shared/config.py`](../../backend/shared/config.py) (one Settings class, every
-  field is an environment variable of the same name) and its production check `refuse_fakes_in_production`;
-- the other production checks in the code (worker start-up, providers, internal auth, two-step secrets, payments);
+  field is an environment variable of the same name) and its production checks: `refuse_fakes_in_production`
+  (every service) and `core_api_production_problems` (core-api: the public https addresses, `IDENTITY_DATA_KEYS`, a
+  way to send sign-in codes);
+- the worker's start-up check ([`worker/app/main.py`](../../backend/worker/app/main.py) `production_missing`), the
+  providers, internal auth, two-step secrets, payments;
 - `process.env` reads in web and admin, `EXPO_PUBLIC_*` reads in the apps, and
   [`infra/docker/next-app.Dockerfile`](../../infra/docker/next-app.Dockerfile);
 - [`.railway/railway.ts`](../../.railway/railway.ts), read as the production environment.
@@ -38,17 +47,20 @@ The go-live steps are in [go-live.md](go-live.md).
 
 | Account | For | Cost note |
 |---|---|---|
-| Domain registrar and DNS | website, admin, API and realtime names; email sender records | readiness item 2 |
+| Domain registrar and DNS | website, admin, API and realtime names; SES domain records (DKIM, SPF, DMARC) | readiness item 2 |
 | Stripe, live mode (DeepTrics LLC) | payments, Connect payouts, Stripe Tax | per use |
-| SendGrid (or another sender) | email: codes, receipts, password reset | free tier first |
-| Twilio, with a US number registered for application-to-person SMS (10DLC or toll-free verification) | sign-in codes and order SMS | per message |
-| Firebase project (Google) | Android push (FCM). Expo push on Android also needs it | free |
-| Apple Developer (DeepTrics LLC) | iOS builds, APNs key for push, Apple Pay merchant id | $99 a year |
+| AWS (Amazon SES) | email: codes, receipts, password reset (an IAM user allowed `ses:SendEmail` only) | per email; out of the SES sandbox first |
+| Twilio (Verify) | phone sign-in codes; Verify sends from Twilio's own numbers, so no 10DLC or toll-free registration | per verification |
+| Expo (EAS) | store builds and push for the three apps (order updates go by push) | free tier first |
+| Firebase project (Google) | the FCM V1 key that Expo push on Android needs (uploaded to EAS, not to Railway) | free |
+| Apple Developer (DeepTrics LLC) | iOS builds, APNs key (uploaded to EAS), Apple Pay merchant id | $99 a year |
 | Google Play Console (DeepTrics LLC) | Android builds | $25 once |
-| Expo (EAS) | store builds and push for the three apps | free tier first |
+| Sentry | error tracking for the backends, website, admin and apps | free plan |
 | Google Cloud OAuth client | Sign in with Google (optional) | free |
-| Sentry | error tracking (optional, recommended) | free tier first |
 | Railway | already exists (workspace "Srinivas's Projects") | usage |
+
+No longer needed for Boise: SendGrid (SES instead), a Twilio sender number with A2P 10DLC (Verify instead), and a
+Firebase service account on the worker (the apps use Expo push tokens).
 
 ## All three backends (core-api, realtime, worker)
 
@@ -67,40 +79,48 @@ The go-live steps are in [go-live.md](go-live.md).
 | `LOG_FORMAT` | no (json is the production default) | railway.ts | no | `json` | supplied |
 | `PAYMENT_PROVIDER` | yes, must be `live` | railway.ts | no | `fake` in railway.ts; QA's core-api has `auto` set by hand (round 10) | supplied |
 | `PAYOUT_PROVIDER` | yes, not `fake` | railway.ts | no | as above | supplied (`live`) |
-| `SMS_PROVIDER`, `PUSH_PROVIDER` | yes (worker), must be `live` | railway.ts | no | `log` | supplied |
-| `EMAIL_PROVIDER` | yes (worker), `sendgrid` | railway.ts | no | `log` | supplied |
+| `EMAIL_PROVIDER` | yes (worker), `ses` | railway.ts | no | `log` | supplied (`ses`) |
+| `SMS_PROVIDER` | yes (worker), `off` (no SMS: order updates by push, codes by Verify) or `live` | railway.ts | no | `log` | supplied (`off`) |
+| `PUSH_PROVIDER` | yes (worker), `live` (Expo push) | railway.ts | no | `log` | supplied |
 | `OTP_FIXED_CODE` | yes, must be `""` | railway.ts | no | default fixed code for seed phones | supplied (`""`) |
 | `DELIVERY_PIN_FIXED` | yes, must be `""` | railway.ts | no | default fixed PIN for seed phones | supplied (`""`) |
 | `ROUTING_PROVIDER` | yes (`straight_line`) | railway.ts | no | same | supplied |
 | `SERVICE_NAME`, `PORT` | yes | railway.ts | no | same | supplied |
 | `RAILWAY_ENVIRONMENT_NAME` | automatic | Railway | no | `QA` | automatic (also checked by the production guard) |
-| `SENTRY_DSN` | opt (recommended) | Sentry | yes | not set | **missing**; also needs `sentry-sdk` in `backend/pyproject.toml` |
+| `SENTRY_DSN` | yes (Srini's decision; errors only, off when unset) | Sentry, one backend project | yes | not set | by hand (`sentry-sdk` is a dependency since R19) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | opt | a tracing vendor | no | not set | not defined |
 
 ## core-api
+
+core-api refuses to start in production (`ProductionConfigError`, naming the variable) when `PUBLIC_WEB_URL` or
+`PUBLIC_API_URL` is missing, not `https://`, or points at localhost, 127.0.0.1 or the private network; when
+`IDENTITY_DATA_KEYS` is empty; or when no path sends sign-in codes (`OTP_PROVIDER=twilio_verify` without its three
+Twilio values, or local codes with SMS off).
 
 | Variable | Required | From | Sealed | QA | railway.ts (production) |
 |---|---|---|---|---|---|
 | `JWT_PRIVATE_KEY` | yes | generated (RSA 2048 PEM, new for production) | yes | sealed, QA's own key | by hand |
 | `JWKS_URL` | yes, `""` (core-api signs) | railway.ts | no | `""` | supplied |
-| `IDENTITY_DATA_KEYS` | yes (admins' two-step secrets; refused in production without it) | generated (Fernet key, JSON list) | yes | not in railway.ts | **missing** |
-| `PUBLIC_WEB_URL` | yes (password-reset links, Stripe return URL) | the website's custom domain | no | set by hand (web's Railway domain) | **missing** (default is localhost) |
-| `PUBLIC_API_URL` | yes (Stripe payout onboarding links) | the API's public address | no | set by hand (round 10) | **missing** (default is localhost) |
-| `STRIPE_SECRET_KEY` | yes | Stripe live | yes | Stripe test-mode key, sealed, set by hand | **missing** |
-| `STRIPE_PUBLISHABLE_KEY` | yes (handed to web and app checkouts by the API) | Stripe live | yes (not secret, kept with the rest) | test-mode key, set by hand | **missing** |
-| `STRIPE_WEBHOOK_SECRET` | yes (payments endpoint) | Stripe live webhook | yes | test-mode signing secret, by hand | **missing** |
-| `STRIPE_CONNECT_WEBHOOK_SECRET` | yes (Connect endpoint) | Stripe live webhook | yes | by hand | **missing** |
-| `STRIPE_PAYOUTS_WEBHOOK_SECRET` | yes (transfers endpoint) | Stripe live webhook | yes | by hand | **missing** |
-| `TAX_PROVIDER` | opt (`auto` picks Stripe Tax with a key; set `stripe_tax` to be explicit) | railway.ts | no | `auto`, by hand | not defined (default `auto`) |
+| `IDENTITY_DATA_KEYS` | yes (start-up check; admins' two-step secrets) | generated: `python tools/secrets/identity_data_keys.py` | yes | not in railway.ts | by hand |
+| `PUBLIC_WEB_URL` | yes (start-up check; password-reset links, Stripe return URL) | `https://<domain>` | no | set by hand (web's Railway domain) | by hand |
+| `PUBLIC_API_URL` | yes (start-up check; Stripe payout onboarding links) | `https://api.<domain>` | no | set by hand (round 10) | by hand |
+| `OTP_PROVIDER` | yes, `twilio_verify` | railway.ts | no | default `local` | supplied |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | yes (Verify) | Twilio | yes | not set | by hand |
+| `TWILIO_VERIFY_SERVICE_SID` | yes (Verify) | Twilio Verify service (`VA...`) | yes | not set | by hand |
+| `STRIPE_SECRET_KEY` | yes | Stripe live | yes | Stripe test-mode key, sealed, set by hand | by hand |
+| `STRIPE_PUBLISHABLE_KEY` | yes (handed to web and app checkouts by the API) | Stripe live | yes (not secret, kept with the rest) | test-mode key, set by hand | by hand |
+| `STRIPE_WEBHOOK_SECRET` | yes (payments endpoint) | Stripe live webhook | yes | test-mode signing secret, by hand | by hand |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | yes (Connect endpoint) | Stripe live webhook | yes | by hand | by hand |
+| `STRIPE_PAYOUTS_WEBHOOK_SECRET` | yes (transfers endpoint) | Stripe live webhook | yes | by hand | by hand |
+| `TAX_PROVIDER` | yes, `stripe_tax` | railway.ts | no | `auto`, by hand | supplied |
 | `STORAGE_PROVIDER` | yes (`s3`) | railway.ts | no | `s3` | supplied |
 | `UPLOADS_BUCKET`, `AWS_ENDPOINT_URL`, `AWS_REGION`, `S3_ADDRESSING_STYLE` | yes | Railway bucket credentials (production's own bucket) | no | QA bucket's | by hand |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | yes | Railway bucket credentials | yes | sealed, QA's own | by hand |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | yes (the bucket; not SES) | Railway bucket credentials | yes | sealed, QA's own | by hand |
 | `ALERT_WEBHOOK_TOKEN` | yes once alerts post to core-api | generated | yes | sealed | by hand |
 | `GEOIP` | no (build arg: the free DB-IP file) | railway.ts | no | `1` | supplied |
 | `GOOGLE_WEB_CLIENT_ID` | opt (website's Google button; hidden without it) | Google Cloud OAuth client | no | not set | not defined |
-| `GOOGLE_CLIENT_IDS` | opt (only if the apps add Google sign-in; they don't today) | Google Cloud | no | not set | not defined |
 | `APPLE_CLIENT_ID`, `APPLE_CLIENT_IDS` (+ team, key) | opt (Sign in with Apple) | Apple Developer | key: yes | not set | not defined |
-| `FAKE_PAYMENT_WEBHOOK_URL`, `FAKE_PAYMENT_AUTO_COMPLETE_SECONDS`, `FAKE_PAYMENT_WEBHOOK_SECRET` | **no** (the fake gateway only) | — | — | set | **defined for production** (should be QA only) |
+| `FAKE_PAYMENT_*` | **no** (the fake gateway only) | — | — | set | not defined for production (QA and staging only since R19) |
 | `RAZORPAY_*` | no for Boise (India) | Razorpay | yes | not set | not defined |
 
 ## realtime
@@ -109,30 +129,31 @@ Only the shared variables above, with `REDIS_URL` on database 3. No provider key
 
 ## worker
 
-The worker refuses to start in production without `SENDGRID_API_KEY`, `TWILIO_ACCOUNT_SID` and
-`FIREBASE_PROJECT_ID` ([`worker/app/main.py:29`](../../backend/worker/app/main.py)). With the Redis event bus,
-the worker sends every SMS, email and push (core-api only queues them), so the provider keys belong here.
+With the Redis event bus the worker sends every email and push (core-api only queues them). It refuses to start in
+production unless `EMAIL_PROVIDER` is `ses` (or `sendgrid`), `PUSH_PROVIDER` is `live` and `SMS_PROVIDER` is `off`
+(or `live`), and the chosen providers' keys are set: for SES `SES_REGION`, `SES_ACCESS_KEY_ID`,
+`SES_SECRET_ACCESS_KEY`, `EMAIL_FROM` ([`worker/app/main.py`](../../backend/worker/app/main.py)
+`_REQUIRED_PROD_SETTINGS`). No SMS or Firebase credentials are needed.
 
 | Variable | Required | From | Sealed | QA | railway.ts (production) |
 |---|---|---|---|---|---|
-| `SENDGRID_API_KEY` | yes (start-up check) | SendGrid | yes | not set (email to the log) | **missing** |
-| `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME` | yes (an address on the authenticated domain) | Srini's choice | no | default | **missing** (default `noreply@bhojango.com`) |
-| `TWILIO_ACCOUNT_SID` | yes (start-up check) | Twilio | yes | not set (SMS to the log) | **missing** |
-| `TWILIO_AUTH_TOKEN` | yes | Twilio | yes | not set | **missing** |
-| `TWILIO_PHONE_NUMBER` | yes (the US sender number) | Twilio | no | not set | **missing** |
-| `FIREBASE_PROJECT_ID` | yes (start-up check) | Firebase | no | not set | **missing** |
-| `FIREBASE_PRIVATE_KEY_ID`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL` | yes for FCM tokens (a service account) | Firebase | yes | not set | **missing** |
+| `SES_REGION` | yes | where the domain is verified in SES (`us-west-2`) | no | not set | supplied |
+| `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | yes | AWS IAM user allowed `ses:SendEmail` only | yes | not set (email to the log) | by hand |
+| `EMAIL_FROM` | yes (an address on the SES-verified domain, e.g. `orders@<domain>`) | Srini's choice | no | not set (`SENDGRID_FROM_EMAIL` default) | by hand |
+| `EMAIL_FROM_NAME` | yes | railway.ts (`BhojanGo`) | no | default | supplied |
+| `SES_CONFIGURATION_SET` | opt (bounce and complaint events) | SES | no | not set | not defined |
 | `EXPO_ACCESS_TOKEN` | opt (needed if Expo "enhanced push security" is on) | Expo | yes | not set | not defined |
-| `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`, `APNS_BUNDLE_ID` | opt (only for raw iOS tokens; Expo tokens don't need them) | Apple Developer | key: yes | not set | not defined |
+| `APNS_*`, `FIREBASE_*` | no (only for raw device tokens; the apps register Expo tokens) | Apple / Firebase | key: yes | not set | not defined |
 | `APNS_SANDBOX` | no (must stay false) | — | — | default false | not defined (good) |
 | `DEMO_RIDER_SIM` | **no** (refused in production) | — | — | `1` | not defined (good) |
 | `DB_POOL_SIZE`, `REALTIME_INTERNAL_URL` | yes | railway.ts | no | same | supplied |
-| `TWILIO_PHONE_NUMBER_IN`, `MSG91_*` | no for Boise (India) | Twilio / MSG91 | yes | not set | not defined |
+| `TWILIO_*`, `SENDGRID_*`, `MSG91_*` | no (SMS off; email through SES) | — | — | not set | not defined |
 
 ## web and admin (Next.js)
 
-`NEXT_PUBLIC_*` are baked into the browser bundle at build time. `APP_ENV` is a build argument and a run-time
-variable: it turns off the test-site banner and noindex.
+`NEXT_PUBLIC_*` are baked into the browser bundle at build time (build args in the Dockerfile). `APP_ENV` is a
+build argument and a run-time variable: it turns off the test-site banner and noindex, and reaches the browser as
+`NEXT_PUBLIC_APP_ENV` (next.config.mjs).
 
 | Variable | Service | Required | From | Sealed | QA | railway.ts (production) |
 |---|---|---|---|---|---|---|
@@ -142,7 +163,8 @@ variable: it turns off the test-site banner and noindex.
 | `CORE_API_INTERNAL_URL` | web | yes | railway.ts | no | internal URL | supplied |
 | `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | both | yes | Railway reference to the services' Railway domains | no | reference | supplied, but as the Railway domains, not the custom ones (a decision below) |
 | `NEXT_PUBLIC_APP_URL` | web | yes | the website's custom domain | no | reference | by hand |
-| `NEXT_PUBLIC_PAYMENTS_PROVIDER` | web | yes: anything but `fake` (e.g. `stripe`) | railway.ts | no | not set (`fake`) | **missing**: production would show the fake "add a card" form |
+| `NEXT_PUBLIC_PAYMENTS_PROVIDER` | web | yes, `stripe` | railway.ts | no | not set (`fake`) | supplied (`stripe`). Without it production fails closed: "Payments aren't available in this city yet", never the fake card form or checkout |
+| `NEXT_PUBLIC_SENTRY_DSN` | both | yes (Srini's decision; off when unset) | Sentry (a web and an admin project, or one) | yes | not set | by hand. Its host joins the CSP's connect-src |
 | `NEXT_PUBLIC_WORKER_URL` | web | no (no call uses it) | — | — | image default | not defined |
 
 ## postgres, redis, bucket
@@ -161,12 +183,14 @@ backups for `postgres-data`.
 
 Set at build time, outside Railway. Expo bakes `EXPO_PUBLIC_*` into the bundle. The apps get the Stripe
 publishable key from the API, so no Stripe variable is needed in a build. No app offers Google sign-in today.
+(`eas.json`, the production profile and push token registration are another round-19 branch.)
 
 | Variable or input | Apps | Required | From | Secret | QA | Production today |
 |---|---|---|---|---|---|---|
 | `EXPO_PUBLIC_APP_ENV` | all | yes (`production`; a release build without it also counts as production) | build profile | no | `qa` (env-profile.sh) | **no production profile** |
 | `EXPO_PUBLIC_CORE_URL`, `EXPO_PUBLIC_REALTIME_URL` | all | yes | the API and realtime domains | no | QA's Railway domains | **no production profile** |
 | `EXPO_PUBLIC_WEB_URL` | customer, partner | yes | the website's domain | no | QA's web domain | **no production profile** |
+| `EXPO_PUBLIC_SENTRY_DSN` | all | yes (Srini's decision; off when unset) | Sentry (one project per app, or one for the three) | no (a DSN is public in an app) | not set | **not in a profile yet** |
 | `EXPO_PUBLIC_ENV` | all | no (older name) | — | — | `qa` | — |
 | `EXPO_PUBLIC_WORKER_URL`, `EXPO_PUBLIC_FONT_AUDIT` | all | no (must stay unset) | — | — | unset | — |
 | EAS project id (`extra.eas.projectId`) | all | yes | Expo | no | placeholder | **placeholder** in each `app.json` |
@@ -181,68 +205,49 @@ publishable key from the API, so no Stripe variable is needed in a build. No app
 
 ### Checker output
 
-`python tools/railway/prod_config_check.py`, 2026-11-19, on `r18/fixes-store-golive` (exit 1):
+`python tools/railway/prod_config_check.py`, 2026-11-19, on `r19/prod-config` (exit 1: the 7 gaps left are the app
+builds in section 6, another branch's work and Expo's project ids):
 
 ```
 Production config dry run (names only; no values, no network)
 
 railway.ts, production: 6 services with variables: admin, core-api, postgres, realtime, web, worker
-  admin: reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 6 (APP, APP_DIR, APP_ENV, CORE_API_URL, PORT, REALTIME_URL)
-  core-api: by-hand 11 (ALERT_WEBHOOK_TOKEN, AWS_ACCESS_KEY_ID, AWS_ENDPOINT_URL, AWS_REGION, AWS_SECRET_ACCESS_KEY, CORS_ORIGINS, FAKE_PAYMENT_WEBHOOK_SECRET, INTERNAL_SERVICE_SECRET, JWT_PRIVATE_KEY, S3_ADDRESSING_STYLE, UPLOADS_BUCKET); computed 1 (PORT); empty 3 (DELIVERY_PIN_FIXED, JWKS_URL, OTP_FIXED_CODE); reference 2 (EVENT_BUS_REDIS_URL, REDIS_URL); set 17 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DATABASE_URL, EMAIL_PROVIDER, EVENT_BUS, FAKE_PAYMENT_AUTO_COMPLETE_SECONDS, FAKE_PAYMENT_WEBHOOK_URL, GEOIP, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER, STORAGE_PROVIDER)
+  admin: by-hand 1 (NEXT_PUBLIC_SENTRY_DSN); reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 6 (APP, APP_DIR, APP_ENV, CORE_API_URL, PORT, REALTIME_URL)
+  core-api: by-hand 22 (ALERT_WEBHOOK_TOKEN, AWS_ACCESS_KEY_ID, AWS_ENDPOINT_URL, AWS_REGION, AWS_SECRET_ACCESS_KEY, CORS_ORIGINS, IDENTITY_DATA_KEYS, INTERNAL_SERVICE_SECRET, JWT_PRIVATE_KEY, PUBLIC_API_URL, PUBLIC_WEB_URL, S3_ADDRESSING_STYLE, SENTRY_DSN, STRIPE_CONNECT_WEBHOOK_SECRET, STRIPE_PAYOUTS_WEBHOOK_SECRET, STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID, UPLOADS_BUCKET); computed 1 (PORT); empty 3 (DELIVERY_PIN_FIXED, JWKS_URL, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 16 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, GEOIP, LOG_FORMAT, OTP_PROVIDER, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER, STORAGE_PROVIDER, TAX_PROVIDER)
   postgres: by-hand 1 (POSTGRES_PASSWORD); set 3 (PGDATA, POSTGRES_DB, POSTGRES_USER)
-  realtime: by-hand 2 (CORS_ORIGINS, INTERNAL_SERVICE_SECRET); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 2 (EVENT_BUS_REDIS_URL, REDIS_URL); set 14 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DATABASE_URL, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER)
-  web: by-hand 1 (NEXT_PUBLIC_APP_URL); reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 7 (APP, APP_DIR, APP_ENV, CORE_API_INTERNAL_URL, CORE_API_URL, PORT, REALTIME_URL)
-  worker: by-hand 2 (CORS_ORIGINS, INTERNAL_SERVICE_SECRET); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 2 (EVENT_BUS_REDIS_URL, REDIS_URL); set 16 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DATABASE_URL, DB_POOL_SIZE, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, REALTIME_INTERNAL_URL, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER)
+  realtime: by-hand 3 (CORS_ORIGINS, INTERNAL_SERVICE_SECRET, SENTRY_DSN); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 13 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER)
+  web: by-hand 2 (NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SENTRY_DSN); reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 8 (APP, APP_DIR, APP_ENV, CORE_API_INTERNAL_URL, CORE_API_URL, NEXT_PUBLIC_PAYMENTS_PROVIDER, PORT, REALTIME_URL)
+  worker: by-hand 6 (CORS_ORIGINS, EMAIL_FROM, INTERNAL_SERVICE_SECRET, SENTRY_DSN, SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 17 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DB_POOL_SIZE, EMAIL_FROM_NAME, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, REALTIME_INTERNAL_URL, ROUTING_PROVIDER, SERVICE_NAME, SES_REGION, SMS_PROVIDER)
 
-Code reads: 143 backend settings (config.py), 2 direct os.environ reads in the backend, 8 web and 7 admin process.env names, 7 EXPO_PUBLIC names.
+Code reads: 151 backend settings (config.py), 2 direct os.environ reads in the backend, 11 web and 10 admin process.env names, 8 EXPO_PUBLIC names.
 
 1. What production needs, against railway.ts (production)
-  GAP  core-api: IDENTITY_DATA_KEYS: not defined for production [needs: sealed; backend/core_api/modules/identity/service/totp.py:97]
-  GAP  core-api: PUBLIC_WEB_URL: not defined for production [needs: set; backend/core_api/modules/finance/service/connect.py:123]
-  GAP  core-api: PUBLIC_API_URL: not defined for production [needs: set; backend/core_api/modules/finance/service/connect.py:118]
-  GAP  core-api: STRIPE_SECRET_KEY: not defined for production [needs: sealed; backend/core_api/modules/payments/service/gateways.py:240]
-  GAP  core-api: STRIPE_PUBLISHABLE_KEY: not defined for production [needs: set; backend/core_api/modules/payments/service/gateways.py:100]
-  GAP  core-api: STRIPE_WEBHOOK_SECRET: not defined for production [needs: sealed; backend/core_api/modules/payments/service/stripe_svc.py:75]
-  GAP  core-api: STRIPE_CONNECT_WEBHOOK_SECRET: not defined for production [needs: sealed; backend/core_api/modules/finance/api/v1/finance.py:507]
-  GAP  core-api: STRIPE_PAYOUTS_WEBHOOK_SECRET: not defined for production [needs: sealed; backend/core_api/modules/finance/api/v1/finance.py:518]
-  GAP  worker: TWILIO_AUTH_TOKEN: not defined for production [needs: sealed; backend/shared/providers/sms.py:46]
-  GAP  worker: TWILIO_PHONE_NUMBER: not defined for production [needs: set; backend/shared/providers/sms.py:44]
-  GAP  worker: SENDGRID_FROM_EMAIL: not defined for production [needs: set; backend/shared/providers/email.py:21]
-  GAP  worker: FIREBASE_PRIVATE_KEY_ID: not defined for production [needs: sealed; backend/worker/app/services/fcm.py:27]
-  GAP  worker: FIREBASE_PRIVATE_KEY: not defined for production [needs: sealed; backend/worker/app/services/fcm.py:27]
-  GAP  worker: FIREBASE_CLIENT_EMAIL: not defined for production [needs: set; backend/worker/app/services/fcm.py:29]
-  GAP  web: NEXT_PUBLIC_PAYMENTS_PROVIDER: not defined for production [needs: not_fake; apps/web/src/app/account/profile/Payments.tsx:25]
-  GAP  worker: SENDGRID_API_KEY: not defined for production [needs: sealed; backend/worker/app/main.py:29]
-  GAP  worker: TWILIO_ACCOUNT_SID: not defined for production [needs: sealed; backend/worker/app/main.py:29]
-  GAP  worker: FIREBASE_PROJECT_ID: not defined for production [needs: set; backend/worker/app/main.py:29]
+  none
 
 2. QA-only, demo or fake settings defined for production
-  WARN core-api: FAKE_PAYMENT_AUTO_COMPLETE_SECONDS is defined (set); it only serves the fake gateway, the demo or QA
-  WARN core-api: FAKE_PAYMENT_WEBHOOK_SECRET is defined (by-hand); it only serves the fake gateway, the demo or QA
-  WARN core-api: FAKE_PAYMENT_WEBHOOK_URL is defined (set); it only serves the fake gateway, the demo or QA
+  none
 
 3. Optional (production starts without them; each is off until set)
-  off  SENTRY_DSN: error tracking (also needs sentry-sdk in backend/pyproject.toml)
   off  OTEL_EXPORTER_OTLP_ENDPOINT: traces
   off  GOOGLE_WEB_CLIENT_ID: Sign in with Google on the website (GOOGLE_CLIENT_IDS for the apps)
   off  APPLE_CLIENT_ID: Sign in with Apple
   off  EXPO_ACCESS_TOKEN: Expo push security
   off  APNS_KEY_ID: direct APNs push (iOS tokens not from Expo)
-  off  TAX_PROVIDER: explicit stripe_tax (auto picks Stripe Tax when STRIPE_SECRET_KEY is set)
+  off  SES_CONFIGURATION_SET: SES bounce and complaint events
+  off  TWILIO_PHONE_NUMBER: SMS from our own number (SMS_PROVIDER=live; production sends none: R19)
   off  TWILIO_PHONE_NUMBER_IN: India SMS (not Boise)
   off  MSG91_AUTH_KEY: India SMS (not Boise)
   off  RAZORPAY_KEY_ID: India payments (not Boise)
 
 4. Web and admin: names the code reads that production leaves to a default
-  web: NEXT_PUBLIC_PAYMENTS_PROVIDER uses the code's fallback (apps/web/src/app/account/profile/Payments.tsx:25)
   web: NEXT_PUBLIC_WORKER_URL uses the image's build-arg default (apps/web/src/lib/client.ts:12)
 
-5. Backend settings production leaves at their config.py default: 108 of 143
+5. Backend settings production leaves at their config.py default: 100 of 151
   direct os.environ reads with defaults: PRIORITY_ORDER_BATCHABLE
   defined for production but not read as a setting (build args or image settings): GEOIP
 
 6. App builds (customer, partner, rider): build-time names, set outside Railway
-  read by the apps: EXPO_PUBLIC_APP_ENV, EXPO_PUBLIC_CORE_URL, EXPO_PUBLIC_ENV, EXPO_PUBLIC_FONT_AUDIT, EXPO_PUBLIC_REALTIME_URL, EXPO_PUBLIC_WEB_URL, EXPO_PUBLIC_WORKER_URL
+  read by the apps: EXPO_PUBLIC_APP_ENV, EXPO_PUBLIC_CORE_URL, EXPO_PUBLIC_ENV, EXPO_PUBLIC_FONT_AUDIT, EXPO_PUBLIC_REALTIME_URL, EXPO_PUBLIC_SENTRY_DSN, EXPO_PUBLIC_WEB_URL, EXPO_PUBLIC_WORKER_URL
   GAP  tools/mobile/env-profile.sh has profiles qa, local; none for production (tools/mobile/env-profile.sh:25)
   GAP  apps/customer: no eas.json (no store build profile)
   GAP  apps/customer: EAS projectId is a placeholder (apps/customer/app.json:76)
@@ -254,94 +259,133 @@ Code reads: 143 backend settings (config.py), 2 direct os.environ reads in the b
   GAP  apps/rider: EAS projectId is a placeholder (apps/rider/app.json:86)
   note apps/rider: ./google-services.json is not in the checkout (Firebase; app.config.js drops it, so no FCM)
 
-Result: 25 gap(s), 3 warning(s).
+7. Set by hand in Railway before go-live (preserve(): the repo holds no value)
+  from Srini's accounts: 12
+    NEXT_PUBLIC_SENTRY_DSN (admin, web): Sentry: web (or admin) project > Client Keys (DSN)
+    SENTRY_DSN (core-api, realtime, worker): Sentry: backend project > Settings > Client Keys (DSN)
+    SES_ACCESS_KEY_ID (worker): AWS: IAM user with ses:SendEmail only > access key
+    SES_SECRET_ACCESS_KEY (worker): AWS: the same IAM access key
+    STRIPE_CONNECT_WEBHOOK_SECRET (core-api): Stripe (live mode): Webhooks > Connect endpoint > signing secret
+    STRIPE_PAYOUTS_WEBHOOK_SECRET (core-api): Stripe (live mode): Webhooks > transfers endpoint > signing secret
+    STRIPE_PUBLISHABLE_KEY (core-api): Stripe (live mode): Developers > API keys
+    STRIPE_SECRET_KEY (core-api): Stripe (live mode): Developers > API keys (or a restricted key)
+    STRIPE_WEBHOOK_SECRET (core-api): Stripe (live mode): Webhooks > payments endpoint > signing secret
+    TWILIO_ACCOUNT_SID (core-api): Twilio console: Account Info
+    TWILIO_AUTH_TOKEN (core-api): Twilio console: Account Info (or an API key pair)
+    TWILIO_VERIFY_SERVICE_SID (core-api): Twilio console: Verify > Services > create one (VA...)
+  addresses (the domain): 5
+    CORS_ORIGINS (core-api, realtime, worker): ["https://<domain>","https://admin.<domain>"] once the domain is bought
+    EMAIL_FROM (worker): e.g. orders@<domain>, on the domain verified in SES
+    NEXT_PUBLIC_APP_URL (web): https://<domain>
+    PUBLIC_API_URL (core-api): https://api.<domain>
+    PUBLIC_WEB_URL (core-api): https://<domain>
+  generated once (Claude Code; sealed without printing): 5
+    ALERT_WEBHOOK_TOKEN (core-api): openssl rand -hex 32
+    IDENTITY_DATA_KEYS (core-api): python tools/secrets/identity_data_keys.py (stdout only)
+    INTERNAL_SERVICE_SECRET (core-api, realtime, worker): openssl rand -hex 32; the same on core-api, realtime and worker
+    JWT_PRIVATE_KEY (core-api): openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048
+    POSTGRES_PASSWORD (postgres): openssl rand -hex 24
+  from Railway: 6
+    AWS_ACCESS_KEY_ID (core-api): railway bucket credentials --bucket uploads
+    AWS_ENDPOINT_URL (core-api): railway bucket credentials --bucket uploads
+    AWS_REGION (core-api): railway bucket credentials --bucket uploads
+    AWS_SECRET_ACCESS_KEY (core-api): railway bucket credentials --bucket uploads
+    S3_ADDRESSING_STYLE (core-api): railway bucket credentials --bucket uploads (urlStyle)
+    UPLOADS_BUCKET (core-api): railway bucket credentials --bucket uploads
+
+Result: 7 gap(s), 0 warning(s); 28 value(s) to set by hand in Railway, 12 of them from Srini's accounts.
 ```
+
+### Secrets from Srini's accounts
+
+What only Srini can get. Each goes into Railway (production environment) as a **sealed** variable, pasted straight
+from the provider's page (or into his secrets folder for Claude Code's sealing script). Never in the repo, a chat or
+a log.
+
+| Variable | Service(s) | Account | Where to get it |
+|---|---|---|---|
+| `STRIPE_SECRET_KEY` | core-api | Stripe, live mode | Developers → API keys: the secret key, or a restricted key (`rk_live_`) covering every call |
+| `STRIPE_PUBLISHABLE_KEY` | core-api | Stripe, live mode | Developers → API keys (`pk_live_`) |
+| `STRIPE_WEBHOOK_SECRET` | core-api | Stripe, live mode | Developers → Webhooks → the payments endpoint (`/api/v1/payments/stripe/webhook`) → signing secret |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | core-api | Stripe, live mode | the Connect endpoint (`/api/v1/finance/stripe/connect/webhook`, events on connected accounts) → signing secret |
+| `STRIPE_PAYOUTS_WEBHOOK_SECRET` | core-api | Stripe, live mode | the account endpoint (`/api/v1/finance/stripe/webhook`, `transfer.*`) → signing secret |
+| `TWILIO_ACCOUNT_SID` | core-api | Twilio | Console → Account Info |
+| `TWILIO_AUTH_TOKEN` | core-api | Twilio | Console → Account Info (or an API key pair in its place) |
+| `TWILIO_VERIFY_SERVICE_SID` | core-api | Twilio | Verify → Services → create "BhojanGo" (code length 6, SMS channel) → Service SID (`VA...`) |
+| `SES_ACCESS_KEY_ID` | worker | AWS | IAM → Users → a user for SES with a policy allowing only `ses:SendEmail` (on the domain identity) → Security credentials → access key |
+| `SES_SECRET_ACCESS_KEY` | worker | AWS | the same access key (shown once) |
+| `SENTRY_DSN` | core-api, realtime, worker | Sentry | a backend (Python/FastAPI) project → Settings → Client Keys (DSN) |
+| `NEXT_PUBLIC_SENTRY_DSN` | web, admin | Sentry | a JavaScript/Next.js project (one for both, or one each) → Client Keys (DSN) |
+
+Outside Railway, also from Srini's accounts: `EXPO_PUBLIC_SENTRY_DSN` (a React Native project) in the app build
+profiles; the three EAS project ids; `google-services.json` and the FCM V1 key (Firebase → EAS); the APNs key
+(Apple → EAS).
+
+The other values set by hand need no account of Srini's: addresses once the domain is bought (`CORS_ORIGINS`,
+`PUBLIC_WEB_URL`, `PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `EMAIL_FROM`), generated ones (`POSTGRES_PASSWORD`,
+`INTERNAL_SERVICE_SECRET`, `JWT_PRIVATE_KEY`, `IDENTITY_DATA_KEYS`, `ALERT_WEBHOOK_TOKEN`) and the bucket's
+credentials from Railway. The checker's section 7 lists them all with their source.
 
 ### What production gets right today
 
-- `APP_ENV=production`, `PAYMENT_PROVIDER=live`, `PAYOUT_PROVIDER=live`, `SMS_PROVIDER=live`, `PUSH_PROVIDER=live`,
-  `EMAIL_PROVIDER=sendgrid` ([`.railway/railway.ts:76`](../../.railway/railway.ts)).
-- `OTP_FIXED_CODE=""` and `DELIVERY_PIN_FIXED=""` on all three backends ([`.railway/railway.ts:81`](../../.railway/railway.ts)).
-- `DEMO_RIDER_SIM` only in QA ([`.railway/railway.ts:149`](../../.railway/railway.ts)).
-- Every secret it does define is `preserve()` (set by hand, sealed), never written in the file.
+- `APP_ENV=production`, `PAYMENT_PROVIDER=live`, `PAYOUT_PROVIDER=live`, `PUSH_PROVIDER=live`,
+  `EMAIL_PROVIDER=ses`, `SMS_PROVIDER=off`, `OTP_PROVIDER=twilio_verify`, `TAX_PROVIDER=stripe_tax`
+  ([`.railway/railway.ts`](../../.railway/railway.ts)).
+- `OTP_FIXED_CODE=""` and `DELIVERY_PIN_FIXED=""` on all three backends.
+- `DEMO_RIDER_SIM` and the fake payment settings only outside production.
+- Every secret is `preserve()` (set by hand, sealed), never written in the file.
+- core-api and the worker refuse to start with a missing or local public address, no two-step key, no code sender,
+  or a provider without its keys; the website fails closed without a payment provider.
 - Postgres has no public port in production; web and admin don't sleep in production.
 - The test-site banner and noindex follow `APP_ENV`, which production sets on web and admin (build and run time).
-- The demo seed refuses production ([`tools/seed/demo_guard.py:27`](../../tools/seed/demo_guard.py)).
+- The demo seed and the full seed refuse production; production's base data is the markets-only seed
+  ([`tools/seed/markets.py`](../../tools/seed/markets.py)).
 
-### Gaps
+### Gaps found on 2026-11-19, and what round 19 did
 
-Variables production needs that `railway.ts` doesn't define for production:
+1. **Stripe live keys** (5): defined for production (`preserve()`, sealed). Values: Srini's Stripe account.
+2. **`PUBLIC_WEB_URL` and `PUBLIC_API_URL`**: defined; core-api now refuses to start in production when either is
+   missing, not https, or local ([`config.py`](../../backend/shared/config.py) `public_url_problem`).
+3. **`IDENTITY_DATA_KEYS`**: defined; generated once with
+   [`tools/secrets/identity_data_keys.py`](../../tools/secrets/identity_data_keys.py) (stdout only; refuses to write
+   into a file); core-api refuses to start without it.
+4. **Worker provider keys**: the worker no longer needs SendGrid, Twilio or Firebase. Email is SES (`SesEmail`, the
+   SES v2 API through boto3); SMS is off; sign-in codes go through Twilio Verify in core-api
+   ([`twilio_verify.py`](../../backend/core_api/modules/identity/service/twilio_verify.py)). With no Firebase app, an
+   FCM token now counts as not sent in production (so it isn't reported as delivered).
+5. **`NEXT_PUBLIC_PAYMENTS_PROVIDER`**: `stripe` for production, and now a Dockerfile build arg (before, setting it
+   in Railway wouldn't have reached the bundle). Without it production shows "Payments aren't available in this city
+   yet" ([`lib/payments.ts`](../../apps/web/src/lib/payments.ts)).
+6. **Sentry**: `sentry-sdk` (backends), `@sentry/nextjs` (web, admin), `@sentry/react-native` (apps); each off with
+   no DSN (no init, no network).
+7. **Fake payment settings**: QA and staging only.
+8. `DEMO_RIDER_SIM`, `OTP_FIXED_CODE`, `DELIVERY_PIN_FIXED`, the test-site banner, `SEED_PASSWORDS`: were already
+   right for production, unchanged.
+9. **Production seed**: [`tools/seed/markets.py`](../../tools/seed/markets.py), markets only (countries, states,
+   cities, zones, rules, help articles, Terms and Privacy as drafts; Boise live, India switched off; no users,
+   kitchens, orders or payout accounts). It only adds what's missing, so it's safe to run again. CI runs it twice on
+   a fresh database with production settings. The full seed now refuses production.
+10. **First admin**: `python -m core_api.modules.identity.first_admin --email ... --name ...` (refused when any super
+    admin exists); nothing secret is printed: the password is set from the website's reset email, and the
+    authenticator is enrolled at first sign-in.
 
-1. **Stripe live keys** (5): `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`,
-   `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_PAYOUTS_WEBHOOK_SECRET`. With `PAYMENT_PROVIDER=live` and no key, the
-   start-up check passes but every checkout fails at Stripe
-   ([`gateways.py:246`](../../backend/core_api/modules/payments/service/gateways.py)) and tax quotes are refused
-   ([`tax.py:276`](../../backend/core_api/modules/payments/service/tax.py)). QA has them only because they were set
-   by hand.
-2. **`PUBLIC_WEB_URL` and `PUBLIC_API_URL`**: default to localhost
-   ([`config.py:80`](../../backend/shared/config.py), [`config.py:147`](../../backend/shared/config.py)). Password-reset
-   links and Stripe payout onboarding would point at localhost.
-3. **`IDENTITY_DATA_KEYS`**: admins can't enrol two-step sign-in in production without it
-   ([`totp.py:96`](../../backend/core_api/modules/identity/service/totp.py)), so no admin can sign in.
-4. **Worker provider keys**: the worker refuses to start without `SENDGRID_API_KEY`, `TWILIO_ACCOUNT_SID`,
-   `FIREBASE_PROJECT_ID` ([`worker/app/main.py:29`](../../backend/worker/app/main.py)). Also missing:
-   `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, the Firebase service account, `SENDGRID_FROM_EMAIL` (defaults to
-   `noreply@bhojango.com`, [`config.py:219`](../../backend/shared/config.py), which must match the domain bought).
-5. **`NEXT_PUBLIC_PAYMENTS_PROVIDER`** on web: unset means `fake`, so production's account page offers the fake
-   "add a card" form ([`Payments.tsx:25`](../../apps/web/src/app/account/profile/Payments.tsx), used at line 169).
-6. **`SENTRY_DSN`**: not defined, and `sentry-sdk` isn't a dependency, so setting it alone does nothing
-   ([`observability.py:64`](../../backend/shared/observability.py); not in `backend/pyproject.toml`).
-
-QA-only or fake settings production still gets:
-
-7. **Fake payment settings** on core-api in every environment: `FAKE_PAYMENT_WEBHOOK_URL`,
-   `FAKE_PAYMENT_AUTO_COMPLETE_SECONDS`, `FAKE_PAYMENT_WEBHOOK_SECRET`
-   ([`.railway/railway.ts:131`](../../.railway/railway.ts)). Harmless while the provider is `live` (the fake routes
-   answer 404 in production), but they should be QA only, and the sealed fake secret is one more thing to set.
-8. `DEMO_RIDER_SIM`, `OTP_FIXED_CODE`, `DELIVERY_PIN_FIXED`: correct (off / `""`) for production. The test-site
-   banner: off when `APP_ENV=production` (web, admin) and `EXPO_PUBLIC_APP_ENV=production` (apps). `SEED_PASSWORDS`:
-   not in `railway.ts`. Nothing in production points at a fake or `auto` provider; `TAX_PROVIDER` is left at `auto`,
-   which is Stripe Tax once the key is set.
-
-Things that are not variables but block production the same way:
-
-9. **No seed for production without demo data.** Markets (countries, cities, zones, rules, help articles) come
-   only from [`tools/seed/seed.py`](../../tools/seed/seed.py), which in the same run creates `@example.com`
-   customers, partners and admins with known or random passwords ([`seed.py:379`](../../tools/seed/seed.py)), the
-   seed kitchens and menus, and **fake payout accounts** ([`seed.py:429`](../../tools/seed/seed.py)). Its data makes
-   Hyderabad `live` ([`data.py:433`](../../tools/seed/data.py)) and Boise `beta`
-   ([`data.py:479`](../../tools/seed/data.py)). The runbook says "No seed data" for production
-   ([`railway-deploy.md:155`](../runbooks/railway-deploy.md)), which leaves no markets at all.
-10. **No first admin.** Admin roles are granted only by an admin
-    ([`identity/api/v1/admin.py:63`](../../backend/core_api/modules/identity/api/v1/admin.py)); the only other source
-    is the seed's `@example.com` admins.
-11. **Push never reaches a phone.** The apps never register a push token (no `getExpoPushTokenAsync` anywhere; only
-    `setNotificationHandler` in [`apps/customer/app/_layout.tsx:15`](../../apps/customer/app/_layout.tsx) and the
-    rider's), and the token endpoint is on the worker
-    ([`notifications.py:25`](../../backend/worker/app/api/v1/notifications.py)), which has no public domain. Also,
-    with no Firebase app configured, FCM sends are counted as sent
-    ([`push.py:117`](../../backend/shared/providers/push.py)).
-12. **No alerting on Railway.** The alert rules run in the local Prometheus and Alertmanager
-    ([`observe.md:46`](../runbooks/observe.md)); nothing in `railway.ts` runs them, so `ALERT_WEBHOOK_TOKEN` has no
-    sender in production.
-13. **No store builds.** No `eas.json`, placeholder EAS project ids, no production profile in
-    [`env-profile.sh:25`](../../tools/mobile/env-profile.sh), and CI builds debug APKs only
-    ([`tools/android/build-apk.sh:20`](../../tools/android/build-apk.sh)). Apple Pay in the iOS app also needs a merchant id
-    ([`stripeSheet.ts:43`](../../apps/customer/lib/stripeSheet.ts)).
-14. **Runbook drift.** [`railway-deploy.md:304`](../runbooks/railway-deploy.md) says "The config sets every variable
-    below", but `PUBLIC_WEB_URL` and `IDENTITY_DATA_KEYS` (lines 316–317) aren't in `railway.ts`. QA's Stripe keys and
-    `PAYMENT_PROVIDER=auto` were also set by hand, so `railway.ts` says `fake` for QA while QA runs `auto`.
+Still open (not this branch): 11 (push token registration in the apps), 12 (alerting on Railway), 13 (store
+builds: `eas.json`, a production profile, the EAS project ids), 14 (runbook drift in
+[`railway-deploy.md`](../runbooks/railway-deploy.md)).
 
 ### Decisions for Srini
 
+Made (round 19): Boise only, India kept and switched off; markets-only seed; SES for email; Twilio Verify for
+sign-in codes; push for order updates; Sentry now.
+
+Still open:
+
 - **Domains:** which names (e.g. `bhojango.com`, `admin.`, `api.`, `rt.`). And whether the browser and apps use the
-  custom API domains (`NEXT_PUBLIC_CORE_URL` today is the Railway domain, [`railway.ts:172`](../../.railway/railway.ts)).
+  custom API domains (`NEXT_PUBLIC_CORE_URL` today is the Railway domain, [`railway.ts`](../../.railway/railway.ts)).
   Recommended: custom domains everywhere, so Stripe webhooks and app builds never change if Railway's names do.
-- **Email sender** address and name (`SENDGRID_FROM_EMAIL`), on the bought domain.
-- **SMS:** Twilio 10DLC or toll-free verification for the US number (takes days; start early).
-- **India:** keep it out of production at launch (no Razorpay or MSG91 keys; Hyderabad not `live`). Recommended.
-- **Production seed:** a markets-only seed (US, Idaho, Boise `live`, zones, rules, help articles; no users, kitchens
-  or payout accounts) written by Claude Code, or everything typed in admin by hand. Recommended: the seed mode.
-- **Sentry** (free tier) now, or logs only at launch.
+- **Email sender** address and name (`EMAIL_FROM`, `EMAIL_FROM_NAME` = BhojanGo), on the domain verified in SES.
+- **SES region**: `us-west-2` in `railway.ts`; change it there if the domain is verified elsewhere.
+- **Sentry projects**: one per surface (backend, web, admin, each app) or fewer; the free plan's event quota is
+  shared.
 - **Alerts:** where they go (email, SMS, a paging app), and whether to run Prometheus/Alertmanager on Railway
   (usage cost) or use simpler uptime checks plus Sentry alerts.
