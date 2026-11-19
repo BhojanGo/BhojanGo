@@ -1,8 +1,8 @@
 import math
 import uuid
-from typing import Sequence
+from typing import Iterable, Sequence
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import and_, func, not_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -63,9 +63,14 @@ class RestaurantRepository:
         country: str | None = None,
         page: int = 1,
         limit: int = 20,
+        exclude: Iterable[tuple[str, str]] = (),
     ) -> tuple[list[Restaurant], int]:
+        """``exclude``: (country, lower-case city name) pairs whose kitchens are left out
+        (R19: review-only cities, markets.service.review)."""
         conditions = [Restaurant.is_active == True, Restaurant.status == "active", Restaurant.deleted_at.is_(None),  # noqa: E712
                       Restaurant.paused_reason.is_(None)]  # P10: e.g. an expired FSSAI licence hides the listing
+        for c, name in exclude:
+            conditions.append(not_(and_(Restaurant.country == c, func.lower(Restaurant.city) == name)))
 
         if city:
             conditions.append(func.lower(Restaurant.city) == city.lower())

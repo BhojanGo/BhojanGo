@@ -303,29 +303,90 @@ the store rule, and the fix. None of these fixes has been made.
 
 ## Reviewer access
 
-Create these in **production** before submitting. They sign in with email and
-password (codes are not sent to reviewers). Record them only in the store consoles
-and the team's password manager, not in this repo.
+Reviewers sign in with **email and password** (sign-in codes are not sent to them).
+The accounts are made by one command, run **once, in production, at go-live**
+(it may also be tried on a dev stack; it refuses on QA):
 
-| Account | For | Needs |
+```sh
+# inside the production core-api container (Railway: the core-api service's shell)
+python tools/review_accounts.py --email-domain <a domain the team owns>
+# options: --country US (default) --region US-ID --code US-ID-REV
+#          --centre LAT,LNG (open sea; required outside the US) --postal-code 83702
+```
+
+It creates, in one transaction (`backend/tools/review_accounts.py`):
+
+| Account | App | What it has |
 |---|---|---|
-| `{REVIEW_CUSTOMER_EMAIL}` | BhojanGo | A saved address inside the Boise delivery zone, so the reviewer sees kitchens and the bag even when testing from outside Idaho. Mention the "Change city" browse option. |
-| `{REVIEW_KITCHEN_EMAIL}` | BhojanGo Kitchen | Linked to an approved kitchen that real customers cannot order from (paused or in a hidden test zone), with a few menu items and photos, and some past orders and ratings. |
-| `{REVIEW_RIDER_EMAIL}` | BhojanGo Delivery | An approved rider (documents done) in Boise, with some past deliveries and earnings. |
+| `review.customer@<domain>` | BhojanGo | A customer with a saved "Home" address inside the review zone, so the home screen shows the review kitchen wherever the reviewer is. |
+| `review.kitchen@<domain>` | BhojanGo Kitchen | The owner of "BhojanGo Review Kitchen": approved, open around the clock, with a small menu (mains, breads, drinks). |
+| `review.delivery@<domain>` | BhojanGo Delivery | An approved delivery partner: phone step, licence, insurance and background check marked done (no document images are stored). |
 
-Review notes to paste (adapt per app):
+- **The review zone is hidden.** The command adds a city "App Review" (code
+  `<region>-REV`) whose only zone is a square of open sea, about 11 km across (for
+  the US: the North Pacific around 30N 140W, far from any coast), so no real address
+  is ever inside it. The city's Markets settings say `review_only: true` and list the
+  three account ids in `review_accounts` (`core_api/modules/markets/service/review.py`).
+  Everyone else never sees it: it is left out of the city lists, the website's
+  directory and city pages, the address search, locate and discover, and the public
+  kitchen lists; the review kitchen's page and menu answer 404 to anyone but the
+  review accounts. Pricing and placing an order are not filtered (they need the
+  kitchen's id and an address in the zone, which only the review accounts have).
+- **Passwords** are random and printed **once** at the end. Copy them straight into
+  App Store Connect, Play Console and the team's password manager; they are not
+  written to a file or the logs, and never go in this repo.
+- **Idempotent by refusing**: if the review city or any of the three emails already
+  exists, it changes nothing and exits with an error. To start over, delete those rows.
+- After running it, sign in once with each account on a production build and check:
+  the customer sees "BhojanGo Review Kitchen" and can price a cart (if sales tax needs
+  a real postal code, rerun on a fresh database with `--postal-code`), the kitchen app
+  opens the kitchen, the Delivery app shows the partner as ready to go online.
+- No delivery partner is ever near the zone, so an order placed there is not offered
+  to anyone real, and the review delivery partner gets no offers. That is why the
+  Delivery app's notes point to a screen recording. Payments are real in production:
+  the notes tell reviewers they do not need to pay to review the app.
 
-> BhojanGo is a food delivery service. It delivers only inside its live cities
-> (currently Boise, Idaho, United States). Sign in with the email and password above
-> ("Email" tab, then "Password"). Payments are for food and delivery (physical goods
-> and services) and go through Stripe; tips go to the delivery partner for a
-> real-world service. No digital goods are sold. Quick messages between a customer
-> and their rider are open only while an order is on its way; numbers are masked and
-> the chat closes when the order is delivered. Accounts can be deleted in the app:
+### App Store Connect "App Review Information" / Play Console "App access"
+
+Choose "All or some functionality is restricted" (Play) and enter the email and
+password of that app's account. Notes per app (fill in `{WHERE_IN_APP}`):
+
+**BhojanGo** (`review.customer@<domain>`)
+
+> BhojanGo is a food delivery service. It delivers only inside its live cities.
+> Sign in with the email and password above ("Email" tab, then "Password"). This
+> account has a saved address in a test area with one test kitchen, "BhojanGo Review
+> Kitchen", so you can browse its menu, add dishes to the bag and see the checkout
+> from anywhere. You do not need to pay to review the app. Payments are for food and
+> delivery (physical goods and services) and go through Stripe; tips go to the
+> delivery partner for a real-world service. No digital goods are sold. Quick
+> messages between a customer and their delivery partner are open only while an
+> order is on its way; numbers are masked, a message can be reported or the person
+> blocked, and the chat closes when the order is delivered. The account can be
+> deleted in the app: Account, Privacy and your data, Delete my account.
+
+**BhojanGo Kitchen** (`review.kitchen@<domain>`)
+
+> BhojanGo Kitchen is the app restaurants use to take BhojanGo orders, run on a
+> tablet or phone in the kitchen. Sign in with the email and password above ("Email"
+> tab, then "Password"). The account owns a test kitchen that real customers cannot
+> see. You can open and close the kitchen, pause orders, edit the menu (dish names,
+> prices, photos, sold out), see payouts and ask support for a call back. Kitchens
+> sign up in the app; it is a public listing for restaurant partners. The account can
+> be deleted in the app: {WHERE_IN_APP}.
+
+**BhojanGo Delivery** (`review.delivery@<domain>`)
+
+> BhojanGo Delivery is the app delivery partners use to receive and deliver
+> BhojanGo orders. Sign in with the email and password above ("Email" tab, then
+> "Password"). The account is an approved delivery partner. Delivery offers depend
+> on real orders near the partner, so a reviewer will not receive one; this video
+> shows going online, the location disclosure, an offer and a delivery: {VIDEO_URL}.
+> Location is used only while the partner is online (on shift), including in the
+> background with a visible notification, to offer nearby deliveries and show
+> customers where their order is; going offline stops it. Delivery partners sign up
+> in the app; it is a public listing. The account can be deleted in the app:
 > {WHERE_IN_APP}.
-
-For the Delivery app add a short screen recording link showing going online, the
-location disclosure and an offer, because a reviewer cannot receive a real order.
 
 ## Checklist before the first submission
 

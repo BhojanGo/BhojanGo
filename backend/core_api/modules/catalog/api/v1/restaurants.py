@@ -10,6 +10,7 @@ from core_api.modules.catalog.service import menu as menu_svc
 from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user
 from core_api.modules.catalog.service import access
 from shared import authz
+from shared.auth import optional_viewer
 from core_api.modules.catalog.repository.cache import cache_delete_pattern, cache_get, cache_set
 from shared.db import get_db
 from core_api.modules.catalog.repository.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
@@ -36,8 +37,22 @@ from core_api.modules.catalog.service.photos import photos_for
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 logger = structlog.get_logger(__name__)
 
+# Whoever is looking at a public route, if signed in (R19: review accounts see their review-only city's kitchen).
+Looker = Annotated[uuid.UUID | None, Depends(optional_viewer)]
+
 CACHE_KEY_LIST = "restaurants:list:{city}:{cuisine}:{page}:{limit}"
 CACHE_KEY_RESTAURANT = "restaurants:{id}"
+
+
+async def _hidden(db: AsyncSession, viewer: uuid.UUID | None = None):  # type: ignore[no-untyped-def]
+    """The review-only cities (R19) this viewer may not see: their kitchens are left out or 404."""
+    from core_api.modules.markets.service import review
+
+    return await review.hidden_for(db, viewer)
+
+
+def _not_found() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
 
 async def _public(db: AsyncSession, restaurants: list) -> list[PublicRestaurant]:  # type: ignore[type-arg]
@@ -68,6 +83,7 @@ async def list_restaurants(
 
     repo = RestaurantRepository(db)
     restaurants, total = await repo.list_restaurants(
+        exclude=(await _hidden(db)).names,  # R19: never the store reviewers' kitchen
         city=city,
         cuisine=cuisine,
         min_rating=min_rating,
@@ -110,10 +126,11 @@ async def search_restaurants(
         return PublicRestaurantList(items=[], total=0, page=page, limit=limit, total_pages=0)
 
     repo = RestaurantRepository(db)
+    hidden = await _hidden(db)
     restaurants = []
     for rid in result["ids"]:
         r = await repo.get_by_id(uuid.UUID(rid))
-        if r:
+        if r and not hidden.kitchen(r.country, r.city):  # R19: never the store reviewers' kitchen
             restaurants.append(r)
 
     return PublicRestaurantList(
@@ -134,8 +151,8 @@ async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, s
 
     r = (await db.execute(select(Restaurant).where(
         Restaurant.slug == slug, Restaurant.status == "active", Restaurant.deleted_at.is_(None)))).scalars().first()
-    if r is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if r is None or (await _hidden(db)).kitchen(r.country, r.city):  # R19: the website never shows the reviewers' kitchen
+        raise _not_found()
     from core_api.modules.catalog.service.menu import restaurant_market
 
     out = (await _public(db, [r]))[0]
@@ -146,17 +163,19 @@ async def get_restaurant_by_slug(slug: str, db: AsyncSession = Depends(get_db, s
 @router.get("/{restaurant_id}", response_model=PublicRestaurant)
 async def get_restaurant(
     restaurant_id: uuid.UUID,
+    viewer: Looker,
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> PublicRestaurant:
+    """A kitchen. In a review-only city (R19): 404 except for its review accounts
+    (checked before the cache, so a cached copy never reaches anyone else)."""
+    repo = RestaurantRepository(db)
+    restaurant = await repo.get_by_id(restaurant_id)
+    if not restaurant or (await _hidden(db, viewer)).kitchen(restaurant.country, restaurant.city):
+        raise _not_found()
     cache_key = f"restaurants:{restaurant_id}"
     cached = await cache_get(cache_key)
     if cached:
         return PublicRestaurant(**cached)
-
-    repo = RestaurantRepository(db)
-    restaurant = await repo.get_by_id(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
     response = (await _public(db, [restaurant]))[0]
     await cache_set(cache_key, response.model_dump(), ttl=300)
@@ -166,13 +185,15 @@ async def get_restaurant(
 @router.get("/{restaurant_id}/menu", response_model=RestaurantMenuResponse)
 async def get_restaurant_menu(
     restaurant_id: uuid.UUID,
+    viewer: Looker,
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantMenuResponse:
-    """The menu with option groups (min/max picks, prices) and what is sold out today."""
+    """The menu with option groups (min/max picks, prices) and what is sold out today.
+    In a review-only city (R19): 404 except for its review accounts."""
     repo = RestaurantRepository(db)
     restaurant = await repo.get_with_menu(restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if not restaurant or (await _hidden(db, viewer)).kitchen(restaurant.country, restaurant.city):
+        raise _not_found()
 
     from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
 

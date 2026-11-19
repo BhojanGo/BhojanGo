@@ -39,6 +39,7 @@ from core_api.modules.markets.schemas import (
 from core_api.modules.markets.service.markets import Conflict, MarketService, NotFound
 from core_api.modules.markets.service.rules import MarketRuleError
 from shared import authz
+from shared.auth import optional_viewer
 from shared.db import get_db
 
 router = APIRouter(prefix="/markets", tags=["Markets"])
@@ -47,6 +48,8 @@ DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 Viewer = Annotated[AdminContext, Depends(require_permission("markets.view"))]
 Editor = Annotated[AdminContext, Depends(require_permission("markets.edit"))]
 Pauser = Annotated[AdminContext, Depends(require_permission("zones.pause"))]
+# Whoever is looking at a public route, if signed in (R19: review accounts see their review-only city).
+Looker = Annotated[uuid.UUID | None, Depends(optional_viewer)]
 
 
 async def _run(coro):  # type: ignore[no-untyped-def]
@@ -64,10 +67,14 @@ async def _run(coro):  # type: ignore[no-untyped-def]
 # ── Public ────────────────────────────────────────────────────────────────────
 
 @router.get("/locate", response_model=LocateResult)
-async def locate(db: DB, lat: float = Query(ge=-90, le=90), lng: float = Query(ge=-180, le=180)) -> LocateResult:
+async def locate(db: DB, viewer: Looker, lat: float = Query(ge=-90, le=90), lng: float = Query(ge=-180, le=180)) -> LocateResult:
     """Is this point served? Returns the zone, city and country, or why not
-    (the app's "not in your area" screen)."""
-    return await MarketService(db).locate(lat, lng)
+    (the app's "not in your area" screen). A review-only city (R19) is served only
+    for its review accounts; for anyone else it isn't there."""
+    from core_api.modules.markets.service import review
+
+    hidden = await review.hidden_for(db, viewer)
+    return await MarketService(db).locate(lat, lng, hide=hidden.codes)
 
 
 # ── Overview ──────────────────────────────────────────────────────────────────
@@ -97,9 +104,11 @@ async def public_cities(db: DB) -> list[PublicCity]:
         .where(City.status.in_(("live", "beta"))).order_by(Country.code, City.name))).all()
     counts = dict((await db.execute(select(Restaurant.city, func.count(Restaurant.id)).where(
         Restaurant.status == "active", Restaurant.is_active.is_(True), Restaurant.deleted_at.is_(None)).group_by(Restaurant.city))).all())
+    from core_api.modules.markets.service.review import is_review_only
+
     return [PublicCity(code=c.code, name=c.name, slug=c.name.lower().replace(" ", "-"), region=r.name, country=k.code,
                        currency=k.currency, lat=c.center_lat, lng=c.center_lng, restaurants=counts.get(c.name, 0))
-            for c, r, k in rows]
+            for c, r, k in rows if not is_review_only(c.settings)]  # R19: never the store reviewers' city
 
 
 @router.get("/waitlist/demand", response_model=Demand)
