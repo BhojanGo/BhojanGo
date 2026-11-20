@@ -1,0 +1,159 @@
+name: Load test (throwaway stack)
+
+# R21: a Boise dinner rush at 3x the launch estimate (tools/load/rush.js), on a stack
+# brought up for this run alone: Docker Compose on the runner (infra/docker/compose.yaml
+# + load.compose.yaml), the seed, the demo seed and the soak's extra riders and
+# customers. Never QA or production: no hosted URL anywhere, and tools/target_guard.py
+# checks the APIs before k6 starts. Payments use the stack's fake gateway.
+# While k6 runs, tools/load/sample.sh records CPU and memory per container (docker
+# stats), the runner's CPU and memory, and Postgres connections (pg_stat_activity)
+# every 5 s. tools/load/rush_report.py turns it all into report.md (the job summary).
+# The runner (4 vCPU, 16 GB) carries the stack and k6 together: docs/launch/load-test.md.
+# Start it from the Actions tab or `gh workflow run load-test.yml`, or push to a load/* branch.
+
+on:
+  push:
+    branches: ["load/**"]
+  workflow_dispatch:
+    inputs:
+      window:
+        description: "Minutes of orders at the peak rate"
+        default: "20"
+      scale:
+        description: "1 = 3x launch (the R21 rush)"
+        default: "1"
+      workers:
+        description: "core-api uvicorn processes (1 = as on Railway)"
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rush:
+    name: Boise rush at 3x launch
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      COMPOSE_PROJECT_NAME: bhojango
+      COMPOSE: docker compose -f infra/docker/compose.yaml -f infra/docker/load.compose.yaml
+      WINDOW: ${{ inputs.window || '20' }}
+      SCALE: ${{ inputs.scale || '1' }}
+      CORE_API_WORKERS: ${{ inputs.workers || '1' }}
+      OUT: ${{ github.workspace }}/load-out
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Host tools (opening hours helper)
+        run: pip install httpx==0.28.1
+
+      - name: Settings from the branch (load/<name>-w3 = 3 core-api processes, -s0.34 = SCALE 0.34)
+        run: |
+          sc=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-s([0-9.]+)(-|$).*/\1/p')
+          [ -n "$sc" ] && echo "SCALE=$sc" >> "$GITHUB_ENV"
+          n=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-w([0-9]+)(-|$).*/\1/p')
+          [ -n "$n" ] && echo "CORE_API_WORKERS=$n" >> "$GITHUB_ENV" || n=$CORE_API_WORKERS
+          # Keep every pool inside Postgres' 100 connections: 10 + 10 each when there are several.
+          [ "$n" -gt 1 ] && echo "CORE_API_DB_OVERFLOW=10" >> "$GITHUB_ENV"
+          echo "core-api processes: $n, scale: ${sc:-$SCALE}"
+
+      - name: Start the stack (backend profile)
+        run: $COMPOSE --profile backend up -d --build --wait --wait-timeout 600
+
+      - name: Seed, demo seed, the rush's riders and customers, opening hours
+        run: |
+          $COMPOSE exec -T core-api python /srv/tools/seed/seed.py > /dev/null
+          $COMPOSE exec -T core-api python /srv/tools/seed/demo.py > /dev/null
+          $COMPOSE exec -T -e SOAK_RIDERS=75 -e SOAK_CUSTOMERS=60 core-api python /srv/tools/soak/setup.py
+          python tools/mobile/hours.py open
+
+      - name: Refuse anything but this stack (tools/target_guard.py)
+        run: python tools/target_guard.py api http://localhost:8001 http://localhost:8004
+
+      - name: Run the rush (k6) while sampling
+        run: |
+          mkdir -p "$OUT" && chmod 777 "$OUT"
+          sh tools/load/sample.sh "$COMPOSE_PROJECT_NAME" "$OUT/samples.csv" &
+          echo $! > "$OUT/.sampler"
+          # py-spy on core-api for a minute, 10 minutes in (the middle of the order window).
+          sh tools/load/profile.sh "$COMPOSE_PROJECT_NAME" "$OUT" 600 60 &
+          echo $! > "$OUT/.profiler"
+          set +e
+          # Bounded: the run is about WINDOW + 20 minutes, plus setup.
+          timeout $(( (WINDOW + 40) * 60 )) docker run --rm --name load-k6 --network "${COMPOSE_PROJECT_NAME}_default" \
+            -e WINDOW="$WINDOW" -e SCALE="$SCALE" \
+            -v "$GITHUB_WORKSPACE/tools/load:/scripts:ro" -v "$OUT:/out" grafana/k6:0.57.0 \
+            run --quiet --summary-export /out/summary.json --console-output /out/console.log \
+            --summary-trend-stats "avg,p(50),p(95),p(99),max,count" /scripts/rush.js > "$OUT/k6.txt" 2>&1
+          echo "$?" > "$OUT/k6-exit"
+          kill "$(cat "$OUT/.sampler")" 2>/dev/null; rm -f "$OUT/.sampler"
+          kill "$(cat "$OUT/.profiler")" 2>/dev/null; rm -f "$OUT/.profiler"
+          cat "$OUT/profile.log" 2>/dev/null | tail -5
+          tail -80 "$OUT/k6.txt"
+
+      - name: Drop tokens from the k6 summary
+        id: scrub
+        if: always()
+        run: |
+          # k6 wrote these as its own user: take them back first.
+          sudo chown -R "$(id -u):$(id -g)" "$OUT"
+          # setup() returns the test accounts' tokens; the summary would carry them.
+          if [ -f "$OUT/summary.json" ]; then
+            python -c "import json,sys; p=sys.argv[1]; d=json.load(open(p)); d.pop('setup_data', None); json.dump(d, open(p, 'w'), indent=1)" "$OUT/summary.json"
+          fi
+          # Nothing token-like leaves the runner (belt and braces: rush.js logs ids only).
+          for f in "$OUT"/console.log "$OUT"/k6.txt; do
+            [ -f "$f" ] && sed -i -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' "$f"
+          done
+          # Fail closed: the artifact is only uploaded when this step passes.
+          ! grep -l -E 'setup_data|eyJ[A-Za-z0-9_-]{20,}\.' "$OUT"/* 2>/dev/null
+
+      - name: Errors in the service logs
+        if: always()
+        run: |
+          # The exceptions, counted (the last line of each traceback), then the first error lines.
+          for svc in core-api realtime worker postgres redis; do
+            $COMPOSE logs --no-color "$svc" 2>/dev/null > "$OUT/.log-$svc.txt" || true
+            grep -E '^[^|]*\|[ |]*[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Timeout|Exhausted)\b' "$OUT/.log-$svc.txt" \
+              | sed -E 's/^[^|]*\|[ |]*//; s/[0-9a-f]{8}-[0-9a-f-]{27}/<id>/g' | cut -c1-220 | sort | uniq -c | sort -rn | head -30 | sed "s/^/[$svc] /"
+          done > "$OUT/log-exceptions.txt"
+          for svc in core-api realtime worker postgres redis; do
+            grep -E '"level": ?"(error|critical)"|\bERROR\b|\bFATAL\b' "$OUT/.log-$svc.txt" | head -300 | sed "s/^/[$svc] /"
+          done | sed -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' > "$OUT/log-errors.txt"
+          rm -f "$OUT"/.log-*.txt
+          cat "$OUT/log-exceptions.txt"
+
+      - name: Report
+        if: always()
+        run: |
+          python tools/load/rush_report.py "$OUT" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUT/report.md"
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scrub.outcome == 'success'
+        with:
+          name: load-test
+          path: load-out
+          retention-days: 14
+
+      - name: Targets met
+        run: |
+          echo "k6 exit: $(cat "$OUT/k6-exit")"
+          cat "$OUT/verdict.txt"
+          grep -q '^pass' "$OUT/verdict.txt"
+
+      - name: Stop
+        if: always()
+        run: |
+          [ -f "$OUT/.sampler" ] && kill "$(cat "$OUT/.sampler")" 2>/dev/null
+          [ -f "$OUT/.profiler" ] && kill "$(cat "$OUT/.profiler")" 2>/dev/null
+          docker rm -f load-k6 2>/dev/null
+          $COMPOSE --profile backend down -v
