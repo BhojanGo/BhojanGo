@@ -20,7 +20,7 @@ export const WEB_CSP: HeaderOptions = {
   connect: [CORE, REALTIME, MAP_TILES, "https://accounts.google.com/gsi/", "https://api.stripe.com", ...SENTRY],
   // kitchen photos (S3/CloudFront; LocalStack in make dev); map tiles
   img: ["https:", MAP_TILES, ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:4566"])],
-  // the payment providers' checkout (Razorpay in India, Stripe in the US); Google sign-in. With a
+  // the payment providers' checkout (Razorpay, Stripe); Google sign-in. With a
   // nonce and 'strict-dynamic' these load because our own (nonced) scripts add them.
   script: ["https://checkout.razorpay.com", "https://js.stripe.com", "https://accounts.google.com/gsi/client"],
   style: ["https://accounts.google.com/gsi/style"],
