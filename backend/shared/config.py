@@ -228,6 +228,10 @@ class WorkerSettings(BaseSettings):
     # The demo rider simulator (worker/app/demo_sim): make dev and QA only. Also needs
     # APP_ENV local/development/dev/qa; refused wherever anything says production.
     DEMO_RIDER_SIM: bool = False
+    # R20: the review simulator (worker/app/demo_sim/review.py): plays the review kitchen and
+    # delivery partner for app store review orders, and touches nothing else (only orders of a
+    # review-only city's review accounts; core_api checks again). The one simulator production allows.
+    REVIEW_SIM: bool = False
 
     # Firebase FCM
     FIREBASE_PROJECT_ID: str = ""

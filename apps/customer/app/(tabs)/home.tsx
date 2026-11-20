@@ -3,9 +3,10 @@
 // cuisine row, offers that say who pays, and the kitchens for the drop point
 // from GET /discover. The header is minimal (round 6, like the website's): the
 // language pill, favourites and the account; where the food goes sits on the
-// page, one line above the greeting: "<City>, <CC> · Change city" (the delivery
-// address's or the phone's city, R8); where neither is known, "Set your delivery
-// location" (it opens Change city). Never a city we guessed.
+// page, one line above the greeting, with one action (round 20, as on the website):
+// a live city "<City>, <ST> · Change" (ST: the state's short code from Markets,
+// "<City>, ID"); anything else only "Set your delivery location" (it opens Change
+// city). Never a city we guessed, never a city we don't serve.
 import {
   Button, color, LanguagePill, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
@@ -57,10 +58,10 @@ export default function Home() {
   // The bag pill floats just above the tab bar: when it shows, the scroll leaves room for it too.
   const bottom = useTabBarSpace(bagCount > 0 ? [BAG_PILL] : []);
   const { above } = useTabBarOffsets();
-  // The delivery address's city and its country's 2-letter code (GET /markets/locate).
-  const city = market?.city_name && market.country_code ? t("location.place", { city: market.city_name, country: market.country_code }) : null;
-  const unknown = status === "failed";
-  const where = city ?? (status === "ready" ? point?.label || t("app.home.current_location") : t("app.home.finding_you"));
+  // A live city (GET /markets/locate: the drop point is inside an open zone): "<City>, <ST>".
+  const st = market?.region_short_code || market?.country_code;
+  const city = market?.serviceable && market.city_name && st ? t("location.place", { city: market.city_name, country: st }) : null;
+  const locating = status !== "ready" && status !== "failed";
   const changeCity = () => router.push("/where");
 
   return (
@@ -81,17 +82,21 @@ export default function Home() {
 
         <View testID="location-line" style={styles.where}>
           <Icon name="pin" size={18} stroke={color.peacock} />
-          {unknown ? (
+          {city ? (
+            <>
+              <Text testID="location-city" numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{city}</Text>
+              <Text style={[type.label, { color: color.muted }]}>·</Text>
+              <Pressable testID="change-city" accessibilityRole="link" accessibilityLabel={t("location.change_city")} onPress={changeCity} hitSlop={8} style={styles.change}>
+                <Text style={[type.label, { color: color.peacock }]}>{t("location.change")}</Text>
+              </Pressable>
+            </>
+          ) : locating ? (
+            <Text testID="location-finding" numberOfLines={1} style={[type.label, { color: color.muted, flexShrink: 1 }]}>{t("app.home.finding_you")}</Text>
+          ) : (
             <Pressable testID="set-location" accessibilityRole="button" onPress={changeCity} hitSlop={8} style={[styles.change, { flexShrink: 1 }]}>
               <Text numberOfLines={1} style={[type.label, { color: color.peacock }]}>{t("location.set")}</Text>
             </Pressable>
-          ) : (
-            <Text testID="location-city" numberOfLines={1} style={[type.label, { color: color.kohl, flexShrink: 1 }]}>{where}</Text>
           )}
-          <Text style={[type.label, { color: color.muted }]}>·</Text>
-          <Pressable testID="change-city" accessibilityRole="link" onPress={changeCity} hitSlop={8} style={styles.change}>
-            <Text style={[type.label, { color: color.peacock }]}>{t("location.change_city")}</Text>
-          </Pressable>
         </View>
 
         {active ? <ActiveOrderBar order={active} cover={covers[active.restaurant_id] ?? null} /> : null}

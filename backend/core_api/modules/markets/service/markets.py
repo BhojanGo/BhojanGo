@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core_api.modules.markets.models import City, Country, Region, Zone
+from core_api.modules.markets.models import City, Country, Region, Zone, region_short_code
 from core_api.modules.markets.repository import MarketRepository
 from core_api.modules.markets.schemas import (
     CityCreate,
@@ -202,7 +202,9 @@ class MarketService:
         if await self.repo.region(data.code):
             raise Conflict(f"State {data.code} already exists")
         rules.check_overrides(data.settings)
-        r = await self.repo.add(Region(country_id=country.id, **data.model_dump(), status="draft"))
+        values = data.model_dump()
+        values["short_code"] = (values.get("short_code") or data.code.split("-", 1)[1]).upper()
+        r = await self.repo.add(Region(country_id=country.id, **values, status="draft"))
         return RegionOut.model_validate(r)
 
     async def update_region(self, code: str, data: RegionUpdate) -> RegionOut:
@@ -396,7 +398,8 @@ class MarketService:
                 country.status, region.status, city.status
             ):
                 return LocateResult(
-                    serviceable=True, country_code=country.code, region_code=region.code, city_code=city.code,
+                    serviceable=True, country_code=country.code, region_code=region.code,
+                    region_short_code=region_short_code(region), city_code=city.code,
                     city_name=city.name, zone_id=zone.id, zone_name=zone.name, min_order=zone.min_order,
                     currency=country.currency, timezone=city.timezone or region.timezone or country.timezone,
                     status="beta" if "beta" in (country.status, region.status, city.status, zone.status) else "live",

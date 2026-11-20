@@ -18,3 +18,15 @@ appId: com.bhojango.app
     element:
       id: "kitchens"
     timeout: 60000
+# Round 20: the home's location line for a live city, "<City>, <ST> · Change" (the state's short code).
+- scrollUntilVisible:
+    element:
+      id: "location-line"
+    direction: UP
+    timeout: 20000
+- assertVisible:
+    id: "location-city"
+    text: ".*, [A-Z0-9]{1,4}"
+- assertVisible:
+    id: "change-city"  # its accessible name is "Change city"; it reads "Change"
+- takeScreenshot: stack-customer-home-location-line

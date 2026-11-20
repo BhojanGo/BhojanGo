@@ -184,6 +184,7 @@ production unless `EMAIL_PROVIDER` is `ses` (or `sendgrid`), `PUSH_PROVIDER` is 
 | `APNS_*`, `FIREBASE_*` | no (only for raw device tokens; the apps register Expo tokens) | Apple / Firebase | key: yes | not set | not defined |
 | `APNS_SANDBOX` | no (must stay false) | — | — | default false | not defined (good) |
 | `DEMO_RIDER_SIM` | **no** (refused in production) | — | — | `1` | not defined (good) |
+| `REVIEW_SIM` | no: `"0"` (off); `"1"` only while a build is in store review (R20) | railway.ts | no | not set | `"0"` (turn on and off in the file, [go-live.md](go-live.md) step 14) |
 | `DB_POOL_SIZE`, `REALTIME_INTERNAL_URL` | yes | railway.ts | no | same | supplied |
 | `TWILIO_*`, `SENDGRID_*`, `MSG91_*` | no (SMS off; email through SES) | — | — | not set | not defined |
 
@@ -376,6 +377,8 @@ credentials from Railway. The checker's section 7 lists them all with their sour
   ([`.railway/railway.ts`](../../.railway/railway.ts)).
 - `OTP_FIXED_CODE=""` and `DELIVERY_PIN_FIXED=""` on all three backends.
 - `DEMO_RIDER_SIM` and the fake payment settings only outside production.
+- `REVIEW_SIM` on the worker `"0"`, except while a build is in store review: it then plays the review kitchen and
+  delivery partner for orders in the hidden review city only ([store/README.md](store/README.md#reviewer-access)).
 - Every secret is `preserve()` (set by hand, sealed), never written in the file.
 - core-api and the worker refuse to start with a missing or local public address, no two-step key, no code sender,
   or a provider without its keys; the website fails closed without a payment provider.

@@ -345,6 +345,7 @@ The config sets every variable below. Values in *italics* are sealed secrets (st
 | `IDENTITY_DATA_KEYS` | core-api | a Fernet key (`["<key>"]`); unset = a fixed development key | **required**: `["<key>"]`, new key first to rotate (admins' authenticator secrets are encrypted with it) |
 | `DELIVERY_PIN_FIXED` | backends | default (`1234`, seed phones only) | `""` |
 | `DEMO_RIDER_SIM` | worker | `1` in QA only (the demo rider); unset in staging | unset (refused if set) |
+| `REVIEW_SIM` | worker | unset | `"0"`; `"1"` only while a build is in store review (R20: app store review orders only; docs/launch/go-live.md step 14) |
 | `STORAGE_PROVIDER` | core-api | `s3` (the bucket) | `s3` |
 | `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | web, admin (build time) | `https://${{<service>.RAILWAY_PUBLIC_DOMAIN}}` | same, or the custom domains |
 | `NEXT_PUBLIC_APP_URL` | web | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | *the custom domain* |

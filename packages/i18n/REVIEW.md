@@ -507,3 +507,11 @@ No new keys. Now also shown in the apps, so please re-read them where they appea
   mr, bn the verb usually comes last: check the sentence still reads as one).
 - BhojanGo customer app, Account tab: a "Legal" section (`account.legal.title`) with `signin.privacy` and
   `legal.terms`, each with `account.legal.opens` ("Opens the website"), as in the Kitchen and Delivery apps.
+
+## App store review orders (round 20)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo customer app (the bag, when the order costs nothing: only the app store review account in its
+  hidden review city): `checkout.place_free` ("Place order"), the button in place of "Pay {amount}". A short verb
+  phrase; it must not mention payment.

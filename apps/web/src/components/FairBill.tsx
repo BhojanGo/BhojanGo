@@ -90,12 +90,14 @@ export function MoneyBar({ shares, t, formatLocale }: { shares: Shares | null | 
           <span key={p.payee} style={{ width: `${p.percent}%`, background: look[p.payee].color }} />
         ))}
       </div>
-      <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-x-6 gap-y-1 p-0 text-small">
+      {/* One row per payee (round 20): in two columns a long label ("Delivery partner + tip") wrapped to three
+          lines in the home card and pushed its percentage out of line. Each label stays on one line. */}
+      <ul className="m-0 mt-3 grid list-none grid-cols-1 gap-y-1 p-0 text-small">
         {split.map((p) => (
           <li key={p.payee} data-payee={p.payee} data-percent={p.percent} className="flex items-center gap-[6px]">
             <span className="h-[10px] w-[10px] shrink-0" style={{ background: look[p.payee].color }} />
-            <span className="flex-grow">{look[p.payee].label}</span>
-            <b className="font-semibold tabular-nums text-[#111418]">{pct.format(p.percent / 100)}</b>
+            <span data-testid="payee-label" className="min-w-0 flex-grow truncate whitespace-nowrap">{look[p.payee].label}</span>
+            <b className="shrink-0 font-semibold tabular-nums text-[#111418]">{pct.format(p.percent / 100)}</b>
           </li>
         ))}
       </ul>

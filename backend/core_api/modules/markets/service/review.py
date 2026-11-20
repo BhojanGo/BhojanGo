@@ -7,8 +7,14 @@ address search, locate, discover and the public kitchen lists leave it out, and 
 kitchens' pages and menus answer 404. The review accounts see it like any live city
 (locate, discover, the kitchen's menu), so a reviewer can browse and order.
 
-Only the public, read-side routes honour it. Pricing and order creation don't: they
-need a kitchen id and an address inside the hidden zone, which nobody else has.
+The public, read-side routes honour it, and (R20) so does pricing: a quote in a
+review-only city is refused to everyone but its review accounts, and a review
+account's quote there costs nothing (pricing engine ``QuoteInputs.review``: one
+platform-funded line takes the total to zero). Such an order is placed without a
+payment provider (payments order_payments.place_review_order), and the worker's
+review simulator (worker app/demo_sim/review.py, REVIEW_SIM=1) plays its kitchen and
+delivery partner through core_api's signed /internal/review/orders/{id}/step, which
+refuses any order that isn't a review account's in a review-only city.
 """
 import uuid
 from collections.abc import Iterable
@@ -37,6 +43,21 @@ def may_see(settings: dict | None, viewer_id: uuid.UUID | str | None) -> bool:
     return str(viewer_id) in {str(a) for a in allowed}
 
 
+def is_review_account(settings: dict | None, user_id: uuid.UUID | str | None) -> bool:
+    """Is this one of the city's review accounts? Only ever true in a review-only city."""
+    if not is_review_only(settings) or user_id is None:
+        return False
+    return str(user_id) in {str(a) for a in (settings or {}).get(REVIEW_ACCOUNTS) or []}
+
+
+async def city_settings(db: AsyncSession, code: str | None) -> dict | None:
+    """The settings of the city with this code (None: no such city)."""
+    if not code:
+        return None
+    row = (await db.execute(select(City.settings).where(City.code == code))).first()
+    return (row[0] or {}) if row else None
+
+
 @dataclass(frozen=True)
 class Hidden:
     """The review-only cities one viewer may not see."""
@@ -54,16 +75,20 @@ class Hidden:
 
 def hidden_from(cities: Iterable[tuple[str, str, str, dict | None]], viewer_id: uuid.UUID | str | None) -> Hidden:
     """``cities``: (city code, city name, country code, settings) of every city."""
-    codes, names, sees = set(), set(), False
+    codes, names, seen, sees = set(), set(), set(), False
     for code, name, country, settings in cities:
         if not is_review_only(settings):
             continue
+        key = (country.upper(), name.strip().lower())
         if may_see(settings, viewer_id):
             sees = True
+            seen.add(key)
             continue
         codes.add(code)
-        names.add((country.upper(), name.strip().lower()))
-    return Hidden(frozenset(codes), frozenset(names), sees)
+        names.add(key)
+    # Kitchens are matched by city name (Restaurant.city): never hide a name this viewer may see because
+    # another review-only city has the same name (R20: two review cities named alike hid the reviewer's kitchen).
+    return Hidden(frozenset(codes), frozenset(names - seen), sees)
 
 
 async def hidden_for(db: AsyncSession, viewer_id: uuid.UUID | str | None) -> Hidden:

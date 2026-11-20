@@ -187,6 +187,10 @@ export default defineRailway((ctx, project) => {
     // QA only: the demo rider delivers the demo customers' orders through the normal APIs
     // (worker/app/demo_sim). Never staging or production: production refuses to start with it.
     ...(qa ? { DEMO_RIDER_SIM: "1" } : {}),
+    // Production only (R20): the review simulator plays the review kitchen and delivery partner for app store
+    // reviewers' orders in the hidden review city, and touches nothing else (worker/app/demo_sim/review.py).
+    // "1" while a build is in store review, "0" otherwise: docs/launch/go-live.md step 14.
+    ...(prod ? { REVIEW_SIM: "0" } : {}),
     // Production email: Amazon SES (shared/providers/email.py SesEmail), an IAM user allowed
     // ses:SendEmail only. The worker refuses to start without these (worker/app/main.py).
     ...(prod ? {

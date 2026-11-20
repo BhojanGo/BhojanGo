@@ -13,6 +13,7 @@ from app.api.v1 import notifications
 from shared import bus
 from shared.config import get_settings
 from shared.db import engine
+from app.demo_sim import review as review_sim
 from app.demo_sim import runner as demo_rider
 from app.services import batching, retention
 from app.services.outbox_relay import run_relay, stop_relay
@@ -75,6 +76,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     demo_task = asyncio.create_task(demo_rider.run()) if demo_on else None
     if not demo_on:
         logger.info("demo_rider_sim", status=demo_status)
+    # R20: the review simulator (REVIEW_SIM=1, production too): app store review orders only
+    review_on, review_status = review_sim.settings_enabled()
+    review_task = asyncio.create_task(review_sim.run()) if review_on else None
+    if not review_on:
+        logger.info("review_sim", status=review_status)
     logger.info("notification_svc_ready")
     yield
     stop_polling()
@@ -82,7 +88,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     batching.stop()
     retention.stop()
     demo_rider.stop()
-    for task in (_sqs_task, relay_task, batch_task, retention_task, demo_task):
+    review_sim.stop()
+    for task in (_sqs_task, relay_task, batch_task, retention_task, demo_task, review_task):
         if task:
             task.cancel()
     await engine.dispose()

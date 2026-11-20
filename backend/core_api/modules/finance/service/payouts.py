@@ -101,6 +101,9 @@ async def _orders_for_period(db: AsyncSession, country: str, start: date, end: d
                *([Order.driver_id == rider_id] if rider_id else []))
         .order_by(Order.actual_delivery_time)
     )).all()
+    # R20: app store review orders cost nothing and pay nobody (their kitchen and delivery
+    # partner are review accounts): never on a statement.
+    rows = [(o, snap) for o, snap in rows if not (snap.context or {}).get("review")]
     order_ids = [o.id for o, _ in rows]
     refunds: dict[uuid.UUID, list[dict]] = defaultdict(list)
     if order_ids:

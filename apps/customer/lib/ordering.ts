@@ -26,3 +26,14 @@ export function payMode(answer: ProviderAnswer, production: boolean): PayMode {
   if (answer === "error" || production) return "unavailable";
   return "test"; // local and QA: the app's test sheet stands in for the provider
 }
+
+/**
+ * R20: an order with nothing to pay (an app store review order in its review city: the
+ * server prices it at 0 and places it as soon as it is made). No checkout opens: the
+ * button places the order. Anything above zero, or no price yet, goes through payment.
+ */
+export function isFreeOrder(total: string | number | null | undefined): boolean {
+  if (total === null || total === undefined || total === "") return false;
+  const n = Number(total);
+  return Number.isFinite(n) && Math.abs(n) < 0.005;
+}

@@ -25,8 +25,10 @@ Each account gets a random password, printed once at the end and nowhere else
 Console and the team's password manager. Running it again refuses (the city or an
 email already exists); to start over, delete those rows first.
 
-Pricing and orders are not hidden: they need this kitchen's id and an address in
-the zone, which only the review accounts have. No delivery partner is ever near
+Only the review accounts can price or order there (R20). The review customer's
+orders there cost $0.00 and are placed with no payment provider; with REVIEW_SIM=1
+the worker's review simulator (worker app/demo_sim/review.py) plays the review
+kitchen and delivery partner up to delivered. No real delivery partner is ever near
 the zone, so an order placed there is not offered to anyone real.
 """
 import argparse

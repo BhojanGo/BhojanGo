@@ -89,15 +89,21 @@ class CountryOut(BaseModel):
 
 # ── Regions (states) ──────────────────────────────────────────────────────────
 
+SHORT_CODE = r"^[A-Z0-9]{1,4}$"
+
+
 class RegionCreate(BaseModel):
     code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}$", examples=["IN-TG"])
     name: str = Field(min_length=2, max_length=100)
+    # What people write after a city ("Boise, ID"). Admin's form requires it; left out, the ISO code's second part.
+    short_code: str | None = Field(default=None, pattern=SHORT_CODE, examples=["TG"])
     timezone: str | None = None
     settings: dict[str, Any] = {}
 
 
 class RegionUpdate(BaseModel):
     name: str | None = None
+    short_code: str | None = Field(default=None, pattern=SHORT_CODE)
     timezone: str | None = None
     settings: dict[str, Any] | None = None
     status: Status | None = None
@@ -109,6 +115,7 @@ class RegionOut(BaseModel):
     id: uuid.UUID
     code: str
     name: str
+    short_code: str | None = None
     timezone: str | None
     settings: dict[str, Any]
     status: Status
@@ -241,6 +248,7 @@ class LocateResult(BaseModel):
     reason: str | None = Field(default=None, description="Why not, in plain words")
     country_code: str | None = None
     region_code: str | None = None
+    region_short_code: str | None = Field(default=None, description='The state\'s short code ("ID"): the app\'s "Boise, ID"')
     city_code: str | None = None
     city_name: str | None = None
     zone_id: uuid.UUID | None = None

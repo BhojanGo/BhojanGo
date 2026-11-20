@@ -7,7 +7,7 @@ LIVE = {"PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE":
 
 
 def make(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
-    for k in ("APP_ENV", "RAILWAY_ENVIRONMENT_NAME", "DEMO_RIDER_SIM", *LIVE):
+    for k in ("APP_ENV", "RAILWAY_ENVIRONMENT_NAME", "DEMO_RIDER_SIM", "REVIEW_SIM", *LIVE):
         monkeypatch.delenv(k, raising=False)
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -26,6 +26,13 @@ def test_production_refuses_fakes(monkeypatch, names, bad) -> None:  # type: ign
 
 def test_production_with_live_providers_starts(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     assert make(monkeypatch, APP_ENV="production", **LIVE).production_named
+
+
+def test_production_allows_the_review_simulator_and_still_refuses_the_demo_rider(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """R20: REVIEW_SIM (app store review orders only) is the one simulator production starts with."""
+    assert make(monkeypatch, APP_ENV="production", **LIVE, REVIEW_SIM="1").worker.REVIEW_SIM is True
+    with pytest.raises(ProductionConfigError, match="DEMO_RIDER_SIM"):
+        make(monkeypatch, APP_ENV="production", **LIVE, REVIEW_SIM="1", DEMO_RIDER_SIM="1")
 
 
 def test_production_needs_the_fixed_otp_cleared(monkeypatch) -> None:  # type: ignore[no-untyped-def]

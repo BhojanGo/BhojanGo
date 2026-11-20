@@ -110,10 +110,11 @@ RETURNING id
 """)
 
 UPSERT_REGION = text("""
-INSERT INTO regions (id, country_id, code, name, timezone, settings, status)
-VALUES (:id, :country_id, :code, :name, :timezone, CAST(:settings AS jsonb), :status)
+INSERT INTO regions (id, country_id, code, name, short_code, timezone, settings, status)
+VALUES (:id, :country_id, :code, :name, upper(split_part(CAST(:code AS varchar), '-', 2)), :timezone, CAST(:settings AS jsonb), :status)
 ON CONFLICT (code) DO UPDATE SET
-    name = EXCLUDED.name, timezone = EXCLUDED.timezone, settings = EXCLUDED.settings,
+    name = EXCLUDED.name, short_code = COALESCE(regions.short_code, EXCLUDED.short_code),
+    timezone = EXCLUDED.timezone, settings = EXCLUDED.settings,
     status = EXCLUDED.status, updated_at = now()
 RETURNING id
 """)
