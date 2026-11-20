@@ -1,0 +1,58 @@
+# R20: the sign-in's Terms and Privacy policy line, and the languages BhojanGo Delivery
+# offers: the country's (Markets locales, in Markets order), signed out (the phone's
+# region, else the first live country) and signed in (the delivery partner's country).
+# Reads only. Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.rider
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: "sign-in-screen"
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "signin-legal"
+# The links are parts of one line of text (Android exposes no separate element for them): check the words.
+- assertVisible:
+    id: "signin-legal"
+    text: ".*Terms.*Privacy policy.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-sign-in-legal
+# Signed out: the pill lists the phone's country's languages.
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-language-signed-out
+- tapOn:
+    id: "language-menu-backdrop"
+# Signed in (the seeded delivery partner still signing up, as in 03-account): Account > Language.
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: "2085550291"
+- extendedWaitUntil:
+    visible: "Almost ready to deliver.*"
+    timeout: 60000
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "language-section"
+- assertVisible:
+    id: "language-en"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-language

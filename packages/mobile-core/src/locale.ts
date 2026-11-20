@@ -7,7 +7,7 @@
 // the language: switching to Hindi never changes how a price reads.
 // No relative imports here: Node runs this file directly in the tests.
 import type { CoreSchemas } from "@bhojango/api-client";
-import { detectCountry, type CountrySource as I18nCountrySource } from "@bhojango/i18n";
+import { detectCountry, languageOf, languagesFor, type CountrySource as I18nCountrySource, type Language } from "@bhojango/i18n";
 
 /** A country as Markets publishes it (code, name, currency, locales, distance_unit, phone_code, timezone, ...). */
 export type MarketCountry = CoreSchemas["DirCountry"];
@@ -38,6 +38,38 @@ export function resolveCountry(opts: {
   const found = detectCountry({ address: opts.addressCountry, page: null, ip: opts.ipCountry, browser: opts.deviceLocale }, countries);
   const country = found.code ? countries.find((c) => c.code === found.code) ?? null : null;
   return country ? { country, source: found.source } : { country: null, source: "none" };
+}
+
+/**
+ * The partner apps' country (BhojanGo Kitchen, BhojanGo Delivery: R20), whose Markets
+ * locales are the languages they offer. Signed in: the account's country (the
+ * kitchen's, the delivery partner's) when Markets has it. Otherwise the phone's
+ * region when Markets has it, else the first country with a live city, else
+ * Markets' first. No IP hint: a partner works in their own country.
+ */
+export function partnerCountry(opts: {
+  countries: readonly MarketCountry[];
+  accountCountry?: string | null;
+  deviceLocale?: string | null;
+}): { country: MarketCountry | null; source: CountrySource } {
+  const { countries } = opts;
+  const byCode = (code: string | null | undefined) => (code ? countries.find((c) => c.code === code.toUpperCase()) ?? null : null);
+  const account = byCode(opts.accountCountry);
+  if (account) return { country: account, source: "address" };
+  const device = byCode(regionOf(opts.deviceLocale));
+  if (device) return { country: device, source: "browser" };
+  const first = countries.find((c) => c.live > 0) ?? countries[0] ?? null;
+  return first ? { country: first, source: "default" } : { country: null, source: "none" };
+}
+
+/**
+ * The partner apps' language: the one saved on this phone when the country offers
+ * it, else the country's first (Markets order). Until a country is known, the saved one.
+ */
+export function partnerLanguage(saved: string | null | undefined, locales: readonly string[] | null | undefined): Language {
+  const offered = languagesFor(locales ? [...locales] : saved ? [saved] : null);
+  const lang = saved ? languageOf(saved) : "";
+  return (offered as string[]).includes(lang) ? (lang as Language) : offered[0]!;
 }
 
 /** A Markets city by its code ("XX-RR-CCC") with its country, or null (hidden or unknown). */

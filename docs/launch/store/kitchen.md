@@ -80,7 +80,7 @@ Nothing is used for tracking. No analytics, advertising or crash SDK.
 | Other user content | Yes: menu items, prices, offers, hours | Yes | No | App functionality | `apps/partner/app/(kitchen)/menu.tsx` |
 | User ID | Yes | Yes | No | App functionality | `packages/mobile-core/src/session.ts:24` |
 | Device ID / push token | **No** (no push registration; README item 7) | | | | |
-| Audio | **No**. The app plays an alert sound; it never records | | | | `apps/partner/lib/board.ts:51` |
+| Audio | **No**. The app plays an alert sound; it never records | | | | `apps/partner/lib/board.ts` |
 | Crash, performance, analytics | No | | | | |
 
 Customer data the kitchen sees (customer first name, order items, rating comments
@@ -125,6 +125,7 @@ Track You: none.
 | Camera | iOS | `app.json:17` and `expo-image-picker` plugin `app.json:45` | "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu." | `app/(kitchen)/menu.tsx:272` | Used. The same text is set twice; keep the plugin one. |
 | Photo library | iOS | `app.json:18` and plugin `app.json:44` | "BhojanGo Kitchen lets you choose photos of your dishes for your menu." | `app/(kitchen)/menu.tsx:272` | Used. |
 | Microphone | iOS / Android | None | None | Never | Removed (R19): `expo-image-picker` `microphonePermission: false`, `expo-audio` `microphonePermission: false` and `recordAudioAndroid: false`. Confirm after prebuild. |
+| Background audio (`UIBackgroundModes: audio`; Android `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`) | iOS / Android | None | None | Never | Removed (R20): `expo-audio` `enableBackgroundPlayback: false`. The new-order ring plays only while the app is open (`lib/board.ts`, `shouldPlayInBackground: false`); in the background the push notification's sound alerts. `npx expo config --type introspect` shows no `UIBackgroundModes` and no foreground-service permissions. |
 | `CAMERA` | Android | `app.json:28` | System dialog | `app/(kitchen)/menu.tsx:272` | Used. |
 | `WAKE_LOCK` | Android | `app.json:31` | None (normal) | Not needed by `useKeepAwake` (`app/_layout.tsx:15`) | Can be removed. |
 | `RECEIVE_BOOT_COMPLETED`, `VIBRATE` | Android | `app.json` | None (normal) | Notifications plugin | Keep only if push is added. |

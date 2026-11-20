@@ -56,6 +56,7 @@ async def test_pause_ends_by_itself_and_busy_adds_prep(client: AsyncClient) -> N
     rid, item = await spice(client)
     mine = (await client.get("/api/v1/restaurants/mine", headers=partner)).json()
     assert {r["name"] for r in mine} >= {"Spice Route Kitchen"} and all(r["status"] == "active" for r in mine)
+    assert all(r["country"] == "IN" for r in mine)  # R20: the Kitchen app offers the kitchen's country's languages
     assert (await client.get("/api/v1/restaurants/mine", headers=cust)).json() == []
     base = (await client.get(f"/api/v1/restaurants/{rid}/today", headers=partner)).json()
     assert base["paused"] is False and base["name"] == "Spice Route Kitchen" and base["currency"] == "INR"

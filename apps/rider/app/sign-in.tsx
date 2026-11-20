@@ -1,7 +1,7 @@
 // Delivery partners sign in with their phone and a code by SMS (first), or their email
 // (round 8, D5); dark, like the rest of the app.
 import {
-  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, type MarketCountry, PhoneCountryButton, SafeAreaView, SignInWays, type SignInWay, type,
+  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, type MarketCountry, PhoneCountryButton, SafeAreaView, SignInLegal, SignInWays, type SignInWay, type,
   useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -102,6 +102,8 @@ export default function SignIn() {
         <Text style={[ui.muted, { textAlign: "center" }]}>{t("rider.sign_in.hint")}</Text>
         </>
         )}
+        {/* R20: the Terms and Privacy policy of the phone number's country, on the website. */}
+        {unreachable ? null : <SignInLegal tone="dark" country={country?.code} />}
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -49,7 +49,8 @@ Ltd, that is a second account per store.
 Ordered by how likely each one is to stop a release. Each item gives the evidence,
 the store rule, and the fix. Round 19 (2026-11-19) fixed items 1, 2 (in the app),
 5, 6 (purpose strings and microphone), 8 (Kitchen and Delivery) and 9 (quick
-messages); each says so in a **Status** line. The rest is still open.
+messages); round 20 fixed the rest of item 8 (sign-in screens, customer Account tab)
+and item 6's background audio. Each says so in a **Status** line. The rest is still open.
 
 ### 1. Kitchen and Delivery apps have no in-app account deletion (Apple: blocker)
 
@@ -153,7 +154,7 @@ and the `infoPlist` copies are gone. Declaration texts and the video shot list:
   `http://localhost:8001` and `http://localhost:8004`
   (`packages/mobile-core/src/session.ts:15-19`), and the web address used for the
   Terms and Privacy links falls back to `http://localhost:3000`
-  (`apps/customer/lib/plate.tsx:20`, used by `apps/customer/app/sign-in.tsx:15-17`).
+  (`apps/customer/lib/plate.tsx:20`; since R20 the sign-in links use mobile-core `urls.web`).
   A release build without the variables opens on "can't reach BhojanGo" and its
   privacy link goes nowhere.
 - The "Test site" banner: `resolveAppEnv` returns `production` for a release build
@@ -219,9 +220,20 @@ see item 2. Microphone: `microphonePermission: false` on `expo-image-picker` in 
 three apps, and `microphonePermission: false` / `recordAudioAndroid: false` on
 `expo-audio` in the Kitchen app. Still to check after `expo prebuild`: no
 `NSMicrophoneUsageDescription` or `RECORD_AUDIO`, the photo permissions below, and
-`WAKE_LOCK`. Also note `expo-audio` still adds `UIBackgroundModes: audio` by default
-(`enableBackgroundPlayback`); the Kitchen app plays its alert only in the foreground,
-so consider `enableBackgroundPlayback: false` before submitting (Apple 2.5.4).
+`WAKE_LOCK`.
+
+**Status (R20): background audio fixed.** `expo-audio` (58.0.12) adds
+`UIBackgroundModes: ["audio"]` (and, on Android, `FOREGROUND_SERVICE` /
+`FOREGROUND_SERVICE_MEDIA_PLAYBACK` with a media playback service) unless
+`enableBackgroundPlayback: false`. The Kitchen app does not need it: the new-order ring
+(`apps/partner/lib/board.ts`) only starts while the app is open (the board polls in the
+foreground; the tablet stays awake with `useKeepAwake`), and in the background the
+order's push notification and its sound are the alert. So `apps/partner/app.json` sets
+`enableBackgroundPlayback: false` and the ring uses `shouldPlayInBackground: false`.
+`npx expo config --type introspect` (apps/partner): no `UIBackgroundModes` at all, and
+no `FOREGROUND_SERVICE*` permissions (before: `["audio"]` and both permissions).
+`packages/mobile-core/test/store-config.test.ts` keeps the option set and checks the
+installed plugin still defaults it to on (Apple 2.5.4).
 
 - Customer: `NSLocationAlwaysAndWhenInUseUsageDescription` says "for real-time
   delivery tracking" (`apps/customer/app.json:17`), but the app only asks for
@@ -234,7 +246,7 @@ so consider `enableBackgroundPlayback: false` before submitting (Apple 2.5.4).
 - Microphone: the `expo-image-picker` plugin (all three apps) and the `expo-audio`
   plugin (Kitchen, `apps/partner/app.json:40`) add a microphone usage string and,
   on Android, `RECORD_AUDIO` unless told not to. No app records audio or video
-  (the Kitchen app only plays a sound: `apps/partner/lib/board.ts:51`). Set
+  (the Kitchen app only plays a sound: `apps/partner/lib/board.ts`). Set
   `microphonePermission: false` on `expo-image-picker`, and
   `microphonePermission: false` / `recordAudioAndroid: false` on `expo-audio`.
   Confirm after `expo prebuild` that no `NSMicrophoneUsageDescription` or
@@ -269,9 +281,16 @@ so consider `enableBackgroundPlayback: false` before submitting (Apple 2.5.4).
 **Status (R19): fixed for Kitchen and Delivery.** Privacy policy and Terms of use open the
 account country's pages on the website (`/privacy?country=XX`, `/terms?country=XX`,
 base `EXPO_PUBLIC_WEB_URL`): Kitchen: Help and settings > "Account and legal";
-Delivery: Account tab > "Legal". Still open: links on the Kitchen and Delivery sign-in
-screens and on the customer Account tab, and `EXPO_PUBLIC_WEB_URL` in the production
-build profile (item 3).
+Delivery: Account tab > "Legal".
+
+**Status (R20): fixed.** All three sign-in screens end with the website's sign-in line,
+"By continuing you agree to the Terms and Privacy policy.", both links opening the
+phone number's country's pages (mobile-core `SignInLegal`, `packages/mobile-core/src/account.tsx`).
+The customer Account tab has a "Legal" section (Privacy policy, Terms of use) like the
+Kitchen and Delivery apps (`apps/customer/app/(tabs)/account.tsx`). Stack screenshots:
+`stack-customer-sign-in-legal`, `stack-customer-account-legal`,
+`stack-partner-sign-in-legal`, `stack-rider-sign-in-legal`. `EXPO_PUBLIC_WEB_URL` in the
+production build profile is item 3 (`eas.json` sets it since R19).
 
 - The customer sign-in screen links to Terms and Privacy
   (`apps/customer/app/sign-in.tsx:95-101`). The Kitchen and Delivery apps have no

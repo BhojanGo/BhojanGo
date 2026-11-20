@@ -61,6 +61,9 @@ EOF
     # R18: a flow that needs an incident pause on the stack (tools/mobile/incident_pause.py on/off around it).
     pause=0
     case "$flow" in *incident-pause*) pause=1; python3 "$ROOT/tools/mobile/incident_pause.py" on > "$LOGS/$name-pause.log" 2>&1 ;; esac
+    # R20: the app's own console warnings and errors (LogBox only says "Open debugger to view
+    # warnings"; the JS console also goes to logcat as ReactNativeJS), one file per flow.
+    adb -s "$DEVICE" logcat -c >/dev/null 2>&1
     if (cd "$OUT" && timeout 600 maestro --device "$DEVICE" test "$ROOT/apps/$app/.maestro/stack/$flow") > "$LOGS/$name.log" 2>&1; then
       echo "PASS $name"
     else
@@ -70,6 +73,8 @@ EOF
       last="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
       [ -n "$last" ] && cp -r "$last" "$LOGS/$name-maestro" 2>/dev/null
     fi
+    adb -s "$DEVICE" logcat -d -v brief ReactNativeJS:W '*:S' > "$LOGS/$name-js-warnings.log" 2>/dev/null
+    n=$(grep -c '^[WE]/ReactNativeJS' "$LOGS/$name-js-warnings.log" 2>/dev/null); echo "   $name: ${n:-0} JS warnings/errors (logs/$name-js-warnings.log)"
     curl -s -m 5 localhost:8011/__slow/off >/dev/null
     [ "$pause" = 1 ] && python3 "$ROOT/tools/mobile/incident_pause.py" off >> "$LOGS/$name-pause.log" 2>&1
   done
@@ -84,5 +89,8 @@ for f in $(find "$HOME/.maestro" "$OUT" -name 'stack-*.png' -not -path "$OUT/*-*
   mkdir -p "$OUT/$app-$DEVICE_KIND"
   cp -f "$f" "$OUT/$app-$DEVICE_KIND/stack-$shot.png"  # the names tools/mobile/screens_compose.py pairs
 done
+# Every distinct JS warning and error the flows hit (first line of each), most frequent first.
+echo "== JS warnings and errors (ReactNativeJS in logcat)"
+cat "$LOGS"/*-js-warnings.log 2>/dev/null | grep '^[WE]/ReactNativeJS' | sed 's/([ 0-9]*)//' | sort | uniq -c | sort -rn | head -40
 ls -R "$OUT" | grep -v '^$'
 exit $fail

@@ -22,7 +22,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { create } from "zustand";
 
 import { convertDistance, deviceLocale, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
-  resolveCountry, type CountrySource, type MarketCountry } from "./locale";
+  partnerCountry, partnerLanguage, resolveCountry, type CountrySource, type MarketCountry } from "./locale";
 import { api } from "./session";
 import { loadScriptFonts } from "./ui/fonts";
 import { scriptFor, setTypeScript, type Script } from "./ui/type";
@@ -30,9 +30,20 @@ import { scriptFor, setTypeScript, type Script } from "./ui/type";
 const LANGUAGE_KEY = "bg.language";
 const COUNTRY_KEY = "bg.country"; // round 4's country choice: no longer used (cleared once at start)
 
+/**
+ * Whose rule picks the country and language (R20):
+ *   "customer"  the website's: the delivery address, the IP hint, the phone's region, ...; English
+ *               when the remembered language isn't offered (resolveCountry, chooseLanguage)
+ *   "partner"   BhojanGo Kitchen and Delivery: the account's country, else the phone's region,
+ *               else the first live country; the country's first language when the remembered one
+ *               isn't offered (partnerCountry, partnerLanguage)
+ */
+export type LocaleRule = "customer" | "partner";
+
 interface LocaleState {
   /** Stored choices are loaded (the provider renders its children from then on). */
   ready: boolean;
+  rule: LocaleRule;
   /** Markets countries (GET /api/v1/markets/directory); empty until loaded or when offline. */
   countries: MarketCountry[];
   directoryError: boolean;
@@ -46,7 +57,7 @@ interface LocaleState {
   /** The script whose faces the type tokens use (the language's, once its Noto Sans faces are loaded). */
   script: Script;
   setScript: (script: Script) => void;
-  init: () => Promise<void>;
+  init: (rule?: LocaleRule) => Promise<void>;
   loadDirectory: () => Promise<void>;
   loadHint: () => Promise<void>;
   setLanguage: (language: string) => Promise<void>;
@@ -56,6 +67,7 @@ interface LocaleState {
 /** The store behind useI18n/useCountry (read it outside React with useLocaleStore.getState()). */
 export const useLocaleStore = create<LocaleState>()((set, get) => ({
   ready: false,
+  rule: "customer",
   countries: [],
   directoryError: false,
   directoryFailure: null,
@@ -69,16 +81,17 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
     set({ script });
   },
 
-  init: async () => {
+  init: async (rule = "customer") => {
     if (get().ready) return;
     const language = await SecureStore.getItemAsync(LANGUAGE_KEY).catch(() => null);
-    set({ ready: true, chosenLanguage: language });
+    set({ ready: true, rule, chosenLanguage: language });
     void SecureStore.deleteItemAsync(COUNTRY_KEY).catch(() => undefined);
     void get().loadDirectory();
     void get().loadHint();
   },
 
   loadHint: async () => {
+    if (get().rule === "partner") return; // partners: the account's country or the phone's, never the IP's
     try {
       const h = unwrap(await api.core.GET("/api/v1/markets/hint"));
       set({ ipCountry: h.country ?? null });
@@ -110,12 +123,12 @@ export const useLocaleStore = create<LocaleState>()((set, get) => ({
  * until the stored choices are read (a few milliseconds, behind the splash screen),
  * so the first screen is already in the person's language.
  */
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({ children, rule = "customer" }: { children: ReactNode; rule?: LocaleRule }) {
   const ready = useLocaleStore((s) => s.ready);
   const init = useLocaleStore((s) => s.init);
   useEffect(() => {
-    void init();
-  }, [init]);
+    void init(rule);
+  }, [init, rule]);
   // The type tokens follow the language's script: Noto Sans for Devanagari, Telugu, ...
   // (React Native draws a Text in one face). Until the faces load, the brand face.
   const { language } = useI18n();
@@ -152,14 +165,14 @@ export interface CountryContext {
 export function useCountry(): CountryContext {
   const s = useLocaleStore();
   return useMemo(() => {
-    const { country, source } = resolveCountry({
-      countries: s.countries, addressCountry: s.addressCountry, ipCountry: s.ipCountry, deviceLocale: s.device,
-    });
+    const { country, source } = s.rule === "partner"
+      ? partnerCountry({ countries: s.countries, accountCountry: s.addressCountry, deviceLocale: s.device })
+      : resolveCountry({ countries: s.countries, addressCountry: s.addressCountry, ipCountry: s.ipCountry, deviceLocale: s.device });
     return {
       country, source, countries: s.countries, loading: !s.countries.length && !s.directoryError, error: s.directoryError,
       failure: s.directoryFailure, reload: s.loadDirectory, setAddressCountry: s.setAddressCountry,
     };
-  }, [s.countries, s.addressCountry, s.ipCountry, s.device, s.directoryError, s.directoryFailure, s.loadDirectory, s.setAddressCountry]);
+  }, [s.rule, s.countries, s.addressCountry, s.ipCountry, s.device, s.directoryError, s.directoryFailure, s.loadDirectory, s.setAddressCountry]);
 }
 
 export interface I18n {
@@ -193,12 +206,13 @@ export function useI18n(): I18n {
   const { country, countries } = useCountry();
   const chosen = useLocaleStore((s) => s.chosenLanguage);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
+  const rule = useLocaleStore((s) => s.rule);
   // Screens re-render when the script's faces arrive (the `type` tokens read it at render).
   const script = useLocaleStore((s) => s.script);
   return useMemo(() => {
     // Until Markets' countries load (a moment, or offline), the remembered language alone.
     const locales = country?.locales ?? (chosen ? [chosen] : null);
-    const language = chooseLanguage(chosen, locales);
+    const language = rule === "partner" ? partnerLanguage(chosen, locales) : chooseLanguage(chosen, locales);
     const languages = languagesFor(locales);
     const options = languageList(locales);
     const loc = country ? countryLocale(country.locales) : undefined;
@@ -219,12 +233,13 @@ export function useI18n(): I18n {
       date: (iso, opts) => formatDate(iso, loc, opts),
       time: (iso, opts) => formatTime(iso, loc, opts),
     };
-  }, [country, countries, chosen, setLanguage, script]);
+  }, [country, countries, chosen, setLanguage, script, rule]);
 }
 
 /**
  * Tell the locale store the country we know for sure: the delivery address's
- * (customer app) or the signed-in account's (rider, partner). null clears it.
+ * (customer app) or the signed-in account's (the delivery partner's; the kitchen's in
+ * BhojanGo Kitchen). null clears it (signed out).
  *   useKnownCountry(useSession((s) => s.user?.country));
  */
 export function useKnownCountry(code: string | null | undefined) {

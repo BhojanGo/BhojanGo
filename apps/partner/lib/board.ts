@@ -47,7 +47,10 @@ let player: AudioPlayer | null = null;
 function ring(on: boolean) {
   if (on) {
     if (!player) {
-      void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true }).catch(() => undefined);
+      // Foreground only (R20): the board polls while the app is open, so a new order can only ring
+      // here then; in the background the order's push notification (with its sound) is the alert.
+      // No background audio, so no iOS UIBackgroundModes "audio" (app.json: enableBackgroundPlayback false).
+      void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false }).catch(() => undefined);
       player = createAudioPlayer(require("../assets/new-order.wav"));
       player.loop = true;
       player.volume = 1;

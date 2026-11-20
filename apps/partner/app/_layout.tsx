@@ -10,6 +10,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useKitchen } from "../lib/data";
 import { useOrientationLock } from "../lib/layout";
 
 void SplashScreen.preventAutoHideAsync();
@@ -28,7 +29,11 @@ export default function RootLayout() {
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
   usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId); // R19: after sign-in
-  useKnownCountry(useSession((s) => s.user?.country)); // the partner's account country (Markets)
+  // R20: the languages are the kitchen's country's (Markets locales): the kitchen's country once it
+  // has loaded, else the account's; signed out, the phone's region (I18nProvider rule "partner").
+  const accountCountry = useSession((s) => s.user?.country);
+  const kitchenCountry = useKitchen((s) => s.kitchen?.country);
+  useKnownCountry(accountCountry ? kitchenCountry || accountCountry : null);
 
   useEffect(() => {
     void initialize();
@@ -41,7 +46,7 @@ export default function RootLayout() {
   if (!fontsReady || status === "loading") return null;
 
   return (
-    <I18nProvider>
+    <I18nProvider rule="partner">
       <StatusBar style="dark" />
       {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner>

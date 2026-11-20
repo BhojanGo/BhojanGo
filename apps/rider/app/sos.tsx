@@ -43,7 +43,7 @@ export default function Sos() {
       </View>
       <Text style={[ui.body, { color: night.muted }]}>{emergency ? t("rider.sos.intro", { number: emergency }) : t("rider.sos.intro_local")}</Text>
       {emergency ? (
-        <Pressable testID="sos-call" accessibilityRole="button" onPress={() => Linking.openURL(`tel:${emergency}`)} style={styles.call}>
+        <Pressable testID="sos-call" accessibilityRole="button" onPress={() => void Linking.openURL(`tel:${emergency}`).catch(() => undefined)} style={styles.call}>
           <Icon name="phone" stroke={night.text} />
           <Text style={[type.h3, { color: night.text }]}>{t("rider.sos.call", { number: emergency })}</Text>
         </Pressable>

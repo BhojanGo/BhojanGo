@@ -1,7 +1,7 @@
 // Kitchen partners sign in with their email (first: the kitchen's account is an email
 // and a password) or the kitchen's phone and a code by SMS (round 8, D5).
 import {
-  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LoadError, type MarketCountry, PhoneCountryButton, SignInWays, type SignInWay, type, useCountry,
+  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LoadError, type MarketCountry, PhoneCountryButton, SignInLegal, SignInWays, type SignInWay, type, useCountry,
   useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
@@ -85,6 +85,8 @@ export default function SignIn() {
           <Text style={t.muted}>{tr("partner.sign_in.new")}</Text>
         </>
       )}
+      {/* R20: the Terms and Privacy policy of the phone number's country, on the website. */}
+      {unreachable ? null : <SignInLegal country={country?.code} style={{ marginTop: 8 }} />}
     </Split>
   );
 }

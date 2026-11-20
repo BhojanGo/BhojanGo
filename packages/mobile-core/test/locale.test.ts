@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { convertDistance, countryForCurrency, e164, filterCities, findCity, formatDate, formatMoney, formatNumber, formatTime,
-  liveCityNames, localeForCurrency, regionOf, resolveCountry, type MarketCountry } from "../src/locale.ts";
+  liveCityNames, localeForCurrency, partnerCountry, partnerLanguage, regionOf, resolveCountry, type MarketCountry } from "../src/locale.ts";
 
 function country(code: string, currency: string, locales: string[], unit: string, phone: string, cities: string[] = []): MarketCountry {
   return {
@@ -35,6 +35,34 @@ test("country: address, then the IP hint, then the device's region, then the fir
   assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "fr-FR" }), { country: AA, source: "default" });
   assert.deepEqual(resolveCountry({ countries: ALL, deviceLocale: "es-FR" }), { country: BB, source: "default" }); // speaks the phone's language
   assert.deepEqual(resolveCountry({ countries: [], addressCountry: "AA" }), { country: null, source: "none" });
+});
+
+// R20: BhojanGo Kitchen and BhojanGo Delivery offer the partner's own country's languages.
+const SOON = country("CC", "EUR", ["es-CC"], "km", "+3"); // no live city yet
+const IN_ORDER = [SOON, AA, BB];
+
+test("partner apps: the account's country, else the phone's, else the first live one; never the IP's", () => {
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, accountCountry: "BB", deviceLocale: "en-AA" }), { country: BB, source: "address" });
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, accountCountry: "bb" }), { country: BB, source: "address" });
+  // signed out: the phone's region when Markets has it
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, accountCountry: null, deviceLocale: "hi-AA" }), { country: AA, source: "browser" });
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, deviceLocale: "es_CC" }), { country: SOON, source: "browser" });
+  // an account country Markets doesn't list, or a phone elsewhere: the first live country (not Markets' first)
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, accountCountry: "ZZ", deviceLocale: "fr-FR" }), { country: AA, source: "default" });
+  assert.deepEqual(partnerCountry({ countries: IN_ORDER, deviceLocale: "es-FR" }), { country: AA, source: "default" }); // no language guess
+  assert.deepEqual(partnerCountry({ countries: [SOON] }), { country: SOON, source: "default" });
+  assert.deepEqual(partnerCountry({ countries: [], accountCountry: "AA" }), { country: null, source: "none" });
+});
+
+test("partner apps: the country's languages in Markets order; a saved one it doesn't offer falls back to its first", () => {
+  assert.equal(partnerLanguage("te", AA.locales), "te");
+  assert.equal(partnerLanguage("es", BB.locales), "es");
+  assert.equal(partnerLanguage("es", AA.locales), "en"); // saved Spanish, an Indian kitchen: the country's first
+  assert.equal(partnerLanguage("hi", BB.locales), "en");
+  assert.equal(partnerLanguage(null, SOON.locales), "es"); // nothing saved: the country's first, even when not English
+  assert.equal(partnerLanguage("te", SOON.locales), "es");
+  assert.equal(partnerLanguage("te", null), "te"); // Markets not loaded yet: the saved one
+  assert.equal(partnerLanguage(null, null), "en");
 });
 
 test("money follows the country's locale and the currency, never the language", () => {

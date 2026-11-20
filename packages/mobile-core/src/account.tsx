@@ -1,10 +1,12 @@
-// Account pieces the Kitchen and Delivery apps share (R19, app store review):
-// - Legal: the country's Privacy policy and Terms of use on the website.
+// Account pieces the three apps share (R19, app store review):
+// - Legal: the country's Privacy policy and Terms of use on the website (Account),
+//   and R20's line under every sign-in: "By continuing you agree to the Terms and
+//   Privacy policy." (the website's sign-in wording, apps/web/src/app/signin/Shell.tsx).
 // - Delete account: a confirmation that says what goes and what stays (the
 //   customer app's rule, apps/customer/app/account/privacy.tsx), and the server's
 //   reasons to wait (money still owed on a payout, orders on their way) in words.
 import { useState } from "react";
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { deleteAccountProblem, legalPageUrl } from "./account-text";
@@ -37,13 +39,37 @@ export function LegalLinks({ tone = "light", country }: { tone?: AccountTone; co
     <View accessibilityLabel={t("account.legal.title")}>
       {rows.map((r, i) => (
         <Pressable key={r.key} testID={`legal-${r.key}`} accessibilityRole="link" accessibilityHint={t("account.legal.opens")}
-          onPress={() => void Linking.openURL(legalUrl(r.key, country))}
+          onPress={() => void Linking.openURL(legalUrl(r.key, country)).catch(() => undefined)}
           style={[s.row, i < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.line }]}>
           <Text style={[type.label, { color: c.link, flex: 1 }]}>{r.title}</Text>
           <Text style={[type.small, { color: c.muted }]}>{t("account.legal.opens")}</Text>
         </Pressable>
       ))}
     </View>
+  );
+}
+
+/**
+ * Under a sign-in form (R20, all three apps): "By continuing you agree to the Terms and
+ * Privacy policy.", each link opening that country's page on the website (the
+ * phone number's country, else the app's). testIDs: "signin-legal", "link-terms", "link-privacy".
+ */
+export function SignInLegal({ tone = "light", country, style }: { tone?: AccountTone; country?: string | null; style?: StyleProp<TextStyle> }) {
+  const { t } = useI18n();
+  const c = TONES[tone];
+  const link = [s.link, { color: c.link }];
+  return (
+    <Text testID="signin-legal" style={[type.small, { color: c.muted, textAlign: "center" }, style]}>
+      {`${t("signin.agree_before")} `}
+      <Text testID="link-terms" accessibilityRole="link" onPress={() => void Linking.openURL(legalUrl("terms", country)).catch(() => undefined)} style={link}>
+        {t("signin.terms")}
+      </Text>
+      {` ${t("signin.agree_and")} `}
+      <Text testID="link-privacy" accessibilityRole="link" onPress={() => void Linking.openURL(legalUrl("privacy", country)).catch(() => undefined)} style={link}>
+        {t("signin.privacy")}
+      </Text>
+      {"."}
+    </Text>
   );
 }
 
@@ -118,6 +144,7 @@ export function DeleteAccount({ tone = "light", body, note, before, undo, onDele
 }
 
 const s = StyleSheet.create({
+  link: { textDecorationLine: "underline" },
   row: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
   btn: { minHeight: 48, borderRadius: radius.pill, borderWidth: 1.5, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   big: { minHeight: 56 },
