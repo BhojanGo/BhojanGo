@@ -149,6 +149,7 @@ async def list_restaurant_orders(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     repo = OrderRepository(db)
     orders, total = await repo.list_by_restaurant(restaurant_id, page=page, limit=limit)
+    people = await _load_people(db, orders)  # noqa: F841 - kept in the session for _as_kitchen_sees_it
     return OrderListResponse(
         items=await _with_zones(db, [await _as_kitchen_sees_it(db, o) for o in orders]),
         total=total,
@@ -185,6 +186,18 @@ async def get_driver_active_order(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active order")
     return (await _with_zones(db, [await _as_rider_sees_it(db, order, OrderResponse.model_validate(order))]))[0]
+
+
+async def _load_people(db: AsyncSession, orders) -> list:  # type: ignore[no-untyped-def]
+    """R22: the customers and riders of a page of orders in one query (the kitchen board asked
+    for each one: up to 200 queries for 100 orders). They land in the session's identity map,
+    so _as_kitchen_sees_it's db.get finds them without a query; hold the list meanwhile."""
+    from sqlalchemy import select
+
+    from core_api.modules.identity.models.user import User
+
+    ids = {o.customer_id for o in orders} | {o.driver_id for o in orders if o.driver_id}
+    return list((await db.execute(select(User).where(User.id.in_(ids)))).scalars()) if ids else []
 
 
 async def _as_kitchen_sees_it(db: AsyncSession, order) -> OrderResponse:  # type: ignore[no-untyped-def]

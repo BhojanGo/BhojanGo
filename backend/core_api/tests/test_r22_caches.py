@@ -89,3 +89,16 @@ def test_a_bad_token_is_never_remembered() -> None:
     with pytest.raises(auth.InvalidTokenError):
         auth.decode_jwt("not.a.token")
     assert "not.a.token" not in auth._verified
+
+
+def test_processes_starting_together_share_one_dev_key(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """R22: with several uvicorn processes, a second process must never replace the dev
+    signing key the first one already uses (tokens would fail in the other process)."""
+    from shared import jwt_keys
+    from shared.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "JWT_DEV_KEY_PATH", str(tmp_path / "jwt-dev.pem"))
+    first = jwt_keys._dev_key()
+    second = jwt_keys._dev_key()  # as a process that started at the same moment would
+    assert first.private_numbers() == second.private_numbers()
+    assert [p.name for p in tmp_path.iterdir()] == ["jwt-dev.pem"]
