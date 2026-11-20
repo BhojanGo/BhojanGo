@@ -32,6 +32,8 @@ export interface Region {
   id: string;
   code: string;
   name: string;
+  /** What people write after a city ("Boise, ID"): the location line on the website and in the app (round 20). */
+  short_code: string | null;
   timezone: string | null;
   settings: Record<string, unknown>;
   status: MarketStatus;
@@ -241,9 +243,9 @@ export interface CountryUpdate {
 export const marketsApi = {
   updateCountry: (code: string, body: CountryUpdate) => adminApi.patch<Country>(`/user/markets/countries/${code}`, body),
   createCountry: (body: CountryCreate) => adminApi.post<Country>("/user/markets/countries", body),
-  createRegion: (country: string, body: { code: string; name: string; timezone?: string | null }) =>
+  createRegion: (country: string, body: { code: string; name: string; short_code: string; timezone?: string | null }) =>
     adminApi.post<Region>(`/user/markets/countries/${country}/regions`, body),
-  updateRegion: (code: string, body: { name?: string; status?: MarketStatus }) =>
+  updateRegion: (code: string, body: { name?: string; status?: MarketStatus; short_code?: string }) =>
     adminApi.patch<Region>(`/user/markets/regions/${code}`, body),
   createCity: (region: string, body: { code: string; name: string; center_lat: number; center_lng: number; timezone?: string | null }) =>
     adminApi.post<City>(`/user/markets/regions/${region}/cities`, body),

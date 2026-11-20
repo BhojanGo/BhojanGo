@@ -108,29 +108,35 @@ test("the apps' bundle has every language, and the apps' keys exist", () => {
 test("location line: address, then a chosen city, then an IP guess only inside a live zone, else nothing; never the first live city", () => {
   const { resolveLocation } = require("..");
   const cities = [
-    { code: "IN-TG-HYD", name: "Hyderabad", country: "IN", status: "live" },
-    { code: "US-ID-BOI", name: "Boise", country: "US", status: "live" },
-    { code: "US-ID-NMP", name: "Nampa", country: "US", status: "soon" },
+    { code: "IN-TG-HYD", name: "Hyderabad", country: "IN", status: "live", region_code: "TG" },
+    { code: "US-ID-BOI", name: "Boise", country: "US", status: "live", region_code: "ID" },
+    { code: "US-ID-NMP", name: "Nampa", country: "US", status: "soon", region_code: "ID" },
   ];
   const meridian = { country: "US", place: "Meridian", region_code: "ID", city_code: "US-ID-BOI", served: true };
   // 1. the address wins over everything
   let r = resolveLocation({ address: { label: "Madhapur, Hyderabad", country: "in", city_code: "IN-TG-HYD", served: true }, chosen: "US-ID-BOI", ip: meridian }, cities);
-  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served, r.deliversHere], ["address", "Hyderabad", "IN", "IN-TG-HYD", true, false]);
+  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served, r.deliversHere], ["address", "Hyderabad", "TG", "IN-TG-HYD", true, false]);
   // an address outside every zone: its own label, nothing served
   r = resolveLocation({ address: { label: "12 Main St, Twin Falls", country: "US", city_code: null, served: false }, ip: meridian }, cities);
   assert.deepEqual([r.source, r.place, r.code, r.city, r.served], ["address", "12 Main St, Twin Falls", "US", null, false]);
   // 2. a chosen city: live serves, coming soon doesn't
   r = resolveLocation({ chosen: "US-ID-BOI", ip: meridian }, cities);
-  assert.deepEqual([r.source, r.place, r.code, r.served], ["chosen", "Boise", "US", true]);
+  assert.deepEqual([r.source, r.place, r.code, r.served], ["chosen", "Boise", "ID", true]);
   r = resolveLocation({ chosen: "US-ID-NMP" }, cities);
-  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served], ["chosen", "Nampa", "US", "US-ID-NMP", false]);
+  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served], ["chosen", "Nampa", "ID", "US-ID-NMP", false]);
+  // Round 20: always the state's short code from Markets ("Boise, ID", "Hyderabad, TG"), whatever the source;
+  // the country's code only for a city Markets gave no state code
+  r = resolveLocation({ chosen: "IN-TG-HYD" }, cities);
+  assert.deepEqual([r.place, r.code], ["Hyderabad", "TG"]);
+  r = resolveLocation({ chosen: "US-ID-BOI" }, [{ code: "US-ID-BOI", name: "Boise", country: "US", status: "live" }]);
+  assert.equal(r.code, "US");
   // a chosen city Markets no longer lists is ignored
   assert.equal(resolveLocation({ chosen: "US-ID-XXX" }, cities).source, "none");
   // 3. an IP guess inside a live zone names that live city (not the IP's own town), with its state's code
   r = resolveLocation({ ip: meridian }, cities);
   assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served], ["ip", "Boise", "ID", "US-ID-BOI", true]);
   r = resolveLocation({ ip: { ...meridian, region_code: null } }, cities);
-  assert.equal(r.code, "US"); // no state code known: the country's
+  assert.equal(r.code, "ID"); // the city's state code from Markets, not the hint's
   // an IP guess outside every live zone shows nothing guessed: Nampa (a coming-soon city next to Boise),
   // a town in no city, a town in another country
   const none = { source: "none", place: null, code: null, city: null, served: false, deliversHere: false };

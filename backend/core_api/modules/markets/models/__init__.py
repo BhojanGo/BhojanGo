@@ -58,9 +58,18 @@ class Region(_Timestamps, Base):
     )
     code: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)  # ISO 3166-2, e.g. IN-TG
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # The state's short code people write after a city ("Boise, ID", "Hyderabad, TG"): the location line on the
+    # website and in the app. Required in admin; filled from the ISO code's second part when a state was made
+    # without one (migration 0039 did that for the existing states).
+    short_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
     timezone: Mapped[str | None] = mapped_column(String(50), nullable=True)  # None = the country's
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="draft")
+
+
+def region_short_code(region: "Region") -> str:
+    """The state's short code ("ID"): its own, else the second part of its ISO code ("US-ID" -> "ID")."""
+    return (region.short_code or region.code.split("-", 1)[-1]).upper()
 
 
 class City(_Timestamps, Base):

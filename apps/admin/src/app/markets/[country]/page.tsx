@@ -127,6 +127,27 @@ function CountryView() {
   );
 }
 
+/** R20: a state with no short code (made before the field existed) can't show "City, ST": set it here. */
+function ShortCodeNeeded({ region }: { region: CountrySummary["regions"][number] }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState(region.code.split("-")[1] ?? "");
+  const [problem, setProblem] = useState<string | null>(null);
+  return (
+    <form className="mt-1 flex flex-wrap items-center gap-2 font-normal" data-testid={`short-code-needed-${region.code}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void marketsApi.updateRegion(region.code, { short_code: value.trim().toUpperCase() })
+          .then(() => qc.invalidateQueries({ queryKey: ["markets"] }), (err) => setProblem(apiError(err)));
+      }}>
+      <span className="text-caption text-chili">Short code needed</span>
+      <input aria-label={`${region.name} short code`} required pattern="[A-Z0-9]{1,4}" value={value}
+        onChange={(e) => setValue(e.target.value.toUpperCase())} className="h-8 w-16 rounded border border-line px-2 text-small" />
+      <button type="submit" className="h-8 rounded-full bg-peacock px-3 text-caption text-white">Save</button>
+      {problem ? <span role="alert" className="text-caption text-chili">{problem}</span> : null}
+    </form>
+  );
+}
+
 function RegionRows({ countryCode, region }: { countryCode: string; region: CountrySummary["regions"][number] }) {
   const open = region.cities.filter((c) => c.status === "live" || c.status === "beta").length;
   return (
@@ -134,6 +155,9 @@ function RegionRows({ countryCode, region }: { countryCode: string; region: Coun
       <tr className="border-t border-line-soft bg-[#FAFBFB]">
         <td className="py-3 font-bold">
           {region.name} <span className="font-normal text-muted">· {region.cities.length} {region.cities.length === 1 ? "city" : "cities"}</span>
+          {region.short_code
+            ? <span data-testid={`short-code-${region.code}`} className="ml-2 rounded bg-line-soft px-1.5 py-0.5 text-caption font-normal">{region.short_code}</span>
+            : <ShortCodeNeeded region={region} />}
         </td>
         <td><StatusPill status={region.status} /></td>
         <td className="text-right text-muted">{open} open</td>
@@ -183,19 +207,24 @@ function AddCity({ country }: { country: CountrySummary }) {
   const { data: me } = useAdminMe();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ region: country.regions[0]?.code ?? "new", regionName: "", regionCode: "", name: "", code: "", lat: "", lng: "", timezone: "" });
+  const [f, setF] = useState({ region: country.regions[0]?.code ?? "new", regionName: "", regionCode: "", regionShort: "", name: "", code: "", lat: "", lng: "", timezone: "" });
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   if (!can(me, "markets.edit", country.code)) return null;
   const newState = f.region === "new";
   const regionCode = newState ? f.regionCode || (f.regionName ? `${country.code}-${shortCode(f.regionName, 2)}` : "") : f.region;
   const cityCode = f.code || (f.name && regionCode ? `${regionCode}-${shortCode(f.name, 3)}` : "");
+  // R20: the state's short code ("ID") is required: for a new state, or an existing one that has none yet
+  const picked = country.regions.find((r) => r.code === f.region);
+  const needsShort = newState || !picked?.short_code;
+  const regionShort = f.regionShort || regionCode.split("-")[1] || "";
 
   async function submit() {
     setBusy(true);
     setProblem(null);
     try {
-      if (newState) await marketsApi.createRegion(country.code, { code: regionCode, name: f.regionName.trim(), timezone: f.timezone || null });
+      if (newState) await marketsApi.createRegion(country.code, { code: regionCode, name: f.regionName.trim(), short_code: regionShort, timezone: f.timezone || null });
+      else if (needsShort) await marketsApi.updateRegion(regionCode, { short_code: regionShort });
       await marketsApi.createCity(regionCode, {
         code: cityCode,
         name: f.name.trim(),
@@ -263,6 +292,19 @@ function AddCity({ country }: { country: CountrySummary }) {
                 />
               </label>
             </>
+          )}
+          {needsShort && (
+            <label className="text-small text-muted">
+              State short code (shown as &ldquo;City, {regionShort || "ST"}&rdquo;)
+              <input
+                required
+                aria-label="State short code"
+                pattern="[A-Z0-9]{1,4}"
+                value={regionShort}
+                onChange={(e) => setF({ ...f, regionShort: e.target.value.toUpperCase() })}
+                className={field}
+              />
+            </label>
           )}
           <label className="text-small text-muted">
             City name

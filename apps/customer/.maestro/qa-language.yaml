@@ -4,7 +4,7 @@
 # each in its own script, no flags; picking Telugu switches the words and the pill
 # to TE; English brings them back. The pill keeps the language on this phone only
 # (it never saves preferred_locale on the account: only Account > Language does),
-# so nothing is written. The location line reads "<City>, IN · Change city".
+# so nothing is written. The location line reads "<City>, <ST> · Change" (the state's short code, round 20).
 # CITY: the demo city's name as Markets shows it (default: the seed's first Indian city).
 appId: com.bhojango.app
 tags:
@@ -25,11 +25,11 @@ tags:
 - assertVisible:
     id: "language-pill-code"
     text: "EN"
-# The location line: the delivery address's city and the 2-letter country code.
+# The location line: the delivery address's live city and its state's short code (round 20).
 - extendedWaitUntil:
     visible:
       id: "location-city"
-      text: '${CITY || "Hyderabad"}, IN'
+      text: '${CITY || "Hyderabad"}, ${STATE || "TG"}'
     timeout: 30000
 - assertVisible:
     id: "change-city"
@@ -79,7 +79,9 @@ tags:
 - tapOn:
     id: "language-option-en"
 - extendedWaitUntil:
-    visible: "Change city"
+    visible:
+      id: "change-city"
+      text: "Change"
     timeout: 10000
 - assertVisible:
     id: "language-pill-code"

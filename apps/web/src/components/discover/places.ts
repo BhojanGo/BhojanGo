@@ -9,7 +9,7 @@ export interface FlatCity extends DirCity {
 
 export function flatCities(dir: Directory): FlatCity[] {
   return dir.countries.flatMap((k) =>
-    k.regions.flatMap((r) => r.cities.map((c) => ({ ...c, country: k.code, countryName: k.name, region: r.name }))),
+    k.regions.flatMap((r) => r.cities.map((c) => ({ ...c, country: k.code, countryName: k.name, region: r.name, region_code: r.short_code }))),
   );
 }
 

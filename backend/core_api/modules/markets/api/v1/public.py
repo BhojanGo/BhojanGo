@@ -19,7 +19,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone
+from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone, region_short_code
 from core_api.modules.markets.service import legal, photos, review, rules
 from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
@@ -65,6 +65,7 @@ class DirCity(BaseModel):
 class DirRegion(BaseModel):
     code: str
     name: str
+    short_code: str = Field(description='What people write after a city: "Boise, ID"')
     cities: list[DirCity]
 
 
@@ -147,7 +148,7 @@ async def build_directory(db: AsyncSession) -> Directory:
                 live=0, soon=0, regions=[])
         r = regions.get(region.code)
         if r is None:
-            r = regions[region.code] = DirRegion(code=region.code, name=region.name, cities=[])
+            r = regions[region.code] = DirRegion(code=region.code, name=region.name, short_code=region_short_code(region), cities=[])
             k.regions.append(r)
         slug = slugify(city.name)
         r.cities.append(DirCity(
@@ -220,7 +221,7 @@ async def city_page(country: str, slug: str, db: DB) -> CityPage:
                     distance_unit=k.distance_unit,  # type: ignore[union-attr]
                     zone_minimums=[(z.name, z.min_order) for z in open_zones])
                 return CityPage(code=c.code, name=c.name, slug=c.slug, status=c.status, beta=c.beta,
-                                region={"code": r.code, "name": r.name}, country=k, timezone=tz,  # type: ignore[arg-type]
+                                region={"code": r.code, "name": r.name, "short_code": r.short_code}, country=k, timezone=tz,  # type: ignore[arg-type]
                                 restaurants=c.restaurants, waiting=c.waiting, lat=c.lat, lng=c.lng, pricing=pricing,
                                 zones=[PublicZone(name=z.name, min_order=float(z.min_order) if z.min_order is not None else None)
                                        for z in open_zones])

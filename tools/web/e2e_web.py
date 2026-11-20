@@ -389,12 +389,32 @@ with sync_playwright() as p:
     choose_city(page, hyd_city)
     check("landing in a served city: the example bill is there", lambda: expect(
         page.get_by_role("img", name=re.compile(r"^Kitchen \d+%"))).to_be_visible())
-    check("location line: Hyderabad, IN · Change (above the hero)", lambda: (
-        expect(page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change"),
+    check("location line: Hyderabad, TG · Change (above the hero)", lambda: (
+        expect(page.get_by_test_id("location-line")).to_have_text("Hyderabad, TG · Change"),
         _assert(cookie(ctx, "bg_city") == "IN-TG-HYD", ctx.cookies()),
         _assert(page.get_by_test_id("location-line").bounding_box()["y"] < page.get_by_role("heading", level=1).bounding_box()["y"],
                 "the location line is not above the hero")))
     check("who gets your money: real percentages from the example quote, adding to 100", lambda: split_matches_api(page))
+
+    def who_gets_one_line(width: int) -> None:
+        """Round 20: at desktop widths every payee label sits on one line, next to its percentage."""
+        page.set_viewport_size({"width": width, "height": 1000})
+        page.wait_for_timeout(400)
+        card = page.get_by_test_id("who-gets")
+        card.scroll_into_view_if_needed()
+        for li in card.locator("li[data-payee]").all():
+            label, pct = li.get_by_test_id("payee-label"), li.locator("b")
+            lb, pb = label.bounding_box(), pct.bounding_box()
+            line = float(label.evaluate("el => parseFloat(getComputedStyle(el).lineHeight)"))
+            _assert(lb is not None and pb is not None, li.inner_text())
+            _assert(lb["height"] <= line * 1.2, (width, li.get_attribute("data-payee"), "label wraps", lb["height"], line))
+            _assert(label.evaluate("el => el.scrollWidth <= el.clientWidth"), (width, li.get_attribute("data-payee"), "label cut off"))
+            _assert(abs((lb["y"] + lb["height"] / 2) - (pb["y"] + pb["height"] / 2)) <= 2, (width, "percentage out of line", lb, pb))
+        card.screenshot(path=f"{OUT}/24-who-gets-{width}.png")
+
+    for w in (1024, 1440):
+        check(f"who gets your money at {w}: each label on one line, next to its percentage", lambda w=w: who_gets_one_line(w))
+    page.set_viewport_size({"width": 1440, "height": 900})
     pill.click()
     lang_menu = page.get_by_role("menu", name="Language")
     check("language pill: a plain list of India's languages in their own scripts, Markets order", lambda: (
@@ -412,8 +432,8 @@ with sync_playwright() as p:
         expect(pill).to_have_text("TE"),
         _assert(cookie(ctx, "bg_lang") == "te", ctx.cookies())))
     choose_city(page, boise_city)
-    check("change city to Boise: Boise, US; dollars; Telugu isn't offered there, so English", lambda: (
-        expect(page.get_by_test_id("location-line")).to_have_text("Boise, US · Change"),
+    check("change city to Boise: Boise, ID; dollars; Telugu isn't offered there, so English", lambda: (
+        expect(page.get_by_test_id("location-line")).to_have_text("Boise, ID · Change"),
         expect(page.locator("html")).to_have_attribute("lang", "en"),
         expect(pill).to_have_text("EN"),
         expect(page.get_by_test_id("who-gets")).to_contain_text("$"),
@@ -472,7 +492,7 @@ with sync_playwright() as p:
         expect(page.locator("header").get_by_role("button", name="Change address")).to_have_count(0),
         expect(page.get_by_role("heading", name="Cook with BhojanGo")).to_have_count(0)))
     check("personal home: the location line names the address's city", lambda: expect(
-        page.get_by_test_id("location-line")).to_have_text("Hyderabad, IN · Change"))
+        page.get_by_test_id("location-line")).to_have_text("Hyderabad, TG · Change"))
     shot(page, "03-home-address")
     cards = feed.get_by_role("link")
 

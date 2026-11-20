@@ -3892,11 +3892,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "short_code": {
+            "description": "What people write after a city: \"Boise, ID\"",
+            "title": "Short Code",
+            "type": "string"
           }
         },
         "required": [
           "code",
           "name",
+          "short_code",
           "cities"
         ],
         "title": "DirRegion",
@@ -6618,6 +6624,18 @@
               }
             ],
             "title": "Region Code"
+          },
+          "region_short_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The state's short code (\"ID\"): the app's \"Boise, ID\"",
+            "title": "Region Short Code"
           },
           "serviceable": {
             "title": "Serviceable",
@@ -11595,6 +11613,21 @@
             "title": "Settings",
             "type": "object"
           },
+          "short_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z0-9]{1,4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "TG"
+            ],
+            "title": "Short Code"
+          },
           "timezone": {
             "anyOf": [
               {
@@ -11633,6 +11666,17 @@
             "additionalProperties": true,
             "title": "Settings",
             "type": "object"
+          },
+          "short_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Code"
           },
           "status": {
             "enum": [
@@ -11695,6 +11739,17 @@
             "title": "Settings",
             "type": "object"
           },
+          "short_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Code"
+          },
           "status": {
             "enum": [
               "draft",
@@ -11754,6 +11809,18 @@
               }
             ],
             "title": "Settings"
+          },
+          "short_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z0-9]{1,4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Code"
           },
           "status": {
             "anyOf": [
