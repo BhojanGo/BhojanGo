@@ -12,7 +12,7 @@ import { Button } from "@bhojango/ui";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-import { api, urls, useHydrated, useSession } from "@/lib/client";
+import { api, coreFetch, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, useT } from "@/lib/i18n";
 import { apiProblem, applicationState, cityOptions, defaultCity, e164, splitLinks, validate, type FieldKey, type SignUpFields, type Terms } from "@/lib/kitchenJoin";
 
@@ -693,14 +693,14 @@ function FieldBare({ id, label, hint, invalid, children }: {
 
 /** POST /uploads (multipart): the licence, a PDF or a photo up to 5 MB. Returns the key. */
 async function upload(file: File): Promise<string> {
-  const send = (token: string | null) => {
+  const send = () => {
     const form = new FormData();
     form.append("purpose", "partner_document");
     form.append("file", file);
-    return fetch(`${urls.core}/api/v1/uploads`, { method: "POST", headers: token ? { authorization: `Bearer ${token}` } : {}, body: form });
+    return coreFetch("/api/v1/uploads", { method: "POST", body: form });
   };
-  let r = await send(useSession.getState().access);
-  if (r.status === 401) r = await send(await useSession.getState().refresh());
+  let r = await send();
+  if (r.status === 401 && (await useSession.getState().refresh())) r = await send();
   const body = (await r.json().catch(() => null)) as { key?: string } | null;
   if (!r.ok || !body?.key) throw new Error("upload");
   return body.key;

@@ -1,54 +1,47 @@
 import axios, { AxiosRequestConfig } from "axios";
 
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+// R22 security review (S8): the console's session is in httpOnly cookies (bg_admin_at,
+// bg_admin_rt) that core_api sets through the console's own /api rewrites, so they belong to
+// the console's host and no script on the page can read them. Every call says it's the
+// console (X-Session: admin); core_api then reads the cookie, and checks that a call that
+// changes something came from one of our own pages (Origin), against CSRF.
+// See backend/shared/session.py.
+export const SESSION_HEADERS = { "X-Session": "admin" } as const;
 
-let onTokensRefreshed: ((access: string, refresh: string | null) => void) | null = null;
 let onLogout: (() => void) | null = null;
 
-export function setAdminTokens(access: string | null, refresh: string | null) {
-  accessToken = access;
-  refreshToken = refresh;
-}
-
-/** Lets the auth store persist rotated tokens / react to forced logout without a circular import. */
-export function registerAuthHandlers(handlers: {
-  onTokensRefreshed: (access: string, refresh: string | null) => void;
-  onLogout: () => void;
-}) {
-  onTokensRefreshed = handlers.onTokensRefreshed;
+/** Lets the auth store react to a forced sign-out without a circular import. */
+export function registerAuthHandlers(handlers: { onLogout: () => void }) {
   onLogout = handlers.onLogout;
 }
 
 export const adminApi = axios.create({
   baseURL: "/api",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", ...SESSION_HEADERS },
+  withCredentials: true,
   timeout: 30000,
 });
 
-adminApi.interceptors.request.use((config) => {
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
-  }
-  return config;
-});
+let refreshing: Promise<boolean> | null = null;
 
-let refreshing: Promise<string | null> | null = null;
-
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshToken) return null;
+/** Renew the session's cookies; false when it has ended. */
+async function refreshSession(): Promise<boolean> {
   try {
-    const { data } = await axios.post(
-      "/api/user/auth/refresh",
-      { refresh_token: refreshToken },
-      { headers: { "Content-Type": "application/json" } }
-    );
-    accessToken = data.access_token;
-    if (data.refresh_token) refreshToken = data.refresh_token;
-    onTokensRefreshed?.(accessToken as string, refreshToken);
-    return accessToken;
+    await axios.post("/api/user/auth/refresh", undefined, { headers: { ...SESSION_HEADERS }, withCredentials: true });
+    return true;
   } catch {
-    return null;
+    return false;
+  }
+}
+
+/** Ends the session on the server and clears its cookies. */
+export async function endSession(): Promise<void> {
+  const out = () => axios.post("/api/user/auth/logout", undefined, { headers: { ...SESSION_HEADERS }, withCredentials: true });
+  try {
+    await out();
+  } catch (err) {
+    // The access cookie ran out: renew it once so the server can end the whole session.
+    if ((err as { response?: { status?: number } }).response?.status === 401 && (await refreshSession())) await out().catch(() => undefined);
   }
 }
 
@@ -56,20 +49,16 @@ adminApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+    const signingIn = (original?.url ?? "").startsWith("/user/auth/");
 
-    // On 401, try a single refresh + retry before giving up.
-    if (error.response?.status === 401 && original && !original._retry && refreshToken) {
+    // On 401, try a single refresh + retry before giving up (not for the sign-in steps themselves).
+    if (error.response?.status === 401 && original && !original._retry && !signingIn) {
       original._retry = true;
-      if (!refreshing) refreshing = refreshAccessToken();
-      const newToken = await refreshing;
-      refreshing = null;
-      if (newToken) {
-        original.headers = { ...(original.headers ?? {}), Authorization: `Bearer ${newToken}` };
-        return adminApi(original);
-      }
+      if (!refreshing) refreshing = refreshSession().finally(() => { refreshing = null; });
+      if (await refreshing) return adminApi(original);
     }
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !signingIn) {
       onLogout?.();
       if (typeof window !== "undefined") {
         window.location.href = "/login";

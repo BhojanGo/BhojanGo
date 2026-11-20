@@ -32,6 +32,13 @@ export interface ApiConfig {
   onSignedOut?: () => void;
   /** The fetch to send requests with (the apps' gives up a GET that hangs: mobile-core timeoutFetch). */
   fetch?: (input: Request) => Promise<Response>;
+  /**
+   * A browser client whose session is in httpOnly cookies (R22 S8: the website, "web"):
+   * every request carries the cookies (credentials "include") and says which client it is
+   * (X-Session), and no Authorization header. refreshAccessToken then returns any non-null
+   * string when the session was refreshed. The apps leave it unset and send their token.
+   */
+  session?: "web" | "admin";
 }
 
 export interface Api {
@@ -94,6 +101,10 @@ export function createApi(config: ApiConfig): Api {
   let refreshing: Promise<string | null> | null = null;
   const auth: Middleware = {
     onRequest({ request }) {
+      if (config.session) {
+        request.headers.set("X-Session", config.session);
+        return request;
+      }
       const token = config.getAccessToken();
       if (token && !request.headers.has("Authorization")) request.headers.set("Authorization", `Bearer ${token}`);
       return request;
@@ -109,12 +120,15 @@ export function createApi(config: ApiConfig): Api {
         return undefined;
       }
       const retry = new Request(request, { headers: new Headers(request.headers) });
-      retry.headers.set("Authorization", `Bearer ${token}`);
+      if (!config.session) retry.headers.set("Authorization", `Bearer ${token}`);
       retry.headers.set("X-Retried", "1");
       return (config.fetch ?? fetch)(retry);
     },
   };
-  const custom = config.fetch ? { fetch: config.fetch } : {};
+  const custom = {
+    ...(config.fetch ? { fetch: config.fetch } : {}),
+    ...(config.session ? { credentials: "include" as const } : {}),
+  };
   const core = createClient<CorePaths>({ baseUrl: config.coreUrl, ...custom });
   const realtime = createClient<RealtimePaths>({ baseUrl: config.realtimeUrl, ...custom });
   const worker = createClient<WorkerPaths>({ baseUrl: config.workerUrl, ...custom });

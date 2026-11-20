@@ -182,6 +182,15 @@ with sync_playwright() as p:
           expect(page.get_by_test_id("logo-wordmark")).to_have_css("font-size", "20px"))
     check("a11y login: no serious or critical accessibility issues (axe)", lambda: AXE.scan(page, "login"))
     second_step_checks(page, "admin@example.com")
+    # R22 S8: the console's session is an httpOnly cookie on its own host; the page's storage holds no token.
+    check("admin session: an httpOnly cookie, and no token in the page's storage", lambda: (
+        _ok(not re.search(r"eyJ[\w-]+\.eyJ", page.evaluate("JSON.stringify(Object.assign({}, localStorage, sessionStorage))"))),
+        _ok(any(c["name"] == "bg_admin_at" and c["httpOnly"] and c["sameSite"] == "Lax" for c in page.context.cookies())),
+        _ok("bg_admin_" not in page.evaluate("document.cookie"))))
+    # R22 S9: each page has its own CSP nonce and no 'unsafe-inline' script; the console above ran with it.
+    _csp = [page.request.get(f"{BASE}/login").headers.get("content-security-policy") or "" for _ in range(2)]
+    check("admin CSP: a fresh nonce on every page and no inline script allowed", lambda: _ok(
+        "'nonce-" in _csp[0] and "unsafe-inline" not in _csp[0].split("script-src", 1)[1].split(";", 1)[0] and _csp[0] != _csp[1]))
     check("test-site banner: inside the console too", lambda: expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible())
     check("overview, all countries: each country in its own money, side by side, needs action", lambda: (
         expect(page.get_by_role("heading", name="All countries", exact=True)).to_be_visible(timeout=15000),

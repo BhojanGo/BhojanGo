@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from pydantic import BaseModel, Field
 
 from app.api.v1.websocket import _extract_ws_token
-from app.core.auth import CurrentUser, _decode_token, get_current_user
+from app.core import sockets
+from app.core.auth import CurrentUser, get_current_user, socket_user
 from app.core.hub import hub
 from app.services import dispatch
 
@@ -134,15 +135,25 @@ async def shadow_batches(user: Annotated[CurrentUser, Depends(get_current_user)]
 
 @router.websocket("/ws/rider")
 async def rider_socket(websocket: WebSocket, token: str | None = Query(default=None)) -> None:
-    """Offers and withdrawals for the signed-in rider, as they happen."""
+    """Offers and withdrawals for the signed-in rider, as they happen. Closes with 4401
+    when the token expires (the app reconnects with a fresh one) and refuses a socket
+    over the caps with 4429 (R22 S10)."""
     raw = _extract_ws_token(websocket, token)
     try:
-        user = _decode_token(raw) if raw else None
+        user = socket_user(raw) if raw else None
     except Exception:  # noqa: BLE001
         user = None
     if user is None or user.role != "driver":
         await websocket.close(code=4001, reason="Unauthorized")
         return
+    try:
+        async with sockets.limits.hold(user.user_id, sockets.address(websocket)):
+            await _rider_socket(websocket, user)
+    except sockets.TooManySockets:
+        await websocket.close(code=sockets.TOO_MANY, reason="Too many connections")
+
+
+async def _rider_socket(websocket: WebSocket, user: CurrentUser) -> None:
     await websocket.accept()
     offer = await dispatch.current_offer(user.user_id)
     if offer:
@@ -153,11 +164,12 @@ async def rider_socket(websocket: WebSocket, token: str | None = Query(default=N
             while True:
                 await websocket.send_json(json.loads(await q.get()))
 
-        task = asyncio.create_task(forward())
+        tasks = [asyncio.create_task(forward()), asyncio.create_task(sockets.close_at(websocket, user.exp))]
         try:
             while True:
                 await websocket.receive_text()  # pings from the app; a disconnect ends it
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
-            task.cancel()
+            for t in tasks:
+                t.cancel()

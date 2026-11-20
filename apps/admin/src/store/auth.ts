@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { registerAuthHandlers, setAdminTokens } from "@/lib/api";
+import { endSession, registerAuthHandlers } from "@/lib/api";
 
 /** The signed-in admin as /auth/login returns them. */
 export interface User {
@@ -13,49 +13,53 @@ export interface User {
   country: string;
 }
 
+// R22 security review (S8): the tokens are in httpOnly cookies (lib/api.ts); this store
+// keeps only who is signed in, for the console's shell.
 interface AdminAuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
 
-  login: (accessToken: string, refreshToken: string | null, user: User) => void;
-  logout: () => void;
+  /** After the last sign-in step: its answer has already set the session's cookies. */
+  login: (user: User) => void;
+  /** Ends the session on the server (clears the cookies) and here. */
+  logout: () => Promise<void>;
+  /** Forget the session here only (the server already ended it). */
+  forget: () => void;
+}
+
+// Sessions from before R22 kept the tokens in localStorage: remove them (the admin signs in again once).
+if (typeof window !== "undefined") {
+  try {
+    window.localStorage.removeItem("bhojango-admin-auth");
+  } catch {
+    // storage blocked: nothing was kept there either
+  }
 }
 
 export const useAdminAuth = create<AdminAuthState>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
 
-      login: (accessToken, refreshToken, user) => {
-        setAdminTokens(accessToken, refreshToken);
-        set({ accessToken, refreshToken, user, isAuthenticated: true });
+      login: (user) => set({ user, isAuthenticated: true }),
+
+      logout: async () => {
+        set({ user: null, isAuthenticated: false });
+        await endSession();
       },
 
-      logout: () => {
-        setAdminTokens(null, null);
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
-      },
+      forget: () => set({ user: null, isAuthenticated: false }),
     }),
     {
-      name: "bhojango-admin-auth",
-      onRehydrateStorage: () => (state) => {
-        if (state?.accessToken) setAdminTokens(state.accessToken, state.refreshToken);
-      },
+      name: "bhojango-admin-auth-v2",
+      partialize: (s) => ({ user: s.user, isAuthenticated: s.isAuthenticated }),
     }
   )
 );
 
-// Bridge the axios layer back to the store: persist rotated tokens and honor forced logout.
-registerAuthHandlers({
-  onTokensRefreshed: (accessToken, refreshToken) =>
-    useAdminAuth.setState({ accessToken, refreshToken }),
-  onLogout: () => useAdminAuth.getState().logout(),
-});
+// The axios layer signs the console out here when the session can't be renewed.
+registerAuthHandlers({ onLogout: () => useAdminAuth.getState().forget() });
 
 /**
  * True once the persisted session has been read on the client. The first

@@ -51,6 +51,8 @@ export function beforeSignOut(step: () => Promise<void>): void {
   if (!signOutSteps.includes(step)) signOutSteps.push(step);
 }
 
+let refreshing: Promise<string | null> | null = null;
+
 export const useSession = create<SessionState>()((set, get) => ({
   status: "loading",
   failure: null,
@@ -99,7 +101,9 @@ export const useSession = create<SessionState>()((set, get) => ({
     set({ status: "signed-in" });
   },
 
-  refresh: async () => {
+  // One refresh at a time: a refresh token works once, and using it twice ends the session
+  // (two sockets closing at their token's expiry together would otherwise both refresh).
+  refresh: () => (refreshing ??= (async () => {
     const refreshToken = await SecureStore.getItemAsync(REFRESH).catch(() => null);
     if (!refreshToken) return null;
     const res = await fetch(`${urls.core}/api/v1/auth/refresh`, {
@@ -113,7 +117,9 @@ export const useSession = create<SessionState>()((set, get) => ({
     await SecureStore.setItemAsync(REFRESH, tokens.refresh_token);
     set({ accessToken: tokens.access_token });
     return tokens.access_token;
-  },
+  })().finally(() => {
+    refreshing = null;
+  })),
 
   loadUser: async () => {
     set({ user: unwrap(await api.core.GET("/api/v1/users/me")) });
@@ -190,6 +196,46 @@ export const api = createApi({
   // R9: a GET that hangs fails after 8 s, so a screen shows "Can't reach BhojanGo" and Retry (load.ts).
   fetch: timeoutFetch(FIRST_LOAD_TIMEOUT_MS),
 });
+
+/**
+ * A live realtime socket that opens again when it closes, until the returned stop function
+ * is called. realtime closes a socket when its token expires (4401, R22 S10): the token is
+ * refreshed and the socket reopened at once. A refused socket (4004 not yours, 4403 no longer
+ * yours, 4429 too many) isn't reopened; other drops retry with a growing wait.
+ */
+export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => void): () => void {
+  let stopped = false;
+  let ws: WebSocket | null = null;
+  let retry: ReturnType<typeof setTimeout> | null = null;
+  let failures = 0;
+  const open = () => {
+    if (stopped) return;
+    ws = new WebSocket(wsUrl(path));
+    ws.onopen = () => {
+      failures = 0;
+    };
+    ws.onmessage = (e) => onMessage(e);
+    ws.onclose = (e) => {
+      const code = e.code ?? 0;
+      if (stopped || [4004, 4403, 4429].includes(code)) return;
+      failures += 1;
+      const again = (wait: number) => {
+        if (!stopped) retry = setTimeout(open, wait);
+      };
+      if (code === 4401 || code === 4001) {
+        void useSession.getState().refresh().catch(() => null).then((t) => again(t ? 0 : Math.min(30000, 2000 * failures)));
+      } else {
+        again(Math.min(30000, 2000 * failures));
+      }
+    };
+  };
+  open();
+  return () => {
+    stopped = true;
+    if (retry) clearTimeout(retry);
+    ws?.close();
+  };
+}
 
 /** The realtime WebSocket URL for a path (token as a subprotocol-free query for React Native). */
 export function wsUrl(path: string): string {

@@ -8,7 +8,7 @@ import { errorMessage, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { api, urls, useSession } from "@/lib/client";
+import { api, coreFetch, useSession } from "@/lib/client";
 import { useFormat, useT } from "@/lib/i18n";
 
 type Order = CoreSchemas["OrderResponse"];
@@ -18,11 +18,12 @@ type Reason = (typeof REASONS)[number];
 
 class PhotoError extends Error {}
 
-async function uploadPhoto(file: File, token: string | null): Promise<string> {
+async function uploadPhoto(file: File): Promise<string> {
   const form = new FormData();
   form.append("purpose", "problem_photo");
   form.append("file", file);
-  const res = await fetch(`${urls.core}/api/v1/uploads`, { method: "POST", headers: token ? { authorization: `Bearer ${token}` } : {}, body: form });
+  let res = await coreFetch("/api/v1/uploads", { method: "POST", body: form });
+  if (res.status === 401 && (await useSession.getState().refresh())) res = await coreFetch("/api/v1/uploads", { method: "POST", body: form });
   const body = (await res.json().catch(() => null)) as { key?: string } | null;
   if (!res.ok || !body?.key) throw new PhotoError();
   return body.key;
@@ -32,7 +33,6 @@ async function uploadPhoto(file: File, token: string | null): Promise<string> {
 export function ReportView({ id }: { id: string }) {
   const t = useT();
   const f = useFormat();
-  const token = useSession((s) => s.access);
   const [order, setOrder] = useState<{ id: string; order: Order | null } | null>(null);
   const [pick, setPick] = useState<Record<string, number>>({});
   const [reason, setReason] = useState<Reason | null>(null);
@@ -61,7 +61,7 @@ export function ReportView({ id }: { id: string }) {
     setBusy(true);
     setError(null);
     try {
-      const photo_key = photo ? await uploadPhoto(photo, token) : null;
+      const photo_key = photo ? await uploadPhoto(photo) : null;
       const items = Object.entries(pick).filter(([, n]) => n > 0).map(([menu_item_id, quantity]) => ({ menu_item_id, quantity }));
       setDone(unwrap(await api.core.POST("/api/v1/orders/{order_id}/problems", {
         params: { path: { order_id: id } }, body: { items, reason, note: note.trim() || null, photo_key } })));

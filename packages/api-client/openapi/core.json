@@ -7092,6 +7092,7 @@
           "image_url": {
             "anyOf": [
               {
+                "maxLength": 512,
                 "type": "string"
               },
               {
@@ -11398,14 +11399,11 @@
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
-            "minLength": 1,
+            "default": "",
             "title": "Refresh Token",
             "type": "string"
           }
         },
-        "required": [
-          "refresh_token"
-        ],
         "title": "RefreshTokenRequest",
         "type": "object"
       },
@@ -12780,6 +12778,7 @@
           "cover_url": {
             "anyOf": [
               {
+                "maxLength": 512,
                 "type": "string"
               },
               {
@@ -12882,6 +12881,7 @@
           "logo_url": {
             "anyOf": [
               {
+                "maxLength": 512,
                 "type": "string"
               },
               {
@@ -14312,6 +14312,24 @@
           "token"
         ],
         "title": "SocialLoginRequest",
+        "type": "object"
+      },
+      "SocketTicket": {
+        "properties": {
+          "expires_at": {
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "ticket": {
+            "title": "Ticket",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket",
+          "expires_at"
+        ],
+        "title": "SocketTicket",
         "type": "object"
       },
       "SoldOutIn": {
@@ -16979,17 +16997,24 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "description": "Exchange a refresh token for a new access + refresh token pair.",
+        "description": "Exchange a refresh token for a new access + refresh token pair.\n\nThe apps send ``refresh_token``. The website and the console (``X-Session``) send\nno body: their refresh token is in their session cookie, and the new pair comes\nback as cookies too (R22 S8, shared/session.py).",
         "operationId": "refresh_token_api_v1_auth_refresh_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -17148,6 +17173,33 @@
           }
         },
         "summary": "Social Login",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/socket-ticket": {
+      "post": {
+        "description": "A ticket for the realtime WebSocket (R22 S8): the website's session is an httpOnly\ncookie the page can't read, and the socket is on another host. Same person and rights\nas the session's access token, and the same expiry; it opens WebSockets only (every\nHTTP route refuses it). The apps can keep sending their access token instead.",
+        "operationId": "socket_ticket_api_v1_auth_socket_ticket_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocketTicket"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Socket Ticket",
         "tags": [
           "Authentication"
         ]

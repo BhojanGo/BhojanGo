@@ -158,3 +158,96 @@ async def test_a_kitchen_cant_show_a_photo_from_another_site_or_account(client: 
     finally:
         await sql("UPDATE menu_items SET image_url = :u WHERE id = :i", u=was_photo, i=uuid.UUID(item))
         await sql("UPDATE restaurants SET cover_url = :u WHERE id = :i", u=was_cover, i=uuid.UUID(rid))
+
+
+# ── S8: browser sessions in httpOnly cookies, CSRF, socket tickets ─────────────
+# The website (X-Session: web) and the console (X-Session: admin, after its second step)
+# get httpOnly cookies and no tokens in the body; a cookie counts only with that header;
+# a change needs our own Origin; a socket ticket opens WebSockets only; signing out ends it.
+# The apps' sign-in (no header) is unchanged. Cookies go in by hand: the test client talks
+# plain http, where a Secure cookie is never sent back on its own.
+
+WEB_PAGE = {"X-Session": "web", "Origin": "http://localhost:3000"}
+CONSOLE = {"X-Session": "admin", "Origin": "http://localhost:3001"}
+
+
+def _set_cookies(r) -> dict[str, str]:  # type: ignore[no-untyped-def]
+    out = {}
+    for c in r.headers.get_list("set-cookie"):
+        name, rest = c.split("=", 1)
+        out[name] = rest.split(";", 1)[0]
+        assert "HttpOnly" in c and "Secure" in c and "SameSite=Lax" in c, c
+    return out
+
+
+def _jar(**cookies: str) -> dict:
+    return {"Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())}
+
+
+async def test_the_website_session_is_in_httponly_cookies_not_the_page(client: AsyncClient) -> None:  # noqa: F811
+    email = "customer3.hyd@example.com"
+    r = await client.post("/api/v1/auth/login", headers=WEB_PAGE, json={"email": email, "password": "BhojanGo123"})
+    assert r.status_code == 200, r.text
+    assert r.json()["access_token"] == "" and r.json()["refresh_token"] == "", "tokens handed to the page"
+    got = _set_cookies(r)
+    at, rt = got["bg_web_at"], got["bg_web_rt"]
+    client.cookies.clear()
+    me = await client.get("/api/v1/users/me", headers={"X-Session": "web", **_jar(bg_web_at=at)})
+    assert me.status_code == 200 and me.json()["email"] == email, me.text
+    # The cookie alone (a link, a form or an image from another site) is no session.
+    assert (await client.get("/api/v1/users/me", headers=_jar(bg_web_at=at))).status_code == 403
+    # A change from another site's page, or with no origin at all, is refused (CSRF).
+    for origin in ({"Origin": "https://evil.example"}, {}):
+        r = await client.post("/api/v1/auth/socket-ticket", headers={"X-Session": "web", **origin, **_jar(bg_web_at=at)})
+        assert r.status_code == 403 and r.json()["detail"]["code"] == "CSRF", r.text
+    # The socket ticket: the realtime socket's key, refused by every API route.
+    r = await client.post("/api/v1/auth/socket-ticket", headers={**WEB_PAGE, **_jar(bg_web_at=at)})
+    assert r.status_code == 200, r.text
+    ticket = r.json()["ticket"]
+    for path in ("/api/v1/users/me", "/api/v1/orders"):
+        assert (await client.get(path, headers={"Authorization": f"Bearer {ticket}"})).status_code == 401, path
+    # Refresh from the cookie: new cookies, still no tokens in the body.
+    r = await client.post("/api/v1/auth/refresh", headers={**WEB_PAGE, **_jar(bg_web_rt=rt)})
+    assert r.status_code == 200 and r.json()["access_token"] == "", r.text
+    fresh = _set_cookies(r)
+    assert fresh["bg_web_rt"] != rt
+    # Sign out: the cookies are cleared and the session is over.
+    r = await client.post("/api/v1/auth/logout", headers={**WEB_PAGE, **_jar(bg_web_at=fresh["bg_web_at"])})
+    assert r.status_code == 200, r.text
+    assert _set_cookies(r) == {"bg_web_at": "", "bg_web_rt": ""}
+    r = await client.post("/api/v1/auth/refresh", headers={**WEB_PAGE, **_jar(bg_web_rt=fresh["bg_web_rt"])})
+    assert r.status_code == 401, r.text
+    client.cookies.clear()
+
+
+async def test_the_console_signs_in_with_its_second_step_into_cookies(client: AsyncClient) -> None:  # noqa: F811
+    from core_api.modules.identity.tests.signin import SEED_TOTP_SECRET, next_code, secrets_by_email
+
+    email = "admin@example.com"
+    r = await client.post("/api/v1/auth/login", headers=CONSOLE, json={"email": email, "password": ADMIN})
+    assert r.status_code == 200 and r.json()["mfa_required"], r.text
+    assert not r.headers.get_list("set-cookie"), "a session before the second step"
+    challenge = r.json()
+    assert not challenge["enrolment_required"], "the seed's admin has an authenticator"
+    code = await next_code(email, secrets_by_email.get(email) or SEED_TOTP_SECRET)
+    r = await client.post("/api/v1/auth/mfa/verify", headers=CONSOLE, json={"mfa_token": challenge["mfa_token"], "code": code})
+    assert r.status_code == 200, r.text
+    assert r.json()["access_token"] == "" and r.json()["admin_roles"], r.json()
+    at = _set_cookies(r)["bg_admin_at"]
+    client.cookies.clear()
+    r = await client.get("/api/v1/admin/me", headers={"X-Session": "admin", **_jar(bg_admin_at=at)})
+    assert r.status_code == 200, r.text
+    # The website's cookie name doesn't open the console's session, nor the other way round.
+    assert (await client.get("/api/v1/admin/me", headers={"X-Session": "web", **_jar(bg_admin_at=at)})).status_code == 401
+    await client.post("/api/v1/auth/logout", headers={**CONSOLE, **_jar(bg_admin_at=at)})
+    client.cookies.clear()
+
+
+async def test_the_apps_sign_in_is_unchanged(client: AsyncClient) -> None:  # noqa: F811
+    r = await client.post("/api/v1/auth/login", json={"email": "customer3.hyd@example.com", "password": "BhojanGo123"})
+    assert r.status_code == 200 and r.json()["access_token"] and r.json()["refresh_token"], r.text
+    assert not r.headers.get_list("set-cookie")
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    assert (await client.post("/api/v1/auth/socket-ticket", headers=h)).status_code == 200  # no Origin needed with a token
+    r = await client.post("/api/v1/auth/refresh", json={"refresh_token": r.json()["refresh_token"]})
+    assert r.status_code == 200 and r.json()["access_token"], r.text

@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { FairBill } from "@/components/FairBill";
 import { RateOrder } from "@/components/order/RateOrder";
-import { api, useHydrated, useSession, wsUrl } from "@/lib/client";
+import { api, liveSocket, useHydrated, useSession } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import type { BillLine } from "@/lib/server";
@@ -75,8 +75,8 @@ export function Tracking({ id }: { id: string }) {
         .catch(() => undefined);
     void load();
     void loadBill();
-    const ws = new WebSocket(wsUrl(`/ws/track/${id}`));
-    ws.onmessage = (e) => {
+    // Live updates; reopens with a fresh socket ticket when one expires (R22 S8, S10).
+    const stopSocket = liveSocket(`/ws/track/${id}`, (e) => {
       const m = JSON.parse(String(e.data)) as { type: string; payload: Record<string, unknown> };
       const p = m.payload ?? {};
       if (m.type === "rider_assigned" || m.type === "status_change") void load();
@@ -113,12 +113,12 @@ export function Tracking({ id }: { id: string }) {
             return s;
         }
       });
-    };
+    });
     const poll = setInterval(load, 15000);
     return () => {
       alive = false;
       clearInterval(poll);
-      ws.close();
+      stopSocket();
     };
   }, [id, ready, user]);
 
@@ -365,8 +365,7 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
       });
     };
     void refresh();
-    const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
-    ws.onmessage = (e) => {
+    const stopSocket = liveSocket(`/ws/track/${orderId}`, (e) => {
       const m = JSON.parse(String(e.data)) as {
         type: string; payload: { id: string; sender_role: string; text: string; at: string; preset?: string | null };
       };
@@ -378,12 +377,12 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
       }
       seen.current.add(m.payload.id);
       setChat((c) => c && { ...c, messages: [...c.messages, { ...m.payload, mine: m.payload.sender_role === c.me } as ChatMessage] });
-    };
+    });
     const poll = setInterval(refresh, 20000);
     return () => {
       alive = false;
       clearInterval(poll);
-      ws.close();
+      stopSocket();
     };
   }, [orderId, language]);
 

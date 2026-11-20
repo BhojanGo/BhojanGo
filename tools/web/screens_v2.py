@@ -30,6 +30,8 @@ CUSTOMER = "customer1.hyd@example.com"
 # Tests never write to QA or production (tools/target_guard.py; at /guard in the Playwright image).
 sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
 from target_guard import ensure_safe_api  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this folder: web_session
+import web_session  # noqa: E402  (the website's session in cookies, R22 S8)
 
 ensure_safe_api("http://core-api:8001")
 
@@ -135,7 +137,8 @@ api("PUT", f"/me/favourites/item/{biryani['id']}", cust)
 loc = api("GET", f"/markets/locate?lat={home['lat']}&lng={home['lng']}")
 place = {"label": f"{loc.get('zone_name')}, {loc.get('city_name')}", "lat": home["lat"], "lng": home["lng"], "country": loc.get("country_code"),
          "city_code": loc.get("city_code"), "city_path": "/in/hyderabad", "zone": loc.get("zone_name"), "served": True, "address_id": home["id"]}
-session = json.dumps({"state": {"access": cust, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
+session = web_session.script(me)
+session_jar = web_session.cookies("http://localhost:8001", cust, t["refresh_token"])
 
 try:
     with sync_playwright() as p:
@@ -147,7 +150,8 @@ try:
         def signed_in(width: int = 1440, height: int = 900):  # type: ignore[no-untyped-def]
             ctx = b.new_context(viewport={"width": width, "height": height})
             ctx.add_cookies([{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": BASE}])
-            ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
+            ctx.add_init_script(session)
+            ctx.add_cookies(session_jar)
             return ctx.new_page()
 
         def bag_with_two(page) -> None:  # type: ignore[no-untyped-def]

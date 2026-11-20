@@ -8,11 +8,11 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials
 
-from shared.auth import BearerAuth, CurrentUser, InvalidTokenError, decode_access_token
+from shared.auth import BearerAuth, CurrentUser, InvalidTokenError, decode_access_token, decode_socket_token
 
 security = BearerAuth()
 
-__all__ = ["CurrentUser", "get_current_user", "get_ws_user"]
+__all__ = ["CurrentUser", "get_current_user", "get_ws_user", "socket_user"]
 
 
 def _decode_token(token: str) -> CurrentUser:
@@ -35,3 +35,9 @@ async def get_current_user(
 async def get_ws_user(token: str = Query(...)) -> CurrentUser:
     """For WebSocket auth via ?token=... query param."""
     return _decode_token(token)
+
+
+def socket_user(token: str) -> CurrentUser:
+    """A WebSocket's caller: an access token (the apps) or a socket ticket (the website,
+    R22 S8). ``exp`` is set: the socket closes then (S10). Raises InvalidTokenError."""
+    return CurrentUser.from_claims(decode_socket_token(token))
