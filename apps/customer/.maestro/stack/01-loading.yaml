@@ -1,6 +1,10 @@
 # CustomerLoading.html: home while the kitchens load. The app talks to the core API
 # through tools/mobile/slow_proxy.py, which holds GET /discover until we let it go.
 # Throwaway stack only (.github/workflows/app-screens.yml); never on QA.
+# R23: no timer in the hold. The request waits at the proxy until release.js lets it go
+# (and release.js fails if it isn't still waiting); the app's 8 s GET timeout is lifted
+# on this stack only (EXPO_PUBLIC_TEST_GET_TIMEOUT_MS), so a slow emulator can't turn the
+# loading state into the error state before the release (R22's one failure).
 appId: com.bhojango.app
 ---
 - runScript: scripts/hold.js

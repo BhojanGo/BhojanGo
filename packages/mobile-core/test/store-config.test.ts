@@ -45,6 +45,7 @@ test("a production build stops on a placeholder id, an http or localhost address
   assert.throws(() => applyStoreConfig(BASE, "customer", { env: { ...PROD_ENV, EXPO_PUBLIC_WEB_URL: "https://localhost:3000" }, store: REAL }), /this computer/);
   assert.throws(() => applyStoreConfig(BASE, "customer", { env: { ...PROD_ENV, EXPO_PUBLIC_REALTIME_URL: "https://{REALTIME_HOST}" }, store: REAL }), /placeholder/);
   assert.throws(() => applyStoreConfig(BASE, "customer", { env: { ...PROD_ENV, EXPO_PUBLIC_APP_ENV: "qa" }, store: REAL }), /not "production"/);
+  assert.throws(() => applyStoreConfig(BASE, "customer", { env: { ...PROD_ENV, EXPO_PUBLIC_TEST_GET_TIMEOUT_MS: "150000" }, store: REAL }), /TEST_GET_TIMEOUT/);
   const { EXPO_PUBLIC_CORE_URL: _gone, ...noCore } = PROD_ENV;
   assert.throws(() => applyStoreConfig(BASE, "customer", { env: noCore, store: REAL }), /EXPO_PUBLIC_CORE_URL is not set/);
   // APP_ENV=production on its own (a local release build) is checked the same way.

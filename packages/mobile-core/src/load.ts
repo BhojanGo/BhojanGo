@@ -7,6 +7,22 @@
 /** A GET that hasn't answered by then fails, so the error shows by ~8 s (never more than 10). */
 export const FIRST_LOAD_TIMEOUT_MS = 8000;
 
+/** The longest GET timeout a test build may ask for (R23). */
+export const TEST_GET_TIMEOUT_MAX_MS = 600000;
+
+/**
+ * R23: the GET timeout this build uses. FIRST_LOAD_TIMEOUT_MS everywhere, except a build
+ * for the throwaway test stack (app env "local", tools/mobile/stack-screens.sh) that asks
+ * for a longer one with EXPO_PUBLIC_TEST_GET_TIMEOUT_MS: the customer loading flow holds
+ * GET /discover at tools/mobile/slow_proxy.py until the flow releases it, and the app must
+ * not give up first. Never shorter than the default; production and QA always get 8 s.
+ */
+export function getTimeoutMs(appEnv: string, requested?: string | null): number {
+  if (appEnv !== "local" || !requested) return FIRST_LOAD_TIMEOUT_MS;
+  const ms = Number(requested);
+  return Number.isInteger(ms) && ms > FIRST_LOAD_TIMEOUT_MS && ms <= TEST_GET_TIMEOUT_MAX_MS ? ms : FIRST_LOAD_TIMEOUT_MS;
+}
+
 /** The request was given up: the server didn't answer in time. */
 export class RequestTimeoutError extends Error {
   constructor(ms: number) {

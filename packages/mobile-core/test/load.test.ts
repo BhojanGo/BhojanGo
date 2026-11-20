@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createFirstLoad, loadFailure, RequestTimeoutError, timeoutFetch, type LoadState } from "../src/load.ts";
+import { createFirstLoad, FIRST_LOAD_TIMEOUT_MS, getTimeoutMs, loadFailure, RequestTimeoutError, TEST_GET_TIMEOUT_MAX_MS, timeoutFetch, type LoadState } from "../src/load.ts";
 
 const hang = () => new Promise<Response>(() => undefined);
 
@@ -85,4 +85,15 @@ test("an older, slower load never overwrites a newer one", async () => {
   await first;
   assert.equal(load.state.status, "ready");
   assert.equal(load.state.data, "fresh");
+});
+
+test("R23: only a local test-stack build may wait longer than 8 s, never shorter", () => {
+  assert.equal(getTimeoutMs("local", "150000"), 150000);
+  assert.equal(getTimeoutMs("production", "150000"), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("qa", "150000"), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("local", undefined), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("local", ""), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("local", "2000"), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("local", "soon"), FIRST_LOAD_TIMEOUT_MS);
+  assert.equal(getTimeoutMs("local", String(TEST_GET_TIMEOUT_MAX_MS + 1)), FIRST_LOAD_TIMEOUT_MS);
 });
