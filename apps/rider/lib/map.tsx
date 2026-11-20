@@ -114,7 +114,7 @@ function NativeMap({ ML, rider, pickup, dropoff, height, visible, done = false, 
       <Text
         testID="map-attribution"
         accessibilityRole="link"
-        onPress={() => void Linking.openURL(COPYRIGHT)}
+        onPress={() => void Linking.openURL(COPYRIGHT).catch(() => undefined)}
         style={[ui.muted, {
           position: "absolute", right: 16, bottom: covered + 8, maxWidth: "80%", textAlign: "right",
           color: night.muted, backgroundColor: "rgba(15, 27, 29, 0.8)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: "hidden",

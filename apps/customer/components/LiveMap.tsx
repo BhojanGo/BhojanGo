@@ -128,7 +128,7 @@ function NativeMap({ ML, pickup, dropoff, rider, trail, leg, labels, coverBottom
       <Text
         testID="map-attribution"
         accessibilityRole="link"
-        onPress={() => void Linking.openURL(COPYRIGHT)}
+        onPress={() => void Linking.openURL(COPYRIGHT).catch(() => undefined)}
         style={[type.small, {
           // bottom right, just above the sheet: clear of the back button and the status bar
           // (a map's credit sits at its foot); readable size, not the uppercase caption
