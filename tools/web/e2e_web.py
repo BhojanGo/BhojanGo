@@ -1207,7 +1207,7 @@ with sync_playwright() as p:
     check("IP guess outside every zone (Nampa): nothing guessed, only Set your delivery location", lambda: (
         expect(pg_nampa.get_by_test_id("location-line")).to_have_text("Set your delivery location", timeout=15000),
         expect(pg_nampa.get_by_test_id("location-line")).to_have_attribute("data-source", "none"),
-        expect(pg_nampa.get_by_text("Nampa")).to_have_count(0)))
+        expect(pg_nampa.get_by_test_id("location-line")).not_to_contain_text("Nampa")))  # (Nampa may be listed as coming soon below)
     pg_nampa.screenshot(path=f"{OUT}/23-location-unknown-phone.png", full_page=False)
     c_nampa.close()
     c_out, pg_out = ip_visit({"country": "US", "place": "Challis", "region": "Idaho", "region_code": "ID", "served": False}, "none")
