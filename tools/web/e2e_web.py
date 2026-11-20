@@ -1265,7 +1265,16 @@ with sync_playwright() as p:
     us.get_by_role("complementary", name="Your bag").get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
     us.get_by_role("complementary", name="Your bag").get_by_role("link", name="Go to checkout").click()
     url_is(us, r"/signin\?")
-    sign_in(us, US_PHONE, "US")
+    # R22: the code screen shows the number in its country's format ("+1 208-555-0101").
+    us.get_by_label("Country code").select_option("US")
+    us.get_by_role("textbox", name="Mobile number").fill(US_PHONE)
+    us.get_by_role("button", name="Send code").click()
+    url_is(us, r"/signin/code\?")
+    check("sign in (US): the code was sent to +1 208-555-0101", lambda:
+          expect(us.get_by_text("+1 208-555-0101", exact=True)).to_be_visible(timeout=15000))
+    shot(us, "20a-us-code")
+    us.get_by_role("textbox", name="Digit 1").fill(OTP)
+    us.get_by_role("button", name="Verify and continue").click()
     url_is(us, r"/checkout$")
     us_bill = us.get_by_role("complementary", name="Your order")
     check("US checkout: the fair bill in dollars with sales tax", lambda: (
@@ -1274,6 +1283,12 @@ with sync_playwright() as p:
         expect(us_bill.get_by_text(re.compile(r"^\$\d+\.\d{2}$")).first).to_be_visible(),
         expect(us_bill.get_by_text("₹")).to_have_count(0)))
     shot(us, "20-us-checkout")
+    # R22: the account shows the number formatted (the side card and Sign-in and security).
+    us.goto(base + "/account/profile", wait_until="networkidle")
+    check("account (US): the phone reads +1 208-555-0101, never the raw E.164", lambda: (
+        expect(us.get_by_text("+1 208-555-0101", exact=True).first).to_be_visible(timeout=15000),
+        expect(us.get_by_text("+12085550101")).to_have_count(0)))
+    shot(us, "20b-us-account-phone")
 
     # ── Terms and Privacy (R8 F10): per country, published in the admin console ──
     lp = b.new_context(viewport={"width": 1440, "height": 900}).new_page()

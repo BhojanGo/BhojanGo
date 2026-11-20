@@ -241,6 +241,10 @@ with sync_playwright() as p:
     check("support: the ticket shows who to call and what about", lambda: (
         expect(case.get_by_role("link", name=re.compile(r"^\+\d+"))).to_be_visible(timeout=10000),
         expect(case.get_by_text("a payout")).to_be_visible()))
+    # R22: the number reads in its country's format ("+91 90000 00900"); the tel: link keeps the E.164.
+    check("support: the call-back number is formatted, its tel: link is E.164", lambda: (
+        expect(case.get_by_test_id("ticket-phone")).to_have_text(re.compile(r"^\+91 \d{5} \d{5}$"), timeout=10000),
+        expect(case.get_by_test_id("ticket-phone")).to_have_attribute("href", re.compile(r"^tel:\+91\d{10}$"))))
     case.get_by_label("What did you do?").fill("Called the kitchen; the payout covered six days, explained the cut-off")
     page.screenshot(path=f"{OUT}/05b-support-callback.png", full_page=True)
     case.get_by_role("button", name="Mark resolved").click()
@@ -261,6 +265,13 @@ with sync_playwright() as p:
 
     page.goto(f"{BASE}/partners?scope=IN&tab=riders", wait_until="networkidle")
     check("partners: rider documents by country", lambda: expect(page.get_by_text(re.compile("reviewed by country"))).to_be_visible())
+    # R22: a delivery partner's number in its country's format, when there are documents to review.
+    page.wait_for_timeout(1500)
+    rider_rows = page.get_by_text(re.compile(r"· \+\d"))
+    if rider_rows.count():
+        check("partners: rider numbers are formatted (+91 90000 00291)", lambda: expect(rider_rows.first).to_have_text(
+            re.compile(r"· \+(91 \d{5} \d{5}|1 \d{3}-\d{3}-\d{4}) · [A-Z]{2}")))
+    page.screenshot(path=f"{OUT}/06c-rider-documents.png", full_page=True)
 
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
     page.get_by_role("region", name="Rules").get_by_test_id("row-source").first.click()

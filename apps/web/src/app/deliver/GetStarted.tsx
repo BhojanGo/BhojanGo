@@ -162,7 +162,7 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
           <span aria-hidden="true">←</span> {t("deliver_page.gs_change")}
         </button>
         <h3 id={`${ids.code}-h`} className="m-0 mt-2 text-h2">{t("deliver_page.gs_code_title")}</h3>
-        <p className="m-0 mt-1 text-body text-[#C4D0D2]">{t("deliver_page.gs_code_sent", { phone })}</p>
+        <p className="m-0 mt-1 text-body text-[#C4D0D2]">{t("deliver_page.gs_code_sent", { phone: formatPhone(phone) })}</p>
         <label htmlFor={ids.code} className="mt-5 block text-label">{t("deliver_page.gs_code_label")}</label>
         <input
           ref={codeRef}
