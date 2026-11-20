@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-20** (after round 22), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-20** (after round 23), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -253,9 +253,32 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   address; a kitchen-offer ceiling per country and city in admin Markets; a bulk-refund total cap (above it a second
   admin approves); photo URLs only from our uploads or photo hosts. Each fix has a test proven to fail without it.
   Everyone on the website and admin is signed out once. Left open: carrying a negative kitchen statement into the
-  next week.
+  next week (done in round 23).
 - **Phone numbers (#173):** shown in each country's format everywhere ("+1 208-555-0291", "+91 98765 43210") in the
   three apps, admin and the website; stored and sent as E.164.
+
+## Backups on QA, negative statements, a steady loading test (round 23, 2026-11-20)
+
+- **Backups on QA (#181, [launch/incident-plan.md](launch/incident-plan.md#database-restore)).** The `db-backups`
+  bucket and the hourly `db-backup` cron service run on QA (Srini's approval); the bucket's keys are sealed variables
+  and the GitHub secrets `BACKUP_*`, never printed. First copy 22:09 UTC: 1,362 KB, 58 tables, 10,593 rows, 12 s.
+  **The restore drill on that real copy passed in 22 s** ([run 44827699088](https://github.com/BhojanGo/BhojanGo/actions/runs/44827699088),
+  the job the weekly Monday schedule runs): fetch and sha256 11 s, restore 1 s, migrations at head, 57 tables /
+  10,593 rows equal to the copy's own counts, `/health` and `/health/ready` healthy, finance invariants pass. QA was
+  only read. QA's RPO is now 1 hour. [go-live.md](launch/go-live.md) step 3 now requires rehearsing a Railway volume
+  restore on production before launch, while it's empty (it can't be practised on QA: it restores in place).
+- **Negative kitchen statements are carried (#180, [launch/security-review.md](launch/security-review.md) S11).** A
+  week below zero pays nothing and carries to the next statement as "Carried from last week"; next week's sales pay it
+  off first. Each balance is carried once (a re-run changes nothing). Nothing ever charges the kitchen; after 4 weeks
+  below zero, admin Finance lists it under "Kitchens to collect from". Shown on the kitchen's Payouts screen, the
+  payout run, Reconciliation (carried in, carried on, paid = owed + carried in - carried on) and in the finance
+  invariant test. Migration 0041 adds 4 columns. The core tests fail on the old code (2 failures, run 44826145341).
+- **customer-01-loading is steady (#178): 20 of 20** ([run 44824744810](https://github.com/BhojanGo/BhojanGo/actions/runs/44824744810)).
+  The held `/discover` is released only by the flow (no timer; no release fails the flow), and only the throwaway-stack
+  build lengthens the app's 8 s GET timeout (production and QA builds keep 8 s; a production build refuses the
+  setting).
+- **Small fixes (#179):** admin's offer ceiling reads "Most a %-off offer can take off one order" (currency box kept);
+  the website sign-in photos never leave a tile empty (kitchen covers, then the country's dish, then library dishes).
 
 ## What's left before the pilot
 
@@ -268,8 +291,8 @@ In order. Items 1–4 are Srini's; the rest follow from them.
    paging channel (task 31). Each one replaces a fake that is already wired; only keys are added.
 3. **Production on Railway:** a production environment from the same config as QA (no demo seed: it refuses
    production), with the accounts' keys as sealed variables. Then the website can be indexed (task 27).
-   Before launch: the `db-backup` service and bucket on QA, then the restore drill on QA's real backup (round 22,
-   waiting for Srini to allow it); the same in production with its volume backups rehearsed once.
+   Backups: the same hourly copies and weekly restore test as QA (running since round 23), plus one rehearsal of a
+   Railway volume restore on production while it's empty (go-live step 3).
 4. **Vendors and stores:** trademark (2), logo artwork (22), legal pack (35), outside pen test (33), app store
    accounts (36).
 5. **Translations:** native speakers review the machine translations listed in
