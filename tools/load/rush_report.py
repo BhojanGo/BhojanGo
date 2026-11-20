@@ -20,6 +20,7 @@ Lost realtime updates are counted, not guessed:
 """
 import csv
 import json
+import os
 import re
 import sys
 from collections import defaultdict
@@ -194,8 +195,9 @@ def profile(path: Path) -> dict | None:
         if not stack or not n.isdigit():
             continue
         count = int(n)
-        frames = [re.sub(r" \((?:/srv/)?(.*?):\d+\)$", r" ()", f) for f in stack.split(";")]
-        if any(f.startswith(("process ", "thread ")) and "idle" in f for f in frames):
+        frames = [re.sub(r" \((?:/srv/)?(.*?):\d+\)$", r" (\1)", f) for f in stack.split(";")]
+        # Waiting for work (the event loop's select, a process with no Python frames): not CPU.
+        if frames[-1].startswith(("process ", "run (asyncio/runners.py)", "select (selectors.py)")):
             continue
         total += count
         for f in dict.fromkeys(f for f in frames if "core_api/" in f or "shared/" in f):
@@ -291,7 +293,10 @@ def main() -> int:
         md += [f"| `{f}` | {100 * n / prof['samples']:.1f}% |" for f, n in prof["leaf"]]
 
     verdict = "pass" if not fails else "fail: " + "; ".join(fails)
-    md = [f"# Load test: Boise rush at 3x launch - {verdict.split(':')[0].upper()}", "", f"Verdict: {verdict}", ""] + md
+    scale = float(os.environ.get("SCALE", "1"))
+    who = f"{3 * scale:g}x launch" + (f" (SCALE {scale:g})" if scale != 1 else "")
+    md = [f"# Load test: Boise rush at {who}, {os.environ.get('CORE_API_WORKERS', '1')} core-api process(es) - "
+          f"{verdict.split(':')[0].upper()}", "", f"Verdict: {verdict}", ""] + md
     (out / "report.md").write_text("\n".join(md) + "\n")
     (out / "verdict.txt").write_text(verdict + "\n")
     print("\n".join(md))

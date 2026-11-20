@@ -55,13 +55,15 @@ jobs:
       - name: Host tools (opening hours helper)
         run: pip install httpx==0.28.1
 
-      - name: core-api processes (a push to load/<name>-w3 runs 3)
+      - name: Settings from the branch (load/<name>-w3 = 3 core-api processes, -s0.34 = SCALE 0.34)
         run: |
-          n=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-w([0-9]+)$/\1/p')
+          sc=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-s([0-9.]+)(-|$).*/\1/p')
+          [ -n "$sc" ] && echo "SCALE=$sc" >> "$GITHUB_ENV"
+          n=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-w([0-9]+)(-|$).*/\1/p')
           [ -n "$n" ] && echo "CORE_API_WORKERS=$n" >> "$GITHUB_ENV" || n=$CORE_API_WORKERS
           # Keep every pool inside Postgres' 100 connections: 10 + 10 each when there are several.
           [ "$n" -gt 1 ] && echo "CORE_API_DB_OVERFLOW=10" >> "$GITHUB_ENV"
-          echo "core-api processes: $n"
+          echo "core-api processes: $n, scale: ${sc:-$SCALE}"
 
       - name: Start the stack (backend profile)
         run: $COMPOSE --profile backend up -d --build --wait --wait-timeout 600
