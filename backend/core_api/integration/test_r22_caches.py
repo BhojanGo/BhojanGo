@@ -34,8 +34,11 @@ async def client():
     await engine.dispose()
 
 
-async def auth(client: AsyncClient, email: str) -> dict:
-    r = await login_response(client, email, "BhojanGo123")
+ADMIN_PW = "BhojanGoAdmin1"  # the seeded admins' (core_api/integration/test_rules.py)
+
+
+async def auth(client: AsyncClient, email: str, pw: str = "BhojanGo123") -> dict:
+    r = await login_response(client, email, pw)
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -138,7 +141,8 @@ async def test_an_approved_rule_prices_the_very_next_quote(client: AsyncClient) 
     assert await packaging() == before
     assert _published.hits > hits, "the second quote used the cached rules"
 
-    maker, checker = await auth(client, "cm.in@example.com"), await auth(client, "finance.in@example.com")
+    maker = await auth(client, "cm.in@example.com", ADMIN_PW)
+    checker = await auth(client, "finance.in@example.com", ADMIN_PW)
     r = await client.post("/api/v1/rules", headers=maker, json={
         "family": "customer_fee", "template": "packaging_levy", "params": {"amount": 17},
         "scope_level": "restaurant", "scope_id": rid})
