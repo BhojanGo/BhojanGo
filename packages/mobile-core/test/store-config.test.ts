@@ -71,3 +71,16 @@ test("the checked-in store file and eas.json: all three apps, production stops u
     for (const k of ["EXPO_PUBLIC_CORE_URL", "EXPO_PUBLIC_REALTIME_URL", "EXPO_PUBLIC_WEB_URL"]) assert.match(prod[k], /^https:\/\//);
   }
 });
+
+test("the Kitchen app's order alert rings in the foreground only: no iOS background audio (Apple 2.5.4)", () => {
+  const app = JSON.parse(readFileSync(new URL("../../../apps/partner/app.json", import.meta.url), "utf8"));
+  const entry = app.expo.plugins.find((p: unknown) => Array.isArray(p) && p[0] === "expo-audio");
+  assert.ok(entry, "expo-audio plugin configured");
+  assert.deepEqual(entry[1], { microphonePermission: false, recordAudioAndroid: false, enableBackgroundPlayback: false });
+  // The installed plugin still takes that option, and still defaults it to on (so leaving it out adds "audio").
+  const plugin = readFileSync(require.resolve("expo-audio/plugin/build/withAudio.js", { paths: [new URL("../../../apps/partner/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")] }), "utf8");
+  assert.match(plugin, /enableBackgroundPlayback = true/);
+  assert.match(plugin, /UIBackgroundModes\.push\('audio'\)/);
+  // No other plugin in the app asks for background modes.
+  assert.equal(app.expo.ios.infoPlist?.UIBackgroundModes, undefined);
+});
