@@ -89,6 +89,81 @@ Kitchens and delivery partners (support line or the partner apps, one at a time 
 - **Kitchen partners:** "Ordering is paused in {area} from {time} because of {reason}. Orders already accepted still count and will be paid in your weekly payout."
 - **Delivery partners:** "Offers are paused in {area} from {time}. Trips already accepted will be paid as usual, including the minimum pay for your time online."
 
+## Database restore
+
+When to restore: data is lost or wrong in many places (a bad migration, a bad bulk action, the volume is gone). For a
+few wrong rows, fix them instead. A restore throws away everything written after the backup.
+
+Production is Postgres on Railway (service `postgres`, volume `postgres-data`), backed up by Railway's volume backups:
+daily, keep 7, plus a manual backup before every release with migrations ([go-live.md](go-live.md) step 3).
+[backup-restore.md](../runbooks/backup-restore.md) still describes the earlier AWS (RDS) setup; this section supersedes
+it for Railway.
+
+### Steps
+
+1. **Stop new writes.** Admin → Incidents → pause ordering everywhere, with the reason. Tell customers and partners
+   (templates above).
+2. **Keep what is there.** Railway → `postgres` → Backups → *Create backup* of the damaged volume first, so the
+   restore can be undone and the lost window can be read later.
+3. **Pick the restore point:** the newest backup from before the damage (for a bad release, its pre-release backup).
+4. **Restore:** Railway → `postgres` → Backups → that backup → *Restore*, then deploy the staged change. Restart
+   `core-api`, `realtime` and `worker` once Postgres is up.
+5. **Check before reopening** (what the drill checks; the commands are in `tools/backup/qa_restore_drill.sh`):
+   - migrations: `alembic current` is the release's head, and `alembic check` finds no differences;
+   - row counts per table look right (none empty that shouldn't be; orders up to the restore point);
+   - `GET /health/ready` on core-api, realtime and worker (the same checks as `tools/railway/qa-job.sh checks`);
+   - the finance invariants: `RUN_MIGRATED_DB_TESTS=1 pytest core_api/integration/test_finance_invariants.py`
+     (every payout run agrees with Reconciliation; it changes nothing).
+6. **The lost window.** Orders, sign-ups and kitchen edits after the restore point are gone. Stripe still has every
+   payment taken in that window: list them in Stripe (payments since the restore point), refund the ones whose orders
+   no longer exist, and message those customers. If a payout run was paid in the window, its transfers are in
+   Stripe Connect but not in Finance: check the next run against those transfers before approving it, so nobody is
+   paid twice.
+7. **Resume** ordering, watch the first orders, then write the incident up (First 15 minutes, step 7).
+
+### Restore drill (2026-11-20, round 21)
+
+`.github/workflows/restore-drill.yml` runs `tools/backup/qa_restore_drill.sh` on a GitHub runner: back up, restore
+into an empty throwaway database, check. Nothing is written anywhere but the runner, and the dump is never printed or
+uploaded.
+
+| Step | Time |
+|---|---|
+| Back up (pg_dump, custom format: 796 KB, 57 tables) | 1 s |
+| Restore into an empty database (`pg_restore -j 4`) | 1 s |
+| Checks: migrations at head and `alembic check` clean; all 56 tables' row counts equal (4,519 rows); core-api `/health` and `/health/ready` healthy on the restored data, the markets directory loads (2 countries, 42 kitchens); finance invariants pass | 10 s |
+| **Whole drill** | **12 s** (run [44672472054](https://github.com/BhojanGo/BhojanGo/actions/runs/44672472054)) |
+
+**The source was a copy built the way QA is** (migrations, the seed and the demo seed: 23 MB), **not QA's own data**,
+because QA can't be read without a change Srini has to approve:
+
+- **QA has no backups.** Railway lists no backups and no backup schedule for QA's `postgres-data` volume (checked
+  2026-11-20; [boise-readiness.md](boise-readiness.md) item 15 said "Ready on QA", which was wrong).
+- **QA's Postgres is private**, with no TCP proxy. `railway ssh` (the drill's `source: qa` mode uses it) needs an SSH
+  key registered on the Railway account (Railway CLI 4.x and later); the older keyless CLI can't run a command.
+
+Any one of these makes the drill run on QA's own data; each needs Srini's approval:
+
+| Option | What changes | Cost |
+|---|---|---|
+| A. Turn on QA's volume backups (daily, keep 7), then restore the newest into a temporary service | QA's settings; a temporary service in QA | Backup storage (QA's volume is under 200 MB: cents a month) |
+| B. Register an SSH key on the Railway account for drills, kept as a GitHub secret | The Railway account; nothing on QA | Free |
+| C. A temporary `qa-runner` service in QA dumps the database to the runner (as the payments e2e already does) | A temporary service in QA, deleted after | Free |
+
+Recommendation: **A**. It rehearses go-live step 3, and QA should have backups anyway. Then run the drill with
+`source: qa`.
+
+### RPO and RTO
+
+| | RPO (data that can be lost) | RTO (time to be back) |
+|---|---|---|
+| QA today | **Everything**: no backups. QA is demo data and can be reseeded, so this is acceptable for QA only | Reseed: about 5 minutes |
+| Production as planned (daily backups) | **Up to 24 hours** of orders, sign-ups and kitchen edits (payments in that window are still in Stripe, step 6) | **About 30 minutes**: the restore itself takes seconds to a minute at our size (the drill restored 23 MB in 1 s; QA's whole volume is 185 MB), plus deciding, restarting and checking |
+| Production, recommended | **1 hour**: add an hourly `pg_dump` to the uploads bucket from a worker job (Railway volume backups have no point-in-time restore) | The same |
+
+The hourly dump is a small change (a worker job, and a bucket prefix that keeps 7 days). It is in
+[STATUS.md](../STATUS.md) for Srini to decide.
+
 ## Still to build (not in round 17)
 
 1. Messages to kitchens and delivery partners in bulk (customers only today).

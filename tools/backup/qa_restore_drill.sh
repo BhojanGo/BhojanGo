@@ -65,7 +65,7 @@ printf '%s\n' "$COUNT_SQL" > "$WORK/count.sql"
 remote "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -h 127.0.0.1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -qAt -F ' ' <<'SQL'
 $COUNT_SQL
 SQL" | tr -d '\r' | grep -E '^[a-z_]+\.[a-z0-9_]+ [0-9]+$' | sort > "$WORK/qa.counts"
-echo "QA: $(wc -l < "$WORK/qa.counts") tables, $(awk '{s+=$2} END {print s}' "$WORK/qa.counts") rows"
+echo "$SOURCE: $(wc -l < "$WORK/qa.counts") tables, $(awk '{s+=$2} END {print s}' "$WORK/qa.counts") rows"
 # Custom format (compressed), base64 between markers: the ssh session is a terminal, not a byte pipe.
 remote 'echo __DUMP_BEGIN__; PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --no-owner --no-privileges | base64 -w 0; echo; echo __DUMP_END__' \
   > "$WORK/raw.txt" 2> "$WORK/ssh.err" || fail "pg_dump over railway ssh failed ($(tail -c 300 "$WORK/ssh.err" | tr -d '\n'))"
