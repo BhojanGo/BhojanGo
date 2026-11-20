@@ -7480,6 +7480,8 @@ export interface components {
         MineOut: {
             /** City */
             city: string | null;
+            /** Country */
+            country: string;
             /** Currency */
             currency: string;
             /** Id */

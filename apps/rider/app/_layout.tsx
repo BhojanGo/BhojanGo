@@ -30,7 +30,9 @@ export default function RootLayout() {
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
   usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId); // R19: after sign-in
-  useKnownCountry(useSession((s) => s.user?.country)); // the rider's account country (Markets)
+  // The delivery partner's account country (Markets): its languages (R20: I18nProvider rule "partner";
+  // signed out, the phone's region, else the first live country).
+  useKnownCountry(useSession((s) => s.user?.country));
 
   useEffect(() => {
     void initialize();
@@ -49,7 +51,7 @@ export default function RootLayout() {
   if (!fontsReady || status === "loading") return null;
 
   return (
-    <I18nProvider>
+    <I18nProvider rule="partner">
       <StatusBar style="light" />
       {fontAuditEnabled ? <FontAudit usePathname={usePathname} /> : null}
       <WithTestBanner tone="dark">

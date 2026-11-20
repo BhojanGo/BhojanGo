@@ -88,6 +88,8 @@ class MineOut(BaseModel):
     status: str
     currency: str
     city: str | None
+    # R20: the kitchen's country (Markets code): BhojanGo Kitchen offers its languages.
+    country: str
 
 
 @router.get("/mine", response_model=list[MineOut])
@@ -95,7 +97,8 @@ async def mine(user: User, db: DB) -> list[MineOut]:
     """The partner's own restaurants, live or still applying (the tablet picks the first)."""
     rows = (await db.execute(select(Restaurant).where(Restaurant.owner_id == user.id, Restaurant.deleted_at.is_(None))
                              .order_by(Restaurant.created_at))).scalars()
-    return [MineOut(id=str(r.id), name=r.name, status=r.status, currency=r.currency, city=r.city) for r in rows]
+    return [MineOut(id=str(r.id), name=r.name, status=r.status, currency=r.currency, city=r.city,
+                    country=r.country) for r in rows]
 
 
 @router.get("/{restaurant_id}/today", response_model=StateOut)

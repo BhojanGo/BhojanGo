@@ -32,7 +32,7 @@ export { cartItems, defaultPicks, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
 // R19: Account -> Legal and Delete account in the Kitchen and Delivery apps.
-export { DeleteAccount, LegalLinks, legalUrl } from "./account";
+export { DeleteAccount, LegalLinks, legalUrl, SignInLegal } from "./account";
 export { deleteAccountProblem, legalPageUrl } from "./account-text";
 export type { AccountTone } from "./account";
 export type { BagLine, OptionGroup, Pick } from "./bag";
@@ -41,10 +41,10 @@ export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";
 
 // Round 4: languages, the current country (Markets), formatting by the country's
 // locale, and the test-site banner. See src/i18n.tsx for how a screen uses them.
-export { I18nProvider, LANGUAGES, useCountry, useI18n, useKnownCountry, useLocaleStore } from "./i18n";
+export { I18nProvider, LANGUAGES, useCountry, useI18n, useKnownCountry, useLocaleStore, type LocaleRule } from "./i18n";
 export type { CountryContext, I18n, Language, Translate } from "./i18n";
 export { convertDistance, countryForCurrency, deviceLocale, e164, findCity, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
-  filterCities, hourIn, inZone, liveCityNames, regionOf, resolveCountry } from "./locale";
+  filterCities, hourIn, inZone, liveCityNames, partnerCountry, partnerLanguage, regionOf, resolveCountry } from "./locale";
 export type { CountrySource, MarketCountry } from "./locale";
 export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";
 export type { AppEnv } from "./env";

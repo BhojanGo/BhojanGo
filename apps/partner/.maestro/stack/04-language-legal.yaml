@@ -1,0 +1,60 @@
+# R20: the sign-in's Terms and Privacy policy line, and the languages BhojanGo Kitchen
+# offers: the country's (Markets locales, in Markets order), signed out (the phone's
+# region, else the first live country) and signed in (the kitchen's country).
+# Reads only. Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.partner
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in to your kitchen"
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "signin-legal"
+- assertVisible:
+    id: "link-terms"
+- assertVisible:
+    id: "link-privacy"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-sign-in-legal
+# Signed out: the pill lists the phone's country's languages.
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-language-signed-out
+- tapOn:
+    id: "language-menu-backdrop"
+# Signed in as the seeded kitchen owner: the kitchen's country's languages (Help and settings).
+- runFlow: ../sign-in.yaml
+- runFlow:
+    when:
+      visible: "Which kitchen is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible:
+      id: "rail-help"
+    timeout: 60000
+- tapOn:
+    id: "rail-help"
+- scrollUntilVisible:
+    element:
+      id: "language-section"
+- assertVisible:
+    id: "language-en"
+- assertVisible:
+    id: "language-hi"
+- assertNotVisible:
+    id: "language-es"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-language

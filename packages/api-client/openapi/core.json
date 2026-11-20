@@ -7512,6 +7512,10 @@
             ],
             "title": "City"
           },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
           "currency": {
             "title": "Currency",
             "type": "string"
@@ -7534,7 +7538,8 @@
           "name",
           "status",
           "currency",
-          "city"
+          "city",
+          "country"
         ],
         "title": "MineOut",
         "type": "object"
