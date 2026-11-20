@@ -2,12 +2,13 @@
 
 ## Round 22: core_api made faster (2026-11-20)
 
-**Result: pass.** After R22, **one core_api process meets every target at 1x launch** (reads p95 7-73 ms, placing an
-order p95 23 ms, 0 failed requests), and **two processes meet every target at 3x launch** with 0 server errors, 0 lost
-realtime updates and all 100 orders delivered (reads p95 65-298 ms, placing an order p95 325 ms). No process was added
+**Result: pass.** After R22 (merged with dev's #176 cookie sessions and CSRF, as it will ship), **one core_api
+process meets every target at 1x launch** (reads p95 23-86 ms, placing an order p95 50 ms, 0 server errors), and **two
+processes meet every target at 3x launch** with 0 server errors, 0 lost realtime updates and all 98 orders delivered
+(reads p95 47-329 ms, placing an order p95 232 ms). No process was added
 to get there: the same rush costs core_api well under half the CPU it did. Production now runs 2 core_api replicas
 for redundancy ([production-config.md](production-config.md#core-api-processes-and-the-database-r22)), and that setup
-costs **about $33 a month on Railway at launch** ([below](#what-production-costs-on-railway-r22)).
+costs **about $37 a month on Railway at launch** ([below](#what-production-costs-on-railway-r22)).
 
 The scenario is R21's, unchanged (tools/load/rush.js). Only the end of the workflow is new: once the rush is over,
 tools/load/paths.py sends one request type at a time while py-spy records core_api, so each path gets its own profile
@@ -15,63 +16,65 @@ tools/load/paths.py sends one request type at a time while py-spy records core_a
 
 ### The targets
 
-| Target | Before (R22's own runs, same harness) | After | |
+| Target | Before (R22's own runs, same harness) | After (merged with dev) | |
 |---|---|---|---|
-| 1x launch, 1 process: reads p95 < 500 ms | 400 ms-1.14 s (board, quote over) | 7-73 ms | **pass** |
-| 1x launch, 1 process: place order p95 < 1.5 s | 235-973 ms | 23 ms | **pass** |
-| 3x launch, 2 processes: reads p95 < 500 ms | 3.2-13.4 s | 65-298 ms | **pass** |
-| 3x launch, 2 processes: place order p95 < 1.5 s | 11.2 s | 325 ms | **pass** |
-| 3x launch, 2 processes: 0 errors | 935 failed (0.30%), 26 realtime updates lost | 0 server errors, 0 lost (2 quotes refused as "too far", by the scenario) | **pass** |
+| 1x launch, 1 process: reads p95 < 500 ms | 400 ms-1.14 s (board, quote over) | 23-86 ms | **pass** |
+| 1x launch, 1 process: place order p95 < 1.5 s | 235-973 ms | 50 ms | **pass** |
+| 3x launch, 2 processes: reads p95 < 500 ms | 3.2-13.4 s | 47-329 ms | **pass** |
+| 3x launch, 2 processes: place order p95 < 1.5 s | 11.2 s | 232 ms | **pass** |
+| 3x launch, 2 processes: 0 errors | 935 failed (0.30%), 26 realtime updates lost | 0 server errors, 0 lost (4 quotes refused as "too far", by the scenario) | **pass** |
 | 3x launch, 1 process (reference only) | R21: 16% failed, p95 up to 60 s | 0 server errors; reads p95 246-528 ms (the kitchen board, 528 ms, is over) | reference |
 
 "Reads" are every API read with a target: home, menu, quote, order status, kitchen board, kitchen today, tracking
-WebSocket connect. The two 422s at 3x are the scenario quoting a kitchen just outside its delivery radius; k6 counts
+WebSocket connect. The 422s are the scenario quoting a kitchen just outside its delivery radius; k6 counts
 them as failed HTTP requests, and they appear in the before runs too.
 
 ### p95 before and after
 
 1x launch (`-s0.34`), one core_api process:
 
-| p95 | R21 | R22 before (1) | R22 before (2) | **After** | Target |
-|---|---|---|---|---|---|
-| Home (`GET /discover`) | 1.65 s | 515 ms | 400 ms | **18 ms** | 500 ms |
-| Menu | 1.31 s | 572 ms | 434 ms | **7 ms** | 500 ms |
-| Quote | 1.57 s | 848 ms | 612 ms | **29 ms** | 500 ms |
-| Place order | 1.58 s | 973 ms | 235 ms | **23 ms** | 1.5 s |
-| Payment start / confirm | 1.12 / 1.30 s | 537 / 401 ms | 170 / 550 ms | **17 / 17 ms** | 1.5 s |
-| Order status | 1.21 s | 434 ms | 304 ms | **9 ms** | 500 ms |
-| Kitchen board / today | 1.85 s / 920 ms | 1.14 s / 659 ms | 593 / 345 ms | **73 / 71 ms** | 500 ms |
-| Tracking WebSocket connect | 895 ms | 158 ms | 121 ms | **33 ms** | 500 ms |
-| Failed requests | 1 | 1 | 0 | **0** | |
-| Orders placed / delivered | 34 / 34 | 35 / 35 | 35 / 35 | 35 / 35 | |
-| core_api CPU, average / peak | 59% / 139% | 44% / 125% | 41% / 123% | **16% / 70%** | |
-| Database connections, peak | 34 | 34 | 34 | 23 | 100 |
-| Run | [44688611848](https://github.com/BhojanGo/BhojanGo/actions/runs/44688611848) | [44703701205](https://github.com/BhojanGo/BhojanGo/actions/runs/44703701205) | [44709569686](https://github.com/BhojanGo/BhojanGo/actions/runs/44709569686) | [44711950354](https://github.com/BhojanGo/BhojanGo/actions/runs/44711950354) | |
+| p95 | R21 | R22 before (1) | R22 before (2) | After (before the merge) | **After, merged with dev** | Target |
+|---|---|---|---|---|---|---|
+| Home (`GET /discover`) | 1.65 s | 515 ms | 400 ms | 18 ms | **41 ms** | 500 ms |
+| Menu | 1.31 s | 572 ms | 434 ms | 7 ms | **23 ms** | 500 ms |
+| Quote | 1.57 s | 848 ms | 612 ms | 29 ms | **54 ms** | 500 ms |
+| Place order | 1.58 s | 973 ms | 235 ms | 23 ms | **50 ms** | 1.5 s |
+| Payment start / confirm | 1.12 / 1.30 s | 537 / 401 ms | 170 / 550 ms | 17 / 17 ms | **29 / 32 ms** | 1.5 s |
+| Order status | 1.21 s | 434 ms | 304 ms | 9 ms | **26 ms** | 500 ms |
+| Kitchen board / today | 1.85 s / 920 ms | 1.14 s / 659 ms | 593 / 345 ms | 73 / 71 ms | **86 / 84 ms** | 500 ms |
+| Tracking WebSocket connect | 895 ms | 158 ms | 121 ms | 33 ms | **35 ms** | 500 ms |
+| Failed requests | 1 | 1 | 0 | 0 | **1 (422 "too far")** | |
+| Orders placed / delivered | 34 / 34 | 35 / 35 | 35 / 35 | 35 / 35 | 35 / 35 | |
+| core_api CPU, average / peak | 59% / 139% | 44% / 125% | 41% / 123% | 16% / 70% | **26% / 98%** | |
+| Database connections, peak | 34 | 34 | 34 | 23 | 34 | 100 |
+| Run | [44688611848](https://github.com/BhojanGo/BhojanGo/actions/runs/44688611848) | [44703701205](https://github.com/BhojanGo/BhojanGo/actions/runs/44703701205) | [44709569686](https://github.com/BhojanGo/BhojanGo/actions/runs/44709569686) | [44711950354](https://github.com/BhojanGo/BhojanGo/actions/runs/44711950354) | [44724700334](https://github.com/BhojanGo/BhojanGo/actions/runs/44724700334) | |
 
 3x launch, two core_api processes (`-w2`), and one process for reference:
 
-| p95 | 2 processes, before | **2 processes, after** | 1 process, R21 | 1 process, after | Target |
-|---|---|---|---|---|---|
-| Home (`GET /discover`) | 12.42 s | **128 ms** | 60.0 s | 303 ms | 500 ms |
-| Menu | 12.13 s | **104 ms** | 60.0 s | 267 ms | 500 ms |
-| Quote | 13.38 s | **65 ms** | 60.0 s | 279 ms | 500 ms |
-| Place order | 11.19 s | **325 ms** | 31.6 s | 562 ms | 1.5 s |
-| Payment start / confirm | 7.91 / 9.19 s | **244 / 274 ms** | 31.0 / 7.53 s | 404 / 444 ms | 1.5 s |
-| Order status | 13.12 s | **100 ms** | 1.04 s | 246 ms | 500 ms |
-| Kitchen board / today | 6.30 / 3.16 s | **298 / 233 ms** | 20.2 / 5.62 s | 528 / 378 ms | 500 ms |
-| Tracking WebSocket connect | 5.71 s | **199 ms** | 9.52 s | 439 ms | 500 ms |
-| Failed requests | 935 (0.30%) | **2 (422 "too far")** | 25,989 (16.2%) | 9 (422 "too far") | |
-| Realtime updates lost | 26 | **0** (4,922 locations, 600 statuses, 214 tablet orders) | 0 | 0 | 0 |
-| Orders placed / delivered | 97 / 93 | **100 / 100** | 33 / 17 | 98 / 98 | |
-| core_api CPU, average / peak | 126% / 229% | **52% / 159%** | 85% / 141% | 44% / 123% | |
-| core_api memory (all its processes) | 480-527 MiB | 378-395 MiB | 288-306 MiB | 196-214 MiB | |
-| Database connections, peak | 44 | 44 | 34 | 34 | 100 |
-| Run | [44703701257](https://github.com/BhojanGo/BhojanGo/actions/runs/44703701257) | [44711949423](https://github.com/BhojanGo/BhojanGo/actions/runs/44711949423) | [44688854537](https://github.com/BhojanGo/BhojanGo/actions/runs/44688854537) | [44711950530](https://github.com/BhojanGo/BhojanGo/actions/runs/44711950530) | |
+| p95 | 2 processes, before | 2 processes, after (before the merge) | **2 processes, after, merged with dev** | 1 process, R21 | 1 process, after (before the merge) | Target |
+|---|---|---|---|---|---|---|
+| Home (`GET /discover`) | 12.42 s | 128 ms | **110 ms** | 60.0 s | 303 ms | 500 ms |
+| Menu | 12.13 s | 104 ms | **93 ms** | 60.0 s | 267 ms | 500 ms |
+| Quote | 13.38 s | 65 ms | **47 ms** | 60.0 s | 279 ms | 500 ms |
+| Place order | 11.19 s | 325 ms | **232 ms** | 31.6 s | 562 ms | 1.5 s |
+| Payment start / confirm | 7.91 / 9.19 s | 244 / 274 ms | **168 / 218 ms** | 31.0 / 7.53 s | 404 / 444 ms | 1.5 s |
+| Order status | 13.12 s | 100 ms | **47 ms** | 1.04 s | 246 ms | 500 ms |
+| Kitchen board / today | 6.30 / 3.16 s | 298 / 233 ms | **329 / 261 ms** | 20.2 / 5.62 s | 528 / 378 ms | 500 ms |
+| Tracking WebSocket connect | 5.71 s | 199 ms | **241 ms** | 9.52 s | 439 ms | 500 ms |
+| Failed requests | 935 (0.30%) | 2 (422 "too far") | **4 (422 "too far")** | 25,989 (16.2%) | 9 (422 "too far") | |
+| Realtime updates lost | 26 | 0 | **0** (4,796 locations, 588 statuses, 213 tablet orders) | 0 | 0 | 0 |
+| Orders placed / delivered | 97 / 93 | 100 / 100 | **98 / 98** | 33 / 17 | 98 / 98 | |
+| core_api CPU, average / peak | 126% / 229% | 52% / 159% | **46% / 164%** | 85% / 141% | 44% / 123% | |
+| core_api memory (all its processes) | 480-527 MiB | 378-395 MiB | 388-403 MiB | 288-306 MiB | 196-214 MiB | |
+| Database connections, peak | 44 | 44 | 43 | 34 | 34 | 100 |
+| Run | [44703701257](https://github.com/BhojanGo/BhojanGo/actions/runs/44703701257) | [44711949423](https://github.com/BhojanGo/BhojanGo/actions/runs/44711949423) | [44724700844](https://github.com/BhojanGo/BhojanGo/actions/runs/44724700844) | [44688854537](https://github.com/BhojanGo/BhojanGo/actions/runs/44688854537) | [44711950530](https://github.com/BhojanGo/BhojanGo/actions/runs/44711950530) | |
 
 - The two R22 "before" runs at 1x are the same code and harness on two runners: they differ by up to 2x, and
-  R21's run of the same code was slower again. The after run beats the best of them by 4-60x on every read.
+  R21's run of the same code was slower again. The after runs beat the best of them by 3-60x on every read. The
+  merged run (with dev's cookie session and CSRF layer) is within the same runner-to-runner spread as the
+  pre-merge run.
 - At 3x on one process (reference), the kitchen board is the one read over target (528 ms): at 3x each new order
-  changes a kitchen's board, so the 45 tablets rebuild it often. Two processes take it to 298 ms.
+  changes a kitchen's board, so the 45 tablets rebuild it often. Two processes take it to 298-329 ms.
 - Before R22, two processes at 3x still failed: requests queued for the CPU while holding a database connection, the
   pools ran dry (5,389 `QueuePool limit` errors) and 26 realtime updates were lost.
 
@@ -256,40 +259,40 @@ vCPU per month, $10 per GB of RAM per month, $0.15 per GB of volume per month, $
 is $20 a month and includes $20 of usage (Hobby: $5, including $5). Usage is billed by the minute on what each
 container uses, not on its limit.
 
-Measured CPU (in vCPUs) and memory, from samples.csv of the after runs (every 5 s; 100% CPU = 1 vCPU). core_api's
+Measured CPU (in vCPUs) and memory, from samples.csv of the merged after runs (every 5 s; 100% CPU = 1 vCPU). core_api's
 CPU follows the load, not the number of processes; its memory is per process, so production's 2 replicas x 2
 processes = 4 processes count 4 x the per-process memory.
 
-| Service | 1x launch, average (run 44711950354) | 3x, average (run 44711949423) | 3x, peak (run 44711949423) |
+| Service | 1x launch, average (run 44724700334) | 3x, average (run 44724700844) | 3x, peak (run 44724700844) |
 |---|---|---|---|
-| core-api CPU | 0.157 | 0.519 | 1.587 |
-| core-api memory | 4 x 180 = 720 MiB | 4 x 189 = 756 MiB | 4 x 198 = 790 MiB |
-| realtime | 0.044 vCPU, 100 MiB | 0.085, 129 MiB | 0.515, 143 MiB |
-| worker | 0.037, 108 MiB | 0.054, 109 MiB | 0.360, 123 MiB |
-| postgres | 0.037, 107 MiB | 0.149, 160 MiB | 0.858, 226 MiB |
-| redis | 0.008, 11 MiB | 0.016, 16 MiB | 0.081, 27 MiB |
-| **Total** | **0.283 vCPU, 1,046 MiB (1.021 GB)** | **0.823 vCPU, 1,170 MiB (1.143 GB)** | **3.401 vCPU, 1,309 MiB (1.278 GB)** |
+| core-api CPU | 0.262 | 0.456 | 1.642 |
+| core-api memory | 4 x 180 = 720 MiB | 4 x 194 = 776 MiB | 4 x 202 = 806 MiB |
+| realtime | 0.076 vCPU, 100 MiB | 0.077, 129 MiB | 0.450, 142 MiB |
+| worker | 0.060, 108 MiB | 0.048, 109 MiB | 0.312, 122 MiB |
+| postgres | 0.053, 112 MiB | 0.136, 157 MiB | 0.644, 221 MiB |
+| redis | 0.016, 11 MiB | 0.013, 16 MiB | 0.048, 24 MiB |
+| **Total** | **0.467 vCPU, 1,051 MiB (1.026 GB)** | **0.730 vCPU, 1,187 MiB (1.159 GB)** | **3.096 vCPU, 1,315 MiB (1.284 GB)** |
 
 Egress: the 1x rush sent 1.39 GB to clients in 38 minutes (k6 `data_received`), 3x sent 4.47 GB. Assumed: two hours a
-day at that rate (lunch and dinner), 30 days: 1.39 / 38 x 120 x 30 = **131 GB** at 1x, 4.47 / 38 x 120 x 30 =
+day at that rate (lunch and dinner), 30 days: 1.39 / 38 x 120 x 30 = **132 GB** at 1x, 4.47 / 38 x 120 x 30 =
 **424 GB** at 3x. Volume: Postgres's 10 GB volume (railway.ts), billed as 10 GB (the most it can hold).
 
 ```
 monthly = max(plan fee, usage)          (Pro: the $20 fee includes $20 of usage; above that, usage is billed)
 usage   = 20 x vCPU + 10 x GB RAM + 0.15 x 10 GB volume + 0.05 x GB egress
 
-launch, every hour like the 1x rush:   20 x 0.283 + 10 x 1.021 + 1.50 + 0.05 x 131 =  5.66 + 10.21 + 1.50 +  6.55 =  $23.92
-busy month, every hour like 3x:        20 x 0.823 + 10 x 1.143 + 1.50 + 0.05 x 424 = 16.46 + 11.43 + 1.50 + 21.20 =  $50.59
-ceiling, 3x's peak all month long:     20 x 3.401 + 10 x 1.278 + 1.50 + 0.05 x 424 = 68.02 + 12.78 + 1.50 + 21.20 = $103.50
+launch, every hour like the 1x rush:   20 x 0.467 + 10 x 1.026 + 1.50 + 0.05 x 132 =  9.34 + 10.26 + 1.50 +  6.60 = $27.70
+busy month, every hour like 3x:        20 x 0.730 + 10 x 1.159 + 1.50 + 0.05 x 424 = 14.60 + 11.59 + 1.50 + 21.20 = $48.89
+ceiling, 3x's peak all month long:     20 x 3.096 + 10 x 1.284 + 1.50 + 0.05 x 424 = 61.92 + 12.84 + 1.50 + 21.20 = $97.46
 ```
 
 Not measured (not in the load test): **web and admin** (Next.js). Assumed 0.1 vCPU and 0.25 GB each:
-2 x (20 x 0.1 + 10 x 0.25) = **$9.00**. With them, production on Pro is **about $33 a month at launch** ($23.92 + $9.00
-= $32.92), **about $60 in a busy month at 3x** ($59.59), and at most **about $113** if 3x's peak lasted all month
-($112.50). Assumptions: the measured averages hold all month (quiet nights cost less, so this overstates launch); the
+2 x (20 x 0.1 + 10 x 0.25) = **$9.00**. With them, production on Pro is **about $37 a month at launch** ($27.70 + $9.00
+= $36.70), **about $58 in a busy month at 3x** ($57.89), and at most **about $106** if 3x's peak lasted all month
+($106.46). (The pre-merge runs gave $32.92, $59.59 and $112.50: the runner-to-runner spread.) Assumptions: the measured averages hold all month (quiet nights cost less, so this overstates launch); the
 runner's CPUs are comparable to Railway's vCPUs; the Postgres volume is full; egress is two rush hours a day; the
 bucket's storage and requests (photos) are not included. Before R22 the same 3x rush on two processes used 2.4 times
-core_api's CPU (126% average against 52%) and still failed.
+core_api's CPU (126% average against 46%) and still failed.
 
 ## Round 21: the first run (2026-11-20)
 
