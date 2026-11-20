@@ -20,6 +20,9 @@ Scopes:
   kitchens                 any of the above (the home screen's city facts)
   markets                  countries, regions, cities, zones
   rules                    the rules
+  orders:<restaurant id>   a kitchen's orders (the kitchen tablet's board)
+  orders:*                 orders whose kitchen can't be told (a TRUNCATE)
+  people                   a user's name changed, or a user was deleted (names on the board)
 
 Revision ID: 0040_cache_versions
 Revises: 0039_region_short_code
@@ -88,9 +91,32 @@ def upgrade() -> None:
     for table, scope in GLOBAL_TABLES.items():
         op.execute(f"CREATE TRIGGER cache_bump_{table} AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON {table} "
                    f"FOR EACH STATEMENT EXECUTE FUNCTION cache_bump_scope('{scope}')")
+    # The kitchen board: a kitchen's orders, and the names shown on them.
+    op.execute("""
+        CREATE FUNCTION cache_bump_orders() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+            IF TG_OP <> 'DELETE' THEN PERFORM cache_bump('orders:' || NEW.restaurant_id::text); END IF;
+            IF TG_OP = 'DELETE' OR (TG_OP = 'UPDATE' AND OLD.restaurant_id IS DISTINCT FROM NEW.restaurant_id) THEN
+                PERFORM cache_bump('orders:' || OLD.restaurant_id::text);
+            END IF;
+            RETURN NULL;
+        END $$""")
+    op.execute("CREATE TRIGGER cache_bump_orders AFTER INSERT OR UPDATE OR DELETE ON orders "
+               "FOR EACH ROW EXECUTE FUNCTION cache_bump_orders()")
+    op.execute("CREATE TRIGGER cache_bump_orders_truncate AFTER TRUNCATE ON orders "
+               "FOR EACH STATEMENT EXECUTE FUNCTION cache_bump_scope('orders:*')")
+    op.execute("CREATE TRIGGER cache_bump_people AFTER UPDATE OF full_name OR DELETE ON users "
+               "FOR EACH STATEMENT EXECUTE FUNCTION cache_bump_scope('people')")
+    op.execute("CREATE TRIGGER cache_bump_people_truncate AFTER TRUNCATE ON users "
+               "FOR EACH STATEMENT EXECUTE FUNCTION cache_bump_scope('people')")
 
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS cache_bump_people_truncate ON users")
+    op.execute("DROP TRIGGER IF EXISTS cache_bump_people ON users")
+    op.execute("DROP TRIGGER IF EXISTS cache_bump_orders_truncate ON orders")
+    op.execute("DROP TRIGGER IF EXISTS cache_bump_orders ON orders")
+    op.execute("DROP FUNCTION IF EXISTS cache_bump_orders()")
     for table in GLOBAL_TABLES:
         op.execute(f"DROP TRIGGER IF EXISTS cache_bump_{table} ON {table}")
     for table in KITCHEN_TABLES:

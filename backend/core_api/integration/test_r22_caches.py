@@ -226,3 +226,42 @@ async def test_a_writing_session_never_fills_a_cache() -> None:
     async with AsyncSessionLocal() as db:
         assert (await menu_svc.availability(db, rid)).open_now is True
         assert r is not None
+
+
+async def test_kitchen_board_shows_order_and_name_changes_at_once(client: AsyncClient) -> None:
+    """The board is cached per kitchen until one of its orders changes (any writer), or a
+    name on it, or a market. Who may see it is checked on every request."""
+    from core_api.modules.orders.api.v1.orders import _boards
+    from shared.db import AsyncSessionLocal
+
+    rid = await spice(client)
+    async with AsyncSessionLocal() as db:
+        row = (await db.execute(text("SELECT id, special_instructions, customer_id FROM orders WHERE restaurant_id = :r "
+                                     "ORDER BY created_at DESC LIMIT 1"), {"r": rid})).first()
+    if row is None:
+        pytest.skip("no Spice Route orders in this database yet")
+    oid, note, customer = row
+    partner = await auth(client, "partner.hyd@example.com")
+
+    async def board() -> dict:
+        r = await client.get(f"/api/v1/orders/restaurant/{rid}", headers=partner, params={"limit": 100})
+        assert r.status_code == 200, r.text
+        return next(o for o in r.json()["items"] if o["id"] == str(oid))
+
+    await board()
+    hits = _boards.hits
+    await board()
+    assert _boards.hits == hits + 1
+    try:
+        await sql("UPDATE orders SET special_instructions = 'r22: no onions' WHERE id = :i", i=oid)
+        assert (await board())["special_instructions"] == "r22: no onions"
+        await sql("UPDATE users SET full_name = 'Rtwotwo ' || full_name WHERE id = :u", u=customer)
+        assert (await board())["customer"]["name"] == "Rtwotwo"
+    finally:
+        await sql("UPDATE orders SET special_instructions = :n WHERE id = :i", n=note, i=oid)
+        await sql("UPDATE users SET full_name = substr(full_name, 10) WHERE id = :u AND full_name LIKE 'Rtwotwo %'",
+                  u=customer)
+    # Another kitchen's owner never gets this board, cached or not.
+    other = await auth(client, "partner.boi@example.com")
+    r = await client.get(f"/api/v1/orders/restaurant/{rid}", headers=other, params={"limit": 100})
+    assert r.status_code == 403

@@ -11,6 +11,7 @@ from core_api.modules.orders.api.dependencies import CurrentUser, get_current_us
 from core_api.modules.orders.api.idempotency import check_idempotency, store_idempotency, validate_idempotency_key
 from shared import authz
 from shared.redis import get_redis
+from shared.cache_versions import VersionedCache
 from shared.db import get_db
 from core_api.modules.orders.repository.order import OrderRepository
 from core_api.modules.orders.schemas.order import (
@@ -147,6 +148,25 @@ async def list_restaurant_orders(
     """A restaurant's orders: its owner, or an admin with orders.view for its city."""
     if not await _can_see_restaurant(db, current_user, restaurant_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    # R22: every kitchen tablet asks for this every 4 s, and it is up to 100 whole orders. The JSON
+    # is kept in each process until the kitchen's orders change, or a name on them, or a market
+    # (database cache versions: shared/cache_versions.py). Who may see it is checked above, each time.
+    from shared import cache_versions as cv
+
+    if not cv.enabled():
+        return await _board(db, restaurant_id, page, limit)
+    ver = await cv.versions(db, (f"orders:{restaurant_id}", "orders:*", "people", "markets"))
+    hit = _boards.get((restaurant_id, page, limit), ver)
+    if cv.VersionedCache.is_miss(hit):
+        hit = (await _board(db, restaurant_id, page, limit)).model_dump_json().encode()
+        _boards.put(db, (restaurant_id, page, limit), ver, hit)
+    return Response(hit, media_type="application/json")  # type: ignore[return-value]
+
+
+_boards = VersionedCache("orders.board", ttl=300, size=256)
+
+
+async def _board(db: AsyncSession, restaurant_id: uuid.UUID, page: int, limit: int) -> OrderListResponse:
     repo = OrderRepository(db)
     orders, total = await repo.list_by_restaurant(restaurant_id, page=page, limit=limit)
     people = await _load_people(db, orders)  # noqa: F841 - kept in the session for _as_kitchen_sees_it
