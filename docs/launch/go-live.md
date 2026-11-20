@@ -73,9 +73,21 @@ Roll back: nothing to undo; production doesn't exist yet.
   `postgres-data`: daily, keep 7, plus a manual backup before every release with migrations. The bucket `uploads`
   (region `sjc`, private) gets its credentials with `railway bucket credentials --bucket uploads --json`; they go
   into core-api in step 9 without being printed.
-- **Verify:** the dashboard shows the backup schedule. After step 10, do the restore drill once: restore the newest
-  backup into a temporary service, check `alembic_version` and the table counts (`tools/backup/counts.sh`), then
-  delete it.
+- **Hourly copies:** apply creates the `db-backups` bucket (private, `sjc`) and the `db-backup` cron service (hourly at
+  :07, keeps 7 days). Put the bucket's credentials into the GitHub secrets `BACKUP_*` without printing them (as for
+  QA in R23: `bucketS3Credentials` piped into `gh secret set`), so the weekly restore test in `restore-drill.yml`
+  restores production's newest copy. RPO 1 hour.
+- **Verify:** the dashboard shows the backup schedule. After the first hourly run, `latest.json` is in the bucket
+  and a manual `restore-drill.yml` run with `source=bucket` passes (health checks, finance invariants, row counts).
+- **Required: rehearse a Railway volume restore on production before launch, while it's still empty.** Railway
+  restores a volume backup only over the live volume, so this can never be practised on QA, and after launch it
+  would overwrite real orders. Do it after step 10 (migrations ran, no customers yet):
+  1. take a manual volume backup of `postgres-data` and note the time;
+  2. write a marker (for example a row in a scratch table) and record the table counts (`tools/backup/counts.sh`);
+  3. restore the manual backup over the volume from the dashboard and redeploy core-api, worker and realtime;
+  4. check the marker is gone, `alembic_version` and the counts match the backup, and `/health` is green;
+  5. write the time from step 3 to green into [incident-plan.md](incident-plan.md) as production's measured RTO.
+  If it fails or takes over 30 minutes, stop (stop condition 4).
 - **Roll back:** before launch, delete and recreate the volume. After launch, never delete it: restore per
   [backup-restore.md](../runbooks/backup-restore.md) instead.
 
@@ -378,7 +390,7 @@ Abort or delay the launch (and pause ordering if it's already open) when any of 
 2. Any fake or test value in production: the fake payment provider, a fixed OTP or delivery PIN, the demo rider, a
    `pk_test`/`sk_test` key, a test-site banner, `@example.com` users, seed kitchens or `fake` payout accounts.
 3. A plan or apply would change or delete anything in QA, or anything outside production.
-4. A migration fails, or the restore drill (step 3) fails.
+4. A migration fails, or the restore drill or the volume restore rehearsal (step 3) fails or hasn't been done.
 5. Stripe isn't fully live: account not activated, payouts to the bank not enabled, a webhook endpoint failing, or
    Stripe Tax not collecting in Idaho while orders would be taxed.
 6. Idaho seller's permit, lawyer-reviewed Terms and Privacy, or insurance (general liability and delivery auto cover)

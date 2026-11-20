@@ -162,7 +162,11 @@ t_verify=$(( $(now) - t0 ))
 step "4. RTO and RPO"
 total=$(( $(now) - t_all ))
 echo "backup ${t_backup} s · restore ${t_restore} s · checks ${t_verify} s · whole drill ${total} s"
-echo "source: $SOURCE. RPO of this drill: 0 (a backup taken now, at $qa_now). QA has no scheduled backups: see docs/launch/incident-plan.md."
+if [ -n "${age_min:-}" ]; then
+  echo "source: $SOURCE. RPO of this drill: $age_min minutes (the newest hourly copy, taken $qa_now; at most 60 while the job runs)."
+else
+  echo "source: $SOURCE. RPO of this drill: 0 (a backup taken now, at $qa_now)."
+fi
 {
   echo "### Restore drill (source: $SOURCE)"
   echo "| Step | Time |"; echo "|---|---|"
