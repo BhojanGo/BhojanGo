@@ -14,10 +14,10 @@ appId: com.bhojango.partner
 - scrollUntilVisible:
     element:
       id: "signin-legal"
+# The links are parts of one line of text (Android exposes no separate element for them): check the words.
 - assertVisible:
-    id: "link-terms"
-- assertVisible:
-    id: "link-privacy"
+    id: "signin-legal"
+    text: ".*Terms.*Privacy policy.*"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-partner-sign-in-legal
