@@ -281,21 +281,27 @@ export function order(data) {
 }
 
 // The tracking screen: a WebSocket (reconnecting like the app) and the 15 s status poll,
-// until the order is delivered (then 15 s more, for late messages) or 20 minutes.
+// until the order is delivered (then 15 s more, and 5 s with no message, so nothing
+// still queued in k6 is dropped by closing) or 20 minutes. k6 runs the poll and the
+// socket's handlers on one thread: a slow poll delays (never drops) what the socket got.
 function track(data, c, id) {
   const hardEnd = now() + 20 * 60e3;
   let doneAt = 0;
+  let finished = false;
   let session = 0;
-  while (now() < hardEnd && !(doneAt && now() > doneAt)) {
+  while (now() < hardEnd && !finished) {
     session += 1;
     const sess = `${id.slice(0, 8)}-${session}`;
     const start = now();
     let opened = false;
+    let lastMsg = now();
+    let byUs = false;
     const res = ws.connect(`${WS}/ws/track/${id}`, { headers: { Authorization: `Bearer ${c.token}` }, tags: { name: "ws_track" } }, (socket) => {
       socket.on("message", (raw) => {
         let m;
         try { m = JSON.parse(raw); } catch (e) { return; }
         const t = now();
+        lastMsg = t;
         if (m.type === "connected") {
           opened = true;
           wsConnect.add(t - start);
@@ -315,11 +321,17 @@ function track(data, c, id) {
         timed("order_status", g, g.status === 200);
         const st = g.status === 200 ? g.json("status") : "";
         if ((st === "delivered" || st === "cancelled") && !doneAt) doneAt = now() + 15000;
-        if (doneAt && now() >= doneAt) socket.close();
       }, 15000);
-      socket.setInterval(() => { if ((doneAt && now() >= doneAt) || now() >= hardEnd) socket.close(); }, 1000);
+      socket.setInterval(() => {
+        if ((doneAt && now() >= doneAt && now() - lastMsg >= 5000) || now() >= hardEnd) {
+          byUs = true;
+          finished = true;
+          socket.close();
+        }
+      }, 1000);
     });
-    if (opened) rt("close", id, sess, now());
+    // "close" = we closed it (judged); "dropped" = it ended under us (the app reconnects).
+    if (opened) rt(byUs ? "close" : "dropped", id, sess, now());
     if (!res || res.status !== 101) { wsErrors.add(1); sleep(3); }
   }
   if (doneAt) delivered.add(1);

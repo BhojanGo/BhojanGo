@@ -70,6 +70,7 @@ def realtime(lines: list[str]) -> dict:
     placed, tablets, tablet_end, kseen = [], {}, {}, {}
     offers = defaultdict(dict)
     last_t = 0
+    dropped = 0
     for line in lines:
         m = RT_LINE.search(line)
         if not m:
@@ -84,8 +85,10 @@ def realtime(lines: list[str]) -> dict:
                 puts.append((f[1], f[2], int(f[3]), int(f[4])))
             elif kind == "open":
                 opens[(f[1], f[2])] = int(f[3])
-            elif kind == "close":
+            elif kind in ("close", "dropped"):
                 closes[(f[1], f[2])] = int(f[3])
+                if kind == "dropped":
+                    dropped += 1
             elif kind == "loc":
                 locs[(f[1], f[2])].append(f[3])
             elif kind == "st":
@@ -157,7 +160,7 @@ def realtime(lines: list[str]) -> dict:
     ws_first = sum(1 for v in offers.values() if "offer_ws" in v and ("offer_poll" not in v or v["offer_ws"] <= v["offer_poll"]))
     poll_first = sum(1 for v in offers.values() if "offer_poll" in v and ("offer_ws" not in v or v["offer_poll"] < v["offer_ws"]))
     return {
-        "tracking_sessions": len(opens), "sessions_cut_by_test_end": unclosed,
+        "tracking_sessions": len(opens), "sessions_cut_by_test_end": unclosed, "sessions_dropped": dropped,
         "orders_tracked": len({o for o, _ in opens}),
         "location": {"published": len(pubs), "expected_on_open_sockets": loc_expected, "received": loc_received,
                      "lost": loc_expected - loc_received, "duplicates": loc_dupes, "lost_examples": lost_loc[:20]},
@@ -265,7 +268,8 @@ def main() -> int:
            f"| Order status to tracking sockets | {st['set']:,} | {st['expected_on_open_sockets']:,} | {st['received']:,} | **{st['lost']}** |",
            f"| New orders on kitchen tablets (each tablet) | {k['orders_placed']:,} orders | {k['expected_tablet_sightings']:,} | {k['seen']:,} | **{k['lost']}** |",
            "",
-           f"Tracking sessions: {rtm['tracking_sessions']} on {rtm['orders_tracked']} orders ({rtm['sessions_cut_by_test_end']} cut off by the end of the test, not judged). "
+           f"Tracking sessions: {rtm['tracking_sessions']} on {rtm['orders_tracked']} orders ({rtm['sessions_dropped']} ended by the server or network and "
+           f"reconnected, judged up to the drop; {rtm['sessions_cut_by_test_end']} cut off by the end of the test, not judged). "
            f"Duplicate location messages: {loc['duplicates']}. Lost statuses by status: {st['lost_by_status'] or 'none'}. "
            f"Placed to seen on a tablet: p50 {ms(kl['p50'])}, p95 {ms(kl['p95'])}, p99 {ms(kl['p99'])}, max {ms(kl['max'])}. "
            f"Offers: {rtm['offers']['offers_seen']}, first over /ws/rider {rtm['offers']['first_on_ws']}, first by the 5 s poll {rtm['offers']['first_on_poll']}."]
