@@ -39,7 +39,7 @@ case "${1:?usage: qa-runner.sh create|deploy|run <job>|job <job>|delete}" in
       'UPLOADS_BUCKET=${{core-api.UPLOADS_BUCKET}}' 'AWS_ENDPOINT_URL=${{core-api.AWS_ENDPOINT_URL}}' \
       'AWS_REGION=${{core-api.AWS_REGION}}' 'AWS_ACCESS_KEY_ID=${{core-api.AWS_ACCESS_KEY_ID}}' \
       'AWS_SECRET_ACCESS_KEY=${{core-api.AWS_SECRET_ACCESS_KEY}}' 'S3_ADDRESSING_STYLE=${{core-api.S3_ADDRESSING_STYLE}}' \
-      'E2E_CORE_API=https://${{core-api.RAILWAY_PUBLIC_DOMAIN}}' 'E2E_REALTIME=https://${{realtime.RAILWAY_PUBLIC_DOMAIN}}' \
+      'E2E_CORE_API=https://api.qa.bhojango.com' 'E2E_REALTIME=https://rt.qa.bhojango.com' \
       'E2E_WORKER=http://worker.railway.internal:8006' 'JWT_PRIVATE_KEY=${{core-api.JWT_PRIVATE_KEY}}' 'QA_JOB=none'       'STRIPE_SECRET_KEY=${{core-api.STRIPE_SECRET_KEY}}' 'STRIPE_PUBLISHABLE_KEY=${{core-api.STRIPE_PUBLISHABLE_KEY}}' >/dev/null
     # (the Stripe TEST keys stay sealed on core-api; the stripe-e2e job refuses anything but test keys)
     # One job per deploy, then exit: no restarts, nothing running between jobs.

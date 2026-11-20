@@ -57,8 +57,20 @@ export default defineRailway((ctx, project) => {
   // Same Redis databases as compose: core_api 0, realtime 3, the event bus 5.
   const redisDb = (n: number) => `\${{redis.REDIS_URL}}/${n}`;
 
-  // The browser origins core_api and realtime accept (CORS): web and admin.
-  const origins = '["https://${{web.RAILWAY_PUBLIC_DOMAIN}}","https://${{admin.RAILWAY_PUBLIC_DOMAIN}}"]';
+  // QA's own addresses on bhojango.com (custom domains, 2026-11-19; DNS at GoDaddy, certificates by Railway).
+  // Staging keeps Railway's generated domains; production's are set by hand (docs/launch/production-config.md).
+  const QA_HOSTS = { web: "qa.bhojango.com", admin: "admin.qa.bhojango.com", api: "api.qa.bhojango.com", rt: "rt.qa.bhojango.com" };
+  const publicUrl = (svc: "web" | "admin" | "core-api" | "realtime") => {
+    if (qa) return `https://${QA_HOSTS[({ web: "web", admin: "admin", "core-api": "api", realtime: "rt" } as const)[svc]]}`;
+    return `https://\${{${svc}.RAILWAY_PUBLIC_DOMAIN}}`;
+  };
+
+  // The browser origins core_api and realtime accept (CORS): web and admin. QA also keeps its old
+  // *.up.railway.app origins until 2026-11-26 (7 days after the switch; docs/STATUS.md), then drops them.
+  // They're named: once a service has a custom domain, RAILWAY_PUBLIC_DOMAIN resolves to that instead.
+  const railwayOrigins = ["https://${{web.RAILWAY_PUBLIC_DOMAIN}}", "https://${{admin.RAILWAY_PUBLIC_DOMAIN}}"];
+  const QA_OLD_ORIGINS = ["https://web-qa-3fd3b3f8.up.railway.app", "https://admin-qa-df130aa4.up.railway.app"]; // until 2026-11-26
+  const origins = JSON.stringify(qa ? [publicUrl("web"), publicUrl("admin"), ...QA_OLD_ORIGINS] : railwayOrigins);
 
   // ── Settings every backend deployable shares ───────────────────────────
   const backendEnv: Env = {
@@ -134,6 +146,8 @@ export default defineRailway((ctx, project) => {
     AWS_SECRET_ACCESS_KEY: preserve(), // sealed
     S3_ADDRESSING_STYLE: preserve(), // its urlStyle: "virtual" (new buckets) or "path"
     ALERT_WEBHOOK_TOKEN: preserve(),
+    // QA: links in emails, Stripe's returns and payout onboarding use QA's own addresses (production: set by hand).
+    ...(qa ? { PUBLIC_WEB_URL: publicUrl("web"), PUBLIC_API_URL: publicUrl("core-api") } : {}),
     // The fake payment gateway: every environment but production.
     ...(prod ? {} : {
       FAKE_PAYMENT_WEBHOOK_URL: "http://core-api.railway.internal:8001/api/v1/payments/fake/webhook",
@@ -204,8 +218,8 @@ export default defineRailway((ctx, project) => {
         APP_ENV: appEnv,
         CORE_API_URL: "http://core-api.railway.internal:8001",
         REALTIME_URL: "http://realtime.railway.internal:8004",
-        NEXT_PUBLIC_CORE_URL: `https://\${{core-api.RAILWAY_PUBLIC_DOMAIN}}`,
-        NEXT_PUBLIC_REALTIME_URL: `https://\${{realtime.RAILWAY_PUBLIC_DOMAIN}}`,
+        NEXT_PUBLIC_CORE_URL: publicUrl("core-api"),
+        NEXT_PUBLIC_REALTIME_URL: publicUrl("realtime"),
         // Error reports from the browser (Sentry; R19). A build arg: empty = off.
         ...(prod ? { NEXT_PUBLIC_SENTRY_DSN: preserve() } : {}),
         ...extra,
@@ -214,7 +228,7 @@ export default defineRailway((ctx, project) => {
 
   const web = next("web", "@bhojango/web", "apps/web", "/", {
     CORE_API_INTERNAL_URL: "http://core-api.railway.internal:8001",
-    NEXT_PUBLIC_APP_URL: prod ? preserve() : `https://\${{web.RAILWAY_PUBLIC_DOMAIN}}`, // production: the custom domain
+    NEXT_PUBLIC_APP_URL: prod ? preserve() : publicUrl("web"), // canonical links and the sitemap; production: by hand
     // Production pays through Stripe (a build arg; unset = the fake one, which production refuses: lib/payments.ts).
     ...(prod ? { NEXT_PUBLIC_PAYMENTS_PROVIDER: "stripe" } : {}),
   });

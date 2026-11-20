@@ -170,6 +170,18 @@ Amazon SES; sign-in codes through Twilio Verify; order updates by push; Sentry o
   id, the Play service account key), and the addresses once the domain is bought
   ([production-config.md](launch/production-config.md), [go-live.md](launch/go-live.md)).
 
+## QA on bhojango.com (2026-11-19)
+
+QA's addresses are now https://qa.bhojango.com (website), https://admin.qa.bhojango.com, https://api.qa.bhojango.com
+and https://rt.qa.bhojango.com (Railway custom domains, DNS at GoDaddy, Let's Encrypt certificates). The website is
+noindex on QA; Stripe's test webhooks point at the new API address. Details: [railway-deploy.md](runbooks/railway-deploy.md).
+
+- **To do on 2026-11-26:** remove QA's old `*.up.railway.app` origins: delete `QA_OLD_ORIGINS` from
+  `.railway/railway.ts` and the two old origins from QA's `CORS_ORIGINS` (core-api, realtime, worker). The old
+  addresses keep serving (Railway keeps them), but browsers on them can no longer call the API after that.
+- Production domains: a plan and a recommendation (Cloudflare DNS only) in
+  [production-config.md](launch/production-config.md#production-domains-plan-nothing-changed-for-production).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

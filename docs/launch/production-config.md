@@ -62,6 +62,44 @@ The go-live steps are in [go-live.md](go-live.md).
 No longer needed for Boise: SendGrid (SES instead), a Twilio sender number with A2P 10DLC (Verify instead), and a
 Firebase service account on the worker (the apps use Expo push tokens).
 
+## Production domains (plan; nothing changed for production)
+
+Srini owns `bhojango.com` at GoDaddy. QA already runs on it (`qa`, `admin.qa`, `api.qa`, `rt.qa`, 2026-11-19), so the
+mechanics are proven: Railway custom domain per service, a CNAME plus a `_railway-verify` TXT record per name,
+Let's Encrypt certificates issued by Railway (no CAA record on the domain, so nothing to add for that).
+
+| Name | Service | Record |
+|---|---|---|
+| `bhojango.com` | web | the website's canonical address (`NEXT_PUBLIC_APP_URL`, `PUBLIC_WEB_URL`) |
+| `www.bhojango.com` | web | redirects to `bhojango.com` (or a second custom domain on web) |
+| `admin.bhojango.com` | admin | CNAME to Railway |
+| `api.bhojango.com` | core-api | CNAME to Railway (`PUBLIC_API_URL`, Stripe live webhooks) |
+| `rt.bhojango.com` | realtime | CNAME to Railway |
+
+**The bare domain.** Railway serves a custom domain through a CNAME, and DNS doesn't allow a CNAME at the bare
+domain. GoDaddy has no CNAME flattening (ALIAS), so `bhojango.com` itself can't point at Railway while DNS stays at
+GoDaddy. Two options:
+
+1. **GoDaddy forwarding:** forward `bhojango.com` to `https://www.bhojango.com` (301) and make `www` the website.
+   Free and nothing moves, but the canonical address becomes `www.bhojango.com`, the forward is GoDaddy's service
+   (its https handling and uptime are outside our control), and every link we've written as `bhojango.com` redirects.
+2. **Cloudflare's free plan for DNS only:** move the nameservers to Cloudflare (GoDaddy stays the registrar), which
+   flattens a CNAME at the bare domain, so `bhojango.com` points at Railway directly and Railway issues its
+   certificate. Records stay **DNS only** (grey cloud, no Cloudflare proxy) so Railway's certificates and websockets
+   work unchanged. Free, faster DNS, DNSSEC available.
+
+**Recommendation: option 2, Cloudflare DNS only.** The bare domain is the address on the website, emails, receipts and
+the store listings; it should be served by us over https with our certificate, not by a registrar's forwarding service.
+How: add `bhojango.com` to Cloudflare, check that it imported every existing record (the eight QA records, and any MX,
+SES DKIM, SPF and DMARC records by then), lower nothing else, then change the two nameservers at GoDaddy. QA keeps
+working through the switch as long as its records were copied first. Then add the production custom domains in
+Railway and their records in Cloudflare (CNAME at the bare domain, flattened).
+
+Note (found on QA): once a service has a custom domain, Railway's `RAILWAY_PUBLIC_DOMAIN` reference resolves to the
+custom domain, not the `*.up.railway.app` one. So production's `NEXT_PUBLIC_CORE_URL` / `NEXT_PUBLIC_REALTIME_URL`
+references will give `api.bhojango.com` / `rt.bhojango.com` once those domains are added; set the custom domains
+before the first production frontend build.
+
 ## All three backends (core-api, realtime, worker)
 
 `backendEnv` in `railway.ts` gives these to all three.
@@ -161,7 +199,7 @@ build argument and a run-time variable: it turns off the test-site banner and no
 | `APP_ENV` | both | yes (`production`) | railway.ts | no | `qa` | supplied |
 | `CORE_API_URL`, `REALTIME_URL` | both | yes (the image turns them into `USER_SVC_URL` etc.; admin's build fails without them) | railway.ts | no | internal URLs | supplied |
 | `CORE_API_INTERNAL_URL` | web | yes | railway.ts | no | internal URL | supplied |
-| `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | both | yes | Railway reference to the services' Railway domains | no | reference | supplied, but as the Railway domains, not the custom ones (a decision below) |
+| `NEXT_PUBLIC_CORE_URL`, `NEXT_PUBLIC_REALTIME_URL` | both | yes | Railway reference to the services' public domains | no | reference | supplied; the reference resolves to the custom domain once one is added (see Production domains) |
 | `NEXT_PUBLIC_APP_URL` | web | yes | the website's custom domain | no | reference | by hand |
 | `NEXT_PUBLIC_PAYMENTS_PROVIDER` | web | yes, `stripe` | railway.ts | no | not set (`fake`) | supplied (`stripe`). Without it production fails closed: "Payments aren't available in this city yet", never the fake card form or checkout |
 | `NEXT_PUBLIC_SENTRY_DSN` | both | yes (Srini's decision; off when unset) | Sentry (a web and an admin project, or one) | yes | not set | by hand. Its host joins the CSP's connect-src |
