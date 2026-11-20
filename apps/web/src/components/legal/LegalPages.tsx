@@ -5,6 +5,7 @@
 // history and a print stylesheet. Every environment but production, and any draft,
 // carries "Draft: pending legal review". Documents are English for now; the page
 // chrome follows the visitor's language and says so.
+import { formatPhone } from "@bhojango/i18n";
 import { parse, toc as contents, type Block } from "@bhojango/ui/legal-markdown";
 import { isProduction } from "@bhojango/ui/environment";
 import type { Metadata } from "next";
@@ -128,7 +129,7 @@ function Operator({ ctx, country }: { ctx: Context; country: string }) {
   const legal = ctx.directory.countries.find((c) => c.code === country)?.legal ?? {};
   if (!legal.name) return null;
   const name = [legal.name, legal.address].filter(Boolean).join(", ");
-  const contact = [legal.support_email, legal.support_phone].filter(Boolean).join(" · ");
+  const contact = [legal.support_email, legal.support_phone ? formatPhone(legal.support_phone) : ""].filter(Boolean).join(" · ");
   const ids = [legal.cin ? `CIN ${legal.cin}` : "", legal.gstin ? `GSTIN ${legal.gstin}` : ""].filter(Boolean).join(" · ");
   return (
     <p className="mt-3 text-body text-[#24383B]" data-testid="legal-operator">

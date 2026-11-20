@@ -1,7 +1,7 @@
 // Account: who you are, your language (the country's, from Markets), documents,
 // payouts, safety, legal (the country's Privacy policy and Terms on the website),
 // sign-out and deleting the account (R19: location sharing stops first).
-import { DeleteAccount, LanguagePicker, LegalLinks, SafeAreaView, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { DeleteAccount, formatPhone, LanguagePicker, LegalLinks, SafeAreaView, type, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router, type Href } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -31,7 +31,7 @@ export default function Account() {
         </Text>
         <View style={styles.card}>
           <Text style={ui.h2}>{user?.full_name}</Text>
-          <Text style={ui.muted}>{[user?.phone, countryName].filter(Boolean).join(" · ")}</Text>
+          <Text testID="account-phone" style={ui.muted}>{[user?.phone ? formatPhone(user.phone) : null, countryName].filter(Boolean).join(" · ")}</Text>
         </View>
         <View style={[styles.card, { padding: 0 }]}>
           {rows.map((r, i) => (

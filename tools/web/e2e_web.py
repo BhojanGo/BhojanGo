@@ -204,8 +204,10 @@ def fake_hint(ctx, hint: dict) -> None:  # type: ignore[no-untyped-def]
     """The browser's GET /markets/hint answers `hint` (the visitor's IP place), so the run doesn't depend on
     where the test machine is (QA has GeoIP on; make dev has none)."""
     body = json.dumps({**HINT_NONE, **hint})
+    # The site's calls carry its session cookies (R22 S8), so the answer names the page's origin, not "*".
     ctx.route(re.compile(r".*/api/v1/markets/hint$"), lambda route: route.fulfill(
-        status=200, content_type="application/json", body=body, headers={"Access-Control-Allow-Origin": "*"}))
+        status=200, content_type="application/json", body=body,
+        headers={"Access-Control-Allow-Origin": route.request.headers.get("origin", "*"), "Access-Control-Allow-Credentials": "true"}))
 
 
 def url_is(page, pattern: str, timeout: int = 20000) -> None:  # type: ignore[no-untyped-def]
@@ -734,6 +736,13 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Verify and continue").click()
     signed_in = step("sign in: back to checkout, signed in", lambda: url_is(page, r"/checkout$"))
     customer = login("customer1.hyd@example.com")
+    # R22 S8: the session is in httpOnly cookies on the API's host; the page's storage holds no token.
+    check("sign in: the session is an httpOnly cookie, and no token is in the page's storage", lambda: (
+        _assert(not re.search(r"eyJ[\w-]+\.eyJ", page.evaluate("JSON.stringify(Object.assign({}, localStorage, sessionStorage))")),
+                "a token in web storage"),
+        _assert(any(c["name"] == "bg_web_at" and c["httpOnly"] and c["secure"] and c["sameSite"] == "Lax" for c in ctx.cookies()),
+                [(c["name"], c["httpOnly"], c["sameSite"]) for c in ctx.cookies()]),
+        _assert(page.evaluate("document.cookie").find("bg_web_") == -1, "a script can read the session cookie")))
 
     # The bag on the kitchen page now has the whole bill (signed in, an address).
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
@@ -1265,7 +1274,16 @@ with sync_playwright() as p:
     us.get_by_role("complementary", name="Your bag").get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
     us.get_by_role("complementary", name="Your bag").get_by_role("link", name="Go to checkout").click()
     url_is(us, r"/signin\?")
-    sign_in(us, US_PHONE, "US")
+    # R22: the code screen shows the number in its country's format ("+1 208-555-0101").
+    us.get_by_label("Country code").select_option("US")
+    us.get_by_role("textbox", name="Mobile number").fill(US_PHONE)
+    us.get_by_role("button", name="Send code").click()
+    url_is(us, r"/signin/code\?")
+    check("sign in (US): the code was sent to +1 208-555-0101", lambda:
+          expect(us.get_by_text("+1 208-555-0101", exact=True)).to_be_visible(timeout=15000))
+    shot(us, "20a-us-code")
+    us.get_by_role("textbox", name="Digit 1").fill(OTP)
+    us.get_by_role("button", name="Verify and continue").click()
     url_is(us, r"/checkout$")
     us_bill = us.get_by_role("complementary", name="Your order")
     check("US checkout: the fair bill in dollars with sales tax", lambda: (
@@ -1274,6 +1292,12 @@ with sync_playwright() as p:
         expect(us_bill.get_by_text(re.compile(r"^\$\d+\.\d{2}$")).first).to_be_visible(),
         expect(us_bill.get_by_text("₹")).to_have_count(0)))
     shot(us, "20-us-checkout")
+    # R22: the account shows the number formatted (the side card and Sign-in and security).
+    us.goto(base + "/account/profile", wait_until="networkidle")
+    check("account (US): the phone reads +1 208-555-0101, never the raw E.164", lambda: (
+        expect(us.get_by_text("+1 208-555-0101", exact=True).first).to_be_visible(timeout=15000),
+        expect(us.get_by_text("+12085550101")).to_have_count(0)))
+    shot(us, "20b-us-account-phone")
 
     # ── Terms and Privacy (R8 F10): per country, published in the admin console ──
     lp = b.new_context(viewport={"width": 1440, "height": 900}).new_page()
@@ -1476,6 +1500,11 @@ with sync_playwright() as p:
     check("X-Robots-Tag: noindex outside production", lambda: _assert(
         "noindex" in (page.request.get(base + "/").headers.get("x-robots-tag") or ""), page.request.get(base + "/").headers))
     check("unknown kitchen is a 404", lambda: _assert(page.request.get(f"{base}{hyd['path']}/no-such-kitchen").status == 404, "not 404"))
+    # R22 S9: each page has its own CSP nonce and no 'unsafe-inline' script; the pages above ran with it.
+    csp1, csp2 = (page.request.get(base + KITCHEN_PATH).headers.get("content-security-policy") or "" for _ in range(2))
+    check("CSP: a fresh nonce on every page and no inline script allowed", lambda: _assert(
+        "'nonce-" in csp1 and "'strict-dynamic'" in csp1 and "unsafe-inline" not in csp1.split("script-src", 1)[1].split(";", 1)[0]
+        and csp1 != csp2, csp1))
     page.goto(f"{base}/no-such-page", wait_until="networkidle")
     a11y(page, "404")
     old = page.request.get(f"{base}/orders", max_redirects=0)

@@ -94,8 +94,13 @@ Kitchens and delivery partners (support line or the partner apps, one at a time 
 When to restore: data is lost or wrong in many places (a bad migration, a bad bulk action, the volume is gone). For a
 few wrong rows, fix them instead. A restore throws away everything written after the backup.
 
-Production is Postgres on Railway (service `postgres`, volume `postgres-data`), backed up by Railway's volume backups:
-daily, keep 7, plus a manual backup before every release with migrations ([go-live.md](go-live.md) step 3).
+Two kinds of backup (R22), in production and in QA:
+
+| | What | When, kept | Restores to | Use it for |
+|---|---|---|---|---|
+| **Volume backups** | Railway's snapshots of the `postgres-data` volume | daily (kept 6 days) and weekly (kept 27 days), plus a manual one before every release with migrations ([go-live.md](go-live.md) step 3) | **the same volume only, in place** (Railway can't restore a volume backup anywhere else) | the whole volume lost or corrupt |
+| **Hourly dumps** | `pg_dump` by the cron service `db-backup` ([hourly_dump.sh](../../tools/backup/hourly_dump.sh)) into its own private bucket `db-backups`, with a checksum and row counts | every hour at :07, kept 7 days | **any** Postgres 16 (a new service, a throwaway database, a laptop) | a bad migration or bulk action found hours later; reading the lost window; the weekly restore test |
+
 [backup-restore.md](../runbooks/backup-restore.md) still describes the earlier AWS (RDS) setup; this section supersedes
 it for Railway.
 
@@ -106,8 +111,13 @@ it for Railway.
 2. **Keep what is there.** Railway → `postgres` → Backups → *Create backup* of the damaged volume first, so the
    restore can be undone and the lost window can be read later.
 3. **Pick the restore point:** the newest backup from before the damage (for a bad release, its pre-release backup).
-4. **Restore:** Railway → `postgres` → Backups → that backup → *Restore*, then deploy the staged change. Restart
-   `core-api`, `realtime` and `worker` once Postgres is up.
+4. **Restore**, either way, then restart `core-api`, `realtime` and `worker` once Postgres is up:
+   - **From a volume backup:** Railway → `postgres` → Backups → that backup → *Restore*, then deploy the staged
+     change.
+   - **From an hourly dump** (finer: the hour before the damage): download it from the `db-backups` bucket
+     (`<env>/YYYY/MM/DD/bhojango-<time>.dump`, check its `.sha256`), then
+     `pg_restore --clean --if-exists --no-owner -j 4 -d <DATABASE_URL> bhojango-<time>.dump` (or restore into a new
+     database first, check it, and point `DATABASE_URL` at it).
 5. **Check before reopening** (what the drill checks; the commands are in `tools/backup/qa_restore_drill.sh`):
    - migrations: `alembic current` is the release's head, and `alembic check` finds no differences;
    - row counts per table look right (none empty that shouldn't be; orders up to the restore point);
@@ -134,35 +144,45 @@ uploaded.
 | Checks: migrations at head and `alembic check` clean; all 56 tables' row counts equal (4,519 rows); core-api `/health` and `/health/ready` healthy on the restored data, the markets directory loads (2 countries, 42 kitchens); finance invariants pass | 10 s |
 | **Whole drill** | **12 s** (run [44672472054](https://github.com/BhojanGo/BhojanGo/actions/runs/44672472054)) |
 
-**The source was a copy built the way QA is** (migrations, the seed and the demo seed: 23 MB), **not QA's own data**,
-because QA can't be read without a change Srini has to approve:
+That drill's source was a copy built the way QA is, because QA had no backups then.
 
-- **QA has no backups.** Railway lists no backups and no backup schedule for QA's `postgres-data` volume (checked
-  2026-11-20; [boise-readiness.md](boise-readiness.md) item 15 said "Ready on QA", which was wrong).
-- **QA's Postgres is private**, with no TCP proxy. `railway ssh` (the drill's `source: qa` mode uses it) needs an SSH
-  key registered on the Railway account (Railway CLI 4.x and later); the older keyless CLI can't run a command.
+### Backups on QA and the weekly restore test (R22)
 
-Any one of these makes the drill run on QA's own data; each needs Srini's approval:
+- **QA's volume backups are on** (2026-11-20, Srini's approval): daily at 20:23 UTC, kept 6 days, and weekly on
+  Saturdays at 00:57 UTC, kept 27 days. The project is on Railway's Pro plan already, so no upgrade was needed;
+  the storage is billed with the volume (cents a month at QA's size). Railway restores a volume backup only over the
+  live volume, so it is not drilled on QA: that would overwrite QA. Production rehearses it once before launch
+  (go-live step 3).
+- **The hourly dump is built and tested.** In CI on every change to the backup code, `restore-drill.yml`
+  (`backup-job`) builds the `db-backup` image and runs it against a database built like QA and a local S3 server.
+  It checks that the job dumps, uploads, writes `latest.json`, prunes a dump over 7 days old, and that the drill
+  restores what it wrote. **Deploying it on QA is waiting for Srini** (below).
+- **The weekly restore test:** every Monday at 07:17 UTC, `restore-drill.yml` takes the newest dump from the bucket
+  (read with the bucket's credentials, kept as GitHub secrets `BACKUP_*`), checks its sha256, restores it into a
+  throwaway database on the runner and checks it (migrations, every table's row count against the dump's own,
+  health, finance invariants). It **fails if the newest dump is over 2 hours old**, so a stopped backup job shows
+  up as a red run.
 
-| Option | What changes | Cost |
-|---|---|---|
-| A. Turn on QA's volume backups (daily, keep 7), then restore the newest into a temporary service | QA's settings; a temporary service in QA | Backup storage (QA's volume is under 200 MB: cents a month) |
-| B. Register an SSH key on the Railway account for drills, kept as a GitHub secret | The Railway account; nothing on QA | Free |
-| C. A temporary `qa-runner` service in QA dumps the database to the runner (as the payments e2e already does) | A temporary service in QA, deleted after | Free |
+**To finish on QA** (blocked in R22: creating the bucket and the service in QA was stopped by Claude Code's
+safety check, waiting for Srini to allow it): create the `db-backups` bucket (region `sjc`) and the `db-backup`
+cron service as `.railway/railway.ts` defines them, with the bucket's credentials as sealed variables; put the
+same credentials into the GitHub secrets `BACKUP_*`; wait for the first hourly run; then run the restore drill
+with `source: bucket`. A script that does it through Railway's API, printing no secret, is ready.
 
-Recommendation: **A**. It rehearses go-live step 3, and QA should have backups anyway. Then run the drill with
-`source: qa`.
+**Cost:** Railway buckets are $0.015 per GB-month, with free egress and free API calls. QA's dumps: an estimated 1–5 MB each
+(the seeded copy's was 0.8 MB) × 24 a day × 7 days ≈ 0.2–0.8 GB ≈ **$0.003–0.013 a month**. Production at launch is similar. The cron service runs
+about a minute an hour (well under $1 a month). Cloudflare R2's free tier (10 GB) would also cost $0, but it
+needs a Cloudflare account and its keys. Its one advantage is a second provider, so a Railway account problem
+couldn't take both the database and its backups. That's worth doing after launch.
 
 ### RPO and RTO
 
 | | RPO (data that can be lost) | RTO (time to be back) |
 |---|---|---|
-| QA today | **Everything**: no backups. QA is demo data and can be reseeded, so this is acceptable for QA only | Reseed: about 5 minutes |
-| Production as planned (daily backups) | **Up to 24 hours** of orders, sign-ups and kitchen edits (payments in that window are still in Stripe, step 6) | **About 30 minutes**: the restore itself takes seconds to a minute at our size (the drill restored 23 MB in 1 s; QA's whole volume is 185 MB), plus deciding, restarting and checking |
-| Production, recommended | **1 hour**: add an hourly `pg_dump` to the uploads bucket from a worker job (Railway volume backups have no point-in-time restore) | The same |
+| QA (from 2026-11-20) | **Up to 24 hours** with the volume backups alone; **1 hour** once the hourly dump runs on QA | Volume restore: minutes. Dump: about the same as production. QA can also be reseeded in about 5 minutes |
+| Production as planned | **1 hour** (the hourly dump; the volume backups are the second copy) | **About 30 minutes**: the restore itself takes seconds to a minute at our size (the drill restored 23 MB in 1 s; QA's whole volume is 185 MB), plus deciding, restarting and checking |
 
-The hourly dump is a small change (a worker job, and a bucket prefix that keeps 7 days). It is in
-[STATUS.md](../STATUS.md) for Srini to decide.
+Payments taken in the lost window are still in Stripe (step 6).
 
 ## Still to build (not in round 17)
 

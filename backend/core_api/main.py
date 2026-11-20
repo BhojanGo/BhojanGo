@@ -92,6 +92,10 @@ for register in MODULES:
     register(app)
 
 # ── Shared middleware (last added runs first) ─────────────────────────────────
+# R22 (S8): the website's and the console's sessions in httpOnly cookies, not in the page.
+from shared.session import SessionCookieMiddleware  # noqa: E402
+
+app.add_middleware(SessionCookieMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

@@ -7,6 +7,7 @@ appId: com.bhojango.rider
     file: ../sign-in.yaml
     env:
       PHONE: "2085550291"
+      CODE_SHOT: "true"
 - extendedWaitUntil:
     visible: "Almost ready to deliver.*"
     timeout: 60000
@@ -16,6 +17,13 @@ appId: com.bhojango.rider
     visible:
       id: "account-screen"
     timeout: 20000
+# R22: the number in its country's format, not "+12085550291".
+- assertVisible:
+    id: "account-phone"
+    text: '\+1 208-555-0291 · .*'
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-rider-account-phone
 - scrollUntilVisible:
     element:
       id: "delete-account"

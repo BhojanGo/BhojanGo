@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { StatusPill } from "@/components/console/StatusPill";
+import { OfferCeiling } from "@/components/markets/OfferCeiling";
 import type { MapMode } from "@/components/markets/ZoneMap";
 import {
   apiError,
@@ -195,6 +196,10 @@ export default function CityPage() {
           </div>
         </div>
       </div>
+
+      <OfferCeiling level="city" code={code} name={city.name}
+        currency={city.country.currency} settings={city.settings}
+        parents={[{ name: city.country.name, settings: city.country.settings }, { name: city.region.name, settings: city.region.settings }]} />
 
       <div className="flex flex-wrap gap-6">
         <section aria-label="Zones" className="flex flex-[4_1_300px] flex-col gap-1 rounded-2xl border border-line bg-white p-6">

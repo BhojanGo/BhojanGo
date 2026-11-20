@@ -1,6 +1,10 @@
 "use client";
-// The browser side: the signed-in session (phone + code, tokens in
-// localStorage), the typed API client, and the bag (one restaurant).
+// The browser side: the signed-in session, the typed API client, and the bag (one restaurant).
+//
+// R22 security review (S8): the session lives in httpOnly cookies that core_api sets on its
+// own host (bg_web_at, bg_web_rt; backend/shared/session.py). This page never sees a token:
+// every call sends the cookies (credentials "include"), and every change says it is the
+// website (X-Session: web). The store keeps only who is signed in, for the header and account pages.
 import { createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
@@ -14,20 +18,43 @@ export const urls = {
 
 export type User = CoreSchemas["UserResponse"];
 
+/**
+ * A call to core_api with the session's cookies (never a token in the page). A change says
+ * it's the website (X-Session: web), which core_api requires with a cookie (CSRF); a read
+ * doesn't, so it needs no CORS preflight.
+ */
+export function coreFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") headers.set("X-Session", "web");
+  return fetch(`${urls.core}${path}`, { ...init, headers, credentials: "include" });
+}
+
 interface Session {
-  access: string | null;
-  refreshToken: string | null;
+  signedIn: boolean;
   user: User | null;
   sendCode: (phone: string, country: string) => Promise<void>;
   verify: (phone: string, code: string, country: string) => Promise<void>;
-  refresh: () => Promise<string | null>;
+  /** Renew the session's cookies; false when the session has ended. */
+  refresh: () => Promise<boolean>;
   signOut: () => Promise<void>;
-  adopt: (t: { access_token: string; refresh_token: string }) => Promise<void>;
+  /** After a sign-in answer (its cookies are already set): load who signed in. */
+  adopt: (answer?: unknown) => Promise<void>;
 }
 
+// Sessions from before R22 kept the tokens in localStorage: remove them (that person signs in again once).
+if (typeof window !== "undefined") {
+  try {
+    window.localStorage.removeItem("bhojango-session");
+  } catch {
+    // storage blocked: nothing was kept there either
+  }
+}
+
+let refreshing: Promise<boolean> | null = null;
+
 export const useSession = create<Session>()(persist((set, get) => ({
-  access: null,
-  refreshToken: null,
+  signedIn: false,
   user: null,
   sendCode: async (phone, country) => {
     // The page's language (<html lang>): the code's SMS is written in it when the country offers it.
@@ -35,42 +62,100 @@ export const useSession = create<Session>()(persist((set, get) => ({
     unwrap(await api.core.POST("/api/v1/auth/send-otp", { body: { phone, country, language } }));
   },
   verify: async (phone, code, country) => {
-    const t = unwrap(await api.core.POST("/api/v1/auth/phone", { body: { phone, otp: code, country } })) as { access_token: string; refresh_token: string };
-    set({ access: t.access_token, refreshToken: t.refresh_token });
-    set({ user: unwrap(await api.core.GET("/api/v1/users/me")) });
+    unwrap(await api.core.POST("/api/v1/auth/phone", { body: { phone, otp: code, country } }));
+    await get().adopt();
   },
-  refresh: async () => {
-    const rt = get().refreshToken;
-    if (!rt) return null;
-    const r = await fetch(`${urls.core}/api/v1/auth/refresh`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ refresh_token: rt }),
-    });
-    if (!r.ok) return null;
-    const t = (await r.json()) as { access_token: string; refresh_token: string };
-    set({ access: t.access_token, refreshToken: t.refresh_token });
-    return t.access_token;
-  },
-  adopt: async (t) => {
-    set({ access: t.access_token, refreshToken: t.refresh_token });
+  // One refresh at a time: a refresh token works once, and using it twice ends the session
+  // (the tracking page's two sockets can ask for new tickets together).
+  refresh: () => (refreshing ??= (async () => {
+    const r = await coreFetch("/api/v1/auth/refresh", { method: "POST" }).catch(() => null);
+    if (!r?.ok) return false;
+    set({ signedIn: true });
+    return true;
+  })().finally(() => {
+    refreshing = null;
+  })),
+  adopt: async () => {
+    set({ signedIn: true });
     set({ user: unwrap(await api.core.GET("/api/v1/users/me")) });
   },
   signOut: async () => {
-    if (get().access) await api.core.POST("/api/v1/auth/logout").catch(() => undefined);
-    set({ access: null, refreshToken: null, user: null });
+    if (get().signedIn) {
+      // Ends the session on the server and clears its cookies (also when the access cookie ran out).
+      const r = await coreFetch("/api/v1/auth/logout", { method: "POST" }).catch(() => null);
+      if (r?.status === 401 && (await get().refresh())) await coreFetch("/api/v1/auth/logout", { method: "POST" }).catch(() => null);
+    }
+    set({ signedIn: false, user: null });
   },
-}), { name: "bhojango-session", storage: createJSONStorage(() => localStorage) }));
+}), {
+  name: "bhojango-session-v2",
+  storage: createJSONStorage(() => localStorage),
+  partialize: (s) => ({ signedIn: s.signedIn, user: s.user }),
+}));
 
 export const api = createApi({
   coreUrl: urls.core,
   realtimeUrl: urls.realtime,
   workerUrl: urls.worker,
-  getAccessToken: () => useSession.getState().access,
-  refreshAccessToken: () => useSession.getState().refresh(),
+  session: "web",
+  getAccessToken: () => null,
+  refreshAccessToken: async () => ((await useSession.getState().refresh()) ? "cookie" : null),
   onSignedOut: () => void useSession.getState().signOut(),
 });
 
-export function wsUrl(path: string): string {
-  return `${urls.realtime.replace(/^http/, "ws")}${path}?token=${encodeURIComponent(useSession.getState().access ?? "")}`;
+/**
+ * The realtime WebSocket's address for ``path``. realtime is on another host and can't see
+ * the session's cookies, so this asks core_api for a socket ticket (it expires with the
+ * session's access token; the socket then closes with 4401 and liveSocket opens a new one).
+ */
+export async function wsUrl(path: string): Promise<string> {
+  const ticket = () => coreFetch("/api/v1/auth/socket-ticket", { method: "POST" });
+  let r = await ticket();
+  if (r.status === 401 && (await useSession.getState().refresh())) r = await ticket();
+  if (!r.ok) throw new Error(`socket ticket: HTTP ${r.status}`);
+  const { ticket: t } = (await r.json()) as { ticket: string };
+  return `${urls.realtime.replace(/^http/, "ws")}${path}?token=${encodeURIComponent(t)}`;
+}
+
+/**
+ * A live socket that opens again when it closes (its ticket expired: 4401, or the network
+ * dropped), until the returned stop function is called. A refused socket (4001, 4004, 4403,
+ * 4429) isn't reopened.
+ */
+export function liveSocket(path: string, onMessage: (e: MessageEvent) => void): () => void {
+  let stopped = false;
+  let ws: WebSocket | null = null;
+  let retry: ReturnType<typeof setTimeout> | null = null;
+  let failures = 0;
+  const open = async () => {
+    if (stopped) return;
+    try {
+      ws = new WebSocket(await wsUrl(path));
+    } catch {
+      failures += 1;
+      retry = setTimeout(() => void open(), Math.min(30000, 2000 * failures));
+      return;
+    }
+    if (stopped) {
+      ws.close();
+      return;
+    }
+    ws.onopen = () => {
+      failures = 0;
+    };
+    ws.onmessage = onMessage;
+    ws.onclose = (e) => {
+      if (stopped || [4001, 4004, 4403, 4429].includes(e.code)) return;
+      failures += 1;
+      retry = setTimeout(() => void open(), e.code === 4401 ? 0 : Math.min(30000, 2000 * failures));
+    };
+  };
+  void open();
+  return () => {
+    stopped = true;
+    if (retry) clearTimeout(retry);
+    ws?.close();
+  };
 }
 
 // ── the bag ──────────────────────────────────────────────────────────────────
@@ -143,23 +228,22 @@ export function useHydrated(): boolean {
 
 /**
  * A signed-in call to an endpoint the typed client may not list yet (newer
- * account APIs): Bearer token, one refresh on 401, JSON in and out.
+ * account APIs): the session's cookies, one refresh on 401, JSON in and out.
  */
 export async function authed<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-  const go = (token: string | null) =>
-    fetch(`${urls.core}${path}`, {
+  const go = () =>
+    coreFetch(path, {
       method,
-      headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body !== undefined ? { "content-type": "application/json" } : {}) },
+      headers: body !== undefined ? { "content-type": "application/json" } : {},
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-  let r = await go(useSession.getState().access);
+  let r = await go();
   if (r.status === 401) {
-    const fresh = await useSession.getState().refresh();
-    if (!fresh) {
+    if (!(await useSession.getState().refresh())) {
       await useSession.getState().signOut();
       throw new Error("signed out");
     }
-    r = await go(fresh);
+    r = await go();
   }
   if (!r.ok) {
     const detail = await r.json().catch(() => ({}));

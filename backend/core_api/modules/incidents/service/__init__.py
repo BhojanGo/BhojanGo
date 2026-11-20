@@ -209,20 +209,45 @@ async def select_orders(db: AsyncSession, pick: RefundPick) -> tuple[list[dict],
     return out, currency
 
 
+# R22 security review (S12): without a total cap, a bulk refund of 500 orders each just under
+# the per-order limit ran with no second admin. Unset in the rule: this many times the per-order limit.
+AUTO_TOTAL_TIMES = Decimal(50)
+
+
 async def auto_limit(db: AsyncSession, market_city: str) -> Decimal:
     """The city's automatic refund limit per order (business rule auto_refund_limit; 0 when none)."""
+    return (await auto_limits(db, market_city))[0]
+
+
+async def auto_limits(db: AsyncSession, market_city: str) -> tuple[Decimal, Decimal]:
+    """(per order, whole batch) a bulk refund may reach without a second admin (business rule
+    auto_refund_limit: max_per_order, max_bulk_total; the batch defaults to AUTO_TOTAL_TIMES x the per-order limit)."""
     from core_api.modules.payments.service.refunds import business_rule
 
     rule = await business_rule(db, market_city, "auto_refund_limit")
-    return Decimal(str(rule.params.get("max_per_order") or 0)) if rule else Decimal(0)
+    params = rule.params if rule else {}
+    per_order = Decimal(str(params.get("max_per_order") or 0))
+    total = params.get("max_bulk_total")
+    return per_order, Decimal(str(total)) if total is not None else per_order * AUTO_TOTAL_TIMES
+
+
+def approval_reasons(amounts_minor: list[int], per_order: Decimal, total_cap: Decimal) -> list[str]:
+    """Why a bulk refund needs a second admin (empty: it runs at once). Amounts in minor units."""
+    reasons = []
+    if Decimal(max(amounts_minor, default=0)) / 100 > per_order:
+        reasons.append("order_over_limit")
+    if Decimal(sum(amounts_minor)) / 100 > total_cap:
+        reasons.append("total_over_limit")
+    return reasons
 
 
 async def preview_refund(db: AsyncSession, pick: RefundPick) -> dict:
     orders, currency = await select_orders(db, pick)
-    limit = await auto_limit(db, pick.market_city)
-    biggest = max((o["amount"] for o in orders), default=0)
+    limit, total_cap = await auto_limits(db, pick.market_city)
+    reasons = approval_reasons([o["amount"] for o in orders], limit, total_cap)
     return {"orders": orders, "count": len(orders), "total": sum(o["amount"] for o in orders), "currency": currency,
-            "auto_refund_limit": str(limit), "needs_approval": Decimal(biggest) / 100 > limit}
+            "auto_refund_limit": str(limit), "auto_refund_total_limit": str(total_cap),
+            "needs_approval": bool(reasons), "approval_reasons": reasons}
 
 
 async def create_refund(db: AsyncSession, pick: RefundPick, *, reason: str, actor_id: uuid.UUID) -> BulkRefund:

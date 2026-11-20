@@ -20,17 +20,15 @@
     "build": "echo 'no build: plain JS and JSON'",
     "typecheck": "echo 'plain JS with .d.ts'",
     "lint": "node scripts/check.js",
-    "test": "node --test test/i18n.test.js"
+    "test": "node --test test/i18n.test.js test/phone.test.js"
   },
   "files": [
     "index.js",
     "index.d.ts",
+    "phone.js",
     "all-messages.js",
     "all-messages.d.ts",
     "messages",
     "REVIEW.md"
-  ],
-  "dependencies": {
-    "libphonenumber-js": "1.12.10"
-  }
+  ]
 }

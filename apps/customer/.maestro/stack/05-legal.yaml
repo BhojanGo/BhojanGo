@@ -21,7 +21,10 @@ appId: com.bhojango.app
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-customer-sign-in-legal
-- runFlow: common/sign-in.yaml
+- runFlow:
+    file: common/sign-in.yaml
+    env:
+      CODE_SHOT: "true"
 - extendedWaitUntil:
     visible:
       id: "tab-account"
@@ -32,6 +35,11 @@ appId: com.bhojango.app
     visible:
       id: "account-screen"
     timeout: 20000
+# R22: the mobile number in its country's format, not "+919000000101".
+- assertVisible: '\+91 90000 00101'
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-account-phone
 - scrollUntilVisible:
     element:
       id: "account-legal"

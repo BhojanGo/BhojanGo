@@ -17,7 +17,8 @@ const PAGES: Record<string, string> = { terms: "/terms", privacy: "/privacy" };
 export function UpdatedTermsNotice() {
   const t = useT();
   const hydrated = useHydrated();
-  const access = useSession((s) => s.access);
+  // Whose session it is (the tokens are in httpOnly cookies, R22 S8): keyed by the signed-in account.
+  const access = useSession((s) => (s.signedIn ? s.user?.id ?? "signed-in" : null));
   // What's pending for which session: signing out (or in as someone else) hides it at once.
   const [state, setState] = useState<{ token: string; items: Pending[] } | null>(null);
   const [busy, setBusy] = useState(false);

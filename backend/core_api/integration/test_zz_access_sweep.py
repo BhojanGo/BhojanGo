@@ -155,6 +155,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/internal/review/orders/{order_id}/step"): Policy("signed", body=lambda c: {"step": "accept"}),
     # ── signed-in, own data only (nothing in the path points at someone else) ─
     ("POST", "/api/v1/auth/logout"): user(), ("GET", "/api/v1/users/me"): user(),
+    ("POST", "/api/v1/auth/socket-ticket"): user(),  # R22 S8: the website's realtime ticket, for the signed-in person
     ("PATCH", "/api/v1/users/me"): user(body=lambda c: {}), ("PUT", "/api/v1/users/me"): user(body=lambda c: {}),
     ("DELETE", "/api/v1/users/me"): user(),
     ("GET", "/api/v1/me/addresses"): user(), ("POST", "/api/v1/me/addresses"): user(body=lambda c: {"street": "x", "city": "y"}),

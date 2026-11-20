@@ -112,7 +112,8 @@ before the first production frontend build.
 | `EVENT_BUS`, `EVENT_BUS_REDIS_URL` | yes (`redis`, `/5`) | railway.ts / Railway reference | no | same | supplied |
 | `INTERNAL_SERVICE_SECRET` | yes, the same on all three | generated (32 random bytes, hex) | yes | sealed, QA's own | by hand |
 | `CORE_API_URL`, `JWKS_URL` | yes (realtime, worker) | railway.ts (private network) | no | internal URL | supplied |
-| `CORS_ORIGINS` | yes (core-api, realtime) | the custom web and admin domains, as a JSON list | no (not secret) | Railway references to the web and admin domains | by hand |
+| `CORS_ORIGINS` | yes (core-api, realtime) | the custom web and admin domains, as a JSON list. Since R22 it is also the CSRF list: a change made with a session cookie must come from one of these origins, so the admin domain must be in it | no (not secret) | Railway references to the web and admin domains | by hand |
+| `PHOTO_HOSTS` | only if dish, cover or logo photos are served from a CDN host (R22, S13) | a JSON list of https hosts, e.g. `["photos.bhojango.com"]`; our own API (`PUBLIC_API_URL`) and `AWS_CLOUDFRONT_URL` are always accepted | no | unset | by hand |
 | `CLIENT_IP_HEADER` | yes (`X-Real-IP`) | railway.ts | no | same | supplied |
 | `LOG_FORMAT` | no (json is the production default) | railway.ts | no | `json` | supplied |
 | `PAYMENT_PROVIDER` | yes, must be `live` | railway.ts | no | `fake` in railway.ts; QA's core-api has `auto` set by hand (round 10) | supplied |
@@ -248,7 +249,25 @@ build argument and a run-time variable: it turns off the test-site banner and no
 | bucket credentials | uploads | — | Railway makes them; copied into core-api (above) | keys: yes | QA bucket's | automatic (region `sjc`, fixed for good) |
 
 Not variables, but set in Railway by hand for production: custom domains (Settings → Networking) and volume
-backups for `postgres-data`.
+backups for `postgres-data` (daily and weekly, as on QA since 2026-11-20).
+
+## db-backup (hourly dump, R22) and the db-backups bucket
+
+A cron service (every hour at :07; it exits after each run): `pg_dump` of the database into its own private bucket,
+kept 7 days ([incident-plan.md](incident-plan.md#database-restore)). Restored and checked every Monday by
+`.github/workflows/restore-drill.yml`.
+
+| Variable | Service | Required | From | Sealed | QA | railway.ts (production) |
+|---|---|---|---|---|---|---|
+| `PGHOST`, `PGPORT` | db-backup | yes | railway.ts | no | `postgres.railway.internal`, `5432` | supplied |
+| `PGUSER`, `PGPASSWORD`, `PGDATABASE` | db-backup | yes | references to postgres | (the password is postgres's sealed one) | references | supplied |
+| `BACKUP_PREFIX`, `KEEP_DAYS` | db-backup | yes | railway.ts | no | `qa`, `7` | `production`, `7` |
+| `BACKUP_BUCKET`, `AWS_ENDPOINT_URL`, `AWS_REGION`, `S3_ADDRESSING_STYLE` | db-backup | yes | the `db-backups` bucket's credentials (bucketName, endpoint, region, urlStyle) | no | waiting for Srini (below) | by hand |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | db-backup | yes | the `db-backups` bucket's credentials | yes | waiting for Srini | by hand |
+| GitHub secrets `BACKUP_ENDPOINT_URL`, `BACKUP_BUCKET`, `BACKUP_REGION`, `BACKUP_ADDRESSING_STYLE`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY` | GitHub (the weekly restore test) | yes | the same credentials | GitHub secrets | waiting for Srini | — |
+
+The bucket's keys can write, too: Railway buckets have one key pair. GitHub only uses them in the scheduled restore test
+(forks never get secrets). With Cloudflare R2 later, CI would get a read-only token instead.
 
 ## The three app builds (customer, partner, rider)
 

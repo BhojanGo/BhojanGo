@@ -15,7 +15,7 @@ export { aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEI
   tabBarZone } from "./tabbar";
 
 // P17: generated API client, session and bag.
-export { AdminAccountError, api, beforeSignOut, emailAuth, urls, useSession, wsUrl } from "./session";
+export { AdminAccountError, api, beforeSignOut, emailAuth, liveSocket, urls, useSession, wsUrl } from "./session";
 // R19: push notifications (Expo push tokens registered with core_api after sign-in, removed on sign-out).
 export { registerPush, unregisterPush, usePushRegistration, type PushModule } from "./push";
 export { easProjectId, pushPlatform } from "./push-config";

@@ -60,7 +60,8 @@ class SocialLoginRequest(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str = Field(min_length=1)
+    # The website and the console send none: theirs is in the session cookie (R22 S8).
+    refresh_token: str = ""
 
 
 class UserUpdateRequest(BaseModel):

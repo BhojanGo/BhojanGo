@@ -210,6 +210,38 @@ export default defineRailway((ctx, project) => {
     } : {}),
   }, { cpu: 0.5, memoryGiB: 0.5 });
 
+  // ── Backups (R22) ──────────────────────────────────────────────────────
+  // 1. Railway's volume backups of postgres-data: daily (kept 6 days) and weekly (kept 27 days), set on the
+  //    volume in Railway (QA: turned on 2026-11-20; production: go-live step 3). Railway restores them only in
+  //    place, over the live volume.
+  // 2. An hourly logical backup that can be restored anywhere: the cron service db-backup runs pg_dump against
+  //    the private database and writes it to its own private bucket, db-backups (not uploads: other
+  //    credentials), keeping 7 days (tools/backup/hourly_dump.sh). The weekly GitHub workflow restore-drill.yml
+  //    restores the newest one into a throwaway database and checks it. RPO 1 hour.
+  const dbBackups = bucket("db-backups", { region: "sjc" });
+  const dbBackup = service("db-backup", {
+    source: src(),
+    build: { builder: "DOCKERFILE", dockerfilePath: "infra/railway/db-backup.Dockerfile",
+             watchPatterns: ["infra/railway/db-backup.Dockerfile", "tools/backup/hourly_dump.sh"] },
+    // Every hour at :07; the container backs up, prunes and exits (cron services must exit).
+    deploy: { cronSchedule: "7 * * * *", restartPolicyType: "NEVER", ...cap(0.5, 0.5) },
+    env: {
+      PGHOST: "postgres.railway.internal",
+      PGPORT: "5432",
+      PGUSER: "${{postgres.POSTGRES_USER}}",
+      PGPASSWORD: "${{postgres.POSTGRES_PASSWORD}}",
+      PGDATABASE: "${{postgres.POSTGRES_DB}}",
+      BACKUP_PREFIX: appEnv,
+      KEEP_DAYS: "7",
+      BACKUP_BUCKET: preserve(), // db-backups' bucketName
+      AWS_ENDPOINT_URL: preserve(), // its endpoint
+      AWS_REGION: preserve(), // its region
+      S3_ADDRESSING_STYLE: preserve(), // its urlStyle ("virtual-host" for new buckets)
+      AWS_ACCESS_KEY_ID: preserve(), // sealed
+      AWS_SECRET_ACCESS_KEY: preserve(), // sealed
+    },
+  });
+
   // ── Web and admin (Next.js, infra/docker/next-app.Dockerfile) ──────────
   // NEXT_PUBLIC_* are baked into the browser bundle at build time (Dockerfile
   // ARGs), so they point at the public domains. Outside production the two
@@ -249,7 +281,7 @@ export default defineRailway((ctx, project) => {
   return project("bhojango", {
     environments: ["QA", "staging", "production"],
     resources: [
-      group("Data", [postgres, pgData, cache]),
+      group("Data", [postgres, pgData, cache, dbBackup, dbBackups]),
       group("Backend", [coreApi, realtime, worker, uploads]),
       group("Frontends", [web, admin]),
     ],

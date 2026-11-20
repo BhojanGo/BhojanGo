@@ -161,7 +161,7 @@ async def test_admin_pauses_a_kitchens_offer(client: AsyncClient) -> None:
     partner, cust = await login(client, "partner.hyd@example.com"), await login(client, "customer1.hyd@example.com")
     rid, item = await spice(client)
     r = await client.post(f"/api/v1/restaurants/{rid}/offers", headers=partner, json={
-        "template": "flat_off", "name": "₹60 off, pause test", "amount": "60", "weekly_cap": "100000"})
+        "template": "flat_off", "name": "₹60 off, pause test", "amount": "60", "weekly_cap": "10000"})
     offer = next(x for x in r.json() if x["name"] == "₹60 off, pause test")
     assert r.status_code == 201 and offer["live"] and not offer["paused"]  # live at once, no approval
 
@@ -258,8 +258,11 @@ async def test_menu_photo_is_public_and_becomes_the_dish_photo(client: AsyncClie
     menu = (await client.get(f"/api/v1/restaurants/{rid}/menu")).json()
     was = next(i for c in menu["categories"] for i in c["items"] if i["id"] == item)["image_url"]
     try:
-        r = await client.put(f"/api/v1/restaurants/{rid}/menu-items/{item}", headers=partner, json={"image_url": f"http://test{path}"})
-        assert r.status_code == 200 and r.json()["image_url"] == f"http://test{path}", r.text
+        from shared.config import get_settings
+
+        url = get_settings().payments.PUBLIC_API_URL.rstrip("/") + path  # what the partner app saves (R22 S13: our API only)
+        r = await client.put(f"/api/v1/restaurants/{rid}/menu-items/{item}", headers=partner, json={"image_url": url})
+        assert r.status_code == 200 and r.json()["image_url"] == url, r.text
     finally:
         from core_api.integration.test_web_v3 import sql
 

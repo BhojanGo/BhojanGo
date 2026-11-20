@@ -33,7 +33,10 @@
       "default": "./environment.js"
     },
     "./tailwind-preset": "./tailwind-preset.js",
-    "./security-headers": "./security-headers.js"
+    "./security-headers": {
+      "types": "./security-headers.d.ts",
+      "default": "./security-headers.js"
+    }
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --external react",
@@ -41,7 +44,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js test/security-headers.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -73,6 +76,7 @@
     "environment.d.ts",
     "tailwind-preset.js",
     "security-headers.js",
+    "security-headers.d.ts",
     "legal-markdown.js",
     "legal-markdown.d.ts"
   ]

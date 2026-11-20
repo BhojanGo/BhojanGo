@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
       setError("This account has no access to the admin console.");
       return;
     }
-    login(tokens.access_token, tokens.refresh_token ?? null, tokens.user);
+    login(tokens.user); // the session itself is in httpOnly cookies (R22 S8)
     router.push("/overview");
   }
 

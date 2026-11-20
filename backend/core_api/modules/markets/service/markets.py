@@ -33,7 +33,7 @@ from core_api.modules.markets.schemas import (
     ZonePause,
     ZoneUpdate,
 )
-from core_api.modules.markets.service import delivery, kitchen_docs, legal, pay_methods, photos, rules
+from core_api.modules.markets.service import delivery, kitchen_docs, legal, offer_ceiling, pay_methods, photos, rules
 from core_api.modules.markets.service.rules import MarketRuleError, ZoneState
 from shared import authz
 from shared.providers.routing import haversine_km
@@ -161,6 +161,7 @@ class MarketService:
         legal.check_settings(data.settings, data.tax_regime)
         kitchen_docs.check_settings(data.settings)
         delivery.check_settings(data.settings)
+        offer_ceiling.check_settings(data.settings)
         rules.check_country_payouts("draft", data.payout_provider, production=_production())
         c = await self.repo.add(Country(**data.model_dump(), status="draft"))
         return CountryOut.model_validate(c)
@@ -175,6 +176,7 @@ class MarketService:
             photos.check_settings(s)
             kitchen_docs.check_settings(s)
             delivery.check_settings(s)
+            offer_ceiling.check_settings(s)
             c.settings = rules.merge_settings(c.settings, s)
         if "settings" in data.model_fields_set or "payment_providers" in patch:
             # R14: the methods must be ones the country's providers take (also after a provider change).
@@ -202,6 +204,7 @@ class MarketService:
         if await self.repo.region(data.code):
             raise Conflict(f"State {data.code} already exists")
         rules.check_overrides(data.settings)
+        offer_ceiling.check_settings(data.settings)
         values = data.model_dump()
         values["short_code"] = (values.get("short_code") or data.code.split("-", 1)[1]).upper()
         r = await self.repo.add(Region(country_id=country.id, **values, status="draft"))
@@ -215,6 +218,7 @@ class MarketService:
         if "settings" in patch:
             s = patch.pop("settings") or {}
             rules.check_overrides(s)
+            offer_ceiling.check_settings(s)
             region.settings = rules.merge_settings(region.settings, s)
         for k, v in patch.items():
             setattr(region, k, v)
@@ -230,6 +234,7 @@ class MarketService:
         if await self.repo.city(data.code):
             raise Conflict(f"City {data.code} already exists")
         rules.check_overrides(data.settings)
+        offer_ceiling.check_settings(data.settings)
         payload = data.model_dump()
         city = await self.repo.add(City(country_id=country.id, region_id=region.id, **payload, status="draft"))
         return CityOut.model_validate(city)
@@ -240,6 +245,7 @@ class MarketService:
         if "settings" in patch:
             s = patch.pop("settings") or {}
             rules.check_overrides(s)
+            offer_ceiling.check_settings(s)
             city.settings = rules.merge_settings(city.settings, s)
         for k, v in patch.items():
             setattr(city, k, v)

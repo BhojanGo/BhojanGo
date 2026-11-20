@@ -1,31 +1,48 @@
-name: Restore drill (QA's data, read-only)
+name: Restore drill
 
-# R21: back up QA's database (pg_dump inside QA's Postgres container over `railway ssh`:
-# read-only, nothing on QA changes), restore it into a throwaway Postgres on this runner,
-# and check it (migrations, row counts, the API's health checks, the finance invariants).
-# tools/backup/qa_restore_drill.sh; times are the drill's RTO. The dump stays on the
-# runner: never printed or uploaded (this repo's logs are public). Run it from the Actions
-# tab, or push to a drill/* branch. See docs/launch/incident-plan.md.
+# Restore a backup into a throwaway Postgres on this runner and check it: migrations, row counts,
+# the API's health checks and the finance invariants (tools/backup/qa_restore_drill.sh). Times
+# are the drill's RTO. A dump stays on the runner: never printed or uploaded (this repo's logs
+# are public). See docs/launch/incident-plan.md.
+#
+# Sources:
+#   bucket  (weekly, R22) the newest hourly dump that the db-backup cron service wrote to the backup
+#           bucket (tools/backup/hourly_dump.sh). Fails if it is over 2 hours old (the job stopped).
+#   seeded  a copy built the way QA is (seed + demo seed)
+#   qa      QA itself over `railway ssh` (needs an SSH key registered on the Railway account)
+# On a pull request that changes the backup code, `backup-job` runs the db-backup image end to end
+# against a local S3 server (moto) and restores what it wrote. QA is never touched there.
 
 on:
+  schedule:
+    - cron: "17 7 * * 1"   # Mondays 07:17 UTC: the weekly restore test of the newest real backup
   push:
     branches: ["drill/**"]
+  pull_request:
+    paths:
+      - "tools/backup/**"
+      - "infra/railway/db-backup.Dockerfile"
+      - ".github/workflows/restore-drill.yml"
   workflow_dispatch:
     inputs:
       source:
-        description: "seeded: a copy built the way QA is (seed + demo seed). qa: QA itself over railway ssh (needs an SSH key registered on the Railway account)"
-        default: seeded
+        description: "bucket (the newest hourly dump), seeded (a copy built like QA) or qa (railway ssh; needs an SSH key)"
+        default: bucket
 
 permissions:
   contents: read
 
 concurrency:
-  group: restore-drill
+  group: restore-drill-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  PG_IMAGE: postgis/postgis:16-3.7
 
 jobs:
   drill:
-    name: Restore QA's database into a throwaway one
+    name: Restore the newest backup into a throwaway database
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -45,7 +62,7 @@ jobs:
         image: redis:7-alpine
         ports: ["6379:6379"]
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_QA_TOKEN }}
+      SOURCE_MODE: ${{ inputs.source || 'bucket' }}
       # A database of its own, from template0: the postgis image puts its extensions in POSTGRES_DB.
       PSQL_URL: postgresql://bhojango:bhojango_drill@localhost:5432/qa_restore
       DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_drill@localhost:5432/qa_restore
@@ -53,15 +70,6 @@ jobs:
       JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
     steps:
       - uses: actions/checkout@v4
-
-      - name: Railway token present
-        run: |
-          [ -n "$RAILWAY_TOKEN" ] || { echo "::error::RAILWAY_QA_TOKEN (a Railway project token for QA) is not set"; exit 1; }
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: npm install -g @railway/cli@5.54.1
 
       - uses: astral-sh/setup-uv@v6
         with:
@@ -74,10 +82,35 @@ jobs:
       - name: An empty database to restore into
         run: |
           psql "${PSQL_URL%/*}/bhojango" -v ON_ERROR_STOP=1 -qc "CREATE DATABASE qa_restore TEMPLATE template0"
-          docker pull -q postgis/postgis:16-3.7 >/dev/null
+          docker pull -q "$PG_IMAGE" >/dev/null
 
-      - name: A source built the way QA is (migrations, seed, demo seed)
-        if: inputs.source != 'qa'
+      - name: "Source: the backup bucket (read with the backup bucket's credentials)"
+        if: env.SOURCE_MODE == 'bucket'
+        env:
+          BACKUP_ENDPOINT_URL: ${{ secrets.BACKUP_ENDPOINT_URL }}
+          BACKUP_BUCKET: ${{ secrets.BACKUP_BUCKET }}
+          BACKUP_ACCESS_KEY_ID: ${{ secrets.BACKUP_ACCESS_KEY_ID }}
+          BACKUP_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_SECRET_ACCESS_KEY }}
+          BACKUP_REGION: ${{ secrets.BACKUP_REGION }}
+          BACKUP_ADDRESSING_STYLE: ${{ secrets.BACKUP_ADDRESSING_STYLE }}
+        run: |
+          for v in BACKUP_ENDPOINT_URL BACKUP_BUCKET BACKUP_ACCESS_KEY_ID BACKUP_SECRET_ACCESS_KEY; do
+            [ -n "$(printenv $v)" ] || { echo "::error::GitHub secret $v is not set"; exit 1; }
+          done
+          { echo "BACKUP_ENDPOINT_URL=$BACKUP_ENDPOINT_URL"; echo "BACKUP_BUCKET=$BACKUP_BUCKET"
+            echo "BACKUP_ACCESS_KEY_ID=$BACKUP_ACCESS_KEY_ID"; echo "BACKUP_SECRET_ACCESS_KEY=$BACKUP_SECRET_ACCESS_KEY"
+            echo "BACKUP_REGION=${BACKUP_REGION:-auto}"; echo "BACKUP_ADDRESSING_STYLE=$BACKUP_ADDRESSING_STYLE"
+            echo "BACKUP_PREFIX=qa"; } >> "$GITHUB_ENV"
+
+      - name: "Source: QA over railway ssh"
+        if: env.SOURCE_MODE == 'qa'
+        run: |
+          [ -n "${{ secrets.RAILWAY_QA_TOKEN }}" ] || { echo "::error::RAILWAY_QA_TOKEN is not set"; exit 1; }
+          echo "RAILWAY_TOKEN=${{ secrets.RAILWAY_QA_TOKEN }}" >> "$GITHUB_ENV"
+          npm install -g @railway/cli@5.54.1
+
+      - name: "Source: a copy built the way QA is (migrations, seed, demo seed)"
+        if: env.SOURCE_MODE == 'seeded'
         working-directory: backend
         env:
           SRC: postgresql://bhojango:bhojango_drill@localhost:5432/qa_source
@@ -92,3 +125,87 @@ jobs:
 
       - name: Drill (tools/backup/qa_restore_drill.sh)
         run: bash tools/backup/qa_restore_drill.sh
+
+  backup-job:
+    name: Hourly backup job end to end (local S3, no QA)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:16-3.7
+        env:
+          POSTGRES_USER: bhojango
+          POSTGRES_PASSWORD: bhojango_drill
+          POSTGRES_DB: bhojango
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bhojango"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      PSQL_URL: postgresql://bhojango:bhojango_drill@localhost:5432/qa_restore
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_drill@localhost:5432/qa_restore
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+      SRC: postgresql://bhojango:bhojango_drill@localhost:5432/qa_source
+      S3_URL: http://localhost:9000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: A database built the way QA is
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          psql "${PSQL_URL%/*}/bhojango" -v ON_ERROR_STOP=1 -qc "CREATE DATABASE qa_source TEMPLATE template0"
+          psql "${PSQL_URL%/*}/bhojango" -v ON_ERROR_STOP=1 -qc "CREATE DATABASE qa_restore TEMPLATE template0"
+          psql "$SRC" -v ON_ERROR_STOP=1 -q -f ../infra/docker/db/init.sql
+          DATABASE_URL="postgresql+asyncpg://${SRC#postgresql://}" uv run --frozen alembic upgrade head
+          DATABASE_URL="postgresql+asyncpg://${SRC#postgresql://}" uv run --frozen python ../tools/seed/seed.py > /dev/null
+          DATABASE_URL="postgresql+asyncpg://${SRC#postgresql://}" uv run --frozen python ../tools/seed/demo.py > /dev/null
+
+      - name: A local S3 server (moto) with the backup bucket, and an 8-day-old dump to prune
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_REGION: us-east-1
+        run: |
+          pip install -q "moto[server]>=5,<6"
+          nohup moto_server -H 0.0.0.0 -p 9000 > moto.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf "$S3_URL" >/dev/null && break; sleep 1; done
+          aws --endpoint-url "$S3_URL" s3 mb s3://db-backups
+          echo old | aws --endpoint-url "$S3_URL" s3 cp - s3://db-backups/qa/2020/01/01/bhojango-20200101T000000Z.dump
+          echo old | aws --endpoint-url "$S3_URL" s3 cp - s3://db-backups/qa/2020/01/01/bhojango-20200101T000000Z.dump.sha256
+
+      - name: The db-backup image (infra/railway/db-backup.Dockerfile) runs once, as the hourly cron would
+        run: |
+          docker build -q -f infra/railway/db-backup.Dockerfile -t db-backup . >/dev/null
+          docker run --rm --network host \
+            -e PGHOST=localhost -e PGPORT=5432 -e PGUSER=bhojango -e PGPASSWORD=bhojango_drill -e PGDATABASE=qa_source \
+            -e BACKUP_BUCKET=db-backups -e BACKUP_PREFIX=qa -e KEEP_DAYS=7 \
+            -e AWS_ENDPOINT_URL="$S3_URL" -e S3_ADDRESSING_STYLE=path -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_REGION=us-east-1 \
+            db-backup | tee backup.log
+          grep -q "pruned 2 objects" backup.log || { echo "::error::the 8-day-old dump wasn't pruned"; exit 1; }
+
+      - name: Restore what the job wrote (bucket source)
+        env:
+          BACKUP_ENDPOINT_URL: http://localhost:9000
+          BACKUP_BUCKET: db-backups
+          BACKUP_PREFIX: qa
+          BACKUP_ACCESS_KEY_ID: test
+          BACKUP_SECRET_ACCESS_KEY: test
+          BACKUP_REGION: us-east-1
+        run: |
+          docker pull -q "$PG_IMAGE" >/dev/null
+          bash tools/backup/qa_restore_drill.sh

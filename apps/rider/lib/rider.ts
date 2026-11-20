@@ -1,6 +1,6 @@
 // The rider's state: onboarding, online/offer/busy (live over /ws/rider with a
 // poll as a safety net), the active delivery and the week's earnings.
-import { api, ApiError, countryForCurrency, findCity, unwrap, useCountry, useI18n, wsUrl, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, ApiError, countryForCurrency, findCity, liveSocket, unwrap, useCountry, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 
@@ -130,24 +130,13 @@ export function useLiveRider(enabled: boolean) {
   const refresh = useLive((s) => s.refresh);
   useEffect(() => {
     if (!enabled) return;
-    let alive = true;
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout> | null = null;
-    const connect = () => {
-      ws = new WebSocket(wsUrl("/ws/rider"));
-      ws.onmessage = () => void refresh();
-      ws.onclose = () => {
-        if (alive) retry = setTimeout(connect, 3000);
-      };
-    };
-    connect();
+    // Reopens when it drops, and with a fresh token when realtime closes it at the token's expiry (R22 S10).
+    const stopSocket = liveSocket("/ws/rider", () => void refresh());
     void refresh();
     const poll = setInterval(() => void refresh(), 5000);
     return () => {
-      alive = false;
       clearInterval(poll);
-      if (retry) clearTimeout(retry);
-      ws?.close();
+      stopSocket();
     };
   }, [enabled, refresh]);
 }
