@@ -145,7 +145,7 @@ async def test_an_approved_rule_prices_the_very_next_quote(client: AsyncClient) 
     checker = await auth(client, "finance.in@example.com", ADMIN_PW)
     r = await client.post("/api/v1/rules", headers=maker, json={
         "family": "customer_fee", "template": "packaging_levy", "params": {"amount": 17},
-        "scope_level": "restaurant", "scope_id": rid})
+        "scope_level": "restaurant", "scope_id": rid, "priority": 50})  # over the seeded kitchen levy (10)
     assert r.status_code == 201, r.text
     rule = r.json()["id"]
     try:
