@@ -194,8 +194,9 @@ async def test_the_website_session_is_in_httponly_cookies_not_the_page(client: A
     client.cookies.clear()
     me = await client.get("/api/v1/users/me", headers={"X-Session": "web", **_jar(bg_web_at=at)})
     assert me.status_code == 200 and me.json()["email"] == email, me.text
-    # The cookie alone (a link, a form or an image from another site) is no session.
-    assert (await client.get("/api/v1/users/me", headers=_jar(bg_web_at=at))).status_code == 403
+    # A change with the cookie alone (another site's form or script, no X-Session) is no session.
+    r = await client.post("/api/v1/auth/socket-ticket", headers={"Origin": "http://localhost:3000", **_jar(bg_web_at=at)})
+    assert r.status_code == 403, r.text
     # A change from another site's page, or with no origin at all, is refused (CSRF).
     for origin in ({"Origin": "https://evil.example"}, {}):
         r = await client.post("/api/v1/auth/socket-ticket", headers={"X-Session": "web", **origin, **_jar(bg_web_at=at)})

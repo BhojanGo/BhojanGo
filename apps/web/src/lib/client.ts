@@ -3,8 +3,8 @@
 //
 // R22 security review (S8): the session lives in httpOnly cookies that core_api sets on its
 // own host (bg_web_at, bg_web_rt; backend/shared/session.py). This page never sees a token:
-// every call sends the cookies (credentials "include") and says it is the website
-// (X-Session: web). The store keeps only who is signed in, for the header and account pages.
+// every call sends the cookies (credentials "include"), and every change says it is the
+// website (X-Session: web). The store keeps only who is signed in, for the header and account pages.
 import { createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
@@ -18,10 +18,15 @@ export const urls = {
 
 export type User = CoreSchemas["UserResponse"];
 
-/** A call to core_api with the session's cookies (never a token in the page). */
+/**
+ * A call to core_api with the session's cookies (never a token in the page). A change says
+ * it's the website (X-Session: web), which core_api requires with a cookie (CSRF); a read
+ * doesn't, so it needs no CORS preflight.
+ */
 export function coreFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
-  headers.set("X-Session", "web");
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") headers.set("X-Session", "web");
   return fetch(`${urls.core}${path}`, { ...init, headers, credentials: "include" });
 }
 

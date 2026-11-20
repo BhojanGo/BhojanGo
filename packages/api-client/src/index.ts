@@ -34,9 +34,10 @@ export interface ApiConfig {
   fetch?: (input: Request) => Promise<Response>;
   /**
    * A browser client whose session is in httpOnly cookies (R22 S8: the website, "web"):
-   * every request carries the cookies (credentials "include") and says which client it is
-   * (X-Session), and no Authorization header. refreshAccessToken then returns any non-null
-   * string when the session was refreshed. The apps leave it unset and send their token.
+   * every request carries the cookies (credentials "include"), a change says which client
+   * it is (X-Session), and no request has an Authorization header. refreshAccessToken then
+   * returns any non-null string when the session was refreshed. The apps leave it unset and
+   * send their token.
    */
   session?: "web" | "admin";
 }
@@ -102,7 +103,9 @@ export function createApi(config: ApiConfig): Api {
   const auth: Middleware = {
     onRequest({ request }) {
       if (config.session) {
-        request.headers.set("X-Session", config.session);
+        // Reads go as "simple" requests (no CORS preflight before each one): core_api takes the
+        // website's cookie for them. A change names its client, which core_api requires (CSRF).
+        if (request.method !== "GET" && request.method !== "HEAD") request.headers.set("X-Session", config.session);
         return request;
       }
       const token = config.getAccessToken();

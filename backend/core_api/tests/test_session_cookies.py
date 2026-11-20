@@ -68,7 +68,8 @@ async def test_a_browser_sign_in_gets_httponly_cookies_and_no_tokens(client: Asy
         for attr in ("HttpOnly", "Secure", "SameSite=Lax", "Path=/"):
             assert attr in c, c
         assert "Domain" not in c, c  # only the host that set it
-    assert "Max-Age=900" in cookies["bg_admin_at"]
+    week = f"Max-Age={7 * 86400}"
+    assert week in cookies["bg_admin_at"] and week in cookies["bg_admin_rt"]  # an expired token is still sent: 401, refresh
     assert r.headers["cache-control"] == "no-store"
 
 
@@ -78,11 +79,17 @@ async def test_the_apps_still_get_their_tokens(client: AsyncClient) -> None:
     assert not r.headers.get_list("set-cookie")
 
 
-async def test_a_cookie_counts_only_with_the_client_header(client: AsyncClient) -> None:
+async def test_a_cookie_counts_only_for_its_client(client: AsyncClient) -> None:
     jar = {"Cookie": "bg_web_at=AT"}
     assert (await client.get("/api/v1/me", headers={**jar, "X-Session": "web"})).json() == {"token": "AT"}
-    assert (await client.get("/api/v1/me", headers=jar)).status_code == 403  # a plain link or image: no session
+    # The website's reads go without the header (no CORS preflight before each); they change nothing.
+    assert (await client.get("/api/v1/me", headers=jar)).json() == {"token": "AT"}
     assert (await client.get("/api/v1/me", headers={**jar, "X-Session": "admin"})).status_code == 401  # the other client's name
+    # The console's cookie needs the console's header.
+    assert (await client.get("/api/v1/me", headers={"Cookie": "bg_admin_at=AD"})).status_code == 403
+    # A change never uses a cookie without the header (a form or a script on another site).
+    r = await client.post("/api/v1/me", headers={**jar, "Origin": OURS})
+    assert r.status_code == 403 and r.json()["detail"] == "Not authenticated", r.text
 
 
 async def test_a_change_needs_our_origin(client: AsyncClient) -> None:

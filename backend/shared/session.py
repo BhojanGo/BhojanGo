@@ -5,11 +5,15 @@ in localStorage, where any script on the page could read them. Now:
 
 * A browser client says which one it is with the ``X-Session: web|admin``
   header. core_api then answers every sign-in, refresh and sign-up that issues
-  tokens with three cookies instead of tokens in the body (the body's
+  tokens with two cookies instead of tokens in the body (the body's
   ``access_token`` and ``refresh_token`` become ""):
 
-    bg_<client>_at  the access token   HttpOnly; Secure; SameSite=Lax; Path=/; 15 min
-    bg_<client>_rt  the refresh token  HttpOnly; Secure; SameSite=Lax; Path=/; 7 days
+    bg_<client>_at  the access token   HttpOnly; Secure; SameSite=Lax; Path=/
+    bg_<client>_rt  the refresh token  HttpOnly; Secure; SameSite=Lax; Path=/
+
+  Both cookies last as long as the refresh token (7 days). The access token in
+  the cookie still expires after 15 minutes: the browser keeps sending it, the
+  API answers 401, and the page refreshes the session (as the apps do).
 
   No Domain attribute: each cookie belongs to the one host that set it. The
   website calls core_api directly (api.<site>, same site as the website), so
@@ -19,14 +23,17 @@ in localStorage, where any script on the page could read them. Now:
 
 * A request authenticates with ``Authorization: Bearer`` (the apps, scripts,
   tests: unchanged) or, when there is no such header, with the cookie named
-  by its ``X-Session`` header. A cookie never counts without that header, so a
-  plain link, form or image from anywhere can't use the session.
+  by its ``X-Session`` header. A read (GET, HEAD) without the header may use
+  the website's cookie: that keeps the website's reads "simple" requests (no
+  CORS preflight before each one). A read changes nothing, another site can't
+  read the answer (CORS), and SameSite=Lax keeps the cookie off other sites'
+  images, scripts and frames.
 
-* CSRF: a state-changing request (anything but GET, HEAD, OPTIONS) that
-  authenticates with a cookie must also come from one of our own origins
-  (``Origin``, else ``Referer``, in CORS_ORIGINS). ``X-Session`` is a custom
-  header, so another site's page can't send it without a CORS preflight,
-  which only our origins pass. Refused: 403 ``CSRF``.
+* CSRF: a state-changing request (anything but GET, HEAD, OPTIONS) uses a
+  cookie only with the ``X-Session`` header, and only from one of our own
+  origins (``Origin``, else ``Referer``, in CORS_ORIGINS). ``X-Session`` is a
+  custom header, so another site's page can't send it without a CORS
+  preflight, which only our origins pass. Refused: 403 ``CSRF``.
 
 * The realtime WebSocket (rt.<site>) can't see the API's cookies: the website
   asks core_api for a socket ticket (POST /auth/socket-ticket, a JWT of type
@@ -90,13 +97,14 @@ def cookie_token(conn: HTTPConnection, kind: str = "access") -> str | None:
     when the request changes something. None when there is no client header or no cookie."""
     if conn.scope.get("type") != "http":
         return None  # WebSockets take a socket ticket, never a cookie
-    client = client_of(conn)
+    safe = conn.scope.get("method", "GET").upper() in SAFE_METHODS
+    client = client_of(conn) or ("web" if safe else None)  # a change always names its client
     if client is None:
         return None
     token = conn.cookies.get(access_cookie(client) if kind == "access" else refresh_cookie(client))
     if not token:
         return None
-    if conn.scope.get("method", "GET").upper() not in SAFE_METHODS:
+    if not safe:
         check_origin(conn)
     return token
 
@@ -106,9 +114,11 @@ def _cookie(name: str, value: str, max_age: int) -> str:
     return f"{name}={value}; Max-Age={max_age}; Path=/; HttpOnly; Secure; SameSite=Lax"
 
 
-def set_cookie_headers(client: str, access: str, refresh: str, access_max_age: int) -> list[str]:
+def set_cookie_headers(client: str, access: str, refresh: str) -> list[str]:
+    # Both live as long as the session: an expired access token is still sent, so the API
+    # answers 401 and the page refreshes (instead of a missing cookie's 403).
     days = get_settings().identity.JWT_REFRESH_TOKEN_EXPIRE_DAYS
-    return [_cookie(access_cookie(client), access, access_max_age),
+    return [_cookie(access_cookie(client), access, days * 86400),
             _cookie(refresh_cookie(client), refresh, days * 86400)]
 
 
@@ -173,6 +183,5 @@ def _move_tokens(client: str, body: bytes) -> tuple[bytes, list[str]]:
     access, refresh = data.get("access_token"), data.get("refresh_token")
     if not (isinstance(access, str) and access and isinstance(refresh, str) and refresh):
         return body, []
-    max_age = int(data.get("expires_in") or get_settings().identity.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     data["access_token"], data["refresh_token"] = "", ""
-    return json.dumps(data, separators=(",", ":")).encode(), set_cookie_headers(client, access, refresh, max_age)
+    return json.dumps(data, separators=(",", ":")).encode(), set_cookie_headers(client, access, refresh)
