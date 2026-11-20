@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { orderingBlock, payMode } from "../lib/ordering.ts";
+import { isFreeOrder, orderingBlock, payMode } from "../lib/ordering.ts";
 
 test("a pause or a closed kitchen blocks adding dishes, the pause named first", () => {
   assert.equal(orderingBlock({ paused: false, closedForNow: false, isOpen: true }), null);
@@ -25,4 +25,15 @@ test("test builds use the test sheet, but not when the provider can't be looked 
   assert.equal(payMode("razorpay", false), "test");
   assert.equal(payMode("stripe", false), "stripe");
   assert.equal(payMode("error", false), "unavailable");
+});
+
+test("only a quote of exactly nothing skips payment (R20 review orders)", () => {
+  assert.equal(isFreeOrder("0.00"), true);
+  assert.equal(isFreeOrder(0), true);
+  assert.equal(isFreeOrder("0.01"), false);
+  assert.equal(isFreeOrder("12.40"), false);
+  assert.equal(isFreeOrder(""), false);
+  assert.equal(isFreeOrder(null), false);
+  assert.equal(isFreeOrder(undefined), false);
+  assert.equal(isFreeOrder("not a number"), false);
 });

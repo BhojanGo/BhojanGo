@@ -496,3 +496,11 @@ Machine-translated into all seven languages; needs native review.
 
 - New, website home: `location.change` ("Change"), the one link after a known city ("Boise, ID · Change"); its
   accessible name is still `location.change_city`. Short: it sits on one line with the city.
+
+## App store review orders (round 20)
+
+Machine-translated on 2026-11-19 into all seven languages; needs native review.
+
+- New, BhojanGo customer app (the bag, when the order costs nothing: only the app store review account in its
+  hidden review city): `checkout.place_free` ("Place order"), the button in place of "Pay {amount}". A short verb
+  phrase; it must not mention payment.

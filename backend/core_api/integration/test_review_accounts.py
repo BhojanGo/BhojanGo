@@ -55,6 +55,11 @@ async def remove(code: str, emails: list[str]) -> None:
 
     async with AsyncSessionLocal() as db:
         ids = [r for (r,) in (await db.execute(text("SELECT id FROM users WHERE email = ANY(:e)"), {"e": emails})).all()]
+        # R20: the review customer's orders (free, placed without a payment provider) go with them.
+        orders = [r for (r,) in (await db.execute(text("SELECT id FROM orders WHERE customer_id = ANY(:u)"), {"u": ids})).all()]
+        for table in ("refunds", "payment_intents", "order_pricing_snapshots"):
+            await db.execute(text(f"DELETE FROM {table} WHERE order_id = ANY(:o)"), {"o": orders})
+        await db.execute(text("DELETE FROM orders WHERE id = ANY(:o)"), {"o": orders})
         await db.execute(text("DELETE FROM restaurants WHERE owner_id = ANY(:u)"), {"u": ids})
         await db.execute(text("DELETE FROM zones WHERE city_id IN (SELECT id FROM cities WHERE code = :c)"), {"c": code})
         await db.execute(text("DELETE FROM cities WHERE code = :c"), {"c": code})

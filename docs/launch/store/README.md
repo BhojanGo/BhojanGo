@@ -381,8 +381,8 @@ It creates, in one transaction (`backend/tools/review_accounts.py`):
   Everyone else never sees it: it is left out of the city lists, the website's
   directory and city pages, the address search, locate and discover, and the public
   kitchen lists; the review kitchen's page and menu answer 404 to anyone but the
-  review accounts. Pricing and placing an order are not filtered (they need the
-  kitchen's id and an address in the zone, which only the review accounts have).
+  review accounts. Pricing refuses everyone else there too (R20), so nobody else can
+  order in the review city.
 - **Passwords** are random and printed **once** at the end. Copy them straight into
   App Store Connect, Play Console and the team's password manager; they are not
   written to a file or the logs, and never go in this repo.
@@ -394,8 +394,39 @@ It creates, in one transaction (`backend/tools/review_accounts.py`):
   opens the kitchen, the Delivery app shows the partner as ready to go online.
 - No delivery partner is ever near the zone, so an order placed there is not offered
   to anyone real, and the review delivery partner gets no offers. That is why the
-  Delivery app's notes point to a screen recording. Payments are real in production:
-  the notes tell reviewers they do not need to pay to review the app.
+  Delivery app's notes point to a screen recording.
+
+### A reviewer's order, end to end (R20)
+
+A reviewer can place a real order in the customer app and watch it arrive, without
+paying and without anyone working the review kitchen:
+
+- **It costs $0.00, and no card is charged.** In the review city only, and only for
+  the review customer, the bag shows the usual fair bill (food, delivery fee, fees,
+  tip) and then one more line, "App review: no charge", paid by BhojanGo, so "You
+  pay" is $0.00 (pricing engine `review`, `core_api/modules/pricing/service/engine.py`).
+  The button reads "Place order" instead of "Pay $0.00" and no payment sheet opens:
+  the server places the order as it is made, with a zero payment of its own (provider
+  `review`); Stripe (payments and Stripe Tax) is never called. Any other account, or
+  the review customer in any other city, prices and pays as usual; everyone else is
+  refused a price in the review city. Review orders never appear on payout statements.
+- **The order moves on its own.** The worker's review simulator (`REVIEW_SIM=1`,
+  `backend/worker/app/demo_sim/review.py`) plays the review kitchen and the review
+  delivery partner: about 20 seconds after the order is placed the kitchen accepts and
+  starts cooking, and "Review Delivery" is assigned; 2 minutes later the food is ready,
+  45 seconds later it is picked up, and 3 minutes later it is delivered (about 6
+  minutes in all). The customer app shows each step (order screen, push messages); the
+  map has no moving delivery partner, as nobody sends a location. It touches only
+  orders of a review-only city whose customer and kitchen owner are both its review
+  accounts, and core_api's step endpoint (`/internal/review/orders/{id}/step`, signed)
+  refuses every other order. The demo rider simulator (`DEMO_RIDER_SIM`) is still
+  refused in production.
+- **Turn it on and off.** `REVIEW_SIM` on the production worker is `"0"` in
+  `.railway/railway.ts`. Set it to `"1"` there and apply before you submit a build
+  (each new version of an app is reviewed again, so on for every submission), and back
+  to `"0"` once the stores have approved it. With it off, a review order still costs
+  nothing, but nobody accepts it: the kitchen's accept timeout cancels it after 3
+  minutes. See [go-live.md](../go-live.md).
 
 ### App Store Connect "App Review Information" / Play Console "App access"
 
@@ -407,8 +438,10 @@ password of that app's account. Notes per app:
 > BhojanGo is a food delivery service. It delivers only inside its live cities.
 > Sign in with the email and password above ("Email" tab, then "Password"). This
 > account has a saved address in a test area with one test kitchen, "BhojanGo Review
-> Kitchen", so you can browse its menu, add dishes to the bag and see the checkout
-> from anywhere. You do not need to pay to review the app. Payments are for food and
+> Kitchen", so you can browse its menu, add dishes to the bag and place an order from
+> anywhere. Orders from this account cost $0.00 and no card is charged; the test
+> kitchen and a test delivery partner then take the order through to delivered in
+> about six minutes, so you can follow it in the app. Payments are for food and
 > delivery (physical goods and services) and go through Stripe; tips go to the
 > delivery partner for a real-world service. No digital goods are sold. Quick
 > messages between a customer and their delivery partner are open only while an
@@ -448,6 +481,8 @@ password of that app's account. Notes per app:
 - [ ] Decide item 7 (push). Item 9 (report and block in chat): done in round 19.
 - [ ] Pages live: `{SUPPORT_URL}`, `{PRIVACY_URL}`, `{TERMS_URL}`, `{DELETE_ACCOUNT_URL}`.
 - [ ] Reviewer accounts created in production.
+- [ ] `REVIEW_SIM` on for the production worker while a build is in review; place one
+      review order on a production build and see it delivered; off after approval.
 - [ ] `expo prebuild` per app; read the generated `Info.plist` and merged
       `AndroidManifest.xml` and compare with the permission tables in the app pages.
 - [ ] Screenshots from a **production** build (no test banner), per `screenshots.md`.

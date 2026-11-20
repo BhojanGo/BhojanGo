@@ -293,8 +293,20 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
   Submit to TestFlight and the Play internal track first.
 - **Verify:** an internal tester installs each app: no test banner; the sign-in code (Twilio Verify) arrives; the customer sees
   Boise; a push from Expo's tool arrives; the customer's payment sheet opens in live mode (don't pay yet).
+- **Store review (reviewer accounts and their orders):** once, run `python tools/review_accounts.py --email-domain
+  <domain>` in the core-api service's shell and put the printed passwords into App Store Connect, Play Console and the
+  password manager ([store/README.md](store/README.md#reviewer-access)). Before submitting a build for review, turn the
+  review simulator on: in [`.railway/railway.ts`](../../.railway/railway.ts) set the production worker's `REVIEW_SIM`
+  to `"1"` and apply. Reviewers' orders in the hidden review city then cost $0.00 (no card charged, Stripe never
+  called) and are taken to delivered in about six minutes by the review kitchen and delivery partner; nothing else is
+  touched. **Verify:** on a production build, sign in as the review customer, place an order: the bag says "You pay
+  $0.00" and "Place order", the order screen goes placed, accepted, preparing, ready, picked up, delivered; the
+  worker log shows `review_sim` `on` and `review_order_step` lines. **After approval:** set `REVIEW_SIM` back to `"0"`
+  and apply (on again for each new submission: every app update is reviewed). `DEMO_RIDER_SIM` stays unset; production
+  refuses to start with it.
 - **Roll back:** stop the rollout or remove the build from the track; the previous build stays. Store review can take
-  days: start this early.
+  days: start this early. `REVIEW_SIM` back to `"0"` stops the review simulator (review orders then wait and are
+  cancelled by the accept timeout).
 
 ### 15. Real kitchens and delivery partners
 

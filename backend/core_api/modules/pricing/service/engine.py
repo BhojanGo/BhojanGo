@@ -6,7 +6,8 @@
     4 fees        delivery, service, small-order, packaging, surge, late-night
     5 taxes       each tax rule on its target lines
     6 tip
-    7 total
+    7 total       (R20: an app store review account's order in its review-only city:
+                  one platform-funded line takes the total to zero)
     8 split       restaurant payout, rider pay, tax owed, platform revenue
 
 Pure function over Decimals: no database, no clock (the caller passes the local
@@ -21,6 +22,7 @@ from typing import Any
 from core_api.modules.rules.service.resolver import Candidate
 
 CENT = Decimal("0.01")
+REVIEW_LABEL = "App review: no charge"  # the bill line that zeroes an app store review order (R20)
 ZERO = Decimal("0")
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
@@ -84,6 +86,9 @@ class QuoteInputs:
     wait_minutes: Decimal = ZERO  # expected rider wait at the restaurant (rider pay)
     # None = not calculated yet (the quote is marked tax_pending); [] = no tax due.
     external_tax: list[ExternalTax] | None = None
+    # R20: an app store review account ordering in its review-only city (markets.service.review).
+    # Every line is priced as usual; then one line, funded by the platform, takes the total to 0.
+    review: bool = False
 
 
 @dataclass
@@ -336,6 +341,10 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
 
     # ── 7 total ──────────────────────────────────────────────────────────────
     total = money(sum((bl.amount for bl in lines), ZERO))
+    if inp.review and total > 0:
+        # After tax and tip, so they stay as they are on the bill; not taxable (no taxable_as).
+        add("promotion", REVIEW_LABEL, -total, funded_by="platform", detail={"review": "true"})
+        total = money(sum((bl.amount for bl in lines), ZERO))
 
     # ── 8 split ──────────────────────────────────────────────────────────────
     restaurant_funded = -sum((bl.amount for bl in lines if bl.funded_by == "restaurant"), ZERO)

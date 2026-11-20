@@ -52,4 +52,5 @@ def register(app: FastAPI) -> None:
     app.include_router(orders.router, prefix="/api/v1")
     app.include_router(messages.router, prefix="/api/v1")
     app.include_router(internal.router, prefix="/api/v1")
+    app.include_router(internal.review_router, prefix="/api/v1")
     app.include_router(ops.router, prefix="/api/v1")

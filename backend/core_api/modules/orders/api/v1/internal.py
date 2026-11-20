@@ -1,5 +1,5 @@
-"""Internal order endpoints for realtime (P14). Not for apps: every request must
-be signed with INTERNAL_SERVICE_SECRET (shared/internal_auth.py)."""
+"""Internal order endpoints for realtime (P14) and the worker's review simulator (R20).
+Not for apps: every request must be signed with INTERNAL_SERVICE_SECRET (shared/internal_auth.py)."""
 import uuid
 from typing import Annotated
 
@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.orders.models.order import Order
+from core_api.modules.orders.service import review_sim
 from core_api.modules.orders.service.order import OrderService
 from shared import internal_auth
 from shared.contracts import DispatchInfo
@@ -117,3 +118,21 @@ async def get_dispatch(order_id: uuid.UUID, db: DB) -> dict:
 async def assign_rider(order_id: uuid.UUID, data: AssignRider, db: DB) -> dict:
     order = await OrderService(db).assign_rider(order_id, data.rider_id, data.batch_id, data.batch_position)
     return await dispatch_info(db, order)
+
+
+class ReviewStep(BaseModel):
+    step: review_sim.Step
+
+
+# The worker's review simulator (R20): its own prefix (the /internal/orders routes are realtime's contract).
+review_router = APIRouter(prefix="/internal/review", tags=["Internal"], include_in_schema=False)
+
+
+@review_router.post("/orders/{order_id}/step", dependencies=[Depends(signed)])
+async def review_step(order_id: uuid.UUID, data: ReviewStep, db: DB) -> dict:
+    """R20: the worker's review simulator moves an app store review order one step (the
+    review kitchen accepts, cooks, hands over; the review delivery partner is assigned,
+    picks up, delivers). 404 for any order that isn't a review order (orders.service.review_sim)."""
+    order = await review_sim.step(db, order_id, data.step)
+    return {"order_id": str(order.id), "status": order.status,
+            "driver_id": str(order.driver_id) if order.driver_id else None}

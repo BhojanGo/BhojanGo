@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.service.cart import CartError, price_cart
 from core_api.modules.markets.models import City, Country, Region
+from core_api.modules.markets.service import review
 from core_api.modules.markets.service.markets import MarketService
 from core_api.modules.orders.service.lookup import has_previous_orders
 from core_api.modules.pricing.models import OrderPricingSnapshot, PromotionSpend, PromotionSpendWeek
@@ -181,6 +182,10 @@ class QuoteService:
         if paused is not None:
             raise QuoteError(pause_message(paused))
         city, region, country, tz = await city_chain(self.db, where.city_code)  # type: ignore[arg-type]
+        # R20: a review-only city prices for its review accounts only, and their orders cost nothing.
+        review_order = review.is_review_account(city.settings, user_id)
+        if review.is_review_only(city.settings) and not review_order:
+            raise QuoteError("We don't deliver here yet")
         if rest.country != country.code:
             raise QuoteError("This restaurant doesn't deliver to that address")
         if rest.lat is None or rest.lng is None:
@@ -207,6 +212,8 @@ class QuoteService:
             first_order=not await has_previous_orders(self.db, user_id),
             promo_code=req.promo_code, promo_spent=await self._promo_spent(),
             promo_spent_week=await self._promo_spent_week(week_of(now.astimezone(tz))),
+            # A review order charges nothing, so no tax is due and the tax provider is never asked.
+            review=review_order, external_tax=[] if review_order else None,
         )
         quote_id = uuid.uuid4()
         try:
@@ -233,7 +240,8 @@ class QuoteService:
             "context": {"country": country.code, "region": region.code, "city": city.code, "zone_id": str(where.zone_id),
                         "week_start": week_of(now.astimezone(tz)).isoformat(),
                         "zone": where.zone_name, "distance": str(distance), "distance_unit": country.distance_unit,
-                        "local_time": inputs.local_time.isoformat(), "deliver_to": {"lat": lat, "lng": lng}},
+                        "local_time": inputs.local_time.isoformat(), "deliver_to": {"lat": lat, "lng": lng},
+                        **({"review": True} if review_order else {})},
             "expires_at": expires.isoformat(),
         }
         redis = await get_redis()

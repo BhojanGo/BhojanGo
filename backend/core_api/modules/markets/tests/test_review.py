@@ -29,6 +29,15 @@ def test_only_the_listed_accounts_see_a_review_only_city() -> None:
     assert not review.is_review_only({"review_only": False}) and review.is_review_only(REVIEW)
 
 
+def test_review_accounts_are_only_those_of_a_review_only_city() -> None:
+    """R20: only a review account in its review-only city orders for free."""
+    assert review.is_review_account(REVIEW, ME) and review.is_review_account(REVIEW, str(ME))
+    assert not review.is_review_account(REVIEW, SOMEONE) and not review.is_review_account(REVIEW, None)
+    assert not review.is_review_account({"review_accounts": [str(ME)]}, ME)  # listed, but not a review city
+    assert not review.is_review_account({"review_only": False, "review_accounts": [str(ME)]}, ME)
+    assert not review.is_review_account({}, ME) and not review.is_review_account(None, ME)
+
+
 def test_hidden_cities_and_kitchens_per_viewer() -> None:
     cities = [("US-ID-BOI", "Boise", "US", {}), ("US-ID-REV", "App Review", "US", REVIEW)]
     anyone = review.hidden_from(cities, None)
@@ -108,3 +117,16 @@ async def test_the_viewer_of_a_public_route_is_optional() -> None:
     assert await optional_viewer(asking(f"Bearer {access}")) == ME
     refresh = encode_jwt({"sub": str(ME), "type": "refresh", "exp": 4102444800})
     assert await optional_viewer(asking(f"Bearer {refresh}")) is None
+
+
+
+def test_a_review_city_named_like_another_never_hides_the_viewers_own_kitchens() -> None:  # R20
+    from core_api.modules.markets.service.review import hidden_from
+
+    me, someone = uuid.uuid4(), uuid.uuid4()
+    mine = {"review_only": True, "review_accounts": [str(me)]}
+    theirs = {"review_only": True, "review_accounts": [str(someone)]}
+    h = hidden_from([("US-ID-REV", "BhojanGo Review", "US", mine), ("US-ID-RV2", "BhojanGo Review", "US", theirs)], me)
+    assert not h.kitchen("US", "BhojanGo Review")  # my review city's kitchens stay visible to me
+    assert h.city("US-ID-RV2") and not h.city("US-ID-REV")  # the other city itself stays hidden
+    assert hidden_from([("US-ID-RV2", "BhojanGo Review", "US", theirs)], me).kitchen("US", "BhojanGo Review")

@@ -111,8 +111,11 @@ async def discover(db: DB, viewer: Looker, lat: float | None = Query(None, ge=-9
     hidden = await review.hidden_for(db, viewer)
     if hidden.city(city):  # before the cache: a review account's cached answer is never anyone else's
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
-    # A review account's answers are cached apart, so they never reach anyone else.
-    key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}" + (":review" if hidden.sees_review else "")
+    # A review account's answers are never cached (R20): they must never reach anyone else, and a review city
+    # made again (new kitchen ids) must not be answered with the old one's kitchens. A handful of requests.
+    if hidden.sees_review:
+        return await _discover(db, lat, lng, city, hide=hidden.codes)
+    key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}"
     r = await get_redis()
     cached = await r.get(key)
     if cached:
