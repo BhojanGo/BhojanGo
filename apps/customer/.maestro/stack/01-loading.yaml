@@ -25,6 +25,8 @@ appId: com.bhojango.app
     direction: UP
     timeout: 20000
 - assertVisible:
-    id: "change-city"
-    text: "Change"
+    id: "location-city"
+    text: ".*, [A-Z0-9]{1,4}"
+- assertVisible:
+    id: "change-city"  # its accessible name is "Change city"; it reads "Change"
 - takeScreenshot: stack-customer-home-location-line
