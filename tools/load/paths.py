@@ -39,8 +39,8 @@ RATE = 200  # samples a second
 PASSWORD = "BhojanGo123"
 ZONES = [(43.580, -116.250, 43.605, -116.215), (43.598, -116.290, 43.620, -116.250), (43.590, -116.215, 43.605, -116.185),
          (43.600, -116.185, 43.625, -116.150), (43.555, -116.215, 43.590, -116.160)]
-COUNTS = {"discover": 400, "menu": 400, "quote": 150, "place_order": 60, "pay_confirm": 60, "order_status": 300,
-          "board": 300}
+COUNTS = {"discover": 2000, "menu": 2000, "quote": 600, "place_order": 200, "pay_confirm": 200, "order_status": 1500,
+          "board": 1000}
 
 if urlparse(API).hostname not in ("localhost", "127.0.0.1"):
     sys.exit(f"REFUSED: {API} is not this machine (load tests run on a throwaway stack only)")
@@ -136,7 +136,7 @@ def main() -> None:
         if items:
             kitchens[k["id"]] = items
     customers = []
-    for n in range(1, 41):
+    for n in range(1, 61):
         tok = login(f"customer{n}.boi@example.com")
         home = (client.get(f"{API}/me/addresses", headers=auth(tok)).json() or [None])[0]
         if not home:

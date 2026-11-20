@@ -11,7 +11,8 @@ A hot path is "who → where": the innermost frame of our code (core_api/ or sha
 or the framework layer when there is none) and the library area the CPU was spent in
 (SQLAlchemy loading rows, Pydantic, route matching, a middleware...). Its time is
 samples / rate / requests: CPU ms per request. py-spy leaves out idle time (waiting
-on Postgres or Redis), so this is CPU, not latency.
+on Postgres or Redis), so this is CPU, not latency; samples in uvloop's native run loop (polling
+for I/O, mostly idle when requests come one at a time) are left out too.
 """
 from __future__ import annotations
 
@@ -67,7 +68,12 @@ def frames(line: str) -> tuple[list[str], int]:
     return [f for f in stack.split(";") if not f.startswith("process ")], int(n or 0)
 
 
+IDLE = "(waiting in the event loop: uvloop's native run loop, left out)"
+
+
 def label(fr: list[str]) -> str:
+    if fr and fr[-1].startswith("run (asyncio/runners.py"):
+        return IDLE  # the loop itself, in C: polling for I/O (idle) and uvloop's own work
     area = "other"
     for f in reversed(fr):
         hit = next((lab for rx, lab in AREAS_RE if rx.search(f)), None)
@@ -97,8 +103,19 @@ def load(path: Path) -> Counter[str]:
 
 
 def path_rows(d: Path) -> dict[str, tuple[dict, Counter[str]]]:
+    """Per path: its paths.json entry (plus ``scale``) and samples by hot path, without the idle loop.
+    py-spy --nonblocking fails some samples ("Errors: N" in its log); they are spread like the
+    others, so each counted sample stands for (samples + errors) / samples."""
     meta = json.loads((d / "paths.json").read_text()) if (d / "paths.json").exists() else {}
-    return {name: (m, load(d / f"path-{name}.txt")) for name, m in meta.items()}
+    out = {}
+    for name, m in meta.items():
+        c = load(d / f"path-{name}.txt")
+        c.pop(IDLE, None)
+        log = d / f"path-{name}.log"
+        hit = re.search(r"Samples: (\d+) Errors: (\d+)", log.read_text(errors="replace")) if log.exists() else None
+        m["scale"] = (int(hit[1]) + int(hit[2])) / int(hit[1]) if hit and int(hit[1]) else 1.0
+        out[name] = (m, c)
+    return out
 
 
 def main() -> None:
@@ -109,12 +126,12 @@ def main() -> None:
     if not after:
         lines.append("No path profiles in this run (paths.json missing).")
     for name, (m, c) in after.items():
-        n, rate = m["n"], m.get("rate", 200)
+        n, rate = m["n"], m.get("rate", 200) / m["scale"]
         total = sum(c.values()) / rate * 1000 / n if n else 0
         head = f"## {NAMES.get(name, name)}: {total:.1f} ms CPU per request"
         if name in before and before[name][0]["n"]:
             bm, bc = before[name]
-            btotal = sum(bc.values()) / bm.get("rate", 200) * 1000 / bm["n"]
+            btotal = sum(bc.values()) / (bm.get("rate", 200) / bm["scale"]) * 1000 / bm["n"]
             head += f" (before: {btotal:.1f} ms)"
         lines += [head, "",
                   f"{n} requests one at a time: wall p50 {m['p50_ms']} ms, p95 {m['p95_ms']} ms; errors {m['errors'] or 0}.",
@@ -124,6 +141,7 @@ def main() -> None:
             lines.append(f"| {i} | {lab} | {v / rate * 1000 / n:.2f} | {100 * v / tot:.0f}% |")
         lines.append("")
     rush = load(out / "profile-core-api.txt")
+    rush.pop(IDLE, None)
     if rush:
         tot = sum(rush.values())
         lines += ["## The rush's mixed minute (profile.sh): share of core_api's CPU", "",
