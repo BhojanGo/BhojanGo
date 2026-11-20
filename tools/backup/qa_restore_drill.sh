@@ -59,6 +59,10 @@ if [ -n "${BACKUP_BUCKET:-}" ]; then
 SOURCE="the newest hourly dump in $BACKUP_BUCKET/${BACKUP_PREFIX:?}"
 step "1. fetch the newest backup ($SOURCE)"
 t0=$(now)
+case "${BACKUP_ADDRESSING_STYLE:-}" in  # Railway buckets: "virtual-host" (see hourly_dump.sh)
+  virtual*) aws configure set default.s3.addressing_style virtual ;;
+  path) aws configure set default.s3.addressing_style path ;;
+esac
 s3() { AWS_ACCESS_KEY_ID="$BACKUP_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_SECRET_ACCESS_KEY" AWS_REGION="${BACKUP_REGION:-auto}"        aws --endpoint-url "$BACKUP_ENDPOINT_URL" s3 cp --only-show-errors "$@"; }
 s3 "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/latest.json" "$WORK/latest.json" || fail "no latest.json in the backup bucket"
 key=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['key'])" "$WORK/latest.json")

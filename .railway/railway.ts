@@ -228,6 +228,7 @@ export default defineRailway((ctx, project) => {
       BACKUP_BUCKET: preserve(), // db-backups' bucketName
       AWS_ENDPOINT_URL: preserve(), // its endpoint
       AWS_REGION: preserve(), // its region
+      S3_ADDRESSING_STYLE: preserve(), // its urlStyle ("virtual-host" for new buckets)
       AWS_ACCESS_KEY_ID: preserve(), // sealed
       AWS_SECRET_ACCESS_KEY: preserve(), // sealed
     },
