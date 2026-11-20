@@ -209,6 +209,14 @@ async def create_offer(restaurant_id: uuid.UUID, data: OfferIn, user: User, db: 
         if data.amount is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "OFFER", "message": "Give the amount off"})
         params |= {"amount": str(data.amount)}
+    # R22 security review (S11): within the most its market lets a kitchen give (Markets setting kitchen_offer_ceiling).
+    from core_api.modules.markets.service import offer_ceiling
+
+    try:
+        running = sum((o.weekly_cap or Decimal(0)) for o in await _offers(db, r))  # its other offers, paused ones too
+        params = offer_ceiling.apply(data.template, params, await offer_ceiling.for_restaurant(db, r), r.currency, running)
+    except offer_ceiling.OfferOverCeiling as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "OFFER_OVER_CEILING", "message": str(e)})
     svc = RuleService(db)
     try:
         rule = await svc.create(user.id, family="promotion", template=data.template, params=params, scope_level="restaurant",

@@ -135,6 +135,9 @@ class CatalogSettings(BaseSettings):
 
     AWS_S3_BUCKET: str = "bhojango-assets-dev"
     AWS_CLOUDFRONT_URL: str = ""
+    # R22 (S13): https hosts a dish, cover or logo photo may be on besides our own API
+    # (PUBLIC_API_URL) and AWS_CLOUDFRONT_URL, e.g. ["photos.bhojango.com"]. Empty: none.
+    PHOTO_HOSTS: list[str] = []
 
     OPENSEARCH_URL: str = "http://localhost:9200"
     OPENSEARCH_INDEX_RESTAURANTS: str = "bhojango-restaurants"

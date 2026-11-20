@@ -490,6 +490,26 @@ with sync_playwright() as p:
     check("markets: the city with its zones", lambda: expect(page.get_by_text(re.compile("Zones")).first).to_be_visible(timeout=15000))
     page.screenshot(path=f"{OUT}/08-markets-city.png")
 
+    # R22 (S11): the kitchen offer ceiling, inherited from India and overridden on the city;
+    # the API then refuses a kitchen's offer above it. Put back afterwards.
+    ceiling_box = page.get_by_role("region", name="Kitchen offer ceiling")
+    check("markets: the kitchen offer ceiling shows what the city inherits", lambda: (
+        expect(ceiling_box.get_by_label("Amount off, per order")).to_have_attribute("placeholder", "200", timeout=15000),
+        expect(ceiling_box).to_contain_text(re.compile("From (India|BhojanGo's default)"))))
+    ceiling_box.get_by_label("Amount off, per order").fill("150")
+    ceiling_box.get_by_role("button", name="Save offer ceiling").click()
+
+    def ceiling_saved() -> None:
+        expect(ceiling_box.get_by_role("status")).to_contain_text("Saved", timeout=15000)
+        r = api.post(f"{CORE}/restaurants/{rest['id']}/offers", headers=token("partner.hyd@example.com"), data={
+            "template": "flat_off", "name": "Over the ceiling", "amount": "180", "weekly_cap": "1000"})
+        assert r.status == 422 and "OFFER_OVER_CEILING" in r.text(), r.text()
+
+    check("markets: a city's offer ceiling refuses a kitchen offer above it", ceiling_saved)
+    ceiling_box.scroll_into_view_if_needed()
+    ceiling_box.screenshot(path=f"{OUT}/08a-markets-offer-ceiling.png")
+    api.patch(f"{CORE}/markets/cities/IN-TG-HYD", headers=token("admin@example.com", PW), data={"settings": {"kitchen_offer_ceiling": None}})
+
     # Markets for the website: a coming-soon city, its "Notify me" sign-ups (one sent
     # here like the website does), the demand card, and "Add a city".
     soon = next(c for k in api.get(f"{CORE}/markets/directory").json()["countries"] if k["code"] == "IN"

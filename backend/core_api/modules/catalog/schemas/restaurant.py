@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, computed_field, field_validator
 
 from core_api.modules.catalog.service.ratings import RatingDisplay, rating_display
 
@@ -24,6 +24,17 @@ CUISINE_TYPES = [
 ]
 
 ALLERGENS = ["gluten", "dairy", "eggs", "nuts", "peanuts", "soy", "shellfish", "fish", "sesame"]
+
+
+def _photo_url(v: str | None) -> str | None:
+    """R22 (S13): only our own uploads, the food library or our photo host (service/photo_urls.py).
+    The route also checks whose upload it is."""
+    from core_api.modules.catalog.service.photo_urls import check
+
+    return check(v)
+
+
+PhotoUrl = Annotated[str | None, Field(max_length=512), AfterValidator(_photo_url)]
 
 
 class AddressSchema(BaseModel):
@@ -64,8 +75,8 @@ class RestaurantUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=255)
     description: str | None = None
     cuisine_types: list[str] | None = None
-    logo_url: str | None = None
-    cover_url: str | None = None
+    logo_url: PhotoUrl = None
+    cover_url: PhotoUrl = None
     is_open: bool | None = None
     opens_at: str | None = None
     closes_at: str | None = None
@@ -198,7 +209,7 @@ class MenuItemUpdateRequest(BaseModel):
     is_available: bool | None = None
     allergens: list[str] | None = None
     customizations: list[dict[str, Any]] | None = None
-    image_url: str | None = None
+    image_url: PhotoUrl = None
     prep_time_minutes: int | None = None
     calories: int | None = None
 

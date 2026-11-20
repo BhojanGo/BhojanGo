@@ -9,6 +9,7 @@ import { ConsoleShell } from "@/components/console/ConsoleShell";
 import { DeliveryPartners } from "@/components/markets/DeliveryPartners";
 import { HeroDish } from "@/components/markets/HeroDish";
 import { LegalEntity } from "@/components/markets/LegalEntity";
+import { OfferCeiling } from "@/components/markets/OfferCeiling";
 import { PaymentMethods } from "@/components/markets/PaymentMethods";
 import { KitchenDocuments } from "@/components/markets/KitchenDocuments";
 import { PayoutProvider } from "@/components/markets/PayoutProvider";
@@ -118,6 +119,8 @@ function CountryView() {
           <PayoutProvider country={country} />
           <LegalEntity country={country} />
           <PaymentMethods country={country} />
+          <OfferCeiling key={`ceiling-${JSON.stringify(country.settings.kitchen_offer_ceiling ?? null)}`} level="country" code={country.code}
+            name={country.name} currency={country.currency} settings={country.settings} parents={[]} />
           <HeroDish country={country} />
           <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
           <DeliveryPartners key={country.code} country={country} />

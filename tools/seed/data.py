@@ -418,6 +418,8 @@ COUNTRIES = [
                      # the website's landing hero (Markets -> India -> Hero dish): a photo library slug
                      "hero_photo": "south-indian-thali",
                      "emergency_number": "112",  # the rider app's SOS button
+                     # R22 (S11): the most a kitchen's own offer may give (Markets -> India -> Kitchen offer ceiling)
+                     "kitchen_offer_ceiling": {"flat_off": "200", "max_discount": "200", "weekly_cap": "25000"},
                      # the website's /deliver page (Markets -> India -> Delivery partners); documents are
                      # the delivery app's onboarding steps (markets/service/delivery.py APP_STEP)
                      "delivery_partner": {"min_age": 18, "vehicles": ["motorcycle", "scooter", "electric_scooter"],
@@ -466,6 +468,7 @@ COUNTRIES = [
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
                      "legal": {"name": "DeepTrics LLC"},  # R15 (Srini's decision); the rest is filled in admin
                      "emergency_number": "911",
+                     "kitchen_offer_ceiling": {"flat_off": "15", "max_discount": "15", "weekly_cap": "1500"},  # R22 (S11)
                      "delivery_partner": {"min_age": 18, "vehicles": ["car", "motorcycle", "scooter"],
                                           "documents": ["drivers_license", "vehicle_insurance", "payout_account",
                                                         "background_check"],
