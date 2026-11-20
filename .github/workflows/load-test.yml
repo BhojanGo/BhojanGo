@@ -99,6 +99,14 @@ jobs:
           cat "$OUT/profile.log" 2>/dev/null | tail -5
           tail -80 "$OUT/k6.txt"
 
+      - name: Per-path CPU profile (R22, tools/load/paths.py; one request type at a time)
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          python tools/load/paths.py "$OUT"
+          python tools/load/profile_report.py "$OUT" > /dev/null
+
       - name: Drop tokens from the k6 summary
         id: scrub
         if: always()
@@ -136,6 +144,7 @@ jobs:
         run: |
           python tools/load/rush_report.py "$OUT" >> "$GITHUB_STEP_SUMMARY"
           cat "$OUT/report.md"
+          [ -f "$OUT/paths.md" ] && cat "$OUT/paths.md" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.scrub.outcome == 'success'
@@ -155,5 +164,5 @@ jobs:
         run: |
           [ -f "$OUT/.sampler" ] && kill "$(cat "$OUT/.sampler")" 2>/dev/null
           [ -f "$OUT/.profiler" ] && kill "$(cat "$OUT/.profiler")" 2>/dev/null
-          docker rm -f load-k6 2>/dev/null
+          docker rm -f load-k6 load-pyspy 2>/dev/null
           $COMPOSE --profile backend down -v
