@@ -67,7 +67,7 @@ async def test_a_kitchen_offer_above_its_markets_ceiling_is_refused(client: Asyn
         # the city sets its own, lower: inherited key by key, enforced at once
         bad = await client.patch("/api/v1/markets/cities/IN-TG-HYD", headers=cm,
                                  json={"settings": {"kitchen_offer_ceiling": {"flat_off": "-5"}}})
-        assert bad.status_code == 422, bad.text
+        assert bad.status_code == 409 and bad.json()["detail"]["code"] == "MARKET_RULE", bad.text  # as every markets rule
         r = await client.patch("/api/v1/markets/cities/IN-TG-HYD", headers=cm,
                                json={"settings": {"kitchen_offer_ceiling": {"flat_off": "30"}}})
         assert r.status_code == 200, r.text
@@ -157,7 +157,10 @@ async def test_a_kitchen_cant_show_a_photo_from_another_site_or_account(client: 
         assert r.status_code == 200 and r.json()["image_url"] == api + mine, r.text
     finally:
         await sql("UPDATE menu_items SET image_url = :u WHERE id = :i", u=was_photo, i=uuid.UUID(item))
-        await sql("UPDATE restaurants SET cover_url = :u WHERE id = :i", u=was_cover, i=uuid.UUID(rid))
+        # Only when a refusal let one through: an UPDATE moves the row, and the seed's kitchens of one
+        # owner share a created_at, so other tests' "first kitchen" (/restaurants/mine) would change.
+        if (await client.get(f"/api/v1/restaurants/{rid}")).json()["cover_url"] != was_cover:
+            await sql("UPDATE restaurants SET cover_url = :u WHERE id = :i", u=was_cover, i=uuid.UUID(rid))
 
 
 # ── S8: browser sessions in httpOnly cookies, CSRF, socket tickets ─────────────

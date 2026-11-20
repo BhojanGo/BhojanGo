@@ -276,7 +276,7 @@ See [Access sweep coverage](#access-sweep-coverage).
 - The admin Playwright run sets Hyderabad's ceiling in the console, checks the API refuses a ₹180 offer, screenshots the section and resets it.
 - **Proven:** with `markets.py` and `partner.py` reverted and `offer_ceiling.py` deleted, the unit and integration tests fail.
 
-**Screenshot:** `08a-markets-offer-ceiling.png` in the PR's Playwright artifact `e2e-screenshots` (run SHOT_RUN).
+**Screenshot:** `08a-markets-offer-ceiling.png` in the PR's Playwright artifact `e2e-screenshots` (run [44711139194](https://github.com/BhojanGo/BhojanGo/actions/runs/44711139194), artifact 14617968066; kept 7 days).
 
 ### S12: a cap on a bulk refund's total for the automatic path
 
@@ -404,7 +404,7 @@ Low findings, when there's time:
 
 ## Access sweep coverage
 
-`backend/core_api/integration/test_zz_access_sweep.py` covers **all 275 core_api routes**: every route must have a policy, or the test fails.
+`backend/core_api/integration/test_zz_access_sweep.py` covers **all 275 core_api routes**: every route must have a policy, or the test fails. (R21's count. R22 adds `POST /auth/socket-ticket`, a signed-in user's own route, with its policy.)
 
 **What it runs:**
 
