@@ -1,0 +1,94 @@
+name: Restore drill (QA's data, read-only)
+
+# R21: back up QA's database (pg_dump inside QA's Postgres container over `railway ssh`:
+# read-only, nothing on QA changes), restore it into a throwaway Postgres on this runner,
+# and check it (migrations, row counts, the API's health checks, the finance invariants).
+# tools/backup/qa_restore_drill.sh; times are the drill's RTO. The dump stays on the
+# runner: never printed or uploaded (this repo's logs are public). Run it from the Actions
+# tab, or push to a drill/* branch. See docs/launch/incident-plan.md.
+
+on:
+  push:
+    branches: ["drill/**"]
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "seeded: a copy built the way QA is (seed + demo seed). qa: QA itself over railway ssh (needs an SSH key registered on the Railway account)"
+        default: seeded
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: Restore QA's database into a throwaway one
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgis/postgis:16-3.7
+        env:
+          POSTGRES_USER: bhojango
+          POSTGRES_PASSWORD: bhojango_drill
+          POSTGRES_DB: bhojango
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bhojango"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_QA_TOKEN }}
+      # A database of its own, from template0: the postgis image puts its extensions in POSTGRES_DB.
+      PSQL_URL: postgresql://bhojango:bhojango_drill@localhost:5432/qa_restore
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_drill@localhost:5432/qa_restore
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: test_jwt_secret_for_ci_minimum_32_characters
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Railway token present
+        run: |
+          [ -n "$RAILWAY_TOKEN" ] || { echo "::error::RAILWAY_QA_TOKEN (a Railway project token for QA) is not set"; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g @railway/cli@5.54.1
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+      - name: Backend dependencies
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: An empty database to restore into
+        run: |
+          psql "${PSQL_URL%/*}/bhojango" -v ON_ERROR_STOP=1 -qc "CREATE DATABASE qa_restore TEMPLATE template0"
+          docker pull -q postgis/postgis:16-3.7 >/dev/null
+
+      - name: A source built the way QA is (migrations, seed, demo seed)
+        if: inputs.source != 'qa'
+        working-directory: backend
+        env:
+          SRC: postgresql://bhojango:bhojango_drill@localhost:5432/qa_source
+        run: |
+          psql "${PSQL_URL%/*}/bhojango" -v ON_ERROR_STOP=1 -qc "CREATE DATABASE qa_source TEMPLATE template0"
+          psql "$SRC" -v ON_ERROR_STOP=1 -q -f ../infra/docker/db/init.sql
+          export DATABASE_URL="postgresql+asyncpg://${SRC#postgresql://}"
+          uv run --frozen alembic upgrade head
+          uv run --frozen python ../tools/seed/seed.py > /dev/null
+          uv run --frozen python ../tools/seed/demo.py > /dev/null
+          echo "SOURCE_PSQL_URL=$SRC" >> "$GITHUB_ENV"
+
+      - name: Drill (tools/backup/qa_restore_drill.sh)
+        run: bash tools/backup/qa_restore_drill.sh
