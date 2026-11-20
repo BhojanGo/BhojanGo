@@ -92,13 +92,15 @@ jobs:
           BACKUP_ACCESS_KEY_ID: ${{ secrets.BACKUP_ACCESS_KEY_ID }}
           BACKUP_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_SECRET_ACCESS_KEY }}
           BACKUP_REGION: ${{ secrets.BACKUP_REGION }}
+          BACKUP_ADDRESSING_STYLE: ${{ secrets.BACKUP_ADDRESSING_STYLE }}
         run: |
           for v in BACKUP_ENDPOINT_URL BACKUP_BUCKET BACKUP_ACCESS_KEY_ID BACKUP_SECRET_ACCESS_KEY; do
             [ -n "$(printenv $v)" ] || { echo "::error::GitHub secret $v is not set"; exit 1; }
           done
           { echo "BACKUP_ENDPOINT_URL=$BACKUP_ENDPOINT_URL"; echo "BACKUP_BUCKET=$BACKUP_BUCKET"
             echo "BACKUP_ACCESS_KEY_ID=$BACKUP_ACCESS_KEY_ID"; echo "BACKUP_SECRET_ACCESS_KEY=$BACKUP_SECRET_ACCESS_KEY"
-            echo "BACKUP_REGION=${BACKUP_REGION:-auto}"; echo "BACKUP_PREFIX=qa"; } >> "$GITHUB_ENV"
+            echo "BACKUP_REGION=${BACKUP_REGION:-auto}"; echo "BACKUP_ADDRESSING_STYLE=$BACKUP_ADDRESSING_STYLE"
+            echo "BACKUP_PREFIX=qa"; } >> "$GITHUB_ENV"
 
       - name: "Source: QA over railway ssh"
         if: env.SOURCE_MODE == 'qa'
@@ -192,7 +194,7 @@ jobs:
           docker run --rm --network host \
             -e PGHOST=localhost -e PGPORT=5432 -e PGUSER=bhojango -e PGPASSWORD=bhojango_drill -e PGDATABASE=qa_source \
             -e BACKUP_BUCKET=db-backups -e BACKUP_PREFIX=qa -e KEEP_DAYS=7 \
-            -e AWS_ENDPOINT_URL="$S3_URL" -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_REGION=us-east-1 \
+            -e AWS_ENDPOINT_URL="$S3_URL" -e S3_ADDRESSING_STYLE=path -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_REGION=us-east-1 \
             db-backup | tee backup.log
           grep -q "pruned 2 objects" backup.log || { echo "::error::the 8-day-old dump wasn't pruned"; exit 1; }
 

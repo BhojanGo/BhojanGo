@@ -216,7 +216,25 @@ build argument and a run-time variable: it turns off the test-site banner and no
 | bucket credentials | uploads | — | Railway makes them; copied into core-api (above) | keys: yes | QA bucket's | automatic (region `sjc`, fixed for good) |
 
 Not variables, but set in Railway by hand for production: custom domains (Settings → Networking) and volume
-backups for `postgres-data`.
+backups for `postgres-data` (daily and weekly, as on QA since 2026-11-20).
+
+## db-backup (hourly dump, R22) and the db-backups bucket
+
+A cron service (every hour at :07; it exits after each run): `pg_dump` of the database into its own private bucket,
+kept 7 days ([incident-plan.md](incident-plan.md#database-restore)). Restored and checked every Monday by
+`.github/workflows/restore-drill.yml`.
+
+| Variable | Service | Required | From | Sealed | QA | railway.ts (production) |
+|---|---|---|---|---|---|---|
+| `PGHOST`, `PGPORT` | db-backup | yes | railway.ts | no | `postgres.railway.internal`, `5432` | supplied |
+| `PGUSER`, `PGPASSWORD`, `PGDATABASE` | db-backup | yes | references to postgres | (the password is postgres's sealed one) | references | supplied |
+| `BACKUP_PREFIX`, `KEEP_DAYS` | db-backup | yes | railway.ts | no | `qa`, `7` | `production`, `7` |
+| `BACKUP_BUCKET`, `AWS_ENDPOINT_URL`, `AWS_REGION`, `S3_ADDRESSING_STYLE` | db-backup | yes | the `db-backups` bucket's credentials (bucketName, endpoint, region, urlStyle) | no | waiting for Srini (below) | by hand |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | db-backup | yes | the `db-backups` bucket's credentials | yes | waiting for Srini | by hand |
+| GitHub secrets `BACKUP_ENDPOINT_URL`, `BACKUP_BUCKET`, `BACKUP_REGION`, `BACKUP_ADDRESSING_STYLE`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY` | GitHub (the weekly restore test) | yes | the same credentials | GitHub secrets | waiting for Srini | — |
+
+The bucket's keys can write, too: Railway buckets have one key pair. GitHub only uses them in the scheduled restore test
+(forks never get secrets). With Cloudflare R2 later, CI would get a read-only token instead.
 
 ## The three app builds (customer, partner, rider)
 

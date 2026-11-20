@@ -10,11 +10,17 @@
 #
 # Reads the database only (pg_dump takes a consistent snapshot; no locks beyond AccessShare).
 # Needs: PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE, BACKUP_BUCKET BACKUP_PREFIX, AWS_ENDPOINT_URL
-# AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION; optional KEEP_DAYS (default 7).
+# AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION; optional KEEP_DAYS (default 7), S3_ADDRESSING_STYLE.
 # Prints sizes, counts and keys only: never a credential or a row.
 set -eu
 : "${BACKUP_BUCKET:?}" "${BACKUP_PREFIX:?}" "${AWS_ENDPOINT_URL:?}" "${PGHOST:?}" "${PGDATABASE:?}"
 KEEP_DAYS="${KEEP_DAYS:-7}"
+# Railway buckets made since 2025 answer only virtual-host style URLs (urlStyle "virtual-host"); the AWS CLI
+# picks path style for a custom endpoint unless told otherwise.
+case "${S3_ADDRESSING_STYLE:-}" in
+  virtual*) aws configure set default.s3.addressing_style virtual ;;
+  path) aws configure set default.s3.addressing_style path ;;
+esac
 S3="aws --endpoint-url $AWS_ENDPOINT_URL s3"
 S3API="aws --endpoint-url $AWS_ENDPOINT_URL s3api"
 now=$(date -u +%Y%m%dT%H%M%SZ)
