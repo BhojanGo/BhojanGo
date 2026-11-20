@@ -182,6 +182,31 @@ def samples(path: Path) -> dict:
     return {k: {"avg": sum(v) / len(v), "max": max(v), "n": len(v)} for k, v in vals.items() if v}
 
 
+def profile(path: Path) -> dict | None:
+    """py-spy's raw output (collapsed stacks: "frame;frame;... count") -> the frames that cost most."""
+    if not path.exists():
+        return None
+    ours: dict[str, int] = defaultdict(int)
+    leaf: dict[str, int] = defaultdict(int)
+    total = 0
+    for line in path.read_text(errors="replace").splitlines():
+        stack, _, n = line.rpartition(" ")
+        if not stack or not n.isdigit():
+            continue
+        count = int(n)
+        frames = [re.sub(r" \((?:/srv/)?(.*?):\d+\)$", r" ()", f) for f in stack.split(";")]
+        if any(f.startswith(("process ", "thread ")) and "idle" in f for f in frames):
+            continue
+        total += count
+        for f in dict.fromkeys(f for f in frames if "core_api/" in f or "shared/" in f):
+            ours[f] += count
+        leaf[frames[-1]] += count
+    if not total:
+        return None
+    top = lambda d: sorted(d.items(), key=lambda kv: -kv[1])[:20]  # noqa: E731
+    return {"samples": total, "ours": top(ours), "leaf": top(leaf)}
+
+
 def main() -> int:
     out = Path(sys.argv[1])
     summary = json.loads((out / "summary.json").read_text()) if (out / "summary.json").exists() else {"metrics": {}}
@@ -255,6 +280,15 @@ def main() -> int:
         if key in smp:
             s = smp[key]
             md.append(f"| {key} | {s['avg']:.1f} | {s['max']:.1f} |")
+
+    prof = profile(out / "profile-core-api.txt")
+    if prof:
+        md += ["", "## Where core-api spent its CPU (py-spy, 1 minute mid-window)", "",
+               f"{prof['samples']:,} samples. Inclusive share of our own code's frames (top 20), then the hottest leaf frames.", "",
+               "| Frame (ours) | Share |", "|---|---|"]
+        md += [f"| `{f}` | {100 * n / prof['samples']:.1f}% |" for f, n in prof["ours"]]
+        md += ["", "| Leaf frame | Share |", "|---|---|"]
+        md += [f"| `{f}` | {100 * n / prof['samples']:.1f}% |" for f, n in prof["leaf"]]
 
     verdict = "pass" if not fails else "fail: " + "; ".join(fails)
     md = [f"# Load test: Boise rush at 3x launch - {verdict.split(':')[0].upper()}", "", f"Verdict: {verdict}", ""] + md

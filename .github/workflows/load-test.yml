@@ -22,6 +22,9 @@ on:
       scale:
         description: "1 = 3x launch (the R21 rush)"
         default: "1"
+      workers:
+        description: "core-api uvicorn processes (1 = as on Railway)"
+        default: "1"
 
 permissions:
   contents: read
@@ -40,6 +43,7 @@ jobs:
       COMPOSE: docker compose -f infra/docker/compose.yaml -f infra/docker/load.compose.yaml
       WINDOW: ${{ inputs.window || '20' }}
       SCALE: ${{ inputs.scale || '1' }}
+      CORE_API_WORKERS: ${{ inputs.workers || '1' }}
       OUT: ${{ github.workspace }}/load-out
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +54,14 @@ jobs:
 
       - name: Host tools (opening hours helper)
         run: pip install httpx==0.28.1
+
+      - name: core-api processes (a push to load/<name>-w3 runs 3)
+        run: |
+          n=$(echo "$GITHUB_REF_NAME" | sed -nE 's/.*-w([0-9]+)$/\1/p')
+          [ -n "$n" ] && echo "CORE_API_WORKERS=$n" >> "$GITHUB_ENV" || n=$CORE_API_WORKERS
+          # Keep every pool inside Postgres' 100 connections: 10 + 10 each when there are several.
+          [ "$n" -gt 1 ] && echo "CORE_API_DB_OVERFLOW=10" >> "$GITHUB_ENV"
+          echo "core-api processes: $n"
 
       - name: Start the stack (backend profile)
         run: $COMPOSE --profile backend up -d --build --wait --wait-timeout 600
@@ -69,6 +81,9 @@ jobs:
           mkdir -p "$OUT" && chmod 777 "$OUT"
           sh tools/load/sample.sh "$COMPOSE_PROJECT_NAME" "$OUT/samples.csv" &
           echo $! > "$OUT/.sampler"
+          # py-spy on core-api for a minute, 10 minutes in (the middle of the order window).
+          sh tools/load/profile.sh "$COMPOSE_PROJECT_NAME" "$OUT" 600 60 &
+          echo $! > "$OUT/.profiler"
           set +e
           # Bounded: the run is about WINDOW + 20 minutes, plus setup.
           timeout $(( (WINDOW + 40) * 60 )) docker run --rm --name load-k6 --network "${COMPOSE_PROJECT_NAME}_default" \
@@ -78,6 +93,8 @@ jobs:
             --summary-trend-stats "avg,p(50),p(95),p(99),max,count" /scripts/rush.js > "$OUT/k6.txt" 2>&1
           echo "$?" > "$OUT/k6-exit"
           kill "$(cat "$OUT/.sampler")" 2>/dev/null; rm -f "$OUT/.sampler"
+          kill "$(cat "$OUT/.profiler")" 2>/dev/null; rm -f "$OUT/.profiler"
+          cat "$OUT/profile.log" 2>/dev/null | tail -5
           tail -80 "$OUT/k6.txt"
 
       - name: Drop tokens from the k6 summary
@@ -135,5 +152,6 @@ jobs:
         if: always()
         run: |
           [ -f "$OUT/.sampler" ] && kill "$(cat "$OUT/.sampler")" 2>/dev/null
+          [ -f "$OUT/.profiler" ] && kill "$(cat "$OUT/.profiler")" 2>/dev/null
           docker rm -f load-k6 2>/dev/null
           $COMPOSE --profile backend down -v
