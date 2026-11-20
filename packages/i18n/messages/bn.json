@@ -1742,7 +1742,8 @@
     "place": "{city}, {country}",
     "change_city": "শহর বদলান",
     "set": "আপনার ডেলিভারির ঠিকানা বেছে নিন",
-    "delivers_here": "আমরা এখানে ডেলিভারি করি"
+    "delivers_here": "আমরা এখানে ডেলিভারি করি",
+    "change": "বদলান"
   },
   "deliver_page": {
     "meta_title": "BhojanGo-র সঙ্গে ডেলিভারি করুন",

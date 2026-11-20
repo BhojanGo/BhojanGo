@@ -489,3 +489,10 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 - New, website (account → Payment methods, and checkout): `checkout.payments_unavailable` ("Payments aren't
   available in this city yet."). Shown only in production when the site was built without a payment provider,
   instead of the test card form. Calm and short; it doesn't say why.
+
+## Location line: one action (domain round, 2026-11-19)
+
+Machine-translated into all seven languages; needs native review.
+
+- New, website home: `location.change` ("Change"), the one link after a known city ("Boise, ID · Change"); its
+  accessible name is still `location.change_city`. Short: it sits on one line with the city.

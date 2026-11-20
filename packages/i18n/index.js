@@ -111,8 +111,9 @@ function detectCountry(evidence, countries) {
  * never a city we don't know, never another city's kitchens. In order:
  *   address  the delivery address (cookie / saved address): its Markets city, else its own label
  *   chosen   a city picked with "Change city" (a Markets city code)
- *   ip       the IP's own town, shown as itself ("Meridian", "ID"), served or not;
- *            `deliversHere` only when the hint says the point is inside an open zone
+ *   ip       the IP's guess, only when the hint says the point is inside an open zone of a
+ *            live city: that city ("Boise", "ID"). A guess outside every live zone (a town
+ *            near a city, another state) is not shown at all: it counts as none (domain round).
  *   none     nothing known: "Set your delivery location"
  * `cities`: Markets cities [{code, name, country, status}] ("live" | "soon").
  * Returns {source, place, code, city, served, deliversHere}: `place`/`code` are the
@@ -140,13 +141,11 @@ function resolveLocation(evidence, cities) {
     return { source: "chosen", place: chosen.name, code: chosen.country, city: chosen, served: live(chosen), deliversHere: false };
   }
   const ip = e.ip;
-  if (ip && ip.country && ip.place) {
-    const city = ip.served ? byCode(ip.city_code) : null;
-    const served = live(city) && city.country === String(ip.country).toUpperCase();
-    return {
-      source: "ip", place: String(ip.place), code: String(ip.region_code || ip.country).toUpperCase(),
-      city: served ? city : null, served, deliversHere: served,
-    };
+  if (ip && ip.country && ip.served) {
+    const city = byCode(ip.city_code);
+    if (live(city) && city.country === String(ip.country).toUpperCase()) {
+      return { source: "ip", place: city.name, code: String(ip.region_code || ip.country).toUpperCase(), city, served: true, deliversHere: true };
+    }
   }
   return { source: "none", place: null, code: null, city: null, served: false, deliversHere: false };
 }

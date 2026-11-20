@@ -1742,7 +1742,8 @@
     "place": "{city}, {country}",
     "change_city": "ನಗರ ಬದಲಿಸಿ",
     "set": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಸ್ಥಳವನ್ನು ಹೊಂದಿಸಿ",
-    "delivers_here": "ನಾವು ಇಲ್ಲಿ ಡೆಲಿವರಿ ಮಾಡುತ್ತೇವೆ"
+    "delivers_here": "ನಾವು ಇಲ್ಲಿ ಡೆಲಿವರಿ ಮಾಡುತ್ತೇವೆ",
+    "change": "ಬದಲಿಸಿ"
   },
   "deliver_page": {
     "meta_title": "BhojanGo ಜೊತೆ ಡೆಲಿವರಿ ಮಾಡಿ",

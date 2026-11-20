@@ -1742,7 +1742,8 @@
     "place": "{city}, {country}",
     "change_city": "Change city",
     "set": "Set your delivery location",
-    "delivers_here": "We deliver here"
+    "delivers_here": "We deliver here",
+    "change": "Change"
   },
   "deliver_page": {
     "meta_title": "Deliver with BhojanGo",
