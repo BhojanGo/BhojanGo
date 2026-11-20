@@ -51,6 +51,7 @@ WHERE table_type = $q$BASE TABLE$q$ AND table_schema NOT IN ($q$pg_catalog$q$, $
   AND NOT EXISTS (SELECT 1 FROM pg_depend d JOIN pg_class c ON c.oid = d.objid
                   WHERE d.deptype = $q$e$q$ AND c.relname = table_name AND c.relnamespace = table_schema::regnamespace)
 ORDER BY 1 \gexec'
+printf '%s\n' "$COUNT_SQL" > "$WORK/count.sql"   # every source counts the restored tables with it
 
 if [ -n "${BACKUP_BUCKET:-}" ]; then
 # R22: the newest hourly dump (tools/backup/hourly_dump.sh) from the backup bucket, with the read-only
