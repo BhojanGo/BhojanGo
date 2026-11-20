@@ -190,13 +190,12 @@ async def get_restaurant_menu(
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantMenuResponse:
     """The menu with option groups (min/max picks, prices) and what is sold out today.
-    In a review-only city (R19): 404 except for its review accounts.
-
-    R22: half of all requests at a dinner rush. The answer is the same for everyone who
-    may see the kitchen, so its JSON is kept in each process until the kitchen or its menu,
-    options or hours change (``kitchen:<id>`` version, shared/cache_versions.py), or until
-    the first sold-out-today item comes back (at most MENU_CACHE_SECONDS). Who may see it
-    (review cities) is still checked for each viewer, before the cached answer is used."""
+    In a review-only city (R19): 404 except for its review accounts."""
+    # R22: half of all requests at a dinner rush. The answer is the same for everyone who
+    # may see the kitchen, so its JSON is kept in each process until the kitchen or its menu,
+    # options or hours change (``kitchen:<id>`` version, shared/cache_versions.py), or until
+    # the first sold-out-today item comes back (at most MENU_CACHE_SECONDS). Who may see it
+    # (review cities) is still checked for each viewer, before the cached answer is used.
     from shared import cache_versions as cv
 
     if not cv.enabled():
