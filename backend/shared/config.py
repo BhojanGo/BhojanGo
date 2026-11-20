@@ -396,6 +396,10 @@ class Settings(BaseSettings):
     # The header a platform proxy puts the client's address in (Railway: X-Real-IP);
     # empty = the socket's peer. Rate limits and request logs use it (shared/client_ip.py).
     CLIENT_IP_HEADER: str = ""
+    # Price checks (POST /pricing/quote) per signed-in person (R21 security review, S7).
+    # 0 = no limit, outside production only (a load run sharing a few seed accounts sets 0).
+    QUOTE_LIMIT_PER_MINUTE: int = 60
+    QUOTE_LIMIT_PER_DAY: int = 2000
     # Optional IP-to-place database for the website's "near you" hint (shared/geoip.py).
     GEOIP_DB_PATH: str = ""
 

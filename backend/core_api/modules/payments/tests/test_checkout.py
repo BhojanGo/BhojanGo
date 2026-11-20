@@ -78,3 +78,17 @@ async def test_fake_checkout_mirrors_the_real_one(country, mimics) -> None:
     r = await gateways.FakeGateway(country).create(amount=100, currency="INR", order_id="o", idempotency_key="k",
                                                    payment_method_id=None, customer={"methods": ["upi"]})
     assert r["checkout"]["sdk"] == "fake" and r["checkout"]["mimics"] == mimics and r["checkout"]["methods"] == ["upi"]
+
+
+def test_razorpay_webhook_needs_its_secret(monkeypatch) -> None:
+    """R21 S2: with no webhook secret (production has no Razorpay keys) nothing verifies,
+    not even a signature made with the empty key, which anyone can compute."""
+    from core_api.modules.payments.service import razorpay_svc
+
+    body = b'{"event":"payment.captured"}'
+    monkeypatch.setattr(get_settings().payments, "RAZORPAY_WEBHOOK_SECRET", "")
+    assert not razorpay_svc.verify_webhook_signature(body, hmac.new(b"", body, hashlib.sha256).hexdigest())
+    monkeypatch.setattr(get_settings().payments, "RAZORPAY_WEBHOOK_SECRET", "whsec_x")
+    good = hmac.new(b"whsec_x", body, hashlib.sha256).hexdigest()
+    assert razorpay_svc.verify_webhook_signature(body, good)
+    assert not razorpay_svc.verify_webhook_signature(body + b" ", good)
