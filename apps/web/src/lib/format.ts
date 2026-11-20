@@ -81,6 +81,30 @@ export function libraryPhoto(slug: string | null | undefined, width: 400 | 800 |
   return slug && /^[a-z0-9-]+$/.test(slug) ? `/food/${slug}-${width}.webp` : null;
 }
 
+/** Library photos that aren't a dish (the hero picker offers them; the sign-in tiles are food). */
+const NOT_FOOD = new Set(["delivery-partner-scooter", "kitchen-cook"]);
+/** Dishes tried first, in order, when covers run short; then the rest of the library. */
+const FILL_FIRST = ["north-indian-thali", "masala-dosa", "paneer-butter-masala", "veg-dum-biryani", "samosa", "gulab-jamun"];
+
+/**
+ * The sign-in pages' photo tiles (R23): kitchens' covers first, then the country's hero
+ * dish, then other dishes from the photo library (apps/web/src/content/photo-library.json),
+ * so no tile is empty when discover returns fewer covers than tiles (desktop 4, phone 2).
+ * Photos only, never a city's name (R8); no photo twice.
+ */
+export function signInPhotos(covers: readonly (string | null | undefined)[], heroSlug: string | null | undefined,
+  library: readonly string[], n = 4): string[] {
+  const out: string[] = [];
+  const add = (u: string | null | undefined) => {
+    if (u && out.length < n && !out.includes(u)) out.push(u);
+  };
+  for (const u of covers) add(u);
+  add(libraryPhoto(heroSlug));
+  const known = new Set(library);
+  for (const slug of [...FILL_FIRST.filter((s) => known.has(s)), ...library]) if (!NOT_FOOD.has(slug)) add(libraryPhoto(slug));
+  return out;
+}
+
 /** A photo URL from data: absolute URLs pass through; "/food/..." is served by the website. */
 export function photo(url: string | null | undefined, width: 400 | 800 | 1600 = 800): string | null {
   if (!url) return null;
