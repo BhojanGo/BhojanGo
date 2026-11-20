@@ -41,7 +41,9 @@ async def main() -> None:
     async with engine.begin() as conn:
         for i, name in enumerate(RIDERS, start=len(m["riders"]) + 1):
             email = f"rider{i}.{key}@example.com"
-            rider_id = await seed.upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}2{i:02d}")
+            # Riders 9 and up (the load test's 75) take 6xx: 2xx past 8 meets the demo riders' numbers.
+            phone = f"2{i:02d}" if i <= 8 else f"6{i:02d}"
+            rider_id = await seed.upsert_user(conn, email, name, "driver", m, f"{m['phone_prefix']}{phone}")
             for kind in ("licence", "insurance", "background_check"):
                 await conn.execute(seed.UPSERT_RIDER_DOC, {
                     "id": seed.sid("rider_document", email, kind), "rider_id": rider_id, "kind": kind,
