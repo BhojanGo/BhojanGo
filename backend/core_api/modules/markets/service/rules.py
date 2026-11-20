@@ -148,7 +148,15 @@ def merge_settings(current: dict, patch: dict) -> dict:
     return merged
 
 
+# R21 security review (S6): who is an app store review account (their orders cost nothing)
+# is written only by backend/tools/review_accounts.py, never through the console's API.
+REVIEW_KEYS = frozenset({"review_only", "review_accounts"})
+
+
 def check_overrides(patch: dict) -> None:
+    review = sorted(set(patch) & REVIEW_KEYS)
+    if review:
+        raise MarketRuleError(f"{', '.join(review)} can't be set here (backend/tools/review_accounts.py sets them)")
     locked = sorted(set(patch) & LOCKED_BELOW_COUNTRY)
     if locked:
         raise MarketRuleError(f"Only the country sets {', '.join(locked)}")

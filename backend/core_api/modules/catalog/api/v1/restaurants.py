@@ -300,6 +300,10 @@ async def update_restaurant(
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
     await access.manage(db, current_user, restaurant_id)
+    if data.status is not None:
+        # R21 security review (S4): going live, suspending or un-suspending is an admin's call
+        # (approve / reject, partners.edit in the city), never the owner's.
+        await access.administer(db, current_user, restaurant_id)
     repo = RestaurantRepository(db)
 
     update_data = data.model_dump(exclude_none=True)

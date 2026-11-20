@@ -26,10 +26,46 @@ def _unprocessable(e: Exception) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={**details, "code": code, "message": str(e)})
 
 
+# R21 security review (S7): quotes per signed-in person. A US quote asks Stripe Tax, so an
+# unlimited loop would spend its rate limit (and money). A person re-quoting a bag never comes close.
+def quote_limits() -> list[tuple[int, int]]:
+    """(window seconds, quotes) pairs in force; 0 turns a limit off, never in production."""
+    from shared.config import get_settings
+
+    s = get_settings()
+    pairs = [(60, s.QUOTE_LIMIT_PER_MINUTE), (86400, s.QUOTE_LIMIT_PER_DAY)]
+    production = s.is_production or s.production_named
+    return [(w, n if n > 0 else default) for (w, n), default in zip(pairs, (60, 2000)) if n > 0 or production]
+
+
+async def _quote_wait(user_id: uuid.UUID) -> int:
+    """0 if this person may quote now (and the quote is counted), else the seconds to wait."""
+    from shared.redis import get_redis
+
+    limits = quote_limits()
+    if not limits:
+        return 0
+    redis = await get_redis()
+    keys = [f"rl:quote:{window}:{user_id}" for window, _ in limits]
+    counts = await redis.mget(keys)
+    for (window, limit), key, count in zip(limits, keys, counts):
+        if count is not None and int(count) >= limit:
+            return max(1, int(await redis.ttl(key) or window))
+    for (window, _), key in zip(limits, keys):
+        if await redis.incr(key) == 1:
+            await redis.expire(key, window)
+    return 0
+
+
 @router.post("/quote", response_model=QuoteOut)
 async def quote(data: QuoteRequest, user: Annotated[CurrentUser, Depends(get_current_user)], db: DB) -> QuoteOut:
     """Price a bag: every line of the bill, and a token valid for 10 minutes.
-    Checkout charges exactly this total."""
+    Checkout charges exactly this total. 429 TOO_MANY_QUOTES (retry_after) past
+    QUOTE_LIMIT_PER_MINUTE (60) or QUOTE_LIMIT_PER_DAY (2000) for one person."""
+    wait = await _quote_wait(user.id)
+    if wait:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, headers={"Retry-After": str(wait)}, detail={
+            "code": "TOO_MANY_QUOTES", "message": f"Too many price checks. Try again in {wait} seconds.", "retry_after": wait})
     try:
         return await QuoteService(db).quote(user.id, data)
     except QuoteError as e:

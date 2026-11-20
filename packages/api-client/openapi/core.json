@@ -15108,34 +15108,6 @@
         "title": "WalletBalanceResponse",
         "type": "object"
       },
-      "WalletTopupRequest": {
-        "properties": {
-          "amount": {
-            "exclusiveMinimum": 0.0,
-            "title": "Amount",
-            "type": "number"
-          },
-          "currency": {
-            "examples": [
-              "INR"
-            ],
-            "pattern": "^[A-Z]{3}$",
-            "title": "Currency",
-            "type": "string"
-          },
-          "payment_method_id": {
-            "title": "Payment Method Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "amount",
-          "currency",
-          "payment_method_id"
-        ],
-        "title": "WalletTopupRequest",
-        "type": "object"
-      },
       "WalletTransactionListResponse": {
         "properties": {
           "items": {
@@ -24953,7 +24925,7 @@
     },
     "/api/v1/pricing/quote": {
       "post": {
-        "description": "Price a bag: every line of the bill, and a token valid for 10 minutes.\nCheckout charges exactly this total.",
+        "description": "Price a bag: every line of the bill, and a token valid for 10 minutes.\nCheckout charges exactly this total. 429 TOO_MANY_QUOTES (retry_after) past\nQUOTE_LIMIT_PER_MINUTE (60) or QUOTE_LIMIT_PER_DAY (2000) for one person.",
         "operationId": "quote_api_v1_pricing_quote_post",
         "requestBody": {
           "content": {
@@ -29758,52 +29730,6 @@
           }
         ],
         "summary": "Get Wallet Balance",
-        "tags": [
-          "Wallet"
-        ]
-      }
-    },
-    "/api/v1/wallet/topup": {
-      "post": {
-        "operationId": "topup_wallet_api_v1_wallet_topup_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletTopupRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WalletBalanceResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "summary": "Topup Wallet",
         "tags": [
           "Wallet"
         ]
