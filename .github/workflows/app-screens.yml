@@ -141,9 +141,12 @@ jobs:
           python tools/mobile/hours.py open
 
       - name: Maestro
+        env:
+          MAESTRO_VERSION: "2.12.1"  # pinned (R21): every run on the same Maestro, so a failure can be compared
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Enable KVM
         run: |
