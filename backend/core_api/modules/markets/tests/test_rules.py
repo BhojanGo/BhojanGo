@@ -37,6 +37,13 @@ def test_merge_and_reset_overrides() -> None:
         rules.check_overrides({"currency": "USD"})
 
 
+@pytest.mark.parametrize("key", ["review_only", "review_accounts"])
+def test_review_accounts_are_never_set_through_the_api(key: str) -> None:
+    """R21 S6: a review account's orders cost nothing; only tools/review_accounts.py names them."""
+    with pytest.raises(MarketRuleError, match=key):
+        rules.check_overrides({key: True if key == "review_only" else ["00000000-0000-0000-0000-000000000001"]})
+
+
 def checklist(country="live", region="live", hours=True, zones=(ZoneState("live"),), priced=True, payouts="razorpay_route"):
     return rules.launch_checklist(country_status=country, region_status=region,
                                   service_hours={"open": "07:00", "close": "23:00"} if hours else None,

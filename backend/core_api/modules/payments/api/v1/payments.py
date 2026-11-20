@@ -23,7 +23,6 @@ from core_api.modules.payments.schemas.payment import (
     RefundRequest,
     RefundResponse,
     WalletBalanceResponse,
-    WalletTopupRequest,
     WalletTransactionListResponse,
     WalletTransactionResponse,
 )
@@ -238,6 +237,12 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
     if not intent:
         logger.warning("webhook_intent_not_found", provider=gateway_name, provider_id=event["provider_payment_id"])
         return {"received": True}
+    if intent.provider != gateway_name:
+        # R21 security review (S2): a provider only ever settles its own payments. One
+        # provider's event naming another's payment id is refused (it would place the order unpaid).
+        logger.warning("webhook_provider_mismatch", provider=gateway_name, intent_provider=intent.provider,
+                       intent_id=str(intent.id))
+        return {"received": True, "ignored": "provider_mismatch"}
 
     new_status = event["status"]
     if intent.status == new_status or intent.status in ("refunded", "partially_refunded"):
@@ -475,21 +480,9 @@ def _refund_out(r) -> dict:  # type: ignore[no-untyped-def]
 wallet_router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
 
-@wallet_router.post("/topup", response_model=WalletBalanceResponse)
-async def topup_wallet(
-    data: WalletTopupRequest,
-    current_user: Annotated[CurrentUser, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
-) -> WalletBalanceResponse:
-    wallet_repo = WalletRepository(db)
-    wallet, _ = await wallet_repo.credit(
-        current_user.id,
-        amount=data.amount,
-        description=f"Wallet top-up via {data.payment_method_id}",
-        reference_id=data.payment_method_id,
-        reference_type="topup",
-    )
-    return WalletBalanceResponse.model_validate(wallet)
+# R21 security review (S3): there is no wallet top-up. The old POST /wallet/topup credited
+# any amount without taking a payment, and the balance then paid for real orders
+# (payment_method_type "wallet"). A wallet is credited only by refunds of wallet payments.
 
 
 @wallet_router.get("/balance", response_model=WalletBalanceResponse)

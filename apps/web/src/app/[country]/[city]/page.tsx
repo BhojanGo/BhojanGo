@@ -14,6 +14,7 @@ import { lowestFee, pricingOf, waitingOf } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { cityFaq } from "./faq";
 import { getContext } from "@/lib/prefs";
+import { jsonLdHtml } from "@/lib/jsonLd";
 import { cityPage, discover, exampleBill, SITE, type CityPage, type KitchenCard as Kitchen } from "@/lib/server";
 
 type Params = Promise<{ country: string; city: string }>;
@@ -98,7 +99,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <section className="relative overflow-hidden bg-[#111418]">
         {/* eslint-disable-next-line @next/next/no-img-element -- local WebP sizes from the photo library */}
         {cover && <img src={cover} alt="" className="absolute inset-0 block h-full w-full object-cover" />}

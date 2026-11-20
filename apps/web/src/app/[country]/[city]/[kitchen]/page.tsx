@@ -10,6 +10,7 @@ import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
 import { BrandTile, kitchenPhoto } from "@/components/KitchenPhoto";
 import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
+import { jsonLdHtml } from "@/lib/jsonLd";
 import { shownPauses } from "@/lib/pauses";
 import { discover, menu, orderingPauses, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
@@ -132,7 +133,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
 
   return (
     <div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <section className="relative h-[clamp(160px,28svh,200px)] overflow-hidden md:h-[clamp(180px,32svh,300px)]">
         <Img src={cover} />
         <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_40%,rgba(17,20,24,0.55)_100%)]" />

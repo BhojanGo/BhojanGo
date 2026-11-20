@@ -3224,7 +3224,8 @@ export interface paths {
         /**
          * Quote
          * @description Price a bag: every line of the bill, and a token valid for 10 minutes.
-         *     Checkout charges exactly this total.
+         *     Checkout charges exactly this total. 429 TOO_MANY_QUOTES (retry_after) past
+         *     QUOTE_LIMIT_PER_MINUTE (60) or QUOTE_LIMIT_PER_DAY (2000) for one person.
          */
         post: operations["quote_api_v1_pricing_quote_post"];
         delete?: never;
@@ -4626,23 +4627,6 @@ export interface paths {
         get: operations["get_wallet_balance_api_v1_wallet_balance_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wallet/topup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Topup Wallet */
-        post: operations["topup_wallet_api_v1_wallet_topup_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10282,18 +10266,6 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
-        };
-        /** WalletTopupRequest */
-        WalletTopupRequest: {
-            /** Amount */
-            amount: number;
-            /**
-             * Currency
-             * @example INR
-             */
-            currency: string;
-            /** Payment Method Id */
-            payment_method_id: string;
         };
         /** WalletTransactionListResponse */
         WalletTransactionListResponse: {
@@ -18900,39 +18872,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WalletBalanceResponse"];
-                };
-            };
-        };
-    };
-    topup_wallet_api_v1_wallet_topup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WalletTopupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WalletBalanceResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

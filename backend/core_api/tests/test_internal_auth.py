@@ -41,3 +41,15 @@ def test_production_refuses_the_local_secret(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(s, "INTERNAL_SERVICE_SECRET", internal_auth.LOCAL_DEFAULT)
     with pytest.raises(InternalAuthError, match="production"):
         internal_auth.sign("GET", "/p", b"")
+
+
+def test_a_production_named_environment_refuses_the_local_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R21: Railway's environment name says production even if APP_ENV doesn't."""
+    from shared.config import get_settings
+
+    s = get_settings()
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "production")
+    monkeypatch.setattr(s, "INTERNAL_SERVICE_SECRET", internal_auth.LOCAL_DEFAULT)
+    assert not s.is_production
+    with pytest.raises(InternalAuthError, match="production"):
+        internal_auth.sign("GET", "/p", b"")

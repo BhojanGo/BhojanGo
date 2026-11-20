@@ -33,12 +33,13 @@ async def create_order(
 
 
 def verify_webhook_signature(payload: bytes, sig_header: str) -> bool:
-    expected = hmac.new(
-        settings.payments.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
-        payload,
-        hashlib.sha256,
-    ).hexdigest()
-    return hmac.compare_digest(expected, sig_header)
+    # R21 security review (S2): no secret means no webhook. An empty key is public, so
+    # anyone could sign a "payment.captured" with it (production has no Razorpay keys).
+    secret = settings.payments.RAZORPAY_WEBHOOK_SECRET
+    if not secret:
+        return False
+    expected = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, sig_header or "")
 
 
 async def process_webhook(payload: bytes, sig_header: str) -> dict:

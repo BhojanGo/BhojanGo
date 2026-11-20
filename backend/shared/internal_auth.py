@@ -22,7 +22,8 @@ class InternalAuthError(Exception):
 def _secret() -> bytes:
     s = get_settings()
     secret = s.INTERNAL_SERVICE_SECRET
-    if s.is_production and (not secret or secret == LOCAL_DEFAULT):
+    # R21: also when only Railway's environment name says production (APP_ENV mistyped).
+    if (s.is_production or s.production_named) and (not secret or secret == LOCAL_DEFAULT):
         raise InternalAuthError("INTERNAL_SERVICE_SECRET must be set in production")
     return secret.encode()
 

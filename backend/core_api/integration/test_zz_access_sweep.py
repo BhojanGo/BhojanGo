@@ -189,7 +189,6 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/me/phone/verify"): user(body=lambda c: {"phone": "+919000099999", "code": "123456"}),
     ("POST", "/api/v1/me/mfa/recovery-codes"): user(body=lambda c: {"code": "123456"}),
     ("GET", "/api/v1/wallet/balance"): user(), ("GET", "/api/v1/wallet/transactions"): user(),
-    ("POST", "/api/v1/wallet/topup"): user(body=lambda c: {"amount": 1, "currency": "INR", "payment_method_id": "pm_x"}),
     ("POST", "/api/v1/pricing/quote"): user(body=lambda c: {"restaurant_id": c.spice, "items": _items(c),
                                                              "deliver_to": {"lat": 17.4483, "lng": 78.3915}}),
     ("GET", "/api/v1/pricing/quotes/{quote_id}"): user("other_customer"),
@@ -427,18 +426,20 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/incidents/ordering-pauses"): admin(
         "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in",
         body=lambda c: {"scope": "IN-TG-HYD", "reason": "sweep check", "confirm": True}),
+    # R21: a real (already ended) Hyderabad pause, so another city's or country's admin is checked too
     ("POST", "/api/v1/incidents/ordering-pauses/{pause_id}/end"): admin(
-        "viewer", "support_hyd", "finance_in", body=lambda c: {"reason": "sweep check", "confirm": True}),
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in", body=lambda c: {"reason": "sweep check", "confirm": True}),
     ("POST", "/api/v1/incidents/refunds/preview"): admin("ops_boi", "cm_us", "viewer", "support_hyd", "finance_us", body=_bulk),
     ("POST", "/api/v1/incidents/refunds"): admin(
         "ops_boi", "cm_us", "viewer", "support_hyd", "finance_us",
         body=lambda c: {**_bulk(c), "reason": "sweep check", "confirm": True}),
     ("GET", "/api/v1/incidents/refunds"): admin(),
-    ("GET", "/api/v1/incidents/refunds/{refund_id}"): admin("ops_boi"),
+    # R21: a real Hyderabad bulk refund (rejected, so nothing can run), not a made-up id
+    ("GET", "/api/v1/incidents/refunds/{refund_id}"): admin("ops_boi", "cm_us", "finance_us"),
     ("POST", "/api/v1/incidents/refunds/{refund_id}/approve"): admin(
-        "ops_boi", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
     ("POST", "/api/v1/incidents/refunds/{refund_id}/reject"): admin(
-        "ops_boi", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
+        "ops_boi", "cm_us", "viewer", "support_hyd", "finance_us", body=lambda c: {"note": "sweep check", "confirm": True}),
     ("GET", "/api/v1/incidents/messages/templates"): admin("viewer", "support_hyd", "finance_in"),
     ("POST", "/api/v1/incidents/messages/preview"): admin(
         "ops_boi", "cm_us", "viewer", "support_hyd", "finance_in", body=lambda c: {"city": "IN-TG-HYD", "template": "payment_problem"}),
@@ -476,18 +477,24 @@ class Ctx:
     payment_method: str = ""
     legal_doc: str = ""
     help_article: str = ""
+    # R21: real rows for the ids the sweep used to make up (a refusal for a missing row proves nothing)
+    offer: str = ""
+    tier_change: str = ""
+    pause: str = ""
+    bulk_refund: str = ""
+    message: str = ""
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
                   "address_id": self.address, "quote_id": self.quote, "payment_intent_id": self.intent,
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
-                  "offer_id": str(uuid.UUID(int=7)), "slug": "spice-route-kitchen-madhapur",
-                  "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": str(uuid.UUID(int=9)),
+                  "offer_id": self.offer, "slug": "spice-route-kitchen-madhapur",
+                  "document_id": self.rider_doc, "ticket_id": self.ticket, "change_id": self.tier_change,
                   "payment_method_id": self.payment_method, "article_id": self.help_article, "topic": "orders", "kind": "restaurant", "target_id": self.spice,
                   "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
-                  "pause_id": str(uuid.UUID(int=11)), "refund_id": str(uuid.UUID(int=12)), "message_id": str(uuid.UUID(int=13)),
+                  "pause_id": self.pause, "refund_id": self.bulk_refund, "message_id": self.message,
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
 
@@ -536,6 +543,17 @@ async def _teardown(c: Ctx) -> None:
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         await client.post(f"/api/v1/rules/{c.rule}/end", headers=_h(c, "cm_in"), json={})
+        if c.offer:
+            await client.post(f"{R.format(restaurant_id=c.spice)}/offers/{c.offer}/end", headers=_h(c, "partner"))
+    if c.tier_change:
+        from sqlalchemy import text
+
+        from shared.db import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("UPDATE restaurant_tier_changes SET status = 'rejected' WHERE id = :i AND status = 'pending'"),
+                             {"i": c.tier_change})
+            await db.commit()
     await close_redis()
     await engine.dispose()
 
@@ -590,6 +608,11 @@ async def _build() -> Ctx:
         c.group = r.json()["id"]
         r = await client.post(f"{R.format(restaurant_id=c.spice)}/callback", headers=partner, json={"topic": "other", "note": "Access sweep"})
         c.ticket = r.json()["id"]
+        # R21: a kitchen offer that never applies (minimum far above any cart); ended in teardown
+        r = await client.post(f"{R.format(restaurant_id=c.spice)}/offers", headers=partner, json={
+            "template": "free_delivery", "name": "Access sweep offer", "weekly_cap": "1", "min_subtotal": "999999"})
+        assert r.status_code == 201, r.text
+        c.offer = next(o["id"] for o in r.json() if o["name"] == "Access sweep offer")
         cm = {k: v for k, v in tokens["cm_in"].items() if k != "_id"}
         r = await client.post("/api/v1/rules", headers=cm, json={
             "family": "business", "template": "cancel_window", "params": {"minutes": 2}, "name": "Access sweep",
@@ -611,6 +634,31 @@ async def _build() -> Ctx:
             c.assignment = str((await db.execute(text(
                 "SELECT a.id FROM admin_role_assignments a JOIN users u ON u.id = a.user_id "
                 "WHERE u.email = 'ops.hyd@example.com' LIMIT 1"))).scalar())
+            # R21: a quick message on the order, an ended pause and a rejected bulk refund in Hyderabad,
+            # and a pending tier change for Spice Route (rejected in teardown).
+            from datetime import UTC, datetime
+
+            from core_api.modules.incidents.models import BulkRefund, OrderingPause
+            from core_api.modules.orders.models.message import OrderMessage
+            from core_api.modules.rules.models import TierChange
+
+            msg = OrderMessage(order_id=uuid.UUID(c.order), sender_id=uuid.UUID(c.customer_id), sender_role="customer",
+                               preset="outside", text="I'm outside")
+            ops_id, fin_id, cm_id = (uuid.UUID(tokens[a]["_id"]) for a in ("ops_hyd", "finance_in", "cm_in"))
+            pause = OrderingPause(scope="IN-TG-HYD", area="Hyderabad", reason="Access sweep", created_by=ops_id,
+                                  ended_at=datetime.now(UTC), ended_by=ops_id)
+            bulk = BulkRefund(market_city="IN-TG-HYD", filters={}, mode="full", reason="Access sweep", orders=[], count=0,
+                              total=0, currency="INR", status="rejected", requested_by=fin_id, results=[])
+            tier = TierChange(restaurant_id=uuid.UUID(c.spice), from_tier=None, to_tier="C", note="Access sweep",
+                              scope="IN-TG-HYD", status="pending", requested_by=cm_id)
+            db.add_all([msg, pause, bulk])
+            if not (await db.execute(text("SELECT 1 FROM restaurant_tier_changes WHERE restaurant_id = :r AND status = 'pending'"),
+                                     {"r": c.spice})).first():
+                db.add(tier)
+            await db.flush()
+            c.message, c.pause, c.bulk_refund = str(msg.id), str(pause.id), str(bulk.id)
+            c.tier_change = str(tier.id) if tier.id else str((await db.execute(text(
+                "SELECT id FROM restaurant_tier_changes WHERE restaurant_id = :r AND status = 'pending'"), {"r": c.spice})).scalar())
             # A payout run in the distant past with statements for Spice Route and the rider.
             from core_api.modules.finance.models import PayoutRun, PayoutStatement
 
