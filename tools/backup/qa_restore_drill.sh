@@ -29,9 +29,21 @@ case "$DATABASE_URL" in *@localhost:*|*@127.0.0.1:*) ;; *) fail "DATABASE_URL mu
 PGIMG="${PG_IMAGE:-postgis/postgis:16-3.7}"
 pgr() { docker run --rm --network host -v "$WORK:/w" "$PGIMG" pg_restore "$@"; }
 
-# One command run inside QA's Postgres container (the service's own variables are there).
-# Sent base64-encoded, so no quoting survives `railway ssh` joining its arguments.
-remote() { timeout "${SSH_TIMEOUT:-900}" "$RW" ssh --service "$SVC" "echo $(printf '%s' "$1" | base64 -w0) | base64 -d | sh" </dev/null; }
+# Where the backup comes from:
+#   SOURCE_PSQL_URL set: a database on this runner built the way QA is (seed + demo seed): the
+#     drill used while QA can't be read (see docs/launch/incident-plan.md, "Restore drill").
+#   otherwise QA itself: one command run inside QA's Postgres container over `railway ssh`
+#     (the service's own variables are there), sent base64-encoded so no quoting is lost.
+#     Railway's CLI (4.x+) needs an SSH key registered on the Railway account for this.
+SOURCE="${SOURCE_PSQL_URL:+seeded copy}"; SOURCE="${SOURCE:-QA}"
+remote() {
+  if [ -n "${SOURCE_PSQL_URL:-}" ]; then
+    local u="${SOURCE_PSQL_URL#*://}"; local cred="${u%%@*}"; local hp="${u#*@}"; local db="${hp#*/}"; hp="${hp%%/*}"
+    POSTGRES_USER="${cred%%:*}" POSTGRES_PASSWORD="${cred#*:}" POSTGRES_DB="$db" PGPORT="${hp#*:}"       docker run --rm -i --network host -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB -e PGPORT "$PGIMG" sh -c "$1"
+  else
+    timeout "${SSH_TIMEOUT:-900}" "$RW" ssh --service "$SVC" "echo $(printf '%s' "$1" | base64 -w0) | base64 -d | sh" </dev/null
+  fi
+}
 
 COUNT_SQL='SELECT format($q$SELECT %L, count(*) FROM %I.%I$q$, table_schema || $q$.$q$ || table_name, table_schema, table_name)
 FROM information_schema.tables
@@ -40,14 +52,14 @@ WHERE table_type = $q$BASE TABLE$q$ AND table_schema NOT IN ($q$pg_catalog$q$, $
                   WHERE d.deptype = $q$e$q$ AND c.relname = table_name AND c.relnamespace = table_schema::regnamespace)
 ORDER BY 1 \gexec'
 
-step "1. back up QA (pg_dump in QA's Postgres container, read-only)"
+step "1. back up ($SOURCE)"
 t0=$(now)
 # The newest row's time in QA, for RPO: what a backup taken now would hold.
 remote 'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAt -c "SELECT now(), pg_database_size(current_database()), (SELECT version_num FROM alembic_version)"' \
   | tr -d '\r' | grep -E '^[0-9]{4}-' | tail -1 > "$WORK/qa-meta.txt" || fail "couldn't reach QA's Postgres over railway ssh"
 [ -s "$WORK/qa-meta.txt" ] || fail "no answer from QA's Postgres (railway ssh)"
 IFS='|' read -r qa_now qa_bytes qa_rev < "$WORK/qa-meta.txt"
-echo "QA database: $(( qa_bytes / 1024 / 1024 )) MB on disk, migration $qa_rev, clock $qa_now"
+echo "$SOURCE database: $(( qa_bytes / 1024 / 1024 )) MB on disk, migration $qa_rev, clock $qa_now"
 # Row counts first, then the dump: QA's demo rider simulator may add rows in between (reported, not failed).
 printf '%s\n' "$COUNT_SQL" > "$WORK/count.sql"
 remote "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -h 127.0.0.1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -qAt -F ' ' <<'SQL'
@@ -117,11 +129,11 @@ t_verify=$(( $(now) - t0 ))
 step "4. RTO and RPO"
 total=$(( $(now) - t_all ))
 echo "backup ${t_backup} s · restore ${t_restore} s · checks ${t_verify} s · whole drill ${total} s"
-echo "RPO of this drill: 0 (a backup taken now, at $qa_now). QA has no scheduled backups: see docs/launch/incident-plan.md."
+echo "source: $SOURCE. RPO of this drill: 0 (a backup taken now, at $qa_now). QA has no scheduled backups: see docs/launch/incident-plan.md."
 {
-  echo "### QA restore drill"
+  echo "### Restore drill (source: $SOURCE)"
   echo "| Step | Time |"; echo "|---|---|"
-  echo "| Back up QA (pg_dump over railway ssh, $(( qa_bytes / 1024 / 1024 )) MB database) | ${t_backup} s |"
+  echo "| Back up ($SOURCE, $(( qa_bytes / 1024 / 1024 )) MB database) | ${t_backup} s |"
   echo "| Restore into a throwaway database | ${t_restore} s |"
   echo "| Checks (migrations, row counts, health, finance invariants) | ${t_verify} s |"
   echo "| **Whole drill** | **${total} s** |"
