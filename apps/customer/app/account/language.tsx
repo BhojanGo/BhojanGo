@@ -26,7 +26,7 @@ export default function LanguageScreen() {
       <ScrollView contentContainerStyle={ui.scroll}>
         <Section title={country ? t("header.language_title", { country: country.name }) : t("header.language")} testID="language-section">
           <Text style={ui.muted}>{t("account.profile.language_note")}</Text>
-          <LanguagePicker onChange={remember} />
+          <LanguagePicker onChange={remember} addressNote />
         </Section>
       </ScrollView>
     </SafeAreaView>

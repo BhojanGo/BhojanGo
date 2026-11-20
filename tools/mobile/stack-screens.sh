@@ -3,6 +3,7 @@
 # apps/<app>/.maestro/stack/ on an Android emulator, against a throwaway local stack.
 # Runs on GitHub Actions (.github/workflows/app-screens.yml), never against QA.
 #   tools/mobile/stack-screens.sh <device: phone|tablet> <app> [app ...]
+#   FLOWS="01-onboarding-new 02-onboarding-seed" REPEAT=20 ...  only those flows, in that order, N times (R21)
 # Needs: the stack on localhost (core 8001, realtime 8004), the APKs in .apk/,
 # Maestro on PATH, emulator-5554 booted. Screenshots go to $OUT/<app>-<device>/.
 set -u
@@ -18,6 +19,10 @@ COMPOSE="docker compose -f $ROOT/infra/docker/compose.yaml"
 # Tests never write to QA or production: the stack must be this machine's.
 python3 "$ROOT/tools/target_guard.py" api http://localhost:8001 http://localhost:8004 || exit 3
 
+FLOWS="${FLOWS:-}"
+REPEAT="${REPEAT:-1}"
+# R21: a device log big enough to hold a whole flow, kept in full when a flow fails.
+adb -s "$DEVICE" logcat -G 16M >/dev/null 2>&1
 adb -s "$DEVICE" shell settings put global hide_error_dialogs 1 >/dev/null 2>&1
 adb -s "$DEVICE" shell settings put global window_animation_scale 0 >/dev/null 2>&1
 adb -s "$DEVICE" shell settings put global transition_animation_scale 0 >/dev/null 2>&1
@@ -54,10 +59,14 @@ EOF
   sh "$ROOT/tools/mobile/warm-up.sh" "$DEVICE" "$pkg" "$LOGS/metro-$app.log" 600
   # The phone waits in Madhapur (geo fix: longitude latitude); customers use saved addresses.
   adb -s "$DEVICE" emu geo fix 78.3925 17.4495 >/dev/null
-  for flow in $(cd "$ROOT/apps/$app/.maestro/stack" && ls *.yaml); do
+  if [ -n "$FLOWS" ]; then list=""; for f in $FLOWS; do [ -f "$ROOT/apps/$app/.maestro/stack/$f.yaml" ] && list="$list $f.yaml"; done
+  else list="$(cd "$ROOT/apps/$app/.maestro/stack" && ls *.yaml)"; fi
+  for run in $(seq 1 "$REPEAT"); do
+  for flow in $list; do
     # Every flow starts with a fresh sign-in: reset the OTP send counters.
     $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_*' | xargs -r redis-cli -n 0 del" >/dev/null 2>&1
     name="$app-${flow%.yaml}"
+    [ "$REPEAT" -gt 1 ] && name="$name-run$run"
     # R18: a flow that needs an incident pause on the stack (tools/mobile/incident_pause.py on/off around it).
     pause=0
     case "$flow" in *incident-pause*) pause=1; python3 "$ROOT/tools/mobile/incident_pause.py" on > "$LOGS/$name-pause.log" 2>&1 ;; esac
@@ -65,9 +74,12 @@ EOF
     # warnings"; the JS console also goes to logcat as ReactNativeJS), one file per flow.
     adb -s "$DEVICE" logcat -c >/dev/null 2>&1
     if (cd "$OUT" && timeout 600 maestro --device "$DEVICE" test "$ROOT/apps/$app/.maestro/stack/$flow") > "$LOGS/$name.log" 2>&1; then
-      echo "PASS $name"
+      echo "PASS $name"; echo "${name%-run*} PASS" >> "$LOGS/tally.txt"
     else
-      echo "FAIL $name"; tail -30 "$LOGS/$name.log"; fail=1
+      echo "FAIL $name"; tail -30 "$LOGS/$name.log"; fail=1; echo "${name%-run*} FAIL" >> "$LOGS/tally.txt"
+      # R21: the whole device log of this flow (the Maestro driver's start, the system's kills).
+      adb -s "$DEVICE" logcat -d -v threadtime > "$LOGS/$name-logcat.log" 2>/dev/null
+      { adb -s "$DEVICE" forward --list; adb -s "$DEVICE" shell ps -A -o PID,NAME | grep -iE "maestro|bhojango"; } > "$LOGS/$name-device.txt" 2>&1
       adb -s "$DEVICE" exec-out screencap -p > "$LOGS/$name-failed.png" 2>/dev/null
       # Maestro's own debug output (screenshot at the failure, view hierarchy).
       last="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
@@ -77,6 +89,7 @@ EOF
     n=$(grep -c '^[WE]/ReactNativeJS' "$LOGS/$name-js-warnings.log" 2>/dev/null); echo "   $name: ${n:-0} JS warnings/errors (logs/$name-js-warnings.log)"
     curl -s -m 5 localhost:8011/__slow/off >/dev/null
     [ "$pause" = 1 ] && python3 "$ROOT/tools/mobile/incident_pause.py" off >> "$LOGS/$name-pause.log" 2>&1
+  done
   done
   kill "$METRO" 2>/dev/null; wait "$METRO" 2>/dev/null
   pkill -f "expo start" 2>/dev/null; pkill -f "metro" 2>/dev/null; sleep 3
@@ -92,5 +105,10 @@ done
 # Every distinct JS warning and error the flows hit (first line of each), most frequent first.
 echo "== JS warnings and errors (ReactNativeJS in logcat)"
 cat "$LOGS"/*-js-warnings.log 2>/dev/null | grep '^[WE]/ReactNativeJS' | sed 's/([ 0-9]*)//' | sort | uniq -c | sort -rn | head -40
+if [ "$REPEAT" -gt 1 ] && [ -f "$LOGS/tally.txt" ]; then
+  echo "== Repeat tally (passed of runs)"
+  sort "$LOGS/tally.txt" | awk '{n[$1]++; if ($2 == "PASS") p[$1]++} END {for (f in n) printf "%s: %d of %d passed
+", f, p[f], n[f]}'
+fi
 ls -R "$OUT" | grep -v '^$'
 exit $fail

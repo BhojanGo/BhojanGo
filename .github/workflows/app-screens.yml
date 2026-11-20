@@ -15,6 +15,16 @@ on:
   push:
     branches: ["screens/**"]
   workflow_dispatch:
+    inputs:
+      apps:
+        description: "Only these apps, phone only (e.g. rider). Empty: every app on both devices"
+        default: ""
+      flows:
+        description: "Only these flows, in this order (e.g. 01-onboarding-new 02-onboarding-seed)"
+        default: ""
+      repeat:
+        description: "Run the flows this many times (R21: flake hunting)"
+        default: "1"
 
 permissions:
   contents: read
@@ -71,7 +81,7 @@ jobs:
     name: Screens (${{ matrix.device }})
     needs: apk
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -139,7 +149,11 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Flows on the emulator (tools/mobile/stack-screens.sh)
+        if: inputs.apps == '' || matrix.device == 'phone'
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          FLOWS: ${{ inputs.flows }}
+          REPEAT: ${{ inputs.repeat || '1' }}
         with:
           api-level: 34
           target: google_apis
@@ -149,7 +163,7 @@ jobs:
           disk-size: 6000M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           disable-animations: true
-          script: bash tools/mobile/stack-screens.sh ${{ matrix.device }} ${{ matrix.apps }}
+          script: bash tools/mobile/stack-screens.sh ${{ matrix.device }} ${{ inputs.apps || matrix.apps }}
 
       - name: Screenshots
         if: always()
