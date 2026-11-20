@@ -1742,7 +1742,8 @@
     "place": "{city}, {country}",
     "change_city": "Cambiar ciudad",
     "set": "Indica tu ubicación de entrega",
-    "delivers_here": "Entregamos aquí"
+    "delivers_here": "Entregamos aquí",
+    "change": "Cambiar"
   },
   "deliver_page": {
     "meta_title": "Reparte con BhojanGo",

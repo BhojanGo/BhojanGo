@@ -105,7 +105,7 @@ test("the apps' bundle has every language, and the apps' keys exist", () => {
   }
 });
 
-test("location line (R8): address, then a chosen city, then the IP place as itself, else nothing; never the first live city", () => {
+test("location line: address, then a chosen city, then an IP guess only inside a live zone, else nothing; never the first live city", () => {
   const { resolveLocation } = require("..");
   const cities = [
     { code: "IN-TG-HYD", name: "Hyderabad", country: "IN", status: "live" },
@@ -126,13 +126,22 @@ test("location line (R8): address, then a chosen city, then the IP place as itse
   assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served], ["chosen", "Nampa", "US", "US-ID-NMP", false]);
   // a chosen city Markets no longer lists is ignored
   assert.equal(resolveLocation({ chosen: "US-ID-XXX" }, cities).source, "none");
-  // 3. the IP's own town, with its state's code; "We deliver here" only inside a live zone
+  // 3. an IP guess inside a live zone names that live city (not the IP's own town), with its state's code
   r = resolveLocation({ ip: meridian }, cities);
-  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served, r.deliversHere], ["ip", "Meridian", "ID", "US-ID-BOI", true, true]);
-  r = resolveLocation({ ip: { country: "US", place: "Challis", region_code: "ID", served: false } }, cities);
-  assert.deepEqual([r.source, r.place, r.code, r.city, r.served, r.deliversHere], ["ip", "Challis", "ID", null, false, false]);
-  r = resolveLocation({ ip: { country: "US", place: "Columbus", region_code: null, served: false } }, cities);
+  assert.deepEqual([r.source, r.place, r.code, r.city?.code, r.served], ["ip", "Boise", "ID", "US-ID-BOI", true]);
+  r = resolveLocation({ ip: { ...meridian, region_code: null } }, cities);
   assert.equal(r.code, "US"); // no state code known: the country's
+  // an IP guess outside every live zone shows nothing guessed: Nampa (a coming-soon city next to Boise),
+  // a town in no city, a town in another country
+  const none = { source: "none", place: null, code: null, city: null, served: false, deliversHere: false };
+  for (const ip of [
+    { country: "US", place: "Nampa", region_code: "ID", city_code: null, served: false },
+    { country: "US", place: "Nampa", region_code: "ID", city_code: "US-ID-NMP", served: true }, // a hint naming a city that isn't live
+    { country: "US", place: "Challis", region_code: "ID", served: false },
+    { country: "US", place: "Boise", region_code: "ID", city_code: "IN-TG-HYD", served: true }, // a live city of another country
+  ]) {
+    assert.deepEqual(resolveLocation({ ip }, cities), none, JSON.stringify(ip));
+  }
   // 4. nothing known (or an IP with a country but no town): "Set your delivery location", no city at all
   for (const ev of [{}, { ip: { country: "US", place: null } }, { ip: null, chosen: null, address: null }]) {
     assert.deepEqual(resolveLocation(ev, cities), { source: "none", place: null, code: null, city: null, served: false, deliversHere: false });
