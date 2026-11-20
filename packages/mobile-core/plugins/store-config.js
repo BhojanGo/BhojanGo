@@ -9,6 +9,8 @@
 //   - EXPO_PUBLIC_APP_ENV is not "production" (a QA .env.local left on the machine),
 //   - an API or web address is missing, not https, localhost/an emulator address, or a placeholder,
 //   - a store id the app needs is still a placeholder.
+//   - EXPO_PUBLIC_TEST_GET_TIMEOUT_MS is set (R23: the throwaway test stack's longer GET
+//     timeout; the app ignores it outside a local build anyway).
 // Other builds (development, preview, expo start) take whatever ids are real and skip the rest.
 "use strict";
 
@@ -71,6 +73,7 @@ function productionProblems(store, appKey, env) {
   const problems = [];
   const appEnv = String(env.EXPO_PUBLIC_APP_ENV || "").trim().toLowerCase();
   if (appEnv !== "production") problems.push(`EXPO_PUBLIC_APP_ENV is "${env.EXPO_PUBLIC_APP_ENV || ""}", not "production"`);
+  if (String(env.EXPO_PUBLIC_TEST_GET_TIMEOUT_MS || "").trim()) problems.push("EXPO_PUBLIC_TEST_GET_TIMEOUT_MS is set (a test-stack .env.local left on the machine)");
   for (const name of URL_VARS) {
     const p = urlProblem(name, env[name]);
     if (p) problems.push(p);

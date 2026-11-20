@@ -41,13 +41,18 @@ for app in "$@"; do
   case "$app" in customer) pkg=com.bhojango.app ;; *) pkg="com.bhojango.$app" ;; esac
   adb -s "$DEVICE" install -r "$ROOT/.apk/$app-debug.apk" > "$LOGS/install-$app.log" 2>&1 || { echo "install $app failed"; cat "$LOGS/install-$app.log"; fail=1; continue; }
   core=http://localhost:8001
-  [ "$app" = customer ] && core=http://localhost:8011
+  # R23: the customer app talks to core through slow_proxy.py, whose holds only a flow's
+  # release ends (01-loading): its GETs wait 150 s here, not 8 s (getTimeoutMs in
+  # packages/mobile-core/src/load.ts; local builds only, never production or QA).
+  get_timeout=
+  [ "$app" = customer ] && core=http://localhost:8011 && get_timeout=150000
   cat > "$ROOT/apps/$app/.env.local" <<EOF
 EXPO_PUBLIC_APP_ENV=local
 EXPO_PUBLIC_ENV=local
 EXPO_PUBLIC_CORE_URL=$core
 EXPO_PUBLIC_REALTIME_URL=http://localhost:8004
 EXPO_PUBLIC_WEB_URL=
+EXPO_PUBLIC_TEST_GET_TIMEOUT_MS=$get_timeout
 EOF
   echo "== $app: Metro"
   (cd "$ROOT/apps/$app" && CI=1 exec pnpm exec expo start -c --port 8081) > "$LOGS/metro-$app.log" 2>&1 &

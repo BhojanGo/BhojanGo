@@ -6,7 +6,8 @@ import { ApiError, createApi, unwrap, type CoreSchemas } from "@bhojango/api-cli
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
-import { FIRST_LOAD_TIMEOUT_MS, timeoutFetch } from "./load";
+import { appEnv } from "./env";
+import { getTimeoutMs, timeoutFetch } from "./load";
 import { deviceLocale } from "./locale";
 
 const env = (k: string, fallback: string) => (process.env as Record<string, string | undefined>)[k] || fallback;
@@ -194,7 +195,9 @@ export const api = createApi({
   refreshAccessToken: () => useSession.getState().refresh(),
   onSignedOut: () => void useSession.getState().signOut(),
   // R9: a GET that hangs fails after 8 s, so a screen shows "Can't reach BhojanGo" and Retry (load.ts).
-  fetch: timeoutFetch(FIRST_LOAD_TIMEOUT_MS),
+  // R23: a throwaway-stack build may ask for longer (getTimeoutMs; never production or QA).
+  // Written out in full so Expo inlines it.
+  fetch: timeoutFetch(getTimeoutMs(appEnv(), process.env.EXPO_PUBLIC_TEST_GET_TIMEOUT_MS)),
 });
 
 /**
