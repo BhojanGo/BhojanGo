@@ -447,7 +447,8 @@
     "view_order": "View your order",
     "stripe_update_app": "This version of the app can't open the card payment screen. Please update BhojanGo to pay.",
     "back_home": "Back to home",
-    "payments_unavailable": "Payments aren't available in this city yet."
+    "payments_unavailable": "Payments aren't available in this city yet.",
+    "place_free": "Place order"
   },
   "track": {
     "title": "Your order",

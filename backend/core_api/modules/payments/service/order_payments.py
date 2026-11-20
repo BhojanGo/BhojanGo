@@ -2,6 +2,9 @@
 
 * ``refund_in_full``: give back everything still refundable on an order
   (cancelled after it was paid, or paid after it was cancelled).
+* ``place_review_order`` (R20): an app store review order costs nothing; it is
+  paid on the spot with no payment provider (a $0 PaymentIntent is refused by
+  Stripe, and there is nothing to charge).
 """
 import uuid
 from datetime import UTC, datetime
@@ -13,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.payments.models.payment import PaymentIntent, Refund
 from core_api.modules.payments.service.gateways import gateway_by_name
 from shared import outbox
+
+REVIEW_PROVIDER = "review"  # payment_intents.provider of a review order's (zero) payment
 
 logger = structlog.get_logger(__name__)
 
@@ -62,3 +67,23 @@ async def refund_in_full(db: AsyncSession, order_id: uuid.UUID, reason: str) -> 
         done = {"refund_id": result["refund_id"], "amount": remaining, "currency": intent.currency}
     await db.flush()
     return done
+
+
+async def place_review_order(db: AsyncSession, order_id: uuid.UUID, user_id: uuid.UUID, currency: str) -> None:
+    """Record a zero payment for an app store review order and place the order, in this
+    transaction, as a provider's webhook would (payment.succeeded, then placed). The
+    caller has checked it is one (orders: a review account's $0 order in its review-only
+    city); no payment provider is called. Idempotent: a second call changes nothing."""
+    from core_api.modules.payments.api.v1.payments import apply_payment_event
+    from core_api.modules.payments.repository.payment import PaymentRepository
+
+    provider_id = f"review:{order_id}"
+    repo = PaymentRepository(db)
+    if await repo.get_by_provider_id(provider_id) is None:
+        await repo.create_intent(
+            order_id=order_id, user_id=user_id, provider=REVIEW_PROVIDER, provider_payment_id=provider_id,
+            amount=0, currency=currency, status="pending", idempotency_key=f"{order_id}:review",
+            metadata_={"payment_method": "none", "review": True})
+    await apply_payment_event(db, REVIEW_PROVIDER, {"event_type": "payment.succeeded", "provider_payment_id": provider_id,
+                                                    "status": "succeeded", "event_id": provider_id})
+    logger.info("review_order_placed_without_payment", order_id=str(order_id))

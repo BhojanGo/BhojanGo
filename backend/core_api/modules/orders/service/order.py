@@ -231,7 +231,22 @@ class OrderService:
         await outbox.add(self.db, "order.created", "order", order.id,
                          _event_payload(order, payment_due_at=order.payment_due_at.isoformat()), SOURCE)  # type: ignore[union-attr]
         logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id), quote_id=q["quote_id"])
+        if ctx.get("review"):
+            await self._place_review_order(order)
         return order
+
+    async def _place_review_order(self, order: Order) -> None:
+        """R20: an app store review account's order in its review-only city was quoted at
+        zero (pricing engine ``review``). Checked again here, then placed at once with no
+        payment provider (payments.place_review_order). Anything else waits for payment."""
+        from core_api.modules.markets.service import review
+        from core_api.modules.payments.service.order_payments import place_review_order
+
+        settings_ = await review.city_settings(self.db, order.market_city)
+        if order.total != 0 or not review.is_review_account(settings_, order.customer_id):
+            logger.error("review_order_refused", order_id=str(order.id), total=str(order.total), city=order.market_city)
+            return  # it waits for payment like any order
+        await place_review_order(self.db, order.id, order.customer_id, order.currency)
 
     async def _add_payment_fees(self, q: dict, method: str) -> None:
         """Payment fees (item 1) go into the order's split once the method is known:

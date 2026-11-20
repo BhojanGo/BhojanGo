@@ -8,7 +8,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
-import { payMode, type ProviderAnswer } from "../lib/ordering";
+import { isFreeOrder, payMode, type ProviderAnswer } from "../lib/ordering";
 import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
 import { useWhere } from "../lib/where";
 
@@ -132,6 +132,8 @@ export default function Bag() {
       ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency) })
       : error;
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
+  // R20: nothing to pay (an app store review order): the server places it as it is made; no checkout.
+  const free = isFreeOrder(quote?.total);
 
   async function placeOrder(): Promise<string> {
     const order = unwrap(await api.core.POST("/api/v1/orders", {
@@ -169,6 +171,20 @@ export default function Bag() {
       }
       else if (r.kind === "unavailable") setError(t("checkout.stripe_update_app"));
       // cancelled: stay on the bag; the order waits with its price held
+    } catch (e) {
+      setError(errorMessage((e as { body?: unknown }).body));
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  /** Nothing to pay: place the order, which the server places at once, then open it. */
+  async function placeFree() {
+    if (!quote || !point || !free) return;
+    setPaying(true);
+    setError(null);
+    try {
+      await settle(await placeOrder());
     } catch (e) {
       setError(errorMessage((e as { body?: unknown }).body));
     } finally {
@@ -253,14 +269,14 @@ export default function Bag() {
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
         ) : (
           <Button
-            testID={blocked ? "pay-blocked" : mode === "unavailable" ? "pay-unavailable" : "pay"}
-            title={blocked ?? (mode === "unavailable" ? t("checkout.payments_unavailable")
+            testID={blocked ? "pay-blocked" : free ? "place-free" : mode === "unavailable" ? "pay-unavailable" : "pay"}
+            title={blocked ?? (free ? t("checkout.place_free") : mode === "unavailable" ? t("checkout.payments_unavailable")
               : quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
             size="lg"
             block
             loading={paying}
-            disabled={!!blocked || !quote || held === 0 || (mode !== "stripe" && mode !== "test")}
-            onPress={() => (mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true) : undefined)}
+            disabled={!!blocked || !quote || held === 0 || (!free && mode !== "stripe" && mode !== "test")}
+            onPress={() => (free ? void placeFree() : mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true) : undefined)}
           />
         )}
       </View>

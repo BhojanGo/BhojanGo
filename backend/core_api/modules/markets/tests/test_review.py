@@ -29,6 +29,15 @@ def test_only_the_listed_accounts_see_a_review_only_city() -> None:
     assert not review.is_review_only({"review_only": False}) and review.is_review_only(REVIEW)
 
 
+def test_review_accounts_are_only_those_of_a_review_only_city() -> None:
+    """R20: only a review account in its review-only city orders for free."""
+    assert review.is_review_account(REVIEW, ME) and review.is_review_account(REVIEW, str(ME))
+    assert not review.is_review_account(REVIEW, SOMEONE) and not review.is_review_account(REVIEW, None)
+    assert not review.is_review_account({"review_accounts": [str(ME)]}, ME)  # listed, but not a review city
+    assert not review.is_review_account({"review_only": False, "review_accounts": [str(ME)]}, ME)
+    assert not review.is_review_account({}, ME) and not review.is_review_account(None, ME)
+
+
 def test_hidden_cities_and_kitchens_per_viewer() -> None:
     cities = [("US-ID-BOI", "Boise", "US", {}), ("US-ID-REV", "App Review", "US", REVIEW)]
     anyone = review.hidden_from(cities, None)

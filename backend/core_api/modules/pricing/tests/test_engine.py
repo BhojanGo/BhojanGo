@@ -336,3 +336,26 @@ def test_r16_platform_discount_and_the_gst_base() -> None:
     k = compute(QuoteInputs(currency="INR", lines=[CartLine("Food", 1, Decimal("693.00"))], distance=Decimal("2"),
                             local_time=datetime(2026, 11, 12, 13, 0, tzinfo=IST)), {r.slot: r for r in kitchen})
     assert next(ln for ln in k.lines if ln.label == "GST on food").detail["base"] == "643.00"
+
+
+def test_r20_a_review_order_shows_every_line_and_costs_nothing() -> None:
+    """An app store review account's order in its review-only city: the bill is the usual
+    one, then one platform-funded line takes the total to zero (the platform pays the
+    kitchen's share; nothing is charged)."""
+    from core_api.modules.pricing.service.engine import REVIEW_LABEL
+
+    usual = quote()
+    q = quote(review=True)
+    assert [(ln.code, ln.label, ln.amount) for ln in q.lines[:-1]] == [(ln.code, ln.label, ln.amount) for ln in usual.lines]
+    last = q.lines[-1]
+    assert (last.code, last.label, last.amount, last.funded_by) == ("promotion", REVIEW_LABEL, -usual.total, "platform")
+    assert last.taxable_as is None and last.rule_id is None
+    assert q.total == Decimal("0.00") and sum(ln.amount for ln in q.lines) == 0
+    # The kitchen's and the delivery partner's shares and the tax are the usual ones: the platform funds them.
+    assert (q.split.restaurant, q.split.rider, q.split.tax) == (usual.split.restaurant, usual.split.rider, usual.split.tax)
+    assert q.split.platform == -(usual.split.restaurant + usual.split.rider + usual.split.tax)
+    assert q.split.detail["platform_funded_offers"] == usual.split.detail["platform_funded_offers"] + usual.total
+
+
+def test_r20_only_the_review_flag_makes_an_order_free() -> None:
+    assert quote().total == Decimal("638.22") and quote(review=False).total == Decimal("638.22")
