@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-19** (after round 20), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-20** (after round 21), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -203,6 +203,32 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   app-screens run now records the JS warnings per flow (0 in all 14 flows).
 - Old agent worktrees removed.
 
+## Pre-launch hardening (round 21, 2026-11-20)
+
+- **Load test (#170, [launch/load-test.md](launch/load-test.md)): fail on API speed, realtime passes.** A Boise
+  dinner rush at 3x launch on a throwaway stack: 300 orders an hour, 2,000 people browsing, 75 delivery partners,
+  45 kitchen tablets. With one core_api process (as QA and production run today), p95 was 1-60 s and 16% of
+  requests failed. Even at 1x launch, reads were 0.9-1.9 s at p95 (target 500 ms). With 3 processes: 0 errors, every
+  order delivered, p95 1.1-3.2 s on a shared runner. Realtime lost 0 updates in every run. The cause is core_api's CPU
+  (about 13 ms a request), not the database (1-2 active queries). Fixed: the home screen no longer runs about six
+  queries per kitchen for every address. **Needs Srini:** more core_api processes in production (Railway replicas
+  2-3, costs more); then a menu cache and lighter middleware.
+- **Security review (#168, [launch/security-review.md](launch/security-review.md)):** 4 high findings fixed, each
+  with a test that fails without its fix: script injection through kitchen names on public pages, forged Razorpay
+  webhooks (an empty secret), a free wallet top-up, and kitchens setting their own status. Also fixed: the access
+  sweep covers every core_api route with real rows, a per-person quote limit, review cities only through
+  `review_accounts.py`, an open redirect. Six mediums are planned with estimates (tokens in localStorage, CSP,
+  WebSocket token expiry, kitchen offer ceilings, bulk refund cap, image URLs). Secrets: gitleaks finds none in the
+  whole history; GitHub holds one secret (`RAILWAY_QA_TOKEN`).
+- **Restore drill (#167, [launch/incident-plan.md](launch/incident-plan.md#database-restore)):** back up, restore
+  and check (migrations, row counts, health, finance invariants) in 12 s, on a copy built the way QA is. **QA has no
+  backups**, and its private database can't be read without a change Srini approves (recommended: turn on QA's
+  volume backups). Production as planned loses up to 24 hours (RPO) and is back in about 30 minutes (RTO); an
+  hourly dump would bring RPO to 1 hour.
+- **Apps (#169):** the Kitchen and Delivery apps no longer show the customer note "Country is separate: prices and
+  kitchens follow your address." under Language. The rider-02 flow's one failure was Maestro losing its driver on
+  the phone before the flow started, not the app; 70 reruns passed, and a failed flow now keeps the phone's whole log.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
@@ -214,6 +240,8 @@ In order. Items 1–4 are Srini's; the rest follow from them.
    paging channel (task 31). Each one replaces a fake that is already wired; only keys are added.
 3. **Production on Railway:** a production environment from the same config as QA (no demo seed: it refuses
    production), with the accounts' keys as sealed variables. Then the website can be indexed (task 27).
+   Before launch: core_api on 2-3 processes (load test, round 21), QA's database backups on and the restore
+   drill run on QA's data (round 21).
 4. **Vendors and stores:** trademark (2), logo artwork (22), legal pack (35), outside pen test (33), app store
    accounts (36).
 5. **Translations:** native speakers review the machine translations listed in
