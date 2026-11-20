@@ -26,7 +26,7 @@ Every High finding was fixed in R21, and the six Medium findings S8–S13 in R22
 | S8 | Medium | Web, admin | Access and refresh tokens are kept in localStorage, so any XSS takes over the account. | Fixed in R22 (#176) |
 | S9 | Medium | Headers | The CSP allows `script-src 'unsafe-inline'` in production, so it doesn't stop injected inline script. | Fixed in R22 (#176) |
 | S10 | Medium | Realtime | A WebSocket's token is checked only when it connects. A socket outlives the token's 15 minutes, a sign-out and a removed role. There's no per-user cap on sockets. | Fixed in R22 (#176) |
-| S11 | Medium | Money out (offers) | A kitchen's own offer has no ceiling on `flat_off` or `weekly_cap`. A kitchen working with a customer can push its statement below zero, and we carry the loss. | Fixed in R22 (#176); carrying a negative statement is still open |
+| S11 | Medium | Money out (offers) | A kitchen's own offer has no ceiling on `flat_off` or `weekly_cap`. A kitchen working with a customer can push its statement below zero, and we carry the loss. | Fixed in R22 (#176); carrying a negative statement: R23 |
 | S12 | Medium | Money out (bulk refunds) | A bulk refund runs with no second admin when every order is under `auto_refund_limit`. The batch total isn't capped (up to 500 orders × the limit). | Fixed in R22 (#176) |
 | S13 | Medium | Uploads, menus | `image_url`, `logo_url` and `cover_url` accept any string, including outside hosts and `javascript:`, and customers are shown them. | Fixed in R22 (#176) |
 | S14 | Low | Web | Open redirect after sign-in: `?next=/<tab>/evil.com` got past `safeNext`. | Fixed in this PR |
@@ -259,7 +259,7 @@ See [Access sweep coverage](#access-sweep-coverage).
   - A percent offer without a maximum gets the market's maximum, because the partner app sends none.
 - **When nothing is set**, defaults in code apply: ₹200 / ₹200 / ₹25,000 and $15 / $15 / $1,500. A currency with neither a default nor a setting refuses kitchen offers until an admin sets one. The seed gives India and the US those values.
 
-**Not done: carrying a negative statement into next week.**
+**Carrying a negative statement into next week: done in R23** (below). Before R23:
 - Today `pay_pending` (`finance/service/payouts.py`) marks a statement at or below zero as paid ("nothing to send"), so a negative balance is written off.
 - Carrying it is a cross-cutting finance change:
   - a statement state that run checks treat as settled;
@@ -277,6 +277,29 @@ See [Access sweep coverage](#access-sweep-coverage).
 - **Proven:** with `markets.py` and `partner.py` reverted and `offer_ceiling.py` deleted, the unit and integration tests fail.
 
 **Screenshot:** `08a-markets-offer-ceiling.png` in the PR's Playwright artifact `e2e-screenshots` (run [44711139194](https://github.com/BhojanGo/BhojanGo/actions/runs/44711139194), artifact 14617968066; kept 7 days).
+
+### S11 in R23: a negative kitchen statement is carried, never written off
+
+- **Carry:** a kitchen statement whose amount is below zero pays nothing and is marked `carried`
+  (it was `paid`, "nothing to send", which wrote the balance off). The next payout run puts it on the
+  kitchen's next statement as "Carried from last week" (`payout_statements.carried_in`, minor units,
+  `summary.carried_from_last_week`) and nets it into that week's amount, so the week's sales cover it
+  first. Still below zero: carried again. A kitchen with a balance and no orders gets a statement with
+  only the carry (`payouts.create_run`, `statements.balance`).
+- **Once only:** the source statement records `carried_to` (an update that only takes statements no run
+  has carried, under `FOR UPDATE`), and a week can't be prepared twice; the run, retry and the payout
+  day never send a statement below zero.
+- **Never charged:** nothing creates a charge or a negative transfer. `negative_weeks` counts the weeks
+  below zero in a row (`negative_since` the first Monday); from 4, admin Finance lists the kitchen under
+  "Kitchens to collect from" (`GET /finance/to-collect`), and finance collects by arrangement.
+- **Money adds up:** Reconciliation shows "Kitchens: carried from last week", "carried to next week" and
+  "Kitchens are paid": paid = owed + carried in - carried on. The finance invariant test adds a carried
+  balance to every week it checks and asserts the run, Reconciliation (before and after the run) and the
+  statements agree on it.
+- **Tests:** `finance/tests/test_carry.py` (8 unit tests), `integration/test_negative_statements.py`
+  (carried and covered; still below zero after 4 weeks, flagged, then covered in part),
+  `integration/test_finance_invariants.py`.
+- Statements written off before R23 (amount below zero, `paid`) are left as they were.
 
 ### S12: a cap on a bulk refund's total for the automatic path
 
@@ -320,7 +343,7 @@ It also refuses anything over 512 characters, spaces and control characters.
 
 ## Plans for the Medium findings (R21; all done in R22)
 
-These were the R21 plans. Round 22 did all six (above), except carrying a negative statement into the next week (S11).
+These were the R21 plans. Round 22 did all six (above), except carrying a negative statement into the next week (S11), which Round 23 did (below, "S11 in R23").
 
 | ID | Plan | Size |
 |---|---|---|

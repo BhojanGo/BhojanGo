@@ -19,7 +19,7 @@ Rider, per delivered order:
   Tips never count towards the floor.
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 CENT = Decimal("0.01")
@@ -140,3 +140,78 @@ def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None
 def _minor_str(v: Decimal) -> int:
     """Major units -> minor units (reports use minor units like payments)."""
     return int((m(v) * 100).to_integral_value())
+
+
+# ── R23: a kitchen's week below zero is carried, never written off ─────────────
+#
+# A statement's amount is the week's net plus what earlier statements left below zero
+# ("Carried from last week", <= 0). Below zero, nothing is paid and the whole balance moves
+# to the payee's next statement; at zero nothing is paid and nothing moves; above zero the
+# amount is paid (so next week's sales cover the balance first). The kitchen is never charged:
+# from COLLECT_AFTER_WEEKS weeks below zero in a row, admin Finance lists it to collect from.
+# Amounts here are minor units (ints), as on payout_statements.
+
+COLLECT_AFTER_WEEKS = 4
+
+
+@dataclass(frozen=True)
+class Carry:
+    """What a payee's earlier statements left below zero, brought into its next statement."""
+    amount: int  # minor units, < 0
+    weeks: int  # weeks below zero in a row so far
+    since: date  # the Monday of the first of them
+    statements: tuple[str, ...] = ()  # the statements it comes from
+
+
+@dataclass(frozen=True)
+class Balance:
+    """A statement's amount with what it carries in, and where it leaves the payee."""
+    net: int  # the week's own net, minor units
+    carried_in: int  # <= 0
+    amount: int  # net + carried_in: paid when above zero, carried again when below
+    negative_weeks: int  # 0 unless amount < 0
+    negative_since: date | None
+
+    @property
+    def to_pay(self) -> int:
+        return max(self.amount, 0)
+
+    @property
+    def carried_forward(self) -> int:
+        """What moves to the next statement (<= 0)."""
+        return min(self.amount, 0)
+
+
+def combine(carries: list[Carry]) -> Carry | None:
+    """Several open balances (runs prepared out of order) brought in as one."""
+    if not carries:
+        return None
+    return Carry(amount=sum(c.amount for c in carries), weeks=max(c.weeks for c in carries),
+                 since=min(c.since for c in carries), statements=tuple(s for c in carries for s in c.statements))
+
+
+def balance(net: int, carry: Carry | None, period_start: date) -> Balance:
+    carried_in = carry.amount if carry else 0
+    amount = net + carried_in
+    if amount < 0:
+        return Balance(net, carried_in, amount, (carry.weeks if carry else 0) + 1, carry.since if carry else period_start)
+    return Balance(net, carried_in, amount, 0, None)
+
+
+def settle(amount: int) -> str | None:
+    """A statement with nothing to send: "carried" below zero (the balance moves to the next
+    statement, never written off), "paid" at exactly zero. None: there is money to transfer."""
+    if amount < 0:
+        return "carried"
+    if amount == 0:
+        return "paid"
+    return None
+
+
+def to_collect(negative_weeks: int) -> bool:
+    return negative_weeks >= COLLECT_AFTER_WEEKS
+
+
+def major(minor: int) -> str:
+    """Minor units -> "-12.34" (statement summaries and run totals are major-unit strings)."""
+    return str(m(Decimal(minor) / 100))

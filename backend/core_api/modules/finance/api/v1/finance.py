@@ -7,6 +7,7 @@
   payee set-up     finance, or partners.* (the kitchen's city) / riders.* (the delivery partner's country):
                    see a payee's payout set-up, copy or send them a link (R10)
   webhooks         Stripe Connect (accounts) and Stripe (transfers): finance/service/connect.py
+  to collect       R23: kitchens below zero for 4 weeks in a row (finance.view); never charged automatically
 """
 import csv
 import io
@@ -75,7 +76,10 @@ def statement_out(s: PayoutStatement, with_lines: bool = True) -> dict:
     out = {"id": str(s.id), "run_id": str(s.run_id), "payee_type": s.payee_type, "payee_id": str(s.payee_id),
            "payee_name": s.payee_name, "currency": s.currency, "amount": s.amount, "summary": s.summary,
            "status": s.status, "transfer_id": s.transfer_id, "error": s.error, "attempts": s.attempts,
-           "transferred_at": s.transferred_at.isoformat() if s.transferred_at else None}
+           "transferred_at": s.transferred_at.isoformat() if s.transferred_at else None,
+           # R23: "Carried from last week" (minor units, <= 0; already in amount), and the weeks below zero in a row
+           "carried_in": s.carried_in, "carried": s.carried_to is not None, "negative_weeks": s.negative_weeks,
+           "negative_since": s.negative_since.isoformat() if s.negative_since else None}
     if with_lines:
         out["lines"] = s.lines
     return out
@@ -133,6 +137,16 @@ async def list_runs(admin: Annotated[AdminContext, Depends(require_permission("f
                     country: str | None = None) -> list[dict]:
     rows = (await db.execute(select(PayoutRun).order_by(PayoutRun.period_start.desc()))).scalars().all()
     return [run_out(r) for r in rows if admin.can("finance.view", r.country) and (country is None or r.country == country)]
+
+
+@router.get("/to-collect")
+async def to_collect(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
+                     country: str = Query(pattern=r"^[A-Z]{2}$")) -> list[dict]:
+    """R23: kitchens whose statements have been below zero for 4 weeks in a row or more, with the
+    amount (minor units, what they owe), the weeks and since when. Finance collects it by
+    arrangement; the platform never charges a kitchen automatically."""
+    admin.require("finance.view", country)
+    return await payouts.to_collect(db, country)
 
 
 @router.get("/payout-runs/{run_id}")

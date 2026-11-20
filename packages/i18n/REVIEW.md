@@ -515,3 +515,12 @@ Machine-translated on 2026-11-19 into all seven languages; needs native review.
 - New, BhojanGo customer app (the bag, when the order costs nothing: only the app store review account in its
   hidden review city): `checkout.place_free` ("Place order"), the button in place of "Pay {amount}". A short verb
   phrase; it must not mention payment.
+
+## Kitchen statements below zero (round 23)
+
+Machine-translated on 2026-11-20 into all seven languages; needs native review.
+
+- New, BhojanGo Kitchen app Payouts: `partner.payouts.carried_in` ("Carried from last week", the line on a
+  statement), `carried_note` (a week below zero: nothing paid, carried to next week, never taken from the bank)
+  and `carried_collect` (below zero for {weeks} weeks; finance will contact the kitchen). Money wording: "never
+  taken from your bank" must not read as a promise about the kitchen's bank fees, only that we don't debit it.

@@ -399,6 +399,8 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── finance ──────────────────────────────────────────────────────────────
     ("GET", "/api/v1/finance/payout-runs"): admin(params=lambda c: {"country": "IN"}),
     ("GET", "/api/v1/finance/payout-weeks"): admin("finance_us", "ops_boi", params=lambda c: {"country": "IN"}),
+    # R23: kitchens below zero for 4 weeks (finance.view for the country)
+    ("GET", "/api/v1/finance/to-collect"): admin("finance_us", "ops_boi", params=lambda c: {"country": "IN"}),
     ("POST", "/api/v1/finance/payout-runs"): admin("ops_hyd", "viewer", "finance_us", body=lambda c: {
         "country": "IN", "period_start": "2001-01-01", "period_end": "2001-01-08"}),
     ("GET", "/api/v1/finance/payout-runs/{run_id}"): admin("finance_us", "ops_boi"),

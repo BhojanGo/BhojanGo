@@ -75,6 +75,8 @@ EOF
     # R18: a flow that needs an incident pause on the stack (tools/mobile/incident_pause.py on/off around it).
     pause=0
     case "$flow" in *incident-pause*) pause=1; python3 "$ROOT/tools/mobile/incident_pause.py" on > "$LOGS/$name-pause.log" 2>&1 ;; esac
+    # R23: a kitchen week below zero and the next week's carried line (tools/mobile/carried_statement.py).
+    case "$flow" in *payouts-carried*) python3 "$ROOT/tools/mobile/carried_statement.py" > "$LOGS/$name-data.log" 2>&1 || cat "$LOGS/$name-data.log" ;; esac
     # R20: the app's own console warnings and errors (LogBox only says "Open debugger to view
     # warnings"; the JS console also goes to logcat as ReactNativeJS), one file per flow.
     adb -s "$DEVICE" logcat -c >/dev/null 2>&1

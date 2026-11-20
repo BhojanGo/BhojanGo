@@ -1693,7 +1693,10 @@
       "commission_tax": "impuesto sobre la comisión {amount}",
       "tds": "impuesto retenido {amount}",
       "tax_invoice": "Factura del impuesto",
-      "tax_invoice_failed": "La factura no se abrió. Inténtalo de nuevo."
+      "tax_invoice_failed": "La factura no se abrió. Inténtalo de nuevo.",
+      "carried_in": "Traído de la semana pasada",
+      "carried_note": "Esta semana quedó {amount} por debajo de cero, así que no se pagó nada. Pasa al estado de cuenta de la próxima semana; nunca lo cobramos de tu banco.",
+      "carried_collect": "Por debajo de cero durante {weeks} semanas: nuestro equipo de finanzas se pondrá en contacto contigo para saldarlo."
     },
     "help": {
       "title": "Ayuda y ajustes",

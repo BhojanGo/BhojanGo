@@ -1,0 +1,29 @@
+# R23: Payouts with a week below zero: nothing paid, the balance carried to next week's
+# statement, which shows "Carried from last week". The data comes from
+# tools/mobile/carried_statement.py (stack-screens.sh runs it before this flow).
+# Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.partner
+---
+- runFlow: ../sign-in.yaml
+- runFlow:
+    when:
+      visible: "Which kitchen is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible:
+      id: "rail-payouts"
+    timeout: 60000
+- tapOn:
+    id: "rail-payouts"
+- extendedWaitUntil:
+    visible:
+      id: "payout-statements"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Carried from last week"
+    timeout: 20000
+- assertVisible: ".*below zero.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-partner-payouts-carried

@@ -1693,7 +1693,10 @@
       "commission_tax": "tax on commission {amount}",
       "tds": "tax deducted at source {amount}",
       "tax_invoice": "Tax invoice",
-      "tax_invoice_failed": "The invoice didn't open. Try again."
+      "tax_invoice_failed": "The invoice didn't open. Try again.",
+      "carried_in": "Carried from last week",
+      "carried_note": "This week came to {amount} below zero, so nothing was paid. It carries to next week's statement; we never take it from your bank.",
+      "carried_collect": "Below zero for {weeks} weeks: our finance team will contact you to settle it."
     },
     "help": {
       "title": "Help and settings",

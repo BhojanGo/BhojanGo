@@ -5,6 +5,9 @@
 // R12: a run covers a week that has ended (Monday to Sunday in the country's time
 // zone; the API lists them), and contribution and reconciliation show the week of
 // the selected run. An empty figure is $0.00 (R13).
+// R23: a kitchen's week below zero is carried into its next statement ("Carried from last
+// week") and nothing is paid until it is covered; never written off, never charged. Four weeks
+// below zero in a row: "Kitchens to collect from" (finance collects by arrangement).
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
@@ -17,12 +20,18 @@ import { apiMessage, money, useScope } from "@/lib/ops";
 interface Run {
   id: string; country: string; currency: string; period_start: string; period_end: string; status: string; created_by: string;
   approved_by: string | null; paid_at: string | null;
-  totals: { orders?: number; restaurants?: string; riders?: string; restaurant_statements?: number; rider_statements?: number };
+  totals: { orders?: number; restaurants?: string; riders?: string; restaurant_statements?: number; rider_statements?: number;
+    /** R23 (major units): carried in from last week (<= 0), carried on to next week (<= 0), paid to kitchens after them */
+    kitchen_carried_in?: string; kitchen_carried_forward?: string; restaurants_to_pay?: string; kitchens_to_collect?: number };
 }
 interface Statement {
   id: string; payee_type: PayeeKind; payee_id: string; payee_name: string; amount: number; currency: string; status: string; error: string | null;
   summary: Record<string, unknown>; transfer_id: string | null; transferred_at: string | null; attempts: number; payout_setup: SetupState;
+  /** R23: minor units, <= 0, already in amount; weeks below zero in a row */
+  carried_in?: number; negative_weeks?: number; negative_since?: string | null;
 }
+/** R23: a kitchen below zero for 4 weeks or more (amount: what it owes, minor units). */
+interface Collect { restaurant_id: string; kitchen: string; currency: string; amount: number; weeks: number; since: string; week_start: string; week_end: string }
 interface Recon {
   currency: string; orders: { total: number; delivered: number; cancelled: number; open: number };
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
@@ -47,8 +56,16 @@ const CONTRIBUTION_ROWS: [string, string, number][] = [
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
 const STATEMENT_STATUS: Record<string, string> = {
   pending: "Not paid yet", paid: "Paid", failed: "Transfer failed", no_account: "No payout account", onboarding: "Waiting for onboarding", reversed: "Reversed",
+  carried: "Below zero: carried to next week",
 };
-const STATUS_STYLE: Record<string, string> = { paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink" };
+const STATUS_STYLE: Record<string, string> = {
+  paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink", carried: "text-kesar-ink",
+};
+const COLLECT_AFTER_WEEKS = 4;
+
+function dayLabel(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
 
 interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[] }
 
@@ -98,6 +115,11 @@ function FinancePage() {
     queryKey: ["recon", target, start, end],
     queryFn: async () => (await adminApi.get<Recon>("/user/finance/reconciliation", { params: { country: target, start, end } })).data,
     enabled: Boolean(target && start) && can(me, "finance.view", target),
+  });
+  // R23: kitchens below zero for 4 weeks or more (finance collects by arrangement; nothing is charged).
+  const collect = useQuery({
+    queryKey: ["to-collect", target], enabled: Boolean(target) && can(me, "finance.view", target),
+    queryFn: async () => (await adminApi.get<Collect[]>("/user/finance/to-collect", { params: { country: target } })).data,
   });
   const contribution = useQuery({
     queryKey: ["contribution", scope, target, start, end],
@@ -156,7 +178,13 @@ function FinancePage() {
             {(runs.data ?? []).map((r) => (
               <tr key={r.id} className={selected === r.id ? "bg-peacock-wash" : ""}>
                 <td className="stack-title py-3 font-bold"><span className="whitespace-nowrap">{weekLabel(r.period_start, r.period_end)}</span></td><td data-label="Status">{RUN_STATUS[r.status] ?? r.status}</td><td data-label="Orders">{r.totals.orders ?? 0}</td>
-                <td data-label="Kitchens"><span>{money(r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span></td><td data-label="Delivery partners"><span>{money(r.totals.riders, r.currency, 2)} <span className="text-muted">· {r.totals.rider_statements ?? 0}</span></span></td>
+                <td data-label="Kitchens"><span>{money(r.totals.restaurants_to_pay ?? r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span>
+                  {Number(r.totals.kitchen_carried_in ?? 0) || Number(r.totals.kitchen_carried_forward ?? 0) ? (
+                    // R23: earned this week, the balances carried in and on, and what is paid after them
+                    <span data-testid="run-carry" className="block text-small text-muted">Earned {money(r.totals.restaurants, r.currency, 2)}
+                      {Number(r.totals.kitchen_carried_in ?? 0) ? ` · carried in ${money(r.totals.kitchen_carried_in, r.currency, 2)}` : ""}
+                      {Number(r.totals.kitchen_carried_forward ?? 0) ? ` · carried on ${money(r.totals.kitchen_carried_forward, r.currency, 2)}` : ""}</span>
+                  ) : null}</td><td data-label="Delivery partners"><span>{money(r.totals.riders, r.currency, 2)} <span className="text-muted">· {r.totals.rider_statements ?? 0}</span></span></td>
                 <td className="stack-actions space-x-2 space-y-2 text-right">
                   <button type="button" aria-pressed={selected === r.id} onClick={() => setOpen(r.id)} className="h-8 rounded-full border border-line-strong px-3 text-label">{selected === r.id ? "Selected" : "Select"}</button>
                   {r.status === "draft" && can(me, "payouts.approve", r.country) && r.created_by !== me?.user_id ? (
@@ -185,17 +213,40 @@ function FinancePage() {
               {run.data.statements.map((s) => (
                 <tr key={s.id} data-testid="statement-row"><td className="stack-title py-2.5 font-semibold">{s.payee_name}</td>
                   <td data-label="Type">{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
-                  <td data-label="Amount">{money(s.amount / 100, s.currency, 2)}</td>
+                  <td data-label="Amount"><div className="text-right md:text-left">{money(s.amount / 100, s.currency, 2)}
+                    {s.carried_in ? <span data-testid="carried-in" className="block text-small text-muted">Carried from last week {money(s.carried_in / 100, s.currency, 2)}</span> : null}
+                    {(s.negative_weeks ?? 0) >= COLLECT_AFTER_WEEKS ? <span className="mt-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">To collect · {s.negative_weeks} weeks</span> : null}</div></td>
                   <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span className={`block font-semibold ${STATUS_STYLE[s.status] ?? ""}`}>{STATEMENT_STATUS[s.status] ?? s.status}</span>
                     {s.transfer_id ? <span className="block text-small text-muted">{s.transfer_id}{s.transferred_at ? ` · ${new Date(s.transferred_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}</span> : null}
                     {s.error && ["failed", "reversed"].includes(s.status) ? <span className="block text-small text-muted">{s.error}</span> : null}</div></td>
                   <td data-label="Payout set-up"><SetupPill state={s.payout_setup} /></td>
-                  <td className="stack-actions text-right">{s.payout_setup !== "ready" && s.status !== "paid" && can(me, "finance.edit", run.data!.country)
+                  <td className="stack-actions text-right">{s.payout_setup !== "ready" && !["paid", "carried"].includes(s.status) && can(me, "finance.edit", run.data!.country)
                     ? <SetupLinkButton kind={s.payee_type} id={s.payee_id} /> : null}</td></tr>
               ))}
             </tbody>
           </table></div>
           {run.data.statements.length === 0 ? <p className="text-small text-muted">No statements: nothing was delivered in this period.</p> : null}
+          {run.data.statements.some((s) => s.carried_in || s.status === "carried" || s.amount < 0) ? (
+            <p className="mt-3 text-small text-muted">A kitchen statement below zero pays nothing: the balance is carried into its next week&apos;s statement as &ldquo;Carried from last week&rdquo; and comes off what that week pays. Nothing is written off and a kitchen is never charged.</p>
+          ) : null}
+        </section>
+      ) : null}
+      {collect.data && collect.data.length > 0 ? (
+        <section className="rounded-2xl bg-white p-6" aria-label="Kitchens to collect from" data-testid="to-collect">
+          <h2 className="m-0 mb-1 text-h3">Kitchens to collect from</h2>
+          <p className="mb-3 text-small text-muted">These kitchens&apos; statements have been below zero for {COLLECT_AFTER_WEEKS} weeks or more in a row: their sales haven&apos;t covered the refunds and offers they owe. Nothing is charged automatically; agree with the kitchen how it pays. Until then each week&apos;s sales keep coming off the balance.</p>
+          <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
+            <thead className="text-caption text-muted"><tr><th className="py-2">Kitchen</th><th>Owes</th><th>Weeks below zero</th><th>Since</th><th>Latest statement</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {collect.data.map((k) => (
+                <tr key={k.restaurant_id} data-testid="collect-row"><td className="stack-title py-2.5 font-semibold">{k.kitchen}</td>
+                  <td data-label="Owes" className="font-semibold text-chili">{money(k.amount / 100, k.currency, 2)}</td>
+                  <td data-label="Weeks below zero">{k.weeks}</td>
+                  <td data-label="Since">{dayLabel(k.since)}</td>
+                  <td data-label="Latest statement">{weekLabel(k.week_start, k.week_end)}</td></tr>
+              ))}
+            </tbody>
+          </table></div>
         </section>
       ) : null}
       {selected && run.isLoading ? <p aria-busy="true" className="rounded-2xl bg-white p-6 text-small text-muted">Loading statements…</p> : null}
@@ -227,7 +278,10 @@ function FinancePage() {
           <div className="grid gap-3 sm:grid-cols-4">
             {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
               ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
-              ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"]] as const)
+              ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"],
+              // R23: kitchens paid = kitchens are owed + carried from last week - carried to next week
+              ["Kitchens: carried from last week", "kitchen_carried_in"], ["Kitchens: carried to next week", "kitchen_carried_forward"],
+              ["Kitchens are paid", "restaurant_to_pay"]] as const)
               .map(([l0, k]) => [k === "payment_fees" && recon.data!.payment_fees_estimated ? `${l0} (estimated)` : l0, k] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
                 <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div>
@@ -240,6 +294,7 @@ function FinancePage() {
                   </div>
                 ) : null}</div>)}
           </div>
+          <p className="mt-3 text-small text-muted">Kitchens are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a kitchen.</p>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{recon.data.issues.length} issues to look at</b> : <span className="text-peacock">everything lines up</span>}</p>
         </section>
