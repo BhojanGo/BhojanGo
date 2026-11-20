@@ -43,11 +43,13 @@ function Choice({ label, sub, on, onPress, tone, testID }: {
  * app at once and is kept on the device. Prices and dates keep the country's format.
  * Put it in an account/settings screen or inside a <Sheet title={t("header.language")}>.
  */
-export function LanguagePicker({ tone = "light", onChange, style }: {
+export function LanguagePicker({ tone = "light", onChange, style, addressNote = false }: {
   tone?: Tone;
   /** Called after the switch (e.g. close the sheet). */
   onChange?: (language: Language) => void;
   style?: StyleProp<ViewStyle>;
+  /** Customer app only: "Country is separate: prices and kitchens follow your address." Partners have no address. */
+  addressNote?: boolean;
 }) {
   const { t, language, languages, setLanguage } = useI18n();
   return (
@@ -56,7 +58,7 @@ export function LanguagePicker({ tone = "light", onChange, style }: {
         <Choice key={lang} testID={`language-${lang}`} label={LANGUAGES[lang].name} on={lang === language} tone={tone}
           onPress={() => void setLanguage(lang).then(() => onChange?.(lang))} />
       ))}
-      <Text style={[type.small, { color: tones(tone).muted }]}>{t("header.language_note")}</Text>
+      {addressNote ? <Text testID="language-address-note" style={[type.small, { color: tones(tone).muted }]}>{t("header.language_note")}</Text> : null}
     </View>
   );
 }

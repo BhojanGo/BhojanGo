@@ -55,6 +55,9 @@ appId: com.bhojango.partner
     id: "language-hi"
 - assertNotVisible:
     id: "language-es"
+# R21: no customer-only note ("Country is separate: prices and kitchens follow your address.").
+- assertNotVisible:
+    text: ".*kitchens follow your address.*"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-partner-language
