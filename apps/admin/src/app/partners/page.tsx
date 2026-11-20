@@ -3,6 +3,7 @@
 // food licence to check, approve or turn down), and delivery partners' documents to
 // review. Every list is cut to your scopes; approving needs partners.edit /
 // riders.edit for that city or country.
+import { formatPhone } from "@bhojango/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -288,7 +289,7 @@ function Riders({ scope }: { scope: string }) {
       {docs.data && docs.data.length === 0 ? <p className="rounded-2xl bg-white p-6 text-muted">Nothing to review. Documents delivery partners send from BhojanGo Delivery show here.</p> : null}
       {(docs.data ?? []).map((d) => (
         <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 text-small">
-          <div className="min-w-[220px] flex-1"><b>{d.rider_name}</b> <span className="text-muted">· {d.rider_phone} · {d.country}</span>
+          <div className="min-w-[220px] flex-1"><b>{d.rider_name}</b> <span className="text-muted">· {d.rider_phone ? `${formatPhone(d.rider_phone)} · ` : ""}{d.country}</span>
             <div>{DOC_LABELS[d.kind] ?? d.kind} · sent {ago(d.submitted_at)}</div></div>
           {d.file_key ? <button type="button" className="font-bold text-peacock" onClick={() => void openFile(d.file_key!)}>View</button> : <span className="text-muted">our check</span>}
           <button type="button" aria-expanded={payouts === d.id} onClick={() => setPayouts(payouts === d.id ? null : d.id)} className="font-bold text-peacock">Payouts</button>

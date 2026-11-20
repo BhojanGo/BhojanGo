@@ -41,5 +41,6 @@ export declare function formatLocale(locales: string[] | null | undefined): stri
 export declare function createTranslator(language: string, messages: Messages, fallback: Messages): Translate;
 export declare function pluralSelector(language: string): (count: number) => string;
 
-/** "+919000000101" -> "+91 90000 00101" (each country's grouping); unparseable input as is. */
+/** For the visible text only (tel: links keep the E.164): "+12085550291" -> "+1 208-555-0291",
+ * "+919876543210" -> "+91 98765 43210"; rules per country in phone.js. Unknown or invalid input as is. */
 export function formatPhone(e164: string | null | undefined): string;

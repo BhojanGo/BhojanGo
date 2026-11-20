@@ -2,6 +2,7 @@
 // Operations: live orders, what needs attention, the dispatch map (delivery partners,
 // orders waiting for one, SOS, hand an order to a delivery partner) and the support
 // console (find an order, see its timeline, refund by item: AdminSupport.html).
+import { formatPhone } from "@bhojango/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -249,7 +250,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
         {t.kind === "contact" ? (
           <div><dt className="font-bold">Reply to</dt><dd>{typeof t.details.email === "string" ? <a href={`mailto:${t.details.email}`} className="font-bold text-peacock">{t.details.email}</a> : <span className="text-muted">No email</span>}</dd></div>
         ) : (
-          <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-bold text-peacock">{t.requester_phone}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
+          <div><dt className="font-bold">Call</dt><dd>{t.requester_phone ? <a href={`tel:${t.requester_phone}`} className="font-bold text-peacock" data-testid="ticket-phone">{formatPhone(t.requester_phone)}</a> : <span className="text-muted">No phone on the account</span>}</dd></div>
         )}
         <div><dt className="font-bold">About</dt><dd>{TICKET_TOPIC[t.topic] ?? t.topic}</dd></div>
         <div><dt className="font-bold">Their words</dt><dd>{t.note ? `“${t.note}”` : <span className="text-muted">No note</span>}</dd></div>

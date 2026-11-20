@@ -24,6 +24,14 @@ appId: com.bhojango.app
 - extendedWaitUntil:
     visible: "Enter the 6-digit code"
     timeout: 20000
+# R22: CODE_SHOT=true checks the number reads in its country's format ("+91 90000 00101")
+# and keeps the screen as stack-customer-code.
+- runFlow:
+    when:
+      true: ${CODE_SHOT == "true"}
+    commands:
+      - assertVisible: '.*\+91 90000 00101.*'
+      - takeScreenshot: stack-customer-code
 - inputText: "123456"
 - extendedWaitUntil:
     notVisible: "Enter the 6-digit code"

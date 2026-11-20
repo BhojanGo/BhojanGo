@@ -8,6 +8,7 @@
 //                        licence, tax and bank, menu, go live), or their live kitchen
 //   delivery partner, admin -> a short note: kitchens apply with their own account
 import { ApiError, unwrap } from "@bhojango/api-client";
+import { formatPhone } from "@bhojango/i18n";
 import { Button } from "@bhojango/ui";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -63,7 +64,7 @@ export function ApplyPanel(props: PanelProps) {
   const signOut = useSession((s) => s.signOut);
   const [created, setCreated] = useState<string | null>(null);
   const state = applicationState(user?.role);
-  const who = user?.email ?? user?.phone ?? "";
+  const who = user?.email ?? (user?.phone ? formatPhone(user.phone) : "");
 
   if (!hydrated) {
     return (
@@ -491,7 +492,7 @@ function MyApplication({ taxRegimes, created }: PanelProps & { created: string |
   }
 
   const gst = taxRegimes[app.country ?? ""] === "gst";
-  const who = user?.email ?? user?.phone ?? "";
+  const who = user?.email ?? (user?.phone ? formatPhone(user.phone) : "");
   if (app.status === "active" || app.status === "suspended") {
     const live = app.status === "active";
     return (
@@ -499,7 +500,7 @@ function MyApplication({ taxRegimes, created }: PanelProps & { created: string |
         <h2 id="apply-title" tabIndex={-1} className="m-0 text-h2 outline-none">{t(live ? "kitchen_join.app_live_title" : "kitchen_join.app_paused_title")}</h2>
         <p className="m-0 mt-1 text-h3">{app.name}</p>
         <p className="m-0 mt-3 max-w-[640px] text-body text-muted">
-          {live ? t("kitchen_join.app_live_body", { phone: user?.phone ?? who }) : t("kitchen_join.app_paused_body")}
+          {live ? t("kitchen_join.app_live_body", { phone: user?.phone ? formatPhone(user.phone) : who }) : t("kitchen_join.app_paused_body")}
         </p>
         {!live && <Link href="/help" className="mt-4 inline-flex h-12 items-center rounded-pill bg-peacock px-6 text-label text-white hover:text-white">{t("footer.help")}</Link>}
       </div>

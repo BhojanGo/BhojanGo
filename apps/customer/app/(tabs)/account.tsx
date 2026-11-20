@@ -2,7 +2,7 @@
 // addresses, payment methods, notifications, favourites, language,
 // and privacy (download your data, delete your account); Legal (R20: the country's
 // Privacy policy and Terms of use on the website, as in the Kitchen and Delivery apps); sign out.
-import { Button, color, Input, LANGUAGES, LegalLinks, SafeAreaView, Sheet, space, Txt, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
+import { Button, color, formatPhone, Input, LANGUAGES, LegalLinks, SafeAreaView, Sheet, space, Txt, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -46,7 +46,7 @@ export default function Account() {
         <Section title={t("account.profile.details")} testID="account-profile">
           <Row label={t("account.profile.name")} value={user?.full_name ?? ""}
             action={<LinkButton testID="edit-name" title={t("common.edit")} onPress={() => { setName(user?.full_name ?? ""); setMsg(null); setEditing(true); }} />} />
-          <Row label={t("account.profile.mobile")} value={user?.phone ?? t("account.profile.not_set")}
+          <Row label={t("account.profile.mobile")} value={user?.phone ? formatPhone(user.phone) : t("account.profile.not_set")}
             note={user?.is_phone_verified ? t("account.profile.mobile_note") : t("account.profile.mobile_unverified")} />
           <Row label={t("account.profile.email")} value={user?.email ?? t("account.profile.not_set")} note={t("account.profile.email_note")} last />
           <Text style={ui.small}>{t("account.profile.read_only_note")}</Text>
