@@ -79,10 +79,19 @@ def _dev_key() -> RSAPrivateKey:
     tmp = path.with_suffix(f".{os.getpid()}.tmp")
     tmp.write_bytes(pem)
     try:
-        os.replace(tmp, path)  # atomic; if two processes race, one key wins
-    except OSError:
+        # Create-if-absent, atomically: when several processes start at once (R22: core_api runs
+        # one uvicorn process per CPU), the first key wins and every process reads that one.
+        # (os.replace let a later process overwrite a key an earlier one had already loaded:
+        # tokens signed by one process failed in the other.)
+        os.link(tmp, path)
+        logger.warning("jwt_dev_key_created", path=str(path))
+    except FileExistsError:
+        pass
+    except OSError:  # no hard links here: fall back to replacing (single process)
+        if not path.exists():
+            os.replace(tmp, path)
+    finally:
         tmp.unlink(missing_ok=True)
-    logger.warning("jwt_dev_key_created", path=str(path))
     return _load_private(path.read_text())
 
 

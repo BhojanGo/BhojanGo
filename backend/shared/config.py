@@ -370,6 +370,9 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_ECHO: bool = False
+    # R22: core_api's in-process caches of menus, hours, markets and rules, keyed by the
+    # database's cache versions (shared/cache_versions.py). False = always read the database.
+    CACHE_VERSIONED: bool = True
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

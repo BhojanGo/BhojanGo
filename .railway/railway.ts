@@ -110,15 +110,16 @@ export default defineRailway((ctx, project) => {
   // network resolves *.railway.internal to IPv4 too in environments created after
   // 2025-10-16; an older (IPv6-only) environment needs a dual-stack socket instead.
   const backend = (name: string, dir: string, port: number, app: string, extra: Env,
-                   opts: { preDeploy?: string; cpu: number; memoryGiB: number }) =>
+                   opts: { preDeploy?: string; cpu: number; memoryGiB: number; start?: string; replicas?: number }) =>
     service(name, {
       source: src("backend"),
       build: { builder: "DOCKERFILE", dockerfilePath: `${dir}/Dockerfile`,
                watchPatterns: [`backend/${dir}/**`, "backend/shared/**", "backend/pyproject.toml", "backend/uv.lock"] },
-      start: `uvicorn ${app} --host 0.0.0.0 --port ${port} --timeout-keep-alive 130`,
+      start: opts.start ?? `uvicorn ${app} --host 0.0.0.0 --port ${port} --timeout-keep-alive 130`,
       healthcheck: "/health/ready",
       healthcheckTimeout: 120,
       ...(opts.preDeploy ? { preDeploy: opts.preDeploy } : {}),
+      ...(opts.replicas ? { replicas: opts.replicas } : {}),
       deploy: { ...cap(opts.cpu, opts.memoryGiB) },
       env: { ...backendEnv, PORT: String(port), ...extra },
     });
@@ -132,9 +133,16 @@ export default defineRailway((ctx, project) => {
   // A bucket needs a region (sjc, iad, ams, sin); it can't change later. San Jose,
   // next to the services' default US West region.
   const uploads = bucket("uploads", { region: "sjc" });
+  // R22 (docs/launch/production-config.md, "core-api processes and the database"): production runs
+  // 2 replicas, for redundancy; each runs one uvicorn process per CPU it may use, at most 2
+  // (core_api/start.sh). Every process has a pool of 8 + 4 connections: 2 x 2 x 12 = 48, plus the
+  // worker's 5 + 20 = 73 of Postgres' 100. QA and staging: 1 replica (QA is capped at 1 vCPU: 1 process).
   const coreApi = backend("core-api", "core_api", 8001, "core_api.main:app", {
     SERVICE_NAME: "core-api",
     REDIS_URL: redisDb(0),
+    WEB_CONCURRENCY_MAX: "2",
+    DB_POOL_SIZE: "8",
+    DB_MAX_OVERFLOW: "4",
     GEOIP: "1", // build arg: fetch DB-IP's free City Lite for the website's "near you" hint
     JWKS_URL: "", // core_api signs; it publishes the JWKS itself
     JWT_PRIVATE_KEY: preserve(), // sealed; required outside development (docs/security/report.md)
@@ -172,7 +180,7 @@ export default defineRailway((ctx, project) => {
       TWILIO_AUTH_TOKEN: preserve(), // sealed
       TWILIO_VERIFY_SERVICE_SID: preserve(), // sealed; Verify service (VA...)
     } : {}),
-  }, { preDeploy: "alembic upgrade head", cpu: 1, memoryGiB: 1 });
+  }, { preDeploy: "alembic upgrade head", cpu: 1, memoryGiB: 1, start: "sh core_api/start.sh", replicas: prod ? 2 : 1 });
 
   const realtime = backend("realtime", "realtime", 8004, "app.main:app", {
     SERVICE_NAME: "realtime",

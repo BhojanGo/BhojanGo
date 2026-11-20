@@ -24,6 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country
+from shared.cache_versions import VersionedCache
 
 REVIEW_ONLY = "review_only"
 REVIEW_ACCOUNTS = "review_accounts"
@@ -91,8 +92,18 @@ def hidden_from(cities: Iterable[tuple[str, str, str, dict | None]], viewer_id: 
     return Hidden(frozenset(codes), frozenset(names - seen), sees)
 
 
-async def hidden_for(db: AsyncSession, viewer_id: uuid.UUID | str | None) -> Hidden:
-    """The review-only cities this viewer may not see (a handful of cities: read them all)."""
+_cities = VersionedCache("review.cities", size=4)
+
+
+async def _all_cities(db: AsyncSession) -> tuple[tuple[str, str, str, dict | None], ...]:
     rows = (await db.execute(select(City.code, City.name, Country.code, City.settings)
                              .join(Country, Country.id == City.country_id))).all()
-    return hidden_from(((c, n, k, s) for c, n, k, s in rows), viewer_id)
+    return tuple((c, n, k, s) for c, n, k, s in rows)
+
+
+async def hidden_for(db: AsyncSession, viewer_id: uuid.UUID | str | None) -> Hidden:
+    """The review-only cities this viewer may not see (a handful of cities: read them all).
+    R22: the city rows are cached until any market edit (the ``markets`` version); the
+    answer is still worked out for each viewer, never shared between viewers."""
+    rows = await _cities.through(db, "all", ("markets",), lambda: _all_cities(db))
+    return hidden_from(rows, viewer_id)

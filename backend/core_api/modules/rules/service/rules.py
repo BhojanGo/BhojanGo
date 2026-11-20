@@ -15,8 +15,10 @@ from core_api.modules.markets.service.markets import MarketService, NotFound
 from core_api.modules.rules.models import Rule, RuleApproval
 from core_api.modules.rules.service import templates
 from core_api.modules.rules.service.resolver import Candidate, Context, resolve
+from shared.cache_versions import VersionedCache
 
 OPEN_STATUSES = ("draft", "pending_approval")
+_published = VersionedCache("rules.published", size=4096)
 
 
 class RuleError(ValueError):
@@ -311,16 +313,24 @@ class RuleService:
 
     # ── resolve ──────────────────────────────────────────────────────────────
     async def candidates(self, ctx: Context, at: datetime) -> list[Candidate]:
-        pairs = ctx.scope_ids()
-        conds = [(Rule.scope_level == lvl) & (Rule.scope_id == sid) for lvl, sid in pairs.items()]
+        """Published, unpaused rules for the context's scopes, in force at ``at``.
+
+        R22: the published rules of a set of scopes are kept in each process until any
+        rule changes (the ``rules`` version, bumped by the database in the same transaction
+        as the edit: shared/cache_versions.py), and ``at`` is applied here. So a quote never
+        uses a rule older than the latest approved edit, and costs no rule query."""
+        pairs = tuple(sorted(ctx.scope_ids().items()))
+        published = await _published.through(self.db, pairs, ("rules",), lambda: self._published(pairs))
+        return [c for c in published if c.active_at(at)]
+
+    async def _published(self, pairs: tuple[tuple[str, str], ...]) -> tuple[Candidate, ...]:
+        conds = [(Rule.scope_level == lvl) & (Rule.scope_id == sid) for lvl, sid in pairs]
         q = select(Rule).where(
             Rule.status == "published",
             Rule.paused_at.is_(None),  # B4: paused by an admin
             or_(*conds),
-            Rule.effective_from <= at,
-            or_(Rule.effective_to.is_(None), Rule.effective_to > at),
         )
-        return [candidate(r) for r in (await self.db.execute(q)).scalars()]
+        return tuple(candidate(r) for r in (await self.db.execute(q)).scalars())
 
     async def resolve(self, ctx: Context, at: datetime | None = None,
                       overlay_ids: list[uuid.UUID] = ()) -> dict[str, Candidate]:

@@ -17,6 +17,7 @@ from core_api.modules.catalog.models.menu import MenuItem
 from core_api.modules.catalog.models.options import MenuItemOptionGroup, Option, OptionGroup, StoreHours, StoreHoursOverride
 from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.service import hours as H
+from shared.cache_versions import VersionedCache, kitchen_scopes
 
 logger = structlog.get_logger(__name__)
 
@@ -43,8 +44,19 @@ class Availability:
     back_at: datetime | None = None  # when it opens again by itself, if the admin set a time
 
 
+# R22: a kitchen's market and its hours, kept in each process until the kitchen, its hours or
+# any market changes (database cache versions, shared/cache_versions.py). availability() runs on
+# every quote, order, kitchen tablet poll and home-screen refresh; this was 7-9 queries each time.
+_markets = VersionedCache("catalog.restaurant_market", size=4096)
+_hours_cache = VersionedCache("catalog.hours", size=4096)
+
+
 async def restaurant_market(db: AsyncSession, r: Restaurant) -> tuple[str | None, ZoneInfo, dict | None, bool]:
     """(city code, timezone, city service hours, FSSAI required) for a restaurant."""
+    return await _markets.through(db, r.id, (*kitchen_scopes(r.id), "markets"), lambda: _restaurant_market(db, r))
+
+
+async def _restaurant_market(db: AsyncSession, r: Restaurant) -> tuple[str | None, ZoneInfo, dict | None, bool]:
     from core_api.modules.catalog.service.lookup import restaurant_city_code
     from core_api.modules.markets.models import City, Country, Region
     from core_api.modules.markets.service.markets import MarketService
@@ -74,6 +86,13 @@ def licence_problem(r: Restaurant, today: date, fssai_required: bool) -> str | N
 
 
 async def _hours(db: AsyncSession, restaurant_id: uuid.UUID) -> tuple[list[H.Range], dict[date, H.Override]]:
+    """The weekly hours and the day overrides (cached: see _markets)."""
+    weekly, overrides = await _hours_cache.through(db, restaurant_id, kitchen_scopes(restaurant_id),
+                                                   lambda: _read_hours(db, restaurant_id))
+    return list(weekly), dict(overrides)
+
+
+async def _read_hours(db: AsyncSession, restaurant_id: uuid.UUID) -> tuple[list[H.Range], dict[date, H.Override]]:
     weekly = [H.Range(h.weekday, h.opens, h.closes) for h in
               (await db.execute(select(StoreHours).where(StoreHours.restaurant_id == restaurant_id))).scalars()]
     overrides = {o.day: H.Override(o.day, o.closed, o.opens, o.closes, o.note) for o in

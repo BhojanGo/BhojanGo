@@ -37,6 +37,10 @@ from shared.redis import close_redis, get_redis
 
 configure_logging()
 logger = structlog.get_logger(__name__)
+# R22: cheaper route lookups (FastAPI's included routers, the Prometheus labels).
+from core_api import routing_speed  # noqa: E402
+
+routing_speed.install()
 settings = get_settings()
 
 MODULES = [

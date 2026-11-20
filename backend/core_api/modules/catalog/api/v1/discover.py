@@ -7,7 +7,6 @@ Public (no sign-in): prices are the same for everyone at an address.
   GET /discover?city=CODE   a whole city (its page, for search engines): no
                             per-address fees, the city's kitchens and offers
 """
-import json
 import re
 import uuid
 from dataclasses import dataclass
@@ -16,7 +15,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,14 +116,25 @@ async def discover(db: DB, viewer: Looker, lat: float | None = Query(None, ge=-9
     # made again (new kitchen ids) must not be answered with the old one's kitchens. A handful of requests.
     if hidden.sees_review:
         return await _discover(db, lat, lng, city, hide=hidden.codes, fresh=True)
-    key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}"
+    # R22: the key carries the database's cache versions (shared/cache_versions.py), so an edit to
+    # any kitchen, menu, hours, rule or market is shown by the next request, not after CACHE_SECONDS;
+    # the time still matters (open now, offers' hours). The JSON is sent as stored (no re-parsing).
+    from shared import cache_versions as cv
+
+    ver = ".".join(map(str, await cv.versions(db, FACT_SCOPES))) if cv.enabled() else "off"
+    key = f"discover:{ver}:{city or f'{lat:.4f},{lng:.4f}'}"
     r = await get_redis()
     cached = await r.get(key)
     if cached:
-        return Discover(**json.loads(cached))
+        return Response(cached.encode() if isinstance(cached, str) else cached, media_type="application/json")  # type: ignore[return-value]
     out = await _discover(db, lat, lng, city, hide=hidden.codes)
-    await r.set(key, out.model_dump_json(), ex=CACHE_SECONDS)
-    return out
+    body = out.model_dump_json()
+    if not cv.wrote(db):
+        await r.set(key, body, ex=CACHE_SECONDS)
+    return Response(body.encode(), media_type="application/json")  # type: ignore[return-value]
+
+
+FACT_SCOPES = ("kitchens", "kitchen:*", "rules", "markets")
 
 
 async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city_code: str | None,
@@ -275,13 +285,19 @@ async def _city_facts(db: AsyncSession, city, region, country, zone_id, city_pat
 
     from shared.config import get_settings
 
+    from shared import cache_versions as cv
+
     keep = 0.0 if fresh else get_settings().catalog.DISCOVER_FACTS_SECONDS
-    key = (city.code, str(zone_id) if zone_id else None, hide)
+    # R22: and never past an edit to a kitchen, rule or market (the database's cache versions).
+    ver = await cv.versions(db, FACT_SCOPES) if keep > 0 and cv.enabled() else ()
+    key = (city.code, str(zone_id) if zone_id else None, hide, ver)
     hit = _facts.get(key)
     if keep > 0 and hit and time.monotonic() - hit[0] < keep:
         return hit[1]
     out = await _compute_facts(db, city, region, country, zone_id, city_path, now)
-    if keep > 0:
+    if keep > 0 and not cv.wrote(db):
+        if len(_facts) > 256:
+            _facts.clear()  # old versions' entries
         _facts[key] = (time.monotonic(), out)
     return out
 

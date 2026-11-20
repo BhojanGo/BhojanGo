@@ -5,6 +5,10 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.cache_versions import VersionedCache
+
+_zones = VersionedCache("markets.city_time_zones", size=2)
+
 
 async def city_time_zones(db: AsyncSession, codes: Iterable[str | None]) -> dict[str, str]:
     """{city code: IANA zone} for the given city codes, in one query. Unknown codes are left out."""
@@ -13,8 +17,13 @@ async def city_time_zones(db: AsyncSession, codes: Iterable[str | None]) -> dict
     wanted = {c for c in codes if c}
     if not wanted:
         return {}
-    rows = (await db.execute(
-        select(City.code, City.timezone, Region.timezone, Country.timezone)
-        .join(Region, Region.id == City.region_id).join(Country, Country.id == City.country_id)
-        .where(City.code.in_(wanted)))).all()
-    return {code: city_tz or region_tz or country_tz for code, city_tz, region_tz, country_tz in rows}
+    # R22: every city's zone, kept until any market edit (order reads and the kitchen board ask on each poll).
+
+    async def every_city() -> dict[str, str]:
+        rows = (await db.execute(
+            select(City.code, City.timezone, Region.timezone, Country.timezone)
+            .join(Region, Region.id == City.region_id).join(Country, Country.id == City.country_id))).all()
+        return {code: city_tz or region_tz or country_tz for code, city_tz, region_tz, country_tz in rows}
+
+    zones = await _zones.through(db, "all", ("markets",), every_city)
+    return {c: zones[c] for c in wanted if c in zones}

@@ -162,6 +162,38 @@ Twilio values, or local codes with SMS off).
 | `FAKE_PAYMENT_*` | **no** (the fake gateway only) | — | — | set | not defined for production (QA and staging only since R19) |
 | `RAZORPAY_*` | no for Boise (India) | Razorpay | yes | not set | not defined |
 
+### core-api processes and the database (R22)
+
+Production runs **2 core-api replicas** (`replicas: 2` in `railway.ts`), so a deploy or a crashed container never
+takes the API down. Each replica starts with [`core_api/start.sh`](../../backend/core_api/start.sh) (the image's
+command, and Railway's start command): one uvicorn process per CPU the container may use, read from its cgroup
+limit (`/sys/fs/cgroup/cpu.max`, not the host's core count), at most `WEB_CONCURRENCY_MAX`.
+`WEB_CONCURRENCY` overrides the count. QA (capped at 1 vCPU) gets 1 process; staging runs 1 replica.
+
+| Variable (core-api) | Value | Why |
+|---|---|---|
+| `WEB_CONCURRENCY_MAX` | `2` | a Railway container may use many vCPUs; 2 processes per replica cover 3x launch with room (load-test.md, R22) |
+| `DB_POOL_SIZE` | `8` | per process |
+| `DB_MAX_OVERFLOW` | `4` | per process: 12 connections at most |
+
+Postgres allows 100 connections (`max_connections`; 3 are kept for superusers). The worst case:
+
+```
+core-api   2 replicas x 2 processes x (8 + 4)       = 48
+worker     1 process  x (5 + 20, the default overflow) = 25
+pre-deploy migration, a psql or backup tunnel       ~  3
+                                              total = 76 of 97
+```
+
+realtime has no database pool. Since R22 a request no longer holds a connection while it queues for the CPU
+for long, and the load test's peaks are in [load-test.md](load-test.md).
+
+Not changed by this: each uvicorn process has its own Prometheus counters, so `/metrics` answers for the process
+that took the scrape. Nothing scrapes production's `/metrics` today (Grafana is the local `make observe` stack).
+
+The monthly cost of this setup, from the load test's measured CPU and memory: [load-test.md, "What production
+costs on Railway"](load-test.md#what-production-costs-on-railway-r22).
+
 ## realtime
 
 Only the shared variables above, with `REDIS_URL` on database 3. No provider keys.

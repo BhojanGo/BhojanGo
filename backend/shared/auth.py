@@ -6,7 +6,9 @@ the public keys as a JWKS; realtime and worker verify with that JWKS
 (``api/dependencies.py``) that turns :class:`InvalidTokenError` into the same
 401 it always returned.
 """
+import time
 import uuid
+from collections import OrderedDict
 
 import jwt
 from fastapi import HTTPException, status
@@ -33,16 +35,35 @@ def encode_jwt(claims: dict) -> str:
     return jwt.encode({**claims, "iss": ISSUER, "aud": AUDIENCE}, key, algorithm=jwt_keys.ALGORITHM, headers={"kid": kid})
 
 
+# R22: tokens already verified in this process: token -> (claims, key, kid). A kitchen tablet
+# or tracking screen sends the same token every few seconds; checking its RS256 signature
+# again each time was pure CPU. A hit still needs the same key to be trusted for its key id
+# (a retired key fails at once) and the token to be unexpired; anything else verifies again.
+_verified: "OrderedDict[str, tuple[dict, object, str]]" = OrderedDict()
+VERIFIED_TOKENS_KEPT = 4096
+
+
 def decode_jwt(token: str) -> dict:
     """Verify signature, expiry, issuer and audience. Raises InvalidTokenError."""
+    hit = _verified.get(token)
+    if hit is not None:
+        claims, key, kid = hit
+        if time.time() < claims["exp"] and jwt_keys.verification_key(kid) is key:
+            return dict(claims)
+        _verified.pop(token, None)
     try:
         kid = jwt.get_unverified_header(token).get("kid", "")
         key = jwt_keys.verification_key(kid)
         if key is None:
             raise InvalidTokenError(f"unknown key id {kid!r}")
-        return jwt.decode(token, key, algorithms=[jwt_keys.ALGORITHM], audience=AUDIENCE, issuer=ISSUER)
+        claims = jwt.decode(token, key, algorithms=[jwt_keys.ALGORITHM], audience=AUDIENCE, issuer=ISSUER)
     except jwt.PyJWTError as exc:
         raise InvalidTokenError(str(exc)) from exc
+    if isinstance(claims.get("exp"), (int, float)):  # only tokens that expire are remembered
+        _verified[token] = (dict(claims), key, kid)
+        while len(_verified) > VERIFIED_TOKENS_KEPT:
+            _verified.popitem(last=False)
+    return claims
 
 
 def decode_access_token(token: str) -> dict:
