@@ -7,7 +7,7 @@ import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { urls, useSession } from "@/lib/client";
+import { coreFetch, useSession } from "@/lib/client";
 import { useLanguage, useT } from "@/lib/i18n";
 import { placeFromDefaultAddress } from "./afterSignIn";
 
@@ -42,7 +42,7 @@ export function GoogleSignIn({ clientId, country, next, hasPlace }: { clientId: 
         setBusy(true);
         setError(null);
         try {
-          const r = await fetch(`${urls.core}/api/v1/auth/social-login`, {
+          const r = await coreFetch("/api/v1/auth/social-login", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ provider: "google", token: credential, ...(country ? { country } : {}) }),

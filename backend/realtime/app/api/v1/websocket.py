@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
-from app.core.auth import _decode_token
+from app.core import sockets
+from app.core.auth import CurrentUser, socket_user
 from app.core.hub import hub
 from app.core.redis import get_redis, order_tracking_channel
 from app.services.core_api import CoreApiError
@@ -77,14 +78,19 @@ def _extract_ws_token(websocket: WebSocket, query_token: str | None) -> str | No
 async def track_order(
     websocket: WebSocket,
     order_id: str,
-    token: str | None = Query(default=None, description="JWT access token (legacy; prefer Authorization header)"),
+    token: str | None = Query(default=None, description="JWT access token or socket ticket (prefer the Authorization header)"),
 ) -> None:
     """
     WebSocket endpoint for real-time order tracking.
 
     Client connects to: ws://host/ws/track/{order_id}
-    Token is supplied via the Authorization header or Sec-WebSocket-Protocol;
+    Token (an access token, or the website's socket ticket from POST /auth/socket-ticket)
+    is supplied via the Authorization header or Sec-WebSocket-Protocol;
     ?token=<jwt> remains supported as a fallback.
+
+    Closes with 4401 when the token expires (reconnect with a fresh one), 4403 when the
+    caller may no longer watch the order (e.g. its rider changed), 4429 when the caller
+    already has too many sockets open (R22 S10).
 
     Messages received by client:
     - {"type": "location_update", "payload": {...}, "timestamp": "..."}
@@ -98,7 +104,7 @@ async def track_order(
         await websocket.close(code=4001, reason="Unauthorized")
         return
     try:
-        current_user = _decode_token(auth_token)
+        current_user = socket_user(auth_token)
     except Exception:
         await websocket.close(code=4001, reason="Unauthorized")
         return
@@ -116,40 +122,75 @@ async def track_order(
         await websocket.close(code=4004, reason="Order not found")
         return
 
-    await manager.connect(websocket, order_id)
+    try:
+        async with sockets.limits.hold(current_user.user_id, sockets.address(websocket)):
+            await _track(websocket, order_id, current_user, info)
+    except sockets.TooManySockets:
+        await websocket.close(code=sockets.TOO_MANY, reason="Too many connections")
 
-    # Send the current picture first: status, rider position, ETA, the trail so far.
-    fix = await dispatch.last_fix(info["driver_id"]) if info.get("driver_id") else None
-    trail = [json.loads(x) for x in await (await get_redis()).lrange(f"trail:{order_id}", 0, 199)]
-    await websocket.send_json({
-        "type": "connected",
-        "payload": {"order_id": order_id, "user_id": current_user.user_id, "status": info.get("status"),
-                    "driver_id": info.get("driver_id"), "location": fix,
-                    "eta": dispatch.eta_for(info, (fix["lat"], fix["lng"])) if fix else None,
-                    "pickup": info.get("pickup"), "dropoff": info.get("dropoff"), "trail": list(reversed(trail))},
-        "timestamp": datetime.now(UTC).isoformat(),
-    })
 
-    # Updates for this order through the process's shared subscription (app/core/hub.py):
-    # this socket gets its own queue and sends only to itself.
-    async def forward(q: "asyncio.Queue[str]") -> None:
-        while True:
-            await websocket.send_text(await q.get())
+# Messages after which the order's rider may have changed: who may watch is checked again (R22 S10).
+RECHECK = frozenset({"rider_assigned", "searching_rider", "status_change"})
 
-    async def keepalive() -> None:
-        while True:
-            await asyncio.sleep(30)
-            await websocket.send_json({"type": "ping", "payload": {}, "timestamp": datetime.now(UTC).isoformat()})
+
+async def still_allowed(order_id: str, user: CurrentUser) -> bool:
+    from app.api.v1.delivery import can_see
+    from app.services import dispatch
 
     try:
+        info = await dispatch.order_info(order_id, max_age=5)
+    except CoreApiError:
+        return True  # core_api unreachable: keep the socket; the next change checks again
+    return info is not None and can_see(user, info)
+
+
+async def _track(websocket: WebSocket, order_id: str, current_user: CurrentUser, info: dict) -> None:
+    from app.services import dispatch
+
+    await manager.connect(websocket, order_id)
+    try:
+        # Send the current picture first: status, rider position, ETA, the trail so far.
+        fix = await dispatch.last_fix(info["driver_id"]) if info.get("driver_id") else None
+        trail = [json.loads(x) for x in await (await get_redis()).lrange(f"trail:{order_id}", 0, 199)]
+        await websocket.send_json({
+            "type": "connected",
+            "payload": {"order_id": order_id, "user_id": current_user.user_id, "status": info.get("status"),
+                        "driver_id": info.get("driver_id"), "location": fix,
+                        "eta": dispatch.eta_for(info, (fix["lat"], fix["lng"])) if fix else None,
+                        "pickup": info.get("pickup"), "dropoff": info.get("dropoff"), "trail": list(reversed(trail))},
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+
+        # Updates for this order through the process's shared subscription (app/core/hub.py):
+        # this socket gets its own queue and sends only to itself.
+        async def forward(q: "asyncio.Queue[str]") -> None:
+            while True:
+                text = await q.get()
+                try:
+                    kind = json.loads(text).get("type")
+                except (ValueError, AttributeError):
+                    kind = None
+                if kind in RECHECK and not await still_allowed(order_id, current_user):
+                    # e.g. a rider taken off the order stops seeing it at once (R22 S10)
+                    logger.info("ws_no_longer_allowed", order_id=order_id)
+                    await websocket.close(code=sockets.NOT_ALLOWED, reason="Not your order any more")
+                    return
+                await websocket.send_text(text)
+
+        async def keepalive() -> None:
+            while True:
+                await asyncio.sleep(30)
+                await websocket.send_json({"type": "ping", "payload": {}, "timestamp": datetime.now(UTC).isoformat()})
+
         async with hub.subscribe(order_tracking_channel(order_id)) as q:
-            tasks = [asyncio.create_task(forward(q)), asyncio.create_task(keepalive())]
+            tasks = [asyncio.create_task(forward(q)), asyncio.create_task(keepalive()),
+                     asyncio.create_task(sockets.close_at(websocket, current_user.exp))]
             try:
                 while True:
                     if await websocket.receive_text() == "ping":
                         await websocket.send_text("pong")
-            except WebSocketDisconnect:
-                pass
+            except (WebSocketDisconnect, RuntimeError):
+                pass  # the client left, or a task above closed the socket
             finally:
                 for t in tasks:
                     t.cancel()

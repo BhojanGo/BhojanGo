@@ -21,7 +21,7 @@ export function LanguageMenu() {
   const t = useT();
   const { language, list, country, name } = useLanguage();
   const { setLanguage } = usePrefs();
-  const signedIn = useSession((s) => !!s.access);
+  const signedIn = useSession((s) => s.signedIn);
   async function choose(lang: string) {
     setLanguage(lang);
     // Signed in: remember it on the account too (emails, SMS, the apps).

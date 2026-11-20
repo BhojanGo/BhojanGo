@@ -27,6 +27,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from playwright.sync_api import expect, sync_playwright
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this folder: web_session
+import web_session  # noqa: E402  (the website's session in cookies, R22 S8)
 
 ROOT = Path(__file__).resolve().parents[2]
 DESIGN = ROOT / "docs" / "design" / "web"
@@ -64,7 +66,8 @@ loc = api("GET", f"/markets/locate?lat={home['lat']}&lng={home['lng']}")
 place = {"label": f"{loc.get('zone_name')}, {loc.get('city_name')}", "lat": home["lat"], "lng": home["lng"],
          "country": loc.get("country_code"), "city_code": loc.get("city_code"), "city_path": "/in/hyderabad",
          "zone": loc.get("zone_name"), "served": True, "address_id": home["id"]}
-session = json.dumps({"state": {"access": cust, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
+session = web_session.script(me)
+session_jar = web_session.cookies(CORE, cust, t["refresh_token"])
 
 # A kitchen near home with a dish that has choices (the customise sheet) and another to add.
 near = api("GET", f"/discover?lat={home['lat']}&lng={home['lng']}")
@@ -144,7 +147,8 @@ with sync_playwright() as p:
     def signed_in(width: int):  # type: ignore[no-untyped-def]
         ctx = b.new_context(viewport={"width": width, "height": WIDTHS[width]})
         ctx.add_cookies([{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": WEB}])
-        ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
+        ctx.add_init_script(session)
+        ctx.add_cookies(session_jar)
         return ctx.new_page()
 
     def add(page, name: str) -> None:  # type: ignore[no-untyped-def]

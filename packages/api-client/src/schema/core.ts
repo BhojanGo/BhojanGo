@@ -509,6 +509,10 @@ export interface paths {
         /**
          * Refresh Token
          * @description Exchange a refresh token for a new access + refresh token pair.
+         *
+         *     The apps send ``refresh_token``. The website and the console (``X-Session``) send
+         *     no body: their refresh token is in their session cookie, and the new pair comes
+         *     back as cookies too (R22 S8, shared/session.py).
          */
         post: operations["refresh_token_api_v1_auth_refresh_post"];
         delete?: never;
@@ -581,6 +585,29 @@ export interface paths {
          *     401 INVALID_GOOGLE_TOKEN / INVALID_APPLE_TOKEN, also when the provider isn't configured.
          */
         post: operations["social_login_api_v1_auth_social_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/socket-ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Socket Ticket
+         * @description A ticket for the realtime WebSocket (R22 S8): the website's session is an httpOnly
+         *     cookie the page can't read, and the socket is on another host. Same person and rights
+         *     as the session's access token, and the same expiry; it opens WebSockets only (every
+         *     HTTP route refuses it). The apps can keep sending their access token instead.
+         */
+        post: operations["socket_ticket_api_v1_auth_socket_ticket_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8894,8 +8921,11 @@ export interface components {
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
-            /** Refresh Token */
-            refresh_token: string;
+            /**
+             * Refresh Token
+             * @default
+             */
+            refresh_token?: string;
         };
         /** RefundCreate */
         RefundCreate: {
@@ -9992,6 +10022,13 @@ export interface components {
             provider: "google" | "apple";
             /** Token */
             token: string;
+        };
+        /** SocketTicket */
+        SocketTicket: {
+            /** Expires At */
+            expires_at: number;
+            /** Ticket */
+            ticket: string;
         };
         /** SoldOutIn */
         SoldOutIn: {
@@ -11321,9 +11358,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["RefreshTokenRequest"];
+                "application/json": components["schemas"]["RefreshTokenRequest"] | null;
             };
         };
         responses: {
@@ -11442,6 +11479,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    socket_ticket_api_v1_auth_socket_ticket_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocketTicket"];
                 };
             };
         };

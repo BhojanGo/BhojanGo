@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
+from shared import session
 from shared.auth import BearerAuth
 from shared.client_ip import client_ip
 from slowapi import Limiter
@@ -56,11 +57,44 @@ async def login(
 
 @router.post("/refresh", response_model=AuthTokensResponse)
 async def refresh_token(
-    data: RefreshTokenRequest,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+    data: RefreshTokenRequest | None = None,
 ) -> AuthTokensResponse:
-    """Exchange a refresh token for a new access + refresh token pair."""
-    return await AuthService(db).refresh(data.refresh_token)
+    """Exchange a refresh token for a new access + refresh token pair.
+
+    The apps send ``refresh_token``. The website and the console (``X-Session``) send
+    no body: their refresh token is in their session cookie, and the new pair comes
+    back as cookies too (R22 S8, shared/session.py)."""
+    token = data.refresh_token if data and data.refresh_token else session.cookie_token(request, "refresh")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail={"code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"})
+    return await AuthService(db).refresh(token)
+
+
+class SocketTicket(BaseModel):
+    ticket: str
+    expires_at: int  # unix seconds: the session's access token expires then, and so does the socket
+
+
+@router.post("/socket-ticket", response_model=SocketTicket)
+async def socket_ticket(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> SocketTicket:
+    """A ticket for the realtime WebSocket (R22 S8): the website's session is an httpOnly
+    cookie the page can't read, and the socket is on another host. Same person and rights
+    as the session's access token, and the same expiry; it opens WebSockets only (every
+    HTTP route refuses it). The apps can keep sending their access token instead."""
+    import uuid as _uuid
+
+    from shared.auth import SOCKET_TICKET, decode_access_token, encode_jwt
+
+    claims = decode_access_token(credentials.credentials)
+    keep = {k: claims[k] for k in ("sub", "email", "role", "country", "adm", "mfa", "exp") if k in claims}
+    ticket = encode_jwt({**keep, "type": SOCKET_TICKET, "jti": str(_uuid.uuid4())})
+    return SocketTicket(ticket=ticket, expires_at=int(claims["exp"]))
 
 
 @router.post("/logout", response_model=MessageResponse)

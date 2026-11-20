@@ -154,7 +154,7 @@ export function ConsoleShell({
         <div className="ml-auto flex min-w-0 items-center gap-2.5 text-small">
           <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-peacock-tint sm:flex text-small text-peacock-dark">{initials}</span>
           <span data-testid="who" className="hidden truncate md:inline">{whoLine(user?.full_name, role)}</span>
-          <button type="button" onClick={() => { logout(); router.replace("/login"); }}
+          <button type="button" onClick={() => { void logout(); router.replace("/login"); }}
             className="h-9 shrink-0 whitespace-nowrap rounded-full px-3 font-semibold text-peacock hover:bg-peacock-wash md:ml-2">Sign out</button>
         </div>
       </header>

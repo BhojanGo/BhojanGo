@@ -300,6 +300,7 @@ def draw_zone(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     page.get_by_role("button", name="+ Draw zone").click()
     mp = page.get_by_role("application", name=re.compile("click to add"))
     expect(mp).to_be_visible()
+    mp.scroll_into_view_if_needed()  # the clicks below are screen positions (the page is taller since R22's offer ceiling)
     page.wait_for_timeout(500)  # Leaflet sizes itself after mount
     box = mp.bounding_box()
     assert box, "no map"

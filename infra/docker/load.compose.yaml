@@ -7,6 +7,7 @@
 #   - The fake gateway doesn't pay by itself: k6 confirms each payment, the way the
 #     app's checkout does, and times it.
 #   - No demo rider: the load test's riders deliver everything.
+#   - realtime's WebSocket caps (R22 S10) are off: one load generator holds every socket.
 #   - core-api runs CORE_API_WORKERS uvicorn processes (default 1, as on Railway), each with
 #     a pool of 10 + CORE_API_DB_OVERFLOW connections (default 20, the app's default).
 #   - tools/soak and target_guard.py in core-api, for tools/soak/setup.py (riders and
@@ -26,6 +27,10 @@ services:
   realtime:
     environment:
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "120"
+      # R22 S10: the socket caps per account and per address are off: every simulated
+      # person's sockets come from the one load generator, and seed accounts are shared.
+      WS_MAX_PER_USER: "0"
+      WS_MAX_PER_IP: "0"
   worker:
     environment:
       DEMO_RIDER_SIM: "0"

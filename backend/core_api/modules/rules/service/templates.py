@@ -290,9 +290,13 @@ class PaymentFees(_P):
 
 class AutoRefundLimit(_P):
     """B5: a customer's problem report is refunded at once up to this much per
-    order; above it, it goes to support as a ticket."""
+    order; above it, it goes to support as a ticket. A bulk refund (incidents) runs
+    without a second admin only when every order is within ``max_per_order`` and the
+    whole batch is within ``max_bulk_total`` (R22 security review, S12; unset: 50 x
+    ``max_per_order``)."""
 
     max_per_order: Money = Field(ge=0)
+    max_bulk_total: Money | None = Field(default=None, ge=0, description="A bulk refund above this total needs a second admin")
 
 
 # ── Promotions ────────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ from playwright.sync_api import expect, sync_playwright
 
 sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "/guard"]
 from target_guard import ensure_safe_api  # noqa: E402
+import web_session  # noqa: E402  (tools/web: the website's session in cookies, R22 S8)
 
 ensure_safe_api("http://core-api:8001")
 
@@ -111,13 +112,15 @@ partner = login("partner.hyd@example.com")["access_token"]
 ops = login("ops.hyd@example.com", "BhojanGoAdmin1")["access_token"]
 rider = login("rider3.hyd@example.com")["access_token"]
 me = api("GET", "/users/me", cust["access_token"])
-session = json.dumps({"state": {"access": cust["access_token"], "refreshToken": cust["refresh_token"], "user": me}, "version": 0})
+session = web_session.script(me)
+session_jar = web_session.cookies("http://localhost:8001", cust["access_token"], cust["refresh_token"])
 
 passed, failed = 0, []
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = b.new_context(viewport={"width": 1440, "height": 1000})
-    ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
+    ctx.add_init_script(session)
+    ctx.add_cookies(session_jar)
     page = ctx.new_page()
     for i in range(1, N + 1):
         t0 = time.monotonic()

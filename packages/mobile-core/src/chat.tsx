@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 import { useI18n } from "./i18n";
-import { api, wsUrl } from "./session";
+import { api, liveSocket } from "./session";
 import { color, dark, radius } from "./ui/theme";
 import { field, type } from "./ui/type";
 
@@ -63,8 +63,7 @@ export function useQuickMessages(orderId: string | undefined) {
   useEffect(() => {
     if (!orderId) return;
     load().catch(() => undefined);
-    const ws = new WebSocket(wsUrl(`/ws/track/${orderId}`));
-    ws.onmessage = (e) => {
+    const stopSocket = liveSocket(`/ws/track/${orderId}`, (e) => {
       const m = JSON.parse(String(e.data)) as {
         type: string; payload: { id: string; sender_role: string; text: string; at: string; preset?: string | null };
       };
@@ -88,12 +87,12 @@ export function useQuickMessages(orderId: string | undefined) {
         const msg = { id: m.payload.id, mine, sender_role: m.payload.sender_role, text: m.payload.text, at: m.payload.at } as Message;
         return { ...c, messages: [...c.messages, msg] };
       });
-    };
+    });
     const poll = setInterval(() => void load(), 30000); // the socket can drop on mobile networks
     return () => {
       latest.current++; // a fetch still in flight no longer applies
       clearInterval(poll);
-      ws.close();
+      stopSocket();
     };
   }, [orderId, language, load, apply]);
 

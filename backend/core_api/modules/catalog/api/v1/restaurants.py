@@ -292,6 +292,17 @@ async def create_restaurant(
     return RestaurantResponse.model_validate(restaurant)
 
 
+def _own_photos(user: CurrentUser, owner_id: uuid.UUID | None, *urls: str | None) -> None:
+    """R22 (S13): an uploaded photo is the caller's own or the kitchen owner's, never another account's."""
+    from core_api.modules.catalog.service.photo_urls import PhotoUrlError, check
+
+    for u in urls:
+        try:
+            check(u, {user.id} | ({owner_id} if owner_id else set()))
+        except PhotoUrlError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "PHOTO_URL", "message": str(e)})
+
+
 @router.put("/{restaurant_id}", response_model=RestaurantResponse)
 async def update_restaurant(
     restaurant_id: uuid.UUID,
@@ -299,7 +310,8 @@ async def update_restaurant(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantResponse:
-    await access.manage(db, current_user, restaurant_id)
+    r = await access.manage(db, current_user, restaurant_id)
+    _own_photos(current_user, r.owner_id, data.logo_url, data.cover_url)
     if data.status is not None:
         # R21 security review (S4): going live, suspending or un-suspending is an admin's call
         # (approve / reject, partners.edit in the city), never the owner's.
@@ -401,7 +413,8 @@ async def update_menu_item(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
-    await access.manage(db, current_user, restaurant_id)
+    r = await access.manage(db, current_user, restaurant_id)
+    _own_photos(current_user, r.owner_id, data.image_url)
     repo = RestaurantRepository(db)
 
     item_repo = MenuItemRepository(db)

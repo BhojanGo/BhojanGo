@@ -19,7 +19,7 @@ interface Pause { id: string; scope: string; area: string; note: string | null; 
 interface PausedKitchen { id: string; name: string; city: string; reason: string | null; paused_at: string | null; back_at: string | null }
 interface KitchenRef { id: string; name: string }
 interface PreviewOrder { order_id: string; restaurant: string; status: string; placed_at: string | null; paid: number; amount: number; currency: string }
-interface RefundPreview { orders: PreviewOrder[]; count: number; total: number; currency: string | null; auto_refund_limit: string; needs_approval: boolean }
+interface RefundPreview { orders: PreviewOrder[]; count: number; total: number; currency: string | null; auto_refund_limit: string; auto_refund_total_limit?: string; needs_approval: boolean; approval_reasons?: string[] }
 interface BulkRefund { id: string; market_city: string; mode: string; percent: string | null; reason: string; count: number; total: number; currency: string; status: string; requested_by: string; refunded: number; failed: number; created_at: string | null }
 interface Template { key: string; title: string; body: string; needs: string[]; per_order: boolean }
 interface MessagePreview { city: string; recipients: number; skipped: number; only_test_accounts: boolean; sample: { title: string; body: string } }
@@ -279,7 +279,10 @@ function Refunds({ scope }: { scope: string }) {
       {preview ? (
         <div className="space-y-2 rounded-xl border border-line p-4 text-small" data-testid="refund-preview">
           <p className="m-0"><b>{preview.count} order{preview.count === 1 ? "" : "s"} · {m(preview.total)}</b>
-            {preview.needs_approval ? <> · <span className="rounded-full bg-kesar-tint px-2 py-0.5 text-kesar-ink">needs a second admin (above {units.money(Number(preview.auto_refund_limit), 2)} per order)</span></> : " · runs at once (within the city's limit)"}</p>
+            {preview.needs_approval ? <> · <span className="rounded-full bg-kesar-tint px-2 py-0.5 text-kesar-ink">needs a second admin ({[
+              ...(preview.approval_reasons ?? ["order_over_limit"]).includes("order_over_limit") ? [`above ${units.money(Number(preview.auto_refund_limit), 2)} per order`] : [],
+              ...(preview.approval_reasons ?? []).includes("total_over_limit") && preview.auto_refund_total_limit ? [`above ${units.money(Number(preview.auto_refund_total_limit), 2)} in all`] : [],
+            ].join(" and ")})</span></> : " · runs at once (within the city's limits)"}</p>
           {preview.count ? (
             <div className="table-scroll max-h-64 overflow-auto"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Order</th><th>Kitchen</th><th>Status</th><th>Placed</th><th>Paid</th><th>Refund</th></tr></thead>
               <tbody>{preview.orders.map((o) => <tr key={o.order_id}><td>#{o.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}</td><td>{o.restaurant}</td><td>{o.status}</td><td>{when(o.placed_at)}</td><td>{m(o.paid)}</td><td>{m(o.amount)}</td></tr>)}</tbody></table></div>

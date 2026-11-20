@@ -40,6 +40,8 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this folder: web_session
+import web_session  # noqa: E402  (the website's session in cookies, R22 S8)
 
 # The type scale (packages/ui/tokens.js typeScale): each role's [min, max] in px,
 # min at a 360 px wide viewport, max at 1440 px, linear between.
@@ -213,7 +215,8 @@ def main() -> int:
                 t = api(core, "POST", "/auth/login", None, {"email": customer, "password": passwords[customer]})
                 tok = t["access_token"]
                 me = api(core, "GET", "/users/me", tok)
-                session = json.dumps({"state": {"access": tok, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
+                session = web_session.script(me)
+                session_jar = web_session.cookies(core, tok, t["refresh_token"])
                 cookies = []
                 home = next((a for a in api(core, "GET", "/me/addresses", tok) if a.get("is_default")), None)
                 if home:
@@ -239,7 +242,8 @@ def main() -> int:
                     ctx = b.new_context(viewport={"width": w, "height": h})
                     if cookies:
                         ctx.add_cookies(cookies)
-                    ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(session)});")
+                    ctx.add_init_script(session)
+                    ctx.add_cookies(session_jar)
                     pg = ctx.new_page()
                     for path in account:
                         pg.goto(web + path, wait_until="networkidle")

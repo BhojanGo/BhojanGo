@@ -222,8 +222,8 @@ function Privacy() {
     setProblem(null);
     try {
       await authed("DELETE", "/api/v1/users/me");
-      // The tokens are already dead on the server: forget them here too.
-      useSession.setState({ access: null, refreshToken: null, user: null });
+      // The session is already over on the server: forget who was signed in here too.
+      useSession.setState({ signedIn: false, user: null });
       router.push("/");
       router.refresh();
     } catch {

@@ -53,6 +53,18 @@ def decode_access_token(token: str) -> dict:
     return payload
 
 
+SOCKET_TICKET = "ws"
+
+
+def decode_socket_token(token: str) -> dict:
+    """A WebSocket's token: an access token (the apps) or a socket ticket (the website,
+    POST /auth/socket-ticket, R22 S8). Tickets are refused everywhere else."""
+    payload = decode_jwt(token)
+    if not payload.get("sub", "") or payload.get("type") not in ("access", SOCKET_TICKET):
+        raise InvalidTokenError("not an access token or socket ticket")
+    return payload
+
+
 class CurrentUser:
     """The caller, as described by their access-token claims."""
 
@@ -64,10 +76,11 @@ class CurrentUser:
         self.role = role
         self.country = country
         self.id = uuid.UUID(user_id)
+        self.exp: int | None = None  # the token's expiry (unix seconds); a WebSocket closes then (R22 S10)
 
     @classmethod
     def from_claims(cls, payload: dict) -> "CurrentUser":
-        return cls(
+        user = cls(
             user_id=payload["sub"],
             email=payload.get("email", ""),
             role=payload.get("role", "customer"),
@@ -76,6 +89,8 @@ class CurrentUser:
             # core_api issues "adm" only then, and this keeps it so for any token.
             admin=payload.get("adm", []) if payload.get("mfa") is True else [],
         )
+        user.exp = int(payload["exp"]) if isinstance(payload.get("exp"), (int, float)) else None
+        return user
 
 
 class BearerAuth(HTTPBearer):
@@ -89,6 +104,18 @@ class BearerAuth(HTTPBearer):
     async def __call__(self, request: HTTPConnection) -> HTTPAuthorizationCredentials | None:  # type: ignore[override]
         authorization = request.headers.get("Authorization")
         scheme, credentials = get_authorization_scheme_param(authorization)
+        if not authorization:
+            # R22 (S8): the website and the console send their session cookie instead
+            # (shared/session.py), with the CSRF check for anything that changes state.
+            from shared import session
+
+            token = session.cookie_token(request)
+            if token:
+                return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+            if self.auto_error and session.client_of(request):
+                # The cookie ran out (15 min): 401, so the page refreshes its session and retries.
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail={"code": "SESSION_EXPIRED", "message": "Sign in again"})
         if not (authorization and scheme and credentials):
             if self.auto_error:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")

@@ -3,7 +3,7 @@
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes (a slow poll as a safety net). The map is
 // MapLibre over OpenFreeMap's free tiles (components/LiveMap.tsx).
-import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, wsUrl } from "@bhojango/mobile-core";
+import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, liveSocket } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -55,8 +55,8 @@ export default function Tracking() {
         })
         .catch((e: unknown) => alive && setFailure(e));
     void load();
-    const ws = new WebSocket(wsUrl(`/ws/track/${id}`));
-    ws.onmessage = (e) => {
+    // Live; reopens with a fresh token when realtime closes it at the token's expiry (R22 S10).
+    const stopSocket = liveSocket(`/ws/track/${id}`, (e) => {
       let m: { type: string; payload: Record<string, unknown> };
       try {
         m = JSON.parse(String(e.data)) as typeof m;
@@ -91,12 +91,12 @@ export default function Tracking() {
             return s;
         }
       });
-    };
+    });
     const poll = setInterval(load, 15000);
     return () => {
       alive = false;
       clearInterval(poll);
-      ws.close();
+      stopSocket();
     };
   }, [id, attempt]);
 

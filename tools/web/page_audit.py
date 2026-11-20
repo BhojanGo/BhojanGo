@@ -25,6 +25,8 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this folder: web_session
+import web_session  # noqa: E402  (the website's session in cookies, R22 S8)
 
 # Width x height in CSS px, device scale factor, and how the sheet names it.
 CHECKS = [(360, 780, 1, "360"), (390, 844, 1, "390"), (768, 1024, 1, "768"), (1024, 768, 1, "1024"),
@@ -112,8 +114,8 @@ def main() -> int:  # noqa: C901 - one walk through the site
                      "country": loc.get("country_code"), "city_code": loc.get("city_code"), "city_path": city_path,
                      "zone": loc.get("zone_name"), "served": bool(loc.get("serviceable")), "address_id": home["id"]}
             cookies = [{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": web}]
-        state = json.dumps({"state": {"access": tok, "refreshToken": t["refresh_token"], "user": me}, "version": 0})
-        return state, cookies, {"token": tok, "me": me}
+        cookies += web_session.cookies(core, tok, t["refresh_token"])
+        return web_session.script(me), cookies, {"token": tok, "me": me}
 
     # ── the pages, per kind of visitor ───────────────────────────────────────
     pages: list[tuple[str, str, str, str | None]] = []  # (name, who, url, signed-in email)
@@ -183,7 +185,7 @@ def main() -> int:  # noqa: C901 - one walk through the site
                     state, cookies, _ = sessions[email]
                     if cookies:
                         ctx.add_cookies(cookies)
-                    ctx.add_init_script(f"if (!localStorage.getItem('bhojango-session')) localStorage.setItem('bhojango-session', {json.dumps(state)});")
+                    ctx.add_init_script(state)
                 pg = ctx.new_page()
                 if who == "admin" and email and admin_state is None:
                     pg.goto(admin + "/login", wait_until="networkidle")
