@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-20** (after round 21), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-20** (after round 22), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -229,6 +229,34 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   kitchens follow your address." under Language. The rider-02 flow's one failure was Maestro losing its driver on
   the phone before the flow started, not the app; 70 reruns passed, and a failed flow now keeps the phone's whole log.
 
+## Speed, backups, security mediums, phone numbers (round 22, 2026-11-20)
+
+- **core_api is fast enough on one process (#174, [launch/load-test.md](launch/load-test.md)).** At 1x launch on one
+  process: reads p95 23-86 ms, placing an order 50 ms (targets 500 ms and 1.5 s). At 3x on two processes: reads
+  47-329 ms, placing an order 232 ms, 0 server errors, 0 lost realtime updates, every order delivered. Before: 0.4-1.1 s
+  and 3-13 s. What changed: rules, menus, the kitchen board, availability and the home screen are cached by database
+  versions (triggers bump them in the editing transaction, so an edit shows on the very next request in every
+  process; migration 0040); the kitchen board's N+1 query; pure ASGI middleware; faster route matching; verified
+  tokens remembered. Production: 2 core-api replicas for redundancy, uvicorn processes from the container's CPU
+  (at most 2). **Railway estimate: about $37 a month at launch, $58 in a busy month at 3x, at most $106** (Pro plan,
+  measured CPU and memory; formula in load-test.md). A US quote in production adds one Stripe Tax call (100-300 ms).
+- **Backups (#172, #175, [launch/incident-plan.md](launch/incident-plan.md#database-restore)).** QA's volume
+  backups are on (daily, kept 6 days; weekly, kept 27 days; the project was already on Pro, so no upgrade). The hourly
+  `pg_dump` to its own bucket, kept 7 days, and the weekly restore test are built and pass end to end in CI (a local
+  S3). Railway buckets are $0.015/GB-month, cheaper in practice than setting up R2 (both under a cent a month here).
+  **Not yet on QA:** creating the `db-backups` bucket and the `db-backup` cron service in QA was stopped by Claude
+  Code's safety check and waits for Srini to allow it; so the restore drill hasn't run on QA's real backup yet.
+  Railway restores a volume backup only over the live volume, so that kind is not drilled on QA.
+- **Security mediums fixed (#176, [launch/security-review.md](launch/security-review.md)).** Website and admin
+  sessions in httpOnly, Secure, SameSite cookies with a CSRF check (the apps keep secure storage; a socket ticket for
+  realtime); a nonce CSP without `unsafe-inline`; sockets close when their token expires and are capped per account and
+  address; a kitchen-offer ceiling per country and city in admin Markets; a bulk-refund total cap (above it a second
+  admin approves); photo URLs only from our uploads or photo hosts. Each fix has a test proven to fail without it.
+  Everyone on the website and admin is signed out once. Left open: carrying a negative kitchen statement into the
+  next week.
+- **Phone numbers (#173):** shown in each country's format everywhere ("+1 208-555-0291", "+91 98765 43210") in the
+  three apps, admin and the website; stored and sent as E.164.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
@@ -240,8 +268,8 @@ In order. Items 1–4 are Srini's; the rest follow from them.
    paging channel (task 31). Each one replaces a fake that is already wired; only keys are added.
 3. **Production on Railway:** a production environment from the same config as QA (no demo seed: it refuses
    production), with the accounts' keys as sealed variables. Then the website can be indexed (task 27).
-   Before launch: core_api on 2-3 processes (load test, round 21), QA's database backups on and the restore
-   drill run on QA's data (round 21).
+   Before launch: the `db-backup` service and bucket on QA, then the restore drill on QA's real backup (round 22,
+   waiting for Srini to allow it); the same in production with its volume backups rehearsed once.
 4. **Vendors and stores:** trademark (2), logo artwork (22), legal pack (35), outside pen test (33), app store
    accounts (36).
 5. **Translations:** native speakers review the machine translations listed in
