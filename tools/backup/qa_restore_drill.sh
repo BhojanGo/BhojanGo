@@ -51,7 +51,34 @@ WHERE table_type = $q$BASE TABLE$q$ AND table_schema NOT IN ($q$pg_catalog$q$, $
   AND NOT EXISTS (SELECT 1 FROM pg_depend d JOIN pg_class c ON c.oid = d.objid
                   WHERE d.deptype = $q$e$q$ AND c.relname = table_name AND c.relnamespace = table_schema::regnamespace)
 ORDER BY 1 \gexec'
+printf '%s\n' "$COUNT_SQL" > "$WORK/count.sql"   # every source counts the restored tables with it
 
+if [ -n "${BACKUP_BUCKET:-}" ]; then
+# R22: the newest hourly dump (tools/backup/hourly_dump.sh) from the backup bucket, with the read-only
+# credentials in BACKUP_* (AWS CLI). Its checksum and its own row counts come with it.
+SOURCE="the newest hourly dump in $BACKUP_BUCKET/${BACKUP_PREFIX:?}"
+step "1. fetch the newest backup ($SOURCE)"
+t0=$(now)
+s3() { AWS_ACCESS_KEY_ID="$BACKUP_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_SECRET_ACCESS_KEY" AWS_REGION="${BACKUP_REGION:-auto}"        aws --endpoint-url "$BACKUP_ENDPOINT_URL" s3 cp --only-show-errors "$@"; }
+s3 "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/latest.json" "$WORK/latest.json" || fail "no latest.json in the backup bucket"
+key=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['key'])" "$WORK/latest.json")
+taken=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['taken_at'])" "$WORK/latest.json")
+s3 "s3://$BACKUP_BUCKET/$key" "$WORK/qa.dump" || fail "couldn't download $key"
+s3 "s3://$BACKUP_BUCKET/$key.sha256" "$WORK/qa.sha256" || fail "no checksum for $key"
+s3 "s3://$BACKUP_BUCKET/$key.counts" "$WORK/qa.counts.raw" || fail "no row counts for $key"
+[ "$(sha256sum "$WORK/qa.dump" | cut -d' ' -f1)" = "$(tr -d ' 
+' < "$WORK/qa.sha256")" ] || fail "checksum mismatch: $key"
+grep -E '^[a-z_]+\.[a-z0-9_]+ [0-9]+$' "$WORK/qa.counts.raw" | sort > "$WORK/qa.counts"
+qa_now=$(python3 -c "import sys,datetime as d; print(d.datetime.strptime(sys.argv[1], '%Y%m%dT%H%M%SZ').replace(tzinfo=d.timezone.utc).isoformat())" "$taken")
+age_min=$(python3 -c "import sys,datetime as d; t=d.datetime.strptime(sys.argv[1], '%Y%m%dT%H%M%SZ').replace(tzinfo=d.timezone.utc); print(int((d.datetime.now(d.timezone.utc)-t).total_seconds()//60))" "$taken")
+qa_bytes=$(stat -c %s "$WORK/qa.dump"); qa_rev=""
+pgr --list /w/qa.dump > "$WORK/toc.txt" 2>/dev/null || fail "the dump isn't a readable pg_dump archive"
+t_backup=$(( $(now) - t0 ))
+echo "backup: $key, $(( qa_bytes / 1024 )) KB, $(grep -c 'TABLE DATA' "$WORK/toc.txt") tables of data, checksum OK, taken $qa_now ($age_min minutes ago), fetched in ${t_backup} s"
+echo "$SOURCE: $(wc -l < "$WORK/qa.counts") tables, $(awk '{s+=$2} END {print s}' "$WORK/qa.counts") rows at dump time"
+# RPO check: the hourly job must be running. Older than MAX_AGE_MINUTES (default 120) fails the drill.
+[ "$age_min" -le "${MAX_AGE_MINUTES:-120}" ] || fail "the newest backup is $age_min minutes old: the hourly backup job has stopped"
+else
 step "1. back up ($SOURCE)"
 t0=$(now)
 # The newest row's time in QA, for RPO: what a backup taken now would hold.
@@ -76,6 +103,8 @@ pgr --list /w/qa.dump > "$WORK/toc.txt" 2>/dev/null || fail "the dump isn't a re
 t_backup=$(( $(now) - t0 ))
 echo "backup: $(( $(stat -c %s "$WORK/qa.dump") / 1024 )) KB, $(grep -c 'TABLE DATA' "$WORK/toc.txt") tables of data, sha256 $(sha256sum "$WORK/qa.dump" | cut -c1-16)…, ${t_backup} s"
 
+fi
+
 step "2. restore into the throwaway database"
 t0=$(now)
 left=$(psql "$PSQL_URL" -qAt -c "SELECT count(*) FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog','information_schema')")
@@ -91,7 +120,7 @@ cd "$ROOT/backend"
 rev=$(psql "$PSQL_URL" -qAt -c "SELECT version_num FROM alembic_version")
 head=$(uv run --frozen alembic heads 2>/dev/null | awk '{print $1}')
 echo "restored: $rev; this code's head: $head"
-[ "$rev" = "$qa_rev" ] || fail "restored migration $rev isn't QA's $qa_rev"
+[ -z "$qa_rev" ] || [ "$rev" = "$qa_rev" ] || fail "restored migration $rev isn't QA's $qa_rev"
 [ "$rev" = "$head" ] || echo "::warning::QA is at $rev, this branch's head is $head (QA deploys dev; a newer branch is ahead)"
 [ "$rev" = "$head" ] && { uv run --frozen alembic check || fail "alembic check on the restored data"; }
 
