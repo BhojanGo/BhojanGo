@@ -248,7 +248,7 @@ See [Access sweep coverage](#access-sweep-coverage).
 **Fix:**
 - **The setting:** a new Markets setting, `kitchen_offer_ceiling`, in the country's currency:
   - `flat_off`: the most a flat offer takes off one order;
-  - `max_discount`: the most a percent offer takes off one order;
+  - `max_discount`: the most a percent offer takes off one order (admin label since R23: "Most a %-off offer can take off one order", beside the currency box);
   - `weekly_cap`: the most all of a kitchen's offers together may give in a week.
 - **Inheritance:** the setting is inherited country → state → city one key at a time (`effective_settings`), so a city that sets only `flat_off` keeps the country's `weekly_cap`.
 - **Editing:** the admin Markets country and city pages have a "Kitchen offer ceiling" section. The API checks every save: only those keys, amounts above 0, and `null` resets to the inherited value (`markets/service/offer_ceiling.py`).

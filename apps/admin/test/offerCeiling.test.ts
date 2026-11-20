@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ceilingPatch, effectiveCeiling, ownCeiling } from "../src/lib/offerCeiling.ts";
+import { CEILING_FIELDS, ceilingPatch, effectiveCeiling, ownCeiling } from "../src/lib/offerCeiling.ts";
 
 test("a level's own ceiling keeps only amounts above 0", () => {
   assert.deepEqual(ownCeiling({ kitchen_offer_ceiling: { flat_off: "100", weekly_cap: 0, junk: "5", max_discount: "x" } }), { flat_off: "100" });
@@ -30,4 +30,12 @@ test("the form saves what's filled in, null when empty, and refuses nonsense", (
   assert.equal(ceilingPatch({}), null);
   assert.ok("error" in (ceilingPatch({ flat_off: "0" }) as object));
   assert.ok("error" in (ceilingPatch({ weekly_cap: "abc" }) as object));
+});
+
+test("the boxes' labels say what each caps (R23: the percent-off cap names itself)", () => {
+  assert.deepEqual(CEILING_FIELDS.map((f) => [f.key, f.label]), [
+    ["flat_off", "Amount off, per order"],
+    ["max_discount", "Most a %-off offer can take off one order"],
+    ["weekly_cap", "Weekly cap"],
+  ]);
 });

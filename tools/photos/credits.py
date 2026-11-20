@@ -9,6 +9,8 @@ docs/design/photos/LICENSES.md.
   backend/core_api/modules/markets/photo_library.json  every library slug: Markets checks a
                                                       country's hero photo against it
   apps/admin/src/content/photo-library.json          the same list, for the admin's "Hero dish" picker
+  apps/web/src/content/photo-library.json            the same list, for the website's sign-in photos
+                                                      (fills the tiles kitchens' covers don't)
   apps/admin/public/food/<slug>-400.webp             the picker's thumbnails (copies of the website's)
 """
 import json
@@ -20,7 +22,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 SOURCE = os.path.join(ROOT, "docs", "design", "photos", "LICENSES.md")
 TARGET = os.path.join(ROOT, "apps", "web", "src", "content", "photo-credits.json")
 LIBRARY_TARGETS = [os.path.join(ROOT, "backend", "core_api", "modules", "markets", "photo_library.json"),
-                   os.path.join(ROOT, "apps", "admin", "src", "content", "photo-library.json")]
+                   os.path.join(ROOT, "apps", "admin", "src", "content", "photo-library.json"),
+                   os.path.join(ROOT, "apps", "web", "src", "content", "photo-library.json")]
 WEB_FOOD = os.path.join(ROOT, "apps", "web", "public", "food")
 ADMIN_FOOD = os.path.join(ROOT, "apps", "admin", "public", "food")
 THUMB = 400

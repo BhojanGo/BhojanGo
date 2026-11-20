@@ -515,6 +515,7 @@ with sync_playwright() as p:
     ceiling_box = page.get_by_role("region", name="Kitchen offer ceiling")
     check("markets: the kitchen offer ceiling shows what the city inherits", lambda: (
         expect(ceiling_box.get_by_label("Amount off, per order")).to_have_attribute("placeholder", "200", timeout=15000),
+        expect(ceiling_box.get_by_label("Most a %-off offer can take off one order")).to_be_visible(),
         expect(ceiling_box).to_contain_text(re.compile("From (India|BhojanGo's default)"))))
     ceiling_box.get_by_label("Amount off, per order").fill("150")
     ceiling_box.get_by_role("button", name="Save offer ceiling").click()

@@ -8,20 +8,20 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Check } from "@/components/Icons";
-import { libraryPhoto, photo } from "@/lib/format";
+import library from "@/content/photo-library.json";
+import { photo, signInPhotos } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { discover } from "@/lib/server";
 
 async function photos(): Promise<string[]> {
   // The address's kitchens, else the visitor's served city's; else food from across the
-  // country's live cities (photos only: no city is named, R8), else the country's hero dish.
+  // country's live cities (photos only: no city is named, R8); short of four, the country's
+  // hero dish and other library dishes fill the rest, so no tile is ever empty (R23).
   const { place, city, country, directory } = await getContext();
   const live = city ? [city.code] : (country?.regions.flatMap((r) => r.cities).filter((c) => c.status === "live").map((c) => c.code) ?? []).slice(0, 3);
   const found = place ? [await discover({ lat: place.lat, lng: place.lng })] : await Promise.all(live.map((code) => discover({ city: code })));
-  const urls = found.flatMap((d) => (d?.restaurants ?? []).map((k) => k.cover_url)).filter(Boolean) as string[];
-  const out = [...new Set(urls)].slice(0, 4);
-  const hero = libraryPhoto(country?.hero_photo ?? directory.hero_photo);
-  return out.length ? out : hero ? [hero] : [];
+  const covers = found.flatMap((d) => (d?.restaurants ?? []).map((k) => k.cover_url));
+  return signInPhotos(covers, country?.hero_photo ?? directory.hero_photo, library);
 }
 
 function Tile({ src, className }: { src?: string; className?: string }) {

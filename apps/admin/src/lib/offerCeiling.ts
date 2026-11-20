@@ -10,7 +10,7 @@ export type Ceiling = Partial<Record<CeilingKey, string>>;
 
 export const CEILING_FIELDS: { key: CeilingKey; label: string; note: string }[] = [
   { key: "flat_off", label: "Amount off, per order", note: "The most a flat-amount offer takes off one order" },
-  { key: "max_discount", label: "Percent off, most per order", note: "A percent-off offer never takes more off one order" },
+  { key: "max_discount", label: "Most a %-off offer can take off one order", note: "A percent-off offer never takes more off one order" },
   { key: "weekly_cap", label: "Weekly cap", note: "The most a kitchen's offers give away in a week, together" },
 ];
 
