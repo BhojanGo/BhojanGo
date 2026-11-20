@@ -611,7 +611,7 @@ async def _build() -> Ctx:
         # R21: a kitchen offer that never applies (minimum far above any cart); ended in teardown
         r = await client.post(f"{R.format(restaurant_id=c.spice)}/offers", headers=partner, json={
             "template": "free_delivery", "name": "Access sweep offer", "weekly_cap": "1", "min_subtotal": "999999"})
-        assert r.status_code == 200, r.text
+        assert r.status_code == 201, r.text
         c.offer = next(o["id"] for o in r.json() if o["name"] == "Access sweep offer")
         cm = {k: v for k, v in tokens["cm_in"].items() if k != "_id"}
         r = await client.post("/api/v1/rules", headers=cm, json={

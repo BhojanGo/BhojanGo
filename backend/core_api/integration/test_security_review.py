@@ -211,8 +211,8 @@ async def test_quotes_are_limited_per_person(client: AsyncClient, monkeypatch) -
     rest = next(r for r in (await client.get("/api/v1/restaurants", params={"limit": 50})).json()["items"]
                 if r["name"] == "Spice Route Kitchen")
     menu = (await client.get(f"/api/v1/restaurants/{rest['id']}/menu")).json()
-    item = next(i for c in menu["categories"] for i in c["items"])["id"]
-    body = {"restaurant_id": rest["id"], "items": [{"menu_item_id": item, "quantity": 1}],
+    item = next(i for c in menu["categories"] for i in c["items"] if i["name"] == "Veg Dum Biryani")["id"]
+    body = {"restaurant_id": rest["id"], "items": [{"menu_item_id": item, "quantity": 2}],
             "deliver_to": {"lat": 17.4483, "lng": 78.3915}}
     try:
         codes = [(await client.post("/api/v1/pricing/quote", headers=cust, json=body)).status_code for _ in range(4)]
