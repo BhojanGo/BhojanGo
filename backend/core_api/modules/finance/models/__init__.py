@@ -59,7 +59,8 @@ class PayoutStatement(Base):
     """What one payee earned in a run, line by line, and whether it was paid."""
 
     __tablename__ = "payout_statements"
-    __table_args__ = (Index("ix_payout_statements_payee", "payee_type", "payee_id"),)
+    __table_args__ = (Index("ix_payout_statements_payee", "payee_type", "payee_id"),
+                      Index("ix_payout_statements_carried_to", "carried_to"))
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
@@ -71,6 +72,7 @@ class PayoutStatement(Base):
     summary: Mapped[dict] = mapped_column(JSONB, nullable=False)
     lines: Mapped[list] = mapped_column(JSONB, nullable=False)
     # pending | paid | failed | no_account | onboarding (account not ready yet) | reversed
+    # | carried (R23: below zero; nothing sent, the balance moves to the payee's next statement)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     transfer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -78,6 +80,17 @@ class PayoutStatement(Base):
     # after a definite failure or a reversal is a new transfer, and a timed-out one isn't.
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     transferred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # R23, a kitchen's week below zero: never written off, never charged to the kitchen. ``amount``
+    # is the week's net plus ``carried_in`` (minor units, <= 0: what earlier statements left below
+    # zero, "Carried from last week"). A statement whose amount is below zero pays nothing and is
+    # carried into the next run's statement, which it then names in ``carried_to`` (set once, so a
+    # balance is never carried twice). ``negative_weeks`` counts the payee's weeks below zero in a
+    # row, this one included (0 when it isn't), since the Monday ``negative_since``; from 4 weeks
+    # admin Finance lists the kitchen to collect from (service/payouts.py, to_collect).
+    carried_in: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    carried_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    negative_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    negative_since: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 __all__ = ["PayoutAccount", "PayoutRun", "PayoutStatement"]

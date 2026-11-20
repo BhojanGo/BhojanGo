@@ -1,6 +1,8 @@
 // Payouts: the payout account and weekly statements (food sales, commission,
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
+// R23: a week below zero pays nothing and is carried into the next week's statement as
+// "Carried from last week" (never taken from the kitchen's bank).
 import { api, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
   unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useRef, useState } from "react";
@@ -11,8 +13,10 @@ import { useLayout } from "../../lib/layout";
 import { Btn, color, radius, t, tone } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string; repay_on?: string | null;
+  /** R23: minor units, <= 0, already in amount */
+  carried_in?: number; negative_weeks?: number;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string;
-    commission_tax?: string; tds?: string } };
+    commission_tax?: string; tds?: string; net?: string } };
 
 const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`partner.payouts.status.${s}`) : s);
 // The set-up badge's colours per state (R10).
@@ -138,8 +142,21 @@ export default function Payouts() {
                     // R16: what the platform took for the government (tax on its commission; TDS)
                     Number(st.summary.commission_tax ?? 0) > 0 ? tr("partner.payouts.commission_tax", { amount: cash(st.summary.commission_tax, st.currency) }) : null,
                     Number(st.summary.tds ?? 0) > 0 ? tr("partner.payouts.tds", { amount: cash(st.summary.tds, st.currency) }) : null,
-                    STATEMENT_NOTES.includes(st.status) ? null : statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
+                    STATEMENT_NOTES.includes(st.status) || st.status === "carried" ? null : statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
                 </Text>
+                {st.carried_in ? (
+                  // R23: the balance an earlier week left below zero, netted into this week's amount
+                  <View testID={`carried-in-${st.id}`} style={s.carry}>
+                    <Text style={[t.body, { flex: 1 }]}>{tr("partner.payouts.carried_in")}</Text>
+                    <Text style={[t.body, num]}>{cash(st.carried_in / 100, st.currency)}</Text>
+                  </View>
+                ) : null}
+                {st.status === "carried" ? (
+                  <Text testID={`payout-note-carried-${st.id}`} style={[t.body, { marginTop: 4 }]}>
+                    {tr("partner.payouts.carried_note", { amount: cash(-st.amount / 100, st.currency) })}
+                    {(st.negative_weeks ?? 0) >= 4 ? ` ${tr("partner.payouts.carried_collect", { weeks: st.negative_weeks ?? 4 })}` : ""}
+                  </Text>
+                ) : null}
                 {Number(st.summary.commission_tax ?? 0) > 0 ? (
                   <Btn testID={`tax-invoice-${st.id}`} title={tr("partner.payouts.tax_invoice")} onPress={() => void openInvoice(st.id)} />
                 ) : null}
@@ -164,4 +181,6 @@ const s = StyleSheet.create({
   header: { height: 80, paddingHorizontal: 24, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.line, justifyContent: "center" },
   panel: { backgroundColor: color.white, borderRadius: radius.card, borderWidth: 1, borderColor: color.line, padding: 20, gap: 10 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: color.divider },
+  carry: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.chip,
+    backgroundColor: tone.kesarSoft },
 });

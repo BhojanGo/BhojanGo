@@ -18630,6 +18630,60 @@
         ]
       }
     },
+    "/api/v1/finance/to-collect": {
+      "get": {
+        "description": "R23: kitchens whose statements have been below zero for 4 weeks in a row or more, with the\namount (minor units, what they owe), the weeks and since when. Finance collects it by\narrangement; the platform never charges a kitchen automatically.",
+        "operationId": "to_collect_api_v1_finance_to_collect_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response To Collect Api V1 Finance To Collect Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "To Collect",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
     "/api/v1/help": {
       "get": {
         "operationId": "help_home_api_v1_help_get",
