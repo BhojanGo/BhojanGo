@@ -109,7 +109,7 @@ else
 fi
 
 step "3c. the API on the restored data: /health and /health/ready"
-APP_ENV=local uv run --frozen uvicorn core_api.main:app --port 8001 > "$WORK/api.log" 2>&1 &
+APP_ENV=test JWT_DEV_KEY_PATH="$WORK/jwt-dev.pem" uv run --frozen uvicorn core_api.main:app --port 8001 > "$WORK/api.log" 2>&1 &
 API=$!
 trap 'kill $API 2>/dev/null' EXIT
 ok=0
