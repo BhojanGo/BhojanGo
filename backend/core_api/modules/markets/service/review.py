@@ -75,16 +75,20 @@ class Hidden:
 
 def hidden_from(cities: Iterable[tuple[str, str, str, dict | None]], viewer_id: uuid.UUID | str | None) -> Hidden:
     """``cities``: (city code, city name, country code, settings) of every city."""
-    codes, names, sees = set(), set(), False
+    codes, names, seen, sees = set(), set(), set(), False
     for code, name, country, settings in cities:
         if not is_review_only(settings):
             continue
+        key = (country.upper(), name.strip().lower())
         if may_see(settings, viewer_id):
             sees = True
+            seen.add(key)
             continue
         codes.add(code)
-        names.add((country.upper(), name.strip().lower()))
-    return Hidden(frozenset(codes), frozenset(names), sees)
+        names.add(key)
+    # Kitchens are matched by city name (Restaurant.city): never hide a name this viewer may see because
+    # another review-only city has the same name (R20: two review cities named alike hid the reviewer's kitchen).
+    return Hidden(frozenset(codes), frozenset(names - seen), sees)
 
 
 async def hidden_for(db: AsyncSession, viewer_id: uuid.UUID | str | None) -> Hidden:
