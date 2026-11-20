@@ -197,7 +197,7 @@ export default function CityPage() {
         </div>
       </div>
 
-      <OfferCeiling key={`ceiling-${JSON.stringify(city.settings.kitchen_offer_ceiling ?? null)}`} level="city" code={code} name={city.name}
+      <OfferCeiling level="city" code={code} name={city.name}
         currency={city.country.currency} settings={city.settings}
         parents={[{ name: city.country.name, settings: city.country.settings }, { name: city.region.name, settings: city.region.settings }]} />
 

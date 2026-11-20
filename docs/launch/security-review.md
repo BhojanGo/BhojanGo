@@ -124,7 +124,7 @@ See [Access sweep coverage](#access-sweep-coverage).
 - For each finding, it put the fix's files back as they are on `dev`, deleted the fix's new files, kept the tests, and ran that finding's tests.
 - A job passed only if the tests **failed**: pytest or `node --test` exited with 1, meaning failed assertions, not a collection error.
 - That covers the unit tests for every finding and the integration tests (Postgres, migrated and seeded) for S8, S11, S12 and S13.
-- Run: PROOF_RUN. The branch was deleted afterwards.
+- Run: [44709803664](https://github.com/BhojanGo/BhojanGo/actions/runs/44709803664), all 11 jobs proven, on the final tests. An earlier run on the first version of the tests, [44708549960](https://github.com/BhojanGo/BhojanGo/actions/runs/44708549960), was also all proven. The branch was deleted afterwards.
 - With the fixes, the same tests pass in the PR's CI.
 - Tests that only guard against regressions pass both with and without the fix: the apps' bearer sign-in, the customer keeping their socket, our own photo addresses still being accepted, and good percent offers.
 

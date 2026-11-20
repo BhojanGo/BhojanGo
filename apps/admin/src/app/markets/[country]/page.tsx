@@ -119,7 +119,7 @@ function CountryView() {
           <PayoutProvider country={country} />
           <LegalEntity country={country} />
           <PaymentMethods country={country} />
-          <OfferCeiling key={`ceiling-${JSON.stringify(country.settings.kitchen_offer_ceiling ?? null)}`} level="country" code={country.code}
+          <OfferCeiling level="country" code={country.code}
             name={country.name} currency={country.currency} settings={country.settings} parents={[]} />
           <HeroDish country={country} />
           <KitchenDocuments key={JSON.stringify(country.settings.kitchen_documents ?? null)} country={country} />
