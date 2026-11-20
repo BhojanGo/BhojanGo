@@ -7,14 +7,17 @@
 #   - The fake gateway doesn't pay by itself: k6 confirms each payment, the way the
 #     app's checkout does, and times it.
 #   - No demo rider: the load test's riders deliver everything.
-#   - core-api runs CORE_API_WORKERS uvicorn processes (default 1, as on Railway), each with
-#     a pool of 10 + CORE_API_DB_OVERFLOW connections (default 20, the app's default).
+#   - core-api runs CORE_API_WORKERS uvicorn processes (default 1; WEB_CONCURRENCY for
+#     core_api/start.sh), each with a pool of 10 + CORE_API_DB_OVERFLOW connections
+#     (default 20, the app's default).
 #   - tools/soak and target_guard.py in core-api, for tools/soak/setup.py (riders and
 #     customers on top of the seed).
 services:
   core-api:
-    command: ["sh", "-c", "alembic upgrade head && uvicorn core_api.main:app --host 0.0.0.0 --port 8001 --timeout-keep-alive 130 --workers ${CORE_API_WORKERS:-1}"]
+    # R22: the image's own start (core_api/start.sh), with the process count given.
+    command: ["sh", "-c", "alembic upgrade head && exec sh core_api/start.sh"]
     environment:
+      WEB_CONCURRENCY: "${CORE_API_WORKERS:-1}"
       DB_POOL_SIZE: "10"
       DB_MAX_OVERFLOW: "${CORE_API_DB_OVERFLOW:-20}"
       CLIENT_IP_HEADER: X-Real-IP

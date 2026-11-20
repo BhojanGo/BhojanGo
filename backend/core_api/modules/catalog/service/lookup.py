@@ -5,17 +5,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.service.ratings import rating_display
+from shared.cache_versions import VersionedCache, kitchen_scopes
+
+
+_city_codes = VersionedCache("catalog.restaurant_city_code", size=4096)
 
 
 async def restaurant_city_code(db: AsyncSession, restaurant_id: str | uuid.UUID) -> str | None:
     """The market city code (e.g. IN-TG-HYD) a restaurant sits in: found from
-    its location via markets (the zone it is in), or by city name."""
-    from core_api.modules.markets.service.markets import MarketService
-
+    its location via markets (the zone it is in), or by city name. R22: cached until
+    the kitchen or any market changes (shared/cache_versions.py)."""
     try:
         rid = uuid.UUID(str(restaurant_id))
     except ValueError:
         return None
+    return await _city_codes.through(db, rid, (*kitchen_scopes(rid), "markets"), lambda: _city_code(db, rid))
+
+
+async def _city_code(db: AsyncSession, rid: uuid.UUID) -> str | None:
+    from core_api.modules.markets.service.markets import MarketService
+
     r = await db.get(Restaurant, rid)
     if r is None:
         return None

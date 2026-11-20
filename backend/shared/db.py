@@ -52,3 +52,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
+
+
+# R22: track which sessions wrote, for the version-keyed caches (registers Session events).
+import shared.cache_versions  # noqa: E402,F401

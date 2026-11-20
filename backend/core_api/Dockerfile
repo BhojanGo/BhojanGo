@@ -43,6 +43,6 @@ RUN useradd --system --uid 10001 --no-create-home --home-dir /srv app && mkdir -
 USER app
 
 EXPOSE 8001
-# Keep idle connections 130 s (uvicorn's default is 5 s): longer than the load balancer's
-# idle timeout (our ALB: 120 s), so it never reuses a connection we just closed (pilot soak).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn core_api.main:app --host 0.0.0.0 --port 8001 --timeout-keep-alive 130"]
+# R22: core_api/start.sh runs one uvicorn process per CPU the container may use (at most
+# WEB_CONCURRENCY_MAX, default 2; WEB_CONCURRENCY overrides), keep-alive 130 s.
+CMD ["sh", "-c", "alembic upgrade head && exec sh core_api/start.sh"]

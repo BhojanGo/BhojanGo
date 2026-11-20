@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from shared.client_ip import client_ip
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 from core_api import errors
 from core_api.modules.identity.api.v1 import account, addresses, admin, auth, credentials, devices, email_auth, riders, signup, users
@@ -19,7 +18,10 @@ def register(app: FastAPI) -> None:
     # ── Rate limiting (auth endpoints use @limiter.limit) ─────────────────────
     app.state.limiter = Limiter(key_func=client_ip)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
-    app.add_middleware(SlowAPIMiddleware)
+    # R22: no SlowAPIMiddleware. It only applies this limiter's default limits (there are none):
+    # the @limiter.limit decorators check their own limits. It scanned every route on every
+    # request to find the endpoint (and with FastAPI's included routers never found one), as a
+    # BaseHTTPMiddleware: about 8% of core_api's CPU in the R21 load test, for nothing.
 
     # user-svc worded its validation error differently from the other services.
     errors.set_style(__package__, errors.ErrorStyle(validation_message="Request validation failed"))

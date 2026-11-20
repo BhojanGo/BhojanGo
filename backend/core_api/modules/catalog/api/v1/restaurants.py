@@ -3,7 +3,7 @@ import uuid
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.service import menu as menu_svc
@@ -11,6 +11,7 @@ from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_u
 from core_api.modules.catalog.service import access
 from shared import authz
 from shared.auth import optional_viewer
+from shared.cache_versions import VersionedCache
 from core_api.modules.catalog.repository.cache import cache_delete_pattern, cache_get, cache_set
 from shared.db import get_db
 from core_api.modules.catalog.repository.restaurant import MenuItemRepository, RestaurantRepository, ReviewRepository
@@ -189,12 +190,50 @@ async def get_restaurant_menu(
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> RestaurantMenuResponse:
     """The menu with option groups (min/max picks, prices) and what is sold out today.
-    In a review-only city (R19): 404 except for its review accounts."""
+    In a review-only city (R19): 404 except for its review accounts.
+
+    R22: half of all requests at a dinner rush. The answer is the same for everyone who
+    may see the kitchen, so its JSON is kept in each process until the kitchen or its menu,
+    options or hours change (``kitchen:<id>`` version, shared/cache_versions.py), or until
+    the first sold-out-today item comes back (at most MENU_CACHE_SECONDS). Who may see it
+    (review cities) is still checked for each viewer, before the cached answer is used."""
+    from shared import cache_versions as cv
+
+    if not cv.enabled():
+        return (await _menu(db, restaurant_id, viewer))[2]
+    ver = await cv.versions(db, cv.kitchen_scopes(restaurant_id))
+    hit = _menus.get(restaurant_id, ver)
+    if not cv.VersionedCache.is_miss(hit):
+        country, city, body = hit
+        if (await _hidden(db, viewer)).kitchen(country, city):
+            raise _not_found()
+        return Response(body, media_type="application/json")  # type: ignore[return-value]
+    country, city, menu, until = await _menu(db, restaurant_id, viewer)
+    body = menu.model_dump_json().encode()
+    _menus.put(db, restaurant_id, ver, (country, city, body), ttl=until)
+    return Response(body, media_type="application/json")  # type: ignore[return-value]
+
+
+MENU_CACHE_SECONDS = 300.0
+_menus = VersionedCache("catalog.menu", ttl=MENU_CACHE_SECONDS, size=2048)
+
+
+async def _menu(db: AsyncSession, restaurant_id: uuid.UUID, viewer: uuid.UUID | None):  # type: ignore[no-untyped-def]
+    """(country, city, the menu, seconds it may be kept) or 404."""
+    from datetime import UTC, datetime
+
     repo = RestaurantRepository(db)
     restaurant = await repo.get_with_menu(restaurant_id)
     if not restaurant or (await _hidden(db, viewer)).kitchen(restaurant.country, restaurant.city):
         raise _not_found()
+    now = datetime.now(UTC)
+    # "Sold out today" ends at the kitchen's midnight: keep the answer no longer than that.
+    ends = [i.sold_out_until for i in restaurant.menu_items if i.sold_out_until is not None and i.sold_out_until > now]
+    until = min([MENU_CACHE_SECONDS, *((e - now).total_seconds() for e in ends)])
+    return restaurant.country, restaurant.city, await _menu_out(db, restaurant), until
 
+
+async def _menu_out(db: AsyncSession, restaurant) -> RestaurantMenuResponse:  # type: ignore[no-untyped-def]
     from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
 
     groups = await menu_svc.groups_for_items(db, [i.id for i in restaurant.menu_items])
