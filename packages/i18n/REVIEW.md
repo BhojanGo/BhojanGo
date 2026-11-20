@@ -496,3 +496,14 @@ Machine-translated into all seven languages; needs native review.
 
 - New, website home: `location.change` ("Change"), the one link after a known city ("Boise, ID · Change"); its
   accessible name is still `location.change_city`. Short: it sits on one line with the city.
+
+## Sign-in legal line in the apps, customer Account > Legal (round 20)
+
+No new keys. Now also shown in the apps, so please re-read them where they appear:
+
+- All three apps' sign-in screens (BhojanGo, BhojanGo Kitchen, BhojanGo Delivery): the website's sign-in line,
+  `signin.agree_before` + `signin.terms` (link) + `signin.agree_and` + `signin.privacy` (link) + ".". The parts
+  are joined in this order in every language, so each must read naturally in that order (in hi, te, ta, kn,
+  mr, bn the verb usually comes last: check the sentence still reads as one).
+- BhojanGo customer app, Account tab: a "Legal" section (`account.legal.title`) with `signin.privacy` and
+  `legal.terms`, each with `account.legal.opens` ("Opens the website"), as in the Kitchen and Delivery apps.

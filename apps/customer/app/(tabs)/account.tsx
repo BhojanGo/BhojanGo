@@ -1,7 +1,8 @@
 // Account (website parity, WebProfile): your details, then a page each for
 // addresses, payment methods, notifications, favourites, language,
-// and privacy (download your data, delete your account); sign out.
-import { Button, color, Input, LANGUAGES, SafeAreaView, Sheet, space, Txt, useI18n, useSession } from "@bhojango/mobile-core";
+// and privacy (download your data, delete your account); Legal (R20: the country's
+// Privacy policy and Terms of use on the website, as in the Kitchen and Delivery apps); sign out.
+import { Button, color, Input, LANGUAGES, LegalLinks, SafeAreaView, Sheet, space, Txt, useCountry, useI18n, useSession } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -14,6 +15,7 @@ export default function Account() {
   const { t, language } = useI18n();
   const bottom = useTabBarSpace();
   const user = useSession((s) => s.user);
+  const { country } = useCountry(); // the delivery address's country: its legal pages
   const signOut = useSession((s) => s.signOut);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -58,6 +60,10 @@ export default function Account() {
           <MenuRow testID="account-favourites" icon="star" label={t("account.nav.favourites")} href="/favourites" />
           <MenuRow testID="account-language" icon="map" label={t("header.language")} value={languageValue} href="/account/language" />
           <MenuRow testID="account-privacy" icon="alert" label={t("account.nav.privacy")} href="/account/privacy" last />
+        </Section>
+
+        <Section title={t("account.legal.title")} testID="account-legal">
+          <LegalLinks country={country?.code ?? user?.country} />
         </Section>
 
         <View testID="account-last">

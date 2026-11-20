@@ -2,19 +2,13 @@
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
   Button, codeSendErrorText, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, LogoMark, type MarketCountry, PhoneCountryButton, radius,
-  SafeAreaView, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
+  SafeAreaView, SignInLegal, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { SignInCollage } from "../components/SignInCollage";
-import { WEB_URL } from "../lib/plate";
-
-/** The website's Terms or Privacy policy page for a country. */
-function legalUrl(kind: "terms" | "privacy", country?: string | null): string {
-  return `${WEB_URL.replace(/\/+$/, "")}/${kind}${country ? `?country=${country}` : ""}`;
-}
 
 export default function SignIn() {
   const sendCode = useSession((s) => s.sendCode);
@@ -90,18 +84,8 @@ export default function SignIn() {
                   disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
               </>
             )}
-            {unreachable ? null : <Txt variant="small" style={{ color: color.muted, textAlign: "center", marginTop: space[2] }}>
-              {`${t("signin.agree_before")} `}
-              {/* R13: the website's pages, for the phone's country (same text as the site's footer links). */}
-              <Text testID="link-terms" accessibilityRole="link" onPress={() => void Linking.openURL(legalUrl("terms", country?.code))} style={styles.legalLink}>
-                {t("signin.terms")}
-              </Text>
-              {` ${t("signin.agree_and")} `}
-              <Text testID="link-privacy" accessibilityRole="link" onPress={() => void Linking.openURL(legalUrl("privacy", country?.code))} style={styles.legalLink}>
-                {t("signin.privacy")}
-              </Text>
-              {"."}
-            </Txt>}
+            {/* R13: the website's pages, for the phone's country (the website's sign-in wording). */}
+            {unreachable ? null : <SignInLegal country={country?.code} style={{ marginTop: space[2] }} />}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -113,7 +97,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.peacockMist },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: space[5], paddingTop: space[4] },
   word: { color: color.kohl },
-  legalLink: { color: color.peacock, textDecorationLine: "underline" },
   hero: { paddingHorizontal: space[5], paddingTop: space[8], paddingBottom: space[6], flex: 1 },
   sheet: {
     backgroundColor: color.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,

@@ -1,0 +1,45 @@
+# R20: the sign-in's Terms and Privacy policy line (now mobile-core's SignInLegal, as in the
+# Kitchen and Delivery apps), and the Account tab's Legal section (Privacy policy, Terms
+# of use: the country's pages on the website). Reads only.
+# Throwaway stack only (.github/workflows/app-screens.yml).
+appId: com.bhojango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "signin-legal"
+- assertVisible:
+    id: "link-terms"
+- assertVisible:
+    id: "link-privacy"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-sign-in-legal
+- runFlow: common/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "tab-account"
+    timeout: 60000
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "account-legal"
+    centerElement: true
+- assertVisible:
+    id: "legal-privacy"
+- assertVisible:
+    id: "legal-terms"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: stack-customer-account-legal
