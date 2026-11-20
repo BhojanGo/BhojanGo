@@ -73,6 +73,8 @@ EOF
     # R20: the app's own console warnings and errors (LogBox only says "Open debugger to view
     # warnings"; the JS console also goes to logcat as ReactNativeJS), one file per flow.
     adb -s "$DEVICE" logcat -c >/dev/null 2>&1
+    # R21: is the previous flow's Maestro driver still on the phone as this flow's starts?
+    echo "$name start: driver $(adb -s "$DEVICE" shell pidof dev.mobile.maestro 2>/dev/null | tr -d '\r' || true)" >> "$LOGS/driver.txt"
     if (cd "$OUT" && timeout 600 maestro --device "$DEVICE" test "$ROOT/apps/$app/.maestro/stack/$flow") > "$LOGS/$name.log" 2>&1; then
       echo "PASS $name"; echo "${name%-run*} PASS" >> "$LOGS/tally.txt"
     else
@@ -85,6 +87,9 @@ EOF
       last="$(ls -td "$HOME"/.maestro/tests/*/ 2>/dev/null | head -1)"
       [ -n "$last" ] && cp -r "$last" "$LOGS/$name-maestro" 2>/dev/null
     fi
+    echo "$name end: driver $(adb -s "$DEVICE" shell pidof dev.mobile.maestro 2>/dev/null | tr -d '\r' || true)" >> "$LOGS/driver.txt"
+    # BACK_TO_BACK=1 (flake hunting): the next flow starts at once, nothing in between.
+    [ "${BACK_TO_BACK:-0}" = 1 ] && continue
     adb -s "$DEVICE" logcat -d -v brief ReactNativeJS:W '*:S' > "$LOGS/$name-js-warnings.log" 2>/dev/null
     n=$(grep -c '^[WE]/ReactNativeJS' "$LOGS/$name-js-warnings.log" 2>/dev/null); echo "   $name: ${n:-0} JS warnings/errors (logs/$name-js-warnings.log)"
     curl -s -m 5 localhost:8011/__slow/off >/dev/null
@@ -107,8 +112,9 @@ echo "== JS warnings and errors (ReactNativeJS in logcat)"
 cat "$LOGS"/*-js-warnings.log 2>/dev/null | grep '^[WE]/ReactNativeJS' | sed 's/([ 0-9]*)//' | sort | uniq -c | sort -rn | head -40
 if [ "$REPEAT" -gt 1 ] && [ -f "$LOGS/tally.txt" ]; then
   echo "== Repeat tally (passed of runs)"
-  sort "$LOGS/tally.txt" | awk '{n[$1]++; if ($2 == "PASS") p[$1]++} END {for (f in n) printf "%s: %d of %d passed
-", f, p[f], n[f]}'
+  sort "$LOGS/tally.txt" | uniq -c | awk '{print "  " $2 " " $3 ": " $1}'
+  echo "== Was the last flow's Maestro driver still running when the next flow started? (logs/driver.txt)"
+  grep -c ' start: driver [0-9]' "$LOGS/driver.txt" | sed 's/^/  flows that started with the old driver still running: /'
 fi
 ls -R "$OUT" | grep -v '^$'
 exit $fail

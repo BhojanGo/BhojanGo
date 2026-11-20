@@ -25,6 +25,9 @@ on:
       repeat:
         description: "Run the flows this many times (R21: flake hunting)"
         default: "1"
+      back_to_back:
+        description: "1: start each flow the moment the last one ends (flake hunting)"
+        default: "0"
 
 permissions:
   contents: read
@@ -154,6 +157,7 @@ jobs:
         env:
           FLOWS: ${{ inputs.flows }}
           REPEAT: ${{ inputs.repeat || '1' }}
+          BACK_TO_BACK: ${{ inputs.back_to_back || '0' }}
         with:
           api-level: 34
           target: google_apis
