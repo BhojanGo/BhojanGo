@@ -54,7 +54,7 @@ AREAS = [
     (r"\(asyncio/", "event loop (asyncio)"),
 ]
 AREAS_RE = [(re.compile(p), label) for p, label in AREAS]
-OURS = re.compile(r"^(\S+) \(((core_api/|shared/(?!middleware/))[^:]+)")  # middleware is "framework"
+OURS = re.compile(r"^(\S+) \(((core_api/(?!routing_speed)|shared/(?!middleware/))[^:]+)")  # middleware, routing: "framework"
 NAMES = {
     "discover": "Home for an address (`GET /discover`)", "menu": "Menu (`GET /restaurants/{id}/menu`)",
     "quote": "Quote (`POST /pricing/quote`)", "place_order": "Place order (`POST /orders`)",
