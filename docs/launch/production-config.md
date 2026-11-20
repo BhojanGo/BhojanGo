@@ -112,7 +112,8 @@ before the first production frontend build.
 | `EVENT_BUS`, `EVENT_BUS_REDIS_URL` | yes (`redis`, `/5`) | railway.ts / Railway reference | no | same | supplied |
 | `INTERNAL_SERVICE_SECRET` | yes, the same on all three | generated (32 random bytes, hex) | yes | sealed, QA's own | by hand |
 | `CORE_API_URL`, `JWKS_URL` | yes (realtime, worker) | railway.ts (private network) | no | internal URL | supplied |
-| `CORS_ORIGINS` | yes (core-api, realtime) | the custom web and admin domains, as a JSON list | no (not secret) | Railway references to the web and admin domains | by hand |
+| `CORS_ORIGINS` | yes (core-api, realtime) | the custom web and admin domains, as a JSON list. Since R22 it is also the CSRF list: a change made with a session cookie must come from one of these origins, so the admin domain must be in it | no (not secret) | Railway references to the web and admin domains | by hand |
+| `PHOTO_HOSTS` | only if dish, cover or logo photos are served from a CDN host (R22, S13) | a JSON list of https hosts, e.g. `["photos.bhojango.com"]`; our own API (`PUBLIC_API_URL`) and `AWS_CLOUDFRONT_URL` are always accepted | no | unset | by hand |
 | `CLIENT_IP_HEADER` | yes (`X-Real-IP`) | railway.ts | no | same | supplied |
 | `LOG_FORMAT` | no (json is the production default) | railway.ts | no | `json` | supplied |
 | `PAYMENT_PROVIDER` | yes, must be `live` | railway.ts | no | `fake` in railway.ts; QA's core-api has `auto` set by hand (round 10) | supplied |

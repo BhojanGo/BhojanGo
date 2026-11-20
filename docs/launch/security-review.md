@@ -1,4 +1,4 @@
-# Security review (Round 21)
+# Security review (Round 21; Medium findings fixed in Round 22)
 
 **Date:** 2026-11-19. **Scope:** the website, the admin console, core_api, realtime and the worker (code and config), every way money leaves us, and secrets in the repo, GitHub and Railway.
 **How:** we read the code, extended the access sweep, and ran gitleaks over the full history. Nothing was sent to QA or production and no live host was tested. The tests run in CI on a throwaway database.
@@ -10,7 +10,7 @@ Ranks:
 - **Medium:** needs an insider, a second step, or a mistake by us, or the harm is bounded.
 - **Low:** hardening.
 
-Every High finding is fixed in this PR, and each fix has a test that fails without it.
+Every High finding was fixed in R21, and the six Medium findings S8–S13 in R22 (PR #176, [Round 22](#round-22-the-medium-findings-s8s13)). Each fix has a test that fails without it.
 
 ## Findings
 
@@ -23,12 +23,12 @@ Every High finding is fixed in this PR, and each fix has a test that fails witho
 | S5 | Medium | Access sweep | Five id routes were swept with made-up ids (offers, tier changes, ordering pauses, bulk refunds, chat messages), so their ownership checks were never really tested. Kitchen-to-kitchen id swaps weren't tested either. | Fixed in this PR |
 | S6 | Medium | Money out (review orders) | A country manager could make any live city review-only and add their own account through the markets API. That account's orders would then cost nothing, and the change wasn't audited. | Fixed in this PR |
 | S7 | Medium | Rate limits | Quotes had no limit per person. A US quote calls Stripe Tax, so a loop would use up its rate limit and cost money. | Fixed in this PR |
-| S8 | Medium | Web, admin | Access and refresh tokens are kept in localStorage, so any XSS takes over the account. | Plan |
-| S9 | Medium | Headers | The CSP allows `script-src 'unsafe-inline'` in production, so it doesn't stop injected inline script. | Plan |
-| S10 | Medium | Realtime | A WebSocket's token is checked only when it connects. A socket outlives the token's 15 minutes, a sign-out and a removed role. There's no per-user cap on sockets. | Plan |
-| S11 | Medium | Money out (offers) | A kitchen's own offer has no ceiling on `flat_off` or `weekly_cap`. A kitchen working with a customer can push its statement below zero, and we carry the loss. | Plan |
-| S12 | Medium | Money out (bulk refunds) | A bulk refund runs with no second admin when every order is under `auto_refund_limit`. The batch total isn't capped (up to 500 orders × the limit). | Plan |
-| S13 | Medium | Uploads, menus | `image_url`, `logo_url` and `cover_url` accept any string, including outside hosts and `javascript:`, and customers are shown them. | Plan |
+| S8 | Medium | Web, admin | Access and refresh tokens are kept in localStorage, so any XSS takes over the account. | Fixed in R22 (#176) |
+| S9 | Medium | Headers | The CSP allows `script-src 'unsafe-inline'` in production, so it doesn't stop injected inline script. | Fixed in R22 (#176) |
+| S10 | Medium | Realtime | A WebSocket's token is checked only when it connects. A socket outlives the token's 15 minutes, a sign-out and a removed role. There's no per-user cap on sockets. | Fixed in R22 (#176) |
+| S11 | Medium | Money out (offers) | A kitchen's own offer has no ceiling on `flat_off` or `weekly_cap`. A kitchen working with a customer can push its statement below zero, and we carry the loss. | Fixed in R22 (#176); carrying a negative statement is still open |
+| S12 | Medium | Money out (bulk refunds) | A bulk refund runs with no second admin when every order is under `auto_refund_limit`. The batch total isn't capped (up to 500 orders × the limit). | Fixed in R22 (#176) |
+| S13 | Medium | Uploads, menus | `image_url`, `logo_url` and `cover_url` accept any string, including outside hosts and `javascript:`, and customers are shown them. | Fixed in R22 (#176) |
 | S14 | Low | Web | Open redirect after sign-in: `?next=/<tab>/evil.com` got past `safeNext`. | Fixed in this PR |
 | S15 | Low | Internal endpoints | The default `INTERNAL_SERVICE_SECRET` was refused only when `APP_ENV=production`, not when only Railway's environment name says production. | Fixed in this PR |
 | S16 | Low | Audit | Item refunds and kitchen approve/reject write a row and a log line, but no audit-log entry. | Plan |
@@ -37,7 +37,7 @@ Every High finding is fixed in this PR, and each fix has a test that fails witho
 | S19 | Low | CORS | `CORS_ORIGINS` isn't checked in production. The default is localhost, and `*` would be accepted alongside credentials. | Plan |
 | S20 | Low | Realtime | The WebSocket token can go in `?token=`, which ends up in proxy logs. Internal signatures can be replayed for 5 minutes, but those endpoints are idempotent. | Plan |
 
-## Fixes in this PR
+## Fixes in Round 21
 
 ### S1: JSON-LD stored XSS (High)
 
@@ -115,7 +115,212 @@ See [Access sweep coverage](#access-sweep-coverage).
 - **S14.** `safeNext` now refuses control characters and backslashes, and resolves the path the way a browser does (`apps/web/src/app/signin/next.ts`; test `apps/web/test/next.test.ts`).
 - **S15.** `shared/internal_auth.py:26` now also checks `production_named`; test `core_api/tests/test_internal_auth.py`.
 
-## Plans for the Medium findings
+## Round 22: the Medium findings (S8–S13)
+
+**Date:** 2026-11-20. **PR:** #176.
+
+**How each fix was proven:**
+- The throwaway branch `check/r22-security` carried a workflow that ran on push (`.github/workflows/check-r22.yml`, only on that branch).
+- For each finding, it put the fix's files back as they are on `dev`, deleted the fix's new files, kept the tests, and ran that finding's tests.
+- A job passed only if the tests **failed**: pytest or `node --test` exited with 1, meaning failed assertions, not a collection error.
+- That covers the unit tests for every finding and the integration tests (Postgres, migrated and seeded) for S8, S11, S12 and S13.
+- Run: PROOF_RUN. The branch was deleted afterwards.
+- With the fixes, the same tests pass in the PR's CI.
+- Tests that only guard against regressions pass both with and without the fix: the apps' bearer sign-in, the customer keeping their socket, our own photo addresses still being accepted, and good percent offers.
+
+### S8: sessions in httpOnly cookies, with CSRF protection (website and admin)
+
+**Which hosts talk to which:**
+- The website (`qa.bhojango.com`, later `bhojango.com`) calls core_api directly at `api.qa.bhojango.com` / `api.bhojango.com`. That's another origin but the same site (same registrable domain).
+- The console (`admin.*`) calls core_api through its own Next `/api/*` rewrites, so from the browser it's same-origin.
+- Live tracking opens a WebSocket to `rt.*`.
+
+**Design (`backend/shared/session.py`):**
+- **Who sets the cookies.** core_api does. When a browser client names itself with `X-Session: web` or `X-Session: admin`, every answer that issues tokens has its `access_token` and `refresh_token` replaced with `""` and comes with two cookies:
+  - `bg_<client>_at`, the access token;
+  - `bg_<client>_rt`, the refresh token.
+  - This covers sign-in, the second step, refresh, sign-up, a password change, kitchen and rider applications, and social sign-in.
+- **The cookies:**
+  - Both are `HttpOnly; Secure; SameSite=Lax; Path=/`, with no `Domain`, so they belong only to the host that set it.
+  - The website's cookies live on the API's host; the console's live on the console's host, through the rewrite.
+  - Both last as long as the refresh token (7 days). The access JWT inside still expires after 15 minutes: the browser keeps sending it, the API answers 401, and the page refreshes.
+  - The names differ so the website and the console don't overwrite each other on `localhost`, where ports share cookies.
+- **Using a cookie:**
+  - With no `Authorization` header, `BearerAuth` (used by core_api, realtime and the worker) reads the cookie.
+  - A change (anything but GET, HEAD and OPTIONS) uses a cookie only with `X-Session`, and only from one of our origins: `Origin`, else `Referer`, must be in `CORS_ORIGINS`. Otherwise it gets 403 `CSRF`.
+  - `X-Session` is a custom header, so another site's page can't send it without a CORS preflight, which only our origins pass. That's the "custom header + Origin check" defence. No double-submit token is needed, and the website couldn't read one anyway, because it's on the API's host.
+  - A read (GET or HEAD) may use the website's cookie without the header. This keeps the website's reads free of a CORS preflight each.
+  - A read is safe without the header because it changes nothing, another site can't read the answer (CORS), and `SameSite=Lax` keeps the cookie off other sites' images, scripts and frames.
+- **The refresh token** comes from the cookie when the body has none (`POST /auth/refresh`). A failed refresh and a sign-out clear both cookies.
+- **WebSockets:** the browser can't send the API host's cookie to `rt.*`. The website asks core_api for a socket ticket and opens the socket with it:
+  - `POST /auth/socket-ticket` returns a JWT of type `ws` with the same person and rights as the session, which expires when the session's access token does.
+  - Only the WebSockets accept it (`decode_socket_token`). Every HTTP route still requires `type: access`, so a ticket opens nothing else.
+  - The ticket goes in `?token=`, as before (S20).
+- **The apps** never send `X-Session`. They get tokens in the body and send `Authorization: Bearer` as before, kept in secure storage.
+- **The pages:**
+  - The website's session store (`apps/web/src/lib/client.ts`) and the console's (`apps/admin/src/store/auth.ts`) now keep only who is signed in.
+  - Old `bhojango-session` and `bhojango-admin-auth` entries, which held tokens, are deleted when the page loads.
+  - A refresh runs one at a time, because a refresh token works once and a second use ends the session.
+
+**Decisions made for Srini (safest sensible default):**
+- **No session shared across subdomains.** Every cookie is host-only, so signing in on the website doesn't sign you in to the console, and the other way round.
+- **The website and core_api must share a registrable domain.** That's true for QA (`*.qa.bhojango.com`) and production (`*.bhojango.com`).
+- **The old QA origins** (`*.up.railway.app`, allowed until 2026-11-26) behave differently by app:
+  - On the old website origin, the API's answer is cross-site, so browsers neither store nor send the `SameSite=Lax` cookies. Signing in seems to work, but the next call is signed out. Use `qa.bhojango.com`.
+  - The old console origin still works, because its cookies come through its own rewrites.
+- **`CORS_ORIGINS` must list the console's origin too**, since it's now also the CSRF list. QA's already does, and so does production's plan: "the custom web and admin domains".
+- **Local runs:** `Secure` cookies work on `http://localhost` in Chromium and Firefox, which treat localhost as secure.
+
+**Tests:**
+- `core_api/tests/test_session_cookies.py`, unit, with the real middleware and `BearerAuth`:
+  - httpOnly, Secure, Lax cookies and no tokens for a browser;
+  - the apps still get tokens;
+  - a cookie counts only for its client;
+  - a change needs our origin, while a bearer token needs none;
+  - an expired session gets a 401;
+  - sign-out clears the cookies.
+- `integration/test_security_review_r22.py`, on a real database:
+  - `test_the_website_session_is_in_httponly_cookies_not_the_page`: email sign-in, `/users/me` from the cookie, a change from another origin or with no origin refused, a socket ticket refused by `/users/me` and `/orders`, refresh from the cookie, then sign-out clears the cookies and ends the session.
+  - `test_the_console_signs_in_with_its_second_step_into_cookies`: password, then the TOTP step, then cookies; `/admin/me` works from the console's cookie and not under the website's name.
+  - `test_the_apps_sign_in_is_unchanged`.
+- `apps/web/test/session.test.ts` and `apps/admin/test/session.test.ts`: no token in either store, the cookie session on every call, and no page sending a bearer token.
+- Playwright (`tools/web/e2e_web.py`, `tools/admin/e2e_admin.py`): after a real sign-in, which includes the console's TOTP step:
+  - no JWT is in `localStorage` or `sessionStorage`;
+  - `bg_web_at` / `bg_admin_at` is httpOnly and Lax;
+  - `document.cookie` can't see it.
+- **Proven:** the unit job reverted `shared/auth.py`, `core_api/main.py`, `identity/api/v1/auth.py` and `identity/schemas/user.py`, and deleted `shared/session.py`. The website and console job reverted their session files. Both integration tests failed on the old code: tokens were handed to the page.
+
+**What users notice:** everyone on the website and the console is signed out once, because the old sessions were in localStorage. After that, nothing changes.
+
+### S9: a nonce-based CSP
+
+**Fix:**
+- `packages/ui/security-headers.js` now has `contentSecurityPolicy(options, nonce)`. Each app's `src/proxy.ts` (Next 16 middleware) makes a fresh nonce for every page and sends:
+  - `script-src 'self' 'nonce-…' 'strict-dynamic'`, plus the old host list as the fallback for browsers without `'strict-dynamic'`;
+  - no `'unsafe-inline'`;
+  - `'unsafe-eval'` only in development.
+- **How the nonce reaches the scripts:** Next reads the nonce from the request's CSP header and puts it on its own scripts. Our scripts load Stripe.js, Razorpay's checkout and Google sign-in, which `'strict-dynamic'` allows.
+- **Every page is rendered per request, so each gets its own nonce:**
+  - The website's root layout already reads the request.
+  - The console's layout now does too (`await headers()`).
+- `next.config` keeps every other header.
+- **JSON-LD:** it's data, never run, and S1's escaping still keeps it from closing its tag.
+- **Paths the proxy doesn't see** (`/_next/` assets, food photos, icons, robots, sitemap; the console's `/api/` rewrites) have no CSP. None of them is an HTML page.
+
+**Tests:**
+- `packages/ui/test/security-headers.test.js`:
+  - a page's `script-src` has its nonce and `'strict-dynamic'` and never `'unsafe-inline'`;
+  - without a nonce, scripts come only from our own origin;
+  - no fixed header allows inline script;
+  - nonces are new each time and 16 bytes or more;
+  - both apps' proxies set the CSP on the request and the response.
+- Playwright checks a page's CSP has a nonce, has no `'unsafe-inline'` script and differs on every load. The suites' pages, checkout and Google sign-in included, run under it.
+- **Proven:** reverting `security-headers.js` and deleting both proxies fails all five.
+
+### S10: WebSocket token expiry, rider changes and caps
+
+**Fix** (`backend/realtime/app/core/sockets.py`, `api/v1/websocket.py`, `api/v1/riders.py`):
+- **Expiry:** each socket keeps its token's `exp` and closes with **4401** at that moment. That applies to `/ws/track/{order}` and `/ws/rider`.
+- **Rider changes:** after a `rider_assigned`, `searching_rider` or `status_change` message on an order, realtime checks `can_see` again (the order's dispatch info, at most 5 s old) before forwarding anything. A rider taken off the order is closed with **4403** and never gets the next message.
+- **Caps:** each process allows at most `WS_MAX_PER_USER` sockets per account (5) and `WS_MAX_PER_IP` per address (100, because carrier NAT puts many phones behind one address). One more is refused with **4429**.
+  - 0 turns a cap off: the load test's stack does, since one generator holds every socket.
+  - The counts are per process; there's one realtime process today.
+- **Clients:**
+  - The website's `liveSocket`, and the new `liveSocket` in `packages/mobile-core`, which the customer's order screen, chat and the rider app now use, reopen a socket when it closes.
+  - After 4401 they reopen at once with a fresh ticket or token. The apps refresh their token first, one refresh at a time.
+  - They don't reopen after 4004, 4403 or 4429.
+  - Before, the customer app's tracking and chat sockets didn't reconnect at all.
+
+**Tests:** `realtime/tests/test_socket_limits.py`, with Starlette's test client, fake Redis and a fake order:
+- tracking and rider sockets close with 4401 when a 2-second token expires;
+- a rider taken off the order gets 4403;
+- the customer keeps watching through the same change;
+- the third socket for one account and the second for one address are refused with 4429;
+- a socket ticket opens a socket, while realtime's HTTP route refuses it with 401.
+- A socket that stays open fails the test by timing out (a daemon thread does the read), so a missing fix can't hang the run.
+
+**Proven:** with `websocket.py`, `riders.py`, `core/auth.py` and `shared/auth.py` reverted and `sockets.py` deleted, 6 of 7 fail. The one that passes is "the customer keeps watching". This was run locally, then in the proof run.
+
+**What users notice:** a tracking or rider socket reconnects every 15 minutes, which nobody sees. A 6th open socket on one account is refused.
+
+### S11: a ceiling on kitchen-funded offers
+
+**Fix:**
+- **The setting:** a new Markets setting, `kitchen_offer_ceiling`, in the country's currency:
+  - `flat_off`: the most a flat offer takes off one order;
+  - `max_discount`: the most a percent offer takes off one order;
+  - `weekly_cap`: the most all of a kitchen's offers together may give in a week.
+- **Inheritance:** the setting is inherited country → state → city one key at a time (`effective_settings`), so a city that sets only `flat_off` keeps the country's `weekly_cap`.
+- **Editing:** the admin Markets country and city pages have a "Kitchen offer ceiling" section. The API checks every save: only those keys, amounts above 0, and `null` resets to the inherited value (`markets/service/offer_ceiling.py`).
+- **Enforcement:** `POST /restaurants/{id}/offers` answers 422 `OFFER_OVER_CEILING` when:
+  - a flat amount is over the ceiling;
+  - a percent offer's maximum is over the ceiling;
+  - the new weekly cap plus the caps of the kitchen's other offers that haven't ended (paused ones included) is over the weekly ceiling.
+  - A percent offer without a maximum gets the market's maximum, because the partner app sends none.
+- **When nothing is set**, defaults in code apply: ₹200 / ₹200 / ₹25,000 and $15 / $15 / $1,500. A currency with neither a default nor a setting refuses kitchen offers until an admin sets one. The seed gives India and the US those values.
+
+**Not done: carrying a negative statement into next week.**
+- Today `pay_pending` (`finance/service/payouts.py`) marks a statement at or below zero as paid ("nothing to send"), so a negative balance is written off.
+- Carrying it is a cross-cutting finance change:
+  - a statement state that run checks treat as settled;
+  - a "carried from last week" line picked up by the next run;
+  - statements for payees with no orders that week;
+  - changes to the partner app's, admin's and PDF statements and to the finance invariants.
+- So it isn't in this PR. Until then the ceiling limits the loss to a kitchen's `weekly_cap` per week.
+
+**Tests:**
+- `markets/tests/test_offer_ceiling.py` (7 unit tests): a well-formed save, inheritance key by key, refusing over the ceiling, the percent maximum, the combined weekly ceiling, no ceiling meaning refused, and saves being checked.
+- Integration:
+  - `test_a_kitchen_offer_above_its_markets_ceiling_is_refused`: a city override, then a refusal;
+  - `test_more_offers_dont_get_past_the_weekly_ceiling`.
+- The admin Playwright run sets Hyderabad's ceiling in the console, checks the API refuses a ₹180 offer, screenshots the section and resets it.
+- **Proven:** with `markets.py` and `partner.py` reverted and `offer_ceiling.py` deleted, the unit and integration tests fail.
+
+**Screenshot:** `08a-markets-offer-ceiling.png` in the PR's Playwright artifact `e2e-screenshots` (run SHOT_RUN).
+
+### S12: a cap on a bulk refund's total for the automatic path
+
+**Fix:**
+- The `auto_refund_limit` business rule gets an optional `max_bulk_total`. When it's unset, the cap is 50 × `max_per_order`.
+- A bulk refund now needs a second admin (`pending_approval`) when any order is over the per-order limit **or** the batch total is over the cap. `approval_reasons` returns `order_over_limit`, `total_over_limit` or both.
+- The admin's preview says which ("above X per order" / "above Y in all"), and the rule's wording mentions the total.
+
+**Tests:**
+- `incidents/tests/test_bulk_refund_cap.py` (5 unit tests).
+- Integration `test_many_small_refunds_over_the_total_need_a_second_admin`: two small refunds over a lowered total are left pending, where on the old code they ran to "done".
+- **Proven:** with `incidents/service/__init__.py` and `rules/service/templates.py` reverted, both fail.
+
+**What admins notice:** a large batch of small refunds now waits for a second admin.
+
+### S13: photo addresses
+
+**Fix:** `catalog/service/photo_urls.check` accepts only these values for `image_url`, `logo_url` and `cover_url`:
+- None or `""`;
+- our upload path, `/api/v1/uploads/menu-photo/<owner uuid>/<uuid>.(jpg|png|webp)`. It can be relative, or absolute on `PUBLIC_API_URL`'s exact origin; outside production, http on localhost and the emulator's host also count;
+- the food library, `/food/<slug>-<width>.webp`;
+- https on `AWS_CLOUDFRONT_URL`'s host or the new `PHOTO_HOSTS` list, with no port, user info, query or fragment.
+
+It also refuses anything over 512 characters, spaces and control characters.
+
+**Ownership:** `PUT /restaurants/{id}` and `PUT …/menu-items/{id}` also require the upload to belong to the caller or to the kitchen's owner (422 `PHOTO_URL`).
+
+**Cleanup script:** `backend/tools/clean_photo_urls.py` lists the existing rows that fail the same check, and sets them to NULL only with `--apply`.
+- It's a dry run by default.
+- It refuses QA and production unless given `--i-mean-this-environment`.
+- It has not been run against QA or production. Run it on each once, dry run first.
+
+**Tests:**
+- `catalog/tests/test_photo_urls.py`: refusals for `javascript:`, outside hosts, other accounts' uploads, overlong values and http photo hosts; acceptances for our own photos; and the script finding what the API refuses.
+- Integration `test_a_kitchen_cant_show_a_photo_from_another_site_or_account`.
+- **Proven:** with `schemas/restaurant.py` and `api/v1/restaurants.py` reverted and `photo_urls.py` and the script deleted, they fail.
+
+**What kitchens notice:** a photo must be uploaded through the app to our own API host. A photo saved under an old API host, such as an old `*.up.railway.app` QA one, is refused if it's saved again, and the cleanup script lists it.
+
+**Production needs:** `PUBLIC_API_URL` set to the API's real address. Photos served from a CDN also need `PHOTO_HOSTS` or `AWS_CLOUDFRONT_URL`.
+
+## Plans for the Medium findings (R21; all done in R22)
+
+These were the R21 plans. Round 22 did all six (above), except carrying a negative statement into the next week (S11).
 
 | ID | Plan | Size |
 |---|---|---|
@@ -160,13 +365,13 @@ Low findings, when there's time:
 
 ### CORS and headers
 
-- **CORS.** core_api, realtime and the worker allow only `CORS_ORIGINS`, with credentials (`core_api/main.py:93`, `realtime/app/main.py:48`). The APIs authenticate with bearer tokens, not cookies, so cross-site requests carry no credentials. See S19.
+- **CORS.** core_api, realtime and the worker allow only `CORS_ORIGINS`, with credentials (`core_api/main.py`, `realtime/app/main.py`). Since R22 (S8) the website and the console authenticate with httpOnly session cookies. A change made with a cookie needs the `X-Session` header and an `Origin` in `CORS_ORIGINS`, so `CORS_ORIGINS` is also the CSRF list. The apps still use bearer tokens. See S19.
 - **API headers.** `nosniff`, `CORP same-site`, `X-Frame-Options DENY`, `Referrer-Policy no-referrer`, and HSTS for 1 year with subdomains (`shared/middleware/security.py`).
 - **Web and admin headers.** Set on every path through `next.config.mjs` → `packages/ui/security-headers.js`:
   - a CSP with `frame-ancestors 'none'`, `object-src 'none'` and `form-action 'self'`
   - HSTS for 1 year with subdomains, no preload
   - XFO, nosniff, Referrer-Policy, Permissions-Policy, COOP and CORP
-  - S9 is the gap.
+  - Since R22 (S9) the CSP comes from each app's `src/proxy.ts`, with a fresh nonce per page and no `'unsafe-inline'` script.
 
 ### File uploads
 
@@ -179,7 +384,8 @@ Low findings, when there's time:
 - **Public reads.** The public `menu-photo` read accepts only `menu_photo/<uuid>/<uuid>.<ext>`.
 - **Private files.** They're read through `/uploads/view`, which checks the reviewer's permission in the owner's city or country.
 - **Help centre.** Markdown text only; no uploads.
-- **Gaps.** S13 and S17.
+- **Photo addresses.** Since R22 (S13), a dish, cover or logo photo can only be our own upload (the caller's or the kitchen owner's), the food library or our photo host.
+- **Gaps.** S17.
 
 ## Money out
 
@@ -187,11 +393,11 @@ Low findings, when there's time:
 |---|---|---|---|
 | Item refund `POST /payments/orders/{id}/refunds` | `refunds.issue` in the order's city: country manager, city ops, support agent, finance | Never more than what's left on the payment; per-item quantities can't be refunded twice. Support agents only: `support_refund_limit` per order (default ₹500 / $25) | A `refunds` row with `requested_by`, reason, fault and lines; `payment.refunded` outbox event; log line. No audit entry (S16) |
 | Refund in full (cancellations, late payment) | System: order cancel flows and the unpaid-order sweep | What's left on the payment | Payment metadata `refunds[]`, outbox, log |
-| Bulk refund `POST /incidents/refunds` | `refunds.bulk` in the city: country manager, city ops, finance | Up to 500 orders, a 7-day window, preview then `confirm: true`. A second admin (`refunds.approve`, not the requester) approves when any order is over `auto_refund_limit`, which is 0 if unset, so every bulk refund needs approval by default. S12: no cap on the total | Audit: `bulk_refund.requested`, `.approved`/`.rejected`, `.done`; per-order results |
+| Bulk refund `POST /incidents/refunds` | `refunds.bulk` in the city: country manager, city ops, finance | Up to 500 orders, a 7-day window, preview then `confirm: true`. A second admin (`refunds.approve`, not the requester) approves when any order is over `auto_refund_limit` (0 if unset, so every bulk refund needs approval by default) or the total is over `max_bulk_total` (default 50 × the per-order limit; S12, R22) | Audit: `bulk_refund.requested`, `.approved`/`.rejected`, `.done`; per-order results |
 | Payout run `POST /finance/payout-runs/{id}/approve` | `payouts.approve` in the country (finance) | Maker-checker: the approver can't be the run's creator. Runs can't overlap. Transfers have an idempotency key per statement and attempt. On QA, every payee must have an account | Audit: `payout_run.created`, `.approved`, `.retried`; `payout.paid` outbox per statement |
 | Payout account link | finance for the country, or `partners.edit` for the kitchen's city; payees set up their own | Stripe Connect onboarding; the money goes to the payee's own verified account | Audit: `payout_account.link` |
 | Platform offers and money rules (`POST /rules`, promotions) | `rules.edit`, then a second admin with `rules.approve` | Maker-checker: you can't approve a version you made or submitted (`rules/service/rules.py:223`) | Rule versions and approvals; audit |
-| Kitchen-funded offers `POST /restaurants/{id}/offers` | The kitchen's owner | Live at once, funded by the kitchen, with a weekly cap. Percent off is at most 60%. S11: flat-off and cap have no ceiling | The rule and its version (`partner_offer_started`) |
+| Kitchen-funded offers `POST /restaurants/{id}/offers` | The kitchen's owner | Live at once, funded by the kitchen, with a weekly cap. Percent off is at most 60%. Since R22 (S11), the market's `kitchen_offer_ceiling` (Markets, country → state → city) caps the amount off, a percent offer's maximum, and the kitchen's weekly caps together | The rule and its version (`partner_offer_started`) |
 | Commission tier change | `rules.edit`, then a second admin with `rules.approve` | Maker-checker | Audit: `restaurant.tier_change_requested`, `.tier_changed` |
 | App store review $0.00 orders | Only a review account (listed in its review-only city's settings) ordering in that city | The quote is zeroed by one platform-funded line. The order is checked again before it's placed without payment (`orders/service/order.py:246`). It's never on a payout statement (`finance/service/payouts.py:106`). The review simulator (`REVIEW_SIM`) moves only such orders. The accounts and city are set only by `tools/review_accounts.py` (S6) | Log `review_order_placed_without_payment`; a `review` payment row |
 | Wallet | Credited only by refunds of wallet payments (S3: top-up removed) | Debits lock the row and refuse an overdraw | `wallet_transactions` |

@@ -233,7 +233,8 @@ async def test_the_console_signs_in_with_its_second_step_into_cookies(client: As
     code = await next_code(email, secrets_by_email.get(email) or SEED_TOTP_SECRET)
     r = await client.post("/api/v1/auth/mfa/verify", headers=CONSOLE, json={"mfa_token": challenge["mfa_token"], "code": code})
     assert r.status_code == 200, r.text
-    assert r.json()["access_token"] == "" and r.json()["admin_roles"], r.json()
+    assert r.json()["access_token"] == "" and r.json()["refresh_token"] == "", "tokens handed to the console"
+    assert r.json()["admin_roles"]
     at = _set_cookies(r)["bg_admin_at"]
     client.cookies.clear()
     r = await client.get("/api/v1/admin/me", headers={"X-Session": "admin", **_jar(bg_admin_at=at)})
