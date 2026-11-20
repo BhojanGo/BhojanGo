@@ -10,8 +10,10 @@ Public (no sign-in): prices are the same for everyone at an address.
 import json
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -114,7 +116,7 @@ async def discover(db: DB, viewer: Looker, lat: float | None = Query(None, ge=-9
     # A review account's answers are never cached (R20): they must never reach anyone else, and a review city
     # made again (new kitchen ids) must not be answered with the old one's kitchens. A handful of requests.
     if hidden.sees_review:
-        return await _discover(db, lat, lng, city, hide=hidden.codes)
+        return await _discover(db, lat, lng, city, hide=hidden.codes, fresh=True)
     key = f"discover:{city or f'{lat:.4f},{lng:.4f}'}"
     r = await get_redis()
     cached = await r.get(key)
@@ -126,16 +128,12 @@ async def discover(db: DB, viewer: Looker, lat: float | None = Query(None, ge=-9
 
 
 async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city_code: str | None,
-                    hide: frozenset[str] = frozenset()) -> Discover:
-    from core_api.modules.catalog.models.restaurant import Restaurant
+                    hide: frozenset[str] = frozenset(), fresh: bool = False) -> Discover:
     from core_api.modules.catalog.service import geo
-    from core_api.modules.catalog.service import menu as menu_svc
     from core_api.modules.markets.api.v1.public import public_status, slugify
     from core_api.modules.markets.models import City, Country, Region
     from core_api.modules.markets.service.markets import MarketService
     from core_api.modules.pricing.service.engine import CartLine, NotDeliverable, QuoteInputs, compute
-    from core_api.modules.rules.service.resolver import Context
-    from core_api.modules.rules.service.rules import RuleService
 
     zone_id = zone_name = None
     if city_code is None:
@@ -160,19 +158,16 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     if st != "live":
         return base
 
-    kitchens = (await db.execute(select(Restaurant).where(
-        Restaurant.country == country.code, Restaurant.city.ilike(city.name), Restaurant.status == "active",
-        Restaurant.is_active.is_(True), Restaurant.deleted_at.is_(None)))).scalars().all()
-    rules_svc = RuleService(db)
     now = datetime.now(UTC)
     tz = base.timezone or "UTC"
     from zoneinfo import ZoneInfo
 
     local = now.astimezone(ZoneInfo(tz))
-    shown = await photos_for(db, kitchens)
+    facts = await _city_facts(db, city, region, country, zone_id, city_path, hide, now, fresh=fresh)
     cards: list[Card] = []
     offers: dict[str, Offer] = {}
-    for k in kitchens:
+    for f in facts.kitchens:
+        k = f.k
         distance_km = None
         if lat is not None and lng is not None:
             if k.lat is None or k.lng is None:
@@ -180,23 +175,8 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             distance_km = geo.haversine_km(k.lat, k.lng, lat, lng)
             if distance_km > float(k.delivery_radius_km):
                 continue  # doesn't deliver to this address
-        try:
-            a = await menu_svc.availability(db, k.id)
-        except menu_svc.MenuError:
-            continue
-        if not a.listed:
-            continue
-        ref = {"id": str(k.id), "slug": k.slug, "name": k.name, "path": f"{city_path}/{k.slug}", "cover_url": k.cover_url,
-               "photo_url": shown.get(str(k.id))}
-        resolved = await rules_svc.resolve(Context(country=country.code, region=region.code, city=city.code,
-                                                   zone_id=str(zone_id) if zone_id else None, restaurant_id=str(k.id)), now)
-        promos = [c for slot, c in resolved.items() if slot.startswith("promotion:") and not c.params.get("code")
-                  and c.template != "referral"]
-        card_offer = None
-        for c in sorted(promos, key=lambda c: (c.scope_level != "restaurant", c.template != "free_delivery")):
-            o = _offer(c, ref if c.scope_level == "restaurant" else None)
+        for o in f.offers:
             offers.setdefault(o.id, o)
-            card_offer = card_offer or o
         fee = None
         distance = None
         if distance_km is not None:
@@ -204,59 +184,49 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             food = max(Decimal(k.minimum_order_amount or 0), Decimal("1"))
             try:
                 q = compute(QuoteInputs(currency=country.currency, lines=[CartLine("Cart", 1, food)],
-                                        distance=distance.quantize(Decimal("0.01")), local_time=local), resolved)
+                                        distance=distance.quantize(Decimal("0.01")), local_time=local), f.resolved)
                 fee = str(sum((ln.amount for ln in q.lines if ln.code == "delivery_fee"), Decimal("0")))
             except NotDeliverable:
                 continue
-        created = getattr(k, "created_at", None)
+        a = f.a
+        created = k.created_at
         cards.append(Card(
-            id=str(k.id), slug=k.slug, name=k.name, path=ref["path"], cuisine_types=list(k.cuisine_types or []),
-            tags=list(k.tags or []), area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url,
-            photo_url=shown.get(str(k.id)), logo_url=k.logo_url,
-            rating=float(k.rating or 0), review_count=int(getattr(k, "review_count", 0) or 0),
-            rating_display=rating_display(k.rating, getattr(k, "review_count", 0)),
+            id=str(k.id), slug=k.slug, name=k.name, path=f"{city_path}/{k.slug}", cuisine_types=list(k.cuisine_types or []),
+            tags=list(k.tags or []), area=k.area, cover_url=k.cover_url,
+            photo_url=facts.shown.get(str(k.id)), logo_url=k.logo_url,
+            rating=float(k.rating or 0), review_count=int(k.review_count or 0),
+            rating_display=rating_display(k.rating, k.review_count),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
             opens_at=(a.back_at.isoformat() if a.back_at else None) if a.closed_for_now
             else a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
             closed_for_now=a.closed_for_now,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
             distance=float(round(distance, 1)) if distance is not None else None, delivery_fee=fee,
-            free_delivery=any(c.template == "free_delivery" for c in promos), offer=card_offer))
+            free_delivery=f.free_delivery, offer=f.card_offer))
     cards.sort(key=lambda c: (not c.open_now, c.distance if c.distance is not None else 0, c.name))
     cuisines: dict[str, int] = {}
     for c in cards:
         for name in c.cuisine_types:
             cuisines[name] = cuisines.get(name, 0) + 1
     names = [n for n, v in sorted(cuisines.items(), key=lambda kv: (-kv[1], kv[0])) if v >= MIN_KITCHENS_PER_CUISINE]
-    photos = pick_cuisine_photos(names, await _photo_candidates(db, names, kitchens, {c.id for c in cards}))
+    photos = pick_cuisine_photos(names, _photo_candidates(names, facts.everyone, {c.id for c in cards},
+                                                          facts.dish_photos))
     base.restaurants = cards
     base.cuisines = [{"name": n, "count": cuisines[n], **({"photo": photos[n]} if n in photos else {})} for n in names]
     base.offers = sorted(offers.values(), key=lambda o: (o.restaurant is not None, o.title))
     return base
 
 
-
-async def _photo_candidates(db: AsyncSession, names: list[str], kitchens: list, on_cards: set[str]) -> dict[str, list[str]]:  # type: ignore[type-arg]
+def _photo_candidates(names: list[str], kitchens: list, on_cards: set[str],  # type: ignore[type-arg]
+                      by_kitchen: dict[str, list[str]]) -> dict[str, list[str]]:
     """Each cuisine's photos, best first: covers of the city's kitchens of that
     cuisine that aren't on a card in this response, then the food library's photo
     of that cuisine (R8: catalog.service.photos, e.g. Japanese -> sushi, so every
     mapped cuisine has a fitting photo even when its kitchens have none), then
-    dish photos from the cuisine's kitchens, then covers that are already on a
-    card (repeats a card)."""
-    from core_api.modules.catalog.models.menu import MenuItem
-
+    dish photos from the cuisine's kitchens (``by_kitchen``: _dish_photos), then
+    covers that are already on a card (repeats a card)."""
     if not names:
         return {}
-    by_kitchen: dict[str, list[str]] = {}
-    ids = [k.id for k in kitchens]
-    if ids:
-        rows = (await db.execute(
-            select(MenuItem.restaurant_id, MenuItem.image_url)
-            .where(MenuItem.restaurant_id.in_(ids), MenuItem.image_url.is_not(None), MenuItem.image_url != "",
-                   MenuItem.deleted_at.is_(None), MenuItem.is_available.is_(True))
-            .order_by(MenuItem.restaurant_id, MenuItem.sort_order, MenuItem.name))).all()
-        for rid, url in rows:
-            by_kitchen.setdefault(str(rid), []).append(url)
     card_covers = {k.cover_url for k in kitchens if str(k.id) in on_cards and k.cover_url}
     card_keys = {photo_key(u) for u in card_covers}
     out: dict[str, list[str]] = {}
@@ -269,6 +239,108 @@ async def _photo_candidates(db: AsyncSession, names: list[str], kitchens: list, 
         out[name] = ([u for u in covers if u not in card_covers] + library + [u for u in dishes if u not in card_covers]
                      + [u for u in covers if u in card_covers])
     return out
+
+
+# What a city's (or a zone's) kitchens look like apart from the address: their availability,
+# the rules that apply to them, their offers and photos. R21 load test: computing this took
+# about six queries per kitchen on every uncached address (130 for Boise's 21 kitchens), and
+# at a 3x Boise rush core_api spent its one CPU on it and timed out everywhere. Now it's
+# computed once per city and zone per FACTS_SECONDS in each process, and each address only
+# adds distances and delivery fees (no queries). Answers stay as fresh as the per-address
+# cache already allowed (CACHE_SECONDS). Review accounts (R20) always get fresh facts.
+_facts: dict[tuple, tuple[float, "_Facts"]] = {}
+
+
+@dataclass(frozen=True)
+class _KitchenFacts:
+    k: SimpleNamespace  # the restaurant's fields a card needs (a snapshot, not the ORM object)
+    a: object  # menu.Availability
+    resolved: dict  # rules that apply (pricing.engine.compute's input)
+    offers: list  # [Offer], best first
+    card_offer: Offer | None
+    free_delivery: bool
+
+
+@dataclass(frozen=True)
+class _Facts:
+    kitchens: list  # [_KitchenFacts], listed kitchens only
+    everyone: list  # every active kitchen in the city (snapshots), for the cuisine photos
+    shown: dict  # kitchen id -> photo_url
+    dish_photos: dict  # kitchen id -> dish photo urls
+
+
+async def _city_facts(db: AsyncSession, city, region, country, zone_id, city_path: str,  # type: ignore[no-untyped-def]
+                      hide: frozenset[str], now: datetime, fresh: bool = False) -> _Facts:
+    import time
+
+    from shared.config import get_settings
+
+    keep = 0.0 if fresh else get_settings().catalog.DISCOVER_FACTS_SECONDS
+    key = (city.code, str(zone_id) if zone_id else None, hide)
+    hit = _facts.get(key)
+    if keep > 0 and hit and time.monotonic() - hit[0] < keep:
+        return hit[1]
+    out = await _compute_facts(db, city, region, country, zone_id, city_path, now)
+    if keep > 0:
+        _facts[key] = (time.monotonic(), out)
+    return out
+
+
+async def _compute_facts(db: AsyncSession, city, region, country, zone_id, city_path: str,  # type: ignore[no-untyped-def]
+                         now: datetime) -> _Facts:
+    from core_api.modules.catalog.models.restaurant import Restaurant
+    from core_api.modules.catalog.service import menu as menu_svc
+    from core_api.modules.rules.service.resolver import Context
+    from core_api.modules.rules.service.rules import RuleService
+
+    rows = (await db.execute(select(Restaurant).where(
+        Restaurant.country == country.code, Restaurant.city.ilike(city.name), Restaurant.status == "active",
+        Restaurant.is_active.is_(True), Restaurant.deleted_at.is_(None)))).scalars().all()
+    rules_svc = RuleService(db)
+    shown = await photos_for(db, rows)
+    dish_photos = await _dish_photos(db, [k.id for k in rows])
+    everyone = {k.id: SimpleNamespace(
+        id=k.id, slug=k.slug, name=k.name, lat=k.lat, lng=k.lng, delivery_radius_km=k.delivery_radius_km,
+        minimum_order_amount=k.minimum_order_amount, cuisine_types=list(k.cuisine_types or []), tags=list(k.tags or []),
+        area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url,
+        logo_url=k.logo_url, rating=k.rating, review_count=getattr(k, "review_count", 0) or 0,
+        created_at=getattr(k, "created_at", None), delivery_time_min=k.delivery_time_min, delivery_time_max=k.delivery_time_max)
+        for k in rows}
+    kitchens: list[_KitchenFacts] = []
+    for k in rows:
+        try:
+            a = await menu_svc.availability(db, k.id)
+        except menu_svc.MenuError:
+            continue
+        if not a.listed:
+            continue
+        ref = {"id": str(k.id), "slug": k.slug, "name": k.name, "path": f"{city_path}/{k.slug}", "cover_url": k.cover_url,
+               "photo_url": shown.get(str(k.id))}
+        resolved = await rules_svc.resolve(Context(country=country.code, region=region.code, city=city.code,
+                                                   zone_id=str(zone_id) if zone_id else None, restaurant_id=str(k.id)), now)
+        promos = [c for slot, c in resolved.items() if slot.startswith("promotion:") and not c.params.get("code")
+                  and c.template != "referral"]
+        offers = [_offer(c, ref if c.scope_level == "restaurant" else None)
+                  for c in sorted(promos, key=lambda c: (c.scope_level != "restaurant", c.template != "free_delivery"))]
+        kitchens.append(_KitchenFacts(k=everyone[k.id], a=a, resolved=resolved, offers=offers, card_offer=offers[0] if offers else None,
+                                      free_delivery=any(c.template == "free_delivery" for c in promos)))
+    return _Facts(kitchens=kitchens, everyone=list(everyone.values()), shown=shown, dish_photos=dish_photos)
+
+
+async def _dish_photos(db: AsyncSession, ids: list) -> dict[str, list[str]]:  # type: ignore[type-arg]
+    """Each kitchen's available dish photos, in menu order."""
+    from core_api.modules.catalog.models.menu import MenuItem
+
+    by_kitchen: dict[str, list[str]] = {}
+    if ids:
+        rows = (await db.execute(
+            select(MenuItem.restaurant_id, MenuItem.image_url)
+            .where(MenuItem.restaurant_id.in_(ids), MenuItem.image_url.is_not(None), MenuItem.image_url != "",
+                   MenuItem.deleted_at.is_(None), MenuItem.is_available.is_(True))
+            .order_by(MenuItem.restaurant_id, MenuItem.sort_order, MenuItem.name))).all()
+        for rid, url in rows:
+            by_kitchen.setdefault(str(rid), []).append(url)
+    return by_kitchen
 
 
 def photo_key(url: str) -> str:

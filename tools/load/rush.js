@@ -355,7 +355,7 @@ export function rider(data) {
     if (job || seen[oid]) return;
     seen[oid] = true;
     rt(`offer_${via}`, i, oid, now());
-    const a = http.post(`${RT}/api/v1/offers/${oid}/accept`, null, { headers: h, tags: { name: "offer_accept" } });
+    const a = http.post(`${RT}/api/v1/offers/${oid}/accept`, null, { headers: h, tags: { name: "offer_accept" }, responseCallback: http.expectedStatuses(200, 404, 409) });
     // 404/409: the offer was withdrawn or went elsewhere a moment ago (the app shows the same).
     if (!timed("offer_accept", a, a.status === 200 || a.status === 404 || a.status === 409) || a.status !== 200) return;
     const batch = (a.json("batch") || []).map((b) => (typeof b === "string" ? b : b.order_id)).filter(Boolean);

@@ -81,23 +81,36 @@ jobs:
           tail -80 "$OUT/k6.txt"
 
       - name: Drop tokens from the k6 summary
+        id: scrub
         if: always()
         run: |
+          # k6 wrote these as its own user: take them back first.
+          sudo chown -R "$(id -u):$(id -g)" "$OUT"
           # setup() returns the test accounts' tokens; the summary would carry them.
-          [ -f "$OUT/summary.json" ] && python -c "import json,sys; p=sys.argv[1]; d=json.load(open(p)); d.pop('setup_data', None); json.dump(d, open(p, 'w'), indent=1)" "$OUT/summary.json"
+          if [ -f "$OUT/summary.json" ]; then
+            python -c "import json,sys; p=sys.argv[1]; d=json.load(open(p)); d.pop('setup_data', None); json.dump(d, open(p, 'w'), indent=1)" "$OUT/summary.json"
+          fi
           # Nothing token-like leaves the runner (belt and braces: rush.js logs ids only).
-          for f in "$OUT"/console.log "$OUT"/k6.txt; do [ -f "$f" ] && sed -i -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' "$f"; done
-          true
+          for f in "$OUT"/console.log "$OUT"/k6.txt; do
+            [ -f "$f" ] && sed -i -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' "$f"
+          done
+          # Fail closed: the artifact is only uploaded when this step passes.
+          ! grep -l -E 'setup_data|eyJ[A-Za-z0-9_-]{20,}\.' "$OUT"/* 2>/dev/null
 
       - name: Errors in the service logs
         if: always()
         run: |
+          # The exceptions, counted (the last line of each traceback), then the first error lines.
           for svc in core-api realtime worker postgres redis; do
-            $COMPOSE logs --no-color "$svc" 2>/dev/null \
-              | grep -E '"level": ?"(error|critical)"|Traceback|\bERROR\b|\bFATAL\b|Exception' | sed "s/^/[$svc] /"
-          done | sed -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' > "$OUT/log-errors.txt" || true
-          wc -l < "$OUT/log-errors.txt"
-          head -40 "$OUT/log-errors.txt"
+            $COMPOSE logs --no-color "$svc" 2>/dev/null > "$OUT/.log-$svc.txt" || true
+            grep -E '^[^|]*\|[ |]*[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Timeout|Exhausted)\b' "$OUT/.log-$svc.txt" \
+              | sed -E 's/^[^|]*\|[ |]*//; s/[0-9a-f]{8}-[0-9a-f-]{27}/<id>/g' | cut -c1-220 | sort | uniq -c | sort -rn | head -30 | sed "s/^/[$svc] /"
+          done > "$OUT/log-exceptions.txt"
+          for svc in core-api realtime worker postgres redis; do
+            grep -E '"level": ?"(error|critical)"|\bERROR\b|\bFATAL\b' "$OUT/.log-$svc.txt" | head -300 | sed "s/^/[$svc] /"
+          done | sed -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[jwt]/g' > "$OUT/log-errors.txt"
+          rm -f "$OUT"/.log-*.txt
+          cat "$OUT/log-exceptions.txt"
 
       - name: Report
         if: always()
@@ -106,7 +119,7 @@ jobs:
           cat "$OUT/report.md"
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.scrub.outcome == 'success'
         with:
           name: load-test
           path: load-out

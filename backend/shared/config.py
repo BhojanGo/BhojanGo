@@ -129,6 +129,9 @@ class CatalogSettings(BaseSettings):
     model_config = _ENV
 
     CACHE_TTL_RESTAURANTS: int = 300  # 5 minutes
+    # GET /discover: a city's kitchens, hours and rules apart from the address, kept this long in
+    # each process (R21 load test; 0 = computed on every uncached address, as before).
+    DISCOVER_FACTS_SECONDS: float = 20
 
     AWS_S3_BUCKET: str = "bhojango-assets-dev"
     AWS_CLOUDFRONT_URL: str = ""
