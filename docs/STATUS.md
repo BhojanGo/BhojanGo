@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-19** (after round 19), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-19** (after round 20), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -181,6 +181,27 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   addresses keep serving (Railway keeps them), but browsers on them can no longer call the API after that.
 - Production domains: a plan and a recommendation (Cloudflare DNS only) in
   [production-config.md](launch/production-config.md#production-domains-plan-nothing-changed-for-production).
+
+## Location line, store review flow and app polish (round 20, 2026-11-19)
+
+- **Location line (#164):** always "City, ST" with the state's short code from Markets ("Boise, ID",
+  "Hyderabad, TG"), whether the city was guessed, picked or came from a saved address. States have a short code
+  (`regions.short_code`, migration 0039, backfilled from the state code); admin Markets shows it on each state row
+  and requires it when a city is added to a new state or a state without one. The customer app's home line shows
+  "City, ST · Change" only for a live city.
+- **"Who gets your money" card (#164):** every label sits on one line next to its percentage at 1024 and 1440
+  (checked by `tools/web/e2e_web.py`).
+- **Store review flow (#165):** orders by the review accounts cost $0.00 (a platform-funded "review" line on the
+  quote, no Stripe call, never paid out), and the worker's `REVIEW_SIM=1` moves only review orders through
+  accepted → ready → picked up → delivered, in production too. It is off (`"0"`) in production until the review
+  accounts exist; switch it on for the store review ([launch/store/README.md](launch/store/README.md),
+  [go-live.md](launch/go-live.md) step 14). `DEMO_RIDER_SIM` is still refused in production. CI test:
+  `test_review_orders.py`.
+- **Apps (#166):** BhojanGo Kitchen and BhojanGo Delivery offer the partner's country's languages from Markets, in
+  Markets order; Terms and Privacy links on every sign-in screen and in the customer Account tab; no iOS background
+  audio in the Kitchen app; the one dev warning (the bag opened as a modal over the dish modal) fixed, and each
+  app-screens run now records the JS warnings per flow (0 in all 14 flows).
+- Old agent worktrees removed.
 
 ## What's left before the pilot
 
