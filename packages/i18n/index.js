@@ -107,7 +107,7 @@ function detectCountry(evidence, countries) {
 }
 
 /**
- * The location line ("<place>, <code> · Change city") and the home content (R8):
+ * The location line ("<City>, <ST> · Change", ST = the state's short code from Markets, round 20) and the home content (R8):
  * never a city we don't know, never another city's kitchens. In order:
  *   address  the delivery address (cookie / saved address): its Markets city, else its own label
  *   chosen   a city picked with "Change city" (a Markets city code)
@@ -127,24 +127,26 @@ function resolveLocation(evidence, cities) {
   const list = cities || [];
   const byCode = (code) => (code ? list.find((c) => c.code === code) || null : null);
   const live = (c) => !!c && c.status === "live";
+  // Always "City, ST" (round 20): the state's short code from Markets, whatever said where the visitor is.
+  const st = (c, fallback) => String((c && c.region_code) || fallback || "").toUpperCase() || null;
   const a = e.address;
   if (a && a.country) {
     const city = byCode(a.city_code);
     const place = city ? city.name : String(a.label || "").trim() || null; // their own address, as they named it
     if (place) {
       const served = live(city) && a.served !== false;
-      return { source: "address", place, code: String(a.country).toUpperCase(), city, served, deliversHere: false };
+      return { source: "address", place, code: st(city, a.country), city, served, deliversHere: false };
     }
   }
   const chosen = byCode(e.chosen);
   if (chosen) {
-    return { source: "chosen", place: chosen.name, code: chosen.country, city: chosen, served: live(chosen), deliversHere: false };
+    return { source: "chosen", place: chosen.name, code: st(chosen, chosen.country), city: chosen, served: live(chosen), deliversHere: false };
   }
   const ip = e.ip;
   if (ip && ip.country && ip.served) {
     const city = byCode(ip.city_code);
     if (live(city) && city.country === String(ip.country).toUpperCase()) {
-      return { source: "ip", place: city.name, code: String(ip.region_code || ip.country).toUpperCase(), city, served: true, deliversHere: true };
+      return { source: "ip", place: city.name, code: st(city, ip.region_code || ip.country), city, served: true, deliversHere: true };
     }
   }
   return { source: "none", place: null, code: null, city: null, served: false, deliversHere: false };

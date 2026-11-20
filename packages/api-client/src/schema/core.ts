@@ -6123,6 +6123,11 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+            /**
+             * Short Code
+             * @description What people write after a city: "Boise, ID"
+             */
+            short_code: string;
         };
         /** Directory */
         Directory: {
@@ -7112,6 +7117,11 @@ export interface components {
             reason?: string | null;
             /** Region Code */
             region_code?: string | null;
+            /**
+             * Region Short Code
+             * @description The state's short code ("ID"): the app's "Boise, ID"
+             */
+            region_short_code?: string | null;
             /** Serviceable */
             serviceable: boolean;
             /** Status */
@@ -8989,6 +8999,11 @@ export interface components {
             settings?: {
                 [key: string]: unknown;
             };
+            /**
+             * Short Code
+             * @example TG
+             */
+            short_code?: string | null;
             /** Timezone */
             timezone?: string | null;
         };
@@ -9007,6 +9022,8 @@ export interface components {
             settings: {
                 [key: string]: unknown;
             };
+            /** Short Code */
+            short_code?: string | null;
             /**
              * Status
              * @enum {string}
@@ -9032,6 +9049,8 @@ export interface components {
             settings: {
                 [key: string]: unknown;
             };
+            /** Short Code */
+            short_code?: string | null;
             /**
              * Status
              * @enum {string}
@@ -9048,6 +9067,8 @@ export interface components {
             settings?: {
                 [key: string]: unknown;
             } | null;
+            /** Short Code */
+            short_code?: string | null;
             /** Status */
             status?: ("draft" | "soon" | "beta" | "live" | "paused") | null;
             /** Timezone */

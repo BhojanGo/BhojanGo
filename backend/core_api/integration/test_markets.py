@@ -66,6 +66,31 @@ async def test_locate(client: AsyncClient) -> None:
     assert r == {**r, "serviceable": False, "reason": "We don't deliver here yet"}
 
 
+async def test_state_short_codes_for_the_location_line(client: AsyncClient) -> None:
+    """Round 20: "City, ST" everywhere. Every state has a short code (the seed's from the ISO code); the public
+    directory, the city page and locate carry it; admin can set it; a new state without one gets the ISO code's
+    second part; a bad one is refused."""
+    d = (await client.get("/api/v1/markets/directory")).json()
+    short = {rg["code"]: rg["short_code"] for k in d["countries"] for rg in k["regions"]}
+    assert short["IN-TG"] == "TG" and short["US-ID"] == "ID", short
+    page = (await client.get("/api/v1/markets/cities/in/hyderabad")).json()
+    assert page["region"]["short_code"] == "TG"
+    r = (await client.get("/api/v1/markets/locate", params={"lat": MADHAPUR[0], "lng": MADHAPUR[1]})).json()
+    assert (r["region_code"], r["region_short_code"]) == ("IN-TG", "TG")
+
+    h = await auth(client, "cm.in@example.com")
+    code = f"IN-Q{rand(2)}"
+    r = await client.post("/api/v1/markets/countries/IN/regions", headers=h, json={"code": code, "name": "Short Code Test"})
+    assert r.status_code in (200, 201) and r.json()["short_code"] == code.split("-")[1], r.text
+    r = await client.patch(f"/api/v1/markets/regions/{code}", headers=h, json={"short_code": "SC"})
+    assert r.status_code == 200 and r.json()["short_code"] == "SC", r.text
+    r = await client.patch(f"/api/v1/markets/regions/{code}", headers=h, json={"short_code": "far too long"})
+    assert r.status_code == 422
+    r = await client.post("/api/v1/markets/countries/IN/regions", headers=h,
+                          json={"code": f"IN-Q{rand(2)}", "name": "Short Code Test 2", "short_code": "q1"})
+    assert r.status_code == 422  # upper-case letters and digits only
+
+
 # ── overview and scopes ───────────────────────────────────────────────────────
 
 async def test_overview_is_scoped(client: AsyncClient) -> None:

@@ -14,7 +14,11 @@ export declare function detectCountry(
   evidence: { address?: string | null; chosen?: string | null; page?: string | null; ip?: string | null; browser?: string | readonly string[] | null },
   countries: readonly { code: string; locales?: readonly string[] | null }[] | null | undefined,
 ): { code: string | null; source: CountrySource };
-export interface LocationCity { code: string; name: string; country: string; status: string }
+export interface LocationCity {
+  code: string; name: string; country: string; status: string;
+  /** The state's short code from Markets ("ID", "TG"): the line reads "Boise, ID". */
+  region_code?: string | null;
+}
 export interface LocationEvidence {
   /** The delivery address: its country, its Markets city (if any), whether an open zone serves it. */
   address?: { label?: string | null; country: string; city_code?: string | null; served?: boolean | null } | null;
