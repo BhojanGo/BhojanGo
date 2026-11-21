@@ -8,7 +8,7 @@ import { LogoMark } from "./Icons";
 export async function SiteFooter() {
   const { t, country } = await getContext();
   const operator = country?.legal?.name;  // R15: per detected country, from Markets
-  const col = "flex flex-col gap-[10px]";
+  const col = "flex min-w-0 flex-col gap-[10px] [overflow-wrap:anywhere]"; // R27: long Tamil words wrap in the 2-column phone footer
   return (
     <footer className="mt-[72px] bg-[#F4F6F6] print:hidden">
       <div className="grid container-page grid-cols-2 gap-8 py-12 text-body md:grid-cols-[1.4fr_1fr_1fr_1fr]">

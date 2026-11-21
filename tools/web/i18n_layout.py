@@ -22,8 +22,8 @@ A page fails when
             line clamp cuts its text (scrollWidth > clientWidth, scrollHeight > clientHeight), or
   spill     a box's text runs past its own edge (a nowrap button label wider than the button), or
   off       a text sticks out of the window (not inside a scroller such as a carousel),
-and the text is the site's own words: it contains a phrase from that language's catalog
-(packages/i18n/messages/<lang>.json, the parts between {placeholders}). A kitchen's or a
+and the text is the site's own words: phrases from that language's catalog
+(packages/i18n/messages/<lang>.json, the parts between {placeholders}) make up at least half of it. A kitchen's or a
 dish's name (data) cut by `truncate` is by design and only listed, not failed.
 
 Not covered here: checkout (its bag lives in the browser), the order tracking map and the
@@ -143,7 +143,16 @@ FIND = r"""
     return false;
   };
   const words = (el) => (el.innerText || "").replace(/\s+/g, " ").trim();
-  const catalog = (text) => phrases.find((p) => text.includes(p)) || null;
+  // The site's own words: catalog phrases make up at least half of the text (a kitchen called
+  // "Ridgeline Pizza Kitchen" contains the word "Kitchen" but is data).
+  const catalog = (text) => {
+    let rest = text, hit = null;
+    for (const p of phrases) {
+      if (rest.includes(p)) { hit = hit || p; rest = rest.split(p).join(" "); }
+    }
+    const letters = (s) => (s.match(/[\p{L}\p{M}]/gu) || []).length;
+    return hit && letters(rest) <= letters(text) / 2 ? hit : null;
+  };
   const SKIP = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "svg", "SVG", "IMG", "PICTURE", "VIDEO", "CANVAS", "IFRAME",
     "INPUT", "TEXTAREA", "SELECT", "OPTION", "HTML", "BODY"]);
   for (const el of document.body.querySelectorAll("*")) {

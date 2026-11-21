@@ -50,10 +50,11 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
     <div className="pb-16 md:pb-24">
       {/* Hero */}
       <section className="bg-[linear-gradient(180deg,#EFF6F6_0%,#FFFFFF_100%)]">
-        <div className={`${WRAP} grid items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-14 lg:grid-cols-[1fr_520px] lg:gap-12`}>
+        {/* R27: grid-cols-1 (minmax(0,1fr)) on phones: a long Tamil word no longer widens the page */}
+        <div className={`${WRAP} grid grid-cols-1 items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-14 lg:grid-cols-[1fr_520px] lg:gap-12`}>
           <div>
             <p className="m-0 text-caption text-peacock">{t("deliver_page.eyebrow")}</p>
-            <h1 className="m-0 mt-3 text-display">{t("deliver_page.title")}</h1>
+            <h1 className="m-0 mt-3 text-h1 [overflow-wrap:anywhere] sm:text-display">{t("deliver_page.title")}</h1>
             <p className="m-0 mt-4 max-w-[560px] text-body-lg text-muted">{t("deliver_page.lead")}</p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <a href="#get-started" className="inline-flex h-[52px] items-center rounded-full bg-peacock px-7 text-label text-white hover:bg-peacock-deep hover:text-white">
@@ -121,7 +122,7 @@ export default async function Deliver({ searchParams }: { searchParams: Promise<
       {/* How it works */}
       <section aria-labelledby="how-title" className={`${WRAP} pt-12 md:pt-16`}>
         <h2 id="how-title" className="m-0 text-h1">{t("deliver_page.how_title")}</h2>
-        <ol className="m-0 mt-6 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-6">
+        <ol className="m-0 mt-6 grid grid-cols-1 list-none gap-4 p-0 md:grid-cols-3 md:gap-6">
           {([1, 2, 3] as const).map((n) => (
             <li key={n} className="rounded-[24px] bg-porcelain p-5 md:p-7">
               <div aria-hidden="true" className="text-h1 text-peacock">{n}</div>
@@ -171,7 +172,7 @@ function PayCards({ ok, t, m, loc, language }: { ok: DeliveryTerms; t: T; m: (v:
   const biweekly = ok.pay_schedule?.frequency === "biweekly";
   return (
     <>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="pay-cards" data-city={ok.city.code}>
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="pay-cards" data-city={ok.city.code}>
         <Card title={t("deliver_page.pay_trip_title")} big={m(ex.total)} testid="pay-trip" sub={t("deliver_page.pay_trip_example", { distance: distance(ex.distance, ok.distance_unit, loc) })}>
           <p className="m-0">{t("deliver_page.pay_trip_body", { base: m(ex.base), per_unit: m(ex.per_unit), unit })}</p>
           {Number(ex.per_wait_minute) > 0 && (
@@ -224,7 +225,7 @@ function Requirements({ ok, t, language, countryName }: { ok: DeliveryTerms; t: 
     <section id="requirements" aria-labelledby="req-title" className={`${WRAP} pt-12 md:pt-16`}>
       <h2 id="req-title" className="m-0 text-h1">{t("deliver_page.req_title")}</h2>
       <p className="m-0 mt-1 text-body text-muted">{t("deliver_page.req_sub", { country: countryName })}</p>
-      <ul className="m-0 mt-6 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3" data-testid="requirements" data-country={ok.country}>
+      <ul className="m-0 mt-6 grid grid-cols-1 list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3" data-testid="requirements" data-country={ok.country}>
         {items.map((i) => (
           <li key={i.key} data-key={i.key} className="flex gap-3 rounded-[20px] border border-line bg-white p-4 md:p-5">
             <span aria-hidden="true" className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-peacock-tint text-peacock"><Check /></span>

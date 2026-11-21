@@ -70,10 +70,10 @@ export default async function Partner() {
     <>
       {/* ── hero ─────────────────────────────────────────────────────────── */}
       <section className="bg-[linear-gradient(180deg,#EFF6F6_0%,#FFFFFF_100%)]">
-        <div className={`${PAGE} grid items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-12 lg:grid-cols-[1fr_minmax(0,500px)] lg:gap-12 lg:pt-16`}>
+        <div className={`${PAGE} grid grid-cols-1 items-center gap-8 pb-12 pt-8 md:pb-16 md:pt-12 lg:grid-cols-[1fr_minmax(0,500px)] lg:gap-12 lg:pt-16`}>
           <div>
             <p className="m-0 text-caption text-peacock">{t("kitchen_join.eyebrow")}</p>
-            <h1 className="m-0 mt-3 text-display">{t("kitchen_join.title")}</h1>
+            <h1 className="m-0 mt-3 text-h1 [overflow-wrap:anywhere] sm:text-display">{t("kitchen_join.title")}</h1>
             <p className="m-0 mt-4 max-w-[560px] text-body-lg text-muted">{t("kitchen_join.lead")}</p>
             <div className="mt-7">
               <HeroAction />
@@ -114,8 +114,8 @@ export default async function Partner() {
       {/* ── why ──────────────────────────────────────────────────────────── */}
       <section aria-labelledby="why" className={`${PAGE} pt-12 md:pt-16`}>
         <h2 id="why" className="m-0 text-h1">{t("kitchen_join.why_title")}</h2>
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_400px] lg:gap-10">
-          <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_400px] lg:gap-10">
+          <ul className="m-0 grid grid-cols-1 list-none gap-4 p-0 sm:grid-cols-2">
             {why.map((w) => (
               <li key={w.key} data-testid={`why-${w.key}`} className="rounded-card bg-porcelain p-5 md:p-6">
                 <h3 className="m-0 text-h3">{w.title}</h3>
@@ -154,7 +154,7 @@ export default async function Partner() {
       {/* ── how it works ─────────────────────────────────────────────────── */}
       <section aria-labelledby="how" className={`${PAGE} pt-12 md:pt-16`}>
         <h2 id="how" className="m-0 text-h1">{t("kitchen_join.how_title")}</h2>
-        <ol className="m-0 mt-6 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="m-0 mt-6 grid grid-cols-1 list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((n) => (
             <li key={n} className="rounded-card border border-line p-5 md:p-6">
               <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-pill bg-peacock text-label text-white">{n}</span>
@@ -172,7 +172,7 @@ export default async function Partner() {
           {terms && terms.documents.length > 0 ? (
             <>
               <p className="m-0 mt-2 text-body text-muted">{t("kitchen_join.docs_lead")}</p>
-              <ul data-testid="partner-docs" className="m-0 mt-5 grid list-none gap-3 p-0 md:grid-cols-2">
+              <ul data-testid="partner-docs" className="m-0 mt-5 grid grid-cols-1 list-none gap-3 p-0 md:grid-cols-2">
                 {terms.documents.map((d) => (
                   <li key={d.key} data-doc={d.key} className="flex gap-3 rounded-card bg-white p-4">
                     <span aria-hidden="true" className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-peacock text-white">
@@ -226,9 +226,9 @@ export default async function Partner() {
 function Fact({ value, label, testId }: { value: string; label: string; testId?: string }) {
   return (
     <div data-testid={testId} className="flex min-w-0 flex-col-reverse justify-end">
-      <dt className="mt-1 text-small text-muted">{label}</dt>
+      <dt className="mt-1 text-small text-muted [overflow-wrap:anywhere]">{label}</dt>
       {/* R27: a phone's third of the row is ~100 px: "Semanales" (es) ran past it at h2 */}
-      <dd className="m-0 break-words text-h3 tabular-nums text-peacock-deep sm:text-h2">{value}</dd>
+      <dd className="m-0 text-h3 [overflow-wrap:anywhere] tabular-nums text-peacock-deep sm:text-h2">{value}</dd>
     </div>
   );
 }

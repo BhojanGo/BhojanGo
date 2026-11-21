@@ -140,7 +140,7 @@ export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href
   return (
     // R27: at least 150 px, taller when a translated headline needs two lines (Telugu was cut off).
     <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex min-h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
-      <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
+      <span className="flex min-w-0 flex-grow flex-col justify-center py-5 pl-6 pr-5 [overflow-wrap:anywhere]">
         <b className="text-h2">{offerTitle(o, t, currency, formatLocale)}</b>
         <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
         <span className="mt-[10px] text-caption text-muted">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
