@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 
+from core_api.modules.finance.service.statements import NEVER_FROM_BANK
 from core_api.modules.orders.service.receipt import BASE_FONT, _address_lines, _fonts, money
 
 
@@ -38,6 +39,9 @@ class CommissionInvoice:
     label: str = "GST on commission"
     orders: int = 0
     notes: list[str] = field(default_factory=lambda: [ROUNDING_NOTE])
+    # R24: the weekly statement below zero (statements.below_zero_text): this week's result and
+    # what is still below zero from earlier weeks, then once that it is never taken from the bank.
+    balance: list[str] = field(default_factory=list)
 
 
 def totals(statement_lines: list[list[dict]]) -> tuple[Decimal, Decimal, int]:
@@ -123,6 +127,12 @@ def render(inv: CommissionInvoice) -> bytes:
     row(f"{inv.label} @ {inv.rate_percent.normalize()}%", money(inv.tax, inv.currency))
     rule()
     row("Total (taken from your weekly payout)", money(inv.commission + inv.tax, inv.currency), "B")
+    if inv.balance:  # R24: the week's statement came to below zero, so this week paid nothing
+        pdf.ln(3)
+        text("Your weekly statement", 10, "B")
+        for line in inv.balance:
+            text(line)
+        text(NEVER_FROM_BANK, 8)
     pdf.ln(4)
     for n in inv.notes:
         text(n, 8)

@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
+from shared.money import format_money
+
 CENT = Decimal("0.01")
 ZERO = Decimal(0)
 
@@ -188,6 +190,40 @@ def combine(carries: list[Carry]) -> Carry | None:
         return None
     return Carry(amount=sum(c.amount for c in carries), weeks=max(c.weeks for c in carries),
                  since=min(c.since for c in carries), statements=tuple(s for c in carries for s in c.statements))
+
+
+# ── R24: what a statement below zero says ──────────────────────────────────────
+#
+# This week's own result W (amount - carried_in) and the balance B (amount) are said apart, and the
+# amounts shown add up to |B|, the statement's total, never counting the carry twice:
+#   W < 0:            "This week came to |W| below zero."
+#   C < 0 (and W < 0): "Still |C| below zero from earlier weeks · carried to next week."
+#   W >= 0, B < 0:     "Still |B| below zero from earlier weeks · carried to next week." (the week covered part)
+#   W < 0, no carry:   the week line, then "Carried to next week."
+# The same rule as the Kitchen app and admin (packages/ui/statement.js, belowZeroLines).
+
+def below_zero_lines(amount: int, carried_in: int | None) -> list[tuple[str, int | None]]:
+    """(kind, minor units below zero) for a statement's amount and carried_in: kind is "week",
+    "earlier" or "carried" (no amount). Empty unless the amount is below zero."""
+    if amount >= 0:
+        return []
+    c = min(carried_in or 0, 0)
+    w = amount - c
+    if w < 0:
+        return [("week", -w), ("earlier", -c)] if c < 0 else [("week", -w), ("carried", None)]
+    return [("earlier", -amount)]
+
+
+BELOW_ZERO_TEXT = {"week": "This week came to {amount} below zero.",
+                   "earlier": "Still {amount} below zero from earlier weeks · carried to next week.",
+                   "carried": "Carried to next week."}
+NEVER_FROM_BANK = "A week below zero pays nothing and carries to next week's statement; we never take it from your bank."
+
+
+def below_zero_text(amount: int, carried_in: int | None, currency: str) -> list[str]:
+    """The lines in English (the statement PDF), money formatted as everywhere else."""
+    return [BELOW_ZERO_TEXT[kind].format(amount=format_money(Decimal(v) / 100, currency) if v is not None else "")
+            for kind, v in below_zero_lines(amount, carried_in)]
 
 
 def balance(net: int, carry: Carry | None, period_start: date) -> Balance:

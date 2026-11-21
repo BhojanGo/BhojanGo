@@ -102,3 +102,53 @@ def test_nothing_is_ever_charged_to_the_kitchen() -> None:
 
 def test_major_units_for_summaries() -> None:
     assert (S.major(-512), S.major(0), S.major(48088)) == ("-5.12", "0.00", "480.88")
+
+
+# ── R24: what a statement below zero says (this week; still from earlier weeks) ──
+
+def test_below_zero_this_week_with_nothing_carried_in() -> None:
+    (first,) = run_weeks([-5000])
+    assert S.below_zero_lines(first.amount, first.carried_in) == [("week", 5000), ("carried", None)]
+    assert S.below_zero_text(first.amount, first.carried_in, "INR") == ["This week came to ₹50.00 below zero.",
+                                                                        "Carried to next week."]
+
+
+def test_week_above_zero_but_the_balance_still_below() -> None:
+    _, second = run_weeks([-8000, 3000])  # this week +30.00 covers part of -80.00: still -50.00
+    assert S.below_zero_lines(second.amount, second.carried_in) == [("earlier", 5000)]
+    assert S.below_zero_text(second.amount, second.carried_in, "INR") == [
+        "Still ₹50.00 below zero from earlier weeks · carried to next week."]
+
+
+def test_week_below_zero_on_top_of_a_carried_balance_shows_both_and_adds_up() -> None:
+    _, second = run_weeks([-5000, -3000])  # -50.00 carried in, this week -30.00: -80.00
+    lines = S.below_zero_lines(second.amount, second.carried_in)
+    assert lines == [("week", 3000), ("earlier", 5000)]
+    assert sum(v or 0 for _, v in lines) == -second.amount  # nothing counted twice
+    assert S.below_zero_text(second.amount, second.carried_in, "USD") == [
+        "This week came to $30.00 below zero.", "Still $50.00 below zero from earlier weeks · carried to next week."]
+
+
+def test_nothing_below_zero_once_the_balance_is_covered() -> None:
+    _, second = run_weeks([-7000, 9000])  # carried in -70.00, amount +20.00: paid
+    assert second.carried_in == -7000 and S.below_zero_lines(second.amount, second.carried_in) == []
+    assert S.below_zero_lines(0, -7000) == [] and S.below_zero_lines(48600, 0) == []
+
+
+def test_statement_pdf_says_the_week_and_the_earlier_balance_apart() -> None:
+    from datetime import datetime
+
+    from core_api.modules.finance.service import commission_invoice as ci
+    from core_api.modules.orders.tests.test_receipt import pdf_text
+
+    inv = ci.CommissionInvoice(
+        invoice_no="CI-202611-TEST0001", issued_at=datetime(2026, 11, 16), period_start=week(2), period_end=week(3),
+        currency="INR", supplier={"name": "BhojanGo Technologies Pvt Ltd"}, kitchen={"name": "Spice Route Kitchen"},
+        commission=Decimal("84.00"), rate_percent=Decimal(18), tax=Decimal("15.12"), orders=1,
+        balance=S.below_zero_text(-8000, -5000, "INR"))
+    text = " ".join(pdf_text(ci.render(inv)).split())
+    assert "This week came to ₹30.00 below zero." in text
+    assert "Still ₹50.00 below zero from earlier weeks · carried to next week." in text
+    assert text.count("we never take it from your bank") == 1
+    paid = " ".join(pdf_text(ci.render(ci.CommissionInvoice(**{**inv.__dict__, "balance": []}))).split())
+    assert "below zero" not in paid

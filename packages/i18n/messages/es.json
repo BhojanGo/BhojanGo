@@ -1695,7 +1695,10 @@
       "tax_invoice": "Factura del impuesto",
       "tax_invoice_failed": "La factura no se abrió. Inténtalo de nuevo.",
       "carried_in": "Traído de la semana pasada",
-      "carried_note": "Esta semana quedó {amount} por debajo de cero, así que no se pagó nada. Pasa al estado de cuenta de la próxima semana; nunca lo cobramos de tu banco.",
+      "week_below": "Esta semana quedó {amount} por debajo de cero.",
+      "still_below": "Aún {amount} por debajo de cero de semanas anteriores · pasa a la próxima semana.",
+      "carried_next": "Pasa a la próxima semana.",
+      "never_bank": "Una semana por debajo de cero no paga nada y pasa al estado de cuenta de la próxima semana; nunca lo cobramos de tu banco.",
       "carried_collect": "Por debajo de cero durante {weeks} semanas: nuestro equipo de finanzas se pondrá en contacto contigo para saldarlo."
     },
     "help": {

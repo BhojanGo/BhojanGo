@@ -8,6 +8,9 @@
 // R23: a kitchen's week below zero is carried into its next statement ("Carried from last
 // week") and nothing is paid until it is covered; never written off, never charged. Four weeks
 // below zero in a row: "Kitchens to collect from" (finance collects by arrangement).
+// R24: below zero, a kitchen statement says this week's own result and what is still below zero
+// from earlier weeks on separate lines (belowZeroLines, the same as the Kitchen app).
+import { belowZeroLines } from "@bhojango/ui/statement";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
@@ -215,6 +218,12 @@ function FinancePage() {
                   <td data-label="Type">{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
                   <td data-label="Amount"><div className="text-right md:text-left">{money(s.amount / 100, s.currency, 2)}
                     {s.carried_in ? <span data-testid="carried-in" className="block text-small text-muted">Carried from last week {money(s.carried_in / 100, s.currency, 2)}</span> : null}
+                    {s.payee_type === "restaurant" ? belowZeroLines(s.amount, s.carried_in).map((l) => (
+                      <span key={l.kind} data-testid={`below-zero-${l.kind}`} className="block text-small text-kesar-ink">
+                        {l.kind === "week" ? `This week came to ${money((l.amount ?? 0) / 100, s.currency, 2)} below zero.`
+                          : l.kind === "earlier" ? `Still ${money((l.amount ?? 0) / 100, s.currency, 2)} below zero from earlier weeks · carried to next week.`
+                          : "Carried to next week."}
+                      </span>)) : null}
                     {(s.negative_weeks ?? 0) >= COLLECT_AFTER_WEEKS ? <span className="mt-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">To collect · {s.negative_weeks} weeks</span> : null}</div></td>
                   <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span className={`block font-semibold ${STATUS_STYLE[s.status] ?? ""}`}>{STATEMENT_STATUS[s.status] ?? s.status}</span>
                     {s.transfer_id ? <span className="block text-small text-muted">{s.transfer_id}{s.transferred_at ? ` · ${new Date(s.transferred_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}</span> : null}

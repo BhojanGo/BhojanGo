@@ -3,7 +3,9 @@
 // the account sits above the statements.
 // R23: a week below zero pays nothing and is carried into the next week's statement as
 // "Carried from last week" (never taken from the kitchen's bank).
-import { api, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
+// R24: below zero, this week's own result and the balance still owed from earlier weeks are
+// separate lines (belowZeroLines, shared with admin); "never from your bank" is said once.
+import { api, belowZeroLines, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
   unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -151,11 +153,16 @@ export default function Payouts() {
                     <Text style={[t.body, num]}>{cash(st.carried_in / 100, st.currency)}</Text>
                   </View>
                 ) : null}
-                {st.status === "carried" ? (
-                  <Text testID={`payout-note-carried-${st.id}`} style={[t.body, { marginTop: 4 }]}>
-                    {tr("partner.payouts.carried_note", { amount: cash(-st.amount / 100, st.currency) })}
-                    {(st.negative_weeks ?? 0) >= 4 ? ` ${tr("partner.payouts.carried_collect", { weeks: st.negative_weeks ?? 4 })}` : ""}
-                  </Text>
+                {st.amount < 0 ? (
+                  <View testID={`payout-note-carried-${st.id}`} style={{ marginTop: 4, gap: 2 }}>
+                    {belowZeroLines(st.amount, st.carried_in).map((l) => (
+                      <Text key={l.kind} testID={`below-zero-${l.kind}-${st.id}`} style={t.body}>
+                        {l.kind === "carried" ? tr("partner.payouts.carried_next")
+                          : tr(`partner.payouts.${l.kind === "week" ? "week_below" : "still_below"}`, { amount: cash((l.amount ?? 0) / 100, st.currency) })}
+                      </Text>
+                    ))}
+                    {(st.negative_weeks ?? 0) >= 4 ? <Text style={t.body}>{tr("partner.payouts.carried_collect", { weeks: st.negative_weeks ?? 4 })}</Text> : null}
+                  </View>
                 ) : null}
                 {Number(st.summary.commission_tax ?? 0) > 0 ? (
                   <Btn testID={`tax-invoice-${st.id}`} title={tr("partner.payouts.tax_invoice")} onPress={() => void openInvoice(st.id)} />
@@ -169,6 +176,10 @@ export default function Payouts() {
               <Text style={[type.label, num, { flexShrink: 0 }]}>{cash(st.amount / 100, st.currency)}</Text>
             </View>
           ))}
+          {/* R24: said once for the screen, not on every line below zero */}
+          {data.data?.statements.some((st) => st.amount < 0) ? (
+            <Text testID="payout-never-bank" style={[t.muted, { marginTop: 4 }]}>{tr("partner.payouts.never_bank")}</Text>
+          ) : null}
         </View>
       </ScrollView>
       )}
