@@ -13,13 +13,13 @@ and the kitchen its cover, as the seed now does. Rows an admin or partner has ch
 (a photo already set) are left alone. Cache versions are bumped by the tables' triggers
 (0040), so the website sees the change on the next request.
 
-Revision ID: 0043_boise_live_basque_photo
-Revises: 0042_viewer_india_only
+Revision ID: 0044_boise_live_basque_photo
+Revises: 0043_city_time_zones
 """
 from alembic import op
 
-revision = "0043_boise_live_basque_photo"
-down_revision = "0042_viewer_india_only"
+revision = "0044_boise_live_basque_photo"
+down_revision = "0043_city_time_zones"
 branch_labels = None
 depends_on = None
 
