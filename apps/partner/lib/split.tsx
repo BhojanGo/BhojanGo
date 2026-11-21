@@ -9,11 +9,12 @@ import { color, Mark } from "./ui";
 
 /** On a tablet (PartnerOnboarding.html, 1194 × 834) the brand panel sits beside the
  * form; on a phone held sideways the panel shrinks and the form scrolls; on a phone
- * held upright (lib/layout.ts: narrow) the panel becomes a band above the form. */
+ * or a tablet held upright the panel becomes a band above the form. */
 export function Split({ children }: { children: ReactNode }) {
   const { t } = useI18n();
-  const { width, height, narrow } = useLayout();
-  if (narrow) {
+  const { width, height, narrow, portrait } = useLayout();
+  // R27: a tablet upright gets the band too (a side panel would squeeze the form).
+  if (narrow || portrait) {
     return (
       <SafeAreaView style={[s.screen, { flexDirection: "column" }]} edges={["left", "right", "bottom"]}>
         <SafeAreaView testID="split-band" edges={["top"]} style={s.band}>

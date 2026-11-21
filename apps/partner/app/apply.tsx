@@ -69,7 +69,9 @@ export default function Apply() {
   const kitchen = useKitchen((s) => s.kitchen);
   const signOut = useSession((s) => s.signOut);
   const { t: tr } = useI18n();
-  const { width, narrow: phone } = useLayout();
+  const { width, narrow: small, portrait } = useLayout();
+  // R27: a tablet upright scrolls the whole page like a phone (the steps, then the step's form).
+  const phone = small || portrait;
   const narrow = width < 1000;
   const gst = useCountry().country?.tax_regime === "gst"; // the kitchen's country (the account's: useKnownCountry)
   const id = kitchen?.id ?? "";

@@ -1,4 +1,4 @@
-# Sign in with the kitchen's phone (a tablet runs landscape, a phone portrait); seed phones get 123456.
+# Sign in with the kitchen's phone (a tablet turns freely, a phone runs portrait); seed phones get 123456.
 # The Kitchen app opens on the Email tab (round 8): this flow picks Phone; sign-in-email.yaml does Email.
 appId: com.bhojango.partner
 ---

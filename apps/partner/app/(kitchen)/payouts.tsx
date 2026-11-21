@@ -37,7 +37,10 @@ function week(s: Statement, date: ReturnType<typeof useFormat>["date"]) {
 export default function Payouts() {
   const { cash, date } = useFormat();
   const { t: tr } = useI18n();
-  const { width, narrow } = useLayout();
+  const { width, narrow, portrait } = useLayout();
+  // R27: the account above the statements on a phone, a tablet upright or a small tablet; side by
+  // side only where the account panel is wide enough for "Set up payouts with Stripe" in full.
+  const stack = narrow || portrait || width < 1000;
   const kitchen = useKitchen((s) => s.kitchen)!;
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -119,8 +122,8 @@ export default function Payouts() {
           {data.failure ? <LoadError error={data.failure} onRetry={data.reload} /> : <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} />}
         </View>
       ) : (
-      <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: width < 760 ? "column" : "row", alignItems: "stretch" }}>
-        <View testID="payout-account" style={[s.panel, { flex: width < 760 ? undefined : 1 }, narrow && { padding: 16 }]}>
+      <ScrollView contentContainerStyle={{ padding: narrow ? 12 : width < 1000 ? 16 : 24, gap: narrow ? 12 : 16, flexDirection: stack ? "column" : "row", alignItems: "stretch" }}>
+        <View testID="payout-account" style={[s.panel, { flex: stack ? undefined : 1 }, narrow && { padding: 16 }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Text style={[type.h3, { flexShrink: 1 }]}>{tr("partner.payouts.where")}</Text>
             <View testID={`payout-state-${setup.state}`} style={[s.badge, { backgroundColor: BADGE[copy.tone].bg }]}>
@@ -133,7 +136,7 @@ export default function Payouts() {
           {setup.state !== "ready" && setup.account ? <Btn testID="payout-check" title={tr("payout_setup.check_again")} busy={checking} onPress={() => void check()} /> : null}
           {msg ? <Text accessibilityRole="alert" style={[type.small, { color: tone.reject }]}>{msg}</Text> : null}
         </View>
-        <View testID="payout-statements" style={[s.panel, { flex: width < 760 ? undefined : 2 }, narrow && { padding: 16 }]}>
+        <View testID="payout-statements" style={[s.panel, { flex: stack ? undefined : 2 }, narrow && { padding: 16 }]}>
           <Text style={type.h3}>{tr("partner.payouts.statements")}</Text>
           {data.data && data.data.statements.length === 0 ? <Text style={t.muted}>{tr("partner.payouts.none_yet")}</Text> : null}
           {data.data?.statements.map((st) => (

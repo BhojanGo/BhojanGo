@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formFactor, isNarrow, lockFor } from "../lib/formFactor.ts";
+import { formFactor, isNarrow, isPortrait, lockFor } from "../lib/formFactor.ts";
 
 test("a phone is a screen whose shortest side is under 600 dp, held either way", () => {
   assert.equal(formFactor({ width: 411, height: 914 }), "phone"); // Pixel-class phone, upright
@@ -18,11 +18,18 @@ test("a tablet is 600 dp or more on its shortest side", () => {
   assert.equal(formFactor({ width: 800, height: 1280 }), "tablet"); // a tablet started upright
 });
 
-test("phones lock portrait, tablets lock landscape", () => {
+test("phones lock portrait, tablets turn freely (R27: no letterboxed landscape on an upright tablet)", () => {
   assert.equal(lockFor({ width: 411, height: 914 }), "portrait");
   assert.equal(lockFor({ width: 914, height: 411 }), "portrait"); // started sideways: still a phone
-  assert.equal(lockFor({ width: 1194, height: 834 }), "landscape");
-  assert.equal(lockFor({ width: 800, height: 1280 }), "landscape"); // started upright: still a tablet
+  assert.equal(lockFor({ width: 1194, height: 834 }), "free");
+  assert.equal(lockFor({ width: 800, height: 1280 }), "free"); // started upright: stays upright
+});
+
+test("portrait: taller than wide (an upright tablet gets the tabbed board)", () => {
+  assert.equal(isPortrait({ width: 800, height: 1280 }), true);
+  assert.equal(isPortrait({ width: 834, height: 1194 }), true);
+  assert.equal(isPortrait({ width: 1194, height: 834 }), false);
+  assert.equal(isPortrait({ width: 1000, height: 1000 }), false);
 });
 
 test("the layout breakpoint follows the window: narrow is the phone layout", () => {
