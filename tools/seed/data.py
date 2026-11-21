@@ -337,7 +337,9 @@ ADMINS = [
     ("support.boi@example.com", "Boise Support", "US", [("support_agent", "US-ID-BOI")]),
     ("finance.in@example.com", "India Finance", "IN", [("finance", "IN")]),
     ("finance.us@example.com", "USA Finance", "US", [("finance", "US")]),
-    ("viewer@example.com", "Read-only Viewer", "US", [("viewer", "IN"), ("viewer", "US")]),
+    # R27: one read-only viewer per country (R26: one viewer for both read US Finance as "Viewer (IN)")
+    ("viewer@example.com", "Read-only Viewer", "IN", [("viewer", "IN")]),
+    ("viewer.us@example.com", "USA Read-only Viewer", "US", [("viewer", "US")]),
 ]
 
 

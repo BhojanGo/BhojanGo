@@ -94,7 +94,7 @@ Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ B
 **Admin logins** (all `BhojanGoAdmin1`), one per role and scope (`shared/authz.py`):
 `admin@` super admin · `cm.in@`, `cm.us@` country managers · `ops.hyd@`, `ops.boi@` city ops ·
 `support.hyd@`, `support.boi@` support agents · `finance.in@`, `finance.us@` finance ·
-`viewer@` read-only (India and USA), all `@example.com`.
+`viewer@` (India), `viewer.us@` (USA) read-only, all `@example.com`.
 
 **Markets (P6):** countries, states, cities and zones (PostGIS polygons), each draft / beta /
 live / paused, with settings that inherit country → state → city. Admin console:
