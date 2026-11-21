@@ -10,8 +10,10 @@
 // below zero in a row: "Kitchens to collect from" (finance collects by arrangement).
 // R24: below zero, a kitchen statement says this week's own result and what is still below zero
 // from earlier weeks on separate lines (belowZeroLines, the same as the Kitchen app).
+// R25: no legal entity name in Markets: a warning that commission tax invoices can't be issued.
 import { belowZeroLines } from "@bhojango/ui/statement";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
@@ -71,7 +73,9 @@ function dayLabel(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[] }
+interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[];
+  /** R25: the country's legal entity has no name in Markets, so no commission tax invoice can be issued */
+  legal_name_missing?: boolean; country_name?: string }
 
 /** "Mon 9 Nov – Sun 15 Nov" for a run's period (end is the next Monday, not included). */
 function weekLabel(start: string, end: string): string {
@@ -145,13 +149,21 @@ function FinancePage() {
   return (
     <ConsoleShell section="Finance" country={country} region={region} city={city} scopeHref={(s) => `/finance?scope=${s.split("-")[0]}`}>
       <div>
-        <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? target}` : ""}</h1>
+        <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? weeks.data?.country_name ?? target}` : ""}</h1>
         {(() => {
           // R15: whose money this is: the country's legal entity (Markets), never a name in code.
           const legal = (markets?.find((c) => c.code === target)?.settings.legal ?? {}) as Record<string, string>;
           return legal.name ? <p data-testid="finance-entity" className="mt-1 text-label text-kohl">{legal.name}{legal.gstin ? ` · GSTIN ${legal.gstin}` : ""}</p> : null;
         })()}
         <p className="mt-1 text-small text-muted">Payouts run weekly per country, for a week that has ended: Monday to Sunday in the country&apos;s time zone{weeks.data ? ` (${weeks.data.timezone})` : ""}. The admin who prepares a run can&apos;t approve it.</p>
+        {weeks.data?.legal_name_missing ? (
+          // R25: an invoice never prints a placeholder for the supplier; the API refuses it until this is filled in.
+          <p role="alert" data-testid="legal-name-missing" className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">
+            <b>Commission tax invoices can&apos;t be issued:</b> the legal entity name for {weeks.data.country_name ?? target} is missing in Markets.
+            Kitchens asking for their invoice are told it isn&apos;t ready yet.{" "}
+            <Link href={`/markets/${target}`} className="font-bold text-kesar-ink underline">Set it in Markets</Link>
+          </p>
+        ) : null}
         {country === "ALL" && (markets?.length ?? 0) > 1 ? (
           <p className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">Money stays in each country&apos;s currency, so Finance shows one country at a time. Pick a country above to see another.</p>
         ) : null}

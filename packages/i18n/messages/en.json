@@ -1694,6 +1694,7 @@
       "tds": "tax deducted at source {amount}",
       "tax_invoice": "Tax invoice",
       "tax_invoice_failed": "The invoice didn't open. Try again.",
+      "tax_invoice_not_ready": "Your tax invoice for this week isn't ready yet: we're finishing our company details. Try again in a day or two.",
       "carried_in": "Carried from last week",
       "week_below": "This week came to {amount} below zero.",
       "still_below": "Still {amount} below zero from earlier weeks · carried to next week.",

@@ -8,6 +8,9 @@ that is rolled back, so nothing stays) and compared with Reconciliation for the 
   - tax owed = customers' tax + GST on our commission + TDS, the last two equal to the run's (R16);
   - each kitchen's commission tax invoice: GST = the sum of "Tax on commission" on its statements for
     the week, to the paisa, each order's amount rounded once (R17);
+  - R25: every kitchen statement with tax on commission: its invoice, built as the API builds it
+    (commission_invoice.for_statement), has the run's period, the statement's orders (= its order
+    lines), commission and GST; one statement row, never another week's;
   - platform after payment fees = platform revenue - payment fees;
   - the top-ups in the run, Reconciliation and the contribution report are the same amount;
   - R23, kitchens below zero: a balance carried in from an earlier week (one is added to every
@@ -43,9 +46,10 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
     from core_api.modules.finance.service.statements import m
     from core_api.modules.finance.service.contribution import contribution
     from core_api.modules.markets.models import Country
+    from core_api.modules.markets.service import legal
     from shared.db import AsyncSessionLocal, engine
 
-    checked = 0
+    checked = invoices = 0
     try:
         async with AsyncSessionLocal() as db:
             countries = (await db.execute(select(Country).where(Country.status.in_(("live", "beta"))))).scalars().all()
@@ -120,6 +124,23 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                             assert tax == Decimal(s.summary["commission_tax"]), (where, s.payee_name, tax)
                             assert commission == Decimal(s.summary["commission"]) and orders == s.summary["orders"], where
                         assert sum((ci.totals([s.lines])[1] for s in stmts), Decimal(0)) == Decimal(run.totals["commission_tax"]), where
+                        # R25: each invoice is its own statement's: period, orders, commission and GST
+                        supplier = legal.entity(c.settings, c.tax_regime)
+                        for s in stmts:
+                            if Decimal(str(s.summary.get("commission_tax") or 0)) <= 0:
+                                continue  # no tax on commission: no invoice (409 NO_COMMISSION_TAX)
+                            if not supplier.get("name"):
+                                with pytest.raises(ci.LegalEntityMissing):
+                                    ci.for_statement(s, run, supplier, {"name": s.payee_name}, issued_at=datetime.now(UTC))
+                                continue
+                            inv = ci.for_statement(s, run, supplier, {"name": s.payee_name}, issued_at=datetime.now(UTC))
+                            who = (where, s.payee_name)
+                            assert (inv.period_start, inv.period_end) == (run.period_start, run.period_end) == (start, end), who
+                            assert inv.orders == s.summary["orders"] == len(s.lines), who
+                            assert inv.commission == Decimal(s.summary["commission"]), who
+                            assert inv.tax == Decimal(s.summary["commission_tax"]), who
+                            assert inv.rate_percent == Decimal(str(s.summary["commission_tax_percent"])), who
+                            invoices += 1
                         rep = await contribution(db, c.code, start, end)
                         top_ups = Decimal(rep["all"]["totals"]["min_pay_top_ups"])
                         assert abs(payouts._minor(top_ups) - rec["min_pay_top_ups"]) <= len(rep["cities"]), where  # per-order shares round
@@ -129,3 +150,4 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
     finally:
         await engine.dispose()
     assert checked >= 1, "no week could be checked"
+    print(f"invariants: {checked} week(s) checked, {invoices} commission tax invoice(s) matched their statements")

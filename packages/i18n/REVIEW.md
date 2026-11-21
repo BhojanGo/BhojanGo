@@ -540,3 +540,17 @@ Machine-translated on 2026-11-20 into all seven languages; needs native review.
   - `partner.payouts.never_bank` ("A week below zero pays nothing and carries to next week's statement; we
     never take it from your bank."): said once under the statements. Same money wording as round 23: only
     that we don't debit the kitchen's bank, nothing about bank fees.
+
+## Commission tax invoice: the orders line and "not ready" (round 25)
+
+Machine-translated on 2026-11-20 into all seven languages; needs native review.
+
+- Backend, `backend/shared/texts.py` `INVOICE_ORDERS` (CI names `invoice_orders.one` / `invoice_orders.other`):
+  the line on the commission tax invoice, "Commission on {n} delivered order" / "Commission on {n} delivered
+  orders" (before: "order(s)"). The invoice is a tax document printed in English, like the customer's receipt,
+  so today only English is printed; the other languages are ready for when invoices follow the kitchen's
+  language. Hindi, Marathi and Bengali use one form for both (the noun doesn't change after a number);
+  Telugu, Tamil, Kannada and Spanish have a plural. Check "delivered" reads as "delivered to the customer".
+- New, BhojanGo Kitchen app Payouts: `partner.payouts.tax_invoice_not_ready` ("Your tax invoice for this week
+  isn't ready yet: we're finishing our company details. Try again in a day or two."), shown when the invoice
+  is refused because our legal name isn't set in Markets yet. It must not suggest the kitchen did anything wrong.

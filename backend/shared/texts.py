@@ -490,6 +490,30 @@ def incident_placeholders(key: str) -> set[str]:
     title, body = INCIDENT_MESSAGES[key]["en"]
     return {f for _, f, _, _ in string.Formatter().parse(title + body) if f}
 
+
+# ── the commission tax invoice to a kitchen (R25, core_api) ───────────────────
+# The line for the week's commission, one form for 1 order and one for any other number.
+# The invoice is a tax document and is printed in English, like the customer's receipt
+# (orders/service/receipt.py); the other languages are here so it can follow the kitchen's
+# language once invoices are translated, and so the CI check keeps them complete.
+INVOICE_ORDERS: dict[str, tuple[str, str]] = {
+    "en": ("Commission on {n} delivered order", "Commission on {n} delivered orders"),
+    "hi": ("{n} डिलीवर हुए ऑर्डर पर कमीशन", "{n} डिलीवर हुए ऑर्डर पर कमीशन"),
+    "te": ("డెలివర్ అయిన {n} ఆర్డర్‌పై కమీషన్", "డెలివర్ అయిన {n} ఆర్డర్‌లపై కమీషన్"),
+    "ta": ("டெலிவரி செய்யப்பட்ட {n} ஆர்டருக்கான கமிஷன்", "டெலிவரி செய்யப்பட்ட {n} ஆர்டர்களுக்கான கமிஷன்"),
+    "kn": ("ಡೆಲಿವರಿ ಆದ {n} ಆರ್ಡರ್ ಮೇಲಿನ ಕಮಿಷನ್", "ಡೆಲಿವರಿ ಆದ {n} ಆರ್ಡರ್‌ಗಳ ಮೇಲಿನ ಕಮಿಷನ್"),
+    "mr": ("डिलिव्हर झालेल्या {n} ऑर्डरवरील कमिशन", "डिलिव्हर झालेल्या {n} ऑर्डरवरील कमिशन"),
+    "bn": ("ডেলিভারি হওয়া {n}টি অর্ডারের কমিশন", "ডেলিভারি হওয়া {n}টি অর্ডারের কমিশন"),
+    "es": ("Comisión por {n} pedido entregado", "Comisión por {n} pedidos entregados"),
+}
+
+
+def invoice_orders_line(n: int, language: str = "en") -> str:
+    """"Commission on 1 delivered order" / "Commission on 2 delivered orders" in ``language``."""
+    one, other = INVOICE_ORDERS.get(language) or INVOICE_ORDERS["en"]
+    return (one if n == 1 else other).format(n=n)
+
+
 def entries() -> dict[str, dict[str, str]]:
     """Every text here as "<name>" → {language: text}, for the CI check."""
     out: dict[str, dict[str, str]] = {}
@@ -509,4 +533,6 @@ def entries() -> dict[str, dict[str, str]]:
         out[f"kitchen_applied.{key}"] = texts
     for key, texts in DELIVERY_SIGN_UP.items():
         out[f"delivery_sign_up.{key}"] = texts
+    out["invoice_orders.one"] = {lang: t[0] for lang, t in INVOICE_ORDERS.items()}
+    out["invoice_orders.other"] = {lang: t[1] for lang, t in INVOICE_ORDERS.items()}
     return out

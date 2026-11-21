@@ -5,7 +5,8 @@
 // "Carried from last week" (never taken from the kitchen's bank).
 // R24: below zero, this week's own result and the balance still owed from earlier weeks are
 // separate lines (belowZeroLines, shared with admin); "never from your bank" is said once.
-import { api, belowZeroLines, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
+// R25: an invoice refused because our legal name isn't set yet says it isn't ready (not "try again").
+import { api, ApiError, belowZeroLines, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
   unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -84,8 +85,9 @@ export default function Payouts() {
       const r = unwrap(await api.core.POST("/api/v1/finance/statements/{statement_id}/commission-invoice/link",
         { params: { path: { statement_id: statementId } } })) as { url: string };
       await Linking.openURL(r.url);
-    } catch {
-      setMsg(tr("partner.payouts.tax_invoice_failed"));
+    } catch (e) {
+      // R25: no invoice is issued without our legal name (Markets); say it isn't ready, not "try again".
+      setMsg(tr(e instanceof ApiError && e.code === "LEGAL_ENTITY_MISSING" ? "partner.payouts.tax_invoice_not_ready" : "partner.payouts.tax_invoice_failed"));
     }
   }
 
