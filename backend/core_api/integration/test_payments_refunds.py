@@ -172,3 +172,36 @@ async def test_customers_cannot_refund_themselves(client: AsyncClient) -> None:
     assert r.status_code == 403
     other = await login(client, "customer2.hyd@example.com")
     assert (await client.get(f"/api/v1/payments/orders/{order['id']}/refunds", headers=other)).status_code == 404
+
+
+async def test_nothing_is_refunded_twice(client: AsyncClient) -> None:
+    """R27: #22C450 was cancelled and refunded in full, and the admin panel still offered a refund.
+    The API refuses any refund once nothing is left, and never gives back more than is left."""
+    cust = await login(client, "customer4.hyd@example.com")
+    ops = await login(client, "ops.hyd@example.com", ADMIN)
+    order = await new_order(client, cust)
+    await pay(client, cust, order)
+    r = await client.post(f"/api/v1/orders/{order['id']}/cancel", headers=cust, json={"reason": "customer_cancelled"})
+    assert r.status_code == 200, r.text
+    paid = (await client.get(f"/api/v1/payments/{order['id']}", headers=ops)).json()
+    assert paid["status"] == "refunded" and paid["refunded_amount"] == paid["amount"] > 0, paid
+    item = {"menu_item_id": order["items"][0]["menu_item_id"], "quantity": 1}
+    r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=ops, json={"items": [item], "reason": "goodwill"})
+    assert r.status_code == 409, r.text
+    refunds = (await client.get(f"/api/v1/payments/orders/{order['id']}/refunds", headers=ops)).json()
+    assert [x["kind"] for x in refunds] == ["full"] and refunds[0]["amount"] == paid["amount"]
+
+    # A bulk refund (not tied to items) gave most of a delivered order back: an item worth more than what's left is refused.
+    order = await delivered_order(client, cust)
+    from core_api.modules.payments.service import refunds as svc
+    from shared.db import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        intent = (await client.get(f"/api/v1/payments/{order['id']}", headers=ops)).json()
+        await svc.refund_amount(db, order_id=uuid.UUID(order["id"]), minor=intent["amount"] - 100, reason="Access test",
+                                actor_id=uuid.UUID(intent["user_id"]))
+        await db.commit()
+    r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=ops, json={"items": [item], "reason": "goodwill"})
+    assert r.status_code == 409 and "is left to refund" in r.text, r.text
+    left = (await client.get(f"/api/v1/payments/{order['id']}", headers=ops)).json()
+    assert left["refunded_amount"] == left["amount"] - 100 and left["status"] == "partially_refunded"

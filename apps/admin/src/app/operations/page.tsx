@@ -11,6 +11,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { adminApi } from "@/lib/api";
+import { refundState, timeline, type CasePayment } from "@/lib/orderCase";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import {
   apiMessage, clock, money, REFUND_REASONS, TICKET_TOPIC, useAlerts, useDispatch, useOpsOrders, useScope, useTickets, type OpsOrder,
@@ -333,10 +334,21 @@ function ProblemDetails({ t }: { t: OpsTicket }) {
   );
 }
 
+/** The order's payment, or null when there is none (never paid: 404). */
+async function paymentOf(id: string): Promise<CasePayment | null> {
+  try {
+    return (await adminApi.get<CasePayment>(`/user/payments/${id}`)).data;
+  } catch (e) {
+    if ((e as { response?: { status?: number } }).response?.status === 404) return null;
+    throw e;
+  }
+}
+
 function OrderCase({ id }: { id: string }) {
   const qc = useQueryClient();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [payment, setPayment] = useState<CasePayment | null>(null);
   const [pick, setPick] = useState<Record<string, number>>({});
   const [reason, setReason] = useState("missing_item");
   const [note, setNote] = useState("");
@@ -344,11 +356,13 @@ function OrderCase({ id }: { id: string }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     let live = true;
-    Promise.all([adminApi.get<OrderDetail>(`/user/orders/${id}`), adminApi.get<Refund[]>(`/user/payments/orders/${id}/refunds`)])
-      .then(([o, r]) => {
+    Promise.all([adminApi.get<OrderDetail>(`/user/orders/${id}`), adminApi.get<Refund[]>(`/user/payments/orders/${id}/refunds`),
+      paymentOf(id)])
+      .then(([o, r, p]) => {
         if (!live) return;
         setOrder(o.data);
         setRefunds(r.data);
+        setPayment(p);
         setPick({});
         setMsg(null);
       }).catch((e) => live && setMsg({ ok: false, text: apiMessage(e) }));
@@ -357,7 +371,8 @@ function OrderCase({ id }: { id: string }) {
     };
   }, [id]);
   if (!order) return <div className="rounded-2xl bg-white p-6 text-muted">{msg?.text ?? "Loading…"}</div>;
-  const chosen = order.items.filter((i) => (pick[i.menu_item_id] ?? 0) > 0);
+  const state = refundState(order.items, refunds, payment, order.currency, order.status);
+  const chosen = state.items.filter((i) => i.left > 0 && (pick[i.menu_item_id] ?? 0) > 0);
   const estimate = chosen.reduce((n, i) => n + (i.total / i.quantity) * (pick[i.menu_item_id] ?? 0), 0);
   const fault = REFUND_REASONS.find((r) => r.value === reason)?.fault;
   async function refund() {
@@ -371,6 +386,7 @@ function OrderCase({ id }: { id: string }) {
       setMsg({ ok: true, text: `Refunded ${money(amount, order!.currency, 2)} to the customer's original payment.` });
       setPick({});
       setRefunds((await adminApi.get<Refund[]>(`/user/payments/orders/${id}/refunds`)).data);
+      setPayment(await paymentOf(id));
       await qc.invalidateQueries({ queryKey: ["ops"] });
     } catch (e) {
       setMsg({ ok: false, text: apiMessage(e) });
@@ -378,7 +394,6 @@ function OrderCase({ id }: { id: string }) {
       setBusy(false);
     }
   }
-  const at = (s: string) => order.status_history.find((h) => h.status === s)?.at;
   const code = "#" + order.id.replace(/-/g, "").slice(0, 6).toUpperCase();
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Order ${code}`}>
@@ -387,19 +402,26 @@ function OrderCase({ id }: { id: string }) {
         <p className="text-small text-muted">{order.restaurant_name} → {order.delivery_address.area ?? order.delivery_address.city} · {money(order.total, order.currency, 2)}{order.rider?.first_name ? ` · delivery partner ${order.rider.first_name}` : ""}</p>
         {order.special_instructions ? <p className="mt-2 rounded-xl bg-kesar-tint p-3 text-small text-kesar-ink">Note: {order.special_instructions}</p> : null}
       </div>
+      {/* R27: every recorded step (paid, almost ready, picked up…) and each refund, oldest first */}
       <ol className="flex flex-wrap gap-2 text-small" aria-label="Order timeline">
-        {["placed", "accepted", "ready", "picked_up", "delivered", "cancelled"].filter((s) => at(s)).map((s) => (
-          <li key={s} className="rounded-full bg-porcelain px-3 py-1"><b>{STATUS[s]}</b> {clock(at(s), order.time_zone)}</li>
+        {timeline(order.status_history, refunds, order.currency).map((s) => (
+          <li key={s.key} className="rounded-full bg-porcelain px-3 py-1"><b>{s.label}</b> {clock(s.at, order.time_zone)}</li>
         ))}
       </ol>
+      {state.done.length ? (
+        <div className="rounded-xl bg-porcelain p-4 text-small" aria-label="Already refunded"><b>Already refunded</b>
+          <ul className="mt-1 space-y-1 tabular-nums">{state.done.map((d, n) => <li key={n}>{d}</li>)}</ul>
+        </div>
+      ) : null}
+      {state.closed ? <p role="status" className="m-0 rounded-xl border border-line p-4 text-small font-semibold">{state.closedText}</p> : <>
       <fieldset className="space-y-2">
-        <legend className="mb-1 text-label">Pick what to refund</legend>
-        {order.items.map((i) => (
-          <label key={i.menu_item_id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2 text-small">
-            <input type="number" min={0} max={i.quantity} value={pick[i.menu_item_id] ?? 0} aria-label={`How many ${i.name} to refund`}
-              onChange={(e) => setPick((p) => ({ ...p, [i.menu_item_id]: Math.max(0, Math.min(i.quantity, Number(e.target.value))) }))}
+        <legend className="mb-1 text-label">Pick what to refund <span className="font-normal text-muted">· {money(state.leftMinor / 100, order.currency, 2)} left on the payment</span></legend>
+        {state.items.map((i) => (
+          <label key={i.menu_item_id} className={`flex items-center gap-3 rounded-xl border border-line px-3 py-2 text-small ${i.left ? "" : "opacity-60"}`}>
+            <input type="number" min={0} max={i.left} disabled={!i.left} value={pick[i.menu_item_id] ?? 0} aria-label={`How many ${i.name} to refund`}
+              onChange={(e) => setPick((p) => ({ ...p, [i.menu_item_id]: Math.max(0, Math.min(i.left, Number(e.target.value))) }))}
               className="h-9 w-16 rounded-lg border border-line px-2" />
-            <span className="flex-1"><b>{i.name}</b>{i.options?.length ? <span className="text-muted"> · {i.options.join(", ")}</span> : null} <span className="text-muted">· ordered {i.quantity}</span></span>
+            <span className="flex-1"><b>{i.name}</b>{i.options?.length ? <span className="text-muted"> · {i.options.join(", ")}</span> : null} <span className="text-muted">· ordered {i.quantity}{i.refunded ? ` · ${i.refunded} refunded` : ""}</span></span>
             <span className="tabular-nums">{money(i.total / i.quantity, order.currency, 2)} each</span>
           </label>
         ))}
@@ -419,12 +441,8 @@ function OrderCase({ id }: { id: string }) {
         <button type="button" disabled={!chosen.length || busy} onClick={refund}
           className="h-11 rounded-full bg-peacock px-5 font-bold text-white disabled:opacity-40">{busy ? "Refunding…" : "Refund to original payment"}</button>
       </div>
+      </>}
       {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
-      {refunds.length ? (
-        <div className="text-small"><b>Refunds on this order</b>
-          <ul className="mt-1 space-y-1 tabular-nums text-muted">{refunds.map((r) => <li key={r.id}>{money(r.amount / 100, order.currency, 2)} · {r.reason ?? "refund"}{r.fault ? ` · ${r.fault}` : ""} · {r.status} · {clock(r.created_at, order.time_zone)}</li>)}</ul>
-        </div>
-      ) : null}
     </section>
   );
 }

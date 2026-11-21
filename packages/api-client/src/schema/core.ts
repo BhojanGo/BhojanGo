@@ -8532,6 +8532,11 @@ export interface components {
             provider: string;
             /** Provider Payment Id */
             provider_payment_id: string;
+            /**
+             * Refunded Amount
+             * @default 0
+             */
+            refunded_amount?: number;
             /** Status */
             status: string;
             /**
