@@ -151,8 +151,9 @@ async def seed_markets(conn) -> None:
     for c in COUNTRIES:
         cid = (await conn.execute(UPSERT_COUNTRY, {
             "id": sid("country", c["code"]), **{k: c[k] for k in (
-                "code", "name", "currency", "locales", "timezone", "payout_timezone", "distance_unit", "phone_code",
+                "code", "name", "currency", "locales", "timezone", "distance_unit", "phone_code",
                 "payment_providers", "tax_regime", "payout_provider", "status")},
+            "payout_timezone": c.get("payout_timezone"),
             "settings": json.dumps(c["settings"]),
         })).scalar_one()
         for r in c["regions"]:
