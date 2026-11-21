@@ -13,9 +13,18 @@ export function formFactor(screen: Size): FormFactor {
   return Math.min(screen.width, screen.height) < PHONE_MAX_DP ? "phone" : "tablet";
 }
 
-/** Phones are held upright; a kitchen tablet stands sideways on the counter (PartnerOrders.html, 1194 × 834). */
-export function lockFor(screen: Size): "portrait" | "landscape" {
-  return formFactor(screen) === "phone" ? "portrait" : "landscape";
+/**
+ * Phones are held upright. A kitchen tablet turns freely (R27): sideways on the counter
+ * (PartnerOrders.html, 1194 × 834) or upright on a stand. Locking a tablet to landscape made
+ * Android letterbox the app into a small sideways window on a tablet held upright.
+ */
+export function lockFor(screen: Size): "portrait" | "free" {
+  return formFactor(screen) === "phone" ? "portrait" : "free";
+}
+
+/** Taller than wide: a tablet upright (or a phone). The board shows one column at a time. */
+export function isPortrait(window: Size): boolean {
+  return window.height > window.width;
 }
 
 /**

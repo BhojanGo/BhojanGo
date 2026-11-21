@@ -3,6 +3,7 @@
 // The header carries the kitchen's rating (lib/ratings.tsx): the dashboard's summary.
 // On a phone (portrait, lib/layout.ts) the three columns become tabs over one list,
 // and tapping an order opens its detail (the same card); Back returns to the list.
+// R27: a tablet held upright gets the same tabs, with the full cards in the list.
 import { api, ApiError, LanguagePill, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -31,7 +32,7 @@ export default function Orders() {
   const { orders, today, failure, refresh, setToday } = useBoard();
   const [pausing, setPausing] = useState(false);
   const { t: tr } = useI18n();
-  const { narrow } = useLayout();
+  const { narrow, portrait } = useLayout();
   const fresh = orders.filter((o) => NEW.includes(o.status)).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const cooking = orders.filter((o) => COOKING.includes(o.status));
   const ready = orders.filter((o) => READY.includes(o.status));
@@ -68,7 +69,9 @@ export default function Orders() {
       ) : null}
       {failure && !today ? (
         <View style={{ flex: 1, padding: 24 }}><LoadError error={failure} onRetry={() => refresh(kitchen.id)} fill /></View>
-      ) : narrow ? <PhoneBoard fresh={fresh} cooking={cooking} ready={ready} defaultPrep={today?.prep_minutes ?? 20} act={act} /> : (
+      ) : narrow || portrait ? (
+        <TabBoard fresh={fresh} cooking={cooking} ready={ready} defaultPrep={today?.prep_minutes ?? 20} act={act} cards={!narrow} />
+      ) : (
       <View style={s.board}>
         <Column testID="column-new" title={tr("partner.orders.new")} count={fresh.length} badge={[color.peacock, color.white]}>
           {fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}
@@ -102,8 +105,10 @@ export default function Orders() {
 function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () => void; onPause: () => void }) {
   const { cash, clock } = useFormat();
   const { t: tr } = useI18n();
-  const { width, narrow } = useLayout();
+  const { width, narrow: phone, portrait } = useLayout();
   const compact = width < 1100; // a phone, or a small tablet
+  // A phone, or a tablet upright (R27): the name on one line, the status and the buttons below.
+  const narrow = phone || portrait;
   const kitchen = useKitchen((s) => s.kitchen)!;
   const cur = today?.currency ?? kitchen.currency;
   const open = today && today.open_now && !today.paused;
@@ -114,7 +119,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const title = (
     <View style={{ flex: 1, minWidth: 0 }}>
       <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>
-      <Text style={[t.muted, { marginTop: 2 }]} numberOfLines={narrow ? 2 : undefined}>
+      <Text style={[t.muted, { marginTop: 2 }]} numberOfLines={phone ? 2 : undefined}>
         {[today?.area, today ? tr("partner.orders.today_orders", { count: today.today_orders }) : null, today ? cash(today.today_sales, cur) : null]
           .filter(Boolean).join(" · ")}
       </Text>
@@ -124,16 +129,16 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const pill = <LanguagePill />; // the kitchen's country's languages (the account's country, Markets locales)
   const controls = (
     <>
-      <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }, narrow && { flexGrow: 1, flexShrink: 1, height: 44 }]}
+      <View testID="kitchen-status" style={[s.status, !open && { backgroundColor: tone.kesarSoft }, narrow && { flexGrow: 1, flexShrink: 1, height: phone ? 44 : 48 }]}
         accessibilityLabel={status}>
         <View style={[s.dot, { backgroundColor: open ? color.peacock : tone.kesarInk }]} />
         <Text style={[type.label, { color: open ? color.peacockDeep : tone.kesarInk, flexShrink: 1 }]} numberOfLines={1}>{status}</Text>
       </View>
-      <Btn testID="busy" height={narrow ? 44 : 48} style={narrow && { paddingHorizontal: 14 }}
+      <Btn testID="busy" height={phone ? 44 : 48} style={phone && { paddingHorizontal: 14 }}
         title={today && today.busy_extra_minutes > 0 ? tr("partner.orders.busy_undo", { min: today.busy_extra_minutes })
           : compact ? tr("partner.orders.busy_short") : tr("partner.orders.busy")}
         label={today && today.busy_extra_minutes > 0 ? undefined : tr("partner.orders.busy")} onPress={onBusy} />
-      <Btn testID="pause" height={narrow ? 44 : 48} style={narrow && { paddingHorizontal: 14 }}
+      <Btn testID="pause" height={phone ? 44 : 48} style={phone && { paddingHorizontal: 14 }}
         title={today?.paused ? tr("partner.orders.resume") : compact ? tr("partner.orders.pause_short") : tr("partner.orders.pause")}
         label={today?.paused ? undefined : tr("partner.orders.pause")} kind={today?.paused ? "dark" : "outline"} onPress={onPause} />
     </>
@@ -141,7 +146,7 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   // A phone's width: the name and the rating on one line, the status and the buttons below.
   if (narrow) {
     return (
-      <View style={[s.header, s.headerNarrow]}>
+      <View style={[s.header, s.headerNarrow, !phone && { paddingHorizontal: 24 }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>{title}{chip}{pill}</View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>{controls}</View>
       </View>
@@ -176,9 +181,11 @@ type Act = (fn: () => Promise<unknown>) => Promise<void>;
  * The board on a phone: New / Preparing / Ready as tabs (the same testIDs as the
  * tablet's columns), one list of orders, and an order's detail (its full card:
  * accept, ready in, mark ready, the rider) with Back, or the phone's back button.
+ * `cards` (a tablet upright, R27): the same tabs, and the list shows each order's full
+ * card (accept / mark ready right there), as the landscape columns do.
  */
-function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
-  fresh: Order[]; cooking: Order[]; ready: Order[]; defaultPrep: number; act: Act;
+function TabBoard({ fresh, cooking, ready, defaultPrep, act, cards = false }: {
+  fresh: Order[]; cooking: Order[]; ready: Order[]; defaultPrep: number; act: Act; cards?: boolean;
 }) {
   const { t: tr } = useI18n();
   const [tab, setTab] = useState<Tab>("new");
@@ -195,7 +202,7 @@ function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
     return () => sub.remove();
   }, [shown]);
 
-  if (open) {
+  if (open && !cards) {
     return (
       <ScrollView testID="order-detail" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
         <Pressable testID="order-back" accessibilityRole="button" accessibilityLabel={tr("common.back")} onPress={() => setOpenId(null)}
@@ -212,28 +219,31 @@ function PhoneBoard({ fresh, cooking, ready, defaultPrep, act }: {
   const tabs: { key: Tab; title: string; short: string; list: Order[]; badge: [string, string] }[] = [
     { key: "new", title: tr("partner.orders.new"), short: tr("partner.orders.new"), list: fresh, badge: [color.peacock, color.white] },
     { key: "preparing", title: tr("partner.orders.preparing"), short: tr("partner.orders.preparing"), list: cooking, badge: [tone.kesarSoft, tone.kesarInk] },
-    { key: "ready", title: tr("partner.orders.ready"), short: tr("partner.orders.ready_short"), list: ready, badge: [color.peacockTint, color.peacockDeep] },
+    { key: "ready", title: tr("partner.orders.ready"), short: cards ? tr("partner.orders.ready") : tr("partner.orders.ready_short"), list: ready, badge: [color.peacockTint, color.peacockDeep] },
   ];
   const current = tabs.find((x) => x.key === tab)!;
   return (
     <View style={{ flex: 1 }}>
-      <View accessibilityRole="tablist" style={s.tabs}>
+      <View accessibilityRole="tablist" style={[s.tabs, cards && { paddingHorizontal: 24, paddingTop: 16, gap: 12 }]}>
         {tabs.map((x) => {
           const on = x.key === tab;
           // New orders waiting while another tab is open: the count turns red.
           const badge: [string, string] = x.key === "new" && !on && x.list.length > 0 ? [color.chili, color.white] : x.badge;
           return (
             <Pressable key={x.key} testID={`column-${x.key}`} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.title}
-              onPress={() => setTab(x.key)} style={[s.tab, on && s.tabOn]}>
+              onPress={() => setTab(x.key)} style={[s.tab, cards && { height: 52 }, on && s.tabOn]}>
               <Text style={[type.label, { color: on ? color.kohl : color.muted, flexShrink: 1 }]} numberOfLines={1}>{x.short}</Text>
               <Count n={x.list.length} bg={badge[0]} fg={badge[1]} />
             </Pressable>
           );
         })}
       </View>
-      <ScrollView testID="order-list" contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 24 }}>
+      <ScrollView testID="order-list" contentContainerStyle={cards ? { padding: 24, gap: 12, paddingBottom: 32 } : { padding: 16, gap: 10, paddingBottom: 24 }}>
         {tab === "new" && fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}
-        {current.list.map((o, i) => <OrderRow key={o.id} order={o} index={i} onOpen={() => setOpenId(o.id)} />)}
+        {cards ? current.list.map((o, i) => (
+          tab === "new" ? <NewCard key={o.id} order={o} first={i === 0} defaultPrep={defaultPrep} act={act} />
+            : tab === "preparing" ? <CookingCard key={o.id} order={o} act={act} /> : <ReadyCard key={o.id} order={o} />
+        )) : current.list.map((o, i) => <OrderRow key={o.id} order={o} index={i} onOpen={() => setOpenId(o.id)} />)}
         {tab === "ready" ? <Text style={[t.muted, { textAlign: "center", marginTop: 4 }]}>{tr("partner.orders.ready_note")}</Text> : null}
       </ScrollView>
     </View>

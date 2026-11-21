@@ -2,8 +2,8 @@
 
 `apps/partner`. iOS bundle id and Android package `com.bhojango.partner`. Runs on
 tablets and phones: `"supportsTablet": true`, `"requireFullScreen": true`
-(`apps/partner/app.json:13-14`), any orientation; tablets lock to landscape and
-phones to portrait (`apps/partner/lib/layout.ts:31-34`). iPad screenshots are
+(`apps/partner/app.json:13-14`), any orientation; phones lock to portrait and
+tablets turn freely, landscape or portrait (R27, `apps/partner/lib/layout.ts`). iPad screenshots are
 therefore required on the App Store.
 
 See [README.md](README.md) for the review risks that affect this app (items 1, 3, 5,

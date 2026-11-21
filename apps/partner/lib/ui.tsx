@@ -65,10 +65,12 @@ export function Btn({ title, onPress, kind = "outline", height = 48, disabled, b
       // Always a label: without one Android left a stale "busy" description after a busy press (R11).
       accessibilityLabel={label ?? title} accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy} onPress={onPress}
-      style={({ pressed }) => [s.btn, { height, backgroundColor: k.bg, borderColor: k.border ?? k.bg, borderWidth: k.border ? 1.5 : 0,
+      // R27: a minimum height, and the title wraps to a second line rather than being cut
+      // ("Set up payouts with …" on a narrow panel).
+      style={({ pressed }) => [s.btn, { minHeight: height, backgroundColor: k.bg, borderColor: k.border ?? k.bg, borderWidth: k.border ? 1.5 : 0,
         opacity: disabled ? 0.45 : pressed ? 0.85 : 1 }, grow && { flexGrow: 1 }, style]}>
       {busy ? <ActivityIndicator color={k.fg} /> : null}
-      <Text numberOfLines={1} style={[type.label, { color: k.fg, flexShrink: 1 }]}>{title}</Text>
+      <Text numberOfLines={2} style={[type.label, { color: k.fg, flexShrink: 1, textAlign: "center" }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -119,7 +121,7 @@ export const t: Readonly<Record<"h1" | "big" | "title" | "body" | "muted" | "lab
 });
 
 const s = StyleSheet.create({
-  btn: { borderRadius: radius.pill, paddingHorizontal: 20, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
+  btn: { borderRadius: radius.pill, paddingHorizontal: 20, paddingVertical: 6, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   seg: { flexDirection: "row", padding: 4, borderRadius: radius.pill, backgroundColor: color.porcelain },
   segBtn: { flex: 1, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
   segOn: { backgroundColor: color.white, shadowColor: "#111418", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
