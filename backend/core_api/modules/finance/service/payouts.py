@@ -63,7 +63,7 @@ def _utc_range(start: date, end: date, tz: ZoneInfo) -> tuple[datetime, datetime
 
 
 async def city_zones(db: AsyncSession, country: str) -> dict[str, ZoneInfo]:
-    """Each city's own time zone (the country's is only a label: Boise is America/Boise)."""
+    """Each city's own time zone (Boise is America/Boise): days shown on a payee's screen."""
     from core_api.modules.markets.models import City, Country, Region
 
     rows = (await db.execute(select(City, Region, Country).join(Region, Region.id == City.region_id)
@@ -71,20 +71,30 @@ async def city_zones(db: AsyncSession, country: str) -> dict[str, ZoneInfo]:
     return {c.code: ZoneInfo(c.timezone or r.timezone or k.timezone) for c, r, k in rows}
 
 
-async def _in_period(db: AsyncSession, country: str, start: date, end: date, column):  # type: ignore[no-untyped-def]
-    """``column`` falls between local midnight on ``start`` and on ``end`` in its order's own city."""
-    from sqlalchemy import or_
+def payout_tz(c) -> ZoneInfo:  # type: ignore[no-untyped-def]
+    """R27: the zone a country's payout weeks are counted in (Markets payout_timezone, else its timezone).
+    One zone per country, so a week starts at the same instant for every kitchen and rider in it."""
+    from core_api.modules.markets.models import payout_zone
 
+    return ZoneInfo(payout_zone(c))
+
+
+def week_window(start: date, end: date, tz: ZoneInfo) -> tuple[datetime, datetime]:
+    """A payout period as UTC instants: local midnight on ``start`` to local midnight on ``end``
+    (``end`` not included) in the payout zone. Across a DST change the week is 167 or 169 hours."""
+    return _utc_range(start, end, tz)
+
+
+async def _in_period(db: AsyncSession, country: str, start: date, end: date, column):  # type: ignore[no-untyped-def]
+    """``column`` falls in the week: midnight on ``start`` to midnight on ``end`` in the country's payout zone
+    (R27; before, each order's own city zone), for orders in the country's cities."""
+    from core_api.modules.markets.models import City, Country
     from core_api.modules.orders.models.order import Order
 
-    zones = await city_zones(db, country)
-    if not zones:
-        return Order.id.is_(None)
-    parts = []
-    for code, tz in zones.items():
-        a, b = _utc_range(start, end, tz)
-        parts.append(and_(Order.market_city == code, column >= a, column < b))
-    return or_(*parts)
+    c = await _country(db, country)
+    codes = select(City.code).join(Country, Country.id == City.country_id).where(Country.code == country)
+    a, b = week_window(start, end, payout_tz(c))
+    return and_(Order.market_city.in_(codes), column >= a, column < b)
 
 
 async def _orders_for_period(db: AsyncSession, country: str, start: date, end: date,
@@ -173,7 +183,7 @@ async def next_payout_day(db: AsyncSession, country: str, now: datetime | None =
     """The date unpaid (reversed or failed) statements are paid again: the country's next
     payout day, today if today is one (the scheduler retries them hourly on that day)."""
     c = await _country(db, country)
-    today = local_today(ZoneInfo(c.timezone), now)
+    today = local_today(payout_tz(c), now)
     return today + timedelta(days=(await payout_weekday(db, country) - today.weekday()) % 7)
 
 
@@ -277,7 +287,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
     if end <= start:
         raise FinanceError("The period must end after it starts")
     c = await _country(db, country)
-    check_week(start, end, local_today(ZoneInfo(c.timezone), now))
+    check_week(start, end, local_today(payout_tz(c), now))
     overlapping = (await db.execute(select(PayoutRun).where(
         PayoutRun.country == country, PayoutRun.period_start < end, PayoutRun.period_end > start))).scalars().first()
     if overlapping:
@@ -468,10 +478,11 @@ async def rider_week(db: AsyncSession, rider_id: uuid.UUID, country: str, now: d
 
         city = (await db.execute(select(City.code).where(City.code.like(f"{country}-%"), City.status.in_(("live", "beta")))
                                  .order_by(City.code).limit(1))).scalar()
-    tz = (await city_zones(db, country)).get(city or "", ZoneInfo(c.timezone))
-    local_now = (now or datetime.now(UTC)).astimezone(tz)
-    today = local_now.date()
-    start = today - timedelta(days=today.weekday())
+    tz = (await city_zones(db, country)).get(city or "", ZoneInfo(c.timezone))  # days and times on the city's clock
+    # R27: the week itself is the payout run's (the country's payout zone), so this adds up to the statement.
+    pay_today = (now or datetime.now(UTC)).astimezone(payout_tz(c)).date()
+    today = (now or datetime.now(UTC)).astimezone(tz).date()
+    start = pay_today - timedelta(days=pay_today.weekday())
     end = start + timedelta(days=7)
     orders = await _orders_for_period(db, country, start, end, rider_id)
     floor = await _rule(db, city, "rider_pay:hourly_floor") if city else None

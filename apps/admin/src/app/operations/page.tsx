@@ -17,6 +17,13 @@ import {
   type OpsTicket, type OrderDetail, type Refund,
 } from "@/lib/ops";
 import { count } from "@/lib/count";
+import { cityZone } from "@/lib/zone";
+
+/** A city code's time zone from Markets (R27: tickets and alerts are shown on their city's clock). */
+function useZoneOf(): (city: string | null | undefined) => string | null {
+  const { data: markets } = useMarkets();
+  return (city) => cityZone(markets, city);
+}
 
 const DispatchMap = dynamic(() => import("@/components/ops/DispatchMap").then((m) => m.DispatchMap), { ssr: false });
 
@@ -35,13 +42,14 @@ const STATUS: Record<string, string> = {
 /** Alerts firing now (P23): payment failures, orders without a rider, error spikes. */
 function Alerts({ scope }: { scope: string }) {
   const { data } = useAlerts(scope);
+  const zoneOf = useZoneOf();
   if (!data?.length) return null;
   return (
     <section aria-label="Alerts" className="space-y-2 rounded-2xl bg-danger-tint p-4 text-danger-ink">
       <h2 className="m-0 text-label">Alerts · {data.length} firing</h2>
       {data.map((a) => (
         <div key={`${a.name}-${a.city ?? "all"}`} className="text-small">
-          <b>{a.summary}</b> <span className="opacity-80">· since {clock(a.starts_at)}{a.description ? ` · ${a.description}` : ""}</span>
+          <b>{a.summary}</b> <span className="opacity-80">· since {clock(a.starts_at, zoneOf(a.city))}{a.description ? ` · ${a.description}` : ""}</span>
         </div>
       ))}
     </section>
@@ -79,7 +87,7 @@ function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen
             <tr key={o.id} className="hover:bg-porcelain">
               <td className="stack-title px-4 py-3 font-bold">{o.code}</td><td data-label="Kitchen">{o.restaurant_name}</td><td data-label="Customer">{o.customer}</td>
               <td data-label="Status"><span className="flex flex-wrap justify-end gap-1 md:justify-start"><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} className="basis-full justify-end md:justify-start" /></span></td>
-              <td data-label="Delivery partner">{o.rider ?? <span className="text-muted">—</span>}</td><td data-label="Placed">{clock(o.placed_at)}</td><td data-label="Due">{clock(o.estimated_delivery_time)}</td>
+              <td data-label="Delivery partner">{o.rider ?? <span className="text-muted">—</span>}</td><td data-label="Placed">{clock(o.placed_at, o.time_zone)}</td><td data-label="Due">{clock(o.estimated_delivery_time, o.time_zone)}</td>
               <td data-label="Total">{money(o.total, o.currency, 2)}</td>
               <td className="stack-actions pr-4"><button type="button" onClick={() => onOpen(o.id)} className="h-9 rounded-full border border-line-strong px-3 text-label hover:border-peacock">Open</button></td>
             </tr>
@@ -94,6 +102,7 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
   const { data: me } = useAdminMe();
   const waitingQ = useOpsOrders(scope, "attention");
   const map = useDispatch(city);
+  const zone = useZoneOf()(city);
   const [msg, setMsg] = useState<string | null>(null);
   const waiting = (waitingQ.data ?? []).filter((o) => o.flags.includes("waiting_for_rider"));
   const free = (map.data?.riders ?? []).filter((r) => r.status === "available");
@@ -124,7 +133,7 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
         {(map.data?.sos.length ?? 0) > 0 ? (
           <section className="rounded-2xl bg-danger-tint p-4 text-danger-ink" aria-label="SOS">
             <h2 className="m-0 mb-2 text-label">SOS · call the delivery partner now</h2>
-            {map.data!.sos.map((a) => <p key={a.id} className="text-small">Delivery partner {a.rider_id.slice(0, 4)} · {clock(a.at)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
+            {map.data!.sos.map((a) => <p key={a.id} className="text-small">Delivery partner {a.rider_id.slice(0, 4)} · {clock(a.at, zone)}{a.order_id ? ` · on order #${a.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : ""}{a.note ? ` · “${a.note}”` : ""}</p>)}
           </section>
         ) : null}
         <section className="rounded-2xl bg-white p-4" aria-label="Waiting for a delivery partner">
@@ -177,6 +186,7 @@ function Support({ scope, openId, setOpenId }: { scope: string; openId: string |
   const queue = useOpsOrders(scope, "attention");
   const tickets = useTickets(scope, state);
   const ticket = tickets.data?.find((t) => t.id === ticketId) ?? null;
+  const zoneOf = useZoneOf();
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <aside className="space-y-3">
@@ -190,7 +200,7 @@ function Support({ scope, openId, setOpenId }: { scope: string; openId: string |
           {tickets.data?.map((t) => (
             <button key={t.id} type="button" onClick={() => { setTicketId(t.id); setOpenId(null); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${ticketId === t.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
-              <div className="flex justify-between gap-2"><b>{ticketTitle(t)}</b><span className="shrink-0 text-muted">{state === "open" ? waited(t.created_at) : clock(t.resolved_at)}</span></div>
+              <div className="flex justify-between gap-2"><b>{ticketTitle(t)}</b><span className="shrink-0 text-muted">{state === "open" ? waited(t.created_at) : clock(t.resolved_at, zoneOf(t.city))}</span></div>
               <div className="text-muted">About {TICKET_TOPIC[t.topic] ?? t.topic}{t.note ? ` · “${t.note}”` : ""}</div>
             </button>
           ))}
@@ -202,7 +212,7 @@ function Support({ scope, openId, setOpenId }: { scope: string; openId: string |
           {(q.trim().length >= 3 ? found.data : queue.data)?.map((o) => (
             <button key={o.id} type="button" onClick={() => { setOpenId(o.id); setTicketId(null); }}
               className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${openId === o.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
-              <div className="flex justify-between"><b>{o.customer} · {STATUS[o.status] ?? o.status}</b><span className="text-muted">{clock(o.placed_at)}</span></div>
+              <div className="flex justify-between"><b>{o.customer} · {STATUS[o.status] ?? o.status}</b><span className="text-muted">{clock(o.placed_at, o.time_zone)}</span></div>
               <div className="text-muted">{o.code} · {o.restaurant_name}</div>
               <Flags o={o} />
             </button>
@@ -226,6 +236,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const where = t.city ?? "*";
+  const zone = useZoneOf()(t.city);
   const mayResolve = ["orders.edit", "customers.edit", "partners.edit"].some((p) => can(me, p, where));
   async function resolve() {
     setBusy(true);
@@ -244,7 +255,7 @@ function TicketCase({ t, onDone }: { t: OpsTicket; onDone: () => void }) {
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={ticketTitle(t)}>
       <div>
         <h2 className="m-0 text-h2">{ticketTitle(t)}</h2>
-        <p className="text-small text-muted">{(TICKET_WORDS as Record<string, string>)[t.kind] ?? "Reported a problem"} {clock(t.created_at)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at)}`}</p>
+        <p className="text-small text-muted">{(TICKET_WORDS as Record<string, string>)[t.kind] ?? "Reported a problem"} {clock(t.created_at, zone)} · {t.status === "open" ? `waiting ${waited(t.created_at)}` : `resolved ${clock(t.resolved_at, zone)}`}</p>
       </div>
       <dl className="grid gap-3 text-small sm:grid-cols-2">
         <div><dt className="font-bold">Who</dt><dd>{t.requester_name}{t.requester_role === "partner" && t.restaurant_name ? ` · ${t.restaurant_name}` : ""}</dd></div>
@@ -282,6 +293,7 @@ function ChatReportDetails({ t }: { t: OpsTicket }) {
     reported_role?: string; reported_user_id?: string; message_id?: string; message_text?: string; reason_words?: string; blocked?: boolean;
     conversation?: { id?: string; role: string; text: string; at: string }[];
   };
+  const zone = useZoneOf()(t.city);
   const who = (role?: string) => (role === "rider" ? "Delivery partner" : role === "customer" ? "Customer" : role ?? "Unknown");
   return (
     <div className="space-y-3 rounded-xl bg-porcelain p-4 text-small" aria-label="The reported message">
@@ -293,7 +305,7 @@ function ChatReportDetails({ t }: { t: OpsTicket }) {
         <ol className="space-y-1" aria-label="The conversation">
           {d.conversation.map((m, i) => (
             <li key={m.id ?? i} className={m.id && m.id === d.message_id ? "font-bold" : undefined}>
-              <span className="text-muted">{clock(m.at)} · {who(m.role)}:</span> {m.text}
+              <span className="text-muted">{clock(m.at, zone)} · {who(m.role)}:</span> {m.text}
             </li>
           ))}
         </ol>
@@ -377,7 +389,7 @@ function OrderCase({ id }: { id: string }) {
       </div>
       <ol className="flex flex-wrap gap-2 text-small" aria-label="Order timeline">
         {["placed", "accepted", "ready", "picked_up", "delivered", "cancelled"].filter((s) => at(s)).map((s) => (
-          <li key={s} className="rounded-full bg-porcelain px-3 py-1"><b>{STATUS[s]}</b> {clock(at(s))}</li>
+          <li key={s} className="rounded-full bg-porcelain px-3 py-1"><b>{STATUS[s]}</b> {clock(at(s), order.time_zone)}</li>
         ))}
       </ol>
       <fieldset className="space-y-2">
@@ -410,7 +422,7 @@ function OrderCase({ id }: { id: string }) {
       {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
       {refunds.length ? (
         <div className="text-small"><b>Refunds on this order</b>
-          <ul className="mt-1 space-y-1 tabular-nums text-muted">{refunds.map((r) => <li key={r.id}>{money(r.amount / 100, order.currency, 2)} · {r.reason ?? "refund"}{r.fault ? ` · ${r.fault}` : ""} · {r.status} · {clock(r.created_at)}</li>)}</ul>
+          <ul className="mt-1 space-y-1 tabular-nums text-muted">{refunds.map((r) => <li key={r.id}>{money(r.amount / 100, order.currency, 2)} · {r.reason ?? "refund"}{r.fault ? ` · ${r.fault}` : ""} · {r.status} · {clock(r.created_at, order.time_zone)}</li>)}</ul>
         </div>
       ) : null}
     </section>

@@ -15,7 +15,6 @@ import uuid
 from decimal import Decimal
 from datetime import date
 from typing import Annotated, Literal
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
@@ -121,16 +120,17 @@ async def payout_preview(
 async def payout_weeks(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
                        country: str = Query(pattern=r"^[A-Z]{2}$")) -> dict:
     """The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the
-    country's time zone, newest first; `end` is the next Monday (not included)."""
+    country's payout time zone (Markets), newest first; `end` is the next Monday (not included)."""
     admin.require("finance.view", country)
     try:
         c = await payouts._country(db, country)
     except FinanceError as e:
         raise _bad(e)
-    today = payouts.local_today(ZoneInfo(c.timezone))
+    zone = payouts.payout_tz(c)  # R27: weeks are counted in the country's payout zone
+    today = payouts.local_today(zone)
     from core_api.modules.markets.service import legal
 
-    return {"timezone": c.timezone, "today": today.isoformat(),
+    return {"timezone": zone.key, "today": today.isoformat(),
             "weeks": [{"start": a.isoformat(), "end": b.isoformat()} for a, b in payouts.ended_weeks(today)],
             # R25: no legal name in Markets → no commission tax invoice can be issued (admin Finance flags it;
             # a finance admin may not read Markets, so it is said here).

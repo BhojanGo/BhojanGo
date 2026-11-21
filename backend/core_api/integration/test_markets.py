@@ -345,3 +345,41 @@ async def test_city_time_zones_inherit_from_region_then_country() -> None:
     async with AsyncSessionLocal() as db:
         zones = await city_time_zones(db, ["IN-TG-HYD", "US-ID-BOI", "XX-NO-NE", None])
     assert zones == {"IN-TG-HYD": "Asia/Kolkata", "US-ID-BOI": "America/Boise"}
+
+
+async def test_every_city_has_its_own_zone_and_the_us_pays_on_boise_time(client: AsyncClient) -> None:
+    """R27: a city's zone is its own (Boise: America/Boise, not the US's New York); payout weeks are
+    counted in the country's payout zone (US: America/Boise for now, India: Asia/Kolkata)."""
+    sup = await auth(client, "admin@example.com")
+    countries = {c["code"]: c for c in (await client.get("/api/v1/markets", headers=sup)).json()}
+    us, india = countries["US"], countries["IN"]
+    assert us["payout_timezone"] == "America/Boise" and us["payout_zone"] == "America/Boise"
+    assert india["payout_zone"] == "Asia/Kolkata"
+    cities = {c["code"]: c for k in (us, india) for r in k["regions"] for c in r["cities"]}
+    assert cities["US-ID-BOI"]["timezone"] == "America/Boise" and cities["US-ID-NMP"]["timezone"] == "America/Boise"
+    assert cities["IN-TG-HYD"]["timezone"] == "Asia/Kolkata"
+    boise = (await client.get("/api/v1/markets/cities/US-ID-BOI", headers=sup)).json()
+    tz = next(s for s in boise["effective_settings"] if s["key"] == "timezone")
+    assert tz["value"] == "America/Boise" and tz["source_level"] == "city"
+
+    # Not a time zone: refused, for a city and for the payout zone.
+    r = await client.patch("/api/v1/markets/cities/US-ID-NMP", headers=sup, json={"timezone": "Mountain Time"})
+    assert r.status_code == 422 and "IANA" in r.text, r.text
+    r = await client.patch("/api/v1/markets/countries/US", headers=sup, json={"payout_timezone": "Boise time"})
+    assert r.status_code == 422, r.text
+
+    # A new city starts with its state's zone (Idaho: America/Boise), never left empty.
+    code = f"US-ID-{rand()}"
+    r = await client.post("/api/v1/markets/regions/US-ID/cities", headers=sup,
+                          json={"code": code, "name": f"Testville {code[-3:]}", "center_lat": 43.6, "center_lng": -116.4})
+    assert r.status_code == 201 and r.json()["timezone"] == "America/Boise", r.text
+
+
+async def test_finance_weeks_are_in_the_payout_zone(client: AsyncClient) -> None:
+    from datetime import UTC, datetime
+    from zoneinfo import ZoneInfo
+
+    h = await auth(client, "admin@example.com")
+    weeks = (await client.get("/api/v1/finance/payout-weeks", headers=h, params={"country": "US"})).json()
+    assert weeks["timezone"] == "America/Boise", weeks
+    assert weeks["today"] == datetime.now(UTC).astimezone(ZoneInfo("America/Boise")).date().isoformat()

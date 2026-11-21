@@ -95,13 +95,13 @@ ON CONFLICT (id) DO UPDATE SET
 """)
 
 UPSERT_COUNTRY = text("""
-INSERT INTO countries (id, code, name, currency, locales, timezone, distance_unit, phone_code,
+INSERT INTO countries (id, code, name, currency, locales, timezone, payout_timezone, distance_unit, phone_code,
                        payment_providers, tax_regime, payout_provider, settings, status)
-VALUES (:id, :code, :name, :currency, :locales, :timezone, :distance_unit, :phone_code,
+VALUES (:id, :code, :name, :currency, :locales, :timezone, :payout_timezone, :distance_unit, :phone_code,
         :payment_providers, :tax_regime, :payout_provider, CAST(:settings AS jsonb), :status)
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name, currency = EXCLUDED.currency, locales = EXCLUDED.locales,
-    timezone = EXCLUDED.timezone, distance_unit = EXCLUDED.distance_unit,
+    timezone = EXCLUDED.timezone, payout_timezone = EXCLUDED.payout_timezone, distance_unit = EXCLUDED.distance_unit,
     phone_code = EXCLUDED.phone_code, payment_providers = EXCLUDED.payment_providers,
     tax_regime = EXCLUDED.tax_regime, payout_provider = EXCLUDED.payout_provider,
     settings = EXCLUDED.settings, status = EXCLUDED.status,
@@ -151,7 +151,7 @@ async def seed_markets(conn) -> None:
     for c in COUNTRIES:
         cid = (await conn.execute(UPSERT_COUNTRY, {
             "id": sid("country", c["code"]), **{k: c[k] for k in (
-                "code", "name", "currency", "locales", "timezone", "distance_unit", "phone_code",
+                "code", "name", "currency", "locales", "timezone", "payout_timezone", "distance_unit", "phone_code",
                 "payment_providers", "tax_regime", "payout_provider", "status")},
             "settings": json.dumps(c["settings"]),
         })).scalar_one()

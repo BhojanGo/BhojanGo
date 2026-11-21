@@ -5,14 +5,21 @@ payout day it also pays again what was sent back or didn't go through (R12:
 the apps tell the payee that date)."""
 import uuid
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.finance.models import PayoutRun, PayoutStatement
-from core_api.modules.finance.service.payouts import FinanceError, _provider, _rule, create_run, pay_pending, payout_weekday
+from core_api.modules.finance.service.payouts import (
+    FinanceError,
+    _provider,
+    _rule,
+    create_run,
+    pay_pending,
+    payout_tz,
+    payout_weekday,
+)
 
 logger = structlog.get_logger(__name__)
 SYSTEM = uuid.UUID(int=0)  # drafts made by the scheduler
@@ -26,7 +33,7 @@ async def ensure_weekly_drafts(db: AsyncSession, now: datetime | None = None) ->
     made = []
     for c in (await db.execute(select(Country).where(Country.status.in_(("live", "beta"))))).scalars():
         sched = await _rule(db, c.code, "commission:payout_schedule") or {"day": "mon", "hold_days": 2}
-        local = now.astimezone(ZoneInfo(c.timezone))
+        local = now.astimezone(payout_tz(c))  # R27: the country's payout zone
         week_start = (local - timedelta(days=local.weekday() + 7)).date()  # last week's Monday
         week_end = week_start + timedelta(days=7)
         pay_day = week_end + timedelta(days=DAYS.index(sched.get("day", "mon")))
@@ -53,7 +60,7 @@ async def repay_unpaid(db: AsyncSession, now: datetime | None = None) -> int:
     now = now or datetime.now(UTC)
     retried = 0
     for c in (await db.execute(select(Country).where(Country.status.in_(("live", "beta"))))).scalars():
-        if now.astimezone(ZoneInfo(c.timezone)).weekday() != await payout_weekday(db, c.code):
+        if now.astimezone(payout_tz(c)).weekday() != await payout_weekday(db, c.code):
             continue
         runs = (await db.execute(select(PayoutRun).where(
             PayoutRun.country == c.code, PayoutRun.status == "partially_paid",

@@ -21,7 +21,7 @@ from shared.cache_versions import VersionedCache, kitchen_scopes
 
 logger = structlog.get_logger(__name__)
 
-COUNTRY_TZ = {"IN": "Asia/Kolkata", "US": "America/New_York"}
+COUNTRY_TZ = {"IN": "Asia/Kolkata", "US": "America/Boise"}  # only when no city is known (R27: US cities are in Idaho)
 FSSAI_EXPIRED = "fssai_expired"
 
 
