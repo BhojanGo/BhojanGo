@@ -8,6 +8,7 @@ import { create } from "zustand";
 
 import { appEnv } from "./env";
 import { getTimeoutMs, timeoutFetch } from "./load";
+import { REFRESH_TIMEOUT_MS, singleFlight } from "./refresh";
 import { deviceLocale } from "./locale";
 
 const env = (k: string, fallback: string) => (process.env as Record<string, string | undefined>)[k] || fallback;
@@ -52,7 +53,25 @@ export function beforeSignOut(step: () => Promise<void>): void {
   if (!signOutSteps.includes(step)) signOutSteps.push(step);
 }
 
-let refreshing: Promise<string | null> | null = null;
+const refreshOnce = singleFlight(async (signal) => {
+  const refreshToken = await SecureStore.getItemAsync(REFRESH).catch(() => null);
+  if (!refreshToken) return null;
+  const res = await fetch(`${urls.core}/api/v1/auth/refresh`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+    ...(signal ? { signal } : {}),
+  });
+  // Our servers down or busy (a deploy's 502, a 429): an error, so the next request tries again.
+  // Only the API refusing the refresh token (401/403/422) ends the session (null: sign out).
+  if (res.status >= 500 || res.status === 408 || res.status === 429) throw new Error(`The session refresh failed (${res.status})`);
+  if (!res.ok) return null;
+  const tokens = (await res.json()) as { access_token: string; refresh_token: string };
+  await SecureStore.setItemAsync(ACCESS, tokens.access_token);
+  await SecureStore.setItemAsync(REFRESH, tokens.refresh_token);
+  useSession.setState({ accessToken: tokens.access_token });
+  return tokens.access_token;
+}, REFRESH_TIMEOUT_MS);
 
 export const useSession = create<SessionState>()((set, get) => ({
   status: "loading",
@@ -104,23 +123,10 @@ export const useSession = create<SessionState>()((set, get) => ({
 
   // One refresh at a time: a refresh token works once, and using it twice ends the session
   // (two sockets closing at their token's expiry together would otherwise both refresh).
-  refresh: () => (refreshing ??= (async () => {
-    const refreshToken = await SecureStore.getItemAsync(REFRESH).catch(() => null);
-    if (!refreshToken) return null;
-    const res = await fetch(`${urls.core}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!res.ok) return null;
-    const tokens = (await res.json()) as { access_token: string; refresh_token: string };
-    await SecureStore.setItemAsync(ACCESS, tokens.access_token);
-    await SecureStore.setItemAsync(REFRESH, tokens.refresh_token);
-    set({ accessToken: tokens.access_token });
-    return tokens.access_token;
-  })().finally(() => {
-    refreshing = null;
-  })),
+  // R27: never longer than REFRESH_TIMEOUT_MS (refresh.ts): a hung refresh used to leave every
+  // later request waiting on it forever (the kitchen board froze with no error). A timeout is
+  // an error, not a sign-out: the next request refreshes again.
+  refresh: () => refreshOnce(),
 
   loadUser: async () => {
     set({ user: unwrap(await api.core.GET("/api/v1/users/me")) });

@@ -28,6 +28,11 @@ export interface ApiConfig {
   getAccessToken: () => string | null | undefined;
   /** Called once on a 401; return a new access token (after refreshing) or null to give up. */
   refreshAccessToken?: () => Promise<string | null>;
+  /**
+   * R27: how long a request waits for the shared refresh before it fails (default
+   * REFRESH_WAIT_MS). A refresh that never settles must not hold every later request.
+   */
+  refreshWaitMs?: number;
   /** Called when the session can't be refreshed (sign the person out). */
   onSignedOut?: () => void;
   /** The fetch to send requests with (the apps' gives up a GET that hangs: mobile-core timeoutFetch). */
@@ -50,8 +55,15 @@ export interface Api {
 
 /** An error from the API, with the human message the backend sent. */
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public code?: string, public body?: unknown) {
+  // Fields written out (not constructor parameter properties) so node --test can strip the types.
+  status: number;
+  code?: string;
+  body?: unknown;
+  constructor(status: number, message: string, code?: string, body?: unknown) {
     super(message);
+    this.status = status;
+    this.code = code;
+    this.body = body;
   }
 }
 
@@ -98,6 +110,26 @@ export function unwrap<T>(result: { data?: T; error?: unknown; response: Respons
   return result.data as T;
 }
 
+/** R27: the longest a request waits for a token refresh (the apps' refresh itself gives up at 15 s). */
+export const REFRESH_WAIT_MS = 20000;
+
+/** The token refresh didn't settle in time: the request fails (the person stays signed in). */
+export class RefreshWaitError extends Error {
+  constructor(ms: number) {
+    super(`No new session in ${Math.round(ms / 1000)} s`);
+    this.name = "RefreshWaitError";
+  }
+}
+
+/** `p`, or a RefreshWaitError after `ms` (its timer is always cleared). */
+function within<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new RefreshWaitError(ms)), ms);
+  });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
+
 export function createApi(config: ApiConfig): Api {
   let refreshing: Promise<string | null> | null = null;
   const auth: Middleware = {
@@ -116,7 +148,16 @@ export function createApi(config: ApiConfig): Api {
     async onResponse({ request, response }) {
       if (response.status !== 401 || !config.refreshAccessToken || request.headers.get("X-Retried") === "1") return undefined;
       if (request.url.includes("/auth/")) return undefined; // sign-in and refresh answer 401 themselves
-      refreshing = refreshing ?? config.refreshAccessToken().finally(() => { refreshing = null; });
+      // One refresh shared by concurrent requests; cleared once it settles, and never awaited
+      // longer than refreshWaitMs: a refresh that hangs fails this request instead of freezing
+      // it and every request after it (R27, the kitchen board's silent stall).
+      if (!refreshing) {
+        const shared: Promise<string | null> = within(Promise.resolve().then(() => config.refreshAccessToken!()),
+          config.refreshWaitMs ?? REFRESH_WAIT_MS).finally(() => {
+          if (refreshing === shared) refreshing = null;
+        });
+        refreshing = shared;
+      }
       const token = await refreshing;
       if (!token) {
         config.onSignedOut?.();

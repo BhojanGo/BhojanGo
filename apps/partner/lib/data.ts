@@ -1,9 +1,11 @@
 // The partner's restaurant and what the tablet shows: today's state, the
-// orders board (polled every 4 s), the menu, offers and the application.
+// orders board (lib/board.ts), the menu, offers and the application.
 import { api, inZone, unwrap, urls, useI18n, type CoreSchemas } from "@bhojango/mobile-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
+
+import { clockSkew } from "./liveness";
 
 export type Order = CoreSchemas["OrderResponse"];
 export type Today = CoreSchemas["StateOut"];
@@ -109,11 +111,19 @@ export async function getToday(id: string): Promise<Today> {
   return unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/today", { params: { path: { restaurant_id: id } } }));
 }
 
-export async function getBoard(id: string): Promise<Order[]> {
-  const r = unwrap(await api.core.GET("/api/v1/orders/restaurant/{restaurant_id}", {
+/**
+ * The board's orders and the server's clock (R27): `skew` is the server's time minus this
+ * tablet's, from the answer's Date header (null without one), so accept timers count down to
+ * the server's deadline even on a tablet whose clock is off.
+ */
+export async function getBoardTimed(id: string): Promise<{ items: Order[]; skew: number | null }> {
+  const sent = Date.now();
+  const res = await api.core.GET("/api/v1/orders/restaurant/{restaurant_id}", {
     params: { path: { restaurant_id: id }, query: { limit: 100 } },
-  }));
-  return r.items;
+  });
+  const received = Date.now();
+  const date = res.response.headers.get("date");
+  return { items: unwrap(res).items, skew: date ? clockSkew(date, sent, received) : null };
 }
 
 export async function move(orderId: string, status: string, prepMinutes?: number): Promise<Order> {
