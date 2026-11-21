@@ -103,8 +103,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Free disk space (keeps the Android SDK)
-        run: sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+      # R24: the runner has less free room than it did (the emulator's 6 GB userdata didn't fit
+      # next to the stack on 2026-11-21), so more of what these jobs never use goes too.
+      - name: Free disk space (keeps the Android SDK, Java, Node and Python)
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost             /usr/local/.ghcup /usr/share/swift /usr/local/share/powershell /opt/az /usr/share/miniconda             /opt/microsoft /usr/local/share/chromium /opt/hostedtoolcache/go /opt/hostedtoolcache/PyPy /opt/hostedtoolcache/Ruby
+          df -h /
 
       - uses: actions/download-artifact@v4
         with:
