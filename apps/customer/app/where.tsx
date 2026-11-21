@@ -40,7 +40,7 @@ export default function Where() {
   const others = shown.filter((k) => k.code !== country?.code);
   const othersShown = othersOpen || (!!q.trim() && !home && others.length > 0);
 
-  // "Boise, ID": a city with its state's short code from Markets (R27), as on home's location line.
+  // "<City>, <ST>": a city with its state's short code from Markets (R27), as on home's location line.
   const place = (city: string, region: string | null | undefined) => (region ? t("location.place", { city, country: region }) : city);
   const done = () => (router.canGoBack() ? router.back() : router.replace("/home"));
   async function go(pick: () => Promise<void>) {
@@ -135,7 +135,7 @@ function CityRow({ c, region, on, disabled, onPick, locale }: {
   const body = (
     <>
       <View style={{ flex: 1 }}>
-        {/* "Boise, ID" (R27): the state's short code from Markets, as on home's location line */}
+        {/* "<City>, <ST>" (R27): the state's short code from Markets, as on home's location line */}
         <Text style={[type.label, { color: live ? color.kohl : color.muted }]}>{region ? t("location.place", { city: c.name, country: region }) : c.name}</Text>
         <Text style={[type.small, { color: live ? color.peacock : color.muted }]}>{status}</Text>
       </View>

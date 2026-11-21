@@ -110,7 +110,7 @@ export function filterCities(countries: readonly MarketCountry[], q: string | nu
 }
 
 /**
- * The short code people write after a city ("ID" in "Boise, ID"): the Markets state's
+ * The short code people write after a city (the state part of "<City>, <ST>"): the Markets state's
  * short_code for a city of that name in that country (any country when none is given),
  * or null when Markets doesn't list it.
  */

@@ -10,9 +10,9 @@ export interface PointLike {
 /**
  * The place the out-of-area screen may name ("We're not in <place> yet"): only when
  * GET /markets/locate said this very point is outside every delivery zone. A point
- * inside a zone (North End, Boise), one not located yet, or no point at all (the
+ * inside a zone (a served neighbourhood), one not located yet, or no point at all (the
  * screen opened by a link) gets the generic "your area" wording: never a served
- * neighbourhood. The most specific name wins: "Home · Twin Falls" -> "Twin Falls".
+ * neighbourhood. The most specific name wins: "Home · <area>" -> "<area>".
  */
 export function outOfAreaPlace(point: PointLike | null | undefined,
                                market: { serviceable?: boolean | null } | null | undefined): string | null {
