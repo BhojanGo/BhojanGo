@@ -3,6 +3,23 @@
 Lessons that apply across Srini's products: BhojanGo, SaaradhiGo and ETicketsGo.
 Each is one rule and the reason for it. Follow them unless a PR says why not.
 
+## Hard rules (no exceptions)
+
+These two have no "unless a PR says why not". Breaking one is reported to Srini as a mistake.
+
+H1. **Screenshots must be real.** A screenshot is only ever a capture of real running code: QA, CI, or a fresh local
+    stack. Its file name starts with `qa-`, `ci-` or `local-fresh-` to say which. Never a hand-made render, a mock-up,
+    an edited image, or a template filled in with typed numbers. If a screen can't be captured, say "no screenshot"
+    and why.
+    Why: R24's `2-statement-pdf.png` was a hand render of the commission invoice with made-up inputs. It showed a
+    supplier text and a week that the real code never produced, and a round of work went into "fixing" it (R25).
+
+H2. **Merge only after every check has finished green.** No merging while any check is pending or queued, even for a
+    docs-only PR. Wait until the checks have registered and all of them have finished; "no checks reported" means wait,
+    not merge.
+    Why: #188 (a docs PR) was merged while seven checks were still pending, because the wait ended on "no checks
+    reported" before GitHub had queued them. They passed afterwards, but the merge didn't know that.
+
 ## Rules
 
 1. **Specs live in `docs/specs` before any prompt that depends on them.**
