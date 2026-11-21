@@ -5,6 +5,7 @@
 // come from the rule's country in Markets, never from a table here.
 // Pure (no React): `node --test` covers it (test/ruleWords.test.ts).
 import { money } from "./money.ts";
+import { word } from "./count.ts";
 
 type P = Record<string, unknown>;
 
@@ -108,16 +109,16 @@ export function describe(template: string, params: P, units: Units): string {
     case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";
     case "flat_per_order": return `${m(p.amount, cur)} per order on top of the percentage`;
-    case "payout_schedule": return `Paid ${p.frequency === "biweekly" ? "every two weeks" : "weekly"} on ${DAYS[String(p.day)] ?? p.day}, ${n(p.hold_days)} days after the week ends`;
+    case "payout_schedule": return `Paid ${p.frequency === "biweekly" ? "every two weeks" : "weekly"} on ${DAYS[String(p.day)] ?? p.day}, ${n(p.hold_days)} ${word(p.hold_days, "day")} after the week ends`;
     case "base_distance_wait":
-      return `${m(p.base, cur)} per delivery + ${m(p.per_unit, cur)} ${per(dist)} + ${m(p.per_wait_minute, cur)} per minute waiting after ${n(p.free_wait_minutes)} free minutes`;
+      return `${m(p.base, cur)} per delivery + ${m(p.per_unit, cur)} ${per(dist)} + ${m(p.per_wait_minute, cur)} per minute waiting after ${n(p.free_wait_minutes)} free ${word(p.free_wait_minutes, "minute")}`;
     case "hourly_floor": return `At least ${m(p.per_active_hour, cur)} per active hour (topped up weekly)`;
     case "batch_bonus": return `${m(p.per_extra_order, cur)} for each extra order in a batch`;
     case "peak_bonus": return `${m(p.per_order, cur)} per order during ${((p.windows as unknown[]) ?? []).map(window).join(", ")}`;
-    case "accept_timeout": return `Kitchens have ${n(p.seconds)} seconds to accept`;
-    case "unpaid_auto_cancel": return `Unpaid orders cancel after ${n(p.minutes)} minutes`;
-    case "cancel_window": return `Customers can cancel for free for ${n(p.minutes)} minutes`;
-    case "refund_window": return `Refunds can be asked for up to ${n(p.hours)} hours after delivery`;
+    case "accept_timeout": return `Kitchens have ${n(p.seconds)} ${word(p.seconds, "second")} to accept`;
+    case "unpaid_auto_cancel": return `Unpaid orders cancel after ${n(p.minutes)} ${word(p.minutes, "minute")}`;
+    case "cancel_window": return `Customers can cancel for free for ${n(p.minutes)} ${word(p.minutes, "minute")}`;
+    case "refund_window": return `Refunds can be asked for up to ${n(p.hours)} ${word(p.hours, "hour")} after delivery`;
     case "cod_limit": return Number(p.max_amount) > 0 ? `Cash on delivery up to ${m(p.max_amount, cur)}` : "Cash on delivery is off";
     case "tip_presets": {
       const amounts = (p.amounts as unknown[]) ?? [];

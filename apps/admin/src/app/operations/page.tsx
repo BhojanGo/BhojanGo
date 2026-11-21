@@ -16,6 +16,7 @@ import {
   apiMessage, clock, money, REFUND_REASONS, TICKET_TOPIC, useAlerts, useDispatch, useOpsOrders, useScope, useTickets, type OpsOrder,
   type OpsTicket, type OrderDetail, type Refund,
 } from "@/lib/ops";
+import { count } from "@/lib/count";
 
 const DispatchMap = dynamic(() => import("@/components/ops/DispatchMap").then((m) => m.DispatchMap), { ssr: false });
 
@@ -116,7 +117,7 @@ function Dispatch({ scope, city }: { scope: string; city: string | null }) {
         ) : <div className="h-[460px] rounded-2xl bg-white p-6 text-muted">{map.error ? "Can't load the map for this city." : "Loading the map…"}</div>}
         <p className="text-small text-muted">
           <span className="font-bold text-peacock">●</span> free · <span className="font-bold text-kesar">●</span> offered · <span className="font-bold">●</span> on a delivery · <span className="font-bold text-kesar">■</span> waiting for a delivery partner · <span className="font-bold text-chili">○</span> SOS
-          {map.data ? ` · ${map.data.riders.length} delivery partners online` : ""}
+          {map.data ? ` · ${count(map.data.riders.length, "delivery partner")} online` : ""}
         </p>
       </div>
       <aside className="space-y-4">

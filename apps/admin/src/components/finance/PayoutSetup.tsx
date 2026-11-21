@@ -11,6 +11,7 @@ import { useState } from "react";
 
 import { adminApi } from "@/lib/api";
 import { apiMessage } from "@/lib/ops";
+import { count } from "@/lib/count";
 
 export type PayeeKind = "restaurant" | "rider";
 export type SetupState = "not_started" | "in_progress" | "action_needed" | "ready";
@@ -61,7 +62,7 @@ export function useSetupLink(kind: PayeeKind, id: string) {
       } else {
         const copied = await copy(r.link);
         const what = send ? "Sent to them (push, email and the app's inbox)" : "Link made";
-        setMsg({ ok: true, link: r.link, text: `${what}${copied ? " and copied" : ""}. It works for ${r.expires_in_days} days.` });
+        setMsg({ ok: true, link: r.link, text: `${what}${copied ? " and copied" : ""}. It works for ${count(r.expires_in_days, "day")}.` });
       }
       await qc.invalidateQueries({ queryKey: ["payout-setup", kind, id] });
       await qc.invalidateQueries({ queryKey: ["payout-run"] });
