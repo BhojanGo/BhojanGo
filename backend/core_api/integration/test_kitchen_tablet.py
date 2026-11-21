@@ -113,3 +113,28 @@ async def test_the_demo_simulator_keeps_a_kitchen_open_only_until_a_tablet_runs_
     await K.sim_beat([rid], r)
     assert (await client.get(f"/api/v1/restaurants/{rid}/availability")).json()["not_taking_orders"] is True
     await client.get(f"/api/v1/restaurants/{rid}/today", headers=partner)  # leave it open for the other tests
+
+
+async def test_pricing_at_a_past_time_needs_no_tablet(client: AsyncClient) -> None:
+    """The demo seed prices months of past orders at the time they happened (tools/seed/demo.py),
+    on QA too, where the rule is on and no tablet is open while it seeds: a past time has no tablet
+    to ask. Pricing now, with no tablet, is still refused."""
+    from datetime import UTC, datetime, timedelta
+
+    from core_api.integration.conftest import open_all_day
+    from core_api.modules.catalog.service.cart import CartError, price_cart
+    from shared.db import AsyncSessionLocal
+
+    rid, item = await spice(client)
+    await silent_for(rid, 600)
+    await open_all_day([rid])
+    items = [{"menu_item_id": item, "quantity": 1}]
+    async with AsyncSessionLocal() as db:
+        _, lines = await price_cart(db, uuid.UUID(rid), items, now=datetime.now(UTC) - timedelta(days=1))
+        assert lines, "yesterday's order is priced"
+        with pytest.raises(CartError, match="Not taking orders right now"):
+            await price_cart(db, uuid.UUID(rid), items)
+        with pytest.raises(CartError, match="Not taking orders right now"):
+            await price_cart(db, uuid.UUID(rid), items, now=datetime.now(UTC))
+    partner = await login(client, "partner.hyd@example.com")
+    await client.get(f"/api/v1/restaurants/{rid}/today", headers=partner)  # leave it open for the other tests
