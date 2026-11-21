@@ -16,32 +16,11 @@ import { useEffect, useState } from "react";
 
 import { CityPicker } from "@/components/console/CityPicker";
 import { Logo } from "@bhojango/ui";
+import { noAccessText, pickableCountries, roleScopes, SECTION_GROUPS, SECTIONS, sectionAccess } from "@/lib/access";
 import { ROLE_LABELS, useAdminMe, useMarkets } from "@/lib/markets";
 import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 
-/** Sections and the permission that shows each (anywhere in your scopes). */
-const SECTIONS = [
-  { href: "/overview", label: "Overview", perm: "orders.view" },
-  { href: "/operations", label: "Operations", perm: "orders.view" },
-  { href: "/incidents", label: "Incidents", perm: "orders.view" },  // R17: pause, bulk refunds, bulk messages
-  { href: "/partners", label: "Partners", perm: "partners.view" },
-  { href: "/pricing", label: "Pricing & Rules", perm: "rules.view" },
-  { href: "/markets", label: "Markets", perm: "markets.view" },
-  { href: "/finance", label: "Finance", perm: "finance.view" },
-  { href: "/settings", label: "Settings", perm: "admins.view" },
-];
-
-/**
- * Grouped sections under a heading. Content: what the website shows that admins
- * write (Help in F9; Legal joins it in F10: add an item here). These are
- * per country inside the page, so they don't take the console's scope.
- */
-export const SECTION_GROUPS: { label: string; items: { href: string; label: string; perm: string }[] }[] = [
-  { label: "Content", items: [
-    { href: "/content/help", label: "Help", perm: "content.view" },
-    { href: "/content/legal", label: "Legal", perm: "legal.view" },  // F10: Terms and Privacy per country
-  ] },
-];
+export { SECTION_GROUPS } from "@/lib/access";
 
 /** "IN-TG-HYD" → { country: "IN", region: "IN-TG", city: "IN-TG-HYD" }; "*" → ALL. */
 export function parseScope(scope: string | null | undefined): { country: string; region: string | null; city: string | null } {
@@ -51,17 +30,19 @@ export function parseScope(scope: string | null | undefined): { country: string;
 }
 
 /**
- * The signed-in admin, once (R13): "Name · Role (scope)", or just "Role (scope)" when the name
+ * The signed-in admin, once (R13): "Name · Role (scopes)", or just "Role (scopes)" when the name
  * already says the role (the seed's "USA Finance" with Finance (US) reads "Finance (US)";
- * "BhojanGo Admin", a super admin, reads "Super admin").
+ * "BhojanGo Admin", a super admin, reads "Super admin"). R27: every role and scope, not
+ * only the first ("Viewer (IN, US)"), so the line never hides a country the admin can see.
  */
-export function whoLine(name: string | null | undefined, role: { role: string; scope: string } | null | undefined): string {
-  const label = role ? `${ROLE_LABELS[role.role] ?? role.role}${role.scope !== "*" ? ` (${role.scope})` : ""}` : "";
+export function whoLine(name: string | null | undefined, assignments: { role: string; scope: string }[] | null | undefined): string {
+  const label = roleScopes(assignments ?? [], ROLE_LABELS);
   if (!name) return label;
   if (!label) return name;
-  // A word of the role already in the name ("USA Finance" / Finance, "BhojanGo Admin" / Super admin): the role alone.
+  // A word of a role already in the name ("USA Finance" / Finance, "BhojanGo Admin" / Super admin): the roles alone.
   const nameWords = new Set(name.toLowerCase().split(/\s+/));
-  const repeats = (ROLE_LABELS[role!.role] ?? role!.role).toLowerCase().split(/[\s_]+/).some((w) => w.length > 2 && nameWords.has(w));
+  const repeats = (assignments ?? []).some((a) => (ROLE_LABELS[a.role] ?? a.role).toLowerCase().split(/[\s_]+/)
+    .some((w) => w.length > 2 && nameWords.has(w)));
   return repeats ? label : `${name} · ${label}`;
 }
 
@@ -93,7 +74,7 @@ export function ConsoleShell({
 }) {
   const { isAuthenticated, user, logout } = useAdminAuth();
   const router = useRouter();
-  const { data: me } = useAdminMe();
+  const { data: me, isLoading: meLoading } = useAdminMe();
   const { data: markets } = useMarkets();
 
   const hydrated = useAuthHydrated();
@@ -111,7 +92,6 @@ export function ConsoleShell({
 
   const current = markets?.find((c) => c.code === country);
   const isGlobal = (me?.permissions["markets.view"] ?? me?.permissions["orders.view"] ?? []).includes("*");
-  const role = me?.assignments[0];
   const initials = (user?.full_name ?? "?").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const toCountry = (code: string) => (scopeHref ? scopeHref(code) : countryHref ? countryHref(code) : `/markets/${code}`);
   const toRegion = (code: string) => (scopeHref ? scopeHref(code) : `/markets/${current?.code}?state=${code}`);
@@ -119,6 +99,11 @@ export function ConsoleShell({
   const showStates = Boolean(scopeHref) || !countryHref;
   const sections = SECTIONS.filter((s) => !me || (me.permissions[s.perm] ?? []).length > 0);
   const scope = city ?? region ?? (country !== "ALL" ? country : null);
+  // R27: only the countries where this section's permission holds, and a page outside them says so.
+  const countries = me ? pickableCountries(markets, me.permissions, section) : markets;
+  const access = me ? sectionAccess(me.permissions, section, hideScope ? null : scope) : "ok";
+  const blocked = access === "ok" ? null
+    : noAccessText(access, section, city ?? region ?? markets?.find((c) => c.code === country)?.name ?? country);
   const sectionLinks = sections.map((s) => {
     const href = s.href === "/markets" ? s.href : scope ? `${s.href}?scope=${scope}` : s.href;
     return (
@@ -153,7 +138,7 @@ export function ConsoleShell({
         <Logo size={30} suffix="admin" />
         <div className="ml-auto flex min-w-0 items-center gap-2.5 text-small">
           <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-peacock-tint sm:flex text-small text-peacock-dark">{initials}</span>
-          <span data-testid="who" className="hidden truncate md:inline">{whoLine(user?.full_name, role)}</span>
+          <span data-testid="who" className="hidden truncate md:inline">{whoLine(user?.full_name, me?.assignments)}</span>
           <button type="button" onClick={() => { void logout(); router.replace("/login"); }}
             className="h-9 shrink-0 whitespace-nowrap rounded-full px-3 font-semibold text-peacock hover:bg-peacock-wash md:ml-2">Sign out</button>
         </div>
@@ -166,17 +151,17 @@ export function ConsoleShell({
             All countries
           </Link>
         )}
-        {markets?.map((c) => (
+        {countries?.map((c) => (
           <Link key={c.code} href={toCountry(c.code)} aria-current={c.code === country ? "page" : undefined}
             className={`box-border flex h-[52px] shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-4 text-label ${c.code === country ? "border-peacock font-bold text-peacock-dark" : "border-transparent font-semibold text-muted"}`}>
             <span className={`rounded-md px-1.5 py-0.5 text-caption ${c.code === country ? "bg-peacock-tint text-peacock-dark" : "bg-line-soft text-kohl"}`}>{c.code}</span>
             {c.name}
           </Link>
         ))}
-        {!isGlobal && markets?.length === 1 ? <span className="ml-auto shrink-0 whitespace-nowrap text-label text-muted">You can see {markets[0]!.name} only</span> : null}
+        {!isGlobal && countries?.length === 1 ? <span className="ml-auto shrink-0 whitespace-nowrap text-label text-muted">You can see {countries[0]!.name} only</span> : null}
       </nav>}
 
-      {current && !hideScope && (
+      {current && !hideScope && !blocked && (
         <nav aria-label={`State and city in ${current.name}`} className="flex flex-wrap items-center gap-2 border-b border-line bg-[#FAFBFB] px-4 py-2.5 md:px-8 lg:px-12">
           {showStates && <span className="mr-1 text-label text-muted">State</span>}
           {showStates && (
@@ -221,7 +206,12 @@ export function ConsoleShell({
           </div>
         )}
         <main className="box-border min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8 lg:px-12">
-          <div className="flex max-w-[1200px] flex-col gap-6">{children}</div>
+          <div className="flex max-w-[1200px] flex-col gap-6">{blocked ? (
+            <section role="alert" data-testid="no-access" className="space-y-2 rounded-2xl bg-white p-6">
+              <h1 className="m-0 text-h2">{blocked.title}</h1>
+              <p className="m-0 text-small text-muted">{blocked.body}</p>
+            </section>
+          ) : meLoading ? null : children}</div>
         </main>
       </div>
     </div>

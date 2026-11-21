@@ -44,7 +44,9 @@ ACTORS = {
     "ops_hyd": ("ops.hyd@example.com", ADMIN_PW),
     "ops_boi": ("ops.boi@example.com", ADMIN_PW),                      # another city
     "support_hyd": ("support.hyd@example.com", ADMIN_PW),
-    "viewer": ("viewer@example.com", ADMIN_PW),                        # read-only everywhere
+    "support_boi": ("support.boi@example.com", ADMIN_PW),              # another country (R27)
+    "viewer": ("viewer@example.com", ADMIN_PW),                        # read-only, India only (R27)
+    "viewer_us": ("viewer.us@example.com", ADMIN_PW),                  # read-only, USA only (R27)
     "finance_in": ("finance.in@example.com", ADMIN_PW),
     "finance_us": ("finance.us@example.com", ADMIN_PW),                # another country
     "cm_in": ("cm.in@example.com", ADMIN_PW),
@@ -764,6 +766,68 @@ def test_public_routes_are_deliberate() -> None:
     assert all(p.why for p in POLICY.values() if p.kind == "public")
 
 
+# ── every admin role × every country (R27) ──────────────────────────────────
+# R26: a viewer the console called "Viewer (IN)" read US finance. Every admin read
+# (each GET an admin may call, found from POLICY, so a new route is swept the day
+# it lands) is asked for India's data by every scoped role in every country. An
+# admin from the other country is refused when the path names India's resource,
+# and otherwise gets a 2xx answer with nothing of India in it (lists are cut to
+# their scopes). Every admin also never sees the other country's data in any
+# answer. A new role in shared/authz.py without a row here fails the sweep.
+
+COUNTRY_ADMINS: dict[str, dict[str, str]] = {  # role → country → actor
+    "country_manager": {"IN": "cm_in", "US": "cm_us"},
+    "city_ops": {"IN": "ops_hyd", "US": "ops_boi"},
+    "support_agent": {"IN": "support_hyd", "US": "support_boi"},
+    "finance": {"IN": "finance_in", "US": "finance_us"},
+    "viewer": {"IN": "viewer", "US": "viewer_us"},
+}
+# What gives a country's data away in an answer: its market codes, its seeded city, its currency.
+MARKERS = {"IN": ("IN-TG", "Hyderabad", "INR"), "US": ("US-ID", "Boise", "USD")}
+OTHER = {"IN": "US", "US": "IN"}
+# Reads whose answer names both countries on purpose (none yet): route → why.
+BOTH_COUNTRIES_BY_DESIGN: dict[tuple[str, str], str] = {}
+# Reads that name India's resource outside the path (the sweep's own resources are all India's).
+RESOURCE_IN_QUERY = {("GET", "/api/v1/uploads/view")}
+
+ADMIN_READS = sorted(k for k, p in POLICY.items()
+                     if k[0] == "GET" and (p.kind == "admin" or (p.kind == "user" and "ops_boi" in p.refused)))
+SCOPED = [(m, p, role, country) for m, p in ADMIN_READS for role in COUNTRY_ADMINS for country in ("IN", "US")]
+
+
+def scoping_problem(method: str, path: str, country: str, status: int, body: str) -> str | None:
+    """Why an answer to an admin from ``country`` breaks country scoping (None: it doesn't).
+    Every sweep request asks for India's data."""
+    if status in REFUSED:
+        return None
+    names_resource = "{" in path or (method, path) in RESOURCE_IN_QUERY
+    if country != "IN" and names_resource:
+        return f"answered {status}: a {country} admin read India's resource"
+    if not 200 <= status < 300:  # India's own admins may get a business error (a rule that isn't a commission rule)
+        return None if country == "IN" else f"answered {status}: neither refused nor an answer"
+    if (method, path) in BOTH_COUNTRIES_BY_DESIGN:
+        return None
+    leaked = [m for m in MARKERS[OTHER[country]] if m in body]
+    return f"a {country} admin's answer shows {OTHER[country]} data ({', '.join(leaked)})" if leaked else None
+
+
+def test_every_admin_role_is_swept_in_every_country() -> None:
+    from shared import authz
+
+    assert set(COUNTRY_ADMINS) == set(authz.ROLES) - {"super_admin"}, "add the new role's admins to COUNTRY_ADMINS"
+    assert all(set(c) == {"IN", "US"} for c in COUNTRY_ADMINS.values())
+    assert len(ADMIN_READS) > 40, ADMIN_READS  # the sweep found the admin reads
+
+
+@pytest.mark.parametrize(("method", "path", "role", "country"), SCOPED,
+                         ids=[f"{m} {p} as {r} {c}" for m, p, r, c in SCOPED])
+async def test_admins_see_only_their_countrys_data(client: AsyncClient, ctx: Ctx, method: str, path: str,
+                                                   role: str, country: str) -> None:
+    r = await call(client, ctx, method, path, COUNTRY_ADMINS[role][country])
+    problem = scoping_problem(method, path, country, r.status_code, r.text)
+    assert problem is None, f"{method} {path} as {role} ({country}): {problem}: {r.text[:300]}"
+
+
 # ── canaries: the sweep must catch holes planted on purpose ──────────────────
 # A sweep that finds nothing proves nothing until it has caught one (PLAYBOOK
 # rule 34). Each canary adds a broken route to the app for one test, runs the
@@ -837,3 +901,32 @@ async def test_canary_a_missing_ownership_check_is_caught(client: AsyncClient, c
         assert r.status_code not in REFUSED, "test_wrong_role_or_someone_elses_resource_is_refused would have passed"
     finally:
         _unplant(route)
+
+
+async def test_canary_an_admin_list_without_scoping_is_caught(client: AsyncClient, ctx: Ctx) -> None:
+    from typing import Annotated
+
+    from fastapi import Depends
+
+    from core_api.modules.identity.api.dependencies import AdminContext, get_admin
+
+    async def every_city(admin: Annotated[AdminContext, Depends(get_admin)]) -> list[dict]:
+        """Hole 3: any admin, every country's rows (no scopes_with)."""
+        return [{"city": "IN-TG-HYD", "currency": "INR"}, {"city": "US-ID-BOI", "currency": "USD"}]
+
+    from fastapi.routing import APIRoute
+
+    from core_api.main import app
+
+    route = APIRoute("/api/v1/__canary/cities", every_city, methods=["GET"])
+    app.router.routes.append(route)
+    POLICY[("GET", "/api/v1/__canary/cities")] = admin()
+    try:
+        r = await call(client, ctx, "GET", "/api/v1/__canary/cities", "cm_us")
+        assert r.status_code == 200, r.text
+        caught = scoping_problem("GET", "/api/v1/__canary/cities", "US", r.status_code, r.text)
+        assert caught, "test_admins_see_only_their_countrys_data would have passed a list that ignores scopes"
+        assert scoping_problem("GET", CANARY, "US", 200, "{}"), "a US admin reading India's order must be caught"
+    finally:
+        app.router.routes.remove(route)
+        POLICY.pop(("GET", "/api/v1/__canary/cities"), None)
