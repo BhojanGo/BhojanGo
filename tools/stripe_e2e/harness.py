@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import uuid
@@ -88,6 +89,7 @@ class H:
         self.work = Path(os.environ.get("STRIPE_E2E_WORK", "/tmp"))
         self.publishable_key = os.environ["STRIPE_PUBLISHABLE_KEY"]
         self._sessions: dict[str, Api] = {}
+        self._tablets: set[str] = set()
         self.state: dict[str, Any] = {}  # what one case leaves for a later one (e.g. a paid order to refund)
         import stripe
 
@@ -121,10 +123,38 @@ class H:
     def idem() -> dict[str, str]:
         return {"X-Idempotency-Key": str(uuid.uuid4())}
 
+    def tablet(self, restaurant_id: str) -> None:
+        """R27: be the kitchen's tablet (BhojanGo Kitchen) for the rest of the run, as on QA and in
+        production a kitchen takes orders only while its tablet is live (KITCHEN_TABLET_REQUIRED).
+        The kitchen's owner signs in (a session of its own) and polls the board now and every 15 s,
+        which is the tablet's heartbeat (shared/kitchen_live.py: live for 60 s after each)."""
+        if restaurant_id in self._tablets:
+            return
+        email = self.sql(f"SELECT u.email FROM restaurants r JOIN users u ON u.id = r.owner_id "
+                         f"WHERE r.id = '{uuid.UUID(restaurant_id)}'")[0][0]
+        board = f"/orders/restaurant/{restaurant_id}"
+        owner = Api(self.core, email, CUSTOMER_PASSWORD)
+        owner.call("GET", board, 200, params={"limit": 1})
+        self._tablets.add(restaurant_id)
+
+        def poll() -> None:
+            session = owner
+            while True:
+                time.sleep(15)
+                try:
+                    r = session.client.get(f"{self.core}/api/v1{board}", headers=session.headers, params={"limit": 1})
+                    if r.status_code == 401:  # its 15-minute token ran out: sign in again, as the app refreshes
+                        session = Api(self.core, email, CUSTOMER_PASSWORD)
+                except Exception as e:  # noqa: BLE001 - keep beating; a case that needs the kitchen says so
+                    print(f"  (kitchen tablet poll failed: {redact(str(e))[:120]})")
+
+        threading.Thread(target=poll, daemon=True, name=f"tablet-{restaurant_id[:8]}").start()
+
     # ── shared order steps (US: Boise) ──────────────────────────────────────
     def boise_quote(self, customer: Api, items: dict[str, int] | None = None) -> tuple[dict, dict, dict, list[dict]]:
-        """(restaurant, address, quote, cart) for a Boise order from the seed."""
+        """(restaurant, address, quote, cart) for a Boise order from the seed (its tablet open: H.tablet)."""
         rest = next(r for r in customer.call("GET", "/restaurants", 200, params={"limit": 50})["items"] if r["name"] == "Boise Bowl Co.")
+        self.tablet(rest["id"])
         menu = customer.call("GET", f"/restaurants/{rest['id']}/menu", 200)
         ids = {i["name"]: i["id"] for c in menu.get("categories", []) for i in c.get("items", [])}
         cart = [{"menu_item_id": ids[name], "quantity": n} for name, n in (items or {"Teriyaki Chicken Bowl": 2}).items()]

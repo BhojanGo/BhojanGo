@@ -100,6 +100,8 @@ async def main() -> int:
                     if not any((g.get("min_picks") or 0) > 0 for g in i.get("option_groups") or []))
         cart = [{"menu_item_id": item["id"], "quantity": 2}]
         addr = (await c.get(f"{CORE}/api/v1/me/addresses", headers=H())).json()[0]
+        # R27: the kitchen takes orders only while its tablet is live; the partner polling the board is its heartbeat.
+        (await c.get(f"{CORE}/api/v1/orders/restaurant/{rest['id']}", headers=P, params={"limit": 1})).raise_for_status()
         q = await c.post(f"{CORE}/api/v1/pricing/quote", headers=H(), json={"restaurant_id": rest["id"], "items": cart,
                                                                             "deliver_to": {"address_id": addr["id"]}})
         q.raise_for_status()
