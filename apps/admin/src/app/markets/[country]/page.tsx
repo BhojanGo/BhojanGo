@@ -29,6 +29,7 @@ import {
   useMarkets,
 } from "@/lib/markets";
 import { count } from "@/lib/count";
+import { zoneLabel } from "@/lib/zone";
 const METHOD_NAMES: Record<string, string> = { upi: "UPI", card: "cards", wallet: "wallets", apple_pay: "Apple Pay", google_pay: "Google Pay" };
 
 function setupProgress(c: CitySummary) {
@@ -46,7 +47,7 @@ function SettingsCards({ country }: { country: CountrySummary }) {
     { title: "Payouts", value: payoutLabel(country.payout_provider) },
     { title: "Languages", value: country.locales.map((l) => LOCALE_NAMES[l] ?? l).join(" · ") },
     { title: "Compliance", value: compliance || "No extra rules" },
-    { title: "Time and units", value: `${country.timezone} · ${country.distance_unit}` },
+    { title: "Time and units", value: `New cities: ${country.timezone} · payouts: ${country.payout_timezone || country.timezone} · ${country.distance_unit}` },
   ];
   return (
     <section aria-label={`${country.name} settings`} className="rounded-2xl border border-line bg-white p-6">
@@ -71,7 +72,9 @@ function CountryView() {
   const country = markets?.find((c) => c.code === code);
   const regions = country?.regions.filter((r) => !state || r.code === state) ?? [];
   const cities = country?.regions.flatMap((r) => r.cities) ?? [];
-  const tzShort = country?.timezone === "Asia/Kolkata" ? "IST" : country?.timezone;
+  // R27: each city keeps its own zone; one zone for the country only when all its cities share it.
+  const zones = [...new Set(country?.regions.flatMap((r) => r.cities.map((c) => c.timezone || r.timezone || country.timezone)) ?? [])];
+  const tzShort = zones.length === 1 ? zoneLabel(zones[0]).replace(/^\((.*)\)$/, "$1") : null;
 
   return (
     <ConsoleShell section="Markets" country={code} region={state}>
@@ -87,7 +90,7 @@ function CountryView() {
             <h1 className="m-0 text-h1">{country.name}</h1>
             <StatusPill status={country.status} />
             <span className="basis-full text-small text-muted">
-              Times in {tzShort} · amounts in {moneySymbol(country.currency).trim()} · {count(cities.length, "city", "cities")},{" "}
+              {tzShort ? `Times in ${tzShort}` : "Times in each city's own zone"} · amounts in {moneySymbol(country.currency).trim()} · {count(cities.length, "city", "cities")},{" "}
               {cities.filter((c) => c.status === "live" || c.status === "beta").length} open
             </span>
           </div>

@@ -35,7 +35,11 @@ class Country(_Timestamps, Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     locales: Mapped[list[str]] = mapped_column(ARRAY(String(10)), nullable=False)
+    # The zone a new city starts with (each city keeps its own: cities.timezone). Not used for times on its own.
     timezone: Mapped[str] = mapped_column(String(50), nullable=False)
+    # R27: the zone finance's weeks are counted in (Monday 00:00 to Monday 00:00): payout runs, "this week" and
+    # the payout day. One per country so a week is the same for every kitchen and rider in it. None = ``timezone``.
+    payout_timezone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     distance_unit: Mapped[str] = mapped_column(String(2), nullable=False, default="km")  # km | mi
     phone_code: Mapped[str] = mapped_column(String(5), nullable=False)
     payment_providers: Mapped[list[str]] = mapped_column(ARRAY(String(20)), nullable=False)
@@ -84,6 +88,8 @@ class City(_Timestamps, Base):
     )
     code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)  # IN-TG-HYD
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # The city's own IANA zone (R27: every city has one; migration 0042 filled it from its state or country).
+    # Kitchen hours, delivery hours, order times and receipts are on this clock.
     timezone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # {"open": "07:00", "close": "23:30"} in the city's local time
     service_hours: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
@@ -116,7 +122,12 @@ class Zone(_Timestamps, Base):
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
 
-__all__ = ["PAYOUT_PROVIDERS", "STATUSES", "City", "Country", "Region", "Zone"]
+def payout_zone(country: "Country") -> str:
+    """The zone the country's payout weeks are counted in (IANA)."""
+    return country.payout_timezone or country.timezone
+
+
+__all__ = ["PAYOUT_PROVIDERS", "STATUSES", "City", "Country", "Region", "Zone", "payout_zone"]
 
 
 class LaunchWaitlist(Base):

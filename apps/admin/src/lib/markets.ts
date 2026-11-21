@@ -14,7 +14,10 @@ export interface Country {
   name: string;
   currency: string;
   locales: string[];
+  /** The zone a new city starts with; each city keeps its own. */
   timezone: string;
+  /** R27: the zone payout weeks are counted in (null: `timezone`). */
+  payout_timezone?: string | null;
   distance_unit: string;
   phone_code: string;
   payment_providers: string[];
@@ -229,6 +232,8 @@ export interface CountryUpdate {
   name?: string;
   status?: MarketStatus;
   payout_provider?: PayoutProviderName;
+  /** R27: the zone payout weeks are counted in (IANA). */
+  payout_timezone?: string | null;
   /** A value sets an override, null removes it (back to the default). */
   settings?: Record<string, unknown>;
 }

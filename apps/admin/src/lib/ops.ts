@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 
 import { adminApi } from "@/lib/api";
+import { clockIn } from "@/lib/zone";
 
 /** The scope in the URL (?scope=IN-TG-HYD), "*" when absent. */
 export function useScope(): string {
@@ -20,8 +21,9 @@ export function ago(iso: string | null | undefined): string {
   return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
 }
 
-export function clock(iso: string | null | undefined): string {
-  return iso ? new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase() : "–";
+/** "11:34 am MST": on the city's clock with its zone (R27: the order's `time_zone`), never the viewer's. */
+export function clock(iso: string | null | undefined, zone?: string | null): string {
+  return clockIn(iso, zone);
 }
 
 // ── overview ─────────────────────────────────────────────────────────────────
@@ -52,6 +54,8 @@ export interface OpsOrder {
   id: string; code: string; status: string; restaurant_name: string; market_city: string | null; customer: string; rider: string | null;
   total: string; currency: string; placed_at: string | null; estimated_delivery_time: string | null; minutes_late: number | null;
   waiting_for_rider_min: number | null; flags: string[]; pickup: [number, number] | null;
+  /** The order's city zone (IANA): its times are shown on that clock. */
+  time_zone?: string | null;
 }
 
 export function useOpsOrders(scope: string, view: "live" | "attention" | "today" | "search", q?: string) {
@@ -108,6 +112,8 @@ export interface OrderDetail {
   status_history: { status: string; at: string; by?: string }[]; total: number; currency: string; tip: number;
   delivery_address: Record<string, string>; special_instructions: string | null; estimated_delivery_time: string | null;
   placed_at: string | null; created_at: string; rider?: { first_name?: string } | null;
+  /** The order's city zone (IANA): the timeline is on that clock. */
+  time_zone?: string | null;
 }
 
 export interface Refund { id: string; amount: number; reason: string | null; fault?: string | null; status: string; created_at: string; lines?: unknown[] }

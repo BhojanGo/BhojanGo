@@ -72,6 +72,7 @@ async def seed_markets_only(conn) -> dict[str, int]:  # type: ignore[no-untyped-
             "id": sid("country", c["code"]), **{k: c[k] for k in (
                 "code", "name", "currency", "locales", "timezone", "distance_unit", "phone_code",
                 "payment_providers", "tax_regime", "payout_provider", "status")},
+            "payout_timezone": c.get("payout_timezone"),
             "settings": json.dumps(c["settings"])})
         cid = await _id(conn, "countries", c["code"])
         for r in c["regions"]:

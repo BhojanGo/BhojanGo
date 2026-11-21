@@ -1004,7 +1004,7 @@ export interface paths {
         /**
          * Payout Weeks
          * @description The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the
-         *     country's time zone, newest first; `end` is the next Monday (not included).
+         *     country's payout time zone (Markets), newest first; `end` is the next Monday (not included).
          */
         get: operations["payout_weeks_api_v1_finance_payout_weeks_get"];
         put?: never;
@@ -5777,6 +5777,11 @@ export interface components {
              * @enum {string}
              */
             payout_provider?: "stripe_connect" | "razorpay_route" | "fake" | "none";
+            /**
+             * Payout Timezone
+             * @description Payout weeks are counted in this zone; none = timezone
+             */
+            payout_timezone?: string | null;
             /** Phone Code */
             phone_code: string;
             /**
@@ -5791,7 +5796,10 @@ export interface components {
              * @enum {string}
              */
             tax_regime: "gst" | "us_sales_tax";
-            /** Timezone */
+            /**
+             * Timezone
+             * @description The zone a new city starts with (each city has its own)
+             */
             timezone: string;
         };
         /** CountryOut */
@@ -5828,6 +5836,13 @@ export interface components {
              * @enum {string}
              */
             payout_provider: "stripe_connect" | "razorpay_route" | "fake" | "none";
+            /** Payout Timezone */
+            payout_timezone?: string | null;
+            /**
+             * Payout Zone
+             * @description R27: the zone finance counts this country's weeks in (payout_timezone, else timezone).
+             */
+            readonly payout_zone: string;
             /** Phone Code */
             phone_code: string;
             /** Settings */
@@ -5878,6 +5893,13 @@ export interface components {
              * @enum {string}
              */
             payout_provider: "stripe_connect" | "razorpay_route" | "fake" | "none";
+            /** Payout Timezone */
+            payout_timezone?: string | null;
+            /**
+             * Payout Zone
+             * @description R27: the zone finance counts this country's weeks in (payout_timezone, else timezone).
+             */
+            readonly payout_zone: string;
             /** Phone Code */
             phone_code: string;
             /** Regions */
@@ -5908,6 +5930,8 @@ export interface components {
             payment_providers?: string[] | null;
             /** Payout Provider */
             payout_provider?: ("stripe_connect" | "razorpay_route" | "fake" | "none") | null;
+            /** Payout Timezone */
+            payout_timezone?: string | null;
             /** Settings */
             settings?: {
                 [key: string]: unknown;
@@ -7773,6 +7797,8 @@ export interface components {
             rider: string | null;
             /** Status */
             status: string;
+            /** Time Zone */
+            time_zone?: string | null;
             /** Total */
             total: string;
             /** Waiting For Rider Min */

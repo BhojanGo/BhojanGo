@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.notification import DeviceToken
 from shared.providers.push import Device
 
-COUNTRY_TZ = {"IN": "Asia/Kolkata", "US": "America/New_York"}
+COUNTRY_TZ = {"IN": "Asia/Kolkata", "US": "America/Boise"}  # only when no city is known (R27: US cities are in Idaho)
 
 
 @dataclass

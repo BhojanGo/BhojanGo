@@ -155,7 +155,7 @@ function FinancePage() {
           const legal = (markets?.find((c) => c.code === target)?.settings.legal ?? {}) as Record<string, string>;
           return legal.name ? <p data-testid="finance-entity" className="mt-1 text-label text-kohl">{legal.name}{legal.gstin ? ` · GSTIN ${legal.gstin}` : ""}</p> : null;
         })()}
-        <p className="mt-1 text-small text-muted">Payouts run weekly per country, for a week that has ended: Monday to Sunday in the country&apos;s time zone{weeks.data ? ` (${weeks.data.timezone})` : ""}. The admin who prepares a run can&apos;t approve it.</p>
+        <p className="mt-1 text-small text-muted">Payouts run weekly per country, for a week that has ended: Monday to Sunday in the country&apos;s payout time zone{weeks.data ? ` (${weeks.data.timezone})` : ""}. The admin who prepares a run can&apos;t approve it.</p>
         {weeks.data?.legal_name_missing ? (
           // R25: an invoice never prints a placeholder for the supplier; the API refuses it until this is filled in.
           <p role="alert" data-testid="legal-name-missing" className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">

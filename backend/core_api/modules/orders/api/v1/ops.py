@@ -245,6 +245,8 @@ class OpsOrder(BaseModel):
     waiting_for_rider_min: int | None
     flags: list[str]
     pickup: list[float] | None = None
+    # R27: the order's city zone (IANA): admin shows its times on that clock, with the zone, not the viewer's.
+    time_zone: str | None = None
 
 
 def search_terms(q: str) -> tuple[str, bool, bool]:
@@ -273,7 +275,9 @@ async def orders(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*|[
     from core_api.modules.orders.models.order import Order
 
     now = datetime.now(UTC)
-    codes = [c.code for c, _, _ in await _visible_cities(db, admin, scope)]
+    visible = await _visible_cities(db, admin, scope)
+    codes = [c.code for c, _, _ in visible]
+    zones = {c.code: _tz(c, r, k).key for c, r, k in visible}
     if not codes:
         return []
     stmt = select(Order).where(Order.market_city.in_(codes))
@@ -321,6 +325,6 @@ async def orders(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*|[
                             market_city=o.market_city, customer=names.get(o.customer_id, "Customer"),
                             rider=names.get(o.driver_id) if o.driver_id else None, total=Decimal(o.total), currency=o.currency,
                             placed_at=o.placed_at, estimated_delivery_time=o.estimated_delivery_time, minutes_late=late,
-                            waiting_for_rider_min=waiting, flags=flags,
+                            waiting_for_rider_min=waiting, flags=flags, time_zone=zones.get(o.market_city or ""),
                             pickup=[o.pickup_lat, o.pickup_lng] if o.pickup_lat is not None else None))
     return out[:limit]

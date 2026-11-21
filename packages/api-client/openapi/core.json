@@ -2843,6 +2843,18 @@
             "title": "Payout Provider",
             "type": "string"
           },
+          "payout_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Payout weeks are counted in this zone; none = timezone",
+            "title": "Payout Timezone"
+          },
           "phone_code": {
             "pattern": "^\\+\\d{1,4}$",
             "title": "Phone Code",
@@ -2863,6 +2875,7 @@
             "type": "string"
           },
           "timezone": {
+            "description": "The zone a new city starts with (each city has its own)",
             "title": "Timezone",
             "type": "string"
           }
@@ -2945,6 +2958,23 @@
             "title": "Payout Provider",
             "type": "string"
           },
+          "payout_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Timezone"
+          },
+          "payout_zone": {
+            "description": "R27: the zone finance counts this country's weeks in (payout_timezone, else timezone).",
+            "readOnly": true,
+            "title": "Payout Zone",
+            "type": "string"
+          },
           "phone_code": {
             "title": "Phone Code",
             "type": "string"
@@ -2989,7 +3019,8 @@
           "settings",
           "status",
           "payment_methods_supported",
-          "legal_missing"
+          "legal_missing",
+          "payout_zone"
         ],
         "title": "CountryOut",
         "type": "object"
@@ -3059,6 +3090,23 @@
             "title": "Payout Provider",
             "type": "string"
           },
+          "payout_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Timezone"
+          },
+          "payout_zone": {
+            "description": "R27: the zone finance counts this country's weeks in (payout_timezone, else timezone).",
+            "readOnly": true,
+            "title": "Payout Zone",
+            "type": "string"
+          },
           "phone_code": {
             "title": "Phone Code",
             "type": "string"
@@ -3111,7 +3159,8 @@
           "status",
           "regions",
           "payment_methods_supported",
-          "legal_missing"
+          "legal_missing",
+          "payout_zone"
         ],
         "title": "CountrySummary",
         "type": "object"
@@ -3188,6 +3237,17 @@
               }
             ],
             "title": "Payout Provider"
+          },
+          "payout_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Timezone"
           },
           "settings": {
             "anyOf": [
@@ -8289,6 +8349,17 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "time_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
           },
           "total": {
             "title": "Total",
@@ -18308,7 +18379,7 @@
     },
     "/api/v1/finance/payout-weeks": {
       "get": {
-        "description": "The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the\ncountry's time zone, newest first; `end` is the next Monday (not included).",
+        "description": "The weeks a run may cover (R12): the last 8 that have ended, Monday to Sunday in the\ncountry's payout time zone (Markets), newest first; `end` is the next Monday (not included).",
         "operationId": "payout_weeks_api_v1_finance_payout_weeks_get",
         "parameters": [
           {

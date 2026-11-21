@@ -22,6 +22,7 @@ import {
   useCity,
   type Zone,
 } from "@/lib/markets";
+import { clockIn } from "@/lib/zone";
 
 const ZoneMap = dynamic(() => import("@/components/markets/ZoneMap").then((m) => m.ZoneMap), { ssr: false });
 
@@ -29,10 +30,10 @@ type LngLat = [number, number];
 const STATUSES: MarketStatus[] = ["draft", "soon", "beta", "live", "paused"];
 const PALETTE = ["#0B5D66", "#5BA3AA", "#D4932A", "#2E7D86", "#7FB7BD", "#B5762A"];
 
-function zoneLine(z: Zone, currency: string): string {
+function zoneLine(z: Zone, currency: string, timeZone: string | null): string {
   const min = z.min_order ? `min ${moneySymbol(currency)}${Number(z.min_order).toFixed(0)}` : "no minimum";
   if (z.status === "paused") {
-    const until = z.paused_until ? ` · until ${new Date(z.paused_until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "";
+    const until = z.paused_until ? ` · until ${clockIn(z.paused_until, timeZone)}` : "";
     return `Paused · ${z.pause_reason ?? "no reason given"}${until}`;
   }
   if (z.status === "draft") return "Draft · not visible to customers";
@@ -64,7 +65,7 @@ export default function CityPage() {
   const [pausing, setPausing] = useState(false);
   const [pause, setPause] = useState({ reason: "", until: "" });
   const [editingHours, setEditingHours] = useState(false);
-  const [hours, setHours] = useState({ open: "", close: "" });
+  const [hours, setHours] = useState({ open: "", close: "", timezone: "" });
   const [problem, setProblem] = useState<string | null>(null);
 
   const canEdit = can(me, "markets.edit", code);
@@ -151,17 +152,21 @@ export default function CityPage() {
 
       <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
         <div className="rounded-2xl border border-line bg-white p-6">
-          <div className="text-label text-muted">Service hours</div>
+          <div className="text-label text-muted">Service hours and time zone</div>
           {editingHours ? (
             <form
               className="mt-2 flex flex-wrap items-end gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
-                act(() => marketsApi.updateCity(code, { service_hours: hours }), () => setEditingHours(false));
+                act(() => marketsApi.updateCity(code, { service_hours: { open: hours.open, close: hours.close }, timezone: hours.timezone.trim() || null }),
+                  () => setEditingHours(false));
               }}
             >
               <label className="text-small text-muted">Opens<input type="time" required value={hours.open} onChange={(e) => setHours({ ...hours, open: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-small text-kohl" /></label>
               <label className="text-small text-muted">Closes<input type="time" required value={hours.close} onChange={(e) => setHours({ ...hours, close: e.target.value })} className="mt-1 block rounded-lg border border-line px-2 py-1 text-small text-kohl" /></label>
+              {/* R27: the city's own time zone: kitchen and delivery hours, order times and receipts are on its clock. */}
+              <label className="text-small text-muted">Time zone<input required value={hours.timezone} placeholder="America/Boise" data-testid="city-timezone"
+                onChange={(e) => setHours({ ...hours, timezone: e.target.value })} className="mt-1 block w-44 rounded-lg border border-line px-2 py-1 text-small text-kohl" /></label>
               <button type="submit" className="h-9 rounded-full bg-peacock px-4 text-label text-white">Save</button>
               <button type="button" onClick={() => setEditingHours(false)} className="h-9 px-2 text-label text-muted">Cancel</button>
             </form>
@@ -169,9 +174,9 @@ export default function CityPage() {
             <>
               <div className="mt-2 text-h3">{city.service_hours ? `${city.service_hours.open} – ${city.service_hours.close}` : "Not set"}</div>
               <div className="mt-1 text-small text-muted">
-                {tz?.value as string} ·{" "}
+                <span data-testid="city-timezone-shown">{tz?.value as string}{tz?.source_level && tz.source_level !== "city" ? ` (from ${tz.source})` : ""}</span> ·{" "}
                 {canEdit ? (
-                  <button type="button" className="font-bold text-peacock" onClick={() => { setHours(city.service_hours ?? { open: "07:00", close: "23:00" }); setEditingHours(true); }}>
+                  <button type="button" className="font-bold text-peacock" onClick={() => { setHours({ ...(city.service_hours ?? { open: "07:00", close: "23:00" }), timezone: (tz?.value as string | undefined) ?? "" }); setEditingHours(true); }}>
                     Edit
                   </button>
                 ) : (
@@ -226,7 +231,7 @@ export default function CityPage() {
               />
               <span className="flex-grow">
                 <b className="block">{z.name}</b>
-                <span className={`text-small ${z.status === "paused" ? "text-kesar-ink" : "text-muted"}`}>{zoneLine(z, city.country.currency)}</span>
+                <span className={`text-small ${z.status === "paused" ? "text-kesar-ink" : "text-muted"}`}>{zoneLine(z, city.country.currency, (tz?.value as string | undefined) ?? null)}</span>
               </span>
             </button>
           ))}

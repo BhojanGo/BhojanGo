@@ -236,6 +236,8 @@ class MarketService:
         rules.check_overrides(data.settings)
         offer_ceiling.check_settings(data.settings)
         payload = data.model_dump()
+        # R27: every city has its own zone: given, else its state's, else its country's (edited in admin).
+        payload["timezone"] = data.timezone or region.timezone or country.timezone
         city = await self.repo.add(City(country_id=country.id, region_id=region.id, **payload, status="draft"))
         return CityOut.model_validate(city)
 

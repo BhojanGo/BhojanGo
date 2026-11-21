@@ -25,6 +25,20 @@ class ServiceHours(BaseModel):
         return v
 
 
+def _zone(v: str | None) -> str | None:
+    """An IANA time zone name ("America/Boise"), or None."""
+    if v is None:
+        return None
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    v = v.strip()
+    try:
+        ZoneInfo(v)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise ValueError(f"{v!r} isn't a time zone; use an IANA name such as America/Boise or Asia/Kolkata")
+    return v
+
+
 # ── Countries ─────────────────────────────────────────────────────────────────
 
 class CountryCreate(BaseModel):
@@ -32,7 +46,8 @@ class CountryCreate(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     locales: list[str] = Field(min_length=1, examples=[["en-IN", "hi-IN", "te-IN"]])
-    timezone: str
+    timezone: str = Field(description="The zone a new city starts with (each city has its own)")
+    payout_timezone: str | None = Field(default=None, description="Payout weeks are counted in this zone; none = timezone")
     distance_unit: Literal["km", "mi"] = "km"
     phone_code: str = Field(pattern=r"^\+\d{1,4}$")
     payment_providers: list[str] = Field(min_length=1)
@@ -40,17 +55,22 @@ class CountryCreate(BaseModel):
     payout_provider: PayoutProviderName = "none"
     settings: dict[str, Any] = {}
 
+    _zones = field_validator("timezone", "payout_timezone")(classmethod(lambda cls, v: _zone(v)))
+
 
 class CountryUpdate(BaseModel):
     name: str | None = None
     locales: list[str] | None = None
     timezone: str | None = None
+    payout_timezone: str | None = None
     distance_unit: Literal["km", "mi"] | None = None
     payment_providers: list[str] | None = None
     tax_regime: Literal["gst", "us_sales_tax"] | None = None
     payout_provider: PayoutProviderName | None = None
     settings: dict[str, Any] | None = None
     status: Status | None = None
+
+    _zones = field_validator("timezone", "payout_timezone")(classmethod(lambda cls, v: _zone(v)))
 
 
 class CountryOut(BaseModel):
@@ -62,6 +82,7 @@ class CountryOut(BaseModel):
     currency: str
     locales: list[str]
     timezone: str
+    payout_timezone: str | None = None
     distance_unit: str
     phone_code: str
     payment_providers: list[str]
@@ -86,6 +107,12 @@ class CountryOut(BaseModel):
 
         return missing(self.settings, self.tax_regime)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def payout_zone(self) -> str:
+        """R27: the zone finance counts this country's weeks in (payout_timezone, else timezone)."""
+        return self.payout_timezone or self.timezone
+
 
 # ── Regions (states) ──────────────────────────────────────────────────────────
 
@@ -100,6 +127,8 @@ class RegionCreate(BaseModel):
     timezone: str | None = None
     settings: dict[str, Any] = {}
 
+    _zones = field_validator("timezone")(classmethod(lambda cls, v: _zone(v)))
+
 
 class RegionUpdate(BaseModel):
     name: str | None = None
@@ -107,6 +136,8 @@ class RegionUpdate(BaseModel):
     timezone: str | None = None
     settings: dict[str, Any] | None = None
     status: Status | None = None
+
+    _zones = field_validator("timezone")(classmethod(lambda cls, v: _zone(v)))
 
 
 class RegionOut(BaseModel):
@@ -132,6 +163,8 @@ class CityCreate(BaseModel):
     service_hours: ServiceHours | None = None
     settings: dict[str, Any] = {}
 
+    _zones = field_validator("timezone")(classmethod(lambda cls, v: _zone(v)))
+
 
 class CityUpdate(BaseModel):
     name: str | None = None
@@ -141,6 +174,8 @@ class CityUpdate(BaseModel):
     service_hours: ServiceHours | None = None
     settings: dict[str, Any] | None = None
     status: Status | None = None
+
+    _zones = field_validator("timezone")(classmethod(lambda cls, v: _zone(v)))
 
 
 class CityOut(BaseModel):

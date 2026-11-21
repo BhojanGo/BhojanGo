@@ -410,7 +410,8 @@ US_KITCHEN_DOCUMENTS = [
 COUNTRIES = [
     {
         "code": "IN", "name": "India", "currency": "INR", "locales": ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"],
-        "timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
+        # R27: a country's zone is the default for a new city; payout weeks are counted in payout_timezone.
+        "timezone": "Asia/Kolkata", "payout_timezone": "Asia/Kolkata", "distance_unit": "km", "phone_code": "+91",
         "payment_providers": ["razorpay"], "tax_regime": "gst", "status": "live",
         "payout_provider": "razorpay_route",  # who pays kitchens and riders (Markets; fake when no keys: providers.py)
         "settings": {"fssai_required": True, "sms_dlt_required": True, "payment_methods": ["upi", "card", "wallet"],
@@ -434,7 +435,7 @@ COUNTRIES = [
                 "code": "IN-TG", "name": "Telangana", "status": "live", "settings": {},
                 "cities": [
                     {
-                        "code": "IN-TG-HYD", "name": "Hyderabad", "status": "live", "center": (17.4126, 78.4071),
+                        "code": "IN-TG-HYD", "name": "Hyderabad", "timezone": "Asia/Kolkata", "status": "live", "center": (17.4126, 78.4071),
                         "service_hours": {"open": "07:00", "close": "23:30"}, "settings": {},
                         "zones": [
                             ("Hitech City", (17.440, 78.370, 17.460, 78.388), "149", "live", "#0B5D66"),
@@ -447,16 +448,16 @@ COUNTRIES = [
                             ("Kokapet", (17.390, 78.320, 17.410, 78.345), "149", "draft", "#4C5A5E"),
                         ],
                     },
-                    {"code": "IN-TG-WGL", "name": "Warangal", "status": "draft", "center": (17.9689, 79.5941),
+                    {"code": "IN-TG-WGL", "name": "Warangal", "timezone": "Asia/Kolkata", "status": "draft", "center": (17.9689, 79.5941),
                      "service_hours": None, "settings": {}, "zones": []},
                 ],
             },
             {
                 "code": "IN-AP", "name": "Andhra Pradesh", "status": "draft", "settings": {},
                 "cities": [
-                    {"code": "IN-AP-VSKP", "name": "Visakhapatnam", "status": "soon", "center": (17.6868, 83.2185),
+                    {"code": "IN-AP-VSKP", "name": "Visakhapatnam", "timezone": "Asia/Kolkata", "status": "soon", "center": (17.6868, 83.2185),
                      "service_hours": None, "settings": {}, "zones": []},
-                    {"code": "IN-AP-VJA", "name": "Vijayawada", "status": "soon", "center": (16.5062, 80.6480),
+                    {"code": "IN-AP-VJA", "name": "Vijayawada", "timezone": "Asia/Kolkata", "status": "soon", "center": (16.5062, 80.6480),
                      "service_hours": None, "settings": {}, "zones": []},
                 ],
             },
@@ -464,7 +465,8 @@ COUNTRIES = [
     },
     {
         "code": "US", "name": "United States", "currency": "USD", "locales": ["en-US", "es-US"],
-        "timezone": "America/New_York", "distance_unit": "mi", "phone_code": "+1",
+        # R27: every US city has its own zone (Boise: America/Boise); payout weeks run on Boise's clock for now.
+        "timezone": "America/New_York", "payout_timezone": "America/Boise", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
         "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
@@ -481,7 +483,7 @@ COUNTRIES = [
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},
                 "cities": [
                     {
-                        "code": "US-ID-BOI", "name": "Boise", "status": "beta", "center": (43.6150, -116.2023),
+                        "code": "US-ID-BOI", "name": "Boise", "timezone": "America/Boise", "status": "beta", "center": (43.6150, -116.2023),
                         "service_hours": {"open": "08:00", "close": "23:00"}, "settings": {},
                         "zones": [
                             ("Downtown", (43.605, -116.215, 43.625, -116.185), "15", "live", "#0B5D66"),
@@ -492,7 +494,7 @@ COUNTRIES = [
                         ],
                     },
                     # Coming soon: listed on the website's directory and collects "Notify me" sign-ups.
-                    {"code": "US-ID-NMP", "name": "Nampa", "status": "soon", "center": (43.5407, -116.5635),
+                    {"code": "US-ID-NMP", "name": "Nampa", "timezone": "America/Boise", "status": "soon", "center": (43.5407, -116.5635),
                      "service_hours": None, "settings": {}, "zones": []},
                 ],
             },
