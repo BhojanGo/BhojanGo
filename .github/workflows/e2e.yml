@@ -34,6 +34,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Free disk space (the runner's unused SDKs; the stack's images need ~20 GB)
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
+
       - name: Host tools for the runs (opening hours helper)
         run: pip install httpx==0.28.1
 
@@ -86,6 +93,13 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+
+      - name: Free disk space (the runner's unused SDKs; the stack's images need ~20 GB)
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
 
       - name: Meridian and Wellington on a clean stack (make web-third-city)
         run: make web-third-city

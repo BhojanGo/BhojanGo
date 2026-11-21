@@ -47,6 +47,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free disk space (the runner's unused SDKs; the stack's images need ~20 GB)
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
+
       - name: Start the stack, web and admin built for production
         run: $COMPOSE --profile all up -d --build --wait --wait-timeout 600
 
