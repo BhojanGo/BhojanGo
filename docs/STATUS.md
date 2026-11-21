@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-20** (after round 23), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-20** (after round 24), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -279,6 +279,24 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   setting).
 - **Small fixes (#179):** admin's offer ceiling reads "Most a %-off offer can take off one order" (currency box kept);
   the website sign-in photos never leave a tile empty (kitchen covers, then the country's dish, then library dishes).
+
+## Small fixes and checks (round 24, 2026-11-21)
+
+- **"Soak Rider 9-25" are not on QA.** They appeared in R23's payout-run screenshot, which was taken on a local
+  database left from an old load-test run (`tools/soak/setup.py`, Hyderabad riders created 2026-11-14 06:36 UTC,
+  before QA existed). QA checked read-only: no Soak rider among its 15 riders with documents, and none in its India or
+  US payout runs (one draft each, week of 9 Nov). Nothing was deleted. The script already refuses any database that
+  isn't local (`tools/target_guard.py`). Screenshots now come from a fresh local seed.
+- **Statement text (#184):** this week's result and the carried balance are separate lines: "This week came to ₹X
+  below zero." and "Still ₹Y below zero from earlier weeks · carried to next week." (both when both apply; X + Y is
+  the statement's total). In the kitchen app, admin and the commission invoice PDF (a "Your weekly statement" block
+  when below zero), in all 8 languages (machine translations on the native review list).
+- **No `next dev` on QA or production (#183):** QA runs `next build` + `next start`; the "N" in R23's screenshots came
+  from a local dev server. `tools/web/dev_mode_check.py` fails on a dev page or an image that could start one; it runs
+  on the production images in CI, daily against QA, and against production once `PROD_WEB_URLS` is set (go-live step 10).
+- **Plurals (#183):** admin says "1 issue to look at" / "2 issues to look at", and the same on every other count
+  (orders, refunds, cities, days, minutes...).
+- **CI disk:** GitHub's runner ran out of disk building the stack; the heavy jobs now free unused SDKs first.
 
 ## What's left before the pilot
 
