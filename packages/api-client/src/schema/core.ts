@@ -5497,6 +5497,12 @@ export interface components {
              * @default 0
              */
             waitlist?: number;
+            /**
+             * Website
+             * @default hidden
+             * @enum {string}
+             */
+            website?: "live" | "beta" | "soon" | "hidden";
             /** Zone Count */
             zone_count: number;
             /** Zones */
@@ -5637,6 +5643,12 @@ export interface components {
              * @default 0
              */
             waitlist?: number;
+            /**
+             * Website
+             * @default hidden
+             * @enum {string}
+             */
+            website?: "live" | "beta" | "soon" | "hidden";
             /** Zone Count */
             zone_count: number;
         };

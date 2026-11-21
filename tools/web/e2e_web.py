@@ -943,6 +943,21 @@ with sync_playwright() as p:
         expect(lst.get_by_role("button", name=re.compile(re.escape(code)))).to_have_count(0, timeout=15000),
         _assert(all(t.strip().endswith("Cancelled") for t in lst.get_by_role("button", name=re.compile(r"· #[0-9A-F]{6} ")).all_inner_texts()),
                 "a non-cancelled order in the Cancelled filter")))
+    # R27: at phone width every filter chip and every order code shows in full (R26: "Cancellec", "#7...")
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.get_by_role("group", name="Show orders").get_by_role("button", name="All").click()
+    expect(lst.get_by_role("button", name=re.compile(re.escape(code))).first).to_be_visible(timeout=15000)
+    check("orders at 390 px: filter chips and order codes are never cut off", lambda: _assert(page.evaluate("""() => {
+        const vw = window.innerWidth;
+        const chips = [...document.querySelectorAll('[role=group] button[aria-pressed]')];
+        const codes = [...document.querySelectorAll('[data-testid=order-code]')];
+        const inside = (e, box) => { const r = e.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1; };
+        return chips.length >= 4 && codes.length > 0
+          && chips.every((e) => inside(e, {left: 0, right: vw}) && e.scrollWidth <= e.clientWidth + 1)
+          && codes.every((e) => /^#[0-9A-F]{6}$/.test(e.textContent.trim()) && inside(e, e.closest('button').getBoundingClientRect()));
+    }"""), "a filter chip or an order code is cut off at 390 px"))
+    shot(page, "16a-orders-phone")
+    page.set_viewport_size({"width": 1440, "height": 900})
     page.get_by_role("group", name="Show orders").get_by_role("button", name="Delivered").click()
     lst.get_by_role("button", name=re.compile(re.escape(code))).first.click()
     receipt = page.get_by_role("article", name=f"Receipt for order {code}")

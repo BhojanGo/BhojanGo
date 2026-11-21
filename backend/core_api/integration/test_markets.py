@@ -57,7 +57,7 @@ async def test_locate(client: AsyncClient) -> None:
     assert r["currency"] == "INR" and r["min_order"] == "99.00" and r["status"] == "live"
 
     r = (await client.get("/api/v1/markets/locate", params={"lat": BOISE_DOWNTOWN[0], "lng": BOISE_DOWNTOWN[1]})).json()
-    assert r["serviceable"] and r["city_code"] == "US-ID-BOI" and r["status"] == "beta"
+    assert r["serviceable"] and r["city_code"] == "US-ID-BOI" and r["status"] == "live"  # R27: Boise is live
 
     r = (await client.get("/api/v1/markets/locate", params={"lat": KOKAPET_DRAFT[0], "lng": KOKAPET_DRAFT[1]})).json()
     assert not r["serviceable"] and "Hyderabad" in r["reason"]

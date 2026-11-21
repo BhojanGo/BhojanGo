@@ -46,7 +46,7 @@ class MarketsTests(unittest.TestCase):
                          {"IN": "DeepTrics Software Solutions Pvt Ltd", "US": "DeepTrics LLC"})
 
     def test_the_base_seed_data_is_unchanged(self) -> None:
-        self.assertEqual(md.city_statuses(COUNTRIES)["US-ID-BOI"], "beta")
+        self.assertEqual(md.city_statuses(COUNTRIES)["US-ID-BOI"], "live")
         self.assertEqual(md.city_statuses(COUNTRIES)["IN-TG-HYD"], "live")
 
     def test_rules_are_market_rules_only(self) -> None:

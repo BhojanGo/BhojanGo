@@ -72,9 +72,10 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
           <b className="shrink-0 text-label tabular-nums">{f.money(o.total, o.currency)}</b>
         </span>
         <span className="mt-[2px] block truncate text-small text-muted">{summary}</span>
-        <span className="mt-[6px] flex items-center justify-between gap-2 text-small text-muted">
-          <span className="min-w-0 truncate">
-            {z.date(at)}, {z.time(at)} · {orderCode(o.id)}
+        {/* R27: the order code is never cut ("#7..." at phone width); the status moves under it when short of room */}
+        <span className="mt-[6px] flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-small text-muted">
+          <span className="min-w-0">
+            <span className="whitespace-nowrap">{z.date(at)}, {z.time(at)}</span> · <span data-testid="order-code" className="whitespace-nowrap tabular-nums">{orderCode(o.id)}</span>
           </span>
           <StatusPill status={o.status} />
         </span>
@@ -156,7 +157,8 @@ export function OrdersView() {
             className="min-w-0 flex-grow bg-transparent text-[#111418] outline-none placeholder:text-muted"
           />
         </label>
-        <div role="group" aria-label={t("account.orders.filters")} className="mt-3 flex gap-2 overflow-x-auto">
+        {/* R27: chips wrap onto a second line at phone width; scrolling sideways cut "Cancelled" to "Cancellec" */}
+        <div role="group" aria-label={t("account.orders.filters")} className="mt-3 flex flex-wrap gap-2">
           {FILTERS.map((s) => (
             <button
               key={s}

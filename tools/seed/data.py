@@ -483,7 +483,8 @@ COUNTRIES = [
                 "code": "US-ID", "name": "Idaho", "status": "live", "timezone": "America/Boise", "settings": {},
                 "cities": [
                     {
-                        "code": "US-ID-BOI", "name": "Boise", "timezone": "America/Boise", "status": "beta", "center": (43.6150, -116.2023),
+                        # R27: live (R26: admin Markets said beta while the website listed it live)
+                        "code": "US-ID-BOI", "name": "Boise", "timezone": "America/Boise", "status": "live", "center": (43.6150, -116.2023),
                         "service_hours": {"open": "08:00", "close": "23:00"}, "settings": {},
                         "zones": [
                             ("Downtown", (43.605, -116.215, 43.625, -116.185), "15", "live", "#0B5D66"),
@@ -658,6 +659,7 @@ PHOTO_DISHES = {
     "poke-bowl": ["Poke Bowl", "Salmon Poke Bowl"],
     "ramen": ["Ramen", "Shoyu Ramen"],
     "samosa": ["Samosa", "Veg Samosa"],
+    "seafood-paella": ["Seafood Paella", "Paella Marinera"],  # R27: Boise's Basque Corner Kitchen
     "south-indian-thali": ["South Indian Thali"],
     "sushi": ["Sushi", "Sushi Platter"],
     "tacos": ["Tacos", "Street Tacos"],

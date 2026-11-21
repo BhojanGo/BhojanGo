@@ -35,6 +35,7 @@ from core_api.modules.markets.schemas import (
 )
 from core_api.modules.markets.service import delivery, kitchen_docs, legal, offer_ceiling, pay_methods, photos, rules
 from core_api.modules.markets.service.rules import MarketRuleError, ZoneState
+from core_api.modules.markets.service.website import website_status
 from shared import authz
 from shared.providers.routing import haversine_km
 
@@ -113,6 +114,7 @@ class MarketService:
             live_zone_count=sum(1 for s in states if s.is_open(now)),
             launch_checklist=checklist,
             waitlist=waitlist,
+            website=website_status(country, region, city),
         )
 
     async def city_detail(self, code: str) -> CityDetail:
