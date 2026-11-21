@@ -49,8 +49,10 @@ export function nextStep(o: Onboarding): Step | null {
   return o.steps.find((s) => actionable(s) && s.required) ?? o.steps.find(actionable) ?? null;
 }
 
-export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }: {
-  onboarding: Onboarding; floor?: string | null; onRefresh: () => void; showHeader?: boolean;
+export function Checklist({ onboarding: o, floor, onRefresh, onBack, title }: {
+  onboarding: Onboarding; floor?: string | null; onRefresh: () => void;
+  /** Opened from Account (R27): a Back button and the screen's title instead of the brand row. */
+  onBack?: () => void; title?: string;
 }) {
   const { t } = useI18n();
   const next = nextStep(o);
@@ -58,7 +60,14 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
   return (
     <SafeAreaView testID="checklist" style={ui.screen} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.body}>
-        {showHeader ? (
+        {onBack ? (
+          <View style={styles.head}>
+            <Pressable testID="back" accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={onBack} hitSlop={8} style={styles.back}>
+              <Icon name="back" />
+            </Pressable>
+            {title ? <Text accessibilityRole="header" numberOfLines={1} style={[type.h2, { color: night.text, flexShrink: 1 }]}>{title}</Text> : null}
+          </View>
+        ) : (
           <View style={styles.top}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <RiderMark />
@@ -68,8 +77,8 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
               <Text style={[type.label, { color: night.link }]}>{t("rider.checklist.help")}</Text>
             </Pressable>
           </View>
-        ) : null}
-        <Text accessibilityRole="header" style={[ui.h1, { marginTop: 24 }]}>
+        )}
+        <Text accessibilityRole="header" style={[ui.h1, { marginTop: onBack ? 8 : 24 }]}>
           {o.ready ? t("rider.checklist.ready_title", { name: o.first_name }) : t("rider.checklist.almost_title", { name: o.first_name })}
         </Text>
         <View style={styles.progressRow} accessibilityLabel={t("rider.checklist.progress", { done: o.done, total: o.total })}>
@@ -130,6 +139,9 @@ export function Checklist({ onboarding: o, floor, onRefresh, showHeader = true }
 
 const styles = StyleSheet.create({
   body: { paddingHorizontal: space[5], paddingBottom: space[6] },
+  // The same header row as Payouts: a 44 pt Back button, then the title.
+  head: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: -space[3], paddingTop: space[2] },
+  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   top: { paddingTop: 16, height: 60, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   help: { minHeight: 44, justifyContent: "center" },
   progressRow: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12 },
