@@ -1,5 +1,7 @@
 # R23: Payouts with a week below zero: nothing paid, the balance carried to next week's
-# statement, which shows "Carried from last week". The data comes from
+# statement, which shows "Carried from last week". R24: a week below zero on top of a carried
+# balance says the two apart ("This week came to ₹30.00 below zero." and "Still ₹50.00 below zero
+# from earlier weeks · carried to next week."). The data comes from
 # tools/mobile/carried_statement.py (stack-screens.sh runs it before this flow).
 # Throwaway stack only (.github/workflows/app-screens.yml).
 appId: com.bhojango.partner
@@ -21,9 +23,10 @@ appId: com.bhojango.partner
       id: "payout-statements"
     timeout: 30000
 - scrollUntilVisible:
-    element: "Carried from last week"
+    element: "This week came to .* below zero."
     timeout: 20000
-- assertVisible: ".*below zero.*"
+- assertVisible: "Still .* below zero from earlier weeks.*"
+- assertVisible: "Carried from last week"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-partner-payouts-carried

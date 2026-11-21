@@ -36,6 +36,10 @@
     "./security-headers": {
       "types": "./security-headers.d.ts",
       "default": "./security-headers.js"
+    },
+    "./statement": {
+      "types": "./statement.d.ts",
+      "default": "./statement.js"
     }
   },
   "scripts": {
@@ -44,7 +48,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js test/security-headers.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js test/security-headers.test.js test/statement.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -78,6 +82,8 @@
     "security-headers.js",
     "security-headers.d.ts",
     "legal-markdown.js",
-    "legal-markdown.d.ts"
+    "legal-markdown.d.ts",
+    "statement.js",
+    "statement.d.ts"
   ]
 }

@@ -27,6 +27,7 @@ from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStat
 from core_api.modules.finance.service import connect, payouts
 from core_api.modules.finance.service.payouts import FinanceError
 from core_api.modules.finance.service.providers import ConnectSetupError, PayoutError
+from core_api.modules.finance.service.statements import below_zero_text
 from core_api.modules.identity.api.dependencies import AdminContext, get_admin, require_permission
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
 from shared import authz
@@ -277,7 +278,8 @@ async def _invoice_pdf(db: AsyncSession, s, run) -> Response:  # type: ignore[no
         invoice_no=ci.invoice_number(str(s.id), issued), issued_at=issued, period_start=run.period_start, period_end=run.period_end,
         currency=s.currency, supplier=legal.entity(c.settings, c.tax_regime),
         kitchen=await restaurant_brief(db, s.payee_id) or {"name": s.payee_name},
-        commission=commission, rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)), tax=tax, orders=orders)
+        commission=commission, rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)), tax=tax, orders=orders,
+        balance=below_zero_text(s.amount, s.carried_in, s.currency))  # R24
     from starlette.concurrency import run_in_threadpool
 
     pdf = await run_in_threadpool(ci.render, inv)

@@ -1695,7 +1695,10 @@
       "tax_invoice": "Tax invoice",
       "tax_invoice_failed": "The invoice didn't open. Try again.",
       "carried_in": "Carried from last week",
-      "carried_note": "This week came to {amount} below zero, so nothing was paid. It carries to next week's statement; we never take it from your bank.",
+      "week_below": "This week came to {amount} below zero.",
+      "still_below": "Still {amount} below zero from earlier weeks · carried to next week.",
+      "carried_next": "Carried to next week.",
+      "never_bank": "A week below zero pays nothing and carries to next week's statement; we never take it from your bank.",
       "carried_collect": "Below zero for {weeks} weeks: our finance team will contact you to settle it."
     },
     "help": {

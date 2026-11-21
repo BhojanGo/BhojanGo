@@ -524,3 +524,19 @@ Machine-translated on 2026-11-20 into all seven languages; needs native review.
   statement), `carried_note` (a week below zero: nothing paid, carried to next week, never taken from the bank)
   and `carried_collect` (below zero for {weeks} weeks; finance will contact the kitchen). Money wording: "never
   taken from your bank" must not read as a promise about the kitchen's bank fees, only that we don't debit it.
+
+## Kitchen statements below zero, the week and the balance apart (round 24)
+
+Machine-translated on 2026-11-20 into all seven languages; needs native review.
+
+- BhojanGo Kitchen app Payouts, under a statement below zero. `partner.payouts.carried_note` (round 23) is
+  gone; in its place:
+  - `partner.payouts.week_below` ("This week came to {amount} below zero."): this week's own result only.
+  - `partner.payouts.still_below` ("Still {amount} below zero from earlier weeks · carried to next week."):
+    what earlier weeks left below zero and this week didn't cover. Shown on its own, or after `week_below`;
+    the two amounts add up to the statement's total, so "still" must read as "remaining from before", not
+    "in addition again".
+  - `partner.payouts.carried_next` ("Carried to next week."): after `week_below` when nothing was carried in.
+  - `partner.payouts.never_bank` ("A week below zero pays nothing and carries to next week's statement; we
+    never take it from your bank."): said once under the statements. Same money wording as round 23: only
+    that we don't debit the kitchen's bank, nothing about bank fees.

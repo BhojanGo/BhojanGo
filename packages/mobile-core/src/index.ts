@@ -10,6 +10,8 @@ export { DENSE_FONT_SCALE, face, field, FLUID, fontAuditEnabled, MIN_READABLE, n
 export type { Script, TypeRole } from "./ui/type";
 export { FontAudit } from "./ui/font-audit";
 export { billTotal } from "@bhojango/ui/bill";
+// R24: what a kitchen statement below zero says (this week; still from earlier weeks), shared with admin.
+export { belowZeroLines, type BelowZeroLine } from "@bhojango/ui/statement";
 // Round 5: the floating tab bar's geometry and the room every tab screen leaves for it.
 export { aboveTabBar, sceneEndSpace, TAB_BAR_BREATHING, TAB_BAR_GAP, TAB_BAR_HEIGHT, TAB_BAR_INSET_GAP, TAB_BAR_LIFT, tabBarBottom, tabBarClearance,
   tabBarZone } from "./tabbar";

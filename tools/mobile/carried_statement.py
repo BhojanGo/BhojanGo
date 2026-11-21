@@ -1,12 +1,14 @@
-"""Kitchen statements below zero on THIS machine's stack (R23), so the partner app's flow
-apps/partner/.maestro/stack/05-payouts-carried.yaml can screenshot Payouts with a week below zero
-("carried to next week") and the next week's "Carried from last week" line.
+"""Kitchen statements below zero on THIS machine's stack (R23, R24), so the partner app's flow
+apps/partner/.maestro/stack/05-payouts-carried.yaml can screenshot Payouts with a week below zero on
+top of a balance carried in (both lines: "This week came to ₹30.00 below zero." and "Still ₹50.00
+below zero from earlier weeks · carried to next week.") and the next week's "Carried from last week".
 
-Runs on the host (tools/mobile/stack-screens.sh): three weeks ago gets Spice Route Kitchen's
-statement at -₹50.00 (as a payout run leaves a week whose refunds outweighed its sales; written with
-psql in the stack's postgres container), admin approves it (nothing is sent: carried), finance
-prepares the week after it through the API (it carries the -₹50.00), the kitchen sets up payouts and
-admin approves. Last week is left to the payout scheduler, which may already have drafted it. Idempotent: a week that already has a run is left alone. Never against QA or
+Runs on the host (tools/mobile/stack-screens.sh), written with psql in the stack's postgres container
+as payout runs leave them: four weeks ago Spice Route Kitchen's statement comes to -₹50.00 (refunds
+outweighed its sales) and admin approves it (nothing is sent: carried); three weeks ago its own week
+is -₹30.00 on top of the -₹50.00 carried in (-₹80.00, carried again; the earlier statement names it in
+carried_to) and admin approves it; finance prepares the week after it through the API (it carries the
+-₹80.00), the kitchen sets up payouts and admin approves. Last week is left to the payout scheduler, which may already have drafted it. Idempotent: a week that already has a run is left alone. Never against QA or
 production (tools/target_guard.py).
     python tools/mobile/carried_statement.py [core url, default http://localhost:8001]
 """
@@ -43,21 +45,40 @@ with httpx.Client(timeout=60) as c:
     partner = sign_in(c, "partner.hyd@example.com", "BhojanGo123")
     kitchen = next(r["id"] for r in c.get(f"{CORE}/restaurants", params={"limit": 50}).json()["items"]
                    if r["name"] == "Spice Route Kitchen")
-    last, before = c.get(f"{CORE}/finance/payout-weeks", headers=finance, params={"country": "IN"}).json()["weeks"][1:3]
-    runs = {r["period_start"]: r for r in c.get(f"{CORE}/finance/payout-runs", headers=finance, params={"country": "IN"}).json()}
+    last, before, earlier = c.get(f"{CORE}/finance/payout-weeks", headers=finance, params={"country": "IN"}).json()["weeks"][1:4]
 
-    if before["start"] not in runs:  # the week below zero, as a run leaves it
+    def runs_by_week() -> dict:
+        return {r["period_start"]: r for r in c.get(f"{CORE}/finance/payout-runs", headers=finance, params={"country": "IN"}).json()}
+
+    def week_below_zero(wk: dict, amount: int, carried_in: int, weeks: int, summary: str) -> None:
+        """A run with Spice Route Kitchen's statement below zero, as a payout run leaves it; it carries
+        in the kitchen's earlier statement still below zero (carried_to names it, as create_run does)."""
         psql(f"""WITH r AS (INSERT INTO payout_runs (id, country, currency, period_start, period_end, status, totals, created_by)
-                 VALUES (gen_random_uuid(), 'IN', 'INR', '{before["start"]}', '{before["end"]}', 'draft', '{{"orders": 2}}',
-                         '00000000-0000-0000-0000-000000000000') RETURNING id)
-                 INSERT INTO payout_statements (id, run_id, payee_type, payee_id, payee_name, currency, amount, summary, lines,
-                                                status, attempts, carried_in, negative_weeks)
-                 SELECT gen_random_uuid(), r.id, 'restaurant', '{kitchen}', 'Spice Route Kitchen', 'INR', -5000,
-                        '{{"orders": 2, "net": "-50.00"}}', '[]', 'pending', 0, 0, 0 FROM r""")
-        runs = {r["period_start"]: r for r in c.get(f"{CORE}/finance/payout-runs", headers=finance, params={"country": "IN"}).json()}
-    if runs[before["start"]]["status"] == "draft":
-        r = c.post(f"{CORE}/finance/payout-runs/{runs[before['start']]['id']}/approve", headers=admin)
-        print("week below zero approved:", r.status_code, r.json().get("status"))
+                 VALUES (gen_random_uuid(), 'IN', 'INR', '{wk["start"]}', '{wk["end"]}', 'draft', '{{"orders": 2}}',
+                         '00000000-0000-0000-0000-000000000000') RETURNING id),
+                 s AS (INSERT INTO payout_statements (id, run_id, payee_type, payee_id, payee_name, currency, amount, summary, lines,
+                                                      status, attempts, carried_in, negative_weeks, negative_since)
+                 SELECT gen_random_uuid(), r.id, 'restaurant', '{kitchen}', 'Spice Route Kitchen', 'INR', {amount},
+                        '{summary}', '[]', 'pending', 0, {carried_in}, {weeks}, '{earlier["start"]}' FROM r RETURNING id)
+                 UPDATE payout_statements SET carried_to = (SELECT id FROM s)
+                  WHERE payee_type = 'restaurant' AND payee_id = '{kitchen}' AND amount < 0 AND carried_to IS NULL
+                    AND id <> (SELECT id FROM s)""")
+
+    def approve(wk: dict, what: str) -> None:
+        run = runs_by_week()[wk["start"]]
+        if run["status"] == "draft":
+            r = c.post(f"{CORE}/finance/payout-runs/{run['id']}/approve", headers=admin)
+            print(what, "approved:", r.status_code, r.json().get("status"))
+
+    runs = runs_by_week()
+    if earlier["start"] not in runs:  # four weeks ago: -50.00, nothing carried in
+        week_below_zero(earlier, -5000, 0, 1, '{"orders": 2, "net": "-50.00"}')
+    approve(earlier, "week below zero")
+    if before["start"] not in runs:  # three weeks ago: its own week -30.00 on top of the -50.00 carried in
+        week_below_zero(before, -8000, -5000, 2,
+                        '{"orders": 2, "net": "-30.00", "carried_from_last_week": "-50.00", "amount": "-80.00"}')
+    approve(before, "week below zero on a carried balance")
+    runs = runs_by_week()
 
     print("payout account:", c.post(f"{CORE}/finance/payout-accounts", headers=partner,
                                      json={"payee_type": "restaurant", "restaurant_id": kitchen}).status_code)
