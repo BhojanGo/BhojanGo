@@ -198,3 +198,97 @@ async def _track(websocket: WebSocket, order_id: str, current_user: CurrentUser,
         logger.error("ws_error", order_id=order_id, error=str(e))
     finally:
         manager.disconnect(websocket, order_id)
+
+
+# ── R27: the kitchen's socket ────────────────────────────────────────────────
+
+KITCHEN_KEEPALIVE_SECONDS = 25
+TRY_AGAIN_LATER = 1013
+
+
+@router.websocket("/ws/kitchen/{restaurant_id}")
+async def kitchen_socket(
+    websocket: WebSocket,
+    restaurant_id: str,
+    token: str | None = Query(default=None, description="JWT access token (prefer the Authorization header)"),
+) -> None:
+    """
+    The kitchen tablet's live board (R27): every change to the kitchen's orders (a new paid
+    order, accepted, ready, cancelled, a rider assigned) as it happens; the tablet refreshes its
+    board on each and keeps polling as a fallback. Only the kitchen's staff (its owner: the
+    account BhojanGo Kitchen signs in with) may open it; anyone else is closed with 4004
+    (1013 when core_api can't say: the tablet tries again).
+
+    The tablet sends "ping" every 10 s and gets "pong"; each ping (and the opening) is the
+    tablet's heartbeat (shared/kitchen_live.py): a kitchen whose tablet has sent none for 60 s
+    stops taking orders until it does. Closes with 4401 when the token expires (reconnect with
+    a fresh one) and 4429 when the account has too many sockets open.
+
+    Messages: {"type": "connected" | "order_changed" | "ping", "payload": {...}, "timestamp": "..."}
+    and the text "pong".
+    """
+    auth_token = _extract_ws_token(websocket, token)
+    if not auth_token:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+    try:
+        current_user = socket_user(auth_token)
+    except Exception:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+    from app.services.core_api import core_api
+
+    try:
+        uuid.UUID(restaurant_id)
+        staff = await core_api.kitchen_staff(restaurant_id, current_user.user_id)
+    except ValueError:
+        staff = False
+    except CoreApiError:
+        # core_api didn't answer: "try again later" (the tablet reconnects; 4004 would stop it for good)
+        await websocket.close(code=TRY_AGAIN_LATER, reason="Try again")
+        return
+    if not staff:
+        await websocket.close(code=4004, reason="Kitchen not found")
+        return
+    try:
+        async with sockets.limits.hold(current_user.user_id, sockets.address(websocket)):
+            await _kitchen(websocket, restaurant_id, current_user)
+    except sockets.TooManySockets:
+        await websocket.close(code=sockets.TOO_MANY, reason="Too many connections")
+
+
+async def _kitchen(websocket: WebSocket, restaurant_id: str, current_user: CurrentUser) -> None:
+    from app.core.redis import kitchen_channel
+    from shared import kitchen_live
+
+    await websocket.accept()
+    redis = await get_redis()
+    try:
+        await kitchen_live.beat(restaurant_id, "socket", redis)
+        await websocket.send_json({"type": "connected", "payload": {"restaurant_id": restaurant_id},
+                                   "timestamp": datetime.now(UTC).isoformat()})
+
+        async def forward(q: "asyncio.Queue[str]") -> None:
+            while True:
+                await websocket.send_text(await q.get())
+
+        async def keepalive() -> None:
+            while True:
+                await asyncio.sleep(KITCHEN_KEEPALIVE_SECONDS)
+                await websocket.send_json({"type": "ping", "payload": {}, "timestamp": datetime.now(UTC).isoformat()})
+
+        async with hub.subscribe(kitchen_channel(restaurant_id)) as q:
+            tasks = [asyncio.create_task(forward(q)), asyncio.create_task(keepalive()),
+                     asyncio.create_task(sockets.close_at(websocket, current_user.exp))]
+            try:
+                while True:
+                    if await websocket.receive_text() == "ping":
+                        await kitchen_live.beat(restaurant_id, "socket", redis)
+                        await websocket.send_text("pong")
+            except (WebSocketDisconnect, RuntimeError):
+                pass  # the tablet left, or a task above closed the socket
+            finally:
+                for t in tasks:
+                    t.cancel()
+    except Exception as e:  # noqa: BLE001
+        logger.error("ws_kitchen_error", restaurant_id=restaurant_id, error=str(e))

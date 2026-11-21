@@ -147,8 +147,15 @@ async def list_restaurant_orders(
     limit: int = Query(20, ge=1, le=100),
 ) -> OrderListResponse:
     """A restaurant's orders: its owner, or an admin with orders.view for its city."""
-    if not await _can_see_restaurant(db, current_user, restaurant_id):
+    owner = await _owns_restaurant(db, current_user, restaurant_id)
+    if not owner and not await _can_see_restaurant(db, current_user, restaurant_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if owner:
+        # R27: the kitchen's own tablet polling its board is a heartbeat (shared/kitchen_live.py);
+        # an admin looking at the board is not.
+        from shared import kitchen_live
+
+        await kitchen_live.beat(restaurant_id, "poll")
     # R22: every kitchen tablet asks for this every 4 s, and it is up to 100 whole orders. The JSON
     # is kept in each process until the kitchen's orders change, or a name on them, or a market
     # (database cache versions: shared/cache_versions.py). Who may see it is checked above, each time.

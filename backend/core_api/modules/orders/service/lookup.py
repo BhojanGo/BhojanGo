@@ -33,6 +33,7 @@ async def order_for_payment(db: AsyncSession, order_id: uuid.UUID, customer_id: 
         "currency": order.currency,
         "country": (order.market_city or "")[:2] or ("IN" if order.currency == "INR" else "US"),
         "payment_due_at": order.payment_due_at.isoformat() if order.payment_due_at else None,
+        "restaurant_id": order.restaurant_id,
     }
 
 

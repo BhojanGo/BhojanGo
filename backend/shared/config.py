@@ -139,6 +139,12 @@ class CatalogSettings(BaseSettings):
     # (PUBLIC_API_URL) and AWS_CLOUDFRONT_URL, e.g. ["photos.bhojango.com"]. Empty: none.
     PHOTO_HOSTS: list[str] = []
 
+    # R27: a kitchen takes orders only while its tablet is live (shared/kitchen_live.py): its
+    # BhojanGo Kitchen app sent a heartbeat (realtime socket ping or board poll) in the last 60 s.
+    # "auto" = on, except APP_ENV development/dev/local/test (make dev, CI, the e2e stacks, whose
+    # flows order from kitchens with no tablet open); "1" / "0" force it on or off.
+    KITCHEN_TABLET_REQUIRED: str = "auto"
+
     OPENSEARCH_URL: str = "http://localhost:9200"
     OPENSEARCH_INDEX_RESTAURANTS: str = "bhojango-restaurants"
     OPENSEARCH_INDEX_MENU_ITEMS: str = "bhojango-menu-items"

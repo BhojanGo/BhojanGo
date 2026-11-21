@@ -31,6 +31,10 @@ x-backend-env: &backend-env
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
   ROUTING_PROVIDER: straight_line
+  # R27: a kitchen takes orders only while its tablet (BhojanGo Kitchen) is connected. "auto" = off
+  # here (APP_ENV development: flows order from kitchens with no tablet open); set 1 to try it:
+  #   KITCHEN_TABLET_REQUIRED=1 make dev
+  KITCHEN_TABLET_REQUIRED: ${KITCHEN_TABLET_REQUIRED:-auto}
   STORAGE_PROVIDER: s3   # uploads go to the bhojango-uploads bucket in LocalStack
   # realtime -> core_api internal calls are HMAC-signed (shared/internal_auth.py)
   INTERNAL_SERVICE_SECRET: local-internal-secret

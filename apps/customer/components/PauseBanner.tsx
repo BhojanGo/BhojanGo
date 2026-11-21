@@ -28,11 +28,11 @@ export function useOrderingPauses(): Pause[] {
 
 /** R19: why this kitchen's dishes can't go in the bag now (worded), or null: the city's ordering
  *  paused, the kitchen closed for now (an incident), or the kitchen not open. */
-export function useKitchenBlock(r: { is_open?: boolean | null; closed_for_now?: boolean | null } | null | undefined): string | null {
+export function useKitchenBlock(r: { is_open?: boolean | null; closed_for_now?: boolean | null } | null | undefined, notTaking = false): string | null {
   const { t } = useI18n();
   const paused = useOrderingPauses().length > 0;
   if (!r) return paused ? t("kitchen.bag_paused") : null;
-  const key = orderingBlock({ paused, closedForNow: r.closed_for_now, isOpen: r.is_open });
+  const key = orderingBlock({ paused, closedForNow: r.closed_for_now, isOpen: r.is_open, notTaking });
   return key ? t(key) : null;
 }
 

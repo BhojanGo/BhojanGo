@@ -78,6 +78,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
               )
             ) : null}
             {!k.open_now && k.closed_for_now ? <Text testID="closed-for-now" style={{ color: color.muted }}> · {t("kitchen.closed_for_now")}</Text> : null}
+            {!k.open_now && k.not_taking_orders ? <Text testID="not-taking-orders" style={{ color: color.muted }}> · {t("kitchen.not_taking_orders")}</Text> : null}
             {!k.open_now && !k.closed_for_now && k.opens_at ? <Text style={{ color: color.muted }}> · {t("common.closed_opens", { time: wallTime(k.opens_at, time) })}</Text> : null}
           </Text>
         </View>

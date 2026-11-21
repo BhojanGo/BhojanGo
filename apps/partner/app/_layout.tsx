@@ -1,5 +1,6 @@
 import {
   color, FontAudit, fontAuditEnabled, I18nProvider, UnreachableScreen, useBrandFonts, useKnownCountry, usePushRegistration, useSession, WithTestBanner,
+  type PushChannel,
 } from "@bhojango/mobile-core";
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
@@ -10,12 +11,20 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
-import { useBoardLoop } from "../lib/board";
+import { useBoard, useBoardLoop } from "../lib/board";
 import { useKitchen } from "../lib/data";
 import { useOrientationLock } from "../lib/layout";
 import { WithOfflineBanner } from "../lib/offline";
 
 void SplashScreen.preventAutoHideAsync();
+
+// R27: a push that arrives while the app is open still shows and sounds (a new order: the board
+// rings too; if the board ever falls behind, this is the alert that still gets through).
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+});
+
+const NEW_ORDER_CHANNELS: PushChannel[] = [{ id: "new_orders", name: "New orders", sound: "new_order.wav", max: true }];
 
 // Error reports to Sentry (R19, the free plan), only when the build sets EXPO_PUBLIC_SENTRY_DSN
 // (without it: no init, no network).
@@ -30,7 +39,9 @@ export default function RootLayout() {
   const status = useSession((s) => s.status);
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
-  usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId); // R19: after sign-in
+  // R19: after sign-in. R27: new orders ring on their own channel with the tablet's sound (the
+  // worker's partner_new_order push: channel "new_orders", new_order.wav, bundled by app.json).
+  usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId, NEW_ORDER_CHANNELS);
   // R20: the languages are the kitchen's country's (Markets locales): the kitchen's country once it
   // has loaded, else the account's; signed out, the phone's region (I18nProvider rule "partner").
   const accountCountry = useSession((s) => s.user?.country);
@@ -41,6 +52,13 @@ export default function RootLayout() {
   const kitchen = useKitchen((s) => s.kitchen);
   const watching = status === "signed-in" && kitchen?.status === "active";
   useBoardLoop(watching ? kitchen.id : undefined);
+  // R27: a new-order push while the app is open: the board refreshes at once (it may be ahead of the poll).
+  useEffect(() => {
+    if (!watching) return;
+    const id = kitchen.id;
+    const sub = Notifications.addNotificationReceivedListener(() => void useBoard.getState().refresh(id));
+    return () => sub.remove();
+  }, [watching, kitchen?.id]);
 
   useEffect(() => {
     void initialize();

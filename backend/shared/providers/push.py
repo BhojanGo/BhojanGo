@@ -31,6 +31,10 @@ class PushMessage:
     title: str
     body: str
     data: dict[str, str] = field(default_factory=dict)
+    # R27: a kitchen's new order rings with the tablet's own sound on its own Android channel
+    # (apps/partner registers "new_orders" with new_order.wav); everything else: the default.
+    channel: str = "orders"
+    sound: str = "default"
 
 
 @dataclass
@@ -86,7 +90,7 @@ class ExpoPush:
         for i in range(0, len(devices), 100):  # Expo takes 100 messages per request
             batch = devices[i:i + 100]
             body = [{"to": d.token, "title": message.title, "body": message.body, "data": message.data,
-                     "sound": "default", "priority": "high", "channelId": "orders"} for d in batch]
+                     "sound": message.sound, "priority": "high", "channelId": message.channel} for d in batch]
             try:
                 async with (self.client or httpx.AsyncClient(timeout=10)) as client:
                     r = await client.post(self.URL, json=body, headers=headers)
@@ -125,7 +129,8 @@ class FcmPush:
         resp = messaging.send_each_for_multicast(messaging.MulticastMessage(
             notification=messaging.Notification(title=message.title, body=message.body),
             data=message.data, tokens=tokens,
-            android=messaging.AndroidConfig(priority="high"),
+            android=messaging.AndroidConfig(priority="high", notification=messaging.AndroidNotification(
+                channel_id=message.channel, sound=message.sound)),
         ), app=app)
         invalid = [t for t, r in zip(tokens, resp.responses)
                    if not r.success and isinstance(r.exception, (messaging.UnregisteredError, messaging.SenderIdMismatchError))]
@@ -161,7 +166,7 @@ class ApnsPush:
         host = "https://api.sandbox.push.apple.com" if p.APNS_SANDBOX else "https://api.push.apple.com"
         headers = {"authorization": f"bearer {self._token()}", "apns-topic": p.APNS_BUNDLE_ID,
                    "apns-push-type": "alert", "apns-priority": "10"}
-        payload = {"aps": {"alert": {"title": message.title, "body": message.body}, "sound": "default"}, **message.data}
+        payload = {"aps": {"alert": {"title": message.title, "body": message.body}, "sound": message.sound}, **message.data}
         result = PushResult()
         async with (self.client or httpx.AsyncClient(http2=True, timeout=10)) as client:
             for d in devices:

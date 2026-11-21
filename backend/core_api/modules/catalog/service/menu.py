@@ -42,6 +42,9 @@ class Availability:
     paused_reason: str | None
     closed_for_now: bool = False  # R17: paused by an admin; customers see "Closed for now"
     back_at: datetime | None = None  # when it opens again by itself, if the admin set a time
+    # R27: open by its hours and settings, but its tablet (BhojanGo Kitchen) has sent no heartbeat
+    # for 60 s: customers see "Not taking orders right now" (shared/kitchen_live.py).
+    no_tablet: bool = False
 
 
 # R22: a kitchen's market and its hours, kept in each process until the kitchen, its hours or
@@ -135,12 +138,43 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
         reason = f"Deliveries run {service_hours['open']}–{service_hours['close']}"  # type: ignore[index]
     else:
         reason = None
+    no_tablet = reason is None and not await tablet_live(db, r, code)
+    if no_tablet:
+        reason = NO_TABLET
     return Availability(
         restaurant_id=str(r.id), listed=r.is_active and not paused, open_now=reason is None, reason=reason,
         next_open_at=nxt.replace(tzinfo=tz) if nxt else None, local_time=local, timezone=str(tz), city_code=code,
         paused_reason=r.paused_reason or (FSSAI_EXPIRED if licence_problem(r, local.date(), fssai) else None),
-        closed_for_now=r.closed_for_now, back_at=r.admin_paused_until if r.closed_for_now else None,
+        closed_for_now=r.closed_for_now, back_at=r.admin_paused_until if r.closed_for_now else None, no_tablet=no_tablet,
     )
+
+
+NO_TABLET = "Not taking orders right now"
+
+
+async def tablet_live(db: AsyncSession, r: Restaurant, city_code: str | None) -> bool:
+    """R27: may this kitchen take orders as far as its tablet goes? Yes where no tablet is required
+    (make dev, CI: shared/kitchen_live.required), in a review-only city (the app store reviewers'
+    kitchens, played by the review simulator), or while its tablet is live."""
+    from shared import kitchen_live
+
+    if not kitchen_live.required():
+        return True
+    if await kitchen_live.is_live(r.id):
+        return True
+    from core_api.modules.markets.service import review
+
+    return review.is_review_only(await review.city_settings(db, city_code))
+
+
+async def tablet_offline(db: AsyncSession, restaurant_id: uuid.UUID) -> str | None:
+    """R27, for order creation and payment: "<kitchen> isn't taking orders right now" when the
+    kitchen's tablet isn't live (it needs one here), else None."""
+    r = await db.get(Restaurant, restaurant_id)
+    if r is None:
+        return None
+    code = (await restaurant_market(db, r))[0]
+    return None if await tablet_live(db, r, code) else f"{r.name} isn't taking orders right now"
 
 
 # ── option groups ─────────────────────────────────────────────────────────────

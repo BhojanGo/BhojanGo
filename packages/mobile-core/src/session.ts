@@ -211,20 +211,56 @@ export const api = createApi({
  * is called. realtime closes a socket when its token expires (4401, R22 S10): the token is
  * refreshed and the socket reopened at once. A refused socket (4004 not yours, 4403 no longer
  * yours, 4429 too many) isn't reopened; other drops retry with a growing wait.
+ *
+ * R27 `heartbeatMs` (the kitchen socket): send "ping" that often; a socket that hears nothing
+ * (no message, no "pong") for 2.5 heartbeats is treated as dead (a half-open connection never
+ * fires onclose) and reopened. `onState` hears when the socket opens and closes.
  */
-export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => void): () => void {
+export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => void,
+  options: { heartbeatMs?: number; onState?: (open: boolean) => void } = {}): () => void {
   let stopped = false;
   let ws: WebSocket | null = null;
   let retry: ReturnType<typeof setTimeout> | null = null;
+  let beat: ReturnType<typeof setInterval> | null = null;
   let failures = 0;
+  let heard = 0;
+  const { heartbeatMs, onState } = options;
+  const quiet = () => {
+    if (beat) clearInterval(beat);
+    beat = null;
+  };
   const open = () => {
     if (stopped) return;
-    ws = new WebSocket(wsUrl(path));
-    ws.onopen = () => {
+    const socket = new WebSocket(wsUrl(path));
+    ws = socket;
+    socket.onopen = () => {
       failures = 0;
+      heard = Date.now();
+      onState?.(true);
+      if (heartbeatMs) {
+        quiet();
+        beat = setInterval(() => {
+          if (Date.now() - heard > heartbeatMs * 2.5) {
+            quiet();
+            socket.close(); // dead without a close: onclose reopens it
+            return;
+          }
+          try {
+            socket.send("ping");
+          } catch {
+            // closing already
+          }
+        }, heartbeatMs);
+      }
     };
-    ws.onmessage = (e) => onMessage(e);
-    ws.onclose = (e) => {
+    socket.onmessage = (e) => {
+      heard = Date.now();
+      onMessage(e);
+    };
+    socket.onclose = (e) => {
+      if (ws !== socket) return; // an older socket closing late
+      quiet();
+      onState?.(false);
       const code = e.code ?? 0;
       if (stopped || [4004, 4403, 4429].includes(code)) return;
       failures += 1;
@@ -241,6 +277,7 @@ export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => v
   open();
   return () => {
     stopped = true;
+    quiet();
     if (retry) clearTimeout(retry);
     ws?.close();
   };

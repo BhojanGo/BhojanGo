@@ -10,6 +10,9 @@ test("a pause or a closed kitchen blocks adding dishes, the pause named first", 
   assert.equal(orderingBlock({ paused: true, closedForNow: true, isOpen: false }), "kitchen.bag_paused");
   assert.equal(orderingBlock({ paused: false, closedForNow: true, isOpen: true }), "kitchen.bag_closed_for_now");
   assert.equal(orderingBlock({ paused: false, closedForNow: false, isOpen: false }), "kitchen.bag_closed_for_now");
+  // R27: open, but the kitchen's tablet isn't connected
+  assert.equal(orderingBlock({ paused: false, closedForNow: false, isOpen: true, notTaking: true }), "kitchen.not_taking_orders");
+  assert.equal(orderingBlock({ paused: true, notTaking: true }), "kitchen.bag_paused");
 });
 
 test("production never opens the test payment sheet", () => {

@@ -24,7 +24,9 @@ export default function RestaurantScreen() {
   const bag = useBag();
   const inBag = bag.restaurantId === id ? bag.lines.reduce((n, l) => n + l.quantity, 0) : 0;
   // R19: the city's ordering paused, or the kitchen closed: every dish's "+" is off, with the reason.
-  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined);
+  // R27: the kitchen's tablet isn't connected (its card from discover says so): not taking orders right now.
+  const notTaking = Boolean(card?.not_taking_orders);
+  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined, notTaking);
 
   if (!menu) {
     return (
@@ -36,7 +38,7 @@ export default function RestaurantScreen() {
   const r = menu.restaurant;
   const offer = card?.offer ?? null;
   const forNow = Boolean((r as { closed_for_now?: boolean }).closed_for_now); // R17: paused by BhojanGo (an incident)
-  const open = r.is_open !== false && !forNow;
+  const open = r.is_open !== false && !forNow && !notTaking;
   const total = bag.lines.reduce((n, l) => n + l.unitPrice * l.quantity, 0);
   return (
     <View testID="kitchen" style={{ flex: 1, backgroundColor: color.porcelain }}>
@@ -61,7 +63,7 @@ export default function RestaurantScreen() {
                   <Text style={[type.label, { color: color.kohl }]}>{offerBadge(offer, t, money, r.currency)}</Text>
                 </View>
               ) : null}
-              {!open ? <Txt testID={forNow ? "kitchen-closed-for-now" : undefined} variant="small" style={{ color: color.chili }}>{t(forNow ? "kitchen.closed_for_now_note" : "kitchen.closed_note")}</Txt> : null}
+              {!open ? <Txt testID={forNow ? "kitchen-closed-for-now" : undefined} variant="small" style={{ color: color.chili }}>{t(forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}</Txt> : null}
               {r.description ? <Txt variant="small" style={{ color: color.muted }}>{r.description}</Txt> : null}
             </View>
           </View>

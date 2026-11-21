@@ -57,7 +57,7 @@ from typing import Any
 
 import structlog
 
-from app.core.redis import get_redis, order_tracking_channel
+from app.core.redis import get_redis, kitchen_channel, order_tracking_channel
 from app.services.core_api import CoreApiError, core_api
 from app.services.eta import distance_left_eta
 from shared.config import get_settings
@@ -753,6 +753,8 @@ async def _republish_eta(order: str) -> None:
 # ── order events (from SQS) ───────────────────────────────────────────────────
 
 DISPATCH_STATES = ("almost_ready", "ready")
+# R27: order events a kitchen's board shows (a new paid order, every change, a rider on it).
+KITCHEN_EVENTS = frozenset({"order.placed", "order.status_changed", "order.cancelled", "driver.assigned"})
 
 
 async def on_order_event(event: dict) -> None:
@@ -772,6 +774,10 @@ async def on_order_event(event: dict) -> None:
     if (kind == "order.status_changed" and status in DISPATCH_STATES and not p.get("driver_id")
             and not await r.exists(in_batch_offer_key(order))):
         await start_dispatch(order)
+    if kind in KITCHEN_EVENTS and p.get("restaurant_id"):
+        # R27: the kitchen's tablet refreshes its board on each of these (/ws/kitchen/{id}).
+        await _publish(kitchen_channel(p["restaurant_id"]), "order_changed", {
+            "order_id": order, "status": status, "event": kind})
     if kind in ("order.status_changed", "order.cancelled", "driver.assigned"):
         await _publish(order_tracking_channel(order), "status_change", {"order_id": order, "status": status,
                                                                         "driver_id": p.get("driver_id")})

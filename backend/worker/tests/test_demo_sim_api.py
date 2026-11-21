@@ -237,6 +237,7 @@ async def test_orders_again_from_an_open_kitchen(services: Services, monkeypatch
 
 def row(oid: str, status: str, *, seeded: bool = False, driver: str | None = None, picked: datetime | None = None):  # type: ignore[no-untyped-def]
     return SimpleNamespace(id=oid, status=status, customer_email=CUSTOMER.email, driver_id=driver, owner_id=OWNER.id,
+                           restaurant_id="kitchen-of-past-1",
                            pickup_lat=KITCHEN[0], pickup_lng=KITCHEN[1], delivery_lat=HOME[0], delivery_lng=HOME[1],
                            created_at=NOW - timedelta(minutes=30), placed_at=NOW - timedelta(minutes=29),
                            restaurant_accepted_at=NOW - timedelta(minutes=28), rider_assigned_at=NOW - timedelta(minutes=20),
@@ -266,9 +267,24 @@ def fake_db(orders: list, last_delivered: datetime | None):  # type: ignore[no-u
 
         async def execute(self, sql, params=None):  # type: ignore[no-untyped-def]
             return Result({id(runner.USER_SQL): CUSTOMER, id(runner.ORDERS_SQL): orders,
-                           id(runner.LAST_DELIVERED_SQL): last_delivered, id(runner.OWNER_SQL): OWNER}[id(sql)])
+                           id(runner.LAST_DELIVERED_SQL): last_delivered, id(runner.OWNER_SQL): OWNER,
+                           id(runner.PLAYED_KITCHENS_SQL): [("kitchen-of-past-1",), ("kitchen-of-past-2",)]}[id(sql)])
 
     return Db
+
+
+async def test_a_tick_keeps_the_kitchens_it_plays_open(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """R27: a kitchen takes orders only while a tablet (or, on QA and make dev, the simulator) says
+    it is there; each tick the simulator says so for every kitchen it orders from (shared/kitchen_live)."""
+    from shared import kitchen_live
+
+    monkeypatch.setattr(runner, "AsyncSessionLocal", fake_db([], NOW - timedelta(minutes=1)))
+    city = runner.City(api_for(services), "hyd", [RIDER])
+    await city.tick(NOW)
+    r = await runner.get_redis()
+    for k in ("kitchen-of-past-1", "kitchen-of-past-2"):
+        assert await r.ttl(kitchen_live.sim_key(k)) > 0, k
+        assert (await kitchen_live.status(k, r)).by_simulator
 
 
 async def test_a_tick_drives_only_its_own_orders(services: Services, monkeypatch) -> None:  # type: ignore[no-untyped-def]

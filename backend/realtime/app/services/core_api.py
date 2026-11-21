@@ -36,6 +36,10 @@ class CoreApi:
             body |= {"batch_id": batch_id, "batch_position": position}
         return await self._call("POST", f"/api/v1/internal/orders/{order_id}/assign-rider", body)
 
+    async def kitchen_staff(self, restaurant_id: str, user_id: str) -> bool:
+        """R27: may this account watch the kitchen's orders (its BhojanGo Kitchen tablet)?"""
+        return bool((await self._call("GET", f"/api/v1/internal/restaurants/{restaurant_id}/staff/{user_id}")).get("staff"))
+
     async def rider_ready(self, rider_id: str) -> dict:
         """Has the rider finished onboarding (documents approved, background check cleared)?"""
         return await self._call("GET", f"/api/v1/internal/riders/{rider_id}/ready")

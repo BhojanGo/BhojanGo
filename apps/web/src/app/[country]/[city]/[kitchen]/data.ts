@@ -16,6 +16,7 @@ export interface Availability {
   opens_at?: string | null;
   closes_at?: string | null;
   closed_for_now?: boolean; // R17: paused by an admin
+  not_taking_orders?: boolean; // R27: open by its hours, but its tablet isn't connected
   back_at?: string | null;
 }
 

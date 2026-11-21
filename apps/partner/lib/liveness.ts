@@ -9,6 +9,8 @@
 export const OFFLINE_AFTER_MS = 15000;
 /** Poll this often while the socket is up (a fallback; the socket brings each change at once). */
 export const POLL_WITH_SOCKET_MS = 12000;
+/** The kitchen socket's ping (the server answers "pong"; each ping is the tablet's heartbeat). */
+export const SOCKET_HEARTBEAT_MS = 10000;
 /** Poll this often while the socket is down. */
 export const POLL_WITHOUT_SOCKET_MS = 4000;
 /**
