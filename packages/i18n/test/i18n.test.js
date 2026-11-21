@@ -178,7 +178,7 @@ test("R27: cuisine tags come from the catalog, unknown ones stay as written", ()
   const es = createTranslator("es", require("../messages/es.json"), require("../messages/en.json"));
   assert.equal(cuisineKey("Middle Eastern"), "cuisine_names.middle_eastern");
   assert.equal(cuisineName(es, "Coffee"), "Café");
-  assert.equal(cuisineName(es, "South Indian"), "India del sur");
+  assert.equal(cuisineName(es, "South Indian"), "Comida sudindia");
   assert.equal(cuisineName(es, "Basque Fusion Lab"), "Basque Fusion Lab");
 });
 

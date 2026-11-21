@@ -10,7 +10,7 @@ import type { BillLine } from "@/lib/server";
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
 export function billLabel(ln: BillLine, t: T, distance?: string | null): string {
-  // R27: the engine's lines and the known tax lines ("Idaho sales tax", "GST on food") in the
+  // R27: the engine's lines and the known tax lines ("<state> sales tax", "GST on food") in the
   // language (@bhojango/i18n billLineLabel); offers keep the rule's own name (terms).
   const base = billLineLabel(t, ln);
   return ln.code === "delivery_fee" && distance ? `${base} · ${distance}` : base;
