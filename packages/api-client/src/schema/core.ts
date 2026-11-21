@@ -10165,6 +10165,11 @@ export interface components {
             time_zone?: string | null;
             /** Today Orders */
             today_orders: number;
+            /**
+             * Today Refunds
+             * @default 0
+             */
+            today_refunds?: string;
             /** Today Sales */
             today_sales: string;
         };

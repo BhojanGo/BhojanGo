@@ -129,7 +129,9 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
     <View style={{ flex: 1, minWidth: 0 }}>
       <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>
       <Text style={[t.muted, { marginTop: 2 }]} numberOfLines={phone ? 2 : undefined}>
-        {[today?.area, today ? tr("partner.orders.today_orders", { count: today.today_orders }) : null, today ? cash(today.today_sales, cur) : null]
+        {[today?.area, today ? tr("partner.orders.today_orders", { count: today.today_orders }) : null, today ? cash(today.today_sales, cur) : null,
+          // R27: sales are net of the refunds charged to the kitchen; say how much came off
+          today && Number(today.today_refunds ?? 0) > 0 ? tr("partner.orders.today_refunds", { amount: cash(today.today_refunds, cur) }) : null]
           .filter(Boolean).join(" · ")}
       </Text>
     </View>

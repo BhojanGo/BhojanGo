@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { receiptRefunds } from "@bhojango/ui/bill";
+
 import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
 import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { FairBill } from "@/components/FairBill";
@@ -23,6 +25,9 @@ interface Bill {
   lines: BillLine[];
   distance?: string | number | null;
   distance_unit?: string | null;
+  /** R27: refunds on the order and what was paid after them */
+  refunds?: { amount: string; kind: string; reason: string; items: string[] }[];
+  paid?: string;
 }
 
 interface Reorder {
@@ -88,6 +93,9 @@ export function Receipt({ id }: { id: string }) {
   const addr = (order.delivery_address ?? {}) as { label?: string; street?: string; city?: string };
   const payKey = `account.pay.${order.payment_method}`;
   const payLabel = t(payKey) === payKey ? order.payment_method : t(payKey);
+  // R27: refunds ("Refunded 4.51 · missing item") and what was paid after them; a cancelled order refunded in full has a receipt too
+  const back = bill ? receiptRefunds(bill, cancelled) : { refunds: [], refunded: 0, paid: 0 };
+  const hasReceipt = !cancelled || back.refunds.length > 0;
   const distance = bill?.distance != null && bill.distance !== "" ? t(bill.distance_unit === "mi" ? "common.mi" : "common.km", { n: f.number(Number(bill.distance)) }) : null;
 
   async function download() {
@@ -174,7 +182,7 @@ export function Receipt({ id }: { id: string }) {
               {t("account.receipt.report")}
             </Link>
           )}
-          {!cancelled && (
+          {hasReceipt && (
             <button type="button" onClick={download} disabled={busy !== null} className={ghost}>
               {busy === "pdf" ? t("account.receipt.downloading") : gst ? t("account.receipt.tax_invoice") : t("account.receipt.receipt_pdf")}
             </button>
@@ -221,7 +229,7 @@ export function Receipt({ id }: { id: string }) {
               formatLocale={f.formatLocale}
               t={t}
               distance={distance}
-              totalLabel={cancelled ? t("account.receipt.total") : t("account.receipt.you_paid")}
+              totalLabel={cancelled || back.refunds.length ? t("account.receipt.total") : t("account.receipt.you_paid")}
             />
           ) : (
             <>
@@ -231,6 +239,20 @@ export function Receipt({ id }: { id: string }) {
                 <b className="text-h3 tabular-nums">{f.money(order.total, order.currency)}</b>
               </div>
             </>
+          )}
+          {bill && back.refunds.length > 0 && (
+            <div data-testid="receipt-refunds" className="mt-3 flex flex-col gap-2 text-body">
+              {back.refunds.map((r, n) => (
+                <div key={n} className="flex justify-between gap-3">
+                  <span>{t("account.receipt.refund_line", { amount: f.money(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}</span>
+                  <span className="shrink-0 tabular-nums">{f.money(-r.amount, bill.currency)}</span>
+                </div>
+              ))}
+              <div className="flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-3">
+                <b className="text-h3">{t("account.receipt.total_paid")}</b>
+                <b data-testid="receipt-total-paid" className="text-h3 tabular-nums">{f.money(back.paid, bill.currency)}</b>
+              </div>
+            </div>
           )}
           {!cancelled && order.placed_at && (
             <p data-testid="receipt-time" className="mt-[6px] text-small text-muted">{t("account.receipt.paid_with", { method: payLabel, date: z.date(order.placed_at), time: z.time(order.placed_at) })}</p>

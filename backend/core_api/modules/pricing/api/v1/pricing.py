@@ -98,9 +98,17 @@ async def order_bill(order_id: uuid.UUID, user: Annotated[CurrentUser, Depends(g
 
     lines = customer_lines(snap.lines, ((await user_profile(db, user.id)) or {}).get("locale"))
     taxes = [ln for ln in lines if ln["code"] in ("tax", "tax_included")]
+    from core_api.modules.payments.service.lookup import order_refunds
+    from shared.money import paid_after_refunds
+
+    # R27: the receipt shows each refund ("Refunded $4.51 · missing item") and what was paid after them.
+    refunds = (await order_refunds(db, [order_id])).get(order_id, [])
+    refunded, paid = paid_after_refunds(snap.total, refunds)
     return {"order_id": str(order_id), "currency": snap.currency, "total": str(snap.total), "lines": lines,
             "taxes": taxes, "zone": snap.context.get("zone"), "distance": snap.context.get("distance"),
-            "distance_unit": snap.context.get("distance_unit")}
+            "distance_unit": snap.context.get("distance_unit"),
+            "refunds": [{k: r[k] for k in ("amount", "kind", "reason", "items", "created_at")} for r in refunds],
+            "refunded": str(refunded), "paid": str(paid)}
 
 
 @router.get("/orders/{order_id}/snapshot")

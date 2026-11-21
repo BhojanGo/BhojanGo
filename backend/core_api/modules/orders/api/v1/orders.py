@@ -453,10 +453,13 @@ async def receipt_pdf(
     from core_api.modules.markets.service.zones import city_time_zones
     from core_api.modules.orders.service import receipt as rcpt
     from core_api.modules.orders.service.state_machine import PAID_STATES
+    from core_api.modules.payments.service.lookup import order_refunds
     from core_api.modules.pricing.service.lookup import order_bills
 
     order = await _own_order(db, current_user, order_id)
-    if order.status not in PAID_STATES:
+    refunds = (await order_refunds(db, [order.id])).get(order.id, [])
+    # R27: a cancelled order that was paid and refunded has a receipt too, showing the refund.
+    if order.status not in PAID_STATES and not (order.status == "cancelled" and refunds):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail={"code": "NOT_PAID", "message": "A receipt is ready once the order is paid"})
     country = rcpt.country_of(order.market_city, order.currency)
@@ -477,6 +480,7 @@ async def receipt_pdf(
         items=order.items or [], lines=lines, payment_method=order.payment_method,
         time_zone=(await city_time_zones(db, [order.market_city])).get(order.market_city or ""),
         operator=legal.entity(c.settings, c.tax_regime) if c else {},  # R15: who operates BhojanGo here
+        refunds=refunds, cancelled=order.status == "cancelled",  # R27
     )
     from starlette.concurrency import run_in_threadpool
 

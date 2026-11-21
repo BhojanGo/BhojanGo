@@ -1,8 +1,8 @@
 // Payouts: where the money goes (payout set-up with the country's provider, e.g.
 // Stripe Connect: R10) and past weekly statements. Set-up happens on the provider's
 // own pages; when the delivery partner comes back to the app we ask again.
-import { api, LoadError, num, payoutCopy, type PayoutCopy, type PayoutSetup, providerName, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate,
-  type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, LoadError, num, payoutCopy, type PayoutCopy, type PayoutSetup, providerName, repayDay, SafeAreaView, STATEMENT_NOTES,
+  type, unwrap, useI18n, weekLabel } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -14,9 +14,10 @@ import { night, space, ui } from "../lib/theme";
 interface Statement {
   id: string; amount: number; currency: string; status: string; period_start: string; period_end: string;
   summary: { deliveries?: number; floor_top_up?: string }; repay_on?: string | null;
+  /** R27: the week's one status (the same as admin Finance's) and the transfer's day */
+  shown_status?: string | null; paid_on?: string | null;
 }
 
-const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`rider.payouts.status.${s}`) : s);
 // The set-up badge per state (R10), on the night theme.
 const BADGE: Record<PayoutCopy["tone"], { bg: string; fg: string }> = {
   neutral: { bg: night.raised, fg: night.text }, progress: { bg: night.doneBg, fg: night.text },
@@ -145,7 +146,7 @@ export default function Payouts() {
                 <Text style={[ui.muted, num]}>
                   {[t("rider.payouts.deliveries", { count: s.summary.deliveries ?? 0 }),
                     Number(s.summary.floor_top_up ?? 0) > 0 ? t("rider.payouts.top_up", { amount: cash(s.summary.floor_top_up, s.currency) }) : null,
-                    STATEMENT_NOTES.includes(s.status) ? null : statusLabel(t, s.status)].filter(Boolean).join(" · ")}
+                    weekLabel(t, "rider.payouts.status", s, (d) => date(d))].filter(Boolean).join(" · ")}
                 </Text>
                 {STATEMENT_NOTES.includes(s.status) && repayDay(s.repay_on) ? (
                   <Text testID={`payout-note-${s.status}`} style={[type.small, { color: night.text, marginTop: space[1] }]}>

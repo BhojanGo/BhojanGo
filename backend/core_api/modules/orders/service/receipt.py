@@ -18,7 +18,7 @@ from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from shared.money import format_money
+from shared.money import format_money, paid_after_refunds
 
 TIMEZONE = {"IN": "Asia/Kolkata", "US": "UTC"}
 WHO_FUNDS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
@@ -58,11 +58,51 @@ def _pct(rate: str | None) -> str:
     return f"{d:f}%"
 
 
+ZERO_CENT = Decimal("0.005")
+
+
+def shown_lines(lines: list[dict]) -> list[dict]:
+    """The bill lines a receipt prints: a line of 0 ("Ada sales tax @ 0% on $0.00", a free fee) is
+    left out, as on the app's and the website's fair bill (packages/ui/bill.js shownLines, R12); a
+    tax included in prices only when it is more than 0. The total still counts every line.
+
+    R27: R12 hid these on the screens only; the PDF had its own row builder and printed them."""
+    out = []
+    for ln in lines:
+        if ln.get("code") == "tax_included":
+            if abs(Decimal(str((ln.get("detail") or {}).get("included") or "0"))) >= ZERO_CENT:
+                out.append(ln)
+        elif abs(Decimal(str(ln.get("amount") or "0"))) >= ZERO_CENT:
+            out.append(ln)
+    return out
+
+
+# R27: why money came back, as the receipt says it (the apps say it in the customer's language).
+REFUND_WORDS = {"missing_item": "missing item", "wrong_item": "wrong item", "quality": "food quality",
+                "damaged_in_transit": "spilled or damaged", "late": "very late", "rider_issue": "delivery problem",
+                "goodwill": "goodwill", "full": "full refund", "cancelled": "order cancelled", "other": "refund"}
+
+
+def refund_rows(refunds: list[dict], currency: str, cancelled: bool = False) -> list[tuple[str, str]]:
+    """Each refund as (label, amount): "Refunded $4.51 · missing item (Butter Croissant)", "−$4.51".
+    A whole-order refund on a cancelled order says "order cancelled"."""
+    rows = []
+    for r in refunds:
+        amount = Decimal(str(r.get("amount") or "0"))
+        code = r.get("reason") or "other"
+        if code == "full" and cancelled:
+            code = "cancelled"
+        why = REFUND_WORDS.get(code, REFUND_WORDS["other"])
+        items = ", ".join(r.get("items") or [])
+        rows.append((f"Refunded {money(amount, currency)} · {why}" + (f" ({items})" if items else ""), money(-amount, currency)))
+    return rows
+
+
 def bill_rows(lines: list[dict], currency: str) -> list[tuple[str, str]]:
     """Each fair-bill line as (label, amount): discounts say who pays for them,
-    taxes their rate, what they were charged on and who collects them."""
+    taxes their rate, what they were charged on and who collects them. Lines of 0 aren't printed."""
     rows: list[tuple[str, str]] = []
-    for ln in lines:
+    for ln in shown_lines(lines):
         code, label, amount = ln.get("code"), str(ln.get("label") or ""), Decimal(str(ln.get("amount") or "0"))
         detail = ln.get("detail") or {}
         if code == "promotion":
@@ -120,6 +160,9 @@ class Receipt:
     time_zone: str | None = None
     # Who operates BhojanGo in the country (R15: Markets setting "legal"; only the filled-in fields).
     operator: dict = field(default_factory=dict)
+    # R27: refunds on the order (payments lookup order_refunds), and whether it was cancelled.
+    refunds: list[dict] = field(default_factory=list)
+    cancelled: bool = False
 
     @property
     def title(self) -> str:
@@ -217,6 +260,10 @@ def render(r: Receipt) -> bytes:
         row(label, amount)
     rule()
     row("Total", money(r.total, r.currency), "B", 12)
+    if r.refunds:  # R27: what came back, and what was paid after it
+        for label, amount in refund_rows(r.refunds, r.currency, r.cancelled):
+            row(label, amount)
+        row("Total paid", money(paid_after_refunds(r.total, r.refunds)[1], r.currency), "B", 12)
     pdf.ln(4)
     op = r.operator or {}
     if op.get("name"):  # R15: the platform's legal entity, from Markets

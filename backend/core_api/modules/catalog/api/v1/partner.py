@@ -50,7 +50,8 @@ class StateOut(BaseModel):
     busy_until: datetime | None
     prep_minutes: int
     today_orders: int
-    today_sales: Decimal
+    today_sales: Decimal  # R27: net of the refunds charged to the kitchen (today_refunds)
+    today_refunds: Decimal = Decimal(0)
     closes_at: str | None
     # The kitchen's city time zone (IANA): paused_until, busy_until and its orders' times are shown in it.
     time_zone: str | None = None
@@ -62,6 +63,12 @@ class StateOut(BaseModel):
     offline_to: datetime | None = None
 
 
+def kitchen_refunds(refunds_by_order: object) -> Decimal:
+    """The food value of refunds that were the kitchen's fault (fault "restaurant"), over orders' refunds."""
+    return sum((Decimal(str(f.get("food") or 0)) for refunds in refunds_by_order for f in refunds  # type: ignore[attr-defined]
+                if f.get("fault") == "restaurant"), Decimal(0))
+
+
 async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
     from core_api.modules.catalog.service.menu import availability
     from core_api.modules.orders.models.order import Order
@@ -70,9 +77,15 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
     a = await availability(db, r.id, now)
     tz = a.local_time.tzinfo
     start = datetime.combine(a.local_time.date(), datetime.min.time(), tzinfo=tz).astimezone(UTC)
-    n, sales = (await db.execute(select(func.count(Order.id), func.coalesce(func.sum(Order.subtotal), 0)).where(
+    rows = (await db.execute(select(Order.id, Order.subtotal).where(
         Order.restaurant_id == r.id, Order.created_at >= start,
-        Order.status.not_in(("pending_payment", "cancelled"))))).one()
+        Order.status.not_in(("pending_payment", "cancelled"))))).all()
+    n, sales = len(rows), sum((Decimal(str(sub or 0)) for _, sub in rows), Decimal(0))
+    # R27: refunds charged to the kitchen (its fault: wrong or missing item, quality) come off today's
+    # sales, at the food value refunded (R26: "1 order · $17.50" ignored a $4.51 refund charged to it).
+    from core_api.modules.payments.service.lookup import order_refunds
+
+    refunded = kitchen_refunds((await order_refunds(db, [oid for oid, _ in rows])).values())
     from core_api.modules.catalog.service import hours as H
     from core_api.modules.catalog.service.menu import _hours  # weekly hours, for "Open till"
 
@@ -87,7 +100,8 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         status=r.status, open_now=a.open_now, reason=a.reason, paused=paused_by_kitchen(r, now),
         paused_until=r.paused_until if paused_by_kitchen(r, now) else None,
         busy_extra_minutes=busy_minutes(r, now), busy_until=r.busy_until if busy_minutes(r, now) else None,
-        prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=Decimal(sales),
+        prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=sales - refunded,
+        today_refunds=refunded,
         # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).
         closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None), time_zone=a.timezone,
         not_taking_orders=a.no_tablet, offline_from=tablet.gap_from if gap else None, offline_to=tablet.gap_to if gap else None,

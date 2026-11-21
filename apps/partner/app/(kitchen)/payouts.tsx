@@ -6,8 +6,8 @@
 // R24: below zero, this week's own result and the balance still owed from earlier weeks are
 // separate lines (belowZeroLines, shared with admin); "never from your bank" is said once.
 // R25: an invoice refused because our legal name isn't set yet says it isn't ready (not "try again").
-import { api, ApiError, belowZeroLines, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, STATEMENT_STATUSES, type Translate, type,
-  unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, belowZeroLines, LoadError, num, payoutCopy, type PayoutCopy, providerName, type PayoutSetup, repayDay, SafeAreaView, STATEMENT_NOTES, type,
+  unwrap, useI18n, weekLabel } from "@bhojango/mobile-core";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -16,12 +16,13 @@ import { useLayout } from "../../lib/layout";
 import { Btn, color, radius, t, tone } from "../../lib/ui";
 
 type Statement = { id: string; payee_id: string; amount: number; currency: string; status: string; period_start: string; period_end: string; repay_on?: string | null;
+  /** R27: the week's one status (the same as admin Finance's) and the transfer's day */
+  shown_status?: string | null; paid_on?: string | null;
   /** R23: minor units, <= 0, already in amount */
   carried_in?: number; negative_weeks?: number;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string;
     commission_tax?: string; tds?: string; net?: string } };
 
-const statusLabel = (t: Translate, s: string) => ((STATEMENT_STATUSES as readonly string[]).includes(s) ? t(`partner.payouts.status.${s}`) : s);
 // The set-up badge's colours per state (R10).
 const BADGE: Record<PayoutCopy["tone"], { bg: string; fg: string }> = {
   neutral: { bg: color.porcelain, fg: color.kohl }, progress: { bg: color.peacockTint, fg: color.peacockDeep },
@@ -149,7 +150,7 @@ export default function Payouts() {
                     // R16: what the platform took for the government (tax on its commission; TDS)
                     Number(st.summary.commission_tax ?? 0) > 0 ? tr("partner.payouts.commission_tax", { amount: cash(st.summary.commission_tax, st.currency) }) : null,
                     Number(st.summary.tds ?? 0) > 0 ? tr("partner.payouts.tds", { amount: cash(st.summary.tds, st.currency) }) : null,
-                    STATEMENT_NOTES.includes(st.status) || st.status === "carried" ? null : statusLabel(tr, st.status)].filter(Boolean).join(" · ")}
+                    weekLabel(tr, "partner.payouts.status", st, (d) => date(d))].filter(Boolean).join(" · ")}
                 </Text>
                 {st.carried_in ? (
                   // R23: the balance an earlier week left below zero, netted into this week's amount

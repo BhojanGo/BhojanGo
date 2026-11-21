@@ -9,7 +9,7 @@ export { DENSE_FONT_SCALE, face, field, FLUID, fontAuditEnabled, MIN_READABLE, n
   textStyles, type, TYPE_RANGES, TYPE_ROLES, TYPE_SCALE, typeScript, typeStyleFor, typeWidth } from "./ui/type";
 export type { Script, TypeRole } from "./ui/type";
 export { FontAudit } from "./ui/font-audit";
-export { billTotal } from "@bhojango/ui/bill";
+export { billTotal, receiptRefunds } from "@bhojango/ui/bill";
 // R24: what a kitchen statement below zero says (this week; still from earlier weeks), shared with admin.
 export { belowZeroLines, type BelowZeroLine } from "@bhojango/ui/statement";
 // Round 5: the floating tab bar's geometry and the room every tab screen leaves for it.
@@ -60,5 +60,5 @@ export type { Tone } from "./ui/locale";
 // R8: the screens' SafeAreaView (follows the test banner's insets; the native one padded the status bar twice).
 export { SafeAreaView, type SafeAreaEdge } from "./ui/safe-area";
 // R10: payout set-up (Stripe Connect Express and the rest): the Payouts screens' words and button.
-export { payoutCopy, providerName, repayDay, STATEMENT_NOTES, STATEMENT_STATUSES } from "./payouts";
+export { payoutCopy, providerName, repayDay, STATEMENT_NOTES, STATEMENT_STATUSES, weekLabel, weekStatus, type WeekStatus } from "./payouts";
 export type { PayoutAccount, PayoutCopy, PayoutSetup, PayoutState } from "./payouts";

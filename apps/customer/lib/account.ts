@@ -28,6 +28,9 @@ export interface Bill {
   currency: string;
   total: string;
   lines: BillLine[];
+  /** R27: refunds on the order and what was paid after them */
+  refunds?: { amount: string; kind: string; reason: string; items: string[] }[];
+  paid?: string;
 }
 
 // The lines the website names in the person's language (bill.line_*); tax and

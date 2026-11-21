@@ -130,3 +130,54 @@ def test_the_date_is_the_orders_city_day() -> None:
     r.issued_at = datetime(2026, 11, 14, 20, 0, tzinfo=UTC)
     r.time_zone = "Asia/Kolkata"
     assert "Date: 15 Nov 2026" in pdf_text(R.render(r))
+
+
+# ── R27: refunds on the receipt; no $0.00 tax line ─────────────────────────────
+
+def test_a_zero_tax_line_is_not_printed() -> None:
+    """R26: "Ada sales tax @ 0% on $0.00" printed on the PDF (R12 hid zero lines on the app and website only)."""
+    r = receipt("US")
+    r.lines = [*r.lines, {"code": "tax", "label": "Ada sales tax", "amount": "0.00", "detail": {"rate_percent": "0", "base": "0.00"}},
+               {"code": "service_fee", "label": "Service fee", "amount": "0.00"},
+               {"code": "tax_included", "label": "VAT (included in prices)", "amount": "0.00", "detail": {"rate_percent": "0", "included": "0.00"}}]
+    assert [label for label, _ in R.bill_rows(r.lines, "USD")] == ["Food", "Sales tax @ 8.25% on $560.00"]
+    text = pdf_text(R.render(r))
+    assert "Ada sales tax" not in text and "$0.00" not in text and "Service fee" not in text and "VAT" not in text
+    assert "Sales tax @ 8.25%" in text  # a tax of more than 0 stays
+
+
+def test_a_partial_refund_shows_on_the_receipt_with_the_total_paid() -> None:
+    r = receipt("US")
+    r.total = Decimal("17.50")
+    r.refunds = [{"amount": "4.51", "kind": "items", "reason": "missing_item", "items": ["Butter Croissant"]}]
+    assert R.refund_rows(r.refunds, "USD") == [("Refunded $4.51 · missing item (Butter Croissant)", "−$4.51")]
+    text = pdf_text(R.render(r))
+    for want in ("Total", "$17.50", "Refunded $4.51 · missing item (Butter Croissant)", "−$4.51", "Total paid", "$12.99"):
+        assert want in text, want
+
+
+def test_a_cancelled_order_refunded_in_full_shows_the_full_refund() -> None:
+    r = receipt("IN")
+    r.cancelled = True
+    r.refunds = [{"amount": "617.39", "kind": "full", "reason": "full", "items": []}]
+    text = pdf_text(R.render(r))
+    for want in ("Refunded ₹617.39 · order cancelled", "−₹617.39", "Total paid", "₹0.00"):
+        assert want in text, want
+
+
+def test_no_refund_no_refund_lines() -> None:
+    text = pdf_text(R.render(receipt("US")))
+    assert "Refunded" not in text and "Total paid" not in text
+
+
+def test_paid_after_refunds_and_reason_codes() -> None:
+    from core_api.modules.payments.service.lookup import refund_reason_code
+    from shared.money import paid_after_refunds
+
+    assert paid_after_refunds("17.50", [{"amount": "4.51"}]) == (Decimal("4.51"), Decimal("12.99"))
+    assert paid_after_refunds("17.50", [{"amount": "17.50"}]) == (Decimal("17.50"), Decimal("0.00"))
+    assert paid_after_refunds("17.50", []) == (Decimal("0.00"), Decimal("17.50"))
+    assert paid_after_refunds("17.50", [{"amount": "10"}, {"amount": "10"}]) == (Decimal("17.50"), Decimal("0.00"))
+    assert refund_reason_code("items", "missing_item") == "missing_item"
+    assert refund_reason_code("full", "Kitchen didn't accept in time") == "full"
+    assert refund_reason_code("items", "something else") == "other"

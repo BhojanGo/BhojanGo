@@ -63,3 +63,12 @@ def format_money(amount: Decimal | float | int | str, currency: str, locale: str
     body = _group(digits, region_of(loc) == "IN") + ("" if drop_cents else f".{cents}")
     symbol = SYMBOLS.get(currency)
     return f"{sign}{symbol}{body}" if symbol else f"{sign}{currency} {body}"
+
+
+def paid_after_refunds(total: object, refunds: list[dict]) -> tuple[Decimal, Decimal]:
+    """(refunded, paid): what came back on an order and what the customer paid after it (R27: the
+    receipt's "Total paid"). Never below zero; ``refunds`` [{"amount": major units}]."""
+    cent = Decimal("0.01")
+    t = Decimal(str(total or 0)).quantize(cent)
+    refunded = min(sum((Decimal(str(r.get("amount") or 0)) for r in refunds), Decimal(0)).quantize(cent), t)
+    return refunded, (t - refunded).quantize(cent)
