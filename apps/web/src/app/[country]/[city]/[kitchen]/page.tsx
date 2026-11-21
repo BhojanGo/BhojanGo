@@ -81,8 +81,12 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const forNow = Boolean(avail?.closed_for_now ?? (r as { closed_for_now?: boolean }).closed_for_now);
   const backAt = avail?.back_at ? new Intl.DateTimeFormat(formatLocale, { hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.back_at)) : null;
   const nextOpen = avail?.next_open_at ? new Intl.DateTimeFormat(formatLocale, { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.next_open_at)) : opens;
+  // R27: open by its hours, but the kitchen's tablet isn't connected: not taking orders right now
+  const notTaking = Boolean(avail?.not_taking_orders) && !forNow;
   const hours = forNow
     ? { label: t("kitchen.closed_for_now"), value: backAt ? t("kitchen.back_at", { time: backAt }) : t("kitchen.back_soon") }
+    : notTaking
+    ? { label: t("kitchen.not_taking_orders"), value: t("kitchen.back_soon") }
     : closedNow
     ? { label: t("kitchen.closed_now"), value: nextOpen ? t("kitchen.opens_at", { time: nextOpen }) : t("kitchen.closed_now") }
     : opens && closes
@@ -193,6 +197,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
         deliverTo={place ? (place.address_id ? { address_id: place.address_id } : { lat: place.lat, lng: place.lng }) : null}
         closed={closedNow}
         forNow={forNow}
+        notTaking={notTaking}
         orderingPaused={orderingPaused}
       />
     </div>

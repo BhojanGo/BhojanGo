@@ -67,6 +67,8 @@ class Card(BaseModel):
     open_now: bool
     opens_at: str | None  # next opening, local ISO, when closed
     closed_for_now: bool = False  # R17: an admin paused it (opens_at = its "back at", if set)
+    # R27: open by its hours, but its tablet isn't connected: "Not taking orders right now".
+    not_taking_orders: bool = False
     eta_min: int
     eta_max: int
     distance: float | None  # in the country's unit, from the address
@@ -208,8 +210,8 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             rating_display=rating_display(k.rating, k.review_count),
             is_new=bool(created and created > now - timedelta(days=NEW_FOR_DAYS)), open_now=a.open_now,
             opens_at=(a.back_at.isoformat() if a.back_at else None) if a.closed_for_now
-            else a.next_open_at.isoformat() if a.next_open_at and not a.open_now else None,
-            closed_for_now=a.closed_for_now,
+            else a.next_open_at.isoformat() if a.next_open_at and not a.open_now and not a.no_tablet else None,
+            closed_for_now=a.closed_for_now, not_taking_orders=a.no_tablet,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
             distance=float(round(distance, 1)) if distance is not None else None, delivery_fee=fee,
             free_delivery=f.free_delivery, offer=f.card_offer))

@@ -19,6 +19,11 @@ def order_tracking_channel(order_id: str) -> str:
     return f"tracking:{order_id}"
 
 
+def kitchen_channel(restaurant_id: str) -> str:
+    """R27: a kitchen's order changes, for its tablet's socket (/ws/kitchen/{id})."""
+    return f"kitchen:{restaurant_id}"
+
+
 async def store_driver_location(driver_id: str, location: dict[str, Any]) -> None:
     redis = await get_redis()
     await redis.setex(

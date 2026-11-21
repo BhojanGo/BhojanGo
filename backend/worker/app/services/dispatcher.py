@@ -60,6 +60,9 @@ NO_INBOX = {"order_message"}
 STATUS_MESSAGES = {"accepted": "order_accepted", "preparing": "order_preparing",
                    "picked_up": "order_picked_up", "delivered": "order_delivered"}
 RECEIPTS = {"order_placed", "order_delivered", "order_cancelled_refunded", "refund_items"}
+# R27: a kitchen's new order sounds like the tablet's ring (apps/partner: Android channel "new_orders"
+# with new_order.wav, bundled for iOS too), so a tablet in the background or asleep still rings.
+PUSH_SOUND: dict[str, dict[str, str]] = {"partner_new_order": {"channel": "new_orders", "sound": "new_order.wav"}}
 
 
 @dataclass
@@ -196,7 +199,7 @@ class Sender:
         if "push" in channels and person.devices:
             nid = await self._claim(event_id, person, r, "push", data)
             if nid:
-                res = await self.push.send(person.devices, PushMessage(r.title, r.body, data))
+                res = await self.push.send(person.devices, PushMessage(r.title, r.body, data, **PUSH_SOUND.get(out.key, {})))
                 await self.d.forget_devices(res.invalid)
                 await self._done(nid, res.sent > 0)
                 pushed = res.sent > 0

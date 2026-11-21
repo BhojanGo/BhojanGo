@@ -4032,7 +4032,8 @@ export interface paths {
         };
         /**
          * Today
-         * @description The tablet's header: open or paused, busy, prep time, today's orders and sales.
+         * @description The tablet's header: open or paused, busy, prep time, today's orders and sales. The owner's
+         *     tablet asking is a heartbeat (R27, shared/kitchen_live.py); an admin asking is not.
          */
         get: operations["today_api_v1_restaurants__restaurant_id__today_get"];
         put?: never;
@@ -5363,6 +5364,11 @@ export interface components {
             logo_url: string | null;
             /** Name */
             name: string;
+            /**
+             * Not Taking Orders
+             * @default false
+             */
+            not_taking_orders?: boolean;
             offer: components["schemas"]["Offer"] | null;
             /** Open Now */
             open_now: boolean;
@@ -10089,6 +10095,15 @@ export interface components {
             currency: string;
             /** Name */
             name: string;
+            /**
+             * Not Taking Orders
+             * @default false
+             */
+            not_taking_orders?: boolean;
+            /** Offline From */
+            offline_from?: string | null;
+            /** Offline To */
+            offline_to?: string | null;
             /** Open Now */
             open_now: boolean;
             /** Paused */

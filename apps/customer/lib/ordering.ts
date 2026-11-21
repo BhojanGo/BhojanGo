@@ -1,12 +1,14 @@
 // R19: when a dish can't go in the bag, and how checkout may take payment.
 // Pure (no React Native): test/ordering.test.ts.
 
-/** Why nothing can be added now: an incident pause first, then a closed kitchen. Message keys. */
-export type BlockKey = "kitchen.bag_paused" | "kitchen.bag_closed_for_now";
+/** Why nothing can be added now: an incident pause first, then a closed kitchen, then (R27) a
+ *  kitchen whose tablet isn't connected ("Not taking orders right now"). Message keys. */
+export type BlockKey = "kitchen.bag_paused" | "kitchen.bag_closed_for_now" | "kitchen.not_taking_orders";
 
-export function orderingBlock(k: { paused: boolean; closedForNow?: boolean | null; isOpen?: boolean | null }): BlockKey | null {
+export function orderingBlock(k: { paused: boolean; closedForNow?: boolean | null; isOpen?: boolean | null; notTaking?: boolean | null }): BlockKey | null {
   if (k.paused) return "kitchen.bag_paused";
   if (k.closedForNow || k.isOpen === false) return "kitchen.bag_closed_for_now";
+  if (k.notTaking) return "kitchen.not_taking_orders";
   return null;
 }
 

@@ -41,6 +41,25 @@ async def test_expo_sends_and_reports_dead_tokens() -> None:
                           "sound": "default", "priority": "high", "channelId": "orders"}
 
 
+async def test_a_kitchens_new_order_rings_with_the_tablets_sound() -> None:
+    """R27: the partner app registers Android channel "new_orders" with new_order.wav; the
+    worker's partner_new_order push goes to it, so a tablet in the background still rings."""
+    from app.services.dispatcher import PUSH_SOUND
+
+    seen: list = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(req.content))
+        return httpx.Response(200, json={"data": [{"status": "ok", "id": "t1"}]})
+
+    msg = PushMessage("New order #AB12CD", "2 items, $18.00. Accept by 7:03 PM.", {"type": "partner_new_order"},
+                      **PUSH_SOUND["partner_new_order"])
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    assert (await ExpoPush(client).send([Device("ExponentPushToken[k]", "expo")], msg)).sent == 1
+    assert (seen[0][0]["channelId"], seen[0][0]["sound"]) == ("new_orders", "new_order.wav")
+    assert "order_placed" not in PUSH_SOUND, "customers' pushes keep the default sound"
+
+
 @pytest.fixture
 def apns_keys(monkeypatch):  # type: ignore[no-untyped-def]
     key = ec.generate_private_key(ec.SECP256R1())

@@ -20,7 +20,19 @@ export interface PushModule {
   requestPermissionsAsync(): Promise<{ status: string }>;
   getExpoPushTokenAsync(options: { projectId: string }): Promise<{ data: string }>;
   setNotificationChannelAsync(id: string, channel: { name: string; importance: number; sound?: string | null }): Promise<unknown>;
-  AndroidImportance: { HIGH: number };
+  AndroidImportance: { HIGH: number; MAX?: number };
+}
+
+/**
+ * An extra Android notification channel an app pushes to (R27: the Kitchen app's "new_orders",
+ * ringing with its own sound). `sound` is a file the app bundles (expo-notifications plugin
+ * "sounds"); `max`: the loudest importance (heads-up). A channel's sound is fixed once made.
+ */
+export interface PushChannel {
+  id: string;
+  name: string;
+  sound?: string;
+  max?: boolean;
 }
 
 const TOKEN = "bg.push_token"; // the token this phone registered (to remove on sign-out)
@@ -33,7 +45,8 @@ const SIGN_OUT_WAIT_MS = 3000;
  * placeholder skips quietly). `ask`: may show the system permission prompt (once per install).
  * Returns the token, or null when there is none.
  */
-export async function registerPush(n: PushModule, projectId: unknown, { ask = true }: { ask?: boolean } = {}): Promise<string | null> {
+export async function registerPush(n: PushModule, projectId: unknown,
+  { ask = true, channels = [] }: { ask?: boolean; channels?: PushChannel[] } = {}): Promise<string | null> {
   try {
     const platform = pushPlatform(Platform.OS);
     const id = easProjectId(projectId);
@@ -41,6 +54,11 @@ export async function registerPush(n: PushModule, projectId: unknown, { ask = tr
     if (platform === "android") {
       // The worker sends with channelId "orders" (shared/providers/push.py): high importance, sound.
       await n.setNotificationChannelAsync("orders", { name: "BhojanGo", importance: n.AndroidImportance.HIGH, sound: "default" });
+      for (const c of channels) {
+        await n.setNotificationChannelAsync(c.id, {
+          name: c.name, importance: (c.max ? n.AndroidImportance.MAX : undefined) ?? n.AndroidImportance.HIGH, sound: c.sound ?? "default",
+        });
+      }
     }
     let { status } = await n.getPermissionsAsync();
     if (status !== "granted") {
@@ -75,12 +93,13 @@ beforeSignOut(unregisterPush);
  * In each app's root layout: registers a moment after sign-in (and on each start, signed in).
  * `usePushRegistration(Notifications, Constants.expoConfig?.extra?.eas?.projectId)`.
  */
-export function usePushRegistration(n: PushModule, projectId: unknown): void {
+export function usePushRegistration(n: PushModule, projectId: unknown, channels?: PushChannel[]): void {
   const status = useSession((s) => s.status);
   const userId = useSession((s) => s.user?.id ?? null);
+  const key = JSON.stringify(channels ?? []);
   useEffect(() => {
     if (status !== "signed-in" || !userId) return;
-    const timer = setTimeout(() => void registerPush(n, projectId), AFTER_SIGN_IN_MS);
+    const timer = setTimeout(() => void registerPush(n, projectId, { channels: JSON.parse(key) as PushChannel[] }), AFTER_SIGN_IN_MS);
     return () => clearTimeout(timer);
-  }, [status, userId, n, projectId]);
+  }, [status, userId, n, projectId, key]);
 }

@@ -48,7 +48,7 @@ from sqlalchemy import text
 
 from app.demo_sim import rules
 from app.demo_sim.path import FIX_SECONDS, rider_start
-from shared import internal_auth
+from shared import internal_auth, kitchen_live
 from shared.config import get_settings
 from shared.db import AsyncSessionLocal
 from shared.redis import get_redis
@@ -76,7 +76,7 @@ POOL_ORDERS_PATH = "/internal/dispatch/pool-orders"  # realtime, signed (shared/
 USER_SQL = text("SELECT id, email, phone, country FROM users WHERE email = :email AND phone IS NOT NULL AND is_active")
 OWNER_SQL = text("SELECT id, email, phone, country FROM users WHERE id = :id AND phone IS NOT NULL AND is_active")
 ORDERS_SQL = text("""
-SELECT o.id, o.status, c.email AS customer_email, o.driver_id, r.owner_id, o.pickup_lat, o.pickup_lng,
+SELECT o.id, o.status, c.email AS customer_email, o.driver_id, r.owner_id, o.restaurant_id, o.pickup_lat, o.pickup_lng,
        o.delivery_lat, o.delivery_lng, o.created_at, o.placed_at, o.restaurant_accepted_at, o.rider_assigned_at,
        o.picked_up_at, o.market_city,
        EXISTS (SELECT 1 FROM payment_intents p WHERE p.order_id = o.id AND p.metadata->>'demo' = 'true') AS seeded
@@ -91,6 +91,14 @@ WHERE c.email = :email AND o.status = 'delivered'
 """)
 # Cities that take orders (core_api markets rules.OPEN): a beta city (Boise) is one of them.
 OPEN_CITY_STATUSES = ("beta", "live")
+# R27: the kitchens the simulator plays (it orders from them again and accepts as their owner): every
+# kitchen the demo customer had an order delivered from in an open city. Each tick it says so
+# (shared/kitchen_live.sim_beat), so they stay open without a tablet; a kitchen a real tablet has
+# run in the last 12 h is governed by that tablet alone (kitchen_live).
+PLAYED_KITCHENS_SQL = text("""
+SELECT DISTINCT o.restaurant_id FROM orders o JOIN users c ON c.id = o.customer_id JOIN cities ci ON ci.code = o.market_city
+WHERE c.email = :email AND o.status = 'delivered' AND ci.status IN ('beta', 'live')
+""")
 PAST_ORDERS_SQL = text("""
 SELECT o.id FROM orders o JOIN users c ON c.id = o.customer_id JOIN cities ci ON ci.code = o.market_city
 WHERE c.email = :email AND o.status = 'delivered' AND ci.status IN ('beta', 'live')
@@ -243,6 +251,8 @@ class City:
             rows = (await db.execute(ORDERS_SQL, {"email": self.customer_email})).all()
             last = (await db.execute(LAST_DELIVERED_SQL, {"email": self.customer_email})).scalar()
             owners = {str(r.owner_id): (await db.execute(OWNER_SQL, {"id": r.owner_id})).first() for r in rows if r.owner_id}
+            played = {str(k) for (k,) in (await db.execute(PLAYED_KITCHENS_SQL, {"email": self.customer_email})).all()}
+        await kitchen_live.sim_beat(sorted(played | {str(r.restaurant_id) for r in rows}), await get_redis())
         ours = set(await (await get_redis()).smembers(OURS))
         mine = [o for o in map(_order, rows) if rules.is_sim_order(o, ours) and o.id not in self.given_up]
         # Pool riders on an open order (any of the customer's, given up ones too: realtime keeps them busy).

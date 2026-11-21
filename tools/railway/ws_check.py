@@ -72,6 +72,8 @@ async def main() -> int:
                     if not any((g.get("min_picks") or 0) > 0 for g in i.get("option_groups") or []))
         cart = [{"menu_item_id": item["id"], "quantity": 2}]
         addr = (await cust.call(CORE, "GET", "/me/addresses")).json()[0]
+        # R27: the kitchen takes orders only while its tablet is live; the partner polling the board is its heartbeat.
+        assert (await partner.call(CORE, "GET", f"/orders/restaurant/{rest['id']}", params={"limit": 1})).status_code == 200
         q = await cust.call(CORE, "POST", "/pricing/quote", json={"restaurant_id": rest["id"], "items": cart,
                                                                    "deliver_to": {"address_id": addr["id"]}})
         assert q.status_code == 200, q.text

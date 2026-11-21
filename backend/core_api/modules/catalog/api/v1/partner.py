@@ -24,6 +24,7 @@ DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 User = Annotated[CurrentUser, Depends(get_current_user)]
 
 BUSY_FOR = timedelta(hours=1)
+OFFLINE_NOTE_FOR = timedelta(hours=1)  # R27: how long the tablet shows "customers couldn't order from … to …"
 
 
 class PauseIn(BaseModel):
@@ -53,6 +54,12 @@ class StateOut(BaseModel):
     closes_at: str | None
     # The kitchen's city time zone (IANA): paused_until, busy_until and its orders' times are shown in it.
     time_zone: str | None = None
+    # R27: customers can't order because no tablet of this kitchen is connected (reason says so).
+    not_taking_orders: bool = False
+    # R27: the last time customers couldn't order because this kitchen's tablet was silent for over
+    # 60 s (shown on the tablet for an hour after it ended): from, to.
+    offline_from: datetime | None = None
+    offline_to: datetime | None = None
 
 
 async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
@@ -71,6 +78,10 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
 
     weekly, overrides = await _hours(db, r.id)
     closes = H.closes_at(a.local_time, weekly, overrides)
+    from shared import kitchen_live
+
+    tablet = await kitchen_live.status(r.id)
+    gap = tablet.gap_to is not None and tablet.gap_to > now - OFFLINE_NOTE_FOR
     return StateOut(
         restaurant_id=str(r.id), name=r.name, area=(r.address or {}).get("landmark") or r.city, currency=r.currency,
         status=r.status, open_now=a.open_now, reason=a.reason, paused=paused_by_kitchen(r, now),
@@ -79,6 +90,7 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=Decimal(sales),
         # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).
         closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None), time_zone=a.timezone,
+        not_taking_orders=a.no_tablet, offline_from=tablet.gap_from if gap else None, offline_to=tablet.gap_to if gap else None,
     )
 
 
@@ -103,8 +115,14 @@ async def mine(user: User, db: DB) -> list[MineOut]:
 
 @router.get("/{restaurant_id}/today", response_model=StateOut)
 async def today(restaurant_id: uuid.UUID, user: User, db: DB) -> StateOut:
-    """The tablet's header: open or paused, busy, prep time, today's orders and sales."""
-    return await _state(db, await access.manage(db, user, restaurant_id))
+    """The tablet's header: open or paused, busy, prep time, today's orders and sales. The owner's
+    tablet asking is a heartbeat (R27, shared/kitchen_live.py); an admin asking is not."""
+    r = await access.manage(db, user, restaurant_id)
+    if r.owner_id == user.id:
+        from shared import kitchen_live
+
+        await kitchen_live.beat(r.id, "poll")
+    return await _state(db, r)
 
 
 @router.get("/{restaurant_id}/ratings/summary", response_model=ratings.RatingSummary)

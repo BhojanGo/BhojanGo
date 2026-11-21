@@ -83,6 +83,13 @@ async def initiate_payment(
     if order["status"] != "pending_payment":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail={"code": "ORDER_NOT_PAYABLE", "message": f"This order is {order['status'].replace('_', ' ')}"})
+    # R27: never take money for an order nobody will see: the kitchen's tablet must be connected
+    # (checked before an open payment is handed back too, so a checkout can't be finished later).
+    from core_api.modules.catalog.service.menu import tablet_offline
+
+    offline = await tablet_offline(db, order["restaurant_id"])
+    if offline:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "KITCHEN_OFFLINE", "message": offline})
     amount, currency, country = order["amount_minor"], order["currency"], order["country"]
     if (data.amount is not None and data.amount != amount) or (data.currency is not None and data.currency != currency):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,

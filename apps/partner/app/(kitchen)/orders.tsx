@@ -33,6 +33,7 @@ export default function Orders() {
   const { orders, today, failure, refresh, setToday } = useBoard();
   const [pausing, setPausing] = useState(false);
   const { t: tr } = useI18n();
+  const { clock } = useFormat();
   const { narrow, portrait } = useLayout();
   const fresh = orders.filter((o) => NEW.includes(o.status)).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const cooking = orders.filter((o) => COOKING.includes(o.status));
@@ -62,6 +63,12 @@ export default function Orders() {
   return (
     <SafeAreaView testID="orders-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} />
+      {/* R27: customers couldn't order for a while because this tablet wasn't connected: say when (for an hour). */}
+      {today?.offline_from && today.offline_to ? (
+        <Text testID="offline-gap" accessibilityRole="alert" style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>
+          {tr("partner.orders.offline_gap", { from: clock(today.offline_from, today.time_zone), to: clock(today.offline_to, today.time_zone) })}
+        </Text>
+      ) : null}
       {/* R9: the first load failed: the error state and Retry; later polls that fail: one line over the board (it keeps polling). */}
       {failure && today ? (
         <Text testID="board-offline" accessibilityRole="alert" style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>
@@ -116,7 +123,8 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const closes = today?.closes_at ? clock(`2000-01-01T${today.closes_at}:00`) : null;
   const status = !today ? "…" : today.paused
     ? today.paused_until ? tr("partner.orders.paused_till", { time: clock(today.paused_until, today.time_zone) }) : tr("partner.orders.paused")
-    : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open")) : today.reason ?? tr("partner.orders.closed");
+    : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open"))
+    : today.not_taking_orders ? tr("partner.orders.not_taking_orders") : today.reason ?? tr("partner.orders.closed");
   const title = (
     <View style={{ flex: 1, minWidth: 0 }}>
       <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>

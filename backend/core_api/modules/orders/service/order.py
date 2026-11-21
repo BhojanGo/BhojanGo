@@ -178,6 +178,12 @@ class OrderService:
             raise _err(status.HTTP_409_CONFLICT, "ORDERING_PAUSED", pause_message(paused))
         if rest is not None and rest.closed_for_now:
             raise _err(status.HTTP_409_CONFLICT, "KITCHEN_PAUSED", f"{rest.name} is closed for now")
+        # R27: no order for a kitchen whose tablet isn't connected (nobody would see it).
+        from core_api.modules.catalog.service.menu import tablet_offline
+
+        offline = await tablet_offline(self.db, data.restaurant_id)
+        if offline:
+            raise _err(status.HTTP_409_CONFLICT, "KITCHEN_OFFLINE", offline)
         drop = ctx.get("deliver_to") or {}
         from core_api.modules.catalog.service.menu import busy_minutes
 
@@ -271,6 +277,14 @@ class OrderService:
             logger.warning("payment_for_unknown_order", order_id=str(order_id))
             return
         if order.status == "pending_payment":
+            from core_api.modules.catalog.service.menu import tablet_offline
+
+            if await tablet_offline(self.db, order.restaurant_id):
+                # R27: paid while the kitchen's tablet went silent (payment was refused for such a
+                # kitchen up to the moment it started): nobody would see it, so it is cancelled
+                # and refunded at once rather than waiting out the accept timer.
+                await self._cancel(order, "system", "restaurant_no_response", "The kitchen's tablet wasn't connected", paid=True)
+                return
             now = datetime.now(UTC)
             rules = await business_rules(self.db, order)
             await self._move(order, "placed", "system", extra={
@@ -459,8 +473,9 @@ class OrderService:
         await self.db.refresh(order)  # server-set columns (updated_at) for the response
         return order
 
-    async def _cancel(self, order: Order, actor: str, reason: str, note: str | None) -> Order:
-        was_paid = order.status in sm.PAID_STATES
+    async def _cancel(self, order: Order, actor: str, reason: str, note: str | None, paid: bool | None = None) -> Order:
+        """``paid``: the payment has just been captured (R27), so it is refunded whatever the status says."""
+        was_paid = order.status in sm.PAID_STATES if paid is None else paid
         now = datetime.now(UTC)
         previous = order.status
         order.status, order.cancelled_at, order.cancelled_by = "cancelled", now, actor

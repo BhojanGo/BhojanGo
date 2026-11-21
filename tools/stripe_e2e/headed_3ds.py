@@ -36,6 +36,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
 CUSTOMER, PASSWORD = "customer1.boi@example.com", "BhojanGo123"  # the base seed's fixed test login
+KITCHEN_OWNER = "partner.boi@example.com"  # owns Boise Bowl Co. (base seed); same password
 CARD = "4000002760003184"
 
 
@@ -63,9 +64,38 @@ class Stack:
         r.raise_for_status()
         return r.json()
 
+    def tablet(self, restaurant_id: str) -> None:
+        """R27: be Boise Bowl Co.'s tablet while this runs (a kitchen takes orders only while its tablet
+        is live): its owner, the base seed's Boise partner, polls the board now and every 15 s."""
+        if getattr(self, "_tablet", False):
+            return
+        board = f"{self.base}/orders/restaurant/{restaurant_id}"
+
+        def signed_in() -> dict:
+            r = httpx.post(f"{self.base}/auth/login", json={"email": KITCHEN_OWNER, "password": PASSWORD}, timeout=30)
+            r.raise_for_status()
+            return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+        h = signed_in()
+        httpx.get(board, headers=h, params={"limit": 1}, timeout=30).raise_for_status()
+        self._tablet = True
+
+        def poll() -> None:
+            headers = h
+            while True:
+                time.sleep(15)
+                try:
+                    if httpx.get(board, headers=headers, params={"limit": 1}, timeout=30).status_code == 401:
+                        headers = signed_in()
+                except Exception:  # noqa: BLE001 - keep beating
+                    pass
+
+        threading.Thread(target=poll, daemon=True).start()
+
     def new_order(self) -> tuple[dict, dict]:
         """A Boise order (2 bowls) waiting for payment, and its Stripe checkout payload."""
         rest = next(r for r in self.call("GET", "/restaurants", params={"limit": 50})["items"] if r["name"] == "Boise Bowl Co.")
+        self.tablet(rest["id"])
         menu = self.call("GET", f"/restaurants/{rest['id']}/menu")
         item = next(i["id"] for c in menu["categories"] for i in c["items"] if i["name"] == "Teriyaki Chicken Bowl")
         addr = self.call("GET", "/me/addresses")[0]

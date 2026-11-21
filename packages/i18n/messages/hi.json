@@ -368,7 +368,9 @@
     "back_at": "लगभग {time} तक वापस",
     "back_soon": "जल्द वापस",
     "bag_paused": "ऑर्डर करना रुका है",
-    "bag_closed_for_now": "यह किचन अभी बंद है"
+    "bag_closed_for_now": "यह किचन अभी बंद है",
+    "not_taking_orders": "अभी ऑर्डर नहीं ले रहे",
+    "not_taking_orders_note": "यह किचन अभी ऑर्डर नहीं ले रहा। आप मेन्यू देख सकते हैं; किचन लौटते ही ऑर्डर फिर से खुल जाएंगे।"
   },
   "checkout": {
     "title": "चेकआउट",
@@ -1522,6 +1524,8 @@
       "open_till": "{time} तक खुला",
       "open": "खुला",
       "closed": "बंद",
+      "not_taking_orders": "ऑर्डर नहीं ले रहे: यह टैबलेट ऑफ़लाइन था",
+      "offline_gap": "{from} से {to} तक ग्राहक ऑर्डर नहीं कर पाए: यह टैबलेट जुड़ा नहीं था।",
       "today_orders": {
         "one": "आज {count} ऑर्डर",
         "other": "आज {count} ऑर्डर"

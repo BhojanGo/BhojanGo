@@ -65,10 +65,11 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false, orderingPaused = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean; orderingPaused?: boolean }) {
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false, notTaking = false, orderingPaused = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean; notTaking?: boolean; orderingPaused?: boolean }) {
   const t = useT();
-  // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button
-  const blocked = orderingPaused ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : null;
+  // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button.
+  // R27: the kitchen's tablet isn't connected: "Not taking orders right now".
+  const blocked = orderingPaused ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : notTaking ? t("kitchen.not_taking_orders") : null;
   const f = useFormat();
   const hydrated = useHydrated();
   const bag = useBag();
@@ -155,7 +156,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow 
           </label>
         </div>
 
-        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t(forNow ? "kitchen.closed_for_now_note" : "kitchen.closed_note")}</p>}
+        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t(forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}</p>}
         {categories.length === 0 && <p className="mt-8 text-muted">{t("kitchen.menu_unavailable")}</p>}
         {q.trim() && shown.length === 0 && <p className="mt-8 text-muted">{t("kitchen.no_match", { q: q.trim() })}</p>}
 

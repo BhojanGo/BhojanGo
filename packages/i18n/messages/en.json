@@ -368,7 +368,9 @@
     "back_at": "Back around {time}",
     "back_soon": "Back soon",
     "bag_paused": "Ordering is paused",
-    "bag_closed_for_now": "This kitchen is closed for now"
+    "bag_closed_for_now": "This kitchen is closed for now",
+    "not_taking_orders": "Not taking orders right now",
+    "not_taking_orders_note": "This kitchen isn't taking orders right now. You can look at the menu; ordering opens again when it's back."
   },
   "checkout": {
     "title": "Checkout",
@@ -1522,6 +1524,8 @@
       "open_till": "Open till {time}",
       "open": "Open",
       "closed": "Closed",
+      "not_taking_orders": "Not taking orders: this tablet was offline",
+      "offline_gap": "Customers couldn't order from {from} to {to}: this tablet wasn't connected.",
       "today_orders": {
         "one": "today {count} order",
         "other": "today {count} orders"

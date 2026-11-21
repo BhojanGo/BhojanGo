@@ -1730,6 +1730,11 @@
             "title": "Name",
             "type": "string"
           },
+          "not_taking_orders": {
+            "default": false,
+            "title": "Not Taking Orders",
+            "type": "boolean"
+          },
           "offer": {
             "anyOf": [
               {
@@ -14429,6 +14434,35 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "not_taking_orders": {
+            "default": false,
+            "title": "Not Taking Orders",
+            "type": "boolean"
+          },
+          "offline_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offline From"
+          },
+          "offline_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offline To"
           },
           "open_now": {
             "title": "Open Now",
@@ -27834,7 +27868,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}/today": {
       "get": {
-        "description": "The tablet's header: open or paused, busy, prep time, today's orders and sales.",
+        "description": "The tablet's header: open or paused, busy, prep time, today's orders and sales. The owner's\ntablet asking is a heartbeat (R27, shared/kitchen_live.py); an admin asking is not.",
         "operationId": "today_api_v1_restaurants__restaurant_id__today_get",
         "parameters": [
           {

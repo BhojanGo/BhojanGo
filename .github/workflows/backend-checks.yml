@@ -105,6 +105,18 @@ jobs:
           RUN_MIGRATED_DB_TESTS: "1"
         run: uv run pytest worker/tests/integration -v --tb=short
 
+      # R27: QA requires a kitchen's live tablet to take orders, and its reset job runs the demo seed
+      # with no tablet open. The seed's order history (priced at past times) must still be written,
+      # and the demo rider simulator must have kitchens to play. Last: it adds the demo cities.
+      - name: Demo seed with the live-tablet rule on (as on QA)
+        working-directory: backend
+        env:
+          KITCHEN_TABLET_REQUIRED: "1"
+        run: |
+          uv run python ../tools/seed/demo.py > /tmp/demo-seed.log || { tail -40 /tmp/demo-seed.log; exit 1; }
+          grep -E "order history written|skipped a past order" /tmp/demo-seed.log | head -20
+          uv run python ../tools/seed/demo_rule_check.py
+
   # ──────────────────────────────────────────
   # Docker build check (no push)
   # ──────────────────────────────────────────

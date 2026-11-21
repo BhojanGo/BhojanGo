@@ -8,15 +8,18 @@
 // - a watchdog: the time of the last good update. No good poll (and no socket message) for 15 s:
 //   `offline`, and every Kitchen screen shows the red "Not receiving orders" banner with an alarm
 //   (lib/offline.tsx) until updates come back;
-// - polls every 4 s, every 12 s while the realtime socket is up;
+// - realtime first: the kitchen's socket (/ws/kitchen/{id}) brings each order change and answers a
+//   ping every 10 s (the tablet's heartbeat on the server: a kitchen whose tablet is silent for
+//   60 s is paused for customers); polling stays as the fallback, every 4 s, 12 s while the socket is up;
 // - the server's clock (each poll's Date header): accept timers count down to the real deadline.
+import { liveSocket } from "@bhojango/mobile-core";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { useEffect } from "react";
 import { AppState, Vibration } from "react-native";
 import { create } from "zustand";
 
 import { getBoardTimed, getToday, type Order, type Today } from "./data";
-import { isOffline, mayStart, pollDue, pollEvery, type Link } from "./liveness";
+import { isOffline, mayStart, pollDue, pollEvery, SOCKET_HEARTBEAT_MS, type Link } from "./liveness";
 
 export const NEW = ["placed"];
 export const COOKING = ["accepted", "preparing", "almost_ready"];
@@ -96,6 +99,16 @@ export const useBoard = create<BoardStore>()((set, get) => ({
   mute: (muted) => set({ muted }),
 }));
 
+/** A socket message's type ("order_changed", "connected", "ping"); null for "pong" and anything else. */
+function messageType(data: unknown): string | null {
+  if (typeof data !== "string" || !data.startsWith("{")) return null;
+  try {
+    return (JSON.parse(data) as { type?: string }).type ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The watchdog's look (every second): is the tablet still hearing from the server? */
 function watch(now: number) {
   const s = useBoard.getState();
@@ -112,7 +125,7 @@ function ring(on: boolean) {
       // here then; in the background the order's push notification (with its sound) is the alert.
       // No background audio, so no iOS UIBackgroundModes "audio" (app.json: enableBackgroundPlayback false).
       void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false }).catch(() => undefined);
-      player = createAudioPlayer(require("../assets/new-order.wav"));
+      player = createAudioPlayer(require("../assets/new_order.wav"));
       player.loop = true;
       player.volume = 1;
     }
@@ -177,6 +190,13 @@ export function useBoardLoop(kitchenId: string | undefined) {
     };
     tick();
     const t = setInterval(tick, 1000);
+    // Realtime first (R27): the kitchen's socket brings each order change at once (the board
+    // refreshes on it), and its pong to the 10 s ping is the tablet's heartbeat on the server too.
+    const stopSocket = liveSocket(`/ws/kitchen/${kitchenId}`, (e) => {
+      useBoard.getState().heard();
+      const kind = messageType(e.data);
+      if (kind === "order_changed" || kind === "connected") void refresh(kitchenId);
+    }, { heartbeatMs: SOCKET_HEARTBEAT_MS });
     // Back in front (the screen woke, another app closed): refresh at once.
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
@@ -187,6 +207,7 @@ export function useBoardLoop(kitchenId: string | undefined) {
     return () => {
       clearInterval(t);
       sub.remove();
+      stopSocket();
     };
   }, [kitchenId, refresh]);
   useEffect(() => {

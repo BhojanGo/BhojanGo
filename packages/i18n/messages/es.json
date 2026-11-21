@@ -368,7 +368,9 @@
     "back_at": "Vuelve sobre las {time}",
     "back_soon": "Vuelve pronto",
     "bag_paused": "Los pedidos están en pausa",
-    "bag_closed_for_now": "Esta cocina está cerrada por ahora"
+    "bag_closed_for_now": "Esta cocina está cerrada por ahora",
+    "not_taking_orders": "No acepta pedidos ahora",
+    "not_taking_orders_note": "Esta cocina no acepta pedidos ahora. Puedes ver el menú; los pedidos se abren de nuevo cuando vuelva."
   },
   "checkout": {
     "title": "Pagar",
@@ -1522,6 +1524,8 @@
       "open_till": "Abierto hasta las {time}",
       "open": "Abierto",
       "closed": "Cerrado",
+      "not_taking_orders": "No acepta pedidos: esta tableta estaba sin conexión",
+      "offline_gap": "Los clientes no pudieron pedir de {from} a {to}: esta tableta no estaba conectada.",
       "today_orders": {
         "one": "hoy {count} pedido",
         "other": "hoy {count} pedidos"

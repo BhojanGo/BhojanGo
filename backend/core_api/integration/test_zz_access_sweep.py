@@ -154,6 +154,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/internal/orders/{order_id}/dispatch"): Policy("signed"),
     ("POST", "/api/v1/internal/orders/{order_id}/assign-rider"): Policy("signed", body=lambda c: {"rider_id": c.rider_id}),
     ("GET", "/api/v1/internal/riders/{rider_id}/ready"): Policy("signed"),
+    ("GET", "/api/v1/internal/restaurants/{restaurant_id}/staff/{user_id}"): Policy("signed"),  # R27: the kitchen socket
     ("POST", "/api/v1/internal/review/orders/{order_id}/step"): Policy("signed", body=lambda c: {"step": "accept"}),
     # ── signed-in, own data only (nothing in the path points at someone else) ─
     ("POST", "/api/v1/auth/logout"): user(), ("GET", "/api/v1/users/me"): user(),

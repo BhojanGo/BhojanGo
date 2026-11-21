@@ -106,6 +106,8 @@ async def get_availability(restaurant_id: uuid.UUID, db: DB) -> dict:
         "next_open_at": a.next_open_at.isoformat() if a.next_open_at else None,
         "local_time": a.local_time.isoformat(), "timezone": a.timezone, "paused_reason": a.paused_reason,
         "closed_for_now": a.closed_for_now, "back_at": a.back_at.isoformat() if a.back_at else None,
+        # R27: open by its hours, but its tablet isn't connected ("Not taking orders right now")
+        "not_taking_orders": a.no_tablet,
     }
 
 
