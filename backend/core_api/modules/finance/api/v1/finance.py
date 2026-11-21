@@ -27,7 +27,6 @@ from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStat
 from core_api.modules.finance.service import connect, payouts
 from core_api.modules.finance.service.payouts import FinanceError
 from core_api.modules.finance.service.providers import ConnectSetupError, PayoutError
-from core_api.modules.finance.service.statements import below_zero_text
 from core_api.modules.identity.api.dependencies import AdminContext, get_admin, require_permission
 from core_api.modules.orders.api.dependencies import CurrentUser, get_current_user
 from shared import authz
@@ -129,8 +128,13 @@ async def payout_weeks(admin: Annotated[AdminContext, Depends(require_permission
     except FinanceError as e:
         raise _bad(e)
     today = payouts.local_today(ZoneInfo(c.timezone))
+    from core_api.modules.markets.service import legal
+
     return {"timezone": c.timezone, "today": today.isoformat(),
-            "weeks": [{"start": a.isoformat(), "end": b.isoformat()} for a, b in payouts.ended_weeks(today)]}
+            "weeks": [{"start": a.isoformat(), "end": b.isoformat()} for a, b in payouts.ended_weeks(today)],
+            # R25: no legal name in Markets → no commission tax invoice can be issued (admin Finance flags it;
+            # a finance admin may not read Markets, so it is said here).
+            "legal_name_missing": not legal.entity(c.settings, c.tax_regime).get("name")}
 
 
 @router.get("/payout-runs")
@@ -255,31 +259,31 @@ async def _invoice_statement(db: AsyncSession, statement_id: uuid.UUID, user: Cu
     if Decimal(str((s.summary or {}).get("commission_tax") or 0)) <= 0:
         raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "NO_COMMISSION_TAX",
                                                               "message": "No tax was charged on the commission in this statement"})
+    await _invoice_supplier(db, run.country)  # R25: refused before a link is made, too
     return s, run
+
+
+async def _invoice_supplier(db: AsyncSession, country: str) -> dict:
+    """The country's legal entity (Markets) for a commission tax invoice; 409 LEGAL_ENTITY_MISSING
+    when it has no legal name (R25: never a placeholder; admin Finance flags it)."""
+    from core_api.modules.markets.service import legal
+
+    c = await payouts._country(db, country)
+    supplier = legal.entity(c.settings, c.tax_regime)
+    if not supplier.get("name"):
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={
+            "code": "LEGAL_ENTITY_MISSING",
+            "message": f"Commission tax invoices can't be issued: the legal entity name for {c.name} is missing in Markets"})
+    return supplier
 
 
 async def _invoice_pdf(db: AsyncSession, s, run) -> Response:  # type: ignore[no-untyped-def]
     from core_api.modules.catalog.service.lookup import restaurant_brief
     from core_api.modules.finance.service import commission_invoice as ci
-    from core_api.modules.markets.service import legal
 
-    summary = s.summary or {}
-    c = await payouts._country(db, run.country)
-    issued = run.approved_at or run.created_at
-    # R17: the kitchen's statements for the same period (a run never overlaps another, so one today),
-    # added up per order exactly as the statements did.
-    same_period = (await db.execute(
-        select(PayoutStatement.lines).join(PayoutRun, PayoutRun.id == PayoutStatement.run_id)
-        .where(PayoutStatement.payee_type == "restaurant", PayoutStatement.payee_id == s.payee_id,
-               PayoutRun.country == run.country, PayoutRun.period_start == run.period_start,
-               PayoutRun.period_end == run.period_end))).scalars().all()
-    commission, tax, orders = ci.totals([list(x or []) for x in same_period])
-    inv = ci.CommissionInvoice(
-        invoice_no=ci.invoice_number(str(s.id), issued), issued_at=issued, period_start=run.period_start, period_end=run.period_end,
-        currency=s.currency, supplier=legal.entity(c.settings, c.tax_regime),
-        kitchen=await restaurant_brief(db, s.payee_id) or {"name": s.payee_name},
-        commission=commission, rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)), tax=tax, orders=orders,
-        balance=below_zero_text(s.amount, s.carried_in, s.currency))  # R24
+    # R25: everything from this one statement row (period, orders, commission, GST, balance).
+    inv = ci.for_statement(s, run, await _invoice_supplier(db, run.country),
+                           await restaurant_brief(db, s.payee_id) or {"name": s.payee_name})
     from starlette.concurrency import run_in_threadpool
 
     pdf = await run_in_threadpool(ci.render, inv)

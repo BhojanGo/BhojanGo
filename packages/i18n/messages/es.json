@@ -1694,6 +1694,7 @@
       "tds": "impuesto retenido {amount}",
       "tax_invoice": "Factura del impuesto",
       "tax_invoice_failed": "La factura no se abrió. Inténtalo de nuevo.",
+      "tax_invoice_not_ready": "Tu factura de impuestos de esta semana aún no está lista: estamos completando los datos de nuestra empresa. Inténtalo de nuevo en uno o dos días.",
       "carried_in": "Traído de la semana pasada",
       "week_below": "Esta semana quedó {amount} por debajo de cero.",
       "still_below": "Aún {amount} por debajo de cero de semanas anteriores · pasa a la próxima semana.",

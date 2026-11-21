@@ -10,6 +10,12 @@ Rounding (R17), one method everywhere: GST on commission is worked out on each o
 and rounded to the paisa (cent) on the kitchen's statement (statements.restaurant_statement); the
 invoice adds those per-order amounts up and never re-rounds the total, so its GST equals the sum of
 "Tax on commission" on the kitchen's statements for the period to the paisa (the invariant test).
+
+R25: one invoice is built from one statement row and nothing else (``for_statement``): the period is
+its run's, the orders, commission and GST are its own order lines. (Before, the period came from the
+run but the amounts from every statement of the kitchen with the same period.) The supplier is the
+country's legal entity from Markets; without a legal name no invoice is issued (``LegalEntityMissing``:
+the API refuses it and admin Finance says what to fill in), and nothing is ever printed in its place.
 """
 import base64
 import hashlib
@@ -20,8 +26,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 
-from core_api.modules.finance.service.statements import NEVER_FROM_BANK
+from core_api.modules.finance.service.statements import NEVER_FROM_BANK, below_zero_text
 from core_api.modules.orders.service.receipt import BASE_FONT, _address_lines, _fonts, money
+from shared.texts import invoice_orders_line
+
+
+class LegalEntityMissing(ValueError):
+    """The country's legal entity has no name in Markets: no invoice can be issued."""
 
 
 @dataclass
@@ -55,6 +66,24 @@ def totals(statement_lines: list[list[dict]]) -> tuple[Decimal, Decimal, int]:
             tax -= Decimal(str(ln.get("commission_tax") or 0))
             orders += 1
     return commission, tax, orders
+
+
+def for_statement(s, run, supplier: dict, kitchen: dict, issued_at: datetime | None = None) -> "CommissionInvoice":  # type: ignore[no-untyped-def]
+    """The invoice for one kitchen statement (``PayoutStatement``) of a payout run (``PayoutRun``):
+    period = the run's, orders / commission / GST = this statement's order lines (each order's
+    amounts as the statement has them, never re-rounded), balance = this statement's.
+    ``supplier``: the country's legal entity (markets.service.legal.entity); raises
+    LegalEntityMissing when it has no name. The API and the invariant test both use this."""
+    if not (supplier or {}).get("name"):
+        raise LegalEntityMissing(f"The legal entity name for {run.country} is missing in Markets")
+    summary = s.summary or {}
+    commission, tax, orders = totals([list(s.lines or [])])
+    issued = issued_at or run.approved_at or run.created_at
+    return CommissionInvoice(
+        invoice_no=invoice_number(str(s.id), issued), issued_at=issued, period_start=run.period_start,
+        period_end=run.period_end, currency=s.currency, supplier=supplier, kitchen=kitchen, commission=commission,
+        rate_percent=Decimal(str(summary.get("commission_tax_percent") or 0)), tax=tax, orders=orders,
+        balance=below_zero_text(s.amount, s.carried_in, s.currency))  # R24
 
 
 ROUNDING_NOTE = ("Tax on commission is worked out on each order's commission and rounded to the paisa, as on your "
@@ -101,13 +130,15 @@ def render(inv: CommissionInvoice) -> bytes:
         pdf.ln(2)
 
     s = inv.supplier
+    if not (s or {}).get("name"):  # R25: never a placeholder for the supplier
+        raise LegalEntityMissing("No legal entity name: a tax invoice needs the supplier's legal name")
     text("Tax invoice", 16, "B", 8)
     text(f"Commission on orders through BhojanGo · Invoice number: {inv.invoice_no}")
     last = inv.period_end - timedelta(days=1)
     text(f"Date: {inv.issued_at:%d %b %Y}    Period: {inv.period_start:%d %b %Y} – {last:%d %b %Y}")
     rule()
     text("Supplier", 10, "B")
-    text(s.get("name") or "Legal entity not set in Markets")
+    text(s["name"])
     if s.get("address"):
         text(s["address"])
     text(f"GSTIN: {s['gstin']}" if s.get("gstin") else "GSTIN: pending registration (required before launch)")
@@ -123,7 +154,7 @@ def render(inv: CommissionInvoice) -> bytes:
         text(f"GSTIN: {k['gstin']}")
     rule()
     row("Description", "Amount", "B")
-    row(f"Commission on {inv.orders} delivered order(s)", money(inv.commission, inv.currency))
+    row(invoice_orders_line(inv.orders), money(inv.commission, inv.currency))  # English, like the receipt
     row(f"{inv.label} @ {inv.rate_percent.normalize()}%", money(inv.tax, inv.currency))
     rule()
     row("Total (taken from your weekly payout)", money(inv.commission + inv.tax, inv.currency), "B")
