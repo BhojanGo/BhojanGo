@@ -61,8 +61,9 @@ sends events through one Redis stream ([`backend/shared/bus.py`](../../backend/s
 
 - a payment provider other than `live` (`auto` falls back to the fake when there are no keys);
 - fake payouts;
-- the fixed OTP for seed phones (`OTP_FIXED_CODE` must be set to `""`);
-- the fixed delivery PIN for seed phones (`DELIVERY_PIN_FIXED` must be set to `""`).
+- the fixed OTP for seed phones (`OTP_FIXED_CODE` must be set to `""`).
+
+Delivery PINs have no fixed value anywhere (R27): every order gets a random one, in every environment.
 
 "Named production" is checked against `APP_ENV` and Railway's own `RAILWAY_ENVIRONMENT_NAME`
 ([`shared/config.py`](../../backend/shared/config.py)).
@@ -147,7 +148,7 @@ You need:
 
 - Providers are `live`; it needs the provider keys from
   [11_Integration_Setup_Guide.md](../11_Integration_Setup_Guide.md).
-- `OTP_FIXED_CODE` and `DELIVERY_PIN_FIXED` are `""`.
+- `OTP_FIXED_CODE` is `""`.
 - `IDENTITY_DATA_KEYS` is set (generate with
   `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) and `PUBLIC_WEB_URL`
   is the website's address. Admins have no authenticator yet: each enrols at their first sign-in
@@ -343,7 +344,6 @@ The config sets every variable below. Values in *italics* are sealed secrets (st
 | `OTP_FIXED_CODE` | backends | default (`123456`, seed phones and `@example.com` emails only) | `""` |
 | `PUBLIC_WEB_URL` | core-api | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (password-reset links point at `<it>/signin/reset`) | `https://bhojango.com` |
 | `IDENTITY_DATA_KEYS` | core-api | a Fernet key (`["<key>"]`); unset = a fixed development key | **required**: `["<key>"]`, new key first to rotate (admins' authenticator secrets are encrypted with it) |
-| `DELIVERY_PIN_FIXED` | backends | default (`1234`, seed phones only) | `""` |
 | `DEMO_RIDER_SIM` | worker | `1` in QA only (the demo rider); unset in staging | unset (refused if set) |
 | `REVIEW_SIM` | worker | unset | `"0"`; `"1"` only while a build is in store review (R20: app store review orders only; docs/launch/go-live.md step 14) |
 | `STORAGE_PROVIDER` | core-api | `s3` (the bucket) | `s3` |

@@ -78,7 +78,7 @@ function ActiveOrderBar({ order, cover }: { order: Order; cover: string | null }
   const minutes = eta ? Math.max(1, Math.round((new Date(eta).getTime() - now) / 60000)) : null;
   // The rider's first name and the door PIN come with the active order (GET /orders).
   const rider = riderFirstName(order);
-  const pin = (order as { pin?: string | null }).pin ?? null;
+  const pin = onWay ? (order as { pin?: string | null }).pin ?? null : null; // once picked up (R27)
   const sub = [rider ? t("home.order_rider", { rider }) : null, pin ? t("home.order_pin", { pin }) : null].filter(Boolean).join(" · ");
   return (
     <section aria-label={t("home.active_order")} className="order-1">

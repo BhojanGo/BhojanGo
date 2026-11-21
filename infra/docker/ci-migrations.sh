@@ -17,7 +17,7 @@ psql "${PSQL_URL%/*}/bhojango_markets" -v ON_ERROR_STOP=1 -q -f /repo/infra/dock
   export DATABASE_URL="${DATABASE_URL%/*}/bhojango_markets"
   uv run --frozen alembic upgrade head
   for run in 1 2; do
-    APP_ENV=production PAYMENT_PROVIDER=live PAYOUT_PROVIDER=live OTP_FIXED_CODE= DELIVERY_PIN_FIXED= \
+    APP_ENV=production PAYMENT_PROVIDER=live PAYOUT_PROVIDER=live OTP_FIXED_CODE= \
       uv run --frozen python ../tools/seed/markets.py
   done
   if APP_ENV=production uv run --frozen python ../tools/seed/seed.py; then echo "the full seed ran in production"; exit 1; fi

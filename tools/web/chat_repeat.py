@@ -150,8 +150,8 @@ with sync_playwright() as p:
             print(f"FAIL {i}/{N} {str(e)[:300]}", flush=True)
             page.screenshot(path=f"/out/chat-fail-{i}.png", full_page=True)
         # Free the rider: picked up and delivered with the door PIN (the customer's order shows it).
-        pin = api("GET", f"/orders/{order_id}", cust["access_token"]).get("pin")
         api("PUT", f"/orders/{order_id}/status", rider, {"status": "picked_up"})
+        pin = api("GET", f"/orders/{order_id}", cust["access_token"]).get("pin")  # shown once picked up (R27)
         api("PUT", f"/orders/{order_id}/status", rider, {"status": "delivered", "proof": {"method": "pin", "pin": pin}})
     b.close()
 

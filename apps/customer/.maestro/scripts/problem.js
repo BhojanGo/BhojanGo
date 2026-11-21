@@ -64,7 +64,7 @@ var pay = must(call("POST", API + "/payments/initiate", customer, { order_id: o.
 must(call("POST", API + "/payments/fake/" + pay.payment_intent_id + "/complete", customer, { outcome: "succeeded" }), "complete");
 ["accepted", "preparing", "ready"].forEach(function (s) { must(call("PUT", API + "/orders/" + o.id + "/status", partner, { status: s }), s); });
 must(call("POST", RT + "/delivery/assign", ops, { order_id: o.id, driver_id: sub(rider) }), "assign");
-var pin = call("GET", API + "/orders/" + o.id, customer).body.pin;
 must(call("PUT", API + "/orders/" + o.id + "/status", rider, { status: "picked_up" }), "picked_up");
+var pin = call("GET", API + "/orders/" + o.id, customer).body.pin; // the customer sees it once picked up
 must(call("PUT", API + "/orders/" + o.id + "/status", rider, { status: "delivered", proof: { method: "pin", pin: pin } }), "delivered");
 output.orderId = o.id;

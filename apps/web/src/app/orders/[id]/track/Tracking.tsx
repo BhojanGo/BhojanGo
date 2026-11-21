@@ -192,7 +192,8 @@ export function Tracking({ id }: { id: string }) {
     { label: t("track.step_delivered"), at: stamp("delivered"), eta: !delivered && arrivesAt ? arrivesAt : null },
   ];
 
-  const pin = order.pin && !delivered && !cancelled ? order.pin : null;
+  // The door PIN only once the rider has the food (R27; the API holds it back before that too).
+  const pin = order.pin && status === "picked_up" ? order.pin : null;
   const bigEta = cancelled ? t("track.cancelled") : delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—";
 
   return (

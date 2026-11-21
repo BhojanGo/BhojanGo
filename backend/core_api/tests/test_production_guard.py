@@ -3,7 +3,7 @@ import pytest
 
 from shared.config import ProductionConfigError, Settings
 
-LIVE = {"PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE": "", "DELIVERY_PIN_FIXED": ""}
+LIVE = {"PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE": ""}
 
 
 def make(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
@@ -18,7 +18,7 @@ def make(monkeypatch, **env: str) -> Settings:  # type: ignore[no-untyped-def]
                                    {"APP_ENV": "qa", "RAILWAY_ENVIRONMENT_NAME": "production"}])
 @pytest.mark.parametrize("bad", [{"PAYMENT_PROVIDER": "fake"}, {"PAYMENT_PROVIDER": "auto"},
                                  {"PAYOUT_PROVIDER": "fake"}, {"OTP_FIXED_CODE": "123456"},
-                                 {"DELIVERY_PIN_FIXED": "1234"}, {"DEMO_RIDER_SIM": "1"}])
+                                 {"DEMO_RIDER_SIM": "1"}])
 def test_production_refuses_fakes(monkeypatch, names, bad) -> None:  # type: ignore[no-untyped-def]
     with pytest.raises(ProductionConfigError, match="refusing to start in production"):
         make(monkeypatch, **{**names, **LIVE, **bad})
@@ -39,12 +39,6 @@ def test_production_needs_the_fixed_otp_cleared(monkeypatch) -> None:  # type: i
     """The default fixed OTP (for seed phones) is on; production must switch it off."""
     with pytest.raises(ProductionConfigError, match="OTP_FIXED_CODE"):
         make(monkeypatch, APP_ENV="production", PAYMENT_PROVIDER="live")
-
-
-def test_production_needs_the_fixed_delivery_pin_cleared(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    """The fixed delivery PIN (seed phones, for Maestro/e2e) is on by default; production must switch it off."""
-    with pytest.raises(ProductionConfigError, match="DELIVERY_PIN_FIXED"):
-        make(monkeypatch, APP_ENV="production", PAYMENT_PROVIDER="live", PAYOUT_PROVIDER="live", OTP_FIXED_CODE="")
 
 
 @pytest.mark.parametrize("env", ["qa", "staging", "development", "test"])

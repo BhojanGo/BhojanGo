@@ -138,12 +138,13 @@ class OrderResponse(BaseModel):
     driver_id: uuid.UUID | None
     # The assigned rider as the customer sees them (first name only); GET /orders/{id}.
     rider: dict | None = None
-    # The PIN the customer gives the rider at the door (P18): GET /orders/{id}, customer only.
+    # The PIN the customer gives the rider at the door (P18): GET /orders/{id}, customer only,
+    # and only once the rider has picked the order up (R27).
     pin: str | None = None
     # The customer as the assigned rider sees them ("Sam P."), P18.
     customer: dict | None = None
     # Order list (GET /orders), the website's active-order bar: active orders only, the
-    # customer's own; rider_first_name and the PIN once a rider is assigned; eta = estimated delivery.
+    # customer's own; rider_first_name once a rider is assigned, the PIN once picked up; eta = estimated delivery.
     rider_first_name: str | None = None
     eta: datetime | None = None
     # Order list (GET /orders): has the customer rated it, and the rating ("Rate this order").

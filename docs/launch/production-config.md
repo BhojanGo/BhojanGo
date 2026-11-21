@@ -122,7 +122,6 @@ before the first production frontend build.
 | `SMS_PROVIDER` | yes (worker), `off` (no SMS: order updates by push, codes by Verify) or `live` | railway.ts | no | `log` | supplied (`off`) |
 | `PUSH_PROVIDER` | yes (worker), `live` (Expo push) | railway.ts | no | `log` | supplied |
 | `OTP_FIXED_CODE` | yes, must be `""` | railway.ts | no | default fixed code for seed phones | supplied (`""`) |
-| `DELIVERY_PIN_FIXED` | yes, must be `""` | railway.ts | no | default fixed PIN for seed phones | supplied (`""`) |
 | `ROUTING_PROVIDER` | yes (`straight_line`) | railway.ts | no | same | supplied |
 | `SERVICE_NAME`, `PORT` | yes | railway.ts | no | same | supplied |
 | `RAILWAY_ENVIRONMENT_NAME` | automatic | Railway | no | `QA` | automatic (also checked by the production guard) |
@@ -304,11 +303,11 @@ Production config dry run (names only; no values, no network)
 
 railway.ts, production: 6 services with variables: admin, core-api, postgres, realtime, web, worker
   admin: by-hand 1 (NEXT_PUBLIC_SENTRY_DSN); reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 6 (APP, APP_DIR, APP_ENV, CORE_API_URL, PORT, REALTIME_URL)
-  core-api: by-hand 22 (ALERT_WEBHOOK_TOKEN, AWS_ACCESS_KEY_ID, AWS_ENDPOINT_URL, AWS_REGION, AWS_SECRET_ACCESS_KEY, CORS_ORIGINS, IDENTITY_DATA_KEYS, INTERNAL_SERVICE_SECRET, JWT_PRIVATE_KEY, PUBLIC_API_URL, PUBLIC_WEB_URL, S3_ADDRESSING_STYLE, SENTRY_DSN, STRIPE_CONNECT_WEBHOOK_SECRET, STRIPE_PAYOUTS_WEBHOOK_SECRET, STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID, UPLOADS_BUCKET); computed 1 (PORT); empty 3 (DELIVERY_PIN_FIXED, JWKS_URL, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 16 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, GEOIP, LOG_FORMAT, OTP_PROVIDER, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER, STORAGE_PROVIDER, TAX_PROVIDER)
+  core-api: by-hand 22 (ALERT_WEBHOOK_TOKEN, AWS_ACCESS_KEY_ID, AWS_ENDPOINT_URL, AWS_REGION, AWS_SECRET_ACCESS_KEY, CORS_ORIGINS, IDENTITY_DATA_KEYS, INTERNAL_SERVICE_SECRET, JWT_PRIVATE_KEY, PUBLIC_API_URL, PUBLIC_WEB_URL, S3_ADDRESSING_STYLE, SENTRY_DSN, STRIPE_CONNECT_WEBHOOK_SECRET, STRIPE_PAYOUTS_WEBHOOK_SECRET, STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID, UPLOADS_BUCKET); computed 1 (PORT); empty 2 (JWKS_URL, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 16 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, GEOIP, LOG_FORMAT, OTP_PROVIDER, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER, STORAGE_PROVIDER, TAX_PROVIDER)
   postgres: by-hand 1 (POSTGRES_PASSWORD); set 3 (PGDATA, POSTGRES_DB, POSTGRES_USER)
-  realtime: by-hand 3 (CORS_ORIGINS, INTERNAL_SERVICE_SECRET, SENTRY_DSN); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 13 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER)
+  realtime: by-hand 3 (CORS_ORIGINS, INTERNAL_SERVICE_SECRET, SENTRY_DSN); computed 1 (PORT); empty 1 (OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 13 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, ROUTING_PROVIDER, SERVICE_NAME, SMS_PROVIDER)
   web: by-hand 2 (NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SENTRY_DSN); reference 2 (NEXT_PUBLIC_CORE_URL, NEXT_PUBLIC_REALTIME_URL); set 8 (APP, APP_DIR, APP_ENV, CORE_API_INTERNAL_URL, CORE_API_URL, NEXT_PUBLIC_PAYMENTS_PROVIDER, PORT, REALTIME_URL)
-  worker: by-hand 6 (CORS_ORIGINS, EMAIL_FROM, INTERNAL_SERVICE_SECRET, SENTRY_DSN, SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY); computed 1 (PORT); empty 2 (DELIVERY_PIN_FIXED, OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 17 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DB_POOL_SIZE, EMAIL_FROM_NAME, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, REALTIME_INTERNAL_URL, ROUTING_PROVIDER, SERVICE_NAME, SES_REGION, SMS_PROVIDER)
+  worker: by-hand 6 (CORS_ORIGINS, EMAIL_FROM, INTERNAL_SERVICE_SECRET, SENTRY_DSN, SES_ACCESS_KEY_ID, SES_SECRET_ACCESS_KEY); computed 1 (PORT); empty 1 (OTP_FIXED_CODE); reference 3 (DATABASE_URL, EVENT_BUS_REDIS_URL, REDIS_URL); set 17 (APP_ENV, CLIENT_IP_HEADER, CORE_API_URL, DB_POOL_SIZE, EMAIL_FROM_NAME, EMAIL_PROVIDER, EVENT_BUS, JWKS_URL, LOG_FORMAT, PAYMENT_PROVIDER, PAYOUT_PROVIDER, PUSH_PROVIDER, REALTIME_INTERNAL_URL, ROUTING_PROVIDER, SERVICE_NAME, SES_REGION, SMS_PROVIDER)
 
 Code reads: 151 backend settings (config.py), 2 direct os.environ reads in the backend, 11 web and 10 admin process.env names, 8 EXPO_PUBLIC names.
 
@@ -426,7 +425,7 @@ credentials from Railway. The checker's section 7 lists them all with their sour
 - `APP_ENV=production`, `PAYMENT_PROVIDER=live`, `PAYOUT_PROVIDER=live`, `PUSH_PROVIDER=live`,
   `EMAIL_PROVIDER=ses`, `SMS_PROVIDER=off`, `OTP_PROVIDER=twilio_verify`, `TAX_PROVIDER=stripe_tax`
   ([`.railway/railway.ts`](../../.railway/railway.ts)).
-- `OTP_FIXED_CODE=""` and `DELIVERY_PIN_FIXED=""` on all three backends.
+- `OTP_FIXED_CODE=""` on all three backends. (Delivery PINs have no setting since R27: always random.)
 - `DEMO_RIDER_SIM` and the fake payment settings only outside production.
 - `REVIEW_SIM` on the worker `"0"`, except while a build is in store review: it then plays the review kitchen and
   delivery partner for orders in the hidden review city only ([store/README.md](store/README.md#reviewer-access)).
@@ -456,7 +455,7 @@ credentials from Railway. The checker's section 7 lists them all with their sour
 6. **Sentry**: `sentry-sdk` (backends), `@sentry/nextjs` (web, admin), `@sentry/react-native` (apps); each off with
    no DSN (no init, no network).
 7. **Fake payment settings**: QA and staging only.
-8. `DEMO_RIDER_SIM`, `OTP_FIXED_CODE`, `DELIVERY_PIN_FIXED`, the test-site banner, `SEED_PASSWORDS`: were already
+8. `DEMO_RIDER_SIM`, `OTP_FIXED_CODE`, the test-site banner, `SEED_PASSWORDS`: were already
    right for production, unchanged.
 9. **Production seed**: [`tools/seed/markets.py`](../../tools/seed/markets.py), markets only (countries, states,
    cities, zones, rules, help articles, Terms and Privacy as drafts; Boise live, India switched off; no users,

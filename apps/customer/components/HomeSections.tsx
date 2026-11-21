@@ -24,7 +24,7 @@ export function ActiveOrderBar({ order, cover }: { order: Order; cover: string |
   const onWay = order.status === "picked_up";
   const minutes = minutesUntil(order.estimated_delivery_time, now);
   const rider = riderFirstName(order);
-  const pin = order.pin ?? null;
+  const pin = onWay ? order.pin ?? null : null; // the door PIN once picked up (R27)
   const sub = [
     minutes != null && minutes < 600 ? t("home.order_minutes", { count: minutes }) : null,
     rider ? t("home.order_rider", { rider }) : null,

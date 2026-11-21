@@ -83,7 +83,7 @@ if (STEP === "check") {
 }
 
 if (STEP === "finish") {
-  var pin = call("GET", API + "/orders/" + output.orderId, customer).body.pin;
   must(call("PUT", API + "/orders/" + output.orderId + "/status", rider, { status: "picked_up" }), "picked_up");
+  var pin = call("GET", API + "/orders/" + output.orderId, customer).body.pin; // the customer sees it once picked up
   must(call("PUT", API + "/orders/" + output.orderId + "/status", rider, { status: "delivered", proof: { method: "pin", pin: pin } }), "delivered");
 }

@@ -11,7 +11,7 @@ related: track-your-order, message-your-delivery-partner, report-a-problem-with-
 
 ## यह कहाँ मिलेगा
 
-[आपके ऑर्डर](/account/orders) से अपना ऑर्डर खोलें। PIN ट्रैकिंग पेज पर **डिलीवरी PIN** के नाम से होता है।
+[आपके ऑर्डर](/account/orders) से अपना ऑर्डर खोलें। जब आपका डिलीवरी पार्टनर आपका ऑर्डर ले लेता है, तब PIN ट्रैकिंग पेज पर **डिलीवरी PIN** के नाम से दिखता है।
 
 ## दरवाज़े पर
 

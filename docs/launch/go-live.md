@@ -242,7 +242,7 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
   temporary runner in the environment, deleted afterwards.
 - **How:** the markets-only seed, [`tools/seed/markets.py`](../../tools/seed/markets.py), with production's
   settings in the environment (`APP_ENV=production`, `PAYMENT_PROVIDER=live`, `PAYOUT_PROVIDER=live`,
-  `OTP_FIXED_CODE=`, `DELIVERY_PIN_FIXED=`, `DATABASE_URL` = the tunnel):
+  `OTP_FIXED_CODE=`, `DATABASE_URL` = the tunnel):
 
   ```
   cd backend && uv run python ../tools/seed/markets.py
