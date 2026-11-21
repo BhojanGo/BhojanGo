@@ -1,7 +1,8 @@
 """Never print a secret (R13). Masks every password, authenticator key, token and API key we hold
 in any text, and reads or changes logins without showing them.
 
-Where secrets live (a folder outside the repo: BHOJANGO_SECRETS_DIR, else E2E_LOGINS_FILE's folder):
+Where secrets live: one folder outside the repo, set in tools/secrets/config.py (default: the
+"Products" folder in the DeepTrics LLC OneDrive; override with BHOJANGO_SECRETS_DIR):
   BhojanGo_QA_Logins.txt       the QA logins (tab-separated: ... email, password[, authenticator key])
   BhojanGo_Railway_Tokens.txt  Railway tokens ("Name: value")
   BhojanGo_Stripe_Keys.txt     Stripe test keys ("name: value")
@@ -14,6 +15,10 @@ plus the values of environment variables named like *TOKEN*, *SECRET*, *PASSWORD
 In Python: ``from mask import mask, login, set_password`` (tools/secrets on sys.path).
 Stdlib only. Prints no secret, ever: a value it knows becomes <redacted>, and so does anything
 shaped like a Stripe key, a bearer token or a JWT.
+
+Fails closed (R25): if a secrets file isn't where config.py says, it stops with an error naming the
+folder and the missing files (exit 3) and passes nothing through. It never prints text unmasked
+because it couldn't find what to mask.
 """
 from __future__ import annotations
 
@@ -23,12 +28,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-DIR = Path(os.environ.get("BHOJANGO_SECRETS_DIR")
-           or (str(Path(os.environ["E2E_LOGINS_FILE"]).parent) if os.environ.get("E2E_LOGINS_FILE") else "")
-           or Path.home() / "bhojango-secrets")  # a folder outside the repo; never commit its path
-LOGINS = DIR / "BhojanGo_QA_Logins.txt"
-FILES = (LOGINS, DIR / "BhojanGo_Railway_Tokens.txt", DIR / "BhojanGo_Stripe_Keys.txt")
-FILE_NAMES = tuple(p.name for p in FILES)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import config  # noqa: E402  (tools/secrets/config.py: where the secrets files live)
+
+DIR = config.secrets_dir()
+FILE_NAMES = config.FILE_NAMES
+LOGINS, RAILWAY, STRIPE = (DIR / n for n in FILE_NAMES)
+FILES = (LOGINS, RAILWAY, STRIPE)
+EXIT_NO_SECRETS = 3
+
+
+class SecretsNotFound(RuntimeError):
+    """A secrets file is missing: nothing can be masked, so nothing is passed through."""
+
+
+def require_files() -> None:
+    missing = config.missing_files(DIR)
+    if missing:
+        raise SecretsNotFound(
+            f"secrets files not found in {DIR}: {', '.join(p.name for p in missing)}. "
+            f"Put them there, or set {config.ENV} to the folder that has them. Nothing was masked or printed.")
 MASK = "<redacted>"
 SHAPES = re.compile(
     r"\b(?:sk|rk|pk)_(?:test|live)_[A-Za-z0-9]{8,}"  # Stripe API keys
@@ -40,10 +59,8 @@ ENV_NAME = re.compile(r"TOKEN|SECRET|PASSWORD|_KEY$|^KEY$", re.I)
 
 
 def _rows() -> list[list[str]]:
-    try:
-        return [line.rstrip("\n").split("\t") for line in LOGINS.read_text(encoding="utf-8").splitlines()]
-    except OSError:
-        return []
+    require_files()
+    return [line.rstrip("\n").split("\t") for line in LOGINS.read_text(encoding="utf-8").splitlines()]
 
 
 def secret_values() -> list[str]:
@@ -54,13 +71,10 @@ def secret_values() -> list[str]:
             if "@" in col and "." in col:  # an email: the next columns are its password and key
                 found.update(c.strip() for c in row[i + 1:i + 3] if len(c.strip()) >= 8)
     for f in FILES[1:]:
-        try:
-            for line in f.read_text(encoding="utf-8").splitlines():
-                value = re.split(r"[:=]", line, maxsplit=1)[-1].strip()
-                if len(value) >= 8 and " " not in value:
-                    found.add(value)
-        except OSError:
-            pass
+        for line in f.read_text(encoding="utf-8").splitlines():
+            value = re.split(r"[:=]", line, maxsplit=1)[-1].strip()
+            if len(value) >= 8 and " " not in value:
+                found.add(value)
     found.update(v for k, v in os.environ.items() if ENV_NAME.search(k) and len(v) >= 8)
     return sorted(found, key=len, reverse=True)
 
@@ -117,6 +131,11 @@ def _files(dirs: list[str]) -> None:
 
 
 def main(argv: list[str]) -> int:
+    try:
+        require_files()  # before reading any input or running anything: fail closed
+    except SecretsNotFound as e:
+        print(f"mask.py: {e}", file=sys.stderr)
+        return EXIT_NO_SECRETS
     if argv[:1] == ["files"]:
         _files(argv[1:])
         return 0
