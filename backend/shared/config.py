@@ -381,6 +381,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: str = ""
     REDIS_MAX_CONNECTIONS: int = 100  # per process; WebSockets share one pub/sub connection (realtime hub)
+    # R27: where kitchen tablet heartbeats live (shared/kitchen_live.py). They must be in core_api's Redis
+    # database (core_api reads them for every quote), so a service whose REDIS_URL is another database
+    # (realtime: /3) sets this to core_api's REDIS_URL. Empty = REDIS_URL (core_api, the worker).
+    KITCHEN_LIVE_REDIS_URL: str = ""
 
     # JWT: RS256 (shared/jwt_keys.py). Only core_api signs; everyone verifies.
     JWT_PRIVATE_KEY: str = ""  # PEM; required in production (core_api)

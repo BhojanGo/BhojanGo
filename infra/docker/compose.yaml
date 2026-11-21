@@ -167,6 +167,8 @@ services:
       SERVICE_NAME: delivery-svc
       JWKS_URL: http://core-api:8001/.well-known/jwks.json
       REDIS_URL: redis://redis:6379/3
+      # R27: kitchen tablet heartbeats go to core-api's Redis database (it reads them): shared/kitchen_live.py
+      KITCHEN_LIVE_REDIS_URL: redis://redis:6379/0
       CORE_API_URL: http://core-api:8001
       # Order events start dispatch and feed live tracking (P14).
       SQS_QUEUE_URL_ORDERS: http://localstack:4566/000000000000/bhojango-order-events
@@ -189,6 +191,9 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: notification-svc
+      # core-api's Redis database, as on Railway: the demo simulator's state and (R27) its kitchen
+      # heartbeats (shared/kitchen_live.py). Without it the worker tried localhost inside its container.
+      REDIS_URL: redis://redis:6379/0
       JWKS_URL: http://core-api:8001/.well-known/jwks.json
       DB_POOL_SIZE: "5"
       REALTIME_INTERNAL_URL: http://realtime:8004  # the batch engine sends realtime its batches (task 43)

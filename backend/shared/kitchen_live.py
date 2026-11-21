@@ -62,12 +62,33 @@ def required() -> bool:
     return s.APP_ENV.strip().lower() not in OFF_ENVS
 
 
-async def _redis(r):  # type: ignore[no-untyped-def]
-    if r is not None:
-        return r
-    from shared.redis import get_redis
+_own = None  # a client of its own when KITCHEN_LIVE_REDIS_URL names another Redis database than REDIS_URL
 
-    return await get_redis()
+
+def redis_url() -> str:
+    """The Redis URL (and database) of the heartbeats: KITCHEN_LIVE_REDIS_URL, else REDIS_URL. Every
+    service must resolve the same one (tests/test_kitchen_live_redis.py checks compose and Railway)."""
+    s = get_settings()
+    return s.KITCHEN_LIVE_REDIS_URL or s.REDIS_URL
+
+
+async def redis_client():  # type: ignore[no-untyped-def]
+    global _own
+    s = get_settings()
+    if not s.KITCHEN_LIVE_REDIS_URL or s.KITCHEN_LIVE_REDIS_URL == s.REDIS_URL:
+        from shared.redis import get_redis
+
+        return await get_redis()
+    if _own is None:
+        from redis.asyncio import Redis
+
+        _own = Redis.from_url(s.KITCHEN_LIVE_REDIS_URL, password=s.REDIS_PASSWORD or None, decode_responses=True,
+                              max_connections=20)
+    return _own
+
+
+async def _redis(r):  # type: ignore[no-untyped-def]
+    return r if r is not None else await redis_client()
 
 
 def _iso(ts: float) -> str:

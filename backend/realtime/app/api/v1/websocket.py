@@ -262,9 +262,9 @@ async def _kitchen(websocket: WebSocket, restaurant_id: str, current_user: Curre
     from shared import kitchen_live
 
     await websocket.accept()
-    redis = await get_redis()
     try:
-        await kitchen_live.beat(restaurant_id, "socket", redis)
+        # core_api's Redis database, not realtime's own (KITCHEN_LIVE_REDIS_URL): core_api reads them.
+        await kitchen_live.beat(restaurant_id, "socket")
         await websocket.send_json({"type": "connected", "payload": {"restaurant_id": restaurant_id},
                                    "timestamp": datetime.now(UTC).isoformat()})
 
@@ -283,7 +283,7 @@ async def _kitchen(websocket: WebSocket, restaurant_id: str, current_user: Curre
             try:
                 while True:
                     if await websocket.receive_text() == "ping":
-                        await kitchen_live.beat(restaurant_id, "socket", redis)
+                        await kitchen_live.beat(restaurant_id, "socket")
                         await websocket.send_text("pong")
             except (WebSocketDisconnect, RuntimeError):
                 pass  # the tablet left, or a task above closed the socket

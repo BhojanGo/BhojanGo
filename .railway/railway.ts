@@ -185,6 +185,8 @@ export default defineRailway((ctx, project) => {
   const realtime = backend("realtime", "realtime", 8004, "app.main:app", {
     SERVICE_NAME: "realtime",
     REDIS_URL: redisDb(3),
+    // R27: kitchen tablet heartbeats go to core-api's Redis database (it reads them): shared/kitchen_live.py
+    KITCHEN_LIVE_REDIS_URL: redisDb(0),
   }, { cpu: 0.5, memoryGiB: 0.5 });
 
   const worker = backend("worker", "worker", 8006, "app.main:app", {

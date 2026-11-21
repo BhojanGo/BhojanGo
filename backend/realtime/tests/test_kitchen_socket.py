@@ -59,6 +59,7 @@ def state(monkeypatch):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(C, "core_api", FakeCore())
     monkeypatch.setattr(H, "get_redis", get_redis)
     monkeypatch.setattr(websocket, "get_redis", get_redis)
+    monkeypatch.setattr(kitchen_live, "redis_client", get_redis)  # heartbeats: core_api's database
     monkeypatch.setattr(websocket, "hub", H.Hub())
     monkeypatch.setattr(sockets, "limits", sockets.Limits())
     app = FastAPI()

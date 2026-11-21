@@ -231,7 +231,9 @@ export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => v
   };
   const open = () => {
     if (stopped) return;
-    const socket = new WebSocket(wsUrl(path));
+    // R27: the token goes in the Authorization header (React Native's WebSocket takes headers), never
+    // in the URL, where uvicorn's access log and any proxy would keep it.
+    const socket = new WebSocket(wsUrl(path), null, { headers: wsHeaders() });
     ws = socket;
     socket.onopen = () => {
       failures = 0;
@@ -283,8 +285,13 @@ export function liveSocket(path: string, onMessage: (e: { data?: unknown }) => v
   };
 }
 
-/** The realtime WebSocket URL for a path (token as a subprotocol-free query for React Native). */
+/** The realtime WebSocket URL for a path. No token in it (R27): liveSocket sends wsHeaders(). */
 export function wsUrl(path: string): string {
-  const token = useSession.getState().accessToken ?? "";
-  return `${urls.realtime.replace(/^http/, "ws")}${path}?token=${encodeURIComponent(token)}`;
+  return `${urls.realtime.replace(/^http/, "ws")}${path}`;
+}
+
+/** The realtime WebSocket's sign-in: the access token as an Authorization header (realtime reads it first). */
+export function wsHeaders(): Record<string, string> {
+  const token = useSession.getState().accessToken;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
