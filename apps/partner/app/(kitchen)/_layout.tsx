@@ -4,7 +4,7 @@ import { DENSE_FONT_SCALE, SafeAreaView, type, useI18n, useSession } from "@bhoj
 import { Redirect, router, Slot, usePathname, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useBoard, useBoardLoop, NEW } from "../../lib/board";
+import { useBoard, NEW } from "../../lib/board";
 import { useKitchen } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
 import { Icon, Mark, tone, type IconName } from "../../lib/ui";
@@ -23,7 +23,7 @@ export default function KitchenLayout() {
   const path = usePathname();
   const { t } = useI18n();
   const { narrow } = useLayout();
-  useBoardLoop(kitchen?.status === "active" ? kitchen.id : undefined);
+  // The board's loop runs in the root layout (R27: on every screen).
   const waiting = useBoard((s) => s.orders.filter((o) => NEW.includes(o.status)).length);
 
   if (status !== "signed-in") return <Redirect href="/sign-in" />;

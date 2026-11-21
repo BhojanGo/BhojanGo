@@ -28,6 +28,8 @@ export type { User } from "./session";
 // R9: every GET gives up after 8 s; screens show LoadError (title, why, Retry) when their load fails.
 export { createFirstLoad, FIRST_LOAD_TIMEOUT_MS, loadFailure, RequestTimeoutError, timeoutFetch } from "./load";
 export type { LoadFailure, LoadState } from "./load";
+// R27: a session refresh never hangs (the kitchen board's silent stall).
+export { REFRESH_TIMEOUT_MS, RefreshTimeoutError, singleFlight } from "./refresh";
 export { LoadError, loadErrorText, UnreachableScreen, useFirstLoad } from "./ui/load-error";
 export type { LoadErrorProps } from "./ui/load-error";
 export { cartItems, defaultPicks, useBag } from "./bag";

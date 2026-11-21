@@ -10,6 +10,7 @@ import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, Vie
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
 import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
+import { acceptLeft, mmss } from "../../lib/liveness";
 import { RatingChip } from "../../lib/ratings";
 import { Btn, Card, color, Count, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 
@@ -246,12 +247,12 @@ function OrderRow({ order: o, index, onOpen }: { order: Order; index: number; on
   const { t: tr } = useI18n();
   const fresh = NEW.includes(o.status);
   const now = useNow(fresh ? 1000 : 15000);
+  const skew = useBoard((s) => s.skew);
   const items = (o.items ?? []) as Item[];
   const who = `${code(o.id)} · ${name(o, tr("partner.orders.customer"))}`;
   let when: string, tint: string;
   if (fresh) {
-    const left = o.accept_due_at ? Math.max(0, Math.round((Date.parse(o.accept_due_at) - now) / 1000)) : null;
-    when = left == null ? "" : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    when = acceptText(acceptLeft(o.accept_due_at, now, skew), tr);
     tint = color.chili;
   } else if (COOKING.includes(o.status)) {
     when = cookingLabel(o, now, tr);
@@ -273,6 +274,16 @@ function OrderRow({ order: o, index, onOpen }: { order: Order; index: number; on
   );
 }
 
+/**
+ * The accept timer's words (R27): "2:05" while there is time, "Accept now" once the server's
+ * deadline has passed (the order can still be accepted until the server's 10-second sweep
+ * cancels it), never "0:00". Seconds from acceptLeft (server time, lib/liveness.ts).
+ */
+function acceptText(left: number | null, tr: Translate): string {
+  if (left == null) return "";
+  return left > 0 ? mmss(left) : tr("partner.orders.accept_now");
+}
+
 /** "12 min left", "3 min late" or "almost ready": a cooking order's clock. */
 function cookingLabel(o: Order, now: number, tr: Translate) {
   if (o.status === "almost_ready") return tr("partner.orders.almost_ready_label");
@@ -289,9 +300,10 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
   const { cash, clock } = useFormat();
   const { t: tr } = useI18n();
   const now = useNow();
+  const skew = useBoard((s) => s.skew);
   const [prep, setPrep] = useState(() => PREP.reduce((a, b) => (Math.abs(b - defaultPrep) < Math.abs(a - defaultPrep) ? b : a)));
   const [busy, setBusy] = useState<string | null>(null);
-  const left = o.accept_due_at ? Math.max(0, Math.round((Date.parse(o.accept_due_at) - now) / 1000)) : null;
+  const left = acceptLeft(o.accept_due_at, now, skew);
   const items = (o.items ?? []) as Item[];
   const run = (k: string, fn: () => Promise<unknown>) => async () => {
     setBusy(k);
@@ -306,11 +318,10 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
           <Text style={[t.muted, { marginTop: 2 }]}>{tr("partner.orders.delivery_paid", { time: clock(o.placed_at ?? o.created_at, o.time_zone) })}</Text>
         </View>
         {left != null ? (
-          <View style={{ alignItems: "flex-end" }} accessibilityLabel={tr("partner.orders.left_to_accept", { min: Math.floor(left / 60), sec: left % 60 })}>
-            <Text style={[type.h3, num, { color: color.chili }]}>
-              {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
-            </Text>
-            <Text style={[type.caption, { color: color.muted }]}>{tr("partner.orders.to_accept")}</Text>
+          <View testID="accept-timer" style={{ alignItems: "flex-end" }}
+            accessibilityLabel={left > 0 ? tr("partner.orders.left_to_accept", { min: Math.floor(left / 60), sec: left % 60 }) : tr("partner.orders.accept_now")}>
+            <Text style={[type.h3, num, { color: color.chili }]}>{acceptText(left, tr)}</Text>
+            {left > 0 ? <Text style={[type.caption, { color: color.muted }]}>{tr("partner.orders.to_accept")}</Text> : null}
           </View>
         ) : null}
       </View>

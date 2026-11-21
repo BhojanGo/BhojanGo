@@ -8,7 +8,8 @@
   "scripts": {
     "generate": "openapi-typescript openapi/core.json --default-non-nullable false -o src/schema/core.ts && openapi-typescript openapi/realtime.json --default-non-nullable false -o src/schema/realtime.ts && openapi-typescript openapi/worker.json --default-non-nullable false -o src/schema/worker.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "echo 'generated code: typecheck only'"
+    "lint": "echo 'generated code: typecheck only'",
+    "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
     "openapi-fetch": "^0.17.0"

@@ -1,12 +1,22 @@
-// The orders board, shared by every screen: polled every 4 s; while a new
-// order waits, the tablet rings (loud, looping) and vibrates until it's
-// accepted, rejected or times out.
+// The orders board, shared by every screen. While a new order waits, the tablet rings (loud,
+// looping) and vibrates until it's accepted, rejected or times out.
+//
+// R27 (the R26 stall: the board silently stopped updating after ~75 min):
+// - one refresh at a time; a refresh still running after STUCK_AFTER_MS is treated as lost
+//   (lib/liveness.ts), and every request under it gives up on its own (GETs after 8 s, the
+//   token refresh after 15 s: mobile-core refresh.ts), so a hung request can't freeze the board;
+// - a watchdog: the time of the last good update. No good poll (and no socket message) for 15 s:
+//   `offline`, and every Kitchen screen shows the red "Not receiving orders" banner with an alarm
+//   (lib/offline.tsx) until updates come back;
+// - polls every 4 s, every 12 s while the realtime socket is up;
+// - the server's clock (each poll's Date header): accept timers count down to the real deadline.
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { useEffect } from "react";
-import { Vibration } from "react-native";
+import { AppState, Vibration } from "react-native";
 import { create } from "zustand";
 
-import { getBoard, getToday, type Order, type Today } from "./data";
+import { getBoardTimed, getToday, type Order, type Today } from "./data";
+import { isOffline, mayStart, pollDue, pollEvery, type Link } from "./liveness";
 
 export const NEW = ["placed"];
 export const COOKING = ["accepted", "preparing", "almost_ready"];
@@ -19,28 +29,79 @@ interface BoardStore {
   /** What the last refresh threw (LoadError / loadErrorText word it); null after a good one. */
   failure: unknown;
   muted: boolean;
+  /** The server's clock minus this tablet's (ms), from the last poll: accept timers use server time. */
+  skew: number;
+  /** When the board last heard from the server (liveness.ts). */
+  link: Link;
+  /** No good poll and no socket message for 15 s: the tablet isn't receiving orders. */
+  offline: boolean;
   refresh: (kitchenId: string) => Promise<void>;
+  /** Something came in over the realtime socket (an event or a pong). */
+  heard: () => void;
   setToday: (t: Today) => void;
   mute: (on: boolean) => void;
 }
 
-export const useBoard = create<BoardStore>()((set) => ({
+// The refresh running now (one at a time) and the last one whose answer was used.
+let running: { since: number; seq: number; done: Promise<void> } | null = null;
+let seq = 0;
+let applied = 0;
+// Asked again while one was running (an accept, a socket event): one more right after it, shared.
+let again: { after: number; done: Promise<void> } | null = null;
+
+export const useBoard = create<BoardStore>()((set, get) => ({
   orders: [],
   today: null,
   error: null,
   failure: null,
   muted: false,
-  refresh: async (id) => {
-    try {
-      const [orders, today] = await Promise.all([getBoard(id), getToday(id)]);
-      set({ orders, today, error: null, failure: null });
-    } catch (e) {
-      set({ error: (e as Error).message, failure: e });
+  skew: 0,
+  link: { since: Date.now(), lastPoll: null, lastSocket: null },
+  offline: false,
+  refresh: (id) => {
+    const now = Date.now();
+    if (running && !mayStart(running.since, now)) {
+      const after = running.seq;
+      if (again?.after !== after) {
+        const next = running.done.then(() => {
+          if (again?.after === after) again = null;
+          return get().refresh(id);
+        });
+        again = { after, done: next };
+      }
+      return again.done;
     }
+    const mine = ++seq;
+    const done = (async () => {
+      try {
+        const [board, today] = await Promise.all([getBoardTimed(id), getToday(id)]);
+        if (mine < applied) return; // a newer refresh already answered
+        applied = mine;
+        set((s) => ({
+          orders: board.items, today, error: null, failure: null, skew: board.skew ?? s.skew,
+          link: { ...s.link, lastPoll: Date.now() }, offline: false,
+        }));
+      } catch (e) {
+        if (mine < applied) return;
+        set({ error: (e as Error).message, failure: e });
+      } finally {
+        if (running?.seq === mine) running = null;
+      }
+    })();
+    running = { since: now, seq: mine, done };
+    return done;
   },
+  heard: () => set((s) => ({ link: { ...s.link, lastSocket: Date.now() }, offline: false })),
   setToday: (today) => set({ today }),
   mute: (muted) => set({ muted }),
 }));
+
+/** The watchdog's look (every second): is the tablet still hearing from the server? */
+function watch(now: number) {
+  const s = useBoard.getState();
+  const off = isOffline(s.link, now);
+  if (off !== s.offline) useBoard.setState({ offline: off });
+}
 
 let player: AudioPlayer | null = null;
 
@@ -63,19 +124,74 @@ function ring(on: boolean) {
   }
 }
 
-/** Poll the board for this kitchen and ring while a new order waits. */
+let alarmPlayer: AudioPlayer | null = null;
+const ALARM_EVERY_MS = 20000;
+
+/** R27: the "Not receiving orders" alarm: a short two-tone sound now and every 20 s while offline. */
+function alarm(on: boolean): (() => void) | undefined {
+  if (!on) return undefined;
+  const play = () => {
+    try {
+      if (!alarmPlayer) {
+        void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false }).catch(() => undefined);
+        alarmPlayer = createAudioPlayer(require("../assets/offline-alarm.wav"));
+        alarmPlayer.volume = 1;
+      }
+      void alarmPlayer.seekTo(0).catch(() => undefined);
+      alarmPlayer.play();
+    } catch {
+      // no sound (an emulator without audio): the banner still shows
+    }
+  };
+  play();
+  const t = setInterval(play, ALARM_EVERY_MS);
+  return () => {
+    clearInterval(t);
+    alarmPlayer?.pause();
+  };
+}
+
+/**
+ * Keep the board of this kitchen fresh (every Kitchen screen: the root layout runs it), ring while
+ * a new order waits, and sound the alarm while the tablet isn't receiving orders.
+ */
 export function useBoardLoop(kitchenId: string | undefined) {
   const refresh = useBoard((s) => s.refresh);
   const waiting = useBoard((s) => s.orders.some((o) => NEW.includes(o.status)));
   const muted = useBoard((s) => s.muted);
+  const offline = useBoard((s) => s.offline && !!kitchenId);
   useEffect(() => {
-    if (!kitchenId) return;
-    void refresh(kitchenId);
-    const t = setInterval(() => void refresh(kitchenId), 4000);
-    return () => clearInterval(t);
+    if (!kitchenId) {
+      useBoard.setState({ offline: false });
+      return;
+    }
+    useBoard.setState((s) => ({ link: { ...s.link, since: Date.now() }, offline: false }));
+    let lastStart: number | null = null;
+    const tick = () => {
+      const now = Date.now();
+      watch(now);
+      if (pollDue(lastStart, now, pollEvery(useBoard.getState().link, now)) && mayStart(running?.since ?? null, now)) {
+        lastStart = now;
+        void refresh(kitchenId);
+      }
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    // Back in front (the screen woke, another app closed): refresh at once.
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        lastStart = null;
+        tick();
+      }
+    });
+    return () => {
+      clearInterval(t);
+      sub.remove();
+    };
   }, [kitchenId, refresh]);
   useEffect(() => {
     ring(waiting && !muted);
     return () => ring(false);
   }, [waiting, muted]);
+  useEffect(() => alarm(offline), [offline]);
 }

@@ -10,8 +10,10 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useBoardLoop } from "../lib/board";
 import { useKitchen } from "../lib/data";
 import { useOrientationLock } from "../lib/layout";
+import { WithOfflineBanner } from "../lib/offline";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -34,6 +36,11 @@ export default function RootLayout() {
   const accountCountry = useSession((s) => s.user?.country);
   const kitchenCountry = useKitchen((s) => s.kitchen?.country);
   useKnownCountry(accountCountry ? kitchenCountry || accountCountry : null);
+  // R27: the board runs here, under every screen (Account included), so the tablet keeps hearing
+  // new orders, ringing, and saying so when it can't, wherever the person is in the app.
+  const kitchen = useKitchen((s) => s.kitchen);
+  const watching = status === "signed-in" && kitchen?.status === "active";
+  useBoardLoop(watching ? kitchen.id : undefined);
 
   useEffect(() => {
     void initialize();
@@ -52,7 +59,9 @@ export default function RootLayout() {
       <WithTestBanner>
         {/* Signed in, but the API didn't answer at start: say so, Retry (the person stays signed in). */}
         {status === "unreachable" ? <UnreachableScreen error={failure} onRetry={initialize} /> : (
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }} />
+          <WithOfflineBanner watching={watching}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }} />
+          </WithOfflineBanner>
         )}
       </WithTestBanner>
     </I18nProvider>
