@@ -6,7 +6,7 @@
 // "Coming soon · N people waiting". The choice decides the home's location line and
 // so the country: its currency, its kitchens and the languages on the pill.
 import {
-  Button, color, filterCities, formatNumber, Input, LoadError, radius, SafeAreaView, space, type, useCountry, useI18n, type MarketCountry,
+  Button, cityRegionCode, color, filterCities, formatNumber, Input, LoadError, radius, SafeAreaView, space, type, useCountry, useI18n, type MarketCountry,
 } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -40,6 +40,8 @@ export default function Where() {
   const others = shown.filter((k) => k.code !== country?.code);
   const othersShown = othersOpen || (!!q.trim() && !home && others.length > 0);
 
+  // "Boise, ID": a city with its state's short code from Markets (R27), as on home's location line.
+  const place = (city: string, region: string | null | undefined) => (region ? t("location.place", { city, country: region }) : city);
   const done = () => (router.canGoBack() ? router.back() : router.replace("/home"));
   async function go(pick: () => Promise<void>) {
     setBusy(true);
@@ -59,7 +61,7 @@ export default function Where() {
       <View key={r.code} style={{ gap: space[1] }}>
         <Text style={[type.small, { color: color.muted }]}>{r.name}</Text>
         {r.cities.map((c) => (
-          <CityRow key={c.code} c={c} on={point?.browse === true && market?.city_code === c.code} disabled={busy}
+          <CityRow key={c.code} c={c} region={r.short_code} on={point?.browse === true && market?.city_code === c.code} disabled={busy}
             onPick={() => void go(() => pickCity(c, k.code))} locale={k.locales?.[0]} />
         ))}
       </View>
@@ -83,7 +85,7 @@ export default function Where() {
                 <Icon name="pin" size={20} stroke={color.peacock} />
                 <View style={{ flex: 1 }}>
                   <Text style={[type.label, { color: color.kohl }]}>{p.label || t("app.home.current_location")}</Text>
-                  {p.city ? <Text style={[type.small, { color: color.muted }]}>{[p.city, p.country].filter(Boolean).join(", ")}</Text> : null}
+                  {p.city ? <Text style={[type.small, { color: color.muted }]}>{place(p.city, cityRegionCode(countries, p.city, p.country) ?? p.country)}</Text> : null}
                 </View>
                 {on ? <Icon name="check" size={18} stroke={color.peacock} /> : null}
               </Pressable>
@@ -121,7 +123,9 @@ export default function Where() {
 }
 
 /** A city: live ones pick it (browse there); coming-soon ones say how many are waiting. */
-function CityRow({ c, on, disabled, onPick, locale }: { c: City; on: boolean; disabled: boolean; onPick: () => void; locale?: string }) {
+function CityRow({ c, region, on, disabled, onPick, locale }: {
+  c: City; region?: string | null; on: boolean; disabled: boolean; onPick: () => void; locale?: string;
+}) {
   const { t } = useI18n();
   const live = c.status === "live";
   const waiting = Number(c.waiting ?? 0);
@@ -131,7 +135,8 @@ function CityRow({ c, on, disabled, onPick, locale }: { c: City; on: boolean; di
   const body = (
     <>
       <View style={{ flex: 1 }}>
-        <Text style={[type.label, { color: live ? color.kohl : color.muted }]}>{c.name}</Text>
+        {/* "Boise, ID" (R27): the state's short code from Markets, as on home's location line */}
+        <Text style={[type.label, { color: live ? color.kohl : color.muted }]}>{region ? t("location.place", { city: c.name, country: region }) : c.name}</Text>
         <Text style={[type.small, { color: live ? color.peacock : color.muted }]}>{status}</Text>
       </View>
       {on ? <Icon name="check" size={18} stroke={color.peacock} /> : null}

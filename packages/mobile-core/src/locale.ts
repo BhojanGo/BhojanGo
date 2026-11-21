@@ -109,6 +109,24 @@ export function filterCities(countries: readonly MarketCountry[], q: string | nu
     .filter((k) => k.regions.length);
 }
 
+/**
+ * The short code people write after a city ("ID" in "Boise, ID"): the Markets state's
+ * short_code for a city of that name in that country (any country when none is given),
+ * or null when Markets doesn't list it.
+ */
+export function cityRegionCode(countries: readonly MarketCountry[], city: string | null | undefined,
+                               country?: string | null): string | null {
+  const name = fold(String(city ?? "").trim());
+  if (!name) return null;
+  for (const k of countries) {
+    if (country && k.code !== country) continue;
+    for (const r of k.regions) {
+      if (r.short_code && r.cities.some((c) => fold(c.name) === name)) return r.short_code;
+    }
+  }
+  return null;
+}
+
 /** Every live city's name, for "We're cooking in ..." (Markets order: live first). */
 export function liveCityNames(countries: readonly MarketCountry[]): string[] {
   return countries.flatMap((c) => c.regions.flatMap((r) => r.cities.filter((x) => x.status === "live").map((x) => x.name)));
