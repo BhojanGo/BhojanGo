@@ -10345,6 +10345,11 @@
             "title": "Provider Payment Id",
             "type": "string"
           },
+          "refunded_amount": {
+            "default": 0,
+            "title": "Refunded Amount",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"

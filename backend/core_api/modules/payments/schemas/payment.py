@@ -78,6 +78,7 @@ class PaymentResponse(BaseModel):
     provider: str
     provider_payment_id: str
     amount: int
+    refunded_amount: int = 0  # R27: given back so far (minor units); the admin's refund panel offers only what's left
     currency: str
     status: str
     idempotency_key: str

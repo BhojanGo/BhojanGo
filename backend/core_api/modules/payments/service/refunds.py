@@ -25,6 +25,7 @@ from shared.money import format_money
 logger = structlog.get_logger(__name__)
 CENT = Decimal("0.01")
 DEFAULT_AGENT_LIMIT = {"INR": Decimal("500"), "USD": Decimal("25")}
+ROUNDING_SLACK = 2  # minor units: per-line rounding may add up to a little over what was paid
 
 
 class RefundError(ValueError):
@@ -173,6 +174,9 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
     )).scalars().first()
     if intent is None:
         raise RefundError("Nothing to refund: the order has no captured payment left")
+    remaining = intent.amount - (intent.refunded_amount or 0)
+    if remaining <= 0:
+        raise RefundError("Nothing left to refund: this order was refunded in full")
 
     previous = (await db.execute(select(Refund).where(Refund.order_id == order_id))).scalars().all()
     already: dict[str, int] = {}
@@ -186,9 +190,13 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
 
     total, lines = compute_item_refund(order.items, snap.lines, requests, already, include_delivery, delivery_already)
     minor = int((total * 100).to_integral_value())
-    remaining = intent.amount - (intent.refunded_amount or 0)
     if minor <= 0:
         raise RefundError("Choose at least one item or the delivery fee")
+    # R27: never more than is left on the payment. A cent or two over is rounding (each line is
+    # rounded on its own) and is trimmed; more means an earlier refund not tied to items (a bulk
+    # or full refund) already gave this money back.
+    if minor > remaining + ROUNDING_SLACK:
+        raise RefundError(f"Only {format_money(Decimal(remaining) / 100, intent.currency)} is left to refund on this order")
     minor = min(minor, remaining)
 
     city = order.market_city or ""
