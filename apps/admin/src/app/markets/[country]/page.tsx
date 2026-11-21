@@ -28,6 +28,7 @@ import {
   useDemand,
   useMarkets,
 } from "@/lib/markets";
+import { count } from "@/lib/count";
 const METHOD_NAMES: Record<string, string> = { upi: "UPI", card: "cards", wallet: "wallets", apple_pay: "Apple Pay", google_pay: "Google Pay" };
 
 function setupProgress(c: CitySummary) {
@@ -86,7 +87,7 @@ function CountryView() {
             <h1 className="m-0 text-h1">{country.name}</h1>
             <StatusPill status={country.status} />
             <span className="basis-full text-small text-muted">
-              Times in {tzShort} · amounts in {moneySymbol(country.currency).trim()} · {cities.length} cities,{" "}
+              Times in {tzShort} · amounts in {moneySymbol(country.currency).trim()} · {count(cities.length, "city", "cities")},{" "}
               {cities.filter((c) => c.status === "live" || c.status === "beta").length} open
             </span>
           </div>

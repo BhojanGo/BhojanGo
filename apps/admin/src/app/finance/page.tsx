@@ -19,6 +19,7 @@ import { type PayeeKind, SetupLinkButton, SetupPill, type SetupState } from "@/c
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { apiMessage, money, useScope } from "@/lib/ops";
+import { count } from "@/lib/count";
 
 interface Run {
   id: string; country: string; currency: string; period_start: string; period_end: string; status: string; created_by: string;
@@ -224,7 +225,7 @@ function FinancePage() {
                           : l.kind === "earlier" ? `Still ${money((l.amount ?? 0) / 100, s.currency, 2)} below zero from earlier weeks · carried to next week.`
                           : "Carried to next week."}
                       </span>)) : null}
-                    {(s.negative_weeks ?? 0) >= COLLECT_AFTER_WEEKS ? <span className="mt-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">To collect · {s.negative_weeks} weeks</span> : null}</div></td>
+                    {(s.negative_weeks ?? 0) >= COLLECT_AFTER_WEEKS ? <span className="mt-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">To collect · {count(s.negative_weeks ?? 0, "week")}</span> : null}</div></td>
                   <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span className={`block font-semibold ${STATUS_STYLE[s.status] ?? ""}`}>{STATEMENT_STATUS[s.status] ?? s.status}</span>
                     {s.transfer_id ? <span className="block text-small text-muted">{s.transfer_id}{s.transferred_at ? ` · ${new Date(s.transferred_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}</span> : null}
                     {s.error && ["failed", "reversed"].includes(s.status) ? <span className="block text-small text-muted">{s.error}</span> : null}</div></td>
@@ -267,7 +268,7 @@ function FinancePage() {
             {contribution.data.fees_estimated ? ` Payment fees are estimated for ${contribution.data.fees_estimated} of these orders: the payment provider doesn't report its fee, so the expected rate in Business rules is used.` : ""}</p>
           <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted"><tr><th className="py-2">Per order</th>
-              {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {c.orders} orders</th>)}</tr></thead>
+              {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {count(c.orders, "order")}</th>)}</tr></thead>
             <tbody className="divide-y divide-line tabular-nums">
               {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
                 <tr key={k}><td className="py-2">{label}{k === "payment_fees" && contribution.data!.fees_estimated ? <span data-testid="fees-estimated" className="ml-2 rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">estimated</span> : null}</td>{contribution.data!.cities.map((c) => {
@@ -304,8 +305,8 @@ function FinancePage() {
                 ) : null}</div>)}
           </div>
           <p className="mt-3 text-small text-muted">Kitchens are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a kitchen.</p>
-          <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {recon.data.refunds_not_settled} refunds not settled ·{" "}
-            {recon.data.issues.length ? <b className="text-chili">{recon.data.issues.length} issues to look at</b> : <span className="text-peacock">everything lines up</span>}</p>
+          <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {count(recon.data.refunds_not_settled, "refund")} not settled ·{" "}
+            {recon.data.issues.length ? <b className="text-chili">{count(recon.data.issues.length, "issue")} to look at</b> : <span className="text-peacock">everything lines up</span>}</p>
         </section>
       ) : null}
     </ConsoleShell>

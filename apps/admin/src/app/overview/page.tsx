@@ -9,6 +9,7 @@ import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { StatusPill } from "@/components/console/StatusPill";
 import type { MarketStatus } from "@/lib/markets";
 import { money, useOverview, useScope, type Action, type OCountry, type Totals } from "@/lib/ops";
+import { count } from "@/lib/count";
 
 function pct(v: number | null) {
   return v == null ? "—" : `${v}%`;
@@ -58,7 +59,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
       <div>
         <h1 className="m-0 text-h1">All countries</h1>
         <p className="mt-1 text-small text-muted">
-          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {countries.length} countries · {states} states · {cities} cities ({live} live or in beta) · money stays in each country&apos;s currency
+          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {count(countries.length, "country", "countries")} · {count(states, "state")} · {count(cities, "city", "cities")} ({live} live or in beta) · money stays in each country&apos;s currency
         </p>
       </div>
       <div className="grid gap-4 2xl:grid-cols-2">
@@ -80,7 +81,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
                 <li key={s.code} className="flex items-center gap-2 py-2.5">
                   <b>{s.name}</b>
                   <span className="text-muted">· {s.cities.map((x) => `${x.name} ${x.status}`).join(", ")}</span>
-                  <span className="ml-auto font-semibold tabular-nums">{s.totals.today ? `${s.totals.today} orders` : "not live"}</span>
+                  <span className="ml-auto font-semibold tabular-nums">{s.totals.today ? count(s.totals.today, "order") : "not live"}</span>
                 </li>
               ))}
             </ul>

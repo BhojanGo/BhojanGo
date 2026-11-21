@@ -20,6 +20,7 @@ import {
   useAdminMe,
   useMarkets,
 } from "@/lib/markets";
+import { count } from "@/lib/count";
 
 const TAX: Record<string, string> = { gst: "GST", us_sales_tax: "Stripe Tax" };
 
@@ -214,7 +215,7 @@ export default function AllCountriesPage() {
         <h1 className="m-0 text-h1">All countries</h1>
         <p className="mt-1 text-small text-muted">
           {markets
-            ? `${markets.length} countries · ${regions.length} states · ${cities.length} cities (${open.length} live or in beta) · money stays in each country's currency`
+            ? `${count(markets.length, "country", "countries")} · ${count(regions.length, "state")} · ${count(cities.length, "city", "cities")} (${open.length} live or in beta) · money stays in each country's currency`
             : "Loading…"}
         </p>
       </div>

@@ -14,6 +14,7 @@ import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useCity, useMarkets } from "@/lib/markets";
 import { apiMessage, useScope } from "@/lib/ops";
 import { unitsFor } from "@/lib/ruleWords";
+import { count } from "@/lib/count";
 
 interface Pause { id: string; scope: string; area: string; note: string | null; until: string | null; reason: string; created_at: string | null; ended_at: string | null; active: boolean }
 interface PausedKitchen { id: string; name: string; city: string; reason: string | null; paused_at: string | null; back_at: string | null }
@@ -305,7 +306,7 @@ function Refunds({ scope }: { scope: string }) {
               <td>{b.status.replace(/_/g, " ")}{b.failed ? ` (${b.failed} failed)` : ""}</td>
               <td>{b.status === "pending_approval" && can(me, "refunds.approve", b.market_city) && b.requested_by !== me?.user_id ? (
                 deciding?.id === b.id ? (
-                  <Confirm testId="confirm-decide-refund" title={deciding.approve ? `Approve: refund ${unitsFor(b.market_city, markets).money(b.total / 100, 2)} on ${b.count} orders now?` : "Reject this bulk refund?"}
+                  <Confirm testId="confirm-decide-refund" title={deciding.approve ? `Approve: refund ${unitsFor(b.market_city, markets).money(b.total / 100, 2)} on ${count(b.count, "order")} now?` : "Reject this bulk refund?"}
                     yes={deciding.approve ? "Yes, approve and refund" : "Yes, reject"} busy={busy} onCancel={() => setDeciding(null)}
                     onYes={(reason) => void act(() => adminApi.post(`/user/incidents/refunds/${b.id}/${deciding.approve ? "approve" : "reject"}`, { note: reason, confirm: true }),
                       deciding.approve ? "Approved and refunded." : "Rejected.").then(() => setDeciding(null))} />
@@ -367,7 +368,7 @@ function Messages({ scope }: { scope: string }) {
             if (e.target.value.startsWith("city:") && t?.per_order) setTemplate("area_paused");
           }} className={field}>
             {cities.map((c) => <option key={c.code} value={`city:${c.code}`}>Customers who ordered in {c.name}</option>)}
-            {done.map((b) => <option key={b.id} value={b.id}>Customers of the bulk refund of {when(b.created_at)} ({b.count} orders, {b.market_city})</option>)}
+            {done.map((b) => <option key={b.id} value={b.id}>Customers of the bulk refund of {when(b.created_at)} ({count(b.count, "order")}, {b.market_city})</option>)}
           </select>
         </label>
         {isCity ? (
