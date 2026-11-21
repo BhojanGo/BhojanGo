@@ -2,7 +2,7 @@
 // `word` picks the noun for a count; `count` adds the number (en-US grouping).
 
 /** The singular for exactly 1 (or "1"), else the plural (default: singular + "s"). */
-export function word(n: number | string | null | undefined, one: string, many = `${one}s`): string {
+export function word(n: unknown, one: string, many = `${one}s`): string {
   return Number(n) === 1 ? one : many;
 }
 
