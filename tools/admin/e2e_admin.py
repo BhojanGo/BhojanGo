@@ -770,7 +770,9 @@ with sync_playwright() as p:
         expect(ops.get_by_role("link", name="Hyderabad", exact=True).first).to_be_visible()))
     ops.screenshot(path=f"{OUT}/11-city-ops.png", full_page=True)
     ops.goto(f"{BASE}/overview?scope=US", wait_until="networkidle")
-    check("city ops: another country is refused", lambda: expect(ops.get_by_text("You can't see this part of BhojanGo.")).to_be_visible(timeout=15000))
+    # R27: the console says so before asking the API (the API refuses too: test_zz_access_sweep.py)
+    check("city ops: another country is refused", lambda: expect(ops.get_by_test_id("no-access")).to_contain_text(
+        "You don't have access to Overview in", timeout=15000))
 
     # R17: the incident tools (docs/launch/incident-plan.md), as Hyderabad's city ops: pause ordering and a
     # kitchen (the website shows both), preview a bulk refund, message the city's customers, resume everything.
