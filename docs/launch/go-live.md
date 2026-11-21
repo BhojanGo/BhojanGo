@@ -227,6 +227,9 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
     `EMAIL_FROM`, push live, SMS off);
   - Sentry: a deliberate test error from each service appears in its project (then resolve it);
   - web and admin show **no** test-site banner and web is indexable (`robots.txt`); admin is `noindex`;
+  - web and admin are production builds, not `next dev`: `python tools/web/dev_mode_check.py https://<domain>/
+    https://<domain>/signin https://admin.<domain>/login` passes. Then set those URLs as the repository variable
+    `PROD_WEB_URLS`, so the daily `prod-smoke.yml` (`hosted`) checks production as it does QA;
   - CORS answers only the custom web and admin origins.
 - **Roll back:** a failed migration stops the deploy and nothing serves; fix forward. Before launch, the database
   can be dropped and recreated. After launch, redeploy the previous build from the Deployments tab (migrations stay:

@@ -5,6 +5,9 @@ name: Production build smoke
 # no console errors, and the 404 page is the branded one. The end-to-end run uses the
 # same images built for development. Runs when what decides a production build
 # changes, and by hand (Actions → Production build smoke → Run workflow).
+# R24: `hosted` checks every day that QA's website and admin (and production's, once
+# PROD_WEB_URLS is set as a repository variable) are production builds, never `next dev`
+# (tools/web/dev_mode_check.py). It only reads public pages.
 
 on:
   pull_request:
@@ -19,6 +22,9 @@ on:
       - apps/admin/next.config.*
       - tools/web/prod_smoke.*
       - .github/workflows/prod-smoke.yml
+      - tools/web/dev_mode_check*
+  schedule:
+    - cron: "41 6 * * *"   # daily: QA (and production) serve production builds
   workflow_dispatch:
 
 permissions:
@@ -31,6 +37,7 @@ concurrency:
 jobs:
   smoke:
     name: Web and admin, production build
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -49,6 +56,9 @@ jobs:
       - name: Smoke test
         run: sh tools/web/prod_smoke.sh
 
+      - name: Not dev mode (the check passes on the production images)
+        run: python3 tools/web/dev_mode_check.py http://localhost:3000/ http://localhost:3000/signin http://localhost:3001/login
+
       - name: Service logs
         if: failure()
         run: $COMPOSE logs --no-color --tail 200 web admin core-api
@@ -64,3 +74,18 @@ jobs:
       - name: Stop
         if: always()
         run: $COMPOSE down -v
+
+  hosted:
+    name: QA and production serve production builds, not next dev
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: The image builds and starts production Next.js
+        run: python3 tools/web/dev_mode_check.py --source
+      - name: QA
+        run: python3 tools/web/dev_mode_check.py --qa
+      - name: Production
+        if: vars.PROD_WEB_URLS != ''
+        run: python3 tools/web/dev_mode_check.py ${{ vars.PROD_WEB_URLS }}
