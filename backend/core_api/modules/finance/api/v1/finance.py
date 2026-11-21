@@ -15,6 +15,7 @@ import uuid
 from decimal import Decimal
 from datetime import date
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
@@ -88,7 +89,8 @@ def statement_out(s: PayoutStatement, with_lines: bool = True) -> dict:
 async def _zone(db: AsyncSession, country: str, cache: dict[str, ZoneInfo | None]) -> ZoneInfo | None:
     if country not in cache:
         try:
-            cache[country] = ZoneInfo((await payouts._country(db, country)).timezone)
+            # R27: the payout zone (US: America/Boise), the same one the weeks are counted in
+            cache[country] = payouts.payout_tz(await payouts._country(db, country))
         except (FinanceError, ValueError, KeyError):  # no zone: the date is the UTC day
             cache[country] = None
     return cache[country]
