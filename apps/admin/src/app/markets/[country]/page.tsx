@@ -27,6 +27,7 @@ import {
   useAdminMe,
   useDemand,
   useMarkets,
+  WEBSITE_LABELS,
 } from "@/lib/markets";
 import { count } from "@/lib/count";
 import { zoneLabel } from "@/lib/zone";
@@ -182,7 +183,7 @@ function RegionRows({ countryCode, region }: { countryCode: string; region: Coun
               </Link>
               <span className="text-muted"> · {c.zone_count ? `${c.zone_count} zones` : "zones not drawn"}</span>
             </td>
-            <td><StatusPill status={c.status} /></td>
+            <td><StatusPill status={c.status} />{c.website ? <span data-testid={`website-${c.code}`} className="ml-2 whitespace-nowrap text-caption text-muted">{WEBSITE_LABELS[c.website]}</span> : null}</td>
             <td className="text-right">{c.live_zone_count}</td>
             <td className="pl-6">
               {p.done === p.total ? (

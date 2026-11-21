@@ -2097,6 +2097,17 @@
             "title": "Waitlist",
             "type": "integer"
           },
+          "website": {
+            "default": "hidden",
+            "enum": [
+              "live",
+              "beta",
+              "soon",
+              "hidden"
+            ],
+            "title": "Website",
+            "type": "string"
+          },
           "zone_count": {
             "title": "Zone Count",
             "type": "integer"
@@ -2464,6 +2475,17 @@
             "default": 0,
             "title": "Waitlist",
             "type": "integer"
+          },
+          "website": {
+            "default": "hidden",
+            "enum": [
+              "live",
+              "beta",
+              "soon",
+              "hidden"
+            ],
+            "title": "Website",
+            "type": "string"
           },
           "zone_count": {
             "title": "Zone Count",

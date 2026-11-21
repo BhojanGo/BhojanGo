@@ -20,7 +20,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.markets.models import City, Country, LaunchWaitlist, Region, Zone, region_short_code
-from core_api.modules.markets.service import legal, photos, review, rules
+from core_api.modules.markets.service import legal, photos, rules
+from core_api.modules.markets.service.website import is_beta, public_status
 from core_api.modules.pricing.schemas import CityPricing
 from shared.db import get_db
 
@@ -32,21 +33,6 @@ def slugify(name: str) -> str:
     """URL part for a city or country name ("Visakhapatnam" -> "visakhapatnam")."""
     s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
-
-
-def public_status(country: Country, region: Region, city: City, *, show_review: bool = False) -> str | None:
-    """What a visitor sees for a city: "live" (orders open), "soon" (announced), or
-    None (hidden: still a draft, or closed). A soon city needs its country to be past
-    draft; its state may still be a draft (the state opens with its first city).
-    A review-only city (R19, markets.service.review) is hidden too, unless
-    ``show_review`` (discover, for one of its review accounts)."""
-    if not show_review and review.is_review_only(getattr(city, "settings", None)):
-        return None
-    if rules.chain_open(country.status, region.status, city.status):
-        return "live"
-    if city.status == "soon" and country.status != "draft":
-        return "soon"
-    return None
 
 
 class DirCity(BaseModel):
@@ -153,7 +139,7 @@ async def build_directory(db: AsyncSession) -> Directory:
         slug = slugify(city.name)
         r.cities.append(DirCity(
             code=city.code, name=city.name, slug=slug, path=f"/{k.slug}/{slug}", status=st,
-            beta=st == "live" and "beta" in (country.status, region.status, city.status),
+            beta=st == "live" and is_beta(country, region, city),
             restaurants=counts.get((country.code, city.name.lower()), 0) if st == "live" else 0,
             waiting=waiting.get(city.code, 0) if st == "soon" else 0,
             lat=city.center_lat, lng=city.center_lng))

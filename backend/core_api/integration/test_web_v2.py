@@ -48,7 +48,7 @@ async def test_directory_lists_live_and_soon_cities_only(client: AsyncClient) ->
     cities = {c["code"]: (k["code"], r["name"], c) for k in d["countries"] for r in k["regions"] for c in r["cities"]}
     assert cities["IN-TG-HYD"][2]["status"] == "live" and cities["IN-TG-HYD"][2]["path"] == "/in/hyderabad"
     assert cities["IN-TG-HYD"][2]["restaurants"] >= 1
-    assert cities["US-ID-BOI"][2]["status"] == "live" and cities["US-ID-BOI"][2]["beta"] is True
+    assert cities["US-ID-BOI"][2]["status"] == "live" and cities["US-ID-BOI"][2]["beta"] is False  # R27: live, not beta
     # coming soon: listed (a draft state is fine), no kitchens counted
     assert cities["IN-AP-VSKP"][1] == "Andhra Pradesh" and cities["IN-AP-VSKP"][2]["status"] == "soon"
     assert cities["US-ID-NMP"][2]["status"] == "soon" and cities["US-ID-NMP"][2]["restaurants"] == 0
@@ -193,3 +193,24 @@ async def test_example_bill_shares_rider_pay_and_tip(client: AsyncClient, city: 
     assert abs(shares["tax"] - sum(float(ln["amount"]) for ln in b["lines"] if ln["code"] == "tax")) < 0.005, (shares, b["lines"])
     pct = _percentages(list(shares.values()))
     assert sum(pct) == 100 and min(pct) >= 0 and pct[1] > 0, pct
+
+
+async def test_admin_markets_and_the_website_agree_on_every_city(client: AsyncClient) -> None:
+    """R27: one source for a city's public status. R26 saw Boise "beta" in admin Markets
+    while the website listed it live; admin Markets now shows the website's status from
+    the same rules (markets/service/website.py), and both must agree for every city."""
+    d = (await client.get("/api/v1/markets/directory")).json()
+    site = {c["code"]: ("beta" if c["beta"] else c["status"]) for k in d["countries"] for r in k["regions"] for c in r["cities"]}
+    overview = (await client.get("/api/v1/markets", headers=await admin(client))).json()
+    console = {c["code"]: c["website"] for k in overview for r in k["regions"] for c in r["cities"]}
+    assert console, overview
+    for code, shown in console.items():
+        assert site.get(code, "hidden") == shown, (code, shown, site.get(code))
+    assert console["US-ID-BOI"] == "live" and console["IN-TG-HYD"] == "live"
+
+
+async def test_basque_corner_kitchen_has_its_paella_photo(client: AsyncClient) -> None:
+    """R27: Boise's Basque Corner Kitchen had no photo; the library's seafood-paella is its own dish."""
+    r = await client.get("/api/v1/restaurants/by-slug/basque-corner-kitchen-downtown")
+    assert r.status_code == 200, r.text
+    assert r.json()["cover_url"] == "/food/seafood-paella-1600.webp", r.json().get("cover_url")

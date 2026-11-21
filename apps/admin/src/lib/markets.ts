@@ -65,7 +65,13 @@ export interface CitySummary extends City {
   launch_checklist: Record<string, boolean>;
   /** "Notify me" sign-ups for this city (website). */
   waitlist: number;
+  /** R27: how the website lists the city, from the same rules as the website (markets/service/website.py). */
+  website?: "live" | "beta" | "soon" | "hidden";
 }
+
+export const WEBSITE_LABELS: Record<string, string> = {
+  live: "Website: live", beta: "Website: live (beta)", soon: "Website: coming soon", hidden: "Not on the website",
+};
 
 export interface RegionSummary extends Region {
   cities: CitySummary[];

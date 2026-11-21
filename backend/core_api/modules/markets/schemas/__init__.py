@@ -254,6 +254,8 @@ class CitySummary(CityOut):
     live_zone_count: int
     launch_checklist: dict[str, bool]
     waitlist: int = 0  # "Notify me" sign-ups for this city (demand)
+    # R27: how the website lists it (service/website.py), next to the city's own status
+    website: Literal["live", "beta", "soon", "hidden"] = "hidden"
 
 
 class RegionSummary(RegionOut):

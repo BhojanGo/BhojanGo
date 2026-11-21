@@ -24,6 +24,18 @@ def test_public_status() -> None:
     assert public_status(*chain("live", "live", "paused")) is None
 
 
+def test_website_status_is_what_the_website_lists() -> None:
+    """R27: admin Markets shows this next to the city's own status (one source for both)."""
+    from core_api.modules.markets.service.website import website_status
+
+    assert website_status(*chain("live", "live", "live")) == "live"
+    assert website_status(*chain("live", "live", "beta")) == "beta"  # the website lists it, flagged beta
+    assert website_status(*chain("beta", "live", "live")) == "beta"
+    assert website_status(*chain("live", "draft", "soon")) == "soon"
+    assert website_status(*chain("live", "live", "draft")) == "hidden"
+    assert website_status(*chain("live", "live", "paused")) == "hidden"
+
+
 def test_geoip_parse() -> None:
     rec = {"country": {"iso_code": "us"}, "city": {"names": {"en": "Meridian"}},
            "subdivisions": [{"names": {"en": "Idaho"}}], "location": {"latitude": 43.61, "longitude": -116.39}}

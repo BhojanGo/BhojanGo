@@ -100,7 +100,7 @@ Markets: India ▸ Telangana ▸ Hyderabad (`IN-TG-HYD`) and USA ▸ Idaho ▸ B
 live / paused, with settings that inherit country → state → city. Admin console:
 http://localhost:3001/markets (overview, country page with state chips and a city picker, city
 page with zone drawing on an OpenStreetMap map). Apps ask `GET /api/v1/markets/locate?lat=&lng=`
-whether an address is served. Seeded: Hyderabad (live, 8 zones), Boise (beta, 5 zones), and
+whether an address is served. Seeded: Hyderabad (live, 8 zones), Boise (live, 5 zones), and
 Warangal, Visakhapatnam and Vijayawada in setup.
 
 **Rules (P7):** every fee, tax, commission, rider-pay, business rule and promotion is data
