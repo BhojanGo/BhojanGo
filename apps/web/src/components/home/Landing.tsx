@@ -5,6 +5,7 @@
 // other photos and the cuisines come from the visitor's city only when it is live
 // (getContext's location, R8); a place we don't serve gets no other city's kitchens,
 // just the address box and "Set your delivery location". The directory from Markets.
+import { cuisineName } from "@bhojango/i18n";
 import Link from "next/link";
 
 import { AddressBox } from "@/components/AddressBox";
@@ -95,7 +96,7 @@ export async function Landing() {
               <Link key={name} href={`${city.path}?cuisine=${encodeURIComponent(name)}`} className="relative block aspect-square overflow-hidden rounded-[20px] bg-[#EFF6F6] text-white hover:text-white">
                 {/* the cuisine's photo (the API maps every known cuisine to a library dish), else the branded tile */}
                 <KitchenPhoto src={photo(src, 400)} className="h-full w-full" />
-                <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-label">{name}</span>
+                <span className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(17,20,24,0)_0%,rgba(17,20,24,0.72)_100%)] px-[14px] pb-3 pt-10 text-label">{cuisineName(t, name)}</span>
               </Link>
             ))}
           </div>

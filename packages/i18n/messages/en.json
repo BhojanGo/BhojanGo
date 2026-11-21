@@ -44,14 +44,25 @@
     "skip_to_content": "Skip to content",
     "test_site_banner": "Test site: demo kitchens, no real orders or payments",
     "search_placeholder_near": "Search {a}, {b}, kitchens…",
-    "rating_label": "Rated {stars} out of 5 from {count} ratings",
+    "rating_label": {
+      "one": "Rated {stars} out of 5 from {count} rating",
+      "other": "Rated {stars} out of 5 from {count} ratings"
+    },
     "rating_short": "★{stars} ({count})",
     "delivery_from": "from {fee} delivery",
     "people_waiting": {
       "one": "{n} person waiting",
       "other": "{n} people waiting"
     },
-    "closed_opens_day": "Closed · opens {day} {time}"
+    "closed_opens_day": "Closed · opens {day} {time}",
+    "n_minutes": {
+      "one": "{count} minute",
+      "other": "{count} minutes"
+    },
+    "n_seconds": {
+      "one": "{count} second",
+      "other": "{count} seconds"
+    }
   },
   "header": {
     "where_we_deliver": "Where we deliver",
@@ -116,7 +127,12 @@
     "line_surge": "Busy-hour fee",
     "line_late_night_fee": "Late-night fee",
     "line_tip": "Tip for your delivery partner",
-    "exact_note": "Your real bill shows exact amounts, line by line, before you pay."
+    "exact_note": "Your real bill shows exact amounts, line by line, before you pay.",
+    "line_gst_food": "GST on food",
+    "line_gst_fees": "GST on platform fees",
+    "line_sales_tax": "{region} sales tax",
+    "line_sales_tax_plain": "Sales tax",
+    "line_tax_included": "{tax} (included in prices)"
   },
   "notify": {
     "title": "Notify me",
@@ -1232,7 +1248,10 @@
       "new_delivery": "NEW DELIVERY",
       "batch_title": "{count} DELIVERIES · ONE PICKUP",
       "label_single": "New delivery offer",
-      "label_batch": "New offer: {count} deliveries",
+      "label_batch": {
+        "one": "New offer: {count} delivery",
+        "other": "New offer: {count} deliveries"
+      },
       "guaranteed": "Guaranteed",
       "guaranteed_all": "Guaranteed for both",
       "includes_tip": "includes {amount} tip",
@@ -1243,7 +1262,10 @@
       "minutes": "~{min} min",
       "per_hour": "{amount}/hr",
       "pickup": "Pickup",
-      "pickup_of": "Pickup of {count} orders",
+      "pickup_of": {
+        "one": "Pickup of {count} order",
+        "other": "Pickup of {count} orders"
+      },
       "being_prepared": "being prepared",
       "ready_now": "ready now",
       "ready_in": "ready in {min} min",
@@ -1542,6 +1564,7 @@
       "new": "New",
       "new_empty": "New orders ring here.",
       "preparing": "Preparing",
+      "preparing_short": "Preparing",
       "ready": "Ready for pickup",
       "ready_note": "Orders leave this column when the delivery partner confirms pickup.",
       "ready_short": "Ready",
@@ -1569,7 +1592,7 @@
       "resume": "Resume orders",
       "customer": "Customer",
       "delivery_paid": "Delivery · paid · {time}",
-      "left_to_accept": "{min} minutes {sec} seconds to accept",
+      "left_to_accept": "{min} {sec} to accept",
       "to_accept": "to accept",
       "accept_now": "Accept now",
       "note": "Note: {note}",
@@ -1602,7 +1625,10 @@
     },
     "ratings": {
       "title": "Your ratings",
-      "chip": "★ {stars} · {count} ratings",
+      "chip": {
+        "one": "★ {stars} · {count} rating",
+        "other": "★ {stars} · {count} ratings"
+      },
       "chip_new": {
         "one": "New · {count} rating",
         "other": "New · {count} ratings"
@@ -1618,8 +1644,8 @@
       "average_so_far": "Average so far: ★ {stars}",
       "distribution": "Ratings by stars",
       "bar": {
-        "one": "{stars} stars: {count} rating",
-        "other": "{stars} stars: {count} ratings"
+        "one": "{stars}: {count} rating",
+        "other": "{stars}: {count} ratings"
       },
       "recent": "Latest comments",
       "no_comments": "No comments yet. Customers can add one when they rate an order.",
@@ -2356,5 +2382,61 @@
   "incident": {
     "paused_area": "Ordering in {area} is paused for now while we fix a problem. Orders already on their way will still arrive.",
     "paused_everywhere": "Ordering is paused for now while we fix a problem. Orders already on their way will still arrive."
+  },
+  "cuisine_names": {
+    "american": "American",
+    "andhra": "Andhra",
+    "bakery": "Bakery",
+    "bbq": "BBQ",
+    "basque": "Basque",
+    "biryani": "Biryani",
+    "bowls": "Bowls",
+    "breakfast": "Breakfast",
+    "burgers": "Burgers",
+    "burritos": "Burritos",
+    "chaat": "Chaat",
+    "chinese": "Chinese",
+    "coffee": "Coffee",
+    "comfort": "Comfort",
+    "desserts": "Desserts",
+    "dosa": "Dosa",
+    "fried_chicken": "Fried Chicken",
+    "gujarati": "Gujarati",
+    "haleem": "Haleem",
+    "healthy": "Healthy",
+    "hyderabadi": "Hyderabadi",
+    "indian": "Indian",
+    "indo_chinese": "Indo-Chinese",
+    "irani_cafe": "Irani Cafe",
+    "italian": "Italian",
+    "japanese": "Japanese",
+    "kebabs": "Kebabs",
+    "kerala": "Kerala",
+    "meals": "Meals",
+    "mediterranean": "Mediterranean",
+    "mexican": "Mexican",
+    "middle_eastern": "Middle Eastern",
+    "momos": "Momos",
+    "mughlai": "Mughlai",
+    "nepalese": "Nepalese",
+    "noodles": "Noodles",
+    "north_indian": "North Indian",
+    "pizza": "Pizza",
+    "punjabi": "Punjabi",
+    "pure_veg": "Pure Veg",
+    "rajasthani": "Rajasthani",
+    "ramen": "Ramen",
+    "salads": "Salads",
+    "snacks": "Snacks",
+    "south_indian": "South Indian",
+    "spanish": "Spanish",
+    "street_food": "Street Food",
+    "sushi": "Sushi",
+    "sweets": "Sweets",
+    "tacos": "Tacos",
+    "tandoor": "Tandoor",
+    "thai": "Thai",
+    "thali": "Thali",
+    "tiffins": "Tiffins"
   }
 }

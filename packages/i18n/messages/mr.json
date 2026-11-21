@@ -44,14 +44,25 @@
     "skip_to_content": "मुख्य मजकुराकडे जा",
     "test_site_banner": "चाचणी साइट: डेमो किचन, खरे ऑर्डर किंवा पेमेंट नाहीत",
     "search_placeholder_near": "{a}, {b}, किचन शोधा…",
-    "rating_label": "{count} रेटिंगवरून 5 पैकी {stars}",
+    "rating_label": {
+      "one": "{count} रेटिंगवरून 5 पैकी {stars}",
+      "other": "{count} रेटिंगवरून 5 पैकी {stars}"
+    },
     "rating_short": "★{stars} ({count})",
     "delivery_from": "डिलिव्हरी {fee} पासून",
     "people_waiting": {
       "one": "{n} व्यक्ती वाट पाहत आहे",
       "other": "{n} लोक वाट पाहत आहेत"
     },
-    "closed_opens_day": "बंद · {day} {time} वाजता उघडेल"
+    "closed_opens_day": "बंद · {day} {time} वाजता उघडेल",
+    "n_minutes": {
+      "one": "{count} मिनिट",
+      "other": "{count} मिनिटे"
+    },
+    "n_seconds": {
+      "one": "{count} सेकंद",
+      "other": "{count} सेकंद"
+    }
   },
   "header": {
     "where_we_deliver": "आम्ही कुठे डिलिव्हरी करतो",
@@ -116,7 +127,12 @@
     "line_surge": "गर्दीच्या वेळेची फी",
     "line_late_night_fee": "रात्री उशिराची फी",
     "line_tip": "तुमच्या डिलिव्हरी पार्टनरसाठी टिप",
-    "exact_note": "पेमेंट करण्याआधी तुमच्या खऱ्या बिलात प्रत्येक ओळीची नेमकी रक्कम दिसते."
+    "exact_note": "पेमेंट करण्याआधी तुमच्या खऱ्या बिलात प्रत्येक ओळीची नेमकी रक्कम दिसते.",
+    "line_gst_food": "जेवणावर GST",
+    "line_gst_fees": "प्लॅटफॉर्म शुल्कावर GST",
+    "line_sales_tax": "{region} विक्री कर",
+    "line_sales_tax_plain": "विक्री कर",
+    "line_tax_included": "{tax} (किमतीत समाविष्ट)"
   },
   "notify": {
     "title": "मला कळवा",
@@ -1232,7 +1248,10 @@
       "new_delivery": "नवीन डिलिव्हरी",
       "batch_title": "{count} डिलिव्हरी · एक पिकअप",
       "label_single": "नवीन डिलिव्हरी ऑफर",
-      "label_batch": "नवीन ऑफर: {count} डिलिव्हरी",
+      "label_batch": {
+        "one": "नवीन ऑफर: {count} डिलिव्हरी",
+        "other": "नवीन ऑफर: {count} डिलिव्हरी"
+      },
       "guaranteed": "खात्रीशीर",
       "guaranteed_all": "दोन्हीसाठी खात्रीशीर",
       "includes_tip": "{amount} टिप सह",
@@ -1243,7 +1262,10 @@
       "minutes": "~{min} मि",
       "per_hour": "{amount}/तास",
       "pickup": "पिकअप",
-      "pickup_of": "{count} ऑर्डरचा पिकअप",
+      "pickup_of": {
+        "one": "{count} ऑर्डरचा पिकअप",
+        "other": "{count} ऑर्डरचा पिकअप"
+      },
       "being_prepared": "तयार होत आहे",
       "ready_now": "आत्ता तयार",
       "ready_in": "{min} मिनिटांत तयार",
@@ -1542,6 +1564,7 @@
       "new": "नवीन",
       "new_empty": "नवीन ऑर्डर इथे वाजतात.",
       "preparing": "बनत आहे",
+      "preparing_short": "बनत आहे",
       "ready": "पिकअपसाठी तयार",
       "ready_note": "डिलिव्हरी पार्टनरने पिकअपची पुष्टी केल्यावर ऑर्डर या स्तंभातून जातात.",
       "ready_short": "तयार",
@@ -1569,7 +1592,7 @@
       "resume": "ऑर्डर पुन्हा सुरू करा",
       "customer": "ग्राहक",
       "delivery_paid": "डिलिव्हरी · पेमेंट झाले · {time}",
-      "left_to_accept": "स्वीकारण्यासाठी {min} मिनिटे {sec} सेकंद",
+      "left_to_accept": "स्वीकारण्यासाठी {min} {sec}",
       "to_accept": "स्वीकारण्यासाठी",
       "accept_now": "आत्ताच स्वीकारा",
       "note": "टीप: {note}",
@@ -1602,7 +1625,10 @@
     },
     "ratings": {
       "title": "तुमची रेटिंग",
-      "chip": "★ {stars} · {count} रेटिंग",
+      "chip": {
+        "one": "★ {stars} · {count} रेटिंग",
+        "other": "★ {stars} · {count} रेटिंग"
+      },
       "chip_new": {
         "one": "नवीन · {count} रेटिंग",
         "other": "नवीन · {count} रेटिंग"
@@ -1618,8 +1644,8 @@
       "average_so_far": "आतापर्यंतची सरासरी: ★ {stars}",
       "distribution": "ताऱ्यांनुसार रेटिंग",
       "bar": {
-        "one": "{stars} तारे: {count} रेटिंग",
-        "other": "{stars} तारे: {count} रेटिंग"
+        "one": "{stars}: {count} रेटिंग",
+        "other": "{stars}: {count} रेटिंग"
       },
       "recent": "अलीकडील प्रतिक्रिया",
       "no_comments": "अजून प्रतिक्रिया नाहीत. ऑर्डरला रेटिंग देताना ग्राहक प्रतिक्रिया जोडू शकतात.",
@@ -2356,5 +2382,61 @@
   "incident": {
     "paused_area": "एक अडचण दूर करेपर्यंत {area} मध्ये ऑर्डर करणे सध्या थांबले आहे. वाटेत असलेल्या ऑर्डर पोहोचतील.",
     "paused_everywhere": "एक अडचण दूर करेपर्यंत ऑर्डर करणे सध्या थांबले आहे. वाटेत असलेल्या ऑर्डर पोहोचतील."
+  },
+  "cuisine_names": {
+    "american": "अमेरिकन",
+    "andhra": "आंध्र",
+    "bakery": "बेकरी",
+    "bbq": "बार्बेक्यू",
+    "basque": "बास्क",
+    "biryani": "बिर्याणी",
+    "bowls": "बाऊल",
+    "breakfast": "न्याहारी",
+    "burgers": "बर्गर",
+    "burritos": "बुरिटो",
+    "chaat": "चाट",
+    "chinese": "चायनीज",
+    "coffee": "कॉफी",
+    "comfort": "घरगुती जेवण",
+    "desserts": "डेझर्ट",
+    "dosa": "डोसा",
+    "fried_chicken": "फ्राइड चिकन",
+    "gujarati": "गुजराती",
+    "haleem": "हलीम",
+    "healthy": "आरोग्यदायी",
+    "hyderabadi": "हैदराबादी",
+    "indian": "भारतीय",
+    "indo_chinese": "इंडो-चायनीज",
+    "irani_cafe": "इराणी कॅफे",
+    "italian": "इटालियन",
+    "japanese": "जपानी",
+    "kebabs": "कबाब",
+    "kerala": "केरळ",
+    "meals": "जेवण",
+    "mediterranean": "भूमध्य",
+    "mexican": "मेक्सिकन",
+    "middle_eastern": "मध्यपूर्वेकडील",
+    "momos": "मोमोज",
+    "mughlai": "मुघलाई",
+    "nepalese": "नेपाळी",
+    "noodles": "नूडल्स",
+    "north_indian": "उत्तर भारतीय",
+    "pizza": "पिझ्झा",
+    "punjabi": "पंजाबी",
+    "pure_veg": "शुद्ध शाकाहारी",
+    "rajasthani": "राजस्थानी",
+    "ramen": "रामेन",
+    "salads": "सॅलड",
+    "snacks": "नाश्त्याचे पदार्थ",
+    "south_indian": "दक्षिण भारतीय",
+    "spanish": "स्पॅनिश",
+    "street_food": "स्ट्रीट फूड",
+    "sushi": "सुशी",
+    "sweets": "मिठाई",
+    "tacos": "टाको",
+    "tandoor": "तंदूर",
+    "thai": "थाई",
+    "thali": "थाळी",
+    "tiffins": "टिफिन"
   }
 }

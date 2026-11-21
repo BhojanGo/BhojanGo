@@ -43,7 +43,7 @@ export function km(a: { lat: number; lng: number }, b: { lat: number; lng: numbe
   return 6371 * 2 * Math.asin(Math.sqrt(h));
 }
 
-/** "11:00" (the kitchen's local clock) -> "11:00 am" in the country's format. */
+/** "11:00" (the kitchen's local clock) -> "11:00 am" (dateLocale: the visitor's language, the country's clock). */
 export function clock(hhmm: string | null | undefined, formatLocale: string): string | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? "");
   if (!m) return null;

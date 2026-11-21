@@ -60,7 +60,7 @@ export default async function HelpArticlePage({ params }: Params) {
               <header className="space-y-3 border-b border-line pb-5">
                 <h1 className="text-h1 text-kohl">{a.title}</h1>
                 {a.summary ? <p className="text-body-lg text-muted">{a.summary}</p> : null}
-                <p className="text-small text-muted">{t("helpcentre.updated", { date: date(a.updated_at, ctx.formatLocale, ctx.country?.timezone, { year: "numeric" }) })}</p>
+                <p className="text-small text-muted">{t("helpcentre.updated", { date: date(a.updated_at, ctx.dateLocale, ctx.country?.timezone, { year: "numeric" }) })}</p>
               </header>
               {a.fallback ? (
                 <p className="mt-5 rounded-xl bg-porcelain px-4 py-3 text-small text-muted">{t("helpcentre.fallback_note", { language })}</p>

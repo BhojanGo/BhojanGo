@@ -13,7 +13,7 @@
 // else the IP hint, else the phone's region). Money, numbers and dates follow the
 // country's first Markets locale, never the language. The language is kept on the
 // device in SecureStore.
-import { chooseLanguage, createTranslator, formatLocale as countryLocale, LANGUAGES, languageList, languagesFor,
+import { chooseLanguage, createTranslator, dateLocale, formatLocale as countryLocale, LANGUAGES, languageList, languagesFor,
   opensLabel, wallClock, type Language, type Translate } from "@bhojango/i18n";
 import MESSAGES from "@bhojango/i18n/all-messages";
 import { unwrap } from "@bhojango/api-client";
@@ -195,7 +195,7 @@ export interface I18n {
   number: (n: number, digits?: number) => string;
   /** distance(2.14): kilometres in, the country's unit out (or `unit` as the API sends it), one decimal, translated unit. */
   distance: (km: number | null | undefined, unit?: string | null) => string;
-  /** date("2026-11-14") -> "14 Nov"; Intl options (weekday, month: "long", timeZone, ...). */
+  /** date("2026-11-14") -> "14 Nov" (in the language: "14 nov" in Spanish); Intl options (weekday, month: "long", timeZone, ...). */
   date: (iso: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
   /** time(iso) -> "7:05 pm"; Intl options (timeZone: the order's city, ...). */
   time: (iso: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
@@ -235,7 +235,9 @@ export function useI18n(): I18n {
         const d = convertDistance(km, unit ?? country?.distance_unit);
         return t(`app.units.${d.unit}`, { value: formatNumber(d.value, loc, 1) });
       },
-      date: (iso, opts) => formatDate(iso, loc, opts),
+      // R27: dates (day, month, weekday words) in the person's language ("17 nov", not "Nov 17", in
+      // Spanish), the country's region and Latin digits; times, money and numbers keep the country's format.
+      date: (iso, opts) => formatDate(iso, loc ? dateLocale(language, loc) : undefined, opts),
       time: (iso, opts) => formatTime(iso, loc, opts),
       opens: (iso, timeZone, keys) => opensLabel(t, iso, { timeZone, formatLocale: loc, language }, keys),
       wall: (hhmm) => wallClock(hhmm, loc),

@@ -157,6 +157,25 @@ function formatLocale(locales) {
   return (locales && locales[0]) || "en-US";
 }
 
+/**
+ * Dates (R27): the visitor's language with the country's region and Latin digits, so Spanish
+ * reads "17 nov" and Telugu its own month names, while the calendar and the digits stay the
+ * country's ("es", "en-US" -> "es-US-u-nu-latn"). Times, money and numbers keep formatLocale
+ * (hours.js: "opens Sat 6:30 am", the weekday in the language): a language change never changes
+ * how a price or a clock reads.
+ */
+function dateLocale(language, formatLoc) {
+  const lang = languageOf(language) || DEFAULT_LANGUAGE;
+  const region = String(formatLoc || "").split(/[-_]/)[1];
+  const tag = region ? `${lang}-${region.toUpperCase()}` : lang;
+  try {
+    if (typeof Intl !== "undefined" && Intl.DateTimeFormat.supportedLocalesOf([tag]).length) return `${tag}-u-nu-latn`;
+  } catch {
+    // an engine without the language's data: the country's locale below
+  }
+  return formatLoc || "en-US";
+}
+
 function lookup(messages, key) {
   let node = messages;
   for (const part of key.split(".")) {
@@ -209,11 +228,56 @@ function createTranslator(language, messages, fallback) {
   };
 }
 
+/** "Middle Eastern" -> "cuisine_names.middle_eastern": a cuisine's key in the catalog. */
+function cuisineKey(name) {
+  const slug = String(name || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return `cuisine_names.${slug}`;
+}
+
+/**
+ * A cuisine tag in the person's language (R27): kitchens' cuisines are data ("Coffee",
+ * "South Indian"); the ones the catalog knows are shown translated ("Café"), any other as
+ * written. Filters and searches keep comparing the data's own words.
+ */
+function cuisineName(t, name) {
+  const key = cuisineKey(name);
+  const out = t(key);
+  return out === key ? String(name) : out;
+}
+
+// Bill lines the catalog names (bill.line_<code>).
+const BILL_LINES = new Set(["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
+// Tax rules' names (Markets / the tax provider) the catalog translates (R27); others show as named.
+const TAX_LINES = { "GST on food": "bill.line_gst_food", "GST on platform fees": "bill.line_gst_fees", "Sales tax": "bill.line_sales_tax_plain" };
+
+/**
+ * A fair-bill line's name in the person's language (R27): the engine's own lines by code,
+ * the tax lines by their rule's name ("GST on food", "Idaho sales tax" -> "Impuesto sobre las
+ * ventas de Idaho"); offers and any other line keep the name the API sends.
+ */
+function billLineLabel(t, line) {
+  const code = line && line.code;
+  const label = String((line && line.label) || "");
+  if (BILL_LINES.has(code)) return t(`bill.line_${code}`);
+  if (code !== "tax" && code !== "tax_included") return label;
+  const included = / \(included in prices\)$/;
+  const inc = included.test(label);
+  const name = label.replace(included, "");
+  let out = null;
+  if (TAX_LINES[name]) out = t(TAX_LINES[name]);
+  else {
+    const m = /^(.+) sales tax$/.exec(name);
+    if (m) out = t("bill.line_sales_tax", { region: m[1] });
+  }
+  if (out == null) return label;
+  return inc ? t("bill.line_tax_included", { tax: out }) : out;
+}
+
 const { formatPhone } = require("./phone.js");
 const { opensWhen, opensLabel, wallClock } = require("./hours.js");
 
 module.exports = {
   formatPhone, opensWhen, opensLabel, wallClock,
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
-  resolveLocation, formatLocale, createTranslator, pluralSelector,
+  resolveLocation, formatLocale, dateLocale, createTranslator, pluralSelector, cuisineKey, cuisineName, billLineLabel,
 };

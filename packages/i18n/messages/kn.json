@@ -44,14 +44,25 @@
     "skip_to_content": "ವಿಷಯಕ್ಕೆ ಹೋಗಿ",
     "test_site_banner": "ಪರೀಕ್ಷಾ ಸೈಟ್: ಡೆಮೊ ಅಡುಗೆಮನೆಗಳು, ನಿಜವಾದ ಆರ್ಡರ್‌ಗಳು ಅಥವಾ ಪಾವತಿಗಳಿಲ್ಲ",
     "search_placeholder_near": "{a}, {b}, ಕಿಚನ್‌ಗಳನ್ನು ಹುಡುಕಿ…",
-    "rating_label": "{count} ರೇಟಿಂಗ್‌ಗಳಿಂದ 5ಕ್ಕೆ {stars}",
+    "rating_label": {
+      "one": "{count} ರೇಟಿಂಗ್‌ನಿಂದ 5ಕ್ಕೆ {stars}",
+      "other": "{count} ರೇಟಿಂಗ್‌ಗಳಿಂದ 5ಕ್ಕೆ {stars}"
+    },
     "rating_short": "★{stars} ({count})",
     "delivery_from": "ಡೆಲಿವರಿ {fee} ರಿಂದ",
     "people_waiting": {
       "one": "{n} ವ್ಯಕ್ತಿ ಕಾಯುತ್ತಿದ್ದಾರೆ",
       "other": "{n} ಜನ ಕಾಯುತ್ತಿದ್ದಾರೆ"
     },
-    "closed_opens_day": "ಮುಚ್ಚಿದೆ · {day} {time}ಕ್ಕೆ ತೆರೆಯುತ್ತದೆ"
+    "closed_opens_day": "ಮುಚ್ಚಿದೆ · {day} {time}ಕ್ಕೆ ತೆರೆಯುತ್ತದೆ",
+    "n_minutes": {
+      "one": "{count} ನಿಮಿಷ",
+      "other": "{count} ನಿಮಿಷಗಳು"
+    },
+    "n_seconds": {
+      "one": "{count} ಸೆಕೆಂಡು",
+      "other": "{count} ಸೆಕೆಂಡುಗಳು"
+    }
   },
   "header": {
     "where_we_deliver": "ನಾವು ಎಲ್ಲಿ ಡೆಲಿವರಿ ಮಾಡುತ್ತೇವೆ",
@@ -116,7 +127,12 @@
     "line_surge": "ದಟ್ಟಣೆ ಸಮಯದ ಶುಲ್ಕ",
     "line_late_night_fee": "ತಡರಾತ್ರಿ ಶುಲ್ಕ",
     "line_tip": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್‌ಗೆ ಟಿಪ್",
-    "exact_note": "ನೀವು ಪಾವತಿಸುವ ಮೊದಲೇ ನಿಮ್ಮ ನಿಜವಾದ ಬಿಲ್ ಪ್ರತಿ ಸಾಲಿನಲ್ಲೂ ನಿಖರ ಮೊತ್ತವನ್ನು ತೋರಿಸುತ್ತದೆ."
+    "exact_note": "ನೀವು ಪಾವತಿಸುವ ಮೊದಲೇ ನಿಮ್ಮ ನಿಜವಾದ ಬಿಲ್ ಪ್ರತಿ ಸಾಲಿನಲ್ಲೂ ನಿಖರ ಮೊತ್ತವನ್ನು ತೋರಿಸುತ್ತದೆ.",
+    "line_gst_food": "ಊಟದ ಮೇಲೆ GST",
+    "line_gst_fees": "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಶುಲ್ಕಗಳ ಮೇಲೆ GST",
+    "line_sales_tax": "{region} ಮಾರಾಟ ತೆರಿಗೆ",
+    "line_sales_tax_plain": "ಮಾರಾಟ ತೆರಿಗೆ",
+    "line_tax_included": "{tax} (ಬೆಲೆಯಲ್ಲಿ ಸೇರಿದೆ)"
   },
   "notify": {
     "title": "ನನಗೆ ತಿಳಿಸಿ",
@@ -1232,7 +1248,10 @@
       "new_delivery": "ಹೊಸ ಡೆಲಿವರಿ",
       "batch_title": "{count} ಡೆಲಿವರಿಗಳು · ಒಂದೇ ಪಿಕಪ್",
       "label_single": "ಹೊಸ ಡೆಲಿವರಿ ಆಫರ್",
-      "label_batch": "ಹೊಸ ಆಫರ್: {count} ಡೆಲಿವರಿಗಳು",
+      "label_batch": {
+        "one": "ಹೊಸ ಆಫರ್: {count} ಡೆಲಿವರಿಗಳು",
+        "other": "ಹೊಸ ಆಫರ್: {count} ಡೆಲಿವರಿಗಳು"
+      },
       "guaranteed": "ಖಚಿತ",
       "guaranteed_all": "ಎರಡಕ್ಕೂ ಖಚಿತ",
       "includes_tip": "{amount} ಟಿಪ್ ಸೇರಿ",
@@ -1243,7 +1262,10 @@
       "minutes": "~{min} ನಿಮಿ",
       "per_hour": "{amount}/ಗಂ",
       "pickup": "ಪಿಕಪ್",
-      "pickup_of": "{count} ಆರ್ಡರ್‌ಗಳ ಪಿಕಪ್",
+      "pickup_of": {
+        "one": "{count} ಆರ್ಡರ್‌ಗಳ ಪಿಕಪ್",
+        "other": "{count} ಆರ್ಡರ್‌ಗಳ ಪಿಕಪ್"
+      },
       "being_prepared": "ತಯಾರಾಗುತ್ತಿದೆ",
       "ready_now": "ಈಗ ಸಿದ್ಧ",
       "ready_in": "{min} ನಿಮಿಷದಲ್ಲಿ ಸಿದ್ಧ",
@@ -1542,6 +1564,7 @@
       "new": "ಹೊಸದು",
       "new_empty": "ಹೊಸ ಆರ್ಡರ್‌ಗಳು ಇಲ್ಲಿ ರಿಂಗ್ ಆಗುತ್ತವೆ.",
       "preparing": "ತಯಾರಾಗುತ್ತಿದೆ",
+      "preparing_short": "ತಯಾರಾಗುತ್ತಿದೆ",
       "ready": "ಪಿಕಪ್‌ಗೆ ಸಿದ್ಧ",
       "ready_note": "ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್ ಪಿಕಪ್ ದೃಢಪಡಿಸಿದಾಗ ಆರ್ಡರ್‌ಗಳು ಈ ಕಾಲಮ್‌ನಿಂದ ಹೋಗುತ್ತವೆ.",
       "ready_short": "ಸಿದ್ಧ",
@@ -1569,7 +1592,7 @@
       "resume": "ಆರ್ಡರ್‌ಗಳನ್ನು ಮತ್ತೆ ಶುರು ಮಾಡಿ",
       "customer": "ಗ್ರಾಹಕ",
       "delivery_paid": "ಡೆಲಿವರಿ · ಪಾವತಿಸಲಾಗಿದೆ · {time}",
-      "left_to_accept": "ಒಪ್ಪಲು {min} ನಿಮಿಷ {sec} ಸೆಕೆಂಡು",
+      "left_to_accept": "ಒಪ್ಪಲು {min} {sec}",
       "to_accept": "ಒಪ್ಪಲು",
       "accept_now": "ಈಗಲೇ ಸ್ವೀಕರಿಸಿ",
       "note": "ಸೂಚನೆ: {note}",
@@ -1602,7 +1625,10 @@
     },
     "ratings": {
       "title": "ನಿಮ್ಮ ರೇಟಿಂಗ್‌ಗಳು",
-      "chip": "★ {stars} · {count} ರೇಟಿಂಗ್‌ಗಳು",
+      "chip": {
+        "one": "★ {stars} · {count} ರೇಟಿಂಗ್",
+        "other": "★ {stars} · {count} ರೇಟಿಂಗ್‌ಗಳು"
+      },
       "chip_new": {
         "one": "ಹೊಸದು · {count} ರೇಟಿಂಗ್",
         "other": "ಹೊಸದು · {count} ರೇಟಿಂಗ್‌ಗಳು"
@@ -1618,8 +1644,8 @@
       "average_so_far": "ಇದುವರೆಗಿನ ಸರಾಸರಿ: ★ {stars}",
       "distribution": "ನಕ್ಷತ್ರಗಳ ಪ್ರಕಾರ ರೇಟಿಂಗ್‌ಗಳು",
       "bar": {
-        "one": "{stars} ನಕ್ಷತ್ರಗಳು: {count} ರೇಟಿಂಗ್",
-        "other": "{stars} ನಕ್ಷತ್ರಗಳು: {count} ರೇಟಿಂಗ್‌ಗಳು"
+        "one": "{stars}: {count} ರೇಟಿಂಗ್",
+        "other": "{stars}: {count} ರೇಟಿಂಗ್‌ಗಳು"
       },
       "recent": "ಇತ್ತೀಚಿನ ಅಭಿಪ್ರಾಯಗಳು",
       "no_comments": "ಇನ್ನೂ ಅಭಿಪ್ರಾಯಗಳಿಲ್ಲ. ಆರ್ಡರ್‌ಗೆ ರೇಟಿಂಗ್ ನೀಡುವಾಗ ಗ್ರಾಹಕರು ಅಭಿಪ್ರಾಯ ಸೇರಿಸಬಹುದು.",
@@ -2356,5 +2382,61 @@
   "incident": {
     "paused_area": "ಸಮಸ್ಯೆಯೊಂದನ್ನು ಸರಿಪಡಿಸುತ್ತಿರುವುದರಿಂದ {area} ನಲ್ಲಿ ಆರ್ಡರ್ ಮಾಡುವುದು ಸದ್ಯಕ್ಕೆ ನಿಂತಿದೆ. ದಾರಿಯಲ್ಲಿರುವ ಆರ್ಡರ್‌ಗಳು ತಲುಪುತ್ತವೆ.",
     "paused_everywhere": "ಸಮಸ್ಯೆಯೊಂದನ್ನು ಸರಿಪಡಿಸುತ್ತಿರುವುದರಿಂದ ಆರ್ಡರ್ ಮಾಡುವುದು ಸದ್ಯಕ್ಕೆ ನಿಂತಿದೆ. ದಾರಿಯಲ್ಲಿರುವ ಆರ್ಡರ್‌ಗಳು ತಲುಪುತ್ತವೆ."
+  },
+  "cuisine_names": {
+    "american": "ಅಮೆರಿಕನ್",
+    "andhra": "ಆಂಧ್ರ",
+    "bakery": "ಬೇಕರಿ",
+    "bbq": "ಬಾರ್ಬಿಕ್ಯೂ",
+    "basque": "ಬಾಸ್ಕ್",
+    "biryani": "ಬಿರಿಯಾನಿ",
+    "bowls": "ಬೌಲ್‌ಗಳು",
+    "breakfast": "ಉಪಾಹಾರ",
+    "burgers": "ಬರ್ಗರ್‌ಗಳು",
+    "burritos": "ಬುರಿಟೊಗಳು",
+    "chaat": "ಚಾಟ್",
+    "chinese": "ಚೈನೀಸ್",
+    "coffee": "ಕಾಫಿ",
+    "comfort": "ಮನೆ ಊಟ",
+    "desserts": "ಡೆಸರ್ಟ್‌ಗಳು",
+    "dosa": "ದೋಸೆ",
+    "fried_chicken": "ಫ್ರೈಡ್ ಚಿಕನ್",
+    "gujarati": "ಗುಜರಾತಿ",
+    "haleem": "ಹಲೀಮ್",
+    "healthy": "ಆರೋಗ್ಯಕರ",
+    "hyderabadi": "ಹೈದರಾಬಾದಿ",
+    "indian": "ಭಾರತೀಯ",
+    "indo_chinese": "ಇಂಡೋ-ಚೈನೀಸ್",
+    "irani_cafe": "ಇರಾನಿ ಕೆಫೆ",
+    "italian": "ಇಟಾಲಿಯನ್",
+    "japanese": "ಜಪಾನೀಸ್",
+    "kebabs": "ಕಬಾಬ್‌ಗಳು",
+    "kerala": "ಕೇರಳ",
+    "meals": "ಊಟ",
+    "mediterranean": "ಮೆಡಿಟರೇನಿಯನ್",
+    "mexican": "ಮೆಕ್ಸಿಕನ್",
+    "middle_eastern": "ಮಧ್ಯಪ್ರಾಚ್ಯ",
+    "momos": "ಮೊಮೊಸ್",
+    "mughlai": "ಮೊಘಲಾಯಿ",
+    "nepalese": "ನೇಪಾಳಿ",
+    "noodles": "ನೂಡಲ್ಸ್",
+    "north_indian": "ಉತ್ತರ ಭಾರತೀಯ",
+    "pizza": "ಪಿಜ್ಜಾ",
+    "punjabi": "ಪಂಜಾಬಿ",
+    "pure_veg": "ಶುದ್ಧ ಸಸ್ಯಾಹಾರ",
+    "rajasthani": "ರಾಜಸ್ಥಾನಿ",
+    "ramen": "ರಾಮೆನ್",
+    "salads": "ಸಲಾಡ್‌ಗಳು",
+    "snacks": "ತಿಂಡಿಗಳು",
+    "south_indian": "ದಕ್ಷಿಣ ಭಾರತೀಯ",
+    "spanish": "ಸ್ಪ್ಯಾನಿಷ್",
+    "street_food": "ಬೀದಿ ತಿಂಡಿ",
+    "sushi": "ಸುಶಿ",
+    "sweets": "ಸಿಹಿತಿಂಡಿಗಳು",
+    "tacos": "ಟ್ಯಾಕೋಗಳು",
+    "tandoor": "ತಂದೂರ್",
+    "thai": "ಥಾಯ್",
+    "thali": "ಥಾಲಿ",
+    "tiffins": "ಟಿಫಿನ್‌ಗಳು"
   }
 }

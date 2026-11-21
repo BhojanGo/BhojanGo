@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 
+import { billLineLabel } from "@bhojango/i18n";
+
 import { useI18n, useLocaleStore } from "../i18n";
 import { TAB_BAR_HEIGHT } from "../tabbar";
 import { color, dark, elevation, radius, space, textFont, touch } from "./theme";
@@ -172,10 +174,12 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
   const free = delivery && lines.find((ln) => ln.code === "promotion" && Number(delivery.amount) > 0 &&
     Math.abs(Number(ln.amount) + Number(delivery.amount)) < 0.005);
   const rows: FairRow[] = [];
-  for (const ln of shownLines(lines)) { // a line of 0 (a tax of 0.00) is not shown (R12)
-    if (ln === free) continue;
+  for (const raw of shownLines(lines)) { // a line of 0 (a tax of 0.00) is not shown (R12)
+    if (raw === free) continue;
+    // R27: every line named in the person's language (Telugu showed "Food", "GST on food").
+    const ln = { ...raw, label: billLineLabel(t, raw) };
     const amount = Number(ln.amount);
-    if (ln === delivery && free) {
+    if (raw === delivery && free) {
       rows.push({ label: ln.label, payee: t(free.funded_by === "restaurant" ? "app.bill.kitchens_treat" : "app.bill.on_us"),
                   amount: money(0, currency), struck: money(amount, currency) });
     } else if (ln.code === "promotion") {

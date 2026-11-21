@@ -11,7 +11,7 @@
 // the country's first live city.
 
 import {
-  chooseLanguage, createTranslator, detectCountry, formatLocale, languagesFor, resolveLocation,
+  chooseLanguage, createTranslator, dateLocale, detectCountry, formatLocale, languagesFor, resolveLocation,
   type CountrySource, type LocationEvidence, type Messages, type ResolvedLocation,
 } from "@bhojango/i18n";
 import { cookies, headers } from "next/headers";
@@ -104,6 +104,8 @@ export interface Context {
   language: string;
   languages: string[];
   formatLocale: string;
+  /** Dates and times (R27): the language with the country's region and digits ("es-US-u-nu-latn"). */
+  dateLocale: string;
   messages: Messages;
   fallback: Messages;
   t: ReturnType<typeof createTranslator>;
@@ -152,6 +154,7 @@ export const getContext = cache(async (): Promise<Context> => {
     language,
     languages: languagesFor(locales),
     formatLocale: formatLocale(locales),
+    dateLocale: dateLocale(language, formatLocale(locales)),
     messages,
     fallback,
     t: createTranslator(language, messages, fallback),

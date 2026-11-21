@@ -52,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             language: ctx.language,
             languages: ctx.languages,
             formatLocale: ctx.formatLocale,
+            dateLocale: ctx.dateLocale,
             country,
             messages: ctx.messages,
             fallback: ctx.fallback,

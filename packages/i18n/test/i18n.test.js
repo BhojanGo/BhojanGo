@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { LANGUAGES, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry, formatLocale, createTranslator } = require("..");
+const { LANGUAGES, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry, formatLocale, dateLocale, createTranslator } = require("..");
 
 const INDIA = ["en-IN", "hi-IN", "te-IN", "ta-IN", "kn-IN", "mr-IN", "bn-IN"];
 const US = ["en-US", "es-US"];
@@ -53,9 +53,19 @@ test("country: address, then a chosen city, then the page, then IP, then the bro
   assert.deepEqual(detectCountry({ address: "IN" }, []), { code: null, source: "none" });
 });
 
-test("money and dates follow the country, not the language", () => {
+test("money follows the country, not the language", () => {
   assert.equal(formatLocale(INDIA), "en-IN");
   assert.equal(formatLocale(US), "en-US");
+});
+
+test("R27: dates speak the language, with the country's region and Latin digits", () => {
+  assert.equal(dateLocale("es", "en-US"), "es-US-u-nu-latn");
+  assert.equal(dateLocale("te", "en-IN"), "te-IN-u-nu-latn");
+  const d = new Date("2026-11-17T12:00:00Z");
+  const fmt = (loc) => new Intl.DateTimeFormat(loc, { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
+  assert.equal(fmt(dateLocale("es", "en-US")), "17 nov");
+  assert.match(fmt(dateLocale("mr", "en-IN")), /^17 /); // Marathi month name, Latin digits (not १७)
+  assert.equal(fmt(dateLocale("en", "en-US")), "Nov 17");
 });
 
 test("translator: fallback, variables, plurals", () => {
@@ -161,4 +171,40 @@ test("phone numbers read in each country's grouping", () => {
   assert.equal(formatPhone("+64211234567"), "+64 21 123 4567");
   assert.equal(formatPhone("not a phone"), "not a phone");
   assert.equal(formatPhone(null), "");
+});
+
+test("R27: cuisine tags come from the catalog, unknown ones stay as written", () => {
+  const { cuisineName, cuisineKey } = require("..");
+  const es = createTranslator("es", require("../messages/es.json"), require("../messages/en.json"));
+  assert.equal(cuisineKey("Middle Eastern"), "cuisine_names.middle_eastern");
+  assert.equal(cuisineName(es, "Coffee"), "Café");
+  assert.equal(cuisineName(es, "South Indian"), "India del sur");
+  assert.equal(cuisineName(es, "Basque Fusion Lab"), "Basque Fusion Lab");
+});
+
+test("R27: fair-bill lines and tax names in the language", () => {
+  const { billLineLabel } = require("..");
+  const en = require("../messages/en.json");
+  const es = createTranslator("es", require("../messages/es.json"), en);
+  const te = createTranslator("te", require("../messages/te.json"), en);
+  assert.equal(billLineLabel(es, { code: "tax", label: "Idaho sales tax" }), "Impuesto sobre las ventas de Idaho");
+  assert.equal(billLineLabel(te, { code: "food", label: "Food" }), require("../messages/te.json").bill.line_food);
+  assert.equal(billLineLabel(te, { code: "tax", label: "GST on food" }), require("../messages/te.json").bill.line_gst_food);
+  assert.match(billLineLabel(es, { code: "tax_included", label: "GST on food (included in prices)" }), /incluido en los precios/);
+  assert.equal(billLineLabel(es, { code: "promotion", label: "10% off, up to ₹50" }), "10% off, up to ₹50");
+  assert.equal(billLineLabel(es, { code: "tax", label: "Some city levy" }), "Some city levy");
+});
+
+test("R27: counted words agree with their number (no '1 stars', 'from 1 ratings')", () => {
+  const en = require("../messages/en.json");
+  const t = createTranslator("en", en, en);
+  assert.equal(t("common.rating_label", { stars: "4.0", count: 1 }), "Rated 4.0 out of 5 from 1 rating");
+  assert.equal(t("partner.ratings.bar", { stars: t("partner.ratings.stars_label", { count: 1 }), count: 3 }), "1 star: 3 ratings");
+  assert.equal(t("partner.orders.left_to_accept", { min: t("common.n_minutes", { count: 1 }), sec: t("common.n_seconds", { count: 1 }) }),
+    "1 minute 1 second to accept");
+  // Every English message that counts something ("{count} <noun>s") is a plural.
+  const flat = (o, p = "") => Object.entries(o).flatMap(([k, v]) =>
+    v && typeof v === "object" && !("other" in v) ? flat(v, `${p}${k}.`) : [[`${p}${k}`, v]]);
+  const bad = flat(en).filter(([, v]) => typeof v === "string" && /\{count\} [a-z]+s\b/.test(v)).map(([k]) => k);
+  assert.deepEqual(bad, []);
 });

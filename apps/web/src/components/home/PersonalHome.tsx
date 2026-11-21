@@ -1,5 +1,7 @@
 // The personal home for an address we serve (WebHome / MWebHome): kitchens,
 // cuisines and offers for that address from /discover. No marketing here.
+import { cuisineName } from "@bhojango/i18n";
+
 import { CuisineTile, OfferCard } from "@/components/Cards";
 import { flatCities } from "@/components/discover/places";
 import { kitchenPhoto } from "@/components/KitchenPhoto";
@@ -26,7 +28,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
       <h2 id="craving" className="sr-only m-0 text-h2 md:not-sr-only">{t("home.craving")}</h2>
       <div className="-mx-4 flex gap-[14px] overflow-x-auto px-4 py-1 md:mx-0 md:mt-5 md:gap-5 md:px-0">
         {cuisines.map(({ name, photo }) => (
-          <CuisineTile key={name} name={name} image={photo} href={`${cityPath}?cuisine=${encodeURIComponent(name)}`} />
+          <CuisineTile key={name} name={cuisineName(t, name)} image={photo} href={`${cityPath}?cuisine=${encodeURIComponent(name)}`} />
         ))}
       </div>
     </section>

@@ -227,7 +227,8 @@ function Fact({ value, label, testId }: { value: string; label: string; testId?:
   return (
     <div data-testid={testId} className="flex min-w-0 flex-col-reverse justify-end">
       <dt className="mt-1 text-small text-muted">{label}</dt>
-      <dd className="m-0 text-h2 tabular-nums text-peacock-deep">{value}</dd>
+      {/* R27: a phone's third of the row is ~100 px: "Semanales" (es) ran past it at h2 */}
+      <dd className="m-0 break-words text-h3 tabular-nums text-peacock-deep sm:text-h2">{value}</dd>
     </div>
   );
 }

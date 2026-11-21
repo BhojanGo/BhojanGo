@@ -1,7 +1,7 @@
 // The account area's data (round 4, website parity): orders and receipts,
 // ratings, addresses, saved cards, notification preferences, your data. The
 // same API calls as the website's account pages (apps/web/src/app/account).
-import { ACTIVE_STATUSES, api, unwrap, urls, useSession, type CoreSchemas, type OrderStatus, type Translate } from "@bhojango/mobile-core";
+import { ACTIVE_STATUSES, api, billLineLabel, unwrap, urls, useSession, type CoreSchemas, type OrderStatus, type Translate } from "@bhojango/mobile-core";
 import * as Crypto from "expo-crypto";
 import { File, Paths } from "expo-file-system";
 import * as Location from "expo-location";
@@ -33,13 +33,9 @@ export interface Bill {
   paid?: string;
 }
 
-// The lines the website names in the person's language (bill.line_*); tax and
-// offers keep the rule's own name (rates, terms).
-const TRANSLATED_LINES = new Set(["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
-
-/** The bill's lines with the website's translated labels. */
+/** The bill's lines with the website's translated labels (R27: tax lines too; offers keep the rule's name). */
 export function billLines(t: Translate, bill: Bill): BillLine[] {
-  return bill.lines.map((ln) => (TRANSLATED_LINES.has(ln.code) ? { ...ln, label: t(`bill.line_${ln.code}`) } : ln));
+  return bill.lines.map((ln) => ({ ...ln, label: billLineLabel(t, ln) }));
 }
 
 export const NOTIFY_KINDS = ["orders", "account", "offers"] as const;

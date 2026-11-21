@@ -1,7 +1,7 @@
 // The kitchen: its photo (photo_url, or the branded tile), "New" or its rating, the offer
 // and who pays, then the menu by section. A dish shows a photo only when it has
 // its own (image_url); otherwise a clean text row. Tap a dish to customise it.
-import { color, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
+import { color, cuisineName, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -58,7 +58,7 @@ export default function RestaurantScreen() {
                 <RatingBadge x={r} testID="kitchen-rating" />
               </View>
               <Text style={[type.small, { color: color.muted }]}>
-                {[...r.cuisine_types.slice(0, 3), t("common.minutes", { min: r.delivery_time_min, max: r.delivery_time_max })].join(" · ")}
+                {[...r.cuisine_types.slice(0, 3).map((c) => cuisineName(t, c)), t("common.minutes", { min: r.delivery_time_min, max: r.delivery_time_max })].join(" · ")}
               </Text>
               {offer ? (
                 <View testID="kitchen-offer" style={styles.offer}>

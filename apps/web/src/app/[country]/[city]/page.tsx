@@ -1,6 +1,7 @@
 // A city's page (WebCity), server-rendered for search engines: one per city in
 // Markets, live or coming soon. Name, state, country, areas, kitchens, offers
 // and the example bill are all data; a new city needs no code.
+import { cuisineName } from "@bhojango/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -85,7 +86,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
   const q = one(search.q);
   const shown = kitchens.filter((k) => matches(k, cuisine, q));
   const cover = photo(kitchens.find((k) => k.cover_url)?.cover_url ?? null, 1600);
-  const top = cuisines.slice(0, 4).join(", ");
+  const top = cuisines.slice(0, 4).map((x) => cuisineName(t, x)).join(", ");
   const base = pathOf(c);
   const zones = c.zones;
   const chip = "inline-flex h-11 items-center rounded-full border px-[18px] font-bold";
@@ -140,7 +141,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
         <section id="kitchens" aria-labelledby="kitchens-title" className="pt-12 md:pt-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <h2 id="kitchens-title" className="m-0 text-h2">
-              {cuisine ? t("city.cuisine_kitchens", { cuisine, city: c.name }) : t("city.kitchens_title", { city: c.name })}
+              {cuisine ? t("city.cuisine_kitchens", { cuisine: cuisineName(t, cuisine), city: c.name }) : t("city.kitchens_title", { city: c.name })}
             </h2>
             <form id="search" role="search" action={`${base}#kitchens`} className="flex h-12 scroll-mt-[140px] w-full items-center gap-[10px] rounded-full border border-[#E2E7E8] bg-[#F4F6F6] px-[18px] focus-within:border-[#0B5D66] md:w-[360px]">
               <Search size={18} color="#3D4A4E" />
@@ -159,7 +160,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
                 const qs = new URLSearchParams({ ...(on ? {} : { cuisine: name }), ...(q ? { q } : {}) }).toString();
                 return (
                   <Link key={name} href={`${base}${qs ? `?${qs}` : ""}#kitchens`} aria-current={on ? "page" : undefined} className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${on ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}>
-                    {name}
+                    {cuisineName(t, name)}
                   </Link>
                 );
               })}

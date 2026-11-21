@@ -1,6 +1,6 @@
 // The personal home's parts (the website's HomeFeed / PersonalHome): the
 // active-order bar, Order again, the cuisine row and the offers near you.
-import { color, errorMessage, num, radius, space, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { color, cuisineName, errorMessage, num, radius, space, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -119,12 +119,12 @@ export function CuisineRow({ tiles, selected, onSelect }: { tiles: CuisineTileDa
           const on = selected === c.name;
           return (
             <Pressable key={c.name} testID={`cuisine-${c.name}`} accessibilityRole="button" accessibilityState={{ selected: on }}
-              accessibilityLabel={c.name} onPress={() => onSelect(on ? null : c.name)} style={{ width: 76, alignItems: "center" }}>
+              accessibilityLabel={cuisineName(t, c.name)} onPress={() => onSelect(on ? null : c.name)} style={{ width: 76, alignItems: "center" }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: on ? color.peacock : color.white, overflow: "hidden", backgroundColor: color.peacockTint, alignItems: "center", justifyContent: "center" }}>
                 <Photo uri={photo(c.photo, 400)} style={{ width: 66, height: 66 }}
                   fallback={<BrandTile width={66} height={66} rounded={33} />} />
               </View>
-              <Text numberOfLines={1} style={[type.label, { marginTop: 6, color: on ? color.peacockDeep : color.kohl }]}>{c.name}</Text>
+              <Text numberOfLines={1} style={[type.label, { marginTop: 6, color: on ? color.peacockDeep : color.kohl }]}>{cuisineName(t, c.name)}</Text>
             </Pressable>
           );
         })}

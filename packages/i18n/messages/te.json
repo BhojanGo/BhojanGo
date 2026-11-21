@@ -44,14 +44,25 @@
     "skip_to_content": "కంటెంట్‌కు వెళ్లండి",
     "test_site_banner": "టెస్ట్ సైట్: డెమో కిచెన్‌లు, నిజమైన ఆర్డర్‌లు లేదా చెల్లింపులు లేవు",
     "search_placeholder_near": "{a}, {b}, కిచెన్‌లు వెతకండి…",
-    "rating_label": "{count} రేటింగ్‌ల నుండి 5కి {stars}",
+    "rating_label": {
+      "one": "{count} రేటింగ్ నుండి 5కి {stars}",
+      "other": "{count} రేటింగ్‌ల నుండి 5కి {stars}"
+    },
     "rating_short": "★{stars} ({count})",
     "delivery_from": "డెలివరీ {fee} నుండి",
     "people_waiting": {
       "one": "{n} వ్యక్తి ఎదురుచూస్తున్నారు",
       "other": "{n} మంది ఎదురుచూస్తున్నారు"
     },
-    "closed_opens_day": "మూసి ఉంది · {day} {time}కి తెరుస్తారు"
+    "closed_opens_day": "మూసి ఉంది · {day} {time}కి తెరుస్తారు",
+    "n_minutes": {
+      "one": "{count} నిమిషం",
+      "other": "{count} నిమిషాలు"
+    },
+    "n_seconds": {
+      "one": "{count} సెకను",
+      "other": "{count} సెకన్లు"
+    }
   },
   "header": {
     "where_we_deliver": "మేము ఎక్కడ డెలివరీ చేస్తాం",
@@ -116,7 +127,12 @@
     "line_surge": "రద్దీ సమయ ఫీజు",
     "line_late_night_fee": "అర్ధరాత్రి ఫీజు",
     "line_tip": "మీ డెలివరీ పార్ట్‌నర్‌కు టిప్",
-    "exact_note": "మీరు చెల్లించే ముందే మీ అసలు బిల్లు ప్రతి లైన్‌తో ఖచ్చితమైన మొత్తాలు చూపిస్తుంది."
+    "exact_note": "మీరు చెల్లించే ముందే మీ అసలు బిల్లు ప్రతి లైన్‌తో ఖచ్చితమైన మొత్తాలు చూపిస్తుంది.",
+    "line_gst_food": "భోజనంపై GST",
+    "line_gst_fees": "ప్లాట్‌ఫామ్ ఫీజులపై GST",
+    "line_sales_tax": "{region} అమ్మకపు పన్ను",
+    "line_sales_tax_plain": "అమ్మకపు పన్ను",
+    "line_tax_included": "{tax} (ధరల్లో కలిపి ఉంది)"
   },
   "notify": {
     "title": "నాకు తెలియజేయండి",
@@ -1232,7 +1248,10 @@
       "new_delivery": "కొత్త డెలివరీ",
       "batch_title": "{count} డెలివరీలు · ఒకే పికప్",
       "label_single": "కొత్త డెలివరీ ఆఫర్",
-      "label_batch": "కొత్త ఆఫర్: {count} డెలివరీలు",
+      "label_batch": {
+        "one": "కొత్త ఆఫర్: {count} డెలివరీలు",
+        "other": "కొత్త ఆఫర్: {count} డెలివరీలు"
+      },
       "guaranteed": "హామీ",
       "guaranteed_all": "రెండింటికీ హామీ",
       "includes_tip": "{amount} టిప్ కలిపి",
@@ -1243,7 +1262,10 @@
       "minutes": "~{min} నిమి",
       "per_hour": "{amount}/గం",
       "pickup": "పికప్",
-      "pickup_of": "{count} ఆర్డర్‌ల పికప్",
+      "pickup_of": {
+        "one": "{count} ఆర్డర్‌ల పికప్",
+        "other": "{count} ఆర్డర్‌ల పికప్"
+      },
       "being_prepared": "తయారవుతోంది",
       "ready_now": "ఇప్పుడే సిద్ధం",
       "ready_in": "{min} నిమిషాల్లో సిద్ధం",
@@ -1542,6 +1564,7 @@
       "new": "కొత్తవి",
       "new_empty": "కొత్త ఆర్డర్‌లు ఇక్కడ మోగుతాయి.",
       "preparing": "తయారవుతున్నవి",
+      "preparing_short": "తయారవుతున్నవి",
       "ready": "పికప్‌కు సిద్ధం",
       "ready_note": "డెలివరీ పార్ట్‌నర్ పికప్ నిర్ధారించగానే ఆర్డర్‌లు ఈ కాలమ్ నుండి వెళ్తాయి.",
       "ready_short": "సిద్ధం",
@@ -1569,7 +1592,7 @@
       "resume": "ఆర్డర్‌లు మళ్లీ ప్రారంభించండి",
       "customer": "కస్టమర్",
       "delivery_paid": "డెలివరీ · చెల్లించారు · {time}",
-      "left_to_accept": "అంగీకరించడానికి {min} నిమిషాలు {sec} సెకన్లు",
+      "left_to_accept": "అంగీకరించడానికి {min} {sec}",
       "to_accept": "అంగీకరించడానికి",
       "accept_now": "ఇప్పుడే అంగీకరించండి",
       "note": "గమనిక: {note}",
@@ -1602,7 +1625,10 @@
     },
     "ratings": {
       "title": "మీ రేటింగ్‌లు",
-      "chip": "★ {stars} · {count} రేటింగ్‌లు",
+      "chip": {
+        "one": "★ {stars} · {count} రేటింగ్",
+        "other": "★ {stars} · {count} రేటింగ్‌లు"
+      },
       "chip_new": {
         "one": "కొత్తది · {count} రేటింగ్",
         "other": "కొత్తది · {count} రేటింగ్‌లు"
@@ -1618,8 +1644,8 @@
       "average_so_far": "ఇప్పటివరకు సగటు: ★ {stars}",
       "distribution": "నక్షత్రాల వారీగా రేటింగ్‌లు",
       "bar": {
-        "one": "{stars} నక్షత్రాలు: {count} రేటింగ్",
-        "other": "{stars} నక్షత్రాలు: {count} రేటింగ్‌లు"
+        "one": "{stars}: {count} రేటింగ్",
+        "other": "{stars}: {count} రేటింగ్‌లు"
       },
       "recent": "తాజా వ్యాఖ్యలు",
       "no_comments": "ఇంకా వ్యాఖ్యలు లేవు. ఆర్డర్‌కు రేటింగ్ ఇచ్చేటప్పుడు కస్టమర్‌లు వ్యాఖ్య జోడించవచ్చు.",
@@ -2356,5 +2382,61 @@
   "incident": {
     "paused_area": "ఒక సమస్యను సరిచేస్తున్నందున {area}లో ఆర్డర్లు ప్రస్తుతం ఆగాయి. దారిలో ఉన్న ఆర్డర్లు చేరుతాయి.",
     "paused_everywhere": "ఒక సమస్యను సరిచేస్తున్నందున ఆర్డర్లు ప్రస్తుతం ఆగాయి. దారిలో ఉన్న ఆర్డర్లు చేరుతాయి."
+  },
+  "cuisine_names": {
+    "american": "అమెరికన్",
+    "andhra": "ఆంధ్ర",
+    "bakery": "బేకరీ",
+    "bbq": "బార్బెక్యూ",
+    "basque": "బాస్క్",
+    "biryani": "బిర్యానీ",
+    "bowls": "బౌల్స్",
+    "breakfast": "అల్పాహారం",
+    "burgers": "బర్గర్లు",
+    "burritos": "బురిటోలు",
+    "chaat": "చాట్",
+    "chinese": "చైనీస్",
+    "coffee": "కాఫీ",
+    "comfort": "ఇంటి భోజనం",
+    "desserts": "డెజర్ట్‌లు",
+    "dosa": "దోశ",
+    "fried_chicken": "ఫ్రైడ్ చికెన్",
+    "gujarati": "గుజరాతీ",
+    "haleem": "హలీమ్",
+    "healthy": "ఆరోగ్యకరమైన",
+    "hyderabadi": "హైదరాబాదీ",
+    "indian": "భారతీయ",
+    "indo_chinese": "ఇండో-చైనీస్",
+    "irani_cafe": "ఇరానీ కేఫ్",
+    "italian": "ఇటాలియన్",
+    "japanese": "జపనీస్",
+    "kebabs": "కబాబ్‌లు",
+    "kerala": "కేరళ",
+    "meals": "భోజనాలు",
+    "mediterranean": "మెడిటరేనియన్",
+    "mexican": "మెక్సికన్",
+    "middle_eastern": "మిడిల్ ఈస్టర్న్",
+    "momos": "మోమోలు",
+    "mughlai": "మొఘలాయ్",
+    "nepalese": "నేపాలీ",
+    "noodles": "నూడుల్స్",
+    "north_indian": "ఉత్తర భారతీయ",
+    "pizza": "పిజ్జా",
+    "punjabi": "పంజాబీ",
+    "pure_veg": "శుద్ధ శాకాహారం",
+    "rajasthani": "రాజస్థానీ",
+    "ramen": "రామెన్",
+    "salads": "సలాడ్‌లు",
+    "snacks": "స్నాక్స్",
+    "south_indian": "దక్షిణ భారతీయ",
+    "spanish": "స్పానిష్",
+    "street_food": "స్ట్రీట్ ఫుడ్",
+    "sushi": "సుషీ",
+    "sweets": "స్వీట్లు",
+    "tacos": "టాకోలు",
+    "tandoor": "తందూర్",
+    "thai": "థాయ్",
+    "thali": "థాలీ",
+    "tiffins": "టిఫిన్లు"
   }
 }
