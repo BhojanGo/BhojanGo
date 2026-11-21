@@ -139,14 +139,15 @@ async def test_delivery_needs_pin_or_own_photo_and_pin_is_customer_only(client: 
     assert info["rider_pay"] and info["currency"] == "INR" and info["items_count"] == 2 and info["bags"] == 1
     assert info["ready_in_minutes"] == 0 and info["drop_area"] == "Hyderabad" and info["code"].startswith("#")
 
-    pin = (await client.get(f"/api/v1/orders/{order['id']}", headers=cust)).json()["pin"]
-    assert pin and len(pin) == 4
-    assert (await client.get(f"/api/v1/orders/{order['id']}", headers=rider)).json()["pin"] is None
-    assert (await client.get(f"/api/v1/orders/{order['id']}", headers=partner)).json()["pin"] is None
+    assert (await client.get(f"/api/v1/orders/{order['id']}", headers=cust)).json()["pin"] is None  # not before pickup (R27)
     seen = (await client.get(f"/api/v1/orders/{order['id']}", headers=rider)).json()
     assert seen["customer"]["name"].endswith(".") and set(seen["delivery_address"]) == {"area", "city"}  # address after pickup
     assert (await client.get(f"/api/v1/orders/{order['id']}", headers=cust)).json()["customer"] is None
     await move(client, rider, order["id"], "picked_up")
+    pin = (await client.get(f"/api/v1/orders/{order['id']}", headers=cust)).json()["pin"]
+    assert pin and len(pin) == 4
+    assert (await client.get(f"/api/v1/orders/{order['id']}", headers=rider)).json()["pin"] is None
+    assert (await client.get(f"/api/v1/orders/{order['id']}", headers=partner)).json()["pin"] is None
     assert (await client.get(f"/api/v1/orders/{order['id']}", headers=rider)).json()["delivery_address"]["street"] == "Flat 302"
 
     url = f"/api/v1/orders/{order['id']}/status"

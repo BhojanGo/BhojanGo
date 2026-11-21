@@ -11,7 +11,7 @@ Every order gets its own 4-digit delivery PIN. It's how your delivery partner co
 
 ## Where to find it
 
-Open your order from [Your orders](/account/orders). The PIN is on the tracking page, marked **Delivery PIN**.
+Open your order from [Your orders](/account/orders). The PIN is on the tracking page, marked **Delivery PIN**, once your delivery partner has picked up your order.
 
 ## At the door
 

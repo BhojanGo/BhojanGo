@@ -11,7 +11,7 @@ Cada pedido tiene su propio PIN de entrega de 4 dígitos. Así es como tu socio 
 
 ## Dónde encontrarlo
 
-Abre tu pedido desde [Tus pedidos](/account/orders). El PIN está en la página de seguimiento, con la etiqueta **PIN de entrega**.
+Abre tu pedido desde [Tus pedidos](/account/orders). El PIN está en la página de seguimiento, con la etiqueta **PIN de entrega**, en cuanto tu socio repartidor recoge tu pedido.
 
 ## En la puerta
 

@@ -780,10 +780,10 @@ with sync_playwright() as p:
     url_is(page, r"/orders/[0-9a-f-]{36}/track$", 40000)
     order_id = page.url.rstrip("/").split("/")[-2]
     status = page.get_by_role("region", name="Order status")
-    check("tracking: status, ETA, PIN for the door, the bill paid", lambda: (
+    check("tracking: status, ETA, the bill paid; no door PIN before pickup (R27)", lambda: (
         expect(status.get_by_text(f"{KITCHEN} has your order")).to_be_visible(timeout=20000),
         expect(page.locator('[data-testid="eta"]:visible')).to_be_visible(),
-        expect(page.locator('[data-testid="delivery-pin"]:visible')).to_have_text(re.compile(r"^\d{4}$")),
+        expect(page.locator('[data-testid="delivery-pin"]')).to_have_count(0),
         expect(page.get_by_role("region", name="Your order").get_by_text("The fair bill")).to_be_visible(),
         expect(page.get_by_text("You paid")).to_be_visible()))
     shot(page, "12-tracking")
@@ -823,9 +823,13 @@ with sync_playwright() as p:
     api("POST", f"/orders/{order_id}/messages", rider, {"preset": "outside"})
     check("messages: live from the rider without reloading", lambda: expect(chat.get_by_text("I'm outside.")).to_be_visible(timeout=15000))
     shot(page, "13b-messages")
-    pin = page.locator('[data-testid="delivery-pin"]:visible').inner_text()
+    check("tracking: still no door PIN while the rider waits at the kitchen", lambda: (
+        expect(page.locator('[data-testid="delivery-pin"]')).to_have_count(0)))
     api("PUT", f"/orders/{order_id}/status", rider, {"status": "picked_up"})
-    check("tracking: picked up, live", lambda: expect(status).to_contain_text("has picked up your order", timeout=20000))
+    check("tracking: picked up, live, and now the PIN for the door", lambda: (
+        expect(status).to_contain_text("has picked up your order", timeout=20000),
+        expect(page.locator('[data-testid="delivery-pin"]:visible')).to_have_text(re.compile(r"^\d{4}$"), timeout=20000)))
+    pin = page.locator('[data-testid="delivery-pin"]:visible').inner_text()
     # The rider's GPS, as the rider app sends it: a rider marker on the real map
     # (MapLibre + OpenFreeMap, OSM credited) between the kitchen and home, and it moves.
     o = api("GET", f"/orders/{order_id}", rider)

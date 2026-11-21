@@ -31,6 +31,7 @@ from core_api.modules.orders.schemas.order import (
     StatusTimelineEntry,
 )
 from core_api.modules.orders.service.order import OrderService
+from core_api.modules.orders.service.pin import visible_to_customer
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 logger = structlog.get_logger(__name__)
@@ -102,9 +103,9 @@ async def list_my_orders(
         out.rating = OrderRating.model_validate(ratings_svc.as_dict(review, now)) if review else None
         if o.status in ACTIVE_STATES:  # the website's active-order bar
             out.eta = o.estimated_delivery_time
-            if o.driver_id:  # a rider is assigned: their first name and the PIN for the door
+            if o.driver_id:  # a rider is assigned: their first name; the PIN once they have the food
                 out.rider_first_name = riders.get(o.driver_id)
-                out.pin = o.delivery_pin
+                out.pin = o.delivery_pin if visible_to_customer(o.status) else None
         items.append(out)
     return OrderListResponse(
         items=await _with_zones(db, items),
@@ -263,8 +264,8 @@ async def get_order(
     if not await _can_see_order(db, current_user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     out = OrderResponse.model_validate(order)
-    if order.customer_id == current_user.id and order.status not in ("delivered", "cancelled"):
-        out.pin = order.delivery_pin
+    if order.customer_id == current_user.id and visible_to_customer(order.status):
+        out.pin = order.delivery_pin  # only once the rider has picked it up (R27)
     if order.customer_id == current_user.id:
         from core_api.modules.orders.service.order import customer_cancel, refunded_total
 

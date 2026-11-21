@@ -43,6 +43,7 @@ from zoneinfo import ZoneInfo  # noqa: E402
 
 import demo_history  # noqa: E402
 import seed as base  # noqa: E402  (also puts the backend on sys.path)
+from core_api.modules.orders.service.pin import delivery_pin  # noqa: E402
 from data import MARKETS, covers, dish_photo, menu_dishes, photo_url  # noqa: E402
 from demo_data import ACTIVE, DEMO, ORDERS, PROMOTIONS, SIM_POOL, active_rider  # noqa: E402
 from sqlalchemy import text  # noqa: E402
@@ -385,7 +386,7 @@ class Demo:
         cust = self.people[customer]
         address = {"street": f"{cust[2]}, {cust[3]}", "city": market["city"], "state": market["state"], "zip": cust[4],
                    "country": market["country"], "lat": cust[5], "lng": cust[6], "landmark": cust[3]}
-        pin = f"{int(oid.hex[:6], 16) % 10000:04d}"
+        pin = delivery_pin()  # random, as for any order (R27)
         pi = f"fake_pay_demo_{oid.hex[:16]}"
         await self.db.execute(INSERT_ORDER, {
             "id": oid, "customer_id": self.users[customer], "restaurant_id": k["id"], "restaurant_name": q["restaurant_name"],

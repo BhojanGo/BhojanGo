@@ -109,7 +109,7 @@ def test_production_settings_refuse_the_flag(monkeypatch) -> None:  # type: igno
     from shared.config import ProductionConfigError, Settings
 
     for k, v in {"APP_ENV": "production", "PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE": "",
-                 "DELIVERY_PIN_FIXED": "", "DEMO_RIDER_SIM": "1"}.items():
+                 "DEMO_RIDER_SIM": "1"}.items():
         monkeypatch.setenv(k, v)
     with pytest.raises(ProductionConfigError, match="DEMO_RIDER_SIM"):
         Settings(_env_file=None)  # type: ignore[call-arg]

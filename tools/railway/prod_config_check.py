@@ -314,7 +314,6 @@ REQUIRED: list[tuple[str, tuple[str, ...], str, str, str]] = [
     ("PAYMENT_PROVIDER", BACKENDS, "live", "backend/shared/config.py", "if p.PAYMENT_PROVIDER != \"live\""),
     ("PAYOUT_PROVIDER", BACKENDS, "not_fake", "backend/shared/config.py", "if p.PAYOUT_PROVIDER == \"fake\""),
     ("OTP_FIXED_CODE", BACKENDS, "empty", "backend/shared/config.py", "if p.OTP_FIXED_CODE:"),
-    ("DELIVERY_PIN_FIXED", BACKENDS, "empty", "backend/shared/config.py", "if p.DELIVERY_PIN_FIXED:"),
     ("DEMO_RIDER_SIM", W, "off", "backend/shared/config.py", "if self.worker.DEMO_RIDER_SIM"),
     ("IDENTITY_DATA_KEYS", C, "sealed", "backend/shared/config.py", "IDENTITY_DATA_KEYS is not set"),
     ("PUBLIC_WEB_URL", C, "set", "backend/shared/config.py", "public_url_problem(\"PUBLIC_WEB_URL\""),

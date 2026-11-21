@@ -153,7 +153,8 @@ export default function Tracking() {
     return h ? time(h.at, tz) : "";
   };
   const stamps = [stamp("placed"), stamp("accepted", "preparing"), stamp("picked_up"), stamp("delivered")];
-  const pin = order?.pin && !finished ? order.pin : null;
+  // The door PIN only once the rider has the food (R27; the API holds it back before that too).
+  const pin = order?.pin && status === "picked_up" ? order.pin : null;
   const mapHeight = Math.max(360, screen - SHEET + 40);
 
   return (

@@ -145,11 +145,6 @@ class OrderService:
         self.db = db
         self.repo = OrderRepository(db)
 
-    async def _customer_phone(self, customer_id: uuid.UUID) -> str | None:
-        from core_api.modules.identity.models.user import User
-
-        return (await self.db.execute(select(User.phone).where(User.id == customer_id))).scalar()
-
     # ── create: from a quote, waiting for payment ────────────────────────────
     async def create_order(self, data: OrderCreateRequest, customer_id: uuid.UUID, currency: str | None = None) -> Order:
         """Place an order at exactly the quoted price; it waits for payment."""
@@ -219,7 +214,7 @@ class OrderService:
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
             promo_code=data.promo_code,
-            delivery_pin=delivery_pin(await self._customer_phone(customer_id)),
+            delivery_pin=delivery_pin(),
             loyalty_points_used=0,
             estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )

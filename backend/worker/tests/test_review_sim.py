@@ -26,7 +26,7 @@ def test_production_starts_with_review_sim_but_not_with_the_demo_rider(monkeypat
     from shared.config import ProductionConfigError, Settings
 
     live = {"APP_ENV": "production", "PAYMENT_PROVIDER": "live", "PAYOUT_PROVIDER": "live", "OTP_FIXED_CODE": "",
-            "DELIVERY_PIN_FIXED": "", "REVIEW_SIM": "1"}
+            "REVIEW_SIM": "1"}
     for k, v in live.items():
         monkeypatch.setenv(k, v)
     monkeypatch.delenv("DEMO_RIDER_SIM", raising=False)

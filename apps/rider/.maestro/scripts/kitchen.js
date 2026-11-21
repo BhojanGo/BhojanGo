@@ -3,7 +3,8 @@
 // Kitchen and pays (fake provider), the kitchen accepts and starts cooking, so
 // dispatch offers it to the nearest online rider. Other Hyderabad riders go
 // offline first, so the offer comes to us.  STEP=ready  the kitchen marks it
-// ready, and the customer's PIN is read for the drop-off (output.pin).
+// ready.  STEP=pin  after pickup, the customer's PIN for the drop-off (output.pin): the
+// customer only sees it once the rider has the food (R27).
 // Hosted QA: maestro test -e QA_CORE=https://... -e QA_RT=https://... -e QA_PASSWORDS='{"email":"password"}'
 // (tools/railway/maestro-qa.sh); locally the defaults below.
 var QA_PW = (typeof QA_PASSWORDS !== "undefined" && QA_PASSWORDS) ? JSON.parse(QA_PASSWORDS) : {};
@@ -90,5 +91,10 @@ if (STEP === "ready") {
   waitFor(function () { return call("GET", API + "/orders/" + id2, customer).body.driver_id; });
   var r2 = call("PUT", API + "/orders/" + id2 + "/status", partner, { status: "ready" });
   if (r2.status !== 200) throw new Error("ready " + r2.status);
-  output.pin = call("GET", API + "/orders/" + id2, customer).body.pin;
+}
+
+if (STEP === "pin") {
+  var id3 = output.orderId;
+  waitFor(function () { return call("GET", API + "/orders/" + id3, customer).body.pin; });
+  output.pin = call("GET", API + "/orders/" + id3, customer).body.pin;
 }

@@ -84,7 +84,7 @@ export default defineRailway((ctx, project) => {
     JWKS_URL: "http://core-api.railway.internal:8001/.well-known/jwks.json",
     CORS_ORIGINS: prod ? preserve() : origins, // production: the custom domains
     // Providers: local fakes until each account exists (docs/11_Integration_Setup_Guide.md).
-    // Production refuses to start with a fake, the fixed OTP or the fixed delivery PIN (shared/config.py).
+    // Production refuses to start with a fake or the fixed OTP (shared/config.py); delivery PINs are always random.
     // Production (R19, Srini's decisions): email through Amazon SES; sign-in codes through Twilio
     // Verify (core-api, OTP_PROVIDER below; no sender number or 10DLC); order updates by push (Expo),
     // so no SMS at all ("off": chosen, not a fake).
@@ -93,7 +93,7 @@ export default defineRailway((ctx, project) => {
     SMS_PROVIDER: prod ? "off" : "log",
     PUSH_PROVIDER: prod ? "live" : "log",
     EMAIL_PROVIDER: prod ? "ses" : "log",
-    ...(prod ? { OTP_FIXED_CODE: "", DELIVERY_PIN_FIXED: "" } : {}),
+    ...(prod ? { OTP_FIXED_CODE: "" } : {}),
     // Error reports (Sentry, free plan; shared/observability.py): one backend project, sealed.
     ...(prod ? { SENTRY_DSN: preserve() } : {}),
     ROUTING_PROVIDER: "straight_line",

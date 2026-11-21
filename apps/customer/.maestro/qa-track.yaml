@@ -26,8 +26,10 @@ tags:
     id: "track-map"
 - assertVisible:
     id: "eta"
+# The door PIN shows once the rider has picked the order up (R27); the demo order may still be cooking.
 - assertVisible:
     id: "delivery-pin"
+    optional: true
 # The rider's name shows once a rider has the order (the demo order may still be cooking).
 - assertVisible:
     id: "rider-name"

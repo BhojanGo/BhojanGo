@@ -81,6 +81,10 @@ env:
 - assertVisible: "Priya S."
 - assertVisible: ".*Ring the bell twice.*"
 - takeScreenshot: docs/screenshots/rider/08-dropoff
+- runScript:
+    file: scripts/kitchen.js
+    env:
+      STEP: pin
 - tapOn: "Hand over . PIN"
 - tapOn:
     id: "pin"

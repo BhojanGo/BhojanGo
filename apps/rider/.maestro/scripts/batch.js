@@ -4,7 +4,8 @@
 //                 Spice Route Kitchen to two homes a street apart in Jubilee Hills. The
 //                 kitchen starts both; the batch engine pairs them and realtime offers the
 //                 pair to us. output.first / output.second: the order ids.
-//   STEP=ready    the kitchen marks both ready; output.pin1 / output.pin2 for the drop-offs.
+//   STEP=ready    the kitchen marks both ready.
+//   STEP=pin      after pickup: output.pin, the PIN of the drop-off the rider is at now.
 //   STEP=cleanup  batching back off; anything left from an earlier run cancelled.
 // Hosted QA: maestro test -e QA_CORE=https://... -e QA_RT=https://... -e QA_PASSWORDS='{"email":"password"}'
 // (tools/railway/maestro-qa.sh); locally the defaults below.
@@ -187,9 +188,6 @@ if (STEP === "ready") {
     var r = call("PUT", API + "/orders/" + id + "/status", partner, { status: "ready" });
     if (r.status !== 200) throw new Error("ready " + r.status);
   });
-  // The drop-offs come in the order the engine chose; read both PINs.
-  output.pin1 = call("GET", API + "/orders/" + output.first, customers[0]).body.pin;
-  output.pin2 = call("GET", API + "/orders/" + output.second, customers[1]).body.pin;
 }
 
 if (STEP === "pin") {
