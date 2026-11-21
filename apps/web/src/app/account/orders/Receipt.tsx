@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { receiptRefunds } from "@bhojango/ui/bill";
+import { reorderToBag, type ReorderResponse } from "@bhojango/ui/reorder";
 
 import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, type Order } from "@/components/account/shared";
 import { kitchenPhoto } from "@/components/KitchenPhoto";
@@ -30,11 +31,6 @@ interface Bill {
   paid?: string;
 }
 
-interface Reorder {
-  restaurant: { id: string; slug: string; name: string; currency?: string };
-  items: { menu_item_id: string; name: string; quantity: number; options: { group: string; option: string; name?: string }[]; price: number; available?: boolean }[];
-  unavailable: string[];
-}
 
 type ItemOption = string | { name?: string; option?: string };
 type Item = { menu_item_id?: string; name?: string; quantity?: number; options?: ItemOption[]; total?: number; unit_price?: number };
@@ -56,7 +52,7 @@ export function Receipt({ id }: { id: string }) {
   const [data, setData] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState<"pdf" | "again" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [missing, setMissing] = useState<{ names: string[]; added: boolean } | null>(null);
+  const [missing, setMissing] = useState<{ notes: string[]; added: boolean } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -116,33 +112,24 @@ export function Receipt({ id }: { id: string }) {
     setProblem(null);
     setMissing(null);
     try {
-      const r = await authed<Reorder>("POST", `/api/v1/orders/${id}/reorder`);
-      const ok = r.items.filter((i) => i.available !== false);
-      const names = [...r.unavailable, ...r.items.filter((i) => i.available === false).map((i) => i.name)];
-      if (ok.length) {
+      // R27: the same items, options and quantities; what's sold out or no longer offered is named (packages/ui reorder.js)
+      const r = await authed<ReorderResponse>("POST", `/api/v1/orders/${id}/reorder`);
+      const { lines, notes } = reorderToBag(r);
+      if (lines.length) {
         const brief = await kitchenBrief(r.restaurant.id);
         const restaurant = {
           id: r.restaurant.id,
           name: r.restaurant.name,
-          slug: r.restaurant.slug,
+          slug: r.restaurant.slug ?? "",
           city: brief?.city ?? "",
           currency: r.restaurant.currency ?? brief?.currency ?? order!.currency,
         };
         const bag = useBag.getState();
         bag.clear();
-        for (const i of ok) {
-          bag.add(restaurant, {
-            menuItemId: i.menu_item_id,
-            name: i.name,
-            unitPrice: Number(i.price),
-            quantity: i.quantity,
-            picks: i.options.map((o) => ({ group: o.group, option: o.option })),
-            summary: i.options.map((o) => o.name ?? o.option).join(", "),
-          });
-        }
+        for (const line of lines) bag.add(restaurant, line);
       }
-      if (!names.length) router.push("/checkout");
-      else setMissing({ names, added: ok.length > 0 });
+      if (!notes.length && lines.length) router.push("/checkout");
+      else setMissing({ notes: notes.map((n) => t(n.key, n.values)), added: lines.length > 0 });
     } catch {
       setProblem(t("account.receipt.reorder_failed"));
     } finally {
@@ -191,7 +178,8 @@ export function Receipt({ id }: { id: string }) {
         {problem && <p role="alert" className="mt-3 text-label text-[#8C1D18]">{problem}</p>}
         {missing && (
           <div role="status" className="mt-3 rounded-2xl bg-[#F6E7CC] p-4 text-small text-[#7A4F0E]">
-            {missing.added ? t("account.receipt.unavailable", { items: missing.names.join(", ") }) : t("account.receipt.none_available")}
+            {missing.notes.map((n) => <span key={n} className="block">{n}</span>)}
+            <span data-testid="reorder-result" className="block font-bold">{missing.added ? t("account.receipt.reorder.rest_added") : t("account.receipt.none_available")}</span>
             {missing.added && (
               <Link href="/checkout" className="mt-2 block font-bold text-[#0B5D66]">
                 {t("account.receipt.continue_checkout")}

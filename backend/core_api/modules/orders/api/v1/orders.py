@@ -427,7 +427,10 @@ async def reorder(
 ) -> ReorderResponse:
     """Order again: your past order's items at today's menu prices, ready for
     the bag. Sold-out or removed items are listed in ``unavailable`` and left
-    out. Nothing is ordered: checkout quotes the bag as usual."""
+    out. Nothing is ordered: checkout quotes the bag as usual. ``problems`` says what changed
+    (R27): an item sold out or gone, an option no longer offered (the item is still added)."""
+    from dataclasses import asdict
+
     from core_api.modules.catalog.service.cart import reorder_lines
     from core_api.modules.catalog.service.lookup import restaurant_brief
 
@@ -435,8 +438,9 @@ async def reorder(
     kitchen = await restaurant_brief(db, order.restaurant_id)
     if kitchen is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This kitchen is no longer on BhojanGo")
-    items, unavailable = await reorder_lines(db, order.restaurant_id, order.items or [])
-    return ReorderResponse.model_validate({"restaurant": kitchen, "items": items, "unavailable": unavailable})
+    items, unavailable, problems = await reorder_lines(db, order.restaurant_id, order.items or [])
+    return ReorderResponse.model_validate({"restaurant": kitchen, "items": items, "unavailable": unavailable,
+                                           "problems": [asdict(p) for p in problems]})
 
 
 @router.get("/{order_id}/receipt.pdf", response_class=Response,

@@ -14,11 +14,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { reorderToBag, type ReorderResponse } from "@bhojango/ui/reorder";
+
 import { useKitchenBrief } from "@/components/account/shared";
 import { KitchenCard } from "@/components/Cards";
 import { kitchenPhoto, KitchenPhoto } from "@/components/KitchenPhoto";
 import { AddressPill } from "@/components/HeaderParts";
-import { api, authed, useBag, useHydrated, useSession, type Pick } from "@/lib/client";
+import { api, authed, useBag, useHydrated, useSession } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
 import { partOfDay, photo } from "@/lib/format";
 import { useFormat, useT } from "@/lib/i18n";
@@ -40,11 +42,6 @@ const TEST: Record<Filter, (k: Kitchen) => boolean> = {
   free: (k) => k.free_delivery || (k.delivery_fee != null && Number(k.delivery_fee) === 0),
 };
 
-interface Reorder {
-  restaurant: { id: string; slug: string; name: string };
-  items: { menu_item_id: string; name: string; quantity: number; options?: Pick[] | null; price: number | string; available?: boolean }[];
-  unavailable?: unknown[];
-}
 
 /** The customer's recent orders (signed in only). */
 function useMyOrders() {
@@ -137,19 +134,20 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
     setBusy(o.id);
     setProblem(null);
     try {
-      const r = await authed<Reorder>("POST", `/api/v1/orders/${o.id}/reorder`);
-      const bag = useBag.getState();
-      bag.clear();
-      const restaurant = { id: r.restaurant.id, name: r.restaurant.name, slug: r.restaurant.slug, city: cityName, currency: o.currency };
-      for (const it of r.items.filter((x) => x.available !== false)) {
-        const picks = it.options ?? [];
-        bag.add(restaurant, { menuItemId: it.menu_item_id, name: it.name, unitPrice: Number(it.price), quantity: it.quantity, picks, summary: picks.map((p) => p.option).join(", ") });
-      }
-      if (!useBag.getState().lines.length) {
-        setProblem(t("home.reorder_none"));
+      // R27: the same items, options and quantities (packages/ui reorder.js); what changed is said, the rest added
+      const r = await authed<ReorderResponse>("POST", `/api/v1/orders/${o.id}/reorder`);
+      const { lines, notes } = reorderToBag(r);
+      const said = notes.map((n) => t(n.key, n.values));
+      if (!lines.length) {
+        setProblem([...said, t("home.reorder_none")].join(" "));
         return;
       }
-      router.push("/checkout");
+      const bag = useBag.getState();
+      bag.clear();
+      const restaurant = { id: r.restaurant.id, name: r.restaurant.name, slug: r.restaurant.slug ?? "", city: cityName, currency: o.currency };
+      for (const line of lines) bag.add(restaurant, line);
+      if (said.length) setProblem([...said, t("account.receipt.reorder.rest_added")].join(" "));
+      else router.push("/checkout");
     } catch {
       setProblem(t("common.error"));
     } finally {

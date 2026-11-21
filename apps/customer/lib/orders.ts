@@ -1,6 +1,6 @@
 // The customer's own orders for the home screen: the one on its way (the
 // active-order bar) and "Order again" (the latest delivered order per kitchen).
-import { api, unwrap, useBag, type CoreSchemas } from "@bhojango/mobile-core";
+import { api, reorderToBag, unwrap, useBag, type CoreSchemas } from "@bhojango/mobile-core";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -24,22 +24,16 @@ export function useMyOrders(limit = 20) {
 }
 
 /**
- * Puts an old order's dishes (those still available) in a new bag
- * (POST /orders/{id}/reorder works out what's available now; nothing is placed).
- * Returns false when none of them is available.
+ * Puts an old order's dishes (those still available, with the same options and quantities) in a new bag
+ * (POST /orders/{id}/reorder works out what's available now; nothing is placed). R27: `added` is false when
+ * none of them is available; `notes` are message keys saying what changed (sold out, an option no longer offered).
  */
-export async function reorder(order: Order): Promise<boolean> {
+export async function reorder(order: Order): Promise<{ added: boolean; notes: { key: string; values: Record<string, string> }[] }> {
   const r = unwrap(await api.core.POST("/api/v1/orders/{order_id}/reorder", { params: { path: { order_id: order.id } } })) as CoreSchemas["ReorderResponse"];
+  const { restaurant, lines, notes } = reorderToBag(r, "account.receipt.reorder");
+  if (!lines.length) return { added: false, notes };
   const bag = useBag.getState();
-  const items = r.items.filter((x) => x.available !== false);
-  if (!items.length) return false;
   bag.clear();
-  for (const it of items) {
-    const picks = (it.options ?? []).map((p) => ({ group: p.group, option: p.option }));
-    bag.add({ id: r.restaurant.id, name: r.restaurant.name }, {
-      menuItemId: it.menu_item_id, name: it.name, unitPrice: Number(it.price), quantity: it.quantity, picks,
-      summary: picks.map((p) => p.option.split(" · ")[0]?.toLowerCase()).join(", "),
-    });
-  }
-  return true;
+  for (const line of lines) bag.add({ id: restaurant.id, name: restaurant.name }, line);
+  return { added: true, notes };
 }

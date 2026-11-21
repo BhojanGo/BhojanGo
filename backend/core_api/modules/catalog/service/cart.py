@@ -105,47 +105,110 @@ async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dic
     return info, lines
 
 
+# ── "Order again" (R27) ────────────────────────────────────────────────────────
+#
+# R26: "Order again" on a delivered order failed with "We couldn't add this order to your bag".
+# A past line is matched against today's menu here, without the database (unit-tested), then priced:
+#   - an item gone from the menu or sold out is left out and named ("Butter Croissant is sold out");
+#   - an option no longer offered (removed, or unavailable today) is dropped and named ("Oat is no
+#     longer offered"); the item is still added. A choice the item needs (min picks) that lost its
+#     option gets the group's default, so the item can still be ordered;
+#   - options are found by name (orders keep the names), also as {"group", "option"|"name"} from older
+#     orders, ignoring case and spaces; the same name in two groups goes to the first group that has room.
+
+
+@dataclass(frozen=True)
+class ReorderProblem:
+    item: str
+    reason: str  # sold_out | removed | option_gone | unavailable
+    option: str | None = None
+    detail: str | None = None  # the quote's own words for "unavailable"
+
+
+def _norm(s: object) -> str:
+    return " ".join(str(s or "").split()).casefold()
+
+
+def _labels(raw: dict) -> list[str]:
+    out = []
+    for o in raw.get("options") or []:
+        if isinstance(o, dict):
+            o = o.get("name") or o.get("option") or ""
+        if str(o).strip():
+            out.append(str(o))
+    return out
+
+
+def plan_line(raw: dict, item, groups: list, restaurant_id: uuid.UUID,  # type: ignore[no-untyped-def]
+              now: datetime | None = None) -> tuple[list[dict] | None, list[ReorderProblem]]:
+    """A past order line against today's menu: (picks for the quote, or None when the item can't be
+    ordered; what changed). ``item``: the MenuItem (None when gone); ``groups``: its option groups."""
+    name = str(raw.get("name") or getattr(item, "name", None) or "An item")
+    if item is None or item.deleted_at is not None or item.restaurant_id != restaurant_id:
+        return None, [ReorderProblem(name, "removed")]
+    name = item.name
+    if not item.is_available or is_sold_out(item, now):
+        return None, [ReorderProblem(name, "sold_out")]
+    problems: list[ReorderProblem] = []
+    chosen: dict[uuid.UUID, list] = {g.id: [] for g in groups}
+    for label in _labels(raw):
+        found = [(g, o) for g in groups for o in g.options if _norm(o.name) == _norm(label)]
+        room = [(g, o) for g, o in found if len(chosen[g.id]) < g.max_picks and o not in chosen[g.id]]
+        g_o = room[0] if room else (found[0] if found else None)
+        if g_o is None or not g_o[1].is_available:
+            problems.append(ReorderProblem(name, "option_gone", option=label))
+            continue
+        g, o = g_o
+        if o not in chosen[g.id] and len(chosen[g.id]) < g.max_picks:
+            chosen[g.id].append(o)
+    for g in groups:  # a choice the item needs: the default (or the first available) option
+        while len(chosen[g.id]) < g.min_picks:
+            spare = [o for o in g.options if o.is_available and o not in chosen[g.id]]
+            pick = next((o for o in spare if o.is_default), spare[0] if spare else None)
+            if pick is None:
+                return None, [*problems, ReorderProblem(name, "unavailable")]
+            chosen[g.id].append(pick)
+    picks = [{"group": str(g.id), "option": str(o.id), "name": o.name} for g in groups for o in chosen[g.id]]
+    return picks, problems
+
+
 async def reorder_lines(db: AsyncSession, restaurant_id: uuid.UUID, past: list[dict],
-                        now: datetime | None = None) -> tuple[list[dict], list[str]]:
-    """A past order's lines against today's menu, for "Order again": each line
-    that can still be ordered, at today's price, with its options as picks the
-    quote accepts; and the names of the ones that can't (sold out, gone, an
-    option dropped or a new required choice). Opening hours aren't checked:
-    the bag shows that, and the quote refuses a closed kitchen."""
+                        now: datetime | None = None) -> tuple[list[dict], list[str], list[ReorderProblem]]:
+    """A past order's lines against today's menu, for "Order again": each line that can still be
+    ordered, at today's price, with its options as picks the quote accepts; the names of the items
+    that can't; and every change (an item left out, an option dropped). Opening hours aren't
+    checked: the bag shows that, and the quote refuses a closed kitchen."""
     ids = []
     for raw in past:
         try:
             ids.append(uuid.UUID(str(raw.get("menu_item_id"))))
         except ValueError:
             continue
+    menu = {m.id: m for m in (await db.execute(select(MenuItem).where(MenuItem.id.in_(ids)))).scalars()} if ids else {}
     groups_by_item = await groups_for_items(db, ids)
     ok: list[dict] = []
     gone: list[str] = []
+    problems: list[ReorderProblem] = []
     for raw in past:
-        name = str(raw.get("name") or "An item")
         try:
             item_id = uuid.UUID(str(raw.get("menu_item_id")))
         except ValueError:
-            gone.append(name)
-            continue
-        # Orders keep the chosen options' names; find each again in the item's groups.
-        picks: list[dict] = []
-        for label in raw.get("options") or []:
-            match = next(((g, o) for g in groups_by_item.get(item_id, []) for o in g.options if o.name == label), None)
-            if match is None:
-                picks = []
-                break
-            picks.append({"group": str(match[0].id), "option": str(match[1].id), "name": match[1].name})
-        if len(picks) != len(raw.get("options") or []):
-            gone.append(name)
+            item_id = None
+        item = menu.get(item_id) if item_id else None
+        picks, changed = plan_line(raw, item, groups_by_item.get(item_id, []) if item_id else [], restaurant_id, now)
+        problems += changed
+        if picks is None:
+            gone.append(changed[-1].item)
             continue
         try:
-            _, lines = await price_cart(db, restaurant_id, [{"menu_item_id": item_id, "quantity": int(raw.get("quantity", 1)),
-                                                             "options": picks}], check_open=False, now=now)
-        except CartError:
-            gone.append(name)
+            qty = min(max(int(raw.get("quantity") or 1), 1), 50)
+            _, lines = await price_cart(db, restaurant_id, [{"menu_item_id": item_id, "quantity": qty, "options": picks}],
+                                        check_open=False, now=now)
+        except CartError as e:
+            gone.append(item.name)
+            problems.append(ReorderProblem(item.name, "unavailable", detail=str(e)))
             continue
         line = lines[0]
         ok.append({"menu_item_id": line.item_id, "name": line.name, "quantity": line.quantity, "options": picks,
                    "price": float(line.unit_price), "available": True})
-    return ok, gone
+    return ok, gone, problems

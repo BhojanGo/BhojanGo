@@ -235,13 +235,25 @@ class ReorderItem(BaseModel):
     available: bool = True
 
 
+class ReorderProblem(BaseModel):
+    """What changed since the order (R27): ``sold_out``, ``removed`` (no longer on the menu) or
+    ``unavailable`` (``detail`` says why) leave the item out; ``option_gone`` (``option``: its name)
+    drops that option and still adds the item."""
+
+    item: str
+    reason: Literal["sold_out", "removed", "unavailable", "option_gone"]
+    option: str | None = None
+    detail: str | None = None
+
+
 class ReorderResponse(BaseModel):
     """What "Order again" puts in the bag: ``items`` at today's prices. Nothing
-    is ordered; ``unavailable`` names what couldn't be added."""
+    is ordered; ``unavailable`` names what couldn't be added, ``problems`` every change."""
 
     restaurant: ReorderRestaurant
     items: list[ReorderItem]
     unavailable: list[str]
+    problems: list[ReorderProblem] = []
 
 
 class FeeBreakdown(BaseModel):
