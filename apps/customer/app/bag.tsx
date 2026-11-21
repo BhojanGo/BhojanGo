@@ -8,7 +8,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
-import { isFreeOrder, payMode, type ProviderAnswer } from "../lib/ordering";
+import { closedWords, isFreeOrder, payMode, type ProviderAnswer } from "../lib/ordering";
+import { useAvailability } from "../lib/restaurants";
 import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
 import { useWhere } from "../lib/where";
 
@@ -32,19 +33,21 @@ export default function Bag() {
   const [paying, setPaying] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const { t, money } = useI18n();
+  const { t, money, opens } = useI18n();
   // R18: an incident pause (the city's ordering, or the kitchen closed for now): the bag says so and can't be paid.
+  // R27: so does a kitchen closed by its hours or the city's delivery hours: "Closed · opens 6:30 am", in the
+  // app's words (the availability, or the quote's KITCHEN_CLOSED refusal), never the API's English.
   const pauses = useOrderingPauses();
-  const [forNow, setForNow] = useState(false);
-  useEffect(() => {
-    if (!bag.restaurantId) return;
-    let live = true;
-    api.core.GET("/api/v1/restaurants/{restaurant_id}/availability", { params: { path: { restaurant_id: bag.restaurantId } } })
-      .then((r) => { if (live) setForNow(Boolean((r.data as { closed_for_now?: boolean } | undefined)?.closed_for_now)); })
-      .catch(() => undefined);
-    return () => { live = false; };
-  }, [bag.restaurantId, attempt]);
-  const blocked = pauses.length ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : null;
+  const avail = useAvailability(bag.restaurantId, attempt);
+  const closedRefusal = refusal?.code === "KITCHEN_CLOSED" ? refusal : null;
+  const blocked = pauses.length ? t("kitchen.bag_paused")
+    : avail?.closed_for_now || closedRefusal?.reason_code === "closed_for_now" ? t("kitchen.bag_closed_for_now")
+    : closedWords(avail, opens, t)
+      ?? (closedRefusal ? closedWords({ open_now: false, reason_code: closedRefusal.reason_code, next_open_at: closedRefusal.opens_at,
+        timezone: closedRefusal.time_zone }, opens, t) : null)
+      // then open by its hours but its tablet isn't connected (KITCHEN_OFFLINE)
+      ?? (avail?.reason_code === "not_taking_orders" || avail?.not_taking_orders || refusal?.code === "KITCHEN_OFFLINE"
+        ? t("kitchen.not_taking_orders") : null);
   // R19: the admin's note on the pause, as written (e.g. when ordering comes back).
   const notes = pauses.length ? [...new Set(pauses.map((p) => p.note?.trim()).filter((n): n is string => !!n))] : [];
   const { country } = useCountry(); // the delivery address's country (Markets): currency, payment methods
@@ -105,7 +108,7 @@ export default function Bag() {
     return () => {
       live = false;
     };
-  }, [bag.restaurantId, lines, bag.tip, point, attempt]);
+  }, [bag.restaurantId, lines, bag.tip, point, attempt, avail?.open_now]); // re-priced when the kitchen opens (R27)
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -130,7 +133,7 @@ export default function Bag() {
   const shownError =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
       ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency) })
-      : error;
+      : blocked ? null : error; // a closed or paused kitchen: the button says why
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
   // R20: nothing to pay (an app store review order): the server places it as it is made; no checkout.
   const free = isFreeOrder(quote?.total);
@@ -252,6 +255,7 @@ export default function Bag() {
         </View>
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View>
           : unreachable ? <LoadError error={unreachable} onRetry={() => setAttempt((a) => a + 1)} />
+          : blocked ? <Text testID="bill-when-open" style={[type.small, { color: color.muted }]}>{t("kitchen.bill_when_open")}</Text>
           : error ? null : <ActivityIndicator color={color.peacock} />}
         {shownError ? <Text style={[type.label, { color: color.chili }]}>{shownError}</Text> : null}
         {blocked ? notes.map((n) => <Text key={n} testID="bag-pause-note" style={[type.small, { color: color.muted }]}>{n}</Text>) : null}

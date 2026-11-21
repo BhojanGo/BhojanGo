@@ -210,9 +210,10 @@ function createTranslator(language, messages, fallback) {
 }
 
 const { formatPhone } = require("./phone.js");
+const { opensWhen, opensLabel, wallClock } = require("./hours.js");
 
 module.exports = {
-  formatPhone,
+  formatPhone, opensWhen, opensLabel, wallClock,
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
   resolveLocation, formatLocale, createTranslator, pluralSelector,
 };

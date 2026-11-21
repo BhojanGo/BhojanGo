@@ -6,7 +6,7 @@ import { api, space, type, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
-import { orderingBlock } from "../lib/ordering";
+import { closedWords, orderingBlock, type Availability } from "../lib/ordering";
 import { useWhere } from "../lib/where";
 
 export interface Pause { id: string; scope: string; area: string; note?: string | null }
@@ -27,13 +27,22 @@ export function useOrderingPauses(): Pause[] {
 }
 
 /** R19: why this kitchen's dishes can't go in the bag now (worded), or null: the city's ordering
- *  paused, the kitchen closed for now (an incident), or the kitchen not open. */
-export function useKitchenBlock(r: { is_open?: boolean | null; closed_for_now?: boolean | null } | null | undefined, notTaking = false): string | null {
-  const { t } = useI18n();
+ *  paused, the kitchen closed for now (an incident) or paused, or (R27) closed by its hours or the
+ *  city's delivery hours: "Closed · opens 6:30 am", the same words on the kitchen, the dish and the bag;
+ *  then a kitchen whose tablet isn't connected ("Not taking orders right now": `notTaking` from its card
+ *  until its availability is known). */
+export function useKitchenBlock(r: { is_open?: boolean | null; closed_for_now?: boolean | null } | null | undefined,
+  avail?: Availability | null, notTaking = false): string | null {
+  const { t, opens } = useI18n();
   const paused = useOrderingPauses().length > 0;
   if (!r) return paused ? t("kitchen.bag_paused") : null;
-  const key = orderingBlock({ paused, closedForNow: r.closed_for_now, isOpen: r.is_open, notTaking });
-  return key ? t(key) : null;
+  const key = orderingBlock({ paused, closedForNow: r.closed_for_now || avail?.closed_for_now, isOpen: r.is_open });
+  if (key) return t(key);
+  // Closed by its hours first ("Closed · opens 6:30 am"), then open by its hours but no live tablet.
+  const closed = closedWords(avail, opens, t);
+  if (closed) return closed;
+  const offline = avail ? avail.reason_code === "not_taking_orders" || !!avail.not_taking_orders : notTaking;
+  return offline ? t("kitchen.not_taking_orders") : null;
 }
 
 export function PauseBanner() {

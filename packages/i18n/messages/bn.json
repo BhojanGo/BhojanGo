@@ -50,7 +50,8 @@
     "people_waiting": {
       "one": "{n} জন অপেক্ষায়",
       "other": "{n} জন অপেক্ষায়"
-    }
+    },
+    "closed_opens_day": "বন্ধ · খুলবে {day} {time}"
   },
   "header": {
     "where_we_deliver": "আমরা কোথায় ডেলিভারি করি",
@@ -370,7 +371,12 @@
     "bag_paused": "অর্ডার করা বন্ধ আছে",
     "bag_closed_for_now": "এই কিচেন আপাতত বন্ধ",
     "not_taking_orders": "এখন অর্ডার নিচ্ছে না",
-    "not_taking_orders_note": "এই কিচেন এখন অর্ডার নিচ্ছে না। মেনু দেখতে পারেন; কিচেন ফিরলেই আবার অর্ডার করা যাবে।"
+    "not_taking_orders_note": "এই কিচেন এখন অর্ডার নিচ্ছে না। মেনু দেখতে পারেন; কিচেন ফিরলেই আবার অর্ডার করা যাবে।",
+    "opens_at_day": "খুলবে {day} {time}",
+    "bag_closed": "এই কিচেন এখন বন্ধ",
+    "bill_when_open": "কিচেন খুললে পুরো বিল এখানে দেখা যাবে।",
+    "deliveries_start": "ডেলিভারি শুরু {time}",
+    "deliveries_start_day": "ডেলিভারি শুরু {day} {time}"
   },
   "checkout": {
     "title": "চেকআউট",
@@ -1588,7 +1594,8 @@
       "min_away": "{min} মিনিট দূরে",
       "finding_rider": "ডেলিভারি পার্টনার খোঁজা হচ্ছে",
       "order_code": "অর্ডার কোড {code}",
-      "today_refunds": "{amount} ফেরত"
+      "today_refunds": "{amount} ফেরত",
+      "deliveries_run": "ডেলিভারি {from}–{to}"
     },
     "offline": {
       "banner": "অর্ডার আসছে না: আবার সংযোগ করা হচ্ছে"

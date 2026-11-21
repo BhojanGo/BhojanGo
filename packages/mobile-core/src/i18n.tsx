@@ -14,7 +14,7 @@
 // country's first Markets locale, never the language. The language is kept on the
 // device in SecureStore.
 import { chooseLanguage, createTranslator, formatLocale as countryLocale, LANGUAGES, languageList, languagesFor,
-  type Language, type Translate } from "@bhojango/i18n";
+  opensLabel, wallClock, type Language, type Translate } from "@bhojango/i18n";
 import MESSAGES from "@bhojango/i18n/all-messages";
 import { unwrap } from "@bhojango/api-client";
 import * as SecureStore from "expo-secure-store";
@@ -199,6 +199,11 @@ export interface I18n {
   date: (iso: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
   /** time(iso) -> "7:05 pm"; Intl options (timeZone: the order's city, ...). */
   time: (iso: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
+  /** R27: opens(kitchen.opens_at, zone) -> "Closed · opens 6:30 am" / "Closed · opens Sat 6:30 am" (the weekday in the
+   *  app's language, the time on the kitchen's city clock); other wording with `keys`. Null without a time. */
+  opens: (iso: string | null | undefined, timeZone?: string | null, keys?: { today: string; day: string }) => string | null;
+  /** wall("08:00") -> "8:00 am": a wall-clock time from the API (a city's delivery hours) in the country's format. */
+  wall: (hhmm: string | null | undefined) => string | null;
 }
 
 /** Translation and country-aware formatting for a screen. */
@@ -232,6 +237,8 @@ export function useI18n(): I18n {
       },
       date: (iso, opts) => formatDate(iso, loc, opts),
       time: (iso, opts) => formatTime(iso, loc, opts),
+      opens: (iso, timeZone, keys) => opensLabel(t, iso, { timeZone, formatLocale: loc, language }, keys),
+      wall: (hhmm) => wallClock(hhmm, loc),
     };
   }, [country, countries, chosen, setLanguage, script, rule]);
 }

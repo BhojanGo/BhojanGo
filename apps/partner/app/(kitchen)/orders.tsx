@@ -112,7 +112,7 @@ export default function Orders() {
 
 function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () => void; onPause: () => void }) {
   const { cash, clock } = useFormat();
-  const { t: tr } = useI18n();
+  const { t: tr, opens, wall } = useI18n();
   const { width, narrow: phone, portrait } = useLayout();
   const compact = width < 1100; // a phone, or a small tablet
   // A phone, or a tablet upright (R27): the name on one line, the status and the buttons below.
@@ -120,11 +120,26 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
   const kitchen = useKitchen((s) => s.kitchen)!;
   const cur = today?.currency ?? kitchen.currency;
   const open = today && today.open_now && !today.paused;
-  const closes = today?.closes_at ? clock(`2000-01-01T${today.closes_at}:00`) : null;
+  const closes = today?.closes_at ? wall(today.closes_at) : null;
   const status = !today ? "…" : today.paused
     ? today.paused_until ? tr("partner.orders.paused_till", { time: clock(today.paused_until, today.time_zone) }) : tr("partner.orders.paused")
-    : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open"))
-    : today.not_taking_orders ? tr("partner.orders.not_taking_orders") : today.reason ?? tr("partner.orders.closed");
+    : open ? (closes ? tr("partner.orders.open_till", { time: closes }) : tr("partner.orders.open")) : closedStatus(today);
+
+  /** R27: closed, worded in the tablet's language on the kitchen's clock, never the API's English
+   *  ("Closed · opens 6:30 am", "Deliveries start 8:00 am", the city's hours as "8:00 am–11:00 pm"). */
+  function closedStatus(d: Today): string {
+    const hours = d.delivery_hours as { open?: string; close?: string } | null | undefined;
+    if (d.reason_code === "outside_delivery_hours") {
+      return opens(d.opens_at, d.time_zone, { today: "kitchen.deliveries_start", day: "kitchen.deliveries_start_day" })
+        ?? (hours?.open && hours.close ? tr("partner.orders.deliveries_run", { from: wall(hours.open) ?? "", to: wall(hours.close) ?? "" })
+          : tr("partner.orders.closed"));
+    }
+    if (d.reason_code === "closed" || d.reason_code === "closed_today") return opens(d.opens_at, d.time_zone) ?? tr("partner.orders.closed");
+    if (d.reason_code === "closed_for_now") return tr("kitchen.closed_for_now");
+    // open by its hours, but no tablet of this kitchen is connected (after the hours: those say when it opens)
+    if (d.not_taking_orders || d.reason_code === "not_taking_orders") return tr("partner.orders.not_taking_orders");
+    return tr("partner.orders.closed");
+  }
   const title = (
     <View style={{ flex: 1, minWidth: 0 }}>
       <Text accessibilityRole="header" style={t.h1} numberOfLines={1}>{today?.name ?? kitchen.name}</Text>

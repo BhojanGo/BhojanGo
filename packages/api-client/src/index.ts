@@ -90,6 +90,11 @@ export interface QuoteRefusal {
   amount?: string | null;
   currency?: string | null;
   tip_presets?: CoreSchemas["TipPresetsOut"] | null;
+  /** R27, code KITCHEN_CLOSED: why (availability's reason_code), when orders can next come in, on whose clock. */
+  reason_code?: string | null;
+  opens_at?: string | null;
+  time_zone?: string | null;
+  closed_note?: string | null;
 }
 
 /** The refusal in an error body from POST /pricing/quote, or null. */

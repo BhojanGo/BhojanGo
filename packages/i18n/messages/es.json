@@ -50,7 +50,8 @@
     "people_waiting": {
       "one": "{n} persona esperando",
       "other": "{n} personas esperando"
-    }
+    },
+    "closed_opens_day": "Cerrado · abre el {day} a las {time}"
   },
   "header": {
     "where_we_deliver": "Dónde entregamos",
@@ -370,7 +371,12 @@
     "bag_paused": "Los pedidos están en pausa",
     "bag_closed_for_now": "Esta cocina está cerrada por ahora",
     "not_taking_orders": "No acepta pedidos ahora",
-    "not_taking_orders_note": "Esta cocina no acepta pedidos ahora. Puedes ver el menú; los pedidos se abren de nuevo cuando vuelva."
+    "not_taking_orders_note": "Esta cocina no acepta pedidos ahora. Puedes ver el menú; los pedidos se abren de nuevo cuando vuelva.",
+    "opens_at_day": "Abre el {day} a las {time}",
+    "bag_closed": "Esta cocina está cerrada ahora",
+    "bill_when_open": "La cuenta completa aparece aquí cuando la cocina abra.",
+    "deliveries_start": "Las entregas empiezan a las {time}",
+    "deliveries_start_day": "Las entregas empiezan el {day} a las {time}"
   },
   "checkout": {
     "title": "Pagar",
@@ -1588,7 +1594,8 @@
       "min_away": "a {min} min",
       "finding_rider": "Buscando repartidor",
       "order_code": "Código del pedido {code}",
-      "today_refunds": "{amount} reembolsado"
+      "today_refunds": "{amount} reembolsado",
+      "deliveries_run": "Entregas de {from} a {to}"
     },
     "offline": {
       "banner": "No se reciben pedidos: reconectando"

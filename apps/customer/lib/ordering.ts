@@ -12,6 +12,35 @@ export function orderingBlock(k: { paused: boolean; closedForNow?: boolean | nul
   return null;
 }
 
+/** What GET /restaurants/{id}/availability says (R27): open now, and if not, why and when orders can next come in. */
+export interface Availability {
+  open_now: boolean;
+  /** inactive | closed_for_now | unavailable | paused | closed | closed_today | outside_delivery_hours | not_taking_orders */
+  reason_code?: string | null;
+  /** The next moment an order can be placed (inside the kitchen's hours and the city's delivery hours). */
+  next_open_at?: string | null;
+  /** The kitchen's city zone (IANA): times are on its clock. */
+  timezone?: string | null;
+  closed_for_now?: boolean;
+  back_at?: string | null;
+  /** Open by its hours, but its tablet isn't connected ("Not taking orders right now"). */
+  not_taking_orders?: boolean;
+  closed_note?: string | null;
+}
+
+/** The kitchen's closing words ("Closed · opens 6:30 am", "Deliveries start 8:00 am", "This kitchen is closed now"),
+ *  or null while it takes orders. `opens` is useI18n().opens (the weekday in the app's language). */
+export function closedWords(
+  a: Pick<Availability, "open_now" | "reason_code" | "next_open_at" | "timezone"> | null | undefined,
+  opens: (iso: string | null | undefined, zone?: string | null, keys?: { today: string; day: string }) => string | null,
+  t: (key: string) => string,
+): string | null {
+  if (!a || a.open_now || a.reason_code === "not_taking_orders") return null; // no tablet: "Not taking orders right now"
+  const keys = a.reason_code === "outside_delivery_hours"
+    ? { today: "kitchen.deliveries_start", day: "kitchen.deliveries_start_day" } : undefined;
+  return opens(a.next_open_at, a.timezone, keys) ?? t("kitchen.bag_closed");
+}
+
 /** What GET /payments/provider said: a provider, "error" (no answer or refused), null (still asking). */
 export type ProviderAnswer = "stripe" | "razorpay" | "fake" | "error" | null;
 
