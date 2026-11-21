@@ -2,10 +2,9 @@
 import { LoadError, SafeAreaView, useI18n } from "@bhojango/mobile-core";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator } from "react-native";
 
 import { Checklist } from "../lib/checklist";
-import { Icon } from "../lib/icons";
 import { useOnboarding } from "../lib/rider";
 import { night, ui } from "../lib/theme";
 
@@ -21,16 +20,10 @@ export default function Documents() {
       </SafeAreaView>
     );
   }
+  // R26: the Back button sat under the checklist (pulled up by -40) and could be neither seen nor tapped.
+  // The checklist now draws the header itself: Back + title, like Payouts.
   return (
-    <View style={ui.screen}>
-      <SafeAreaView edges={["top"]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={() => router.back()} style={{ width: 44, height: 44, marginLeft: 8, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="back" />
-        </Pressable>
-      </SafeAreaView>
-      <View style={{ flex: 1, marginTop: -40 }}>
-        <Checklist onboarding={data} onRefresh={() => (data.ready ? router.back() : void reload())} showHeader={false} />
-      </View>
-    </View>
+    <Checklist onboarding={data} onBack={() => router.back()} title={t("rider.account.documents")}
+      onRefresh={() => (data.ready ? router.back() : void reload())} />
   );
 }
