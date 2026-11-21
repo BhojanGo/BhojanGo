@@ -134,7 +134,7 @@ async def payout_weeks(admin: Annotated[AdminContext, Depends(require_permission
             "weeks": [{"start": a.isoformat(), "end": b.isoformat()} for a, b in payouts.ended_weeks(today)],
             # R25: no legal name in Markets → no commission tax invoice can be issued (admin Finance flags it;
             # a finance admin may not read Markets, so it is said here).
-            "legal_name_missing": not legal.entity(c.settings, c.tax_regime).get("name")}
+            "legal_name_missing": not legal.entity(c.settings, c.tax_regime).get("name"), "country_name": c.name}
 
 
 @router.get("/payout-runs")

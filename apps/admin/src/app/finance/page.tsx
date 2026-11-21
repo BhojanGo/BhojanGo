@@ -75,7 +75,7 @@ function dayLabel(iso: string): string {
 
 interface Weeks { timezone: string; today: string; weeks: { start: string; end: string }[];
   /** R25: the country's legal entity has no name in Markets, so no commission tax invoice can be issued */
-  legal_name_missing?: boolean }
+  legal_name_missing?: boolean; country_name?: string }
 
 /** "Mon 9 Nov – Sun 15 Nov" for a run's period (end is the next Monday, not included). */
 function weekLabel(start: string, end: string): string {
@@ -149,7 +149,7 @@ function FinancePage() {
   return (
     <ConsoleShell section="Finance" country={country} region={region} city={city} scopeHref={(s) => `/finance?scope=${s.split("-")[0]}`}>
       <div>
-        <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? target}` : ""}</h1>
+        <h1 className="m-0 text-h1">Finance{target ? ` · ${markets?.find((c) => c.code === target)?.name ?? weeks.data?.country_name ?? target}` : ""}</h1>
         {(() => {
           // R15: whose money this is: the country's legal entity (Markets), never a name in code.
           const legal = (markets?.find((c) => c.code === target)?.settings.legal ?? {}) as Record<string, string>;
@@ -159,9 +159,9 @@ function FinancePage() {
         {weeks.data?.legal_name_missing ? (
           // R25: an invoice never prints a placeholder for the supplier; the API refuses it until this is filled in.
           <p role="alert" data-testid="legal-name-missing" className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">
-            <b>Commission tax invoices can&apos;t be issued:</b> the legal entity name for {markets?.find((c) => c.code === target)?.name ?? target} is missing in Markets.
+            <b>Commission tax invoices can&apos;t be issued:</b> the legal entity name for {weeks.data.country_name ?? target} is missing in Markets.
             Kitchens asking for their invoice are told it isn&apos;t ready yet.{" "}
-            <Link href={`/markets/${target}`} className="font-bold text-kesar-ink underline">Fill it in in Markets</Link>
+            <Link href={`/markets/${target}`} className="font-bold text-kesar-ink underline">Set it in Markets</Link>
           </p>
         ) : null}
         {country === "ALL" && (markets?.length ?? 0) > 1 ? (

@@ -131,7 +131,7 @@ async def test_each_invoice_is_its_own_statements_week(client: AsyncClient) -> N
         r = await client.post(f"/api/v1/finance/statements/{first['id']}/commission-invoice/link", headers=partner)
         assert r.status_code == 409 and r.json()["detail"]["code"] == "LEGAL_ENTITY_MISSING", r.text
         weeks = (await client.get("/api/v1/finance/payout-weeks", headers=finance, params={"country": "IN"})).json()
-        assert weeks["legal_name_missing"] is True
+        assert weeks["legal_name_missing"] is True and weeks["country_name"] == "India"
     finally:
         await set_legal_name(was)
     r = await client.get(f"/api/v1/finance/statements/{first['id']}/commission-invoice", headers=partner)
