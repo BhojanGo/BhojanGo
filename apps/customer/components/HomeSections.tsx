@@ -61,8 +61,11 @@ export function OrderAgain({ orders, covers }: { orders: Order[]; covers: Record
     setBusy(o.id);
     setProblem(null);
     try {
-      if (await reorder(o)) router.push("/bag");
-      else setProblem(t("home.reorder_none"));
+      const { added, notes } = await reorder(o);
+      const said = notes.map((n) => t(n.key, n.values));
+      if (!added) setProblem([...said, t("home.reorder_none")].join(" "));
+      else if (said.length) setProblem([...said, t("account.receipt.reorder.rest_added")].join(" "));
+      else router.push("/bag");
     } catch (e) {
       setProblem(errorMessage((e as { body?: unknown }).body, t("common.error")));
     } finally {

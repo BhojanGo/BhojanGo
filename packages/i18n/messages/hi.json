@@ -649,6 +649,13 @@
         "full": "पूरा रिफ़ंड",
         "cancelled": "ऑर्डर रद्द",
         "other": "रिफ़ंड"
+      },
+      "reorder": {
+        "sold_out": "{item} बिक चुका है",
+        "removed": "{item} अब मेन्यू में नहीं है",
+        "unavailable": "{item} अभी ऑर्डर नहीं हो सकता",
+        "option_gone": "{item} के लिए {option} अब उपलब्ध नहीं है",
+        "rest_added": "बाकी आपके बैग में है।"
       }
     },
     "pay": {

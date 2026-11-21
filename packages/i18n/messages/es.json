@@ -649,6 +649,13 @@
         "full": "reembolso total",
         "cancelled": "pedido cancelado",
         "other": "reembolso"
+      },
+      "reorder": {
+        "sold_out": "{item} está agotado",
+        "removed": "{item} ya no está en el menú",
+        "unavailable": "{item} no se puede pedir ahora",
+        "option_gone": "{option} ya no se ofrece para {item}",
+        "rest_added": "El resto está en tu bolsa."
       }
     },
     "pay": {

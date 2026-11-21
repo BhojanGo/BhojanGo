@@ -649,6 +649,13 @@
         "full": "पूर्ण परतावा",
         "cancelled": "ऑर्डर रद्द",
         "other": "परतावा"
+      },
+      "reorder": {
+        "sold_out": "{item} संपले आहे",
+        "removed": "{item} आता मेनूमध्ये नाही",
+        "unavailable": "{item} आता ऑर्डर करता येणार नाही",
+        "option_gone": "{item} साठी {option} आता उपलब्ध नाही",
+        "rest_added": "बाकीचे तुमच्या बॅगमध्ये आहे."
       }
     },
     "pay": {

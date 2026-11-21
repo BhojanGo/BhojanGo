@@ -2957,7 +2957,8 @@ export interface paths {
          * Reorder
          * @description Order again: your past order's items at today's menu prices, ready for
          *     the bag. Sold-out or removed items are listed in ``unavailable`` and left
-         *     out. Nothing is ordered: checkout quotes the bag as usual.
+         *     out. Nothing is ordered: checkout quotes the bag as usual. ``problems`` says what changed
+         *     (R27): an item sold out or gone, an option no longer offered (the item is still added).
          */
         post: operations["reorder_api_v1_orders__order_id__reorder_post"];
         delete?: never;
@@ -9197,13 +9198,37 @@ export interface components {
             option: string;
         };
         /**
+         * ReorderProblem
+         * @description What changed since the order (R27): ``sold_out``, ``removed`` (no longer on the menu) or
+         *     ``unavailable`` (``detail`` says why) leave the item out; ``option_gone`` (``option``: its name)
+         *     drops that option and still adds the item.
+         */
+        ReorderProblem: {
+            /** Detail */
+            detail?: string | null;
+            /** Item */
+            item: string;
+            /** Option */
+            option?: string | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "sold_out" | "removed" | "unavailable" | "option_gone";
+        };
+        /**
          * ReorderResponse
          * @description What "Order again" puts in the bag: ``items`` at today's prices. Nothing
-         *     is ordered; ``unavailable`` names what couldn't be added.
+         *     is ordered; ``unavailable`` names what couldn't be added, ``problems`` every change.
          */
         ReorderResponse: {
             /** Items */
             items: components["schemas"]["ReorderItem"][];
+            /**
+             * Problems
+             * @default []
+             */
+            problems?: components["schemas"]["ReorderProblem"][];
             restaurant: components["schemas"]["ReorderRestaurant"];
             /** Unavailable */
             unavailable: string[];

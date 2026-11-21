@@ -3,7 +3,7 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, color, FairBill, inZone, num, receiptRefunds, SafeAreaView, space, type, useBag, useCountry, useI18n } from "@bhojango/mobile-core";
+import { ApiError, Button, color, errorMessage, FairBill, inZone, num, receiptRefunds, reorderToBag, SafeAreaView, space, type, useBag, useCountry, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -22,7 +22,7 @@ export default function Receipt() {
   const [data, setData] = useState<{ order: Order; bill: Bill | null } | null | "error">(null);
   const [busy, setBusy] = useState<"pdf" | "again" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [missing, setMissing] = useState<{ names: string[]; added: boolean } | null>(null);
+  const [missing, setMissing] = useState<{ notes: string[]; added: boolean } | null>(null);
 
   const load = useCallback(() => {
     Promise.all([getOrder(id), getBill(id)])
@@ -75,24 +75,19 @@ export default function Receipt() {
     setProblem(null);
     setMissing(null);
     try {
-      const r = await reorder(order.id);
-      const ok = r.items.filter((i) => i.available !== false);
-      const names = [...r.unavailable, ...r.items.filter((i) => i.available === false).map((i) => i.name)];
-      if (ok.length) {
+      // R27: the same items, options and quantities; what's sold out or no longer offered is named (packages/ui reorder.js)
+      const { restaurant, lines, notes } = reorderToBag(await reorder(order.id));
+      if (lines.length) {
         const bag = useBag.getState();
         bag.clear();
-        for (const i of ok) {
-          bag.add({ id: r.restaurant.id, name: r.restaurant.name }, {
-            menuItemId: i.menu_item_id, name: i.name, unitPrice: Number(i.price), quantity: i.quantity,
-            picks: i.options.map((o) => ({ group: o.group, option: o.option })),
-            summary: i.options.map((o) => o.name ?? o.option).join(", "),
-          });
-        }
+        for (const line of lines) bag.add({ id: restaurant.id, name: restaurant.name }, line);
       }
-      if (!names.length) router.push("/bag");
-      else setMissing({ names, added: ok.length > 0 });
-    } catch {
-      setProblem(t("account.receipt.reorder_failed"));
+      if (!notes.length && lines.length) router.push("/bag");
+      else setMissing({ notes: notes.map((n) => t(n.key, n.values)), added: lines.length > 0 });
+    } catch (e) {
+      // R27: say why when the API says (a refused request), not only "couldn't add"; anything else is logged for Metro
+      if (!(e instanceof ApiError)) console.warn("order_again_failed", e);
+      setProblem(e instanceof ApiError && e.status < 500 ? errorMessage(e.body, t("account.receipt.reorder_failed")) : t("account.receipt.reorder_failed"));
     } finally {
       setBusy(null);
     }
@@ -127,8 +122,9 @@ export default function Receipt() {
           {problem ? <Text accessibilityRole="alert" style={ui.error}>{problem}</Text> : null}
           {missing ? (
             <View accessibilityRole="alert" style={{ backgroundColor: color.plate, borderRadius: 16, padding: space[4], gap: 6 }}>
-              <Text style={[type.label, { color: color.kohl }]}>
-                {missing.added ? t("account.receipt.unavailable", { items: missing.names.join(", ") }) : t("account.receipt.none_available")}
+              {missing.notes.map((n) => <Text key={n} style={[type.body, { color: color.kohl }]}>{n}</Text>)}
+              <Text testID="reorder-result" style={[type.label, { color: color.kohl }]}>
+                {missing.added ? t("account.receipt.reorder.rest_added") : t("account.receipt.none_available")}
               </Text>
               {missing.added ? <Button title={t("account.receipt.continue_checkout")} variant="ghost" onPress={() => router.push("/bag")} /> : null}
             </View>

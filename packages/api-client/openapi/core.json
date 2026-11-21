@@ -12041,14 +12041,69 @@
         "title": "ReorderOption",
         "type": "object"
       },
+      "ReorderProblem": {
+        "description": "What changed since the order (R27): ``sold_out``, ``removed`` (no longer on the menu) or\n``unavailable`` (``detail`` says why) leave the item out; ``option_gone`` (``option``: its name)\ndrops that option and still adds the item.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "option": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option"
+          },
+          "reason": {
+            "enum": [
+              "sold_out",
+              "removed",
+              "unavailable",
+              "option_gone"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item",
+          "reason"
+        ],
+        "title": "ReorderProblem",
+        "type": "object"
+      },
       "ReorderResponse": {
-        "description": "What \"Order again\" puts in the bag: ``items`` at today's prices. Nothing\nis ordered; ``unavailable`` names what couldn't be added.",
+        "description": "What \"Order again\" puts in the bag: ``items`` at today's prices. Nothing\nis ordered; ``unavailable`` names what couldn't be added, ``problems`` every change.",
         "properties": {
           "items": {
             "items": {
               "$ref": "#/components/schemas/ReorderItem"
             },
             "title": "Items",
+            "type": "array"
+          },
+          "problems": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReorderProblem"
+            },
+            "title": "Problems",
             "type": "array"
           },
           "restaurant": {
@@ -24377,7 +24432,7 @@
     },
     "/api/v1/orders/{order_id}/reorder": {
       "post": {
-        "description": "Order again: your past order's items at today's menu prices, ready for\nthe bag. Sold-out or removed items are listed in ``unavailable`` and left\nout. Nothing is ordered: checkout quotes the bag as usual.",
+        "description": "Order again: your past order's items at today's menu prices, ready for\nthe bag. Sold-out or removed items are listed in ``unavailable`` and left\nout. Nothing is ordered: checkout quotes the bag as usual. ``problems`` says what changed\n(R27): an item sold out or gone, an option no longer offered (the item is still added).",
         "operationId": "reorder_api_v1_orders__order_id__reorder_post",
         "parameters": [
           {

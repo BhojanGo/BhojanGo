@@ -649,6 +649,13 @@
         "full": "full refund",
         "cancelled": "order cancelled",
         "other": "refund"
+      },
+      "reorder": {
+        "sold_out": "{item} is sold out",
+        "removed": "{item} is no longer on the menu",
+        "unavailable": "{item} can't be ordered right now",
+        "option_gone": "{option} is no longer offered for {item}",
+        "rest_added": "The rest is in your bag."
       }
     },
     "pay": {

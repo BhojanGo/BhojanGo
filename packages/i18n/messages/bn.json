@@ -649,6 +649,13 @@
         "full": "পুরো টাকা ফেরত",
         "cancelled": "অর্ডার বাতিল",
         "other": "ফেরত"
+      },
+      "reorder": {
+        "sold_out": "{item} বিক্রি হয়ে গেছে",
+        "removed": "{item} আর মেনুতে নেই",
+        "unavailable": "{item} এখন অর্ডার করা যাবে না",
+        "option_gone": "{item}-এর জন্য {option} আর দেওয়া হয় না",
+        "rest_added": "বাকিটা আপনার ব্যাগে আছে।"
       }
     },
     "pay": {
