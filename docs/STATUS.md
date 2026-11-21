@@ -1,6 +1,6 @@
 # Go-live status
 
-**As of 2026-11-20** (after round 24), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
+**As of 2026-11-20** (after round 25), against the 44 tasks in [BhojanGo_GoLive_Tracker.docx](BhojanGo_GoLive_Tracker.docx). Pull
 request numbers (#nn) are on `BhojanGo/BhojanGo`; what each one did and how it was tested is in
 [PROGRESS.md](PROGRESS.md). Tracker tasks are "task nn".
 
@@ -297,6 +297,25 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
 - **Plurals (#183):** admin says "1 issue to look at" / "2 issues to look at", and the same on every other count
   (orders, refunds, cities, days, minutes...).
 - **CI disk:** GitHub's runner ran out of disk building the stack; the heavy jobs now free unused SDKs first.
+
+## Commission invoice, masking, India readiness (round 25, 2026-11-21)
+
+- **Commission tax invoice (#187).** R24's invoice screenshot wasn't made by the invoice endpoint: its supplier text
+  ("BhojanGo (legal entity as set in Markets)") is in no commit, and its numbers are a unit test's fixture, so its week
+  didn't match the statement. The real weak spot nearby is fixed: the invoice is now built from one statement row
+  only (its run's period, its own orders, commission and GST; `commission_invoice.for_statement`), and the invariant
+  test checks every invoice against its statement. The supplier is the country's legal entity from Markets (India:
+  DeepTrics Software Solutions Pvt Ltd); with no legal name the invoice is refused (409 `LEGAL_ENTITY_MISSING`),
+  admin Finance says so with a link to Markets, and the Kitchen app says the invoice isn't ready. Never a placeholder.
+  "Commission on 1 delivered order" / "4 delivered orders" in all 8 languages (the invoice itself stays English, like
+  the receipt). QA's India and US already have legal names, so QA keeps issuing invoices.
+- **Secret masking fails closed (#186).** `tools/secrets/config.py` says where the secrets files live (the OneDrive
+  "Products" folder; `BHOJANGO_SECRETS_DIR` overrides it). If one is missing, `mask.py` stops (exit 3), names the
+  folder and passes nothing through. Before, it looked in another folder and printed its input unmasked.
+- **India readiness ([launch/india-readiness.md](launch/india-readiness.md), #186).** Before an India launch, not
+  Boise: the GST invoice fields Rule 46 still needs (supplier and kitchen address and GSTIN, SAC, place of supply,
+  CGST + SGST or IGST, signature; also a 16-character consecutive invoice number and credit notes), the questions
+  for the CA, CIN and grievance officer, and FSSAI checks per kitchen. Nothing built yet.
 
 ## What's left before the pilot
 
