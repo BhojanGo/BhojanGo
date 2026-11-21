@@ -4,14 +4,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { convertDistance, countryForCurrency, e164, filterCities, findCity, formatDate, formatMoney, formatNumber, formatTime,
+import { cityRegionCode, convertDistance, countryForCurrency, e164, filterCities, findCity, formatDate, formatMoney, formatNumber, formatTime,
   liveCityNames, localeForCurrency, partnerCountry, partnerLanguage, regionOf, resolveCountry, type MarketCountry } from "../src/locale.ts";
 
 function country(code: string, currency: string, locales: string[], unit: string, phone: string, cities: string[] = []): MarketCountry {
   return {
     code, slug: code.toLowerCase(), name: `Country ${code}`, currency, locales, timezone: "UTC", distance_unit: unit,
     phone_code: phone, tax_regime: "x", payment_providers: [], payment_methods: ["card"], live: cities.length, soon: 0,
-    regions: [{ code: `${code}-R`, name: "Region", cities: cities.map((c, i) => ({
+    regions: [{ code: `${code}-R`, name: "Region", short_code: `${code[0]}R`, cities: cities.map((c, i) => ({
       code: `${code}-R-${c}`, name: c, slug: c.toLowerCase(), path: `/${code}/${c}`, status: i === 0 ? "live" : "soon",
       beta: false, restaurants: 0, waiting: 0, lat: 0, lng: 0 })) }],
   };
@@ -107,4 +107,13 @@ test("Change city search: by city or state, accents and case ignored; empty stat
   const accented = { ...BB, regions: [{ ...BB.regions[0]!, cities: [{ ...BB.regions[0]!.cities[0]!, name: "São Paulo" }] }] };
   assert.equal(filterCities([accented], "sao").length, 1);
   assert.deepEqual(filterCities(ALL, "zzz"), []);
+});
+
+test("a city's state short code from Markets, for \"Boise, ID\" (R27)", () => {
+  assert.equal(cityRegionCode(ALL, "Gamma", "BB"), "BR");
+  assert.equal(cityRegionCode(ALL, " gamma ", null), "BR"); // case and spaces ignored, any country
+  assert.equal(cityRegionCode(ALL, "Alpha", "AA"), "AR");
+  assert.equal(cityRegionCode(ALL, "Gamma", "AA"), null); // not a city of that country
+  assert.equal(cityRegionCode(ALL, "Nowhere", "BB"), null);
+  assert.equal(cityRegionCode(ALL, "", "BB"), null);
 });

@@ -1,12 +1,16 @@
 // CustomerPaymentFailed.html: not charged, price still held, try again.
+// R27: one message only. The provider's words on a failed retry replace ours (not a
+// second line), and a status that doesn't load (or no order: opened by a link) shows
+// no load error, only the way back to the bag (and "Try again" when there is an order).
 import {
-  appEnv, Button, color, errorMessage, LoadError, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n,
+  appEnv, Button, color, errorMessage, num, radius, SafeAreaView, Sheet, space, textFont, Txt, type, useI18n,
 } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Icon } from "../lib/icons";
+import { payFailedLine } from "../lib/notices";
 import { paymentStatus, payWithStripe, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
 
 export default function PaymentFailed() {
@@ -20,10 +24,10 @@ export default function PaymentFailed() {
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"upi" | "card" | null>(null);
 
-  const loadStatus = () => paymentStatus(orderId).then((s) => {
+  const loadStatus = () => (orderId ? paymentStatus(orderId).then((s) => {
     setStatus(s);
     setFailure(null);
-  }, setFailure);
+  }, setFailure) : Promise.resolve());
   useEffect(() => {
     void loadStatus();
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -68,6 +72,7 @@ export default function PaymentFailed() {
       setBusy(false);
     }
   }
+  const line = payFailedLine({ error, reason, method });
   const stripe = provider === "stripe";
   // R19: the test sheet never opens in production; there, a non-Stripe retry goes back to the bag.
   const testSheet = !stripe && appEnv() !== "production";
@@ -77,8 +82,8 @@ export default function PaymentFailed() {
       <View style={styles.sheet}>
         <View style={styles.icon}><Icon name="alert" size={28} stroke={color.chili} /></View>
         <Txt variant="h1" accessibilityRole="header">{t("app.payment_failed.title")}</Txt>
-        <Txt style={{ color: color.muted }}>
-          {reason === "authentication" ? t("checkout.bank_not_confirmed") : method === "upi" ? t("app.payment_failed.declined_upi") : t("app.payment_failed.declined_card")}{" "}
+        <Txt testID="payment-failed-message" style={{ color: color.muted }}>
+          {"text" in line ? line.text : t(line.key)}{" "}
           <Text style={[textFont("700"), { color: color.kohl }]}>{t("app.payment_failed.not_charged")}</Text>
         </Txt>
         {status ? (
@@ -88,9 +93,8 @@ export default function PaymentFailed() {
               {t("app.payment_failed.left", { total, time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` })}
             </Text>
           </View>
-        ) : failure ? <LoadError error={failure} onRetry={loadStatus} style={{ backgroundColor: color.porcelain }} /> : null}
-        {error ? <Text accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
-        {!status ? null : left > 0 && status.can_retry !== false && (stripe || testSheet) ? (
+        ) : null}
+        {status && left > 0 && status.can_retry !== false && (stripe || testSheet) ? (
           <View style={{ gap: space[2] }}>
             <Button title={method === "upi" ? t("app.payment_failed.try_upi") : t("app.payment_failed.try_card")} size="lg" block loading={busy}
               onPress={() => (stripe ? void retryStripe() : setSheet(method))} />
@@ -99,9 +103,13 @@ export default function PaymentFailed() {
               <Button title={t("app.payment_failed.another_way")} variant="secondary" block disabled={busy} onPress={() => setSheet(method === "upi" ? "card" : "upi")} />
             )}
           </View>
-        ) : (
-          <Button title={t("app.payment_failed.back_to_bag")} size="lg" block onPress={() => router.replace("/bag")} />
-        )}
+        ) : status || failure || !orderId ? (
+          <View style={{ gap: space[2] }}>
+            <Button title={t("app.payment_failed.back_to_bag")} size="lg" block onPress={() => router.replace("/bag")} />
+            {/* the price and timer didn't load: try again quietly, no second message */}
+            {failure && orderId ? <Button testID="payment-failed-reload" title={t("common.retry")} variant="secondary" block onPress={() => void loadStatus()} /> : null}
+          </View>
+        ) : null}
       </View>
       <Sheet visible={sheet != null && testSheet} onClose={() => setSheet(null)} title={sheet === "card" ? t("app.payment_failed.sheet_card") : t("app.payment_failed.sheet_upi")}
         footer={

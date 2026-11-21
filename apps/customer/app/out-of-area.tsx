@@ -7,15 +7,18 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "../lib/icons";
+import { outOfAreaPlace } from "../lib/notices";
 import { useWhere } from "../lib/where";
 
 export default function OutOfArea() {
   const point = useWhere((s) => s.point);
+  const market = useWhere((s) => s.market);
   const { t } = useI18n();
   const { country, countries } = useCountry();
   const cities = liveCityNames(countries); // where we cook now (Markets)
-  // The most specific place we know (a neighbourhood can be outside a served city's zones).
-  const place = point?.label?.split("· ")[1] || point?.label || point?.city || null;
+  // The most specific place we know, named only when it is outside every delivery zone
+  // (R27: opened by a link, a served neighbourhood was named). Otherwise "your area".
+  const place = outOfAreaPlace(point, market);
   const [phone, setPhone] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +40,7 @@ export default function OutOfArea() {
     <SafeAreaView style={{ flex: 1, backgroundColor: color.porcelain }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: space[5] }}>
         <Icon name="pin" size={20} stroke={color.peacock} />
-        <Text style={type.label}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
+        <Text style={type.label}>{place && point ? (point.label || t("app.home.current_location")) : ""}</Text>
       </View>
       <View style={{ flex: 1, padding: space[5], justifyContent: "center", gap: space[4] }}>
         <Icon name="map" size={56} stroke={color.peacock} />
@@ -52,7 +55,7 @@ export default function OutOfArea() {
         ) : (
           <>
             <Input label={t("signin.mobile")} keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={error ?? undefined} />
-            <Button title={t("app.out_of_area.notify")} size="lg" block disabled={phone.replace(/\D/g, "").length < 8} onPress={join} />
+            <Button title={t("app.out_of_area.notify")} size="lg" block disabled={!point || phone.replace(/\D/g, "").length < 8} onPress={join} />
           </>
         )}
         <Pressable testID="try-another" accessibilityRole="link" onPress={() => router.replace("/home")}
