@@ -14,14 +14,14 @@ Data (QA and production):
   countries.payout_timezone  US -> America/Boise (its cities are in Idaho, for now);
                              IN -> Asia/Kolkata; any other country -> its own timezone
 
-Revision ID: 0042_city_time_zones
-Revises: 0041_statement_carry
+Revision ID: 0043_city_time_zones
+Revises: 0042_viewer_india_only
 """
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0042_city_time_zones"
-down_revision = "0041_statement_carry"
+revision = "0043_city_time_zones"
+down_revision = "0042_viewer_india_only"
 branch_labels = None
 depends_on = None
 
