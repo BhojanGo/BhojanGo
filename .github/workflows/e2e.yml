@@ -30,6 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The stack's images (web, admin, core-api, LocalStack) need more room than the runner has
+      # free (R24: both jobs ran out of disk on 2026-11-21), as in android-apk.yml.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -86,6 +93,13 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+
+      # The stack's images (web, admin, core-api, LocalStack) need more room than the runner has
+      # free (R24: both jobs ran out of disk on 2026-11-21), as in android-apk.yml.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
 
       - name: Meridian and Wellington on a clean stack (make web-third-city)
         run: make web-third-city
