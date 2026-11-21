@@ -635,7 +635,21 @@
       "continue_checkout": "Continue to checkout",
       "reorder_failed": "We couldn't add this order to your bag. Try again.",
       "pick_order": "Pick an order to see its receipt.",
-      "not_found": "We couldn't find this order."
+      "not_found": "We couldn't find this order.",
+      "refund_line": "Refunded {amount} · {reason}",
+      "total_paid": "Total paid",
+      "refund_reason": {
+        "missing_item": "missing item",
+        "wrong_item": "wrong item",
+        "quality": "food quality",
+        "damaged_in_transit": "spilled or damaged",
+        "late": "very late",
+        "rider_issue": "delivery problem",
+        "goodwill": "goodwill",
+        "full": "full refund",
+        "cancelled": "order cancelled",
+        "other": "refund"
+      }
     },
     "pay": {
       "upi": "UPI",
@@ -1292,11 +1306,15 @@
       "title": "Payouts",
       "status": {
         "paid": "Paid",
-        "pending": "On its way",
         "no_account": "Waiting for your payout account",
         "failed": "This payment of {amount} didn't go through. We'll try again on {date}.",
         "onboarding": "Waiting for you to finish payout set-up",
-        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}."
+        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}.",
+        "on_its_way": "On its way",
+        "waiting_approval": "Waiting for approval",
+        "not_paid": "Not paid yet",
+        "nothing_due": "Nothing to pay this week",
+        "paid_on": "Paid on {date}"
       },
       "ready": "Payout account ready",
       "finish": "Finish setting up payouts",
@@ -1562,7 +1580,8 @@
       "arriving": "arriving",
       "min_away": "{min} min away",
       "finding_rider": "Finding a delivery partner",
-      "order_code": "Order code {code}"
+      "order_code": "Order code {code}",
+      "today_refunds": "{amount} refunded"
     },
     "offline": {
       "banner": "Not receiving orders: reconnecting"
@@ -1678,11 +1697,15 @@
       "title": "Payouts",
       "status": {
         "paid": "Paid",
-        "pending": "On its way",
-        "no_account": "Waiting for your bank details",
+        "no_account": "Waiting for your payout account",
         "failed": "This payment of {amount} didn't go through. We'll try again on {date}.",
         "onboarding": "Waiting for you to finish payout set-up",
-        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}."
+        "reversed": "This payment of {amount} was returned before it reached you. We'll pay it again on {date}.",
+        "on_its_way": "On its way",
+        "waiting_approval": "Waiting for approval",
+        "not_paid": "Not paid yet",
+        "nothing_due": "Nothing to pay this week",
+        "paid_on": "Paid on {date}"
       },
       "where": "Where we pay you",
       "paid_through": "Paid every Monday through {provider}.",

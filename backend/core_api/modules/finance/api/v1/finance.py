@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStatement
 from core_api.modules.finance.service import connect, payouts
+from core_api.modules.finance.service import statements as S
 from core_api.modules.finance.service.payouts import FinanceError
 from core_api.modules.finance.service.providers import ConnectSetupError, PayoutError
 from core_api.modules.identity.api.dependencies import AdminContext, get_admin, require_permission
@@ -82,6 +83,21 @@ def statement_out(s: PayoutStatement, with_lines: bool = True) -> dict:
     if with_lines:
         out["lines"] = s.lines
     return out
+
+
+async def _zone(db: AsyncSession, country: str, cache: dict[str, ZoneInfo | None]) -> ZoneInfo | None:
+    if country not in cache:
+        try:
+            cache[country] = ZoneInfo((await payouts._country(db, country)).timezone)
+        except (FinanceError, ValueError, KeyError):  # no zone: the date is the UTC day
+            cache[country] = None
+    return cache[country]
+
+
+def shown(s: PayoutStatement, run: PayoutRun, setup_state: str | None, tz: ZoneInfo | None) -> dict:
+    """R27: the week's one status (statements.shown_status), as admin Finance and both apps show it."""
+    code = S.shown_status(s.status, run.status, s.amount, s.transfer_id, setup_state)
+    return {"shown_status": code, "paid_on": S.paid_on(code, s.transferred_at, tz)}
 
 
 async def _run(db: AsyncSession, run_id: uuid.UUID) -> PayoutRun:
@@ -163,9 +179,12 @@ async def get_run(run_id: uuid.UUID, admin: Annotated[AdminContext, Depends(requ
     # Each payee's payout set-up (R10), so finance sees who is waiting for onboarding.
     accounts = {(a.payee_type, a.payee_id): a for a in (await db.execute(select(PayoutAccount).where(
         PayoutAccount.country == run.country, PayoutAccount.payee_id.in_([s.payee_id for s in stmts])))).scalars()} if stmts else {}
-    return {**run_out(run), "statements": [
-        {**statement_out(s, with_lines=False), "payout_setup": connect.state(accounts.get((s.payee_type, s.payee_id)))}
-        for s in stmts]}
+    tz = await _zone(db, run.country, {})
+    out = []
+    for s in stmts:
+        setup = connect.state(accounts.get((s.payee_type, s.payee_id)))
+        out.append({**statement_out(s, with_lines=False), "payout_setup": setup, **shown(s, run, setup, tz)})
+    return {**run_out(run), "statements": out}
 
 
 @router.post("/payout-runs/{run_id}/approve")
@@ -206,12 +225,19 @@ async def my_statements(user: User, db: DB) -> list[dict]:
     """A partner's statements for their restaurants, or a rider's own (newest first)."""
     payees = await _payee_ids(db, user)
     out = []
+    zones: dict[str, ZoneInfo | None] = {}
+    setups: dict[tuple[str, uuid.UUID, str], str] = {}
     for kind, pid in payees:
         rows = (await db.execute(select(PayoutStatement, PayoutRun).join(PayoutRun, PayoutRun.id == PayoutStatement.run_id).where(
             PayoutStatement.payee_type == kind, PayoutStatement.payee_id == pid)
             .order_by(PayoutRun.period_start.desc()))).all()
-        out += [{**statement_out(s), "period_start": r.period_start.isoformat(), "period_end": r.period_end.isoformat(),
-                 "run_status": r.status, "country": r.country} for s, r in rows]
+        for s, r in rows:
+            if (kind, pid, r.country) not in setups:
+                setups[(kind, pid, r.country)] = connect.state(await _account_for(db, kind, pid, r.country))
+            # R27: shown_status is the week's status, the same as admin Finance's (never "on its way" without a transfer)
+            out.append({**statement_out(s), "period_start": r.period_start.isoformat(), "period_end": r.period_end.isoformat(),
+                        "run_status": r.status, "country": r.country,
+                        **shown(s, r, setups[(kind, pid, r.country)], await _zone(db, r.country, zones))})
     # Sent back or didn't go through: the date it is paid again (the country's next payout day; R12).
     days: dict[str, str] = {}
     for st in out:

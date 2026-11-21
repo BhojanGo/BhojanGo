@@ -14620,6 +14620,11 @@
             "title": "Today Orders",
             "type": "integer"
           },
+          "today_refunds": {
+            "default": "0",
+            "title": "Today Refunds",
+            "type": "string"
+          },
           "today_sales": {
             "title": "Today Sales",
             "type": "string"

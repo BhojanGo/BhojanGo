@@ -57,3 +57,19 @@ test("a line of 0 is not shown, and the total still counts every line (R12: Ada 
   assert.deepEqual(billRows(lines, "USD").map((r) => [r.label, r.amount]), [["Food", "$29.00"]]);
   assert.equal(billTotal(lines), 29);
 });
+
+// R27: refunds on the receipt (R26: neither the receipt nor the PDF said a refund was made).
+test("a receipt names each refund and what was paid after them", () => {
+  const { receiptRefunds } = require("../bill");
+  const partial = receiptRefunds({ total: "17.50", paid: "12.99", refunds: [{ amount: "4.51", kind: "items", reason: "missing_item", items: ["Butter Croissant"] }] }, false);
+  assert.deepEqual(partial, { refunds: [{ amount: 4.51, reason: "missing_item", items: ["Butter Croissant"] }], refunded: 4.51, paid: 12.99 });
+  const cancelled = receiptRefunds({ total: "17.50", paid: "0.00", refunds: [{ amount: "17.50", kind: "full", reason: "full" }] }, true);
+  assert.deepEqual(cancelled.refunds.map((r) => r.reason), ["cancelled"]);
+  assert.equal(cancelled.paid, 0);
+  // A whole-order refund on a delivered order (an incident) stays "full refund"; an unknown reason is "other".
+  assert.equal(receiptRefunds({ total: "10", refunds: [{ amount: "10", reason: "full" }] }, false).refunds[0].reason, "full");
+  assert.equal(receiptRefunds({ total: "10", refunds: [{ amount: "1", reason: "weird" }] }, false).refunds[0].reason, "other");
+  // An older API without "paid": the total less the refunds.
+  assert.equal(receiptRefunds({ total: "17.50", refunds: [{ amount: "4.51", reason: "quality" }] }, false).paid, 12.99);
+  assert.deepEqual(receiptRefunds({ total: "17.50" }, false), { refunds: [], refunded: 0, paid: 17.5 });
+});

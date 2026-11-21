@@ -251,3 +251,44 @@ def to_collect(negative_weeks: int) -> bool:
 def major(minor: int) -> str:
     """Minor units -> "-12.34" (statement summaries and run totals are major-unit strings)."""
     return str(m(Decimal(minor) / 100))
+
+
+# ── R27: what a statement's week says, the same in admin Finance and both apps ─
+#
+# One status, derived here only (GET /finance/statements/me and admin Finance's run both send it as
+# ``shown_status`` with ``paid_on``). "On its way" only once a transfer exists and hasn't landed;
+# a week still in a run waiting for approval says so, and a payee with no ready payout account is
+# told that first (nothing can be paid until it is, and on QA a run isn't approved without it).
+SHOWN_STATUSES = ("paid", "nothing_due", "carried", "on_its_way", "no_account", "onboarding", "waiting_approval",
+                  "not_paid", "failed", "reversed")
+
+
+def shown_status(status: str, run_status: str, amount: int, transfer_id: str | None,
+                 setup_state: str | None) -> str:
+    """The week's status as the payee and admin Finance read it.
+
+    ``status``: the statement's (pending, paid, failed, no_account, onboarding, reversed, carried);
+    ``run_status``: its run's (draft, approved, partially_paid, paid); ``setup_state``: the payee's
+    payout set-up (service/connect.state: not_started, in_progress, action_needed, ready)."""
+    if status == "paid":
+        return "paid" if transfer_id else "nothing_due"  # a week of exactly zero is settled with no transfer
+    if status in ("carried", "failed", "reversed"):
+        return status
+    if transfer_id:  # a transfer was made and hasn't been confirmed paid yet
+        return "on_its_way"
+    owed = amount > 0
+    if status == "no_account" or (owed and setup_state in (None, "not_started")):
+        return "no_account"
+    if status == "onboarding" or (owed and setup_state != "ready"):
+        return "onboarding"
+    if run_status == "draft":
+        return "waiting_approval"
+    return "not_paid"
+
+
+def paid_on(shown: str, transferred_at: datetime | None, tz: object | None = None) -> str | None:
+    """The day the transfer was made (``tz``: the country's zone), for "Paid on <date>"."""
+    if shown != "paid" or transferred_at is None:
+        return None
+    at = transferred_at.astimezone(tz) if tz is not None else transferred_at  # type: ignore[arg-type]
+    return at.date().isoformat()

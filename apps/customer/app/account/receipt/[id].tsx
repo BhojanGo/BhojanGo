@@ -3,7 +3,7 @@
 // the total, how it was paid and where it went; the PDF (a tax invoice where
 // the bill carries GST) through the share sheet, order again, track, rate a
 // delivered order, report a problem. Money in the order's currency.
-import { Button, color, FairBill, inZone, num, SafeAreaView, space, type, useBag, useCountry, useI18n } from "@bhojango/mobile-core";
+import { Button, color, FairBill, inZone, num, receiptRefunds, SafeAreaView, space, type, useBag, useCountry, useI18n } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -54,6 +54,9 @@ export default function Receipt() {
   const items = (order.items ?? []) as OrderItem[];
   const addr = (order.delivery_address ?? {}) as { label?: string; street?: string; city?: string };
   const pdfTitle = gst ? t("account.receipt.tax_invoice") : t("account.receipt.receipt_pdf");
+  // R27: refunds ("Refunded 4.51 · missing item") and what was paid after them; a cancelled order refunded in full has a receipt too
+  const back = bill ? receiptRefunds(bill, cancelled) : { refunds: [], refunded: 0, paid: 0 };
+  const hasReceipt = !cancelled || back.refunds.length > 0;
 
   async function pdf() {
     setBusy("pdf");
@@ -114,7 +117,7 @@ export default function Receipt() {
             <Button testID="order-again" title={busy === "again" ? t("account.receipt.adding") : t("account.receipt.order_again")} block
               loading={busy === "again"} disabled={busy !== null} onPress={again} />
           ) : null}
-          {!cancelled ? (
+          {hasReceipt ? (
             <Button testID="receipt-pdf" title={busy === "pdf" ? t("account.receipt.downloading") : pdfTitle} variant="secondary" block
               loading={busy === "pdf"} disabled={busy !== null} onPress={pdf} />
           ) : null}
@@ -152,7 +155,8 @@ export default function Receipt() {
 
         <View testID="receipt-bill" style={{ gap: space[2] }}>
           {bill ? (
-            <FairBill lines={billLines(t, bill)} currency={bill.currency} totalLabel={cancelled ? t("account.receipt.total") : t("account.receipt.you_paid")} />
+            <FairBill lines={billLines(t, bill)} currency={bill.currency}
+              totalLabel={cancelled || back.refunds.length ? t("account.receipt.total") : t("account.receipt.you_paid")} />
           ) : (
             <Section title={t("account.receipt.fair_bill")}>
               <Text style={ui.muted}>{t("account.receipt.no_bill")}</Text>
@@ -162,6 +166,22 @@ export default function Receipt() {
               </View>
             </Section>
           )}
+          {bill && back.refunds.length ? (
+            <View testID="receipt-refunds" style={{ gap: 6 }}>
+              {back.refunds.map((r, n) => (
+                <View key={n} style={{ flexDirection: "row", justifyContent: "space-between", gap: space[3] }}>
+                  <Text style={[type.body, { flex: 1, color: color.kohl }]}>
+                    {t("account.receipt.refund_line", { amount: money(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}
+                  </Text>
+                  <Text style={[type.label, num, { color: color.kohl }]}>{money(-r.amount, bill.currency)}</Text>
+                </View>
+              ))}
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={[type.h3, { color: color.kohl }]}>{t("account.receipt.total_paid")}</Text>
+                <Text testID="receipt-total-paid" style={[type.h3, num, { color: color.kohl }]}>{money(back.paid, bill.currency)}</Text>
+              </View>
+            </View>
+          ) : null}
           {!cancelled && order.placed_at ? (
             <Text testID="receipt-time" style={ui.small}>{t("account.receipt.paid_with", { method: payLabel(t, order.payment_method), date: date(order.placed_at, tz), time: time(order.placed_at, tz) })}</Text>
           ) : null}

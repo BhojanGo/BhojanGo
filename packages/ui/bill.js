@@ -65,4 +65,23 @@ function billTotal(lines) {
   return lines.reduce((sum, ln) => sum + Number(ln.amount), 0);
 }
 
-module.exports = { money, billRows, billTotal, shownLines, PAYEE };
+const REFUND_REASONS = ["missing_item", "wrong_item", "quality", "late", "damaged_in_transit", "rider_issue", "goodwill",
+  "full", "cancelled", "other"];
+
+/**
+ * R27: a receipt's refunds, from GET /pricing/orders/{id}/bill (refunds, paid): each with the reason
+ * to name (a whole-order refund on a cancelled order is "cancelled"), and what was paid after them.
+ * Shared by the website's and the customer app's receipt; the PDF says the same (orders/service/receipt.py).
+ */
+function receiptRefunds(bill, cancelled) {
+  const refunds = (bill.refunds || []).map((r) => {
+    let reason = REFUND_REASONS.includes(r.reason) ? r.reason : "other";
+    if (reason === "full" && cancelled) reason = "cancelled";
+    return { amount: Number(r.amount), reason, items: r.items || [] };
+  });
+  const refunded = refunds.reduce((sum, r) => sum + r.amount, 0);
+  const paid = bill.paid != null ? Number(bill.paid) : Math.max(0, Math.round((Number(bill.total) - refunded) * 100) / 100);
+  return { refunds, refunded, paid };
+}
+
+module.exports = { money, billRows, billTotal, shownLines, receiptRefunds, REFUND_REASONS, PAYEE };

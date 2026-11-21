@@ -35,6 +35,8 @@ interface Statement {
   summary: Record<string, unknown>; transfer_id: string | null; transferred_at: string | null; attempts: number; payout_setup: SetupState;
   /** R23: minor units, <= 0, already in amount; weeks below zero in a row */
   carried_in?: number; negative_weeks?: number; negative_since?: string | null;
+  /** R27: the week's one status, the same words the payee's app shows (core_api statements.shown_status) */
+  shown_status?: string; paid_on?: string | null;
 }
 /** R23: a kitchen below zero for 4 weeks or more (amount: what it owes, minor units). */
 interface Collect { restaurant_id: string; kitchen: string; currency: string; amount: number; weeks: number; since: string; week_start: string; week_end: string }
@@ -60,13 +62,21 @@ const CONTRIBUTION_ROWS: [string, string, number][] = [
 ];
 
 const RUN_STATUS: Record<string, string> = { draft: "Waiting for approval", approved: "Approved", paid: "Paid", partially_paid: "Partly paid" };
+// R27: the week's status in the same words as BhojanGo Kitchen and BhojanGo Delivery (shown_status from the API).
 const STATEMENT_STATUS: Record<string, string> = {
-  pending: "Not paid yet", paid: "Paid", failed: "Transfer failed", no_account: "No payout account", onboarding: "Waiting for onboarding", reversed: "Reversed",
-  carried: "Below zero: carried to next week",
+  waiting_approval: "Waiting for approval", no_account: "Waiting for payout account", onboarding: "Waiting for payout set-up to finish",
+  on_its_way: "On its way", not_paid: "Not paid yet", paid: "Paid", nothing_due: "Nothing to pay this week", failed: "Transfer failed",
+  reversed: "Reversed", carried: "Below zero: carried to next week",
 };
 const STATUS_STYLE: Record<string, string> = {
   paid: "text-peacock", failed: "text-chili", reversed: "text-chili", onboarding: "text-kesar-ink", no_account: "text-kesar-ink", carried: "text-kesar-ink",
 };
+/** "Paid on 17 Nov 2026" or the week's status (an older API: its own status). */
+function statementStatus(s: Pick<Statement, "status" | "shown_status" | "paid_on">): string {
+  const code = s.shown_status ?? (s.status === "pending" ? "not_paid" : s.status);
+  if (code === "paid" && s.paid_on) return `Paid on ${dayLabel(s.paid_on)}`;
+  return STATEMENT_STATUS[code] ?? code;
+}
 const COLLECT_AFTER_WEEKS = 4;
 
 function dayLabel(iso: string): string {
@@ -238,7 +248,7 @@ function FinancePage() {
                           : "Carried to next week."}
                       </span>)) : null}
                     {(s.negative_weeks ?? 0) >= COLLECT_AFTER_WEEKS ? <span className="mt-1 inline-block rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">To collect · {count(s.negative_weeks ?? 0, "week")}</span> : null}</div></td>
-                  <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span className={`block font-semibold ${STATUS_STYLE[s.status] ?? ""}`}>{STATEMENT_STATUS[s.status] ?? s.status}</span>
+                  <td data-label="Transfer"><div className="min-w-0 max-w-[300px] text-right md:text-left"><span data-testid="statement-status" className={`block font-semibold ${STATUS_STYLE[s.shown_status ?? s.status] ?? ""}`}>{statementStatus(s)}</span>
                     {s.transfer_id ? <span className="block text-small text-muted">{s.transfer_id}{s.transferred_at ? ` · ${new Date(s.transferred_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}</span> : null}
                     {s.error && ["failed", "reversed"].includes(s.status) ? <span className="block text-small text-muted">{s.error}</span> : null}</div></td>
                   <td data-label="Payout set-up"><SetupPill state={s.payout_setup} /></td>

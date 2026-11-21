@@ -68,11 +68,35 @@ export function payoutCopy(t: T, s: PayoutSetup): PayoutCopy {
   }
 }
 
-/** Statement statuses each app labels (anything else is shown as sent). */
-export const STATEMENT_STATUSES = ["paid", "pending", "no_account", "onboarding", "failed", "reversed"] as const;
+/**
+ * A week's status as both apps and admin Finance show it (R27): the API's `shown_status`, derived in one
+ * place (core_api finance/service/statements.py, shown_status). "On its way" only once a transfer exists.
+ */
+export const STATEMENT_STATUSES = ["paid", "nothing_due", "carried", "on_its_way", "no_account", "onboarding",
+  "waiting_approval", "not_paid", "failed", "reversed"] as const;
 
 /** Statuses told as a sentence of their own (R12): what happened, the amount, the date it's paid. */
 export const STATEMENT_NOTES: readonly string[] = ["failed", "reversed"];
+
+export interface WeekStatus { status: string; shown_status?: string | null; paid_on?: string | null }
+
+/** The week's status code: the API's `shown_status`; an older API's own status, where "pending" was never "on its way". */
+export function weekStatus(s: WeekStatus): string {
+  return s.shown_status ?? (s.status === "pending" ? "not_paid" : s.status);
+}
+
+/**
+ * What a statement row says about its week, from `<prefix>.<code>` ("Waiting for approval", "Waiting for your
+ * payout account", "Paid on 17 Nov"); null for the statuses told elsewhere (a note: failed, reversed; carried).
+ * `date` formats a local day ("2026-11-16T12:00:00") in the app's language.
+ */
+export function weekLabel(t: T, prefix: string, s: WeekStatus, date: (d: string) => string): string | null {
+  const code = weekStatus(s);
+  if (STATEMENT_NOTES.includes(code) || code === "carried") return null;
+  const day = repayDay(s.paid_on);
+  if (code === "paid" && day) return t(`${prefix}.paid_on`, { date: date(day) });
+  return (STATEMENT_STATUSES as readonly string[]).includes(code) ? t(`${prefix}.${code}`) : null;
+}
 
 /**
  * The day a returned or failed payment is paid again: the API's `repay_on` (the country's

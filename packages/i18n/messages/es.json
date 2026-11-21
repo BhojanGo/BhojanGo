@@ -635,7 +635,21 @@
       "continue_checkout": "Continuar al pago",
       "reorder_failed": "No pudimos agregar este pedido a tu carrito. Inténtalo de nuevo.",
       "pick_order": "Elige un pedido para ver su recibo.",
-      "not_found": "No encontramos este pedido."
+      "not_found": "No encontramos este pedido.",
+      "refund_line": "Reembolsado {amount} · {reason}",
+      "total_paid": "Total pagado",
+      "refund_reason": {
+        "missing_item": "artículo que faltó",
+        "wrong_item": "artículo equivocado",
+        "quality": "calidad de la comida",
+        "damaged_in_transit": "derramado o dañado",
+        "late": "muy tarde",
+        "rider_issue": "problema con la entrega",
+        "goodwill": "cortesía",
+        "full": "reembolso total",
+        "cancelled": "pedido cancelado",
+        "other": "reembolso"
+      }
     },
     "pay": {
       "upi": "UPI",
@@ -1292,11 +1306,15 @@
       "title": "Pagos",
       "status": {
         "paid": "Pagado",
-        "pending": "En camino",
         "no_account": "Esperando tu cuenta de pagos",
         "failed": "Este pago de {amount} no se completó. Lo intentaremos de nuevo el {date}.",
         "onboarding": "Esperando a que termines de configurar tus pagos",
-        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}."
+        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}.",
+        "on_its_way": "En camino",
+        "waiting_approval": "Esperando aprobación",
+        "not_paid": "Aún no pagado",
+        "nothing_due": "Nada que pagar esta semana",
+        "paid_on": "Pagado el {date}"
       },
       "ready": "Cuenta de pagos lista",
       "finish": "Termina de configurar los pagos",
@@ -1562,7 +1580,8 @@
       "arriving": "llegando",
       "min_away": "a {min} min",
       "finding_rider": "Buscando repartidor",
-      "order_code": "Código del pedido {code}"
+      "order_code": "Código del pedido {code}",
+      "today_refunds": "{amount} reembolsado"
     },
     "offline": {
       "banner": "No se reciben pedidos: reconectando"
@@ -1678,11 +1697,15 @@
       "title": "Pagos",
       "status": {
         "paid": "Pagado",
-        "pending": "En camino",
-        "no_account": "Esperando tus datos bancarios",
+        "no_account": "Esperando tu cuenta de pagos",
         "failed": "Este pago de {amount} no se completó. Lo intentaremos de nuevo el {date}.",
         "onboarding": "Esperando a que termines de configurar tus pagos",
-        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}."
+        "reversed": "Este pago de {amount} se devolvió antes de llegarte. Te lo pagaremos de nuevo el {date}.",
+        "on_its_way": "En camino",
+        "waiting_approval": "Esperando aprobación",
+        "not_paid": "Aún no pagado",
+        "nothing_due": "Nada que pagar esta semana",
+        "paid_on": "Pagado el {date}"
       },
       "where": "Dónde te pagamos",
       "paid_through": "Pagos cada lunes a través de {provider}.",
