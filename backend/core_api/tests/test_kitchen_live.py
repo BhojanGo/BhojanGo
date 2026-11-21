@@ -59,3 +59,14 @@ def test_required_by_environment(monkeypatch) -> None:  # type: ignore[no-untype
         monkeypatch.setattr(s, "APP_ENV", env)
         monkeypatch.setattr(s.catalog, "KITCHEN_TABLET_REQUIRED", flag)
         assert K.required() is want, (env, flag)
+
+
+def test_only_the_present_needs_a_tablet() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from core_api.modules.catalog.service.menu import is_present
+
+    now = datetime.now(UTC)
+    assert is_present(None) and is_present(now) and is_present(now - timedelta(seconds=2))
+    assert not is_present(now - timedelta(days=30)), "the demo seed's history is priced in the past"
+    assert not is_present(now + timedelta(hours=1))

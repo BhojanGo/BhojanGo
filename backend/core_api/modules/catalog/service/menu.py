@@ -138,7 +138,9 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
         reason = f"Deliveries run {service_hours['open']}–{service_hours['close']}"  # type: ignore[index]
     else:
         reason = None
-    no_tablet = reason is None and not await tablet_live(db, r, code)
+    # A tablet heartbeat says whether the kitchen is there now; a question about another time (the demo
+    # seed pricing months of past orders at the time they happened) has no tablet to ask.
+    no_tablet = reason is None and is_present(now) and not await tablet_live(db, r, code)
     if no_tablet:
         reason = NO_TABLET
     return Availability(
@@ -150,6 +152,13 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
 
 
 NO_TABLET = "Not taking orders right now"
+PRESENT_SECONDS = 30  # "now" for the tablet check: a quote's own clock is a few ms behind the wall clock
+
+
+def is_present(now: datetime | None) -> bool:
+    """Is ``now`` the present (None, or within PRESENT_SECONDS of the wall clock)? Only then does a
+    kitchen need a live tablet (R27): past or future times (the demo seed's order history) don't."""
+    return now is None or abs((now - datetime.now(UTC)).total_seconds()) <= PRESENT_SECONDS
 
 
 async def tablet_live(db: AsyncSession, r: Restaurant, city_code: str | None) -> bool:
