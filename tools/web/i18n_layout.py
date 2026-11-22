@@ -46,8 +46,10 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import web_session  # noqa: E402
 
-MESSAGES = Path(os.environ.get("MESSAGES", HERE.parents[1] / "packages" / "i18n" / "messages"))
-OUT = Path(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("OUT", HERE.parents[1] / "docs" / "screenshots" / "web-i18n"))
+# In the Playwright container the script sits at /t, so the repo-relative defaults are only built when needed.
+REPO = HERE.parents[1] if len(HERE.parents) > 1 else HERE
+MESSAGES = Path(os.environ.get("MESSAGES") or REPO / "packages" / "i18n" / "messages")
+OUT = Path(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("OUT") or REPO / "docs" / "screenshots" / "web-i18n")
 WEB = os.environ.get("WEB", "").rstrip("/")
 CORE = os.environ.get("CORE", "").rstrip("/")
 LOCAL = not WEB  # `make dev` on the compose network (tools/web/i18n_layout.sh)
