@@ -126,6 +126,7 @@ test("tracking headline: an accepted partner is heading to the kitchen at once, 
   assert.deepEqual(trackHeadline("placed", null, "K"), ["s_placed", { kitchen: "K" }]);
   assert.deepEqual(trackHeadline("picked_up", "Ravi", "K"), ["s_picked_up", { rider: "Ravi" }]);
   assert.deepEqual(trackHeadline("delivered", "Ravi", "K"), ["s_delivered"]);
+});
 
 // R28: R27's journey listed order #2A649D at $38.85 after $16.96 was refunded; it is $21.89.
 test("paidAfterRefunds: the total less refunds, in cents", () => {
