@@ -38,16 +38,25 @@ async function send(lat: number, lng: number, extra: { heading?: number | null; 
   // The task can run before the session store is hydrated (app in the background).
   const token = useSession.getState().accessToken ?? (await SecureStore.getItemAsync("access_token").catch(() => null));
   if (!token) return;
-  await fetch(`${urls.realtime}/api/v1/delivery/driver/location`, {
+  const body = JSON.stringify({
+    lat, lng,
+    heading: extra.heading != null && extra.heading >= 0 ? extra.heading : undefined,
+    speed: extra.speed != null && extra.speed >= 0 ? extra.speed : undefined,
+    accuracy: extra.accuracy ?? undefined,
+  });
+  const post = (bearer: string) => fetch(`${urls.realtime}/api/v1/delivery/driver/location`, {
     method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      lat, lng,
-      heading: extra.heading != null && extra.heading >= 0 ? extra.heading : undefined,
-      speed: extra.speed != null && extra.speed >= 0 ? extra.speed : undefined,
-      accuracy: extra.accuracy ?? undefined,
-    }),
-  }).catch(() => undefined);
+    headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` },
+    body,
+  });
+  const res = await post(token).catch(() => null);
+  // R27 QA: the access token lasts 15 minutes; this raw POST ignored the 401 after that, so a
+  // delivery partner online longer stopped sharing their position (no offers, a frozen map for the
+  // customer). Refresh once (the shared, time-limited refresh) and send it again.
+  if (res?.status === 401) {
+    const fresh = await useSession.getState().refresh().catch(() => null);
+    if (fresh) await post(fresh).catch(() => undefined);
+  }
 }
 
 TaskManager.defineTask<{ locations: Location.LocationObject[] }>(LOCATION_TASK, async ({ data, error }) => {
