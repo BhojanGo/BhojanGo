@@ -1,8 +1,10 @@
 """Internal order endpoints for realtime (P14) and the worker's review simulator (R20).
 Not for apps: every request must be signed with INTERNAL_SERVICE_SECRET (shared/internal_auth.py)."""
 import uuid
+from datetime import datetime
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +18,7 @@ from shared.db import get_db
 
 router = APIRouter(prefix="/internal/orders", tags=["Internal"], include_in_schema=False)
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
+logger = structlog.get_logger(__name__)
 
 
 async def signed(request: Request) -> None:
@@ -41,6 +44,7 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
     rules = await RuleService(db).resolve(Context(country=city[:2] or None, region=city[:5] or None, city=city or None,
                                                   zone_id=str(order.zone_id) if order.zone_id else None))
     timeout = rules.get("business:dispatch_offer_timeout")
+    exclusion, late = rules.get("business:dispatch_offer_exclusion"), rules.get("business:no_partner_alert")
     base_rule, bonus_rule = rules.get("rider_pay:base_distance_wait"), rules.get("rider_pay:batch_bonus")
     batching = rules.get("business:batching")
     from core_api.modules.catalog.models.restaurant import Restaurant
@@ -55,6 +59,8 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
         "pickup": [order.pickup_lat, order.pickup_lng] if order.pickup_lat is not None else None,
         "dropoff": [order.delivery_lat, order.delivery_lng] if order.delivery_lat is not None else None,
         "offer_timeout_seconds": int(timeout.params["seconds"]) if timeout else 30,
+        "offer_exclusion_seconds": int(exclusion.params["seconds"]) if exclusion else 120,
+        "no_partner_alert_minutes": int(late.params["minutes"]) if late else 8,
         "distance_unit": "mi" if city.startswith("US") else "km",
         "batching_live": bool(batching and batching.params.get("live")),
         **batch_rate(offer.get("rider_pay"), base_rule, bonus_rule),
@@ -118,6 +124,56 @@ async def get_dispatch(order_id: uuid.UUID, db: DB) -> dict:
 async def assign_rider(order_id: uuid.UUID, data: AssignRider, db: DB) -> dict:
     order = await OrderService(db).assign_rider(order_id, data.rider_id, data.batch_id, data.batch_position)
     return await dispatch_info(db, order)
+
+
+class NoPartner(BaseModel):
+    """R28: realtime's word on an order still without a delivery partner (business:no_partner_alert)."""
+
+    firing: bool  # true: still none after the city's minutes; false: one accepted, or the order ended
+    waited_minutes: int = Field(default=0, ge=0, le=1440)
+    # The later arrival time realtime worked out (kitchen to home from now, plus time to find a partner).
+    eta: datetime | None = None
+
+
+def no_partner_fingerprint(order_id: uuid.UUID) -> str:
+    return f"no-partner-{order_id}"
+
+
+@router.post("/{order_id}/no-partner", dependencies=[Depends(signed)])
+async def no_partner(order_id: uuid.UUID, data: NoPartner, db: DB) -> dict:
+    """R28: an order with no delivery partner after the city's minutes is an alert in admin Operations
+    (its city), and its estimated delivery moves to the later time the customer is told; once a
+    partner accepts or the order ends, the alert is resolved."""
+    from datetime import UTC
+
+    from sqlalchemy import update
+    from sqlalchemy.dialects.postgresql import insert
+
+    from core_api.modules.support.models import OpsAlert
+
+    order = await db.get(Order, order_id)
+    if order is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Order not found")
+    now = datetime.now(UTC)
+    fp = no_partner_fingerprint(order_id)
+    if not data.firing:
+        await db.execute(update(OpsAlert).where(OpsAlert.fingerprint == fp, OpsAlert.status == "firing")
+                         .values(status="resolved", ends_at=now, updated_at=now))
+        await db.commit()
+        return {"ok": True}
+    code = "#" + str(order.id).replace("-", "")[:6].upper()
+    values = {"name": "OrderWithoutPartner", "status": "firing", "severity": "warning", "city": order.market_city,
+              "summary": f"Order {code} has no delivery partner after {data.waited_minutes} min",
+              "description": f"{order.restaurant_name}: still looking for a delivery partner. The customer was told "
+                             "and given a later arrival time.",
+              "starts_at": now, "ends_at": None, "updated_at": now}
+    await db.execute(insert(OpsAlert).values(fingerprint=fp, **values)
+                     .on_conflict_do_update(index_elements=["fingerprint"], set_=values))
+    if data.eta and (order.estimated_delivery_time is None or data.eta > order.estimated_delivery_time):
+        order.estimated_delivery_time = data.eta
+    await db.commit()
+    logger.warning("order_without_partner", order_id=str(order_id), city=order.market_city, waited_minutes=data.waited_minutes)
+    return {"ok": True}
 
 
 class ReviewStep(BaseModel):

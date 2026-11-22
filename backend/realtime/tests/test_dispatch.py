@@ -49,13 +49,19 @@ class FakeCore:
         self.others: set[str] = set()  # more orders at the same kitchen (fairness tests)
         self.live = False  # the city's business:batching rule (task 43)
         self.batch_positions: dict[str, tuple] = {}
+        self.no_partner_calls: list[tuple] = []  # R28: (order, firing, waited_minutes, eta)
+        self.rules: dict = {}  # R28: the city's dispatch rules, as dispatch_info returns them
+
+    async def no_partner(self, order: str, firing: bool, waited_minutes: int = 0, eta: str | None = None) -> None:
+        self.no_partner_calls.append((order, firing, waited_minutes, eta))
 
     async def dispatch_info(self, order: str) -> dict:
         if order != ORDER and order not in self.others:
             raise CoreApiError(404, "Order not found")
         # The rider it was assigned to, as core_api says once a rider accepted.
         driver = next((rider for o, rider in reversed(self.assigned) if o == order), None)
-        return info(order_id=order, batching_live=self.live, rider_pay="60.00", rider_pay_batched="45.00", driver_id=driver)
+        return info(order_id=order, batching_live=self.live, rider_pay="60.00", rider_pay_batched="45.00", driver_id=driver,
+                    **self.rules)
 
     async def assign_rider(self, order: str, rider: str, batch_id: str | None = None, position: int | None = None) -> dict:
         if self.fail:
@@ -146,7 +152,7 @@ async def test_accept_assigns_in_core_api(r, core) -> None:  # type: ignore[no-u
     msgs = await drain(pubsub)
     assert [m["type"] for m in msgs] == ["rider_assigned"]
     # nothing left to expire or retry
-    assert (await dispatch.tick(now=dispatch._now() + 60)) == {"expired": 0, "retried": 0}
+    assert (await dispatch.tick(now=dispatch._now() + 60)) == {"expired": 0, "retried": 0, "late": 0}
     # another rider can't accept it, nor can the first twice
     with pytest.raises(LookupError):
         await dispatch.accept(RIDER_MID, ORDER)
@@ -295,7 +301,7 @@ async def test_a_passed_batch_goes_back_to_solo_dispatch(r, core) -> None:  # ty
     await dispatch.go_online(RIDER_MID, 17.4610, 78.3960)
     await dispatch.decline(RIDER_NEAR, ORDER, "passed")
     for o in orders:
-        assert RIDER_NEAR in await r.smembers(dispatch.declined_key(o))
+        assert RIDER_NEAR in await r.zrange(dispatch.declined_key(o), 0, -1)
         assert await r.zscore(dispatch.HOLD, o) is None and not await r.exists(dispatch.in_batch_offer_key(o))
     offer = await dispatch.current_offer(RIDER_MID)  # the oldest goes to the other rider, alone
     assert offer and offer["order_id"] == ORDER and "batch" not in offer
@@ -640,3 +646,84 @@ async def test_no_eta_republished_without_a_rider_fix_or_after_delivery(r, core)
     await dispatch.on_order_event({"event_type": "order.status_changed",
                                    "payload": {"order_id": ORDER, "new_status": "picked_up", "driver_id": RIDER_NEAR}})
     assert [m["type"] for m in await drain(pubsub)] == ["status_change"]  # the rider has sent no GPS yet
+
+
+# ── R28: a missed offer keeps a partner off that order for 2 minutes, never 24 hours ──────────────
+
+class Clock:
+    def __init__(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        self.t = dispatch._now()
+        monkeypatch.setattr(dispatch, "_now", lambda: self.t)
+
+    def advance(self, seconds: float) -> float:
+        self.t += seconds
+        return self.t
+
+
+async def test_two_partners_the_first_misses_the_offer(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """R27's QA order waited for a second partner because the first's timed-out offer kept him off
+    it for a day. Now: the second partner gets it at once; the first is off THIS order for the city's
+    2 minutes only, and gets a different order at once."""
+    clock = Clock(monkeypatch)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.go_online(RIDER_MID, 17.4610, 78.3960)
+    assert await dispatch.start_dispatch(ORDER) == RIDER_NEAR
+    clock.advance(31)
+    assert (await dispatch.tick())["expired"] == 1  # the first lets the offer time out
+    assert (await dispatch.current_offer(RIDER_MID))["order_id"] == ORDER  # the second has it at once
+    # The second passes too: nobody may have it for now, so it waits for a retry.
+    assert await dispatch.decline(RIDER_MID, ORDER, "passed") is None
+    assert await dispatch.excluded(ORDER, None) == {RIDER_NEAR, RIDER_MID}
+    clock.advance(60)
+    await dispatch.tick()
+    assert await dispatch.current_offer(RIDER_NEAR) is None, "still within the 2 minutes"
+    clock.advance(61)  # 2 min 1 s after the timeout and the pass (both at 31 s)
+    await dispatch.tick()
+    assert (await dispatch.current_offer(RIDER_NEAR))["order_id"] == ORDER, "offered that order again, not a day later"
+
+
+async def test_a_missed_offer_never_keeps_a_partner_off_other_orders(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    Clock(monkeypatch)
+    other = str(uuid.uuid4())
+    core.others.add(other)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.decline(RIDER_NEAR, ORDER, "passed")
+    assert await dispatch.start_dispatch(other) == RIDER_NEAR
+
+
+async def test_the_citys_exclusion_rule_is_used_and_capped(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    clock = Clock(monkeypatch)
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.start_dispatch(ORDER)
+    await dispatch.decline(RIDER_NEAR, ORDER, "passed")
+    assert await dispatch.excluded(ORDER, {"offer_exclusion_seconds": 30}) == {RIDER_NEAR}
+    clock.advance(31)
+    assert await dispatch.excluded(ORDER, {"offer_exclusion_seconds": 30}) == set()
+    assert await dispatch.excluded(ORDER, {"offer_exclusion_seconds": 0}) == set()
+    clock.advance(100)  # 131 s: past the 2-minute cap even if a rule asked for more
+    assert await dispatch.excluded(ORDER, {"offer_exclusion_seconds": 86400}) == set()
+
+
+async def test_no_partner_after_the_citys_minutes_alerts_ops_and_tells_the_customer(r, core, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    clock = Clock(monkeypatch)
+    core.rules = {"no_partner_alert_minutes": 5}
+    pubsub = r.pubsub()
+    await pubsub.subscribe(f"tracking:{ORDER}")
+    assert await dispatch.start_dispatch(ORDER) is None  # nobody online
+    clock.advance(4 * 60)
+    assert (await dispatch.tick())["late"] == 0
+    clock.advance(61)
+    assert (await dispatch.tick())["late"] == 1
+    [(order, firing, waited, eta)] = core.no_partner_calls
+    assert (order, firing, waited) == (ORDER, True, 5) and eta
+    slow = [m for m in await drain(pubsub) if m["type"] == "partner_search_slow"]
+    assert slow and slow[0]["payload"]["eta"]["arrives_at"] == eta
+    assert slow[0]["payload"]["eta"]["to_customer_minutes"] >= 5  # the honest later time includes the search
+    clock.advance(60)
+    assert (await dispatch.tick())["late"] == 0, "once per order"
+    # A partner comes online and accepts: the alert is resolved.
+    await dispatch.go_online(RIDER_NEAR, 17.4520, 78.3940)
+    await dispatch.tick(now=clock.advance(20))
+    await dispatch.accept(RIDER_NEAR, ORDER)
+    assert core.no_partner_calls[-1][:2] == (ORDER, False)

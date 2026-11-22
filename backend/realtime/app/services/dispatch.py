@@ -100,7 +100,28 @@ def info_key(order: str) -> str:
 
 
 def declined_key(order: str) -> str:
-    return f"dispatch:{order}:declined"
+    """R28: who passed on this order or let its offer time out, and when (rider -> time, a sorted set).
+    It was a set kept for a day: a partner who missed one offer was never offered that order again."""
+    return f"dispatch:{order}:passed"
+
+
+def late_key(order: str) -> str:
+    """R28: set once the order's no-partner alert was raised (business:no_partner_alert)."""
+    return f"dispatch:{order}:late"
+
+
+EXCLUSION_MAX_SECONDS = 120  # R28: a pass keeps a partner off that order at most this long
+
+
+async def excluded(order: str, info: dict | None) -> set[str]:
+    """The partners not offered this order right now: those who passed or let it time out within the
+    city's business:dispatch_offer_exclusion seconds (that order only; other orders at once)."""
+    seconds = int((info or {}).get("offer_exclusion_seconds", EXCLUSION_MAX_SECONDS))
+    seconds = max(0, min(EXCLUSION_MAX_SECONDS, seconds))
+    if not seconds:
+        return set()
+    r = await get_redis()
+    return set(await r.zrangebyscore(declined_key(order), _now() - seconds, "+inf"))
 
 
 def rider_pool_key(rider: str) -> str:
@@ -437,7 +458,7 @@ async def offer_next(order: str) -> str | None:
     if held is not None and held > _now():
         await r.zadd(RETRY, {order: held})  # waiting for a batch partner a little longer
         return None
-    declined = await r.smembers(declined_key(order))
+    declined = await excluded(order, info)
     timeout = int(info.get("offer_timeout_seconds") or 30)
     claimed = await _claim_rider(order, info["pickup"], declined, timeout)
     if claimed:
@@ -505,8 +526,8 @@ async def offer_batch(orders: list[str], meta: dict | None = None) -> str | None
         return None  # never a simulator order with anyone else's (same_pool)
     lead, lead_info = orders[0], infos[0]
     declined: set = set()
-    for o in orders:
-        declined |= await r.smembers(declined_key(o))
+    for o, i in zip(orders, infos, strict=True):
+        declined |= await excluded(o, i)
     timeout = int(lead_info.get("offer_timeout_seconds") or 30)
     claimed = await _claim_rider(lead, lead_info["pickup"], declined, timeout)
     if not claimed:
@@ -634,10 +655,7 @@ async def accept(rider: str, order: str) -> dict:
         await _save_info(other_info)
         carrying.append(other)
     for o in carrying:
-        await r.srem(ACTIVE, o)
-        await r.zrem(RETRY, o)
-        await r.zrem(WAITING, o)
-        await r.zrem(HOLD, o)
+        await _finish(o)  # off every dispatch list; R28: a raised no-partner alert is resolved
     state = {"status": "busy", "order_id": order}
     if len(carrying) > 1:
         state["batch"] = ",".join(carrying)
@@ -664,8 +682,8 @@ async def decline(rider: str, order: str, reason: str = "passed") -> str | None:
     await r.zrem(OFFER_EXPIRY, order)
     orders = [b["order_id"] for b in offer.get("batch") or []] or [order]
     for o in orders:
-        await r.sadd(declined_key(o), rider)
-        await r.expire(declined_key(o), DAY)
+        await r.zadd(declined_key(o), {rider: _now()})
+        await r.expire(declined_key(o), DAY)  # only tidies up: the exclusion itself is the city's seconds
         await r.delete(in_batch_offer_key(o))
         await r.zrem(HOLD, o)  # a batch that was turned down goes out alone now
     await _clear_offer(rider, order)
@@ -708,6 +726,53 @@ async def _finish(order: str) -> None:
     await r.zrem(OFFER_EXPIRY, order)
     await r.zrem(WAITING, order)
     await r.zrem(HOLD, order)
+    if await r.delete(late_key(order)):  # R28: a partner accepted, or the order ended: the alert is over
+        try:
+            await core_api.no_partner(order, firing=False)
+        except CoreApiError as e:
+            logger.warning("no_partner_resolve_failed", order_id=order, error=str(e))
+
+
+def late_eta(info: dict, minutes: int) -> dict | None:
+    """R28: the honest new arrival time for an order still without a partner: from the kitchen to the
+    customer as if a partner were there now (or once the food is ready), plus the city's minutes again
+    to find one. None without a drop-off."""
+    if not info.get("pickup"):
+        return None
+    eta = eta_for(info, (float(info["pickup"][0]), float(info["pickup"][1])))
+    if not eta:
+        return None
+    later = datetime.fromisoformat(eta["arrives_at"]) + timedelta(minutes=minutes)
+    return {**eta, "to_customer_minutes": eta["to_customer_minutes"] + minutes, "arrives_at": later.isoformat()}
+
+
+async def alert_late(now: float | None = None) -> int:
+    """R28: orders still without a partner business:no_partner_alert minutes after they started looking:
+    admin Operations gets an alert (core_api, the order's city) and the customer is told, with a later
+    arrival time (``partner_search_slow`` on the tracking channel). Once per order."""
+    now = now or _now()
+    r = await get_redis()
+    raised = 0
+    for order, started in await r.zrange(WAITING, 0, -1, withscores=True):
+        if await r.exists(late_key(order)):
+            continue
+        info = await order_info(order)
+        if not info or info.get("driver_id"):
+            continue
+        minutes = int(info.get("no_partner_alert_minutes") or 8)
+        waited = (now - float(started)) / 60
+        if waited < minutes or not await r.set(late_key(order), "1", nx=True, ex=DAY):
+            continue
+        eta = late_eta(info, minutes)
+        try:
+            await core_api.no_partner(order, firing=True, waited_minutes=int(waited), eta=eta["arrives_at"] if eta else None)
+        except CoreApiError as e:
+            logger.warning("no_partner_alert_failed", order_id=order, error=str(e))
+        await _publish(order_tracking_channel(order), "partner_search_slow",
+                       {"order_id": order, "waited_minutes": int(waited), "eta": eta})
+        logger.warning("order_without_partner", order_id=order, waited_minutes=int(waited))
+        raised += 1
+    return raised
 
 
 async def tick(now: float | None = None) -> dict[str, int]:
@@ -715,7 +780,7 @@ async def tick(now: float | None = None) -> dict[str, int]:
     ZREM decides which instance handles each one."""
     now = now or _now()
     r = await get_redis()
-    counts = {"expired": 0, "retried": 0}
+    counts = {"expired": 0, "retried": 0, "late": 0}
     for order in await r.zrangebyscore(OFFER_EXPIRY, 0, now):
         raw = await r.get(offer_key(order))
         offer = json.loads(raw) if raw else None
@@ -732,6 +797,7 @@ async def tick(now: float | None = None) -> dict[str, int]:
         if await r.zrem(RETRY, order):
             await offer_next(order)
             counts["retried"] += 1
+    counts["late"] = await alert_late(now)
     return counts
 
 

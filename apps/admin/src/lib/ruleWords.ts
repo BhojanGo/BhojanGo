@@ -126,6 +126,10 @@ export function describe(template: string, params: P, units: Units): string {
     }
     case "max_radius": return `Deliver up to ${d(p.distance, dist)} from the kitchen`;
     case "dispatch_offer_timeout": return `Delivery partners have ${n(p.seconds)} seconds to accept an offer`;
+    case "dispatch_offer_exclusion": return Number(p.seconds) > 0
+      ? `A delivery partner who passes or lets an offer time out isn't offered that order again for ${n(p.seconds)} seconds (other orders at once)`
+      : "A delivery partner who passes can be offered that order again at once";
+    case "no_partner_alert": return `An order without a delivery partner after ${n(p.minutes)} minutes alerts Operations, and the customer gets a later arrival time`;
     case "batching": return p.live
       ? "Live: delivery partners can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
       : "Off: the batch engine only suggests pairs in the background; delivery partners get one order at a time";

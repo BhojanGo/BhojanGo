@@ -500,6 +500,7 @@
     "s_placed": "{kitchen} recibió tu pedido",
     "s_cooking": "{kitchen} está cocinando",
     "s_finding": "Buscando un repartidor",
+    "s_slow_search": "Encontrar un repartidor está tardando más de lo normal. Abajo verás tu nueva hora de llegada.",
     "s_heading": "{rider} va camino a la cocina",
     "s_picked_up": "{rider} recogió tu pedido",
     "s_delivered": "Entregado. ¡Buen provecho!",

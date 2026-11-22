@@ -22,7 +22,7 @@ type Order = CoreSchemas["OrderResponse"];
 type Pt = [number, number];
 /** From realtime (dispatch.eta_for): minutes from the distance the rider still has to go, and that distance in the order's unit. */
 interface Eta { to_pickup_minutes: number; to_customer_minutes: number; arrives_at: string; distance_left?: number; distance_unit?: string }
-interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; etaAt: number | null; searching: boolean; at: number | null }
+interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; etaAt: number | null; searching: boolean; slow: boolean; at: number | null }
 interface Bill { lines: BillLine[]; currency: string; total?: string }
 
 // WebGL map: browser only, and only on this page (it is a large script).
@@ -49,7 +49,7 @@ export function Tracking({ id }: { id: string }) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [missing, setMissing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, etaAt: null, searching: false, at: null });
+  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, etaAt: null, searching: false, slow: false, at: null });
 
   useEffect(() => {
     if (ready && !user) router.replace(`/signin?next=${encodeURIComponent(`/orders/${id}/track`)}`);
@@ -94,12 +94,15 @@ export function Tracking({ id }: { id: string }) {
               eta: (p.eta as Eta) ?? null,
               etaAt: p.eta ? at : null,
               trail: ((p.trail as [number, number, string][]) ?? []).map((x) => [x[0], x[1]] as Pt),
+              slow: !!p.searching_slow,
             };
           }
           case "searching_rider":
             return { ...s, at, searching: true };
+          case "partner_search_slow": // R28: no partner after the city's minutes: said honestly, with the later time
+            return p.eta ? { ...s, at, slow: true, eta: p.eta as Eta, etaAt: at } : { ...s, at, slow: true };
           case "rider_assigned":
-            return p.eta ? { ...s, at, searching: false, eta: p.eta as Eta, etaAt: at } : { ...s, at, searching: false };
+            return p.eta ? { ...s, at, searching: false, slow: false, eta: p.eta as Eta, etaAt: at } : { ...s, at, searching: false, slow: false };
           case "location_update": {
             const pt: Pt = [Number(p.lat), Number(p.lng)];
             const fresh = p.eta ? { eta: p.eta as Eta, etaAt: at } : {};
@@ -263,7 +266,8 @@ export function Tracking({ id }: { id: string }) {
               <b className="block text-h1 tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
             </div>
           )}
-          {live.searching && !assigned && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
+          {live.slow && !assigned && <p data-testid="slow-search" className="m-0 mt-3 text-small text-[#FFB4A8]">{t("track.s_slow_search")}</p>}
+          {live.searching && !live.slow && !assigned && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
         </section>
 
         {/* the steps */}
