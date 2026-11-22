@@ -139,11 +139,12 @@ def no_partner_fingerprint(order_id: uuid.UUID) -> str:
     return f"no-partner-{order_id}"
 
 
-@router.post("/{order_id}/no-partner", dependencies=[Depends(signed)])
+@router.post("/{order_id}/no-partner", dependencies=[Depends(signed)], response_model=DispatchInfo)
 async def no_partner(order_id: uuid.UUID, data: NoPartner, db: DB) -> dict:
     """R28: an order with no delivery partner after the city's minutes is an alert in admin Operations
     (its city), and its estimated delivery moves to the later time the customer is told; once a
-    partner accepts or the order ends, the alert is resolved."""
+    partner accepts or the order ends, the alert is resolved. Answers the order's dispatch info, as every
+    /internal/orders route does (the realtime contract)."""
     from datetime import UTC
 
     from sqlalchemy import update
@@ -160,7 +161,7 @@ async def no_partner(order_id: uuid.UUID, data: NoPartner, db: DB) -> dict:
         await db.execute(update(OpsAlert).where(OpsAlert.fingerprint == fp, OpsAlert.status == "firing")
                          .values(status="resolved", ends_at=now, updated_at=now))
         await db.commit()
-        return {"ok": True}
+        return await dispatch_info(db, order)
     code = "#" + str(order.id).replace("-", "")[:6].upper()
     values = {"name": "OrderWithoutPartner", "status": "firing", "severity": "warning", "city": order.market_city,
               "summary": f"Order {code} has no delivery partner after {data.waited_minutes} min",
@@ -173,7 +174,7 @@ async def no_partner(order_id: uuid.UUID, data: NoPartner, db: DB) -> dict:
         order.estimated_delivery_time = data.eta
     await db.commit()
     logger.warning("order_without_partner", order_id=str(order_id), city=order.market_city, waited_minutes=data.waited_minutes)
-    return {"ok": True}
+    return await dispatch_info(db, order)
 
 
 class ReviewStep(BaseModel):
