@@ -153,6 +153,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── service to service ───────────────────────────────────────────────────
     ("GET", "/api/v1/internal/orders/{order_id}/dispatch"): Policy("signed"),
     ("POST", "/api/v1/internal/orders/{order_id}/assign-rider"): Policy("signed", body=lambda c: {"rider_id": c.rider_id}),
+    ("POST", "/api/v1/internal/orders/{order_id}/no-partner"): Policy("signed", body=lambda c: {"firing": False}),  # R28
     ("GET", "/api/v1/internal/riders/{rider_id}/ready"): Policy("signed"),
     ("GET", "/api/v1/internal/restaurants/{restaurant_id}/staff/{user_id}"): Policy("signed"),  # R27: the kitchen socket
     ("POST", "/api/v1/internal/review/orders/{order_id}/step"): Policy("signed", body=lambda c: {"step": "accept"}),
