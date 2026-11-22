@@ -18,8 +18,17 @@ import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 
+import { SEND_EVERY_MS, TRACKING_OPTIONS_VERSION } from "./locationLogic";
+
 export const LOCATION_TASK = "bhojango-rider-location";
 const TRACKING_HERE = "rider_tracking_here";
+const TRACKING_OPTIONS = "rider_tracking_options";
+
+// R28: when BhojanGo last took a position from this phone (the Drive tab's "Location lost").
+let lastSent: number | null = null;
+export function lastSentAt(): number | null {
+  return lastSent;
+}
 
 let watcher: Location.LocationSubscription | null = null;
 
@@ -49,14 +58,15 @@ async function send(lat: number, lng: number, extra: { heading?: number | null; 
     headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` },
     body,
   });
-  const res = await post(token).catch(() => null);
+  let res = await post(token).catch(() => null);
   // R27 QA: the access token lasts 15 minutes; this raw POST ignored the 401 after that, so a
   // delivery partner online longer stopped sharing their position (no offers, a frozen map for the
   // customer). Refresh once (the shared, time-limited refresh) and send it again.
   if (res?.status === 401) {
     const fresh = await useSession.getState().refresh().catch(() => null);
-    if (fresh) await post(fresh).catch(() => undefined);
+    if (fresh) res = await post(fresh).catch(() => null);
   }
+  if (res?.ok) lastSent = Date.now();
 }
 
 TaskManager.defineTask<{ locations: Location.LocationObject[] }>(LOCATION_TASK, async ({ data, error }) => {
@@ -119,11 +129,18 @@ export async function startTracking(): Promise<void> {
   await SecureStore.setItemAsync(TRACKING_HERE, "1").catch(() => undefined);
   const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
   if (bg?.status === "granted") {
-    if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false))) {
+    // R28: a task started by an older build keeps its old options: restart it with these.
+    const started = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false);
+    const version = await SecureStore.getItemAsync(TRACKING_OPTIONS).catch(() => null);
+    if (started && version !== TRACKING_OPTIONS_VERSION) await Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => undefined);
+    if (!started || version !== TRACKING_OPTIONS_VERSION) {
       await Location.startLocationUpdatesAsync(LOCATION_TASK, {
         accuracy: Location.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 10,
+        // R28: every 5 s even standing still. distanceInterval 10 m sent nothing to a partner waiting
+        // for an offer, so their position expired on the server (null) and they got no offers.
+        timeInterval: SEND_EVERY_MS,
+        distanceInterval: 0,
+        deferredUpdatesInterval: 0,
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
@@ -133,18 +150,21 @@ export async function startTracking(): Promise<void> {
           killServiceOnDestroy: false,
         },
       });
+      await SecureStore.setItemAsync(TRACKING_OPTIONS, TRACKING_OPTIONS_VERSION).catch(() => undefined);
     }
     return;
   }
   // Only "while using the app": follow the position while the app is open.
   if (!watcher) {
-    watcher = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+    watcher = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: SEND_EVERY_MS, distanceInterval: 0 },
       (l) => void send(l.coords.latitude, l.coords.longitude, l.coords));
   }
 }
 
 export async function stopTracking(): Promise<void> {
   await SecureStore.deleteItemAsync(TRACKING_HERE).catch(() => undefined);
+  await SecureStore.deleteItemAsync(TRACKING_OPTIONS).catch(() => undefined);
+  lastSent = null;
   watcher?.remove();
   watcher = null;
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false)) {

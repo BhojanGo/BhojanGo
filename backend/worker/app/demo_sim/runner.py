@@ -375,7 +375,7 @@ class City:
                 me = await rider.call("rt", "GET", "/riders/me")
             else:
                 # Keep the GPS fresh while waiting, as the app does: dispatch skips a rider
-                # whose last fix is older than DRIVER_LOCATION_TTL (30 s).
+                # whose last fix is older than DRIVER_LOCATION_TTL (60 s).
                 await rider.call("rt", "POST", "/delivery/driver/location", json={
                     "lat": round(start[0], 6), "lng": round(start[1], 6), "speed": 0, "accuracy": 8})
             offered = (me.get("offer") or {}).get("order_id")

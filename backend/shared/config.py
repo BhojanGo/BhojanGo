@@ -200,7 +200,7 @@ class RealtimeSettings(BaseSettings):
 
     model_config = _ENV
 
-    DRIVER_LOCATION_TTL: int = 30  # seconds
+    DRIVER_LOCATION_TTL: int = 60  # seconds; R28: the apps send every 5 s; a minute without one is "Location lost" (no offers)
     # Dispatch (P14): offer to riders within this distance of the restaurant,
     # and only those whose last GPS fix is fresh (DRIVER_LOCATION_TTL).
     DISPATCH_RADIUS_KM: float = 6.0

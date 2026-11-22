@@ -1235,6 +1235,8 @@
       "elsewhere_sub": "Ahora se usa su ubicación. Toca para compartir la ubicación de este teléfono.",
       "background_title": "Sigue recibiendo ofertas con la pantalla apagada.",
       "background_sub": "Permite la ubicación “todo el tiempo”; puedes desactivarla al desconectarte.",
+      "location_lost_title": "Ubicación perdida.",
+      "location_lost_sub": "BhojanGo no recibe tu ubicación desde hace un minuto, así que no recibirás ofertas. Revisa que la ubicación esté activada.",
       "go_offline": "Desconectarme",
       "go_online": "Conectarme",
       "going_online": "Conectando…",

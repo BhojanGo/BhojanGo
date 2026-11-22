@@ -331,7 +331,7 @@ async def test_waiting_for_an_offer_keeps_the_gps_fresh(services: Services) -> N
     for k in range(3):
         await city.do("find_rider", order(), CUSTOMER, OWNER, NOW + timedelta(seconds=4 * k))
     fixes = [b for _, p, b in services.of("rider") if p == "/api/v1/delivery/driver/location"]
-    assert len(fixes) == 3, "dispatch skips riders whose last fix is over 30 s old"
+    assert len(fixes) == 3, "dispatch skips riders whose last fix is over 60 s old (R28)"
     assert all(0.9 <= haversine_km(KITCHEN, (f["lat"], f["lng"])) <= 1.9 for f in fixes)
 
 
