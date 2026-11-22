@@ -620,6 +620,7 @@
       "find_food": "Find something to eat",
       "error": "We couldn't load your orders. Try again.",
       "back": "All orders",
+      "refunded": "{amount} refunded",
       "code": "#{code}"
     },
     "status": {

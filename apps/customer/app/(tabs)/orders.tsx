@@ -7,6 +7,7 @@ import { Pressable, RefreshControl, SectionList, Text, View } from "react-native
 
 import { isActive, itemsSummary, listOrders, orderCode, statusLabel, type Order } from "../../lib/account";
 import { LinkButton, ui } from "../../lib/account-ui";
+import { paidAfterRefunds } from "../../lib/contract";
 import { TabEnd, useTabBarSpace } from "../../lib/tabbar";
 
 function OrderRow({ o, index }: { o: Order; index: number }) {
@@ -15,15 +16,17 @@ function OrderRow({ o, index }: { o: Order; index: number }) {
   const at = o.placed_at ?? o.created_at;
   const status = statusLabel(t, o.status);
   const tz = inZone(o.time_zone); // the order's city, never the phone's
+  const { paid, refunded } = paidAfterRefunds(o); // R28: what was actually paid, after refunds
   return (
     <Pressable testID={active ? `active-order-${index}` : `past-order-${index}`} accessibilityRole="button"
-      accessibilityLabel={`${o.restaurant_name}, ${status}, ${money(o.total, o.currency)}`}
+      accessibilityLabel={`${o.restaurant_name}, ${status}, ${money(paid, o.currency)}${refunded ? `, ${t("account.orders.refunded", { amount: money(refunded, o.currency) })}` : ""}`}
       onPress={() => router.push(active ? `/order/${o.id}` : `/account/receipt/${o.id}`)}
       style={({ pressed }) => [{ backgroundColor: color.white, borderRadius: 16, padding: space[4], gap: 6 }, active && { borderWidth: 1.5, borderColor: color.peacock }, pressed && { opacity: 0.85 }]}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space[2] }}>
         <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>{o.restaurant_name}</Txt>
-        <Text style={[type.label, num, { color: color.kohl }]}>{money(o.total, o.currency)}</Text>
+        <Text testID={`order-paid-${index}`} style={[type.label, num, { color: color.kohl }]}>{money(paid, o.currency)}</Text>
       </View>
+      {refunded ? <Text testID={`order-refunded-${index}`} style={[ui.small, num]}>{t("account.orders.refunded", { amount: money(refunded, o.currency) })}</Text> : null}
       <Text numberOfLines={1} style={ui.small}>{itemsSummary(o)}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <Text numberOfLines={1} style={[ui.small, { flex: 1 }]}>{t("app.orders.when", { date: date(at, tz), time: time(at, tz), code: orderCode(o.id) })}</Text>

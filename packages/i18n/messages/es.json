@@ -620,6 +620,7 @@
       "find_food": "Busca algo de comer",
       "error": "No pudimos cargar tus pedidos. Inténtalo de nuevo.",
       "back": "Todos los pedidos",
+      "refunded": "{amount} devueltos",
       "code": "#{code}"
     },
     "status": {

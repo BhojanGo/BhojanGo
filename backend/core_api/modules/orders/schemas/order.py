@@ -192,7 +192,7 @@ class OrderResponse(BaseModel):
     cancellation_note: str | None
     # GET /orders/{id}, the customer only (R8): may they cancel now, and what comes back.
     customer_cancel: CustomerCancel | None = None
-    # GET /orders/{id}, the customer only, once refunds were made: the total refunded.
+    # GET /orders/{id} and the orders list (R28), the customer only, once refunds were made: the total refunded.
     refunded: float | None = None
     special_instructions: str | None
     promo_code: str | None

@@ -92,6 +92,10 @@ async def list_my_orders(
     slugs = await restaurant_slugs(db, {o.restaurant_id for o in orders})
     rated = await ratings_svc.ratings_for_orders(db, [o.id for o in orders])
     riders = await _first_names(db, {o.driver_id for o in orders if o.driver_id and o.status in ACTIVE_STATES})
+    from core_api.modules.orders.service.order import refunded_totals
+
+    # R28: what was refunded, so the list shows what was actually paid ($21.89 · $16.96 refunded).
+    refunds = await refunded_totals(db, [o.id for o in orders if o.status in ("cancelled", "delivered")])
     now = datetime.now(UTC)
     items = []
     for o in orders:
@@ -101,6 +105,7 @@ async def list_my_orders(
         review = rated.get(o.id)
         out.rated = review is not None
         out.rating = OrderRating.model_validate(ratings_svc.as_dict(review, now)) if review else None
+        out.refunded = refunds.get(o.id)
         if o.status in ACTIVE_STATES:  # the website's active-order bar
             out.eta = o.estimated_delivery_time
             if o.driver_id:  # a rider is assigned: their first name; the PIN once they have the food

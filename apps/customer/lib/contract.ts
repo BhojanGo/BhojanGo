@@ -192,6 +192,16 @@ export function trackHeadline(status: string, who: string | null, kitchen: strin
   return status === "placed" ? ["s_placed", { kitchen }] : ["s_cooking", { kitchen }];
 }
 
+/**
+ * R28: what an order cost the customer after refunds (the orders list showed the total before them:
+ * 38.85 for an order with 16.96 refunded). In cents, so 38.85 − 16.96 is 21.89, never 21.889999.
+ */
+export function paidAfterRefunds(o: { total: string | number; refunded?: number | null }): { paid: number; refunded: number | null } {
+  const total = Math.round(Number(o.total) * 100);
+  const back = o.refunded ? Math.round(Number(o.refunded) * 100) : 0;
+  return { paid: Math.max(0, total - back) / 100, refunded: back > 0 ? back / 100 : null };
+}
+
 /** Order again: the latest delivered order from each kitchen, at most `limit`. */
 export function orderAgain(orders: readonly Order[] | null | undefined, limit = 3): Order[] {
   const seen = new Set<string>();
