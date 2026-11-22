@@ -4,13 +4,13 @@ import {
 } from "@bhojango/mobile-core";
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
-import { useKeepAwake } from "expo-keep-awake";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useTabletAwake } from "../lib/awake";
 import { useBoard, useBoardLoop } from "../lib/board";
 import { useKitchen } from "../lib/data";
 import { useOrientationLock } from "../lib/layout";
@@ -33,10 +33,11 @@ if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
 }
 
 export default function RootLayout() {
-  useKeepAwake(); // a kitchen tablet stays on: new orders must never wait for the screen
   useOrientationLock(); // phones upright, tablets sideways (lib/formFactor.ts)
   const fontsReady = useBrandFonts();
   const status = useSession((s) => s.status);
+  // A kitchen tablet stays on while signed in: new orders must never wait for the screen (R28: lib/awake.ts).
+  useTabletAwake(status === "signed-in");
   const initialize = useSession((s) => s.initialize);
   const failure = useSession((s) => s.failure);
   // R19: after sign-in. R27: new orders ring on their own channel with the tablet's sound (the
