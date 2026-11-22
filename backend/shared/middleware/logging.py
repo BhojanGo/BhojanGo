@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from shared.client_ip import client_ip
+from shared.middleware.correlation import request_id_var
 
 logger = structlog.get_logger(__name__)
 
@@ -22,7 +23,9 @@ class RequestLoggingMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        request_id = str(uuid.uuid4())
+        # R28: the correlation middleware (outside) already took the caller's X-Request-ID (the apps
+        # send one per request): log under that id, so an app's failed request can be found here.
+        request_id = request_id_var.get() or str(uuid.uuid4())
         start_time = time.perf_counter()
         request = Request(scope)
         # Attach request_id for downstream use (request.state.request_id)

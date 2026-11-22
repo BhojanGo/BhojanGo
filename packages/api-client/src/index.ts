@@ -45,6 +45,33 @@ export interface ApiConfig {
    * send their token.
    */
   session?: "web" | "admin";
+  /**
+   * R28: hears every request that failed: no answer at all (`error`), or an error status. Its
+   * `id` is the X-Request-ID the client sent, which the API logs, so the app's log line can be
+   * matched to the API's (or shown never to have reached it).
+   */
+  onFailure?: (failure: ApiFailure) => void;
+}
+
+/** R28: a failed request, as the client saw it. */
+export interface ApiFailure {
+  id: string;
+  method: string;
+  path: string;
+  /** The answer's status; absent when no answer came (`error` says why). */
+  status?: number;
+  error?: string;
+  /** How long it took, in ms. */
+  ms: number;
+}
+
+/** A request id: random, short enough to read in a log line. */
+export function newRequestId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  let id = "";
+  for (let i = 0; i < 32; i++) id += Math.floor(Math.random() * 16).toString(16);
+  return id;
 }
 
 export interface Api {
@@ -143,6 +170,35 @@ export function createApi(config: ApiConfig): Api {
   // failed once as "Can't reach BhojanGo" (the bag couldn't price or pay). Kept per request, freed
   // with it.
   const unsent = new WeakMap<Request, Request>();
+  // R28: every request carries an X-Request-ID; a failure is reported with it (onFailure).
+  const started = new WeakMap<Request, number>();
+  const report = (request: Request, more: { status?: number; error?: string }) => {
+    if (!config.onFailure) return;
+    let path = request.url;
+    try {
+      path = new URL(request.url).pathname;
+    } catch {
+      /* keep the url */
+    }
+    config.onFailure({ id: request.headers.get("X-Request-ID") ?? "", method: request.method, path,
+      ms: Date.now() - (started.get(request) ?? Date.now()), ...more });
+  };
+  const trace: Middleware = {
+    onRequest({ request }) {
+      // Not from a browser session (the website, admin): a custom header would make every read
+      // a CORS preflight. Their requests still get an id from the API (its response says it).
+      if (!config.session && !request.headers.has("X-Request-ID")) request.headers.set("X-Request-ID", newRequestId());
+      started.set(request, Date.now());
+      return request;
+    },
+    onResponse({ request, response }) {
+      if (response.status >= 400) report(request, { status: response.status });
+      return undefined;
+    },
+    onError({ request, error }) {
+      report(request, { error: error instanceof Error ? `${error.name}: ${error.message}` : String(error) });
+    },
+  };
   const auth: Middleware = {
     onRequest({ request }) {
       if (config.session) {
@@ -179,7 +235,16 @@ export function createApi(config: ApiConfig): Api {
       unsent.delete(request);
       if (!config.session) retry.headers.set("Authorization", `Bearer ${token}`);
       retry.headers.set("X-Retried", "1");
-      return (config.fetch ?? fetch)(retry);
+      // The retry is its own request in the API's log: the first id with "-r".
+      const first = request.headers.get("X-Request-ID");
+      if (first) retry.headers.set("X-Request-ID", `${first}-r`);
+      started.set(retry, Date.now());
+      try {
+        return await (config.fetch ?? fetch)(retry);
+      } catch (e) {
+        report(retry, { error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) });
+        throw e;
+      }
     },
   };
   const custom = {
@@ -189,6 +254,7 @@ export function createApi(config: ApiConfig): Api {
   const core = createClient<CorePaths>({ baseUrl: config.coreUrl, ...custom });
   const realtime = createClient<RealtimePaths>({ baseUrl: config.realtimeUrl, ...custom });
   const worker = createClient<WorkerPaths>({ baseUrl: config.workerUrl, ...custom });
-  for (const c of [core, realtime, worker] as Client<never>[]) c.use(auth);
+  // trace first: it sees the final answer, after auth's retry (middleware answers run in reverse).
+  for (const c of [core, realtime, worker] as Client<never>[]) c.use(trace, auth);
   return { core, realtime, worker };
 }
