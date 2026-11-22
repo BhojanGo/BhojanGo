@@ -44,10 +44,14 @@ async def acceptances(user_id: str) -> list[tuple[str, str, int, str]]:
 
 
 async def new_number(client: AsyncClient, country: str = "IN", ua: str = "okhttp/4.12.0") -> dict:
-    phone = f"+9190000{random.randint(10000, 99999)}" if country == "IN" else f"+120855{random.randint(10000, 99999)}"
-    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": country})).status_code == 200
-    r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "123456", "country": country},
-                          headers={"User-Agent": ua})
+    # R28: a number another test already used is an existing account: draw again until it is new.
+    for _ in range(5):
+        phone = f"+9190000{random.randint(10000, 99999)}" if country == "IN" else f"+120855{random.randint(10000, 99999)}"
+        assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": country})).status_code == 200
+        r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "123456", "country": country},
+                              headers={"User-Agent": ua})
+        if r.status_code == 200 and r.json()["is_new_user"]:
+            break
     assert r.status_code == 200 and r.json()["is_new_user"], r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}", "id": r.json()["user"]["id"]}
 

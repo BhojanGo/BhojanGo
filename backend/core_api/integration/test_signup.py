@@ -28,10 +28,15 @@ async def client():  # type: ignore[no-untyped-def]
 
 async def new_number(client: AsyncClient) -> dict:
     """A brand-new phone signs in (fixed seed code for the +919000000… range)."""
-    phone = f"+9190000{random.randint(10000, 99999)}"
-    assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})).status_code == 200
-    r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "123456", "country": "IN"})
-    assert r.status_code == 200 and r.json()["user"]["role"] == "customer", r.text
+    # R28: three test files draw from this range; a number another test already signed in with is an
+    # existing account (CI flake: "Legal Rider", a driver), so draw again until the number is new.
+    for _ in range(5):
+        phone = f"+9190000{random.randint(10000, 99999)}"
+        assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})).status_code == 200
+        r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "123456", "country": "IN"})
+        if r.status_code == 200 and r.json()["is_new_user"]:
+            break
+    assert r.status_code == 200 and r.json()["is_new_user"] and r.json()["user"]["role"] == "customer", r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
