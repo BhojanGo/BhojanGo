@@ -2,7 +2,7 @@
 // Tokens live in SecureStore; the client adds the access token, refreshes it
 // once on a 401 (one refresh shared by concurrent requests) and signs out if
 // the refresh token is no longer good.
-import { ApiError, createApi, unwrap, type CoreSchemas } from "@bhojango/api-client";
+import { ApiError, createApi, newRequestId, unwrap, type CoreSchemas } from "@bhojango/api-client";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
@@ -56,12 +56,18 @@ export function beforeSignOut(step: () => Promise<void>): void {
 const refreshOnce = singleFlight(async (signal) => {
   const refreshToken = await SecureStore.getItemAsync(REFRESH).catch(() => null);
   if (!refreshToken) return null;
+  const id = newRequestId(); // R28: logged by the API under this id, as every app request is
+  const started = Date.now();
   const res = await fetch(`${urls.core}/api/v1/auth/refresh`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "X-Request-ID": id },
     body: JSON.stringify({ refresh_token: refreshToken }),
     ...(signal ? { signal } : {}),
+  }).catch((e: unknown) => {
+    console.info(`[api] ${id} POST /api/v1/auth/refresh ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)} ${Date.now() - started}ms`);
+    throw e;
   });
+  if (!res.ok) console.info(`[api] ${id} POST /api/v1/auth/refresh ${res.status} ${Date.now() - started}ms`);
   // Our servers down or busy (a deploy's 502, a 429): an error, so the next request tries again.
   // Only the API refusing the refresh token (401/403/422) ends the session (null: sign out).
   if (res.status >= 500 || res.status === 408 || res.status === 429) throw new Error(`The session refresh failed (${res.status})`);
@@ -200,6 +206,9 @@ export const api = createApi({
   getAccessToken: () => useSession.getState().accessToken,
   refreshAccessToken: () => useSession.getState().refresh(),
   onSignedOut: () => void useSession.getState().signOut(),
+  // R28: a failed request goes to the device log (logcat "ReactNativeJS") with its X-Request-ID, the
+  // id the API logs it under. Never the body, the token or the query (only the path).
+  onFailure: (f) => console.info(`[api] ${f.id} ${f.method} ${f.path} ${f.status ?? f.error} ${f.ms}ms`),
   // R9: a GET that hangs fails after 8 s, so a screen shows "Can't reach BhojanGo" and Retry (load.ts).
   // R23: a throwaway-stack build may ask for longer (getTimeoutMs; never production or QA).
   // Written out in full so Expo inlines it.
