@@ -150,6 +150,10 @@ export function Tracking({ id }: { id: string }) {
   const delivered = status === "delivered";
   const stage = STAGE[status] ?? 1;
   const rider = riderFirstName(order);
+  // R28: a partner who accepted is heading to the kitchen at once, named or not; never "Finding a
+  // delivery partner" after someone took the order.
+  const assigned = !!order.driver_id || !!(order as { rider?: unknown }).rider;
+  const who = rider ?? (assigned ? t("track.your_rider") : null);
   const kitchen = order.restaurant_name;
   const stamp = (...states: string[]) => (order.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status))?.at ?? null;
   const arrivesAt = live.eta?.arrives_at ?? order.estimated_delivery_time;
@@ -179,8 +183,10 @@ export function Tracking({ id }: { id: string }) {
         : status === "picked_up"
           ? t("track.s_picked_up", { rider: rider ?? t("track.your_rider") })
           : status === "ready"
-            ? rider ? t("track.s_heading", { rider }) : t("track.s_finding")
-            : status === "placed"
+            ? who ? t("track.s_heading", { rider: who }) : t("track.s_finding")
+            : who
+              ? t("track.s_heading", { rider: who })
+              : status === "placed"
               ? t("track.s_placed", { kitchen })
               : t("track.s_cooking", { kitchen });
 
@@ -257,7 +263,7 @@ export function Tracking({ id }: { id: string }) {
               <b className="block text-h1 tracking-[0.3em]" data-testid="delivery-pin">{pin}</b>
             </div>
           )}
-          {live.searching && !rider && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
+          {live.searching && !assigned && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
         </section>
 
         {/* the steps */}
