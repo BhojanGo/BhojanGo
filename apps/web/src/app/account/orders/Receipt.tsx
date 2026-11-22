@@ -15,7 +15,7 @@ import { isActive, kitchenBrief, orderCode, saveFile, Thumb, useKitchenBrief, ty
 import { kitchenPhoto } from "@/components/KitchenPhoto";
 import { FairBill } from "@/components/FairBill";
 import { RateOrder } from "@/components/order/RateOrder";
-import { authed, useBag } from "@/lib/client";
+import { authed, okToReplaceBag, useBag } from "@/lib/client";
 import { photo } from "@/lib/format";
 import { useCountry, useFormat, useT } from "@/lib/i18n";
 import type { BillLine } from "@/lib/server";
@@ -108,6 +108,7 @@ export function Receipt({ id }: { id: string }) {
   }
 
   async function orderAgain() {
+    if (order && !okToReplaceBag(order.restaurant_id, t)) return;
     setBusy("again");
     setProblem(null);
     setMissing(null);

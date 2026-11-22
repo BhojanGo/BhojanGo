@@ -20,7 +20,7 @@ import { useKitchenBrief } from "@/components/account/shared";
 import { KitchenCard } from "@/components/Cards";
 import { kitchenPhoto, KitchenPhoto } from "@/components/KitchenPhoto";
 import { AddressPill } from "@/components/HeaderParts";
-import { api, authed, useBag, useHydrated, useSession } from "@/lib/client";
+import { api, authed, okToReplaceBag, useBag, useHydrated, useSession } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
 import { partOfDay, photo } from "@/lib/format";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
@@ -131,6 +131,7 @@ function OrderAgain({ orders, covers, cityName }: { orders: Order[]; covers: Rec
   if (!past.length) return null;
 
   async function again(o: Order) {
+    if (!okToReplaceBag(o.restaurant_id, t)) return;
     setBusy(o.id);
     setProblem(null);
     try {

@@ -8,6 +8,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import {
   minutesUntil, offerPayer, offerSubtitle, offerTitle, orderAgain, riderFirstName, type CuisineTileData, type Offer, type Order,
 } from "../lib/contract";
+import { okToReplaceBag } from "../lib/newBag";
 import { reorder } from "../lib/orders";
 import { BrandTile, photo, Photo, Thumb } from "../lib/plate";
 
@@ -58,6 +59,7 @@ export function OrderAgain({ orders, covers }: { orders: Order[]; covers: Record
   if (!past.length) return null;
 
   async function again(o: Order) {
+    if (!(await okToReplaceBag(o.restaurant_id, t))) return; // R28: asks before clearing another kitchen's bag
     setBusy(o.id);
     setProblem(null);
     try {
