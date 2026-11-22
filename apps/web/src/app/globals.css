@@ -10,6 +10,14 @@
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-50;
   }
+
+  /* R27: Tamil and Telugu words are long single words ("ரத்துசெய்யப்பட்டது"). Let a word break where it would
+     otherwise run out of its box; "anywhere" also lowers the min-content width, so a flex or grid
+     child never pushes the page wider than a 360 px phone (tools/web/i18n_layout.py checks this). */
+  html:lang(ta) body,
+  html:lang(te) body {
+    overflow-wrap: anywhere;
+  }
 }
 
 @layer utilities {
