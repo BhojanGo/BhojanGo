@@ -473,6 +473,7 @@
     "stripe_update_app": "Esta versión de la app no puede abrir la pantalla de pago con tarjeta. Actualiza BhojanGo para pagar.",
     "back_home": "Volver al inicio",
     "payments_unavailable": "Los pagos aún no están disponibles en esta ciudad.",
+    "payments_retry": "No pudimos comprobar los pagos. Toca para intentarlo de nuevo.",
     "place_free": "Hacer pedido"
   },
   "track": {
