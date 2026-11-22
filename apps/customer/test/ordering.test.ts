@@ -19,7 +19,7 @@ test("production never opens the test payment sheet", () => {
   assert.equal(payMode("stripe", true), "stripe");
   assert.equal(payMode("fake", true), "unavailable");
   assert.equal(payMode("razorpay", true), "unavailable"); // no in-app Razorpay checkout yet
-  assert.equal(payMode("error", true), "unavailable");
+  assert.equal(payMode("error", true), "retry"); // R28: a failed lookup is never "not available in this city"
   assert.equal(payMode(null, true), "loading");
 });
 
@@ -27,7 +27,7 @@ test("test builds use the test sheet, but not when the provider can't be looked 
   assert.equal(payMode("fake", false), "test");
   assert.equal(payMode("razorpay", false), "test");
   assert.equal(payMode("stripe", false), "stripe");
-  assert.equal(payMode("error", false), "unavailable");
+  assert.equal(payMode("error", false), "retry");
 });
 
 test("only a quote of exactly nothing skips payment (R20 review orders)", () => {

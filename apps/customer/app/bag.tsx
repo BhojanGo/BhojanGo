@@ -8,7 +8,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
-import { closedWords, isFreeOrder, payMode, type ProviderAnswer } from "../lib/ordering";
+import { closedWords, isFreeOrder, payMode, PROVIDER_RETRY_MS, type ProviderAnswer } from "../lib/ordering";
 import { useAvailability } from "../lib/restaurants";
 import { paymentProvider, payWithStripe, startPayment, waitForPayment, type PayOutcome } from "../lib/pay";
 import { useWhere } from "../lib/where";
@@ -54,19 +54,29 @@ export default function Bag() {
   const currency = market?.currency ?? country?.currency ?? "";
   const method: "upi" | "card" = country?.payment_methods.includes("upi") ? "upi" : "card";
   // Stripe PaymentSheet or the test sheet: the server decides (its keys for this country).
-  // R19: fails closed. No answer, or no live provider in production: "Payments aren't available
-  // in this city yet" and Pay is off; the test sheet only ever opens in a test build (lib/ordering.ts).
+  // R19: fails closed: Pay is off without a live provider; the test sheet only ever opens in a test build.
+  // R28: "Payments aren't available in this city yet" only when the server says so; a lookup that got
+  // no answer is asked again (PROVIDER_RETRY_MS, then on Retry, and with every re-price).
   const [provider, setProvider] = useState<ProviderAnswer>(null);
+  const [providerAsk, setProviderAsk] = useState(0);
   const mode = payMode(provider, appEnv() === "production");
   const payCountry = point?.country || country?.code || "";
   useEffect(() => {
     if (!payCountry) return;
     let live = true;
-    paymentProvider(payCountry).then((p) => live && setProvider(p), () => live && setProvider("error"));
+    let again: ReturnType<typeof setTimeout> | undefined;
+    const ask = (tries: number) => paymentProvider(payCountry).then((p) => live && setProvider(p), () => {
+      if (!live) return;
+      setProvider("error");
+      const wait = PROVIDER_RETRY_MS[tries];
+      if (wait !== undefined) again = setTimeout(() => void ask(tries + 1), wait);
+    });
+    void ask(0);
     return () => {
       live = false;
+      clearTimeout(again);
     };
-  }, [payCountry]);
+  }, [payCountry, providerAsk, attempt]);
 
   // Re-price whenever the bag or the tip changes; the quote is what gets charged.
   const lines = bag.lines;
@@ -109,6 +119,14 @@ export default function Bag() {
       live = false;
     };
   }, [bag.restaurantId, lines, bag.tip, point, attempt, avail?.open_now]); // re-priced when the kitchen opens (R27)
+
+  // R28: when the price hold runs out (the bag sat idle, or the app was in the background), price it
+  // again, silently; Pay waits for the new quote. It said nothing and Pay stayed off.
+  useEffect(() => {
+    if (!quote) return;
+    const timer = setTimeout(() => setAttempt((a) => a + 1), Math.max(0, new Date(quote.expires_at).getTime() - Date.now()) + 500);
+    return () => clearTimeout(timer);
+  }, [quote]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -273,14 +291,16 @@ export default function Bag() {
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
         ) : (
           <Button
-            testID={blocked ? "pay-blocked" : free ? "place-free" : mode === "unavailable" ? "pay-unavailable" : "pay"}
+            testID={blocked ? "pay-blocked" : free ? "place-free" : mode === "unavailable" ? "pay-unavailable" : mode === "retry" ? "pay-retry" : "pay"}
             title={blocked ?? (free ? t("checkout.place_free") : mode === "unavailable" ? t("checkout.payments_unavailable")
+              : mode === "retry" ? t("checkout.payments_retry")
               : quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
             size="lg"
             block
             loading={paying}
-            disabled={!!blocked || !quote || held === 0 || (!free && mode !== "stripe" && mode !== "test")}
-            onPress={() => (free ? void placeFree() : mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true) : undefined)}
+            disabled={!!blocked || !quote || held === 0 || (!free && mode !== "stripe" && mode !== "test" && mode !== "retry")}
+            onPress={() => (free ? void placeFree() : mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true)
+              : mode === "retry" ? (setProvider(null), setProviderAsk((n) => n + 1)) : undefined)}
           />
         )}
       </View>

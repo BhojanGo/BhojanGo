@@ -46,15 +46,21 @@ export type ProviderAnswer = "stripe" | "razorpay" | "fake" | "error" | null;
 
 /**
  * How checkout takes the payment. Production fails closed: only a live provider the app
- * can open (Stripe PaymentSheet) pays; the test sheet never shows there. Anywhere, a
- * provider that can't be looked up means payments aren't available (never the test sheet).
+ * can open (Stripe PaymentSheet) pays; the test sheet never shows there. R28: a lookup that
+ * got no answer is "retry" (Pay stays off, the button says so and asks again), never
+ * "Payments aren't available in this city yet": that is only when the server's answer is
+ * that the country has no provider the app can open in production.
  */
-export type PayMode = "stripe" | "test" | "unavailable" | "loading";
+export type PayMode = "stripe" | "test" | "unavailable" | "loading" | "retry";
+
+/** R28: a provider lookup that failed is asked again after these waits (then on Retry). */
+export const PROVIDER_RETRY_MS = [2000, 5000, 15000];
 
 export function payMode(answer: ProviderAnswer, production: boolean): PayMode {
   if (answer === null) return "loading";
   if (answer === "stripe") return "stripe";
-  if (answer === "error" || production) return "unavailable";
+  if (answer === "error") return "retry";
+  if (production) return "unavailable";
   return "test"; // local and QA: the app's test sheet stands in for the provider
 }
 
