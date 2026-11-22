@@ -353,10 +353,15 @@ partner accepted 20:23:55, ready 20:24, picked up 20:24:51 (PIN 3736 shown from 
 Salmon Poke Bowl refunded $16.96 (missing item) 20:27; receipt: total $38.85, refunded $16.96, paid $21.89.
 
 Found on the journey:
-- **Fixed in #205:** a POST sent after the 15-minute access token expired failed as "Can't reach
-  BhojanGo" (the bag couldn't price or pay; Retry failed too) because the retry reused the sent request's
-  body. Since P17, not an R27 change. Same PR: the Delivery app's GPS now refreshes the token on a 401
-  (it stopped sharing its position after 15 min online).
+- **Not fixed yet: after ~15 quiet minutes the bag says "Can't reach BhojanGo"** (no price, Pay
+  disabled; Retry fails too; opening another screen first makes it work). #205 fixed one real cause: on a
+  401 the retry reused the sent request's body, so any POST after the access token expired failed (since
+  P17; a test reproduces it, and a forced-expired token now prices fine on the emulator). But the same
+  check after 17 idle minutes with #205 still failed, and the payment-provider GET failed with it, so
+  there is a second cause, not yet found (suspect: the first requests after idle reuse a dead
+  connection). Next round: log the real error on the device and fix it before the pilot.
+  #205 also makes the Delivery app's GPS refresh the token on a 401 (it stopped sharing its position
+  after 15 min online).
 - Open: an offer that times out counts as declined for a day, so with one partner nearby the order waits
   until another partner comes online. Customer tracking says "Finding a delivery partner" after a partner
   has accepted (until pickup). Adding a dish from another kitchen replaces the bag without asking. The
