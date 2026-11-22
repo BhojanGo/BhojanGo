@@ -360,6 +360,7 @@
     "new_bag_title": "Start a new bag?",
     "new_bag_body": "Your bag has dishes from {kitchen}. A bag holds one kitchen, so adding {dish} starts a new one.",
     "keep_bag": "Keep my bag",
+    "new_bag_cleared": "Your bag from {kitchen} will be cleared.",
     "start_new_bag": "Start a new bag",
     "your_bag": "Your bag",
     "items": {

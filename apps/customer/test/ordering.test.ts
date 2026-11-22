@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isFreeOrder, orderingBlock, payMode } from "../lib/ordering.ts";
+import { bagConflict, isFreeOrder, orderingBlock, payMode } from "../lib/ordering.ts";
 
 test("a pause or a closed kitchen blocks adding dishes, the pause named first", () => {
   assert.equal(orderingBlock({ paused: false, closedForNow: false, isOpen: true }), null);
@@ -53,4 +53,13 @@ test("R27: a kitchen closed by its hours says when orders open; outside the city
   assert.equal(closedWords({ open_now: false, reason_code: "outside_delivery_hours", next_open_at: "2026-11-21T08:00:00-07:00", timezone: "America/Boise" }, opens, t),
     "kitchen.deliveries_start@2026-11-21T08:00:00-07:00@America/Boise");
   assert.equal(closedWords({ open_now: false, reason_code: "closed", next_open_at: null }, opens, t), "kitchen.bag_closed");
+});
+
+// R28: adding a dish from another kitchen asks before the bag is cleared (it was replaced silently).
+test("bagConflict: only a bag with dishes from another kitchen asks", () => {
+  const bag = { restaurantId: "k1", restaurantName: "Boise Bowl Co.", lines: [{}] };
+  assert.equal(bagConflict(bag, "k2"), "Boise Bowl Co.");
+  assert.equal(bagConflict(bag, "k1"), null, "same kitchen");
+  assert.equal(bagConflict({ ...bag, lines: [] }, "k2"), null, "empty bag");
+  assert.equal(bagConflict({ restaurantId: null, restaurantName: null, lines: [] }, "k2"), null);
 });

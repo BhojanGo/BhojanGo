@@ -360,6 +360,7 @@
     "new_bag_title": "¿Empezar un carrito nuevo?",
     "new_bag_body": "Tu carrito tiene platillos de {kitchen}. Un carrito solo admite una cocina, así que agregar {dish} empieza uno nuevo.",
     "keep_bag": "Conservar mi carrito",
+    "new_bag_cleared": "Se vaciará tu carrito de {kitchen}.",
     "start_new_bag": "Empezar carrito nuevo",
     "your_bag": "Tu carrito",
     "items": {
