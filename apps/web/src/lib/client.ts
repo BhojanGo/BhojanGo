@@ -208,6 +208,14 @@ export const useBag = create<Bag>()(persist((set) => ({
   clear: () => set({ restaurant: null, lines: [], tip: 0 }),
 }), { name: "bhojango-bag", storage: createJSONStorage(() => localStorage) }));
 
+/** R28: before Order again replaces a bag from another kitchen, ask ("Start a new bag? Your bag from X will be cleared."). */
+export function okToReplaceBag(restaurantId: string, t: (key: string, values?: Record<string, string>) => string): boolean {
+  const { restaurant, lines } = useBag.getState();
+  if (!lines.length || !restaurant || restaurant.id === restaurantId) return true;
+  return window.confirm(`${t("kitchen.new_bag_title")}
+${t("kitchen.new_bag_cleared", { kitchen: restaurant.name })}`);
+}
+
 export function cartItems(lines: BagLine[]) {
   return lines.map((l) => ({ menu_item_id: l.menuItemId, quantity: l.quantity, options: l.picks }));
 }
