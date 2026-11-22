@@ -50,7 +50,8 @@
     "people_waiting": {
       "one": "{n} person waiting",
       "other": "{n} people waiting"
-    }
+    },
+    "closed_opens_day": "Closed · opens {day} {time}"
   },
   "header": {
     "where_we_deliver": "Where we deliver",
@@ -370,7 +371,12 @@
     "bag_paused": "Ordering is paused",
     "bag_closed_for_now": "This kitchen is closed for now",
     "not_taking_orders": "Not taking orders right now",
-    "not_taking_orders_note": "This kitchen isn't taking orders right now. You can look at the menu; ordering opens again when it's back."
+    "not_taking_orders_note": "This kitchen isn't taking orders right now. You can look at the menu; ordering opens again when it's back.",
+    "opens_at_day": "Opens {day} {time}",
+    "bag_closed": "This kitchen is closed now",
+    "bill_when_open": "The whole bill shows here when the kitchen is open.",
+    "deliveries_start": "Deliveries start {time}",
+    "deliveries_start_day": "Deliveries start {day} {time}"
   },
   "checkout": {
     "title": "Checkout",
@@ -1588,7 +1594,8 @@
       "min_away": "{min} min away",
       "finding_rider": "Finding a delivery partner",
       "order_code": "Order code {code}",
-      "today_refunds": "{amount} refunded"
+      "today_refunds": "{amount} refunded",
+      "deliveries_run": "Deliveries run {from}–{to}"
     },
     "offline": {
       "banner": "Not receiving orders: reconnecting"

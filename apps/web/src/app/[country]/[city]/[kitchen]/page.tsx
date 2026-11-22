@@ -2,6 +2,7 @@
 // server-rendered with Restaurant + Menu structured data. The fee, the offer
 // and the distance are for the visitor's address (discover) when one is set;
 // adding to the bag happens in the browser.
+import { opensLabel } from "@bhojango/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -47,7 +48,7 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const hit = await load(params);
   if (!hit) notFound();
   const { r, path } = hit;
-  const { t, place, formatLocale, country } = await getContext();
+  const { t, place, formatLocale, country, language } = await getContext();
   const [m, avail, near, pauses] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null), orderingPauses()]);
   // R18: ordering paused where this kitchen is (the city, its country or everywhere): the bag says so
   const orderingPaused = shownPauses(pauses, path).length > 0;
@@ -80,15 +81,23 @@ export default async function KitchenPage({ params }: { params: Params }) {
   // R17: paused by BhojanGo (an incident): "Closed for now", and when it's back if the admin said
   const forNow = Boolean(avail?.closed_for_now ?? (r as { closed_for_now?: boolean }).closed_for_now);
   const backAt = avail?.back_at ? new Intl.DateTimeFormat(formatLocale, { hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.back_at)) : null;
-  const nextOpen = avail?.next_open_at ? new Intl.DateTimeFormat(formatLocale, { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: avail.timezone ?? country?.timezone }).format(new Date(avail.next_open_at)) : opens;
+  // R27: when orders can next come in (the kitchen's hours and the city's delivery hours both), on the kitchen's
+  // clock: "Opens 8:00 am", another day "Opens Sat 8:00 am" with the weekday in the visitor's language.
+  const zoneOpts = { timeZone: avail?.timezone ?? country?.timezone, formatLocale, language };
+  const outside = avail?.reason_code === "outside_delivery_hours";
+  const nextOpen = opensLabel(t, avail?.next_open_at, zoneOpts, outside
+    ? { today: "kitchen.deliveries_start", day: "kitchen.deliveries_start_day" } : { today: "kitchen.opens_at", day: "kitchen.opens_at_day" });
   // R27: open by its hours, but the kitchen's tablet isn't connected: not taking orders right now
+  // (the API only says so for a kitchen open by its hours: closed by its hours comes first).
   const notTaking = Boolean(avail?.not_taking_orders) && !forNow;
+  // The same words on the bag and its button as in the app: "Closed · opens 6:30 am".
+  const closedLabel = !closedNow || forNow || notTaking ? null : (outside ? nextOpen : opensLabel(t, avail?.next_open_at, zoneOpts)) ?? t("kitchen.bag_closed");
   const hours = forNow
     ? { label: t("kitchen.closed_for_now"), value: backAt ? t("kitchen.back_at", { time: backAt }) : t("kitchen.back_soon") }
     : notTaking
     ? { label: t("kitchen.not_taking_orders"), value: t("kitchen.back_soon") }
     : closedNow
-    ? { label: t("kitchen.closed_now"), value: nextOpen ? t("kitchen.opens_at", { time: nextOpen }) : t("kitchen.closed_now") }
+    ? { label: t("kitchen.closed_now"), value: nextOpen ?? (opens ? t("kitchen.opens_at", { time: opens }) : t("kitchen.closed_now")) }
     : opens && closes
       ? { label: t("kitchen.open_today"), value: t("kitchen.hours", { from: opens, to: closes }) }
       : { label: t("kitchen.open_today"), value: t("common.open_now") };
@@ -196,6 +205,8 @@ export default async function KitchenPage({ params }: { params: Params }) {
         categories={categories}
         deliverTo={place ? (place.address_id ? { address_id: place.address_id } : { lat: place.lat, lng: place.lng }) : null}
         closed={closedNow}
+        closedLabel={closedLabel}
+        closedNote={avail?.closed_note ?? null}
         forNow={forNow}
         notTaking={notTaking}
         orderingPaused={orderingPaused}

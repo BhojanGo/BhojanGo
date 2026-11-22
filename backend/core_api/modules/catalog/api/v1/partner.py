@@ -55,6 +55,11 @@ class StateOut(BaseModel):
     closes_at: str | None
     # The kitchen's city time zone (IANA): paused_until, busy_until and its orders' times are shown in it.
     time_zone: str | None = None
+    # R27: why it's closed (availability's reason_code) and when orders can next come in, for the tablet to
+    # word in its language: "Closed · opens 6:30 am", "Deliveries start 8:00 am".
+    reason_code: str | None = None
+    opens_at: datetime | None = None
+    delivery_hours: dict | None = None
     # R27: customers can't order because no tablet of this kitchen is connected (reason says so).
     not_taking_orders: bool = False
     # R27: the last time customers couldn't order because this kitchen's tablet was silent for over
@@ -86,11 +91,8 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
     from core_api.modules.payments.service.lookup import order_refunds
 
     refunded = kitchen_refunds((await order_refunds(db, [oid for oid, _ in rows])).values())
-    from core_api.modules.catalog.service import hours as H
-    from core_api.modules.catalog.service.menu import _hours  # weekly hours, for "Open till"
-
-    weekly, overrides = await _hours(db, r.id)
-    closes = H.closes_at(a.local_time, weekly, overrides)
+    # "Open till": the earlier of the kitchen's closing and the end of the city's deliveries (R27).
+    closes = a.open_until
     from shared import kitchen_live
 
     tablet = await kitchen_live.status(r.id)
@@ -105,6 +107,7 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).
         closes_at=closes.strftime("%H:%M") if closes else (r.closes_at or None), time_zone=a.timezone,
         not_taking_orders=a.no_tablet, offline_from=tablet.gap_from if gap else None, offline_to=tablet.gap_to if gap else None,
+        reason_code=a.reason_code, opens_at=a.next_open_at if not a.open_now else None, delivery_hours=a.delivery_hours,
     )
 
 

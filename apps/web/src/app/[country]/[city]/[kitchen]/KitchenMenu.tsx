@@ -65,11 +65,22 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow = false, notTaking = false, orderingPaused = false }: { restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean; forNow?: boolean; notTaking?: boolean; orderingPaused?: boolean }) {
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedLabel = null, closedNote = null, forNow = false, notTaking = false, orderingPaused = false }: {
+  restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean;
+  /** R27: "Closed · opens 6:30 am" (the kitchen's hours or the city's delivery hours), worded on the server. */
+  closedLabel?: string | null;
+  /** The kitchen's note on a day it's closed ("Staff holiday"). */
+  closedNote?: string | null;
+  forNow?: boolean;
+  /** R27: open by its hours, but the kitchen's tablet isn't connected: "Not taking orders right now". */
+  notTaking?: boolean;
+  orderingPaused?: boolean;
+}) {
   const t = useT();
-  // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button.
-  // R27: the kitchen's tablet isn't connected: "Not taking orders right now".
-  const blocked = orderingPaused ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now") : notTaking ? t("kitchen.not_taking_orders") : null;
+  // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button;
+  // R27: and a kitchen closed by its hours, with when it opens; then one whose tablet isn't connected.
+  const blocked = orderingPaused ? t("kitchen.bag_paused") : forNow ? t("kitchen.bag_closed_for_now")
+    : notTaking ? t("kitchen.not_taking_orders") : closed ? (closedLabel ?? t("kitchen.bag_closed")) : null;
   const f = useFormat();
   const hydrated = useHydrated();
   const bag = useBag();
@@ -156,7 +167,13 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow 
           </label>
         </div>
 
-        {closed && <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{t(forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}</p>}
+        {closed && (
+          <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]" data-testid="kitchen-closed">
+            {!forNow && closedLabel ? <b className="block" data-testid="kitchen-status">{closedLabel}</b> : null}
+            {closedNote ? <span className="block">{closedNote}</span> : null}
+            {t(forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}
+          </p>
+        )}
         {categories.length === 0 && <p className="mt-8 text-muted">{t("kitchen.menu_unavailable")}</p>}
         {q.trim() && shown.length === 0 && <p className="mt-8 text-muted">{t("kitchen.no_match", { q: q.trim() })}</p>}
 
@@ -177,15 +194,17 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, forNow 
                   <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
                     <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
                     <span aria-live="polite" className="min-w-[14px] text-center tabular-nums">{n}</span>
-                    <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:opacity-50"><Plus color="#FFFFFF" /></button>
+                    <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} title={closed ? blocked ?? undefined : undefined} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Plus color="#FFFFFF" /></button>
                   </span>
                 ) : (
                   <button
                     type="button"
                     disabled={closed}
                     aria-label={t("kitchen.add_dish", { name: i.name })}
+                    title={closed ? blocked ?? undefined : undefined}
                     onClick={() => plus(i)}
-                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:border-[#C9D3D4] disabled:text-muted"
+                    // R27: plainly off while the kitchen is closed (R26: it barely looked disabled)
+                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:cursor-not-allowed disabled:border-dashed disabled:border-[#C9D3D4] disabled:bg-[#F4F6F6] disabled:text-[#8A9599] disabled:shadow-none disabled:hover:bg-[#F4F6F6]"
                   >
                     {t("common.add")}
                   </button>
@@ -449,7 +468,7 @@ function BagPanel({ quote, signedIn, hasAddress, kitchenId, blocked = null }: { 
               <b className="tabular-nums">{f.money(foodSubtotal(lines), currency)}</b>
             </div>
             <p className="mt-1 text-small text-muted" aria-live="polite">
-              {quote.loading ? t("kitchen.working_out") : quote.error ? quote.error : !signedIn ? t("kitchen.bill_after_sign_in") : !hasAddress ? t("kitchen.bill_after_address") : t("kitchen.bill_at_checkout")}
+              {blocked ? t("kitchen.bill_when_open") : quote.loading ? t("kitchen.working_out") : quote.error ? quote.error : !signedIn ? t("kitchen.bill_after_sign_in") : !hasAddress ? t("kitchen.bill_after_address") : t("kitchen.bill_at_checkout")}
             </p>
           </>
         )}

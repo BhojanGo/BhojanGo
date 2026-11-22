@@ -163,6 +163,12 @@ async def test_holiday_closes_the_restaurant(client: AsyncClient) -> None:
         r = await quote(client, customer, rest["id"], [{"menu_item_id": next(iter(items.values()))["id"], "quantity": 2}],
                         where=(17.4401, 78.3489))
         assert r.status_code == 422 and "Staff holiday" in r.text
+        # R27: the bag words it itself: why, the kitchen's note and when it opens, with the city's tip buttons.
+        d = r.json()["detail"]
+        assert d["code"] == "KITCHEN_CLOSED" and d["reason_code"] == "closed_today" and d["closed_note"] == "Staff holiday", d
+        assert d["time_zone"] == "Asia/Kolkata" and "tip_presets" in d
+        assert a["reason_code"] == "closed_today" and a["closed_note"] == "Staff holiday"
+        assert a["next_open_at"] is None or a["next_open_at"] > a["local_time"]  # never "now" while closed
     finally:
         await open_all_day([rest["id"]])
     assert (await client.get(f"/api/v1/restaurants/{rest['id']}/availability")).json()["open_now"] is True
@@ -213,3 +219,48 @@ async def test_expired_fssai_pauses_the_listing(client: AsyncClient) -> None:
     assert r.json()["paused_reason"] is None
     names = [x["name"] for x in (await client.get("/api/v1/restaurants", params={"limit": 50})).json()["items"]]
     assert "Charminar Chai House" in names
+
+
+async def test_a_boise_kitchen_opening_before_deliveries_start() -> None:
+    """R27 (R26 finding): a kitchen opening at 06:30 in Boise, where deliveries run 08:00-23:00. Between
+    06:30 and 08:00 it can't take orders and opens at 08:00 (never "now"); before 06:30 the same. Done in
+    one transaction that is rolled back, at a fixed date away from the suite's open-all-day overrides."""
+    from zoneinfo import ZoneInfo
+
+    from sqlalchemy import text
+
+    from core_api.modules.catalog.service.menu import availability
+    from shared.db import AsyncSessionLocal
+
+    boise = ZoneInfo("America/Boise")
+    async with AsyncSessionLocal() as db:
+        rid = (await db.execute(text(
+            "SELECT r.id FROM restaurants r WHERE r.city ILIKE 'Boise%' AND r.is_active AND r.deleted_at IS NULL "
+            "AND r.admin_paused_at IS NULL AND r.paused_reason IS NULL ORDER BY r.name LIMIT 1"))).scalar_one()
+        await db.execute(text("UPDATE restaurants SET is_open = true, paused_until = NULL WHERE id = :r"), {"r": rid})
+        await db.execute(text("UPDATE cities SET service_hours = '{\"open\": \"08:00\", \"close\": \"23:00\"}'::jsonb "
+                              "WHERE code = 'US-ID-BOI'"))
+        await db.execute(text("DELETE FROM store_hours WHERE restaurant_id = :r"), {"r": rid})
+        for d in range(7):
+            await db.execute(text("INSERT INTO store_hours (id, restaurant_id, weekday, opens, closes) "
+                                  "VALUES (gen_random_uuid(), :r, :d, '06:30', '22:00')"), {"r": rid, "d": d})
+        try:
+            def boi(y: int, m: int, d: int, hh: int, mm: int = 0) -> datetime:
+                return datetime(y, m, d, hh, mm, tzinfo=boise)
+
+            day = (2027, 1, 15)  # a Friday, MST
+            a = await availability(db, rid, boi(*day, 7, 0))
+            assert not a.open_now and a.reason_code == "outside_delivery_hours"
+            assert a.next_open_at == boi(*day, 8, 0), a.next_open_at  # not 07:00 ("now"), not 06:30
+            assert a.reason == "Deliveries run 8:00 am–11:00 pm · opens 8:00 am"
+            a = await availability(db, rid, boi(*day, 6, 0))
+            assert not a.open_now and a.reason_code == "closed" and a.next_open_at == boi(*day, 8, 0)
+            a = await availability(db, rid, boi(*day, 8, 0))
+            assert a.open_now and a.reason_code is None and a.open_until == boi(*day, 22, 0)
+            a = await availability(db, rid, boi(*day, 22, 0))
+            assert not a.open_now and a.next_open_at == boi(2027, 1, 16, 8, 0) and "opens Sat 8:00 am" in a.reason
+            # Across the change to daylight time (Sun 14 Mar 2027): 08:00 MDT is 14:00 UTC.
+            a = await availability(db, rid, boi(2027, 3, 13, 23, 0))
+            assert a.next_open_at is not None and a.next_open_at.astimezone(UTC) == datetime(2027, 3, 14, 14, 0, tzinfo=UTC)
+        finally:
+            await db.rollback()

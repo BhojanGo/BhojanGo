@@ -178,6 +178,15 @@ class OrderService:
             raise _err(status.HTTP_409_CONFLICT, "ORDERING_PAUSED", pause_message(paused))
         if rest is not None and rest.closed_for_now:
             raise _err(status.HTTP_409_CONFLICT, "KITCHEN_PAUSED", f"{rest.name} is closed for now")
+        if rest is not None:
+            # R27: a quote is good for 10 minutes; a kitchen that closed since (its hours, the city's
+            # delivery hours, paused) takes no order.
+            from core_api.modules.catalog.service.menu import availability
+
+            avail = await availability(self.db, rest.id, now)
+            # Closed by its hours first; a kitchen open by its hours but with no live tablet: KITCHEN_OFFLINE below.
+            if not avail.open_now and avail.reason_code != "not_taking_orders":
+                raise _err(status.HTTP_409_CONFLICT, "KITCHEN_CLOSED", f"{rest.name}: {avail.reason}")
         # R27: no order for a kitchen whose tablet isn't connected (nobody would see it).
         from core_api.modules.catalog.service.menu import tablet_offline
 

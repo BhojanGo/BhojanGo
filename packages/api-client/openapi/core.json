@@ -14584,6 +14584,18 @@
             "title": "Currency",
             "type": "string"
           },
+          "delivery_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Hours"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -14621,6 +14633,18 @@
             "title": "Open Now",
             "type": "boolean"
           },
+          "opens_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opens At"
+          },
           "paused": {
             "title": "Paused",
             "type": "boolean"
@@ -14651,6 +14675,17 @@
               }
             ],
             "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
           },
           "restaurant_id": {
             "title": "Restaurant Id",
@@ -26242,7 +26277,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}/availability": {
       "get": {
-        "description": "Open now? If not, why and when it opens (restaurant hours, holidays,\nthe city's delivery hours, a paused listing).",
+        "description": "Open now? If not, why (`reason_code`) and when an order can next be placed (`next_open_at`:\ninside both the kitchen's hours and the city's delivery hours), in the city's `timezone`.\nWhile open, `open_until` is when ordering stops.",
         "operationId": "get_availability_api_v1_restaurants__restaurant_id__availability_get",
         "parameters": [
           {

@@ -4,10 +4,11 @@
 // engine's; nothing is computed here. A quote that belongs to an older bag is
 // never shown (it is keyed by the request it answered).
 import { errorMessage, quoteRefusal, unwrap, type CoreSchemas, type QuoteRefusal } from "@bhojango/api-client";
+import { opensLabel } from "@bhojango/i18n";
 import { useEffect, useState } from "react";
 
 import { api, cartItems, type BagLine } from "@/lib/client";
-import { useFormat, useT } from "@/lib/i18n";
+import { useFormat, useLanguage, useT } from "@/lib/i18n";
 
 export type Quote = CoreSchemas["QuoteOut"];
 export type DeliverTo = { address_id: string } | { lat: number; lng: number };
@@ -30,6 +31,7 @@ export function useQuote(opts: {
   const key = body ? JSON.stringify([body, nonce ?? 0]) : null;
   const t = useT();
   const f = useFormat();
+  const { language } = useLanguage();
   const [res, setRes] = useState<{ key: string; quote?: Quote; error?: string; refusal?: QuoteRefusal | null } | null>(null);
 
   useEffect(() => {
@@ -56,11 +58,19 @@ export function useQuote(opts: {
   // A bag under the minimum is worded here, in the visitor's language, with the amount
   // in the country's format (whole amounts without ".00"); anything else shows the API's message.
   const refusal = fresh?.refusal ?? null;
+  // R27: a closed kitchen in the visitor's words: "Closed · opens 6:30 am" on the kitchen's clock.
+  const closed = refusal?.code === "KITCHEN_CLOSED" ? refusal : null;
   const error =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
       ? t("checkout.min_order", { zone: refusal.zone, amount: f.money(refusal.amount, refusal.currency ?? undefined) })
-      : fresh?.error ?? null;
-  return { quote: fresh?.quote ?? null, error, refusal, loading: !!key && !fresh };
+      : closed
+        ? closed.reason_code === "closed_for_now" ? t("kitchen.bag_closed_for_now")
+          : opensLabel(t, closed.opens_at, { timeZone: closed.time_zone, formatLocale: f.formatLocale, language },
+            closed.reason_code === "outside_delivery_hours" ? { today: "kitchen.deliveries_start", day: "kitchen.deliveries_start_day" } : undefined)
+            ?? t("kitchen.bag_closed")
+        : refusal?.code === "KITCHEN_OFFLINE" ? t("kitchen.not_taking_orders") // open by its hours, no live tablet
+        : fresh?.error ?? null;
+  return { quote: fresh?.quote ?? null, error, refusal, closed: !!closed, loading: !!key && !fresh };
 }
 
 /** The food subtotal of the bag (the kitchen's prices; the full bill is the quote's). */

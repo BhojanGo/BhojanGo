@@ -11,7 +11,7 @@ import { FavouriteHeart } from "../components/Heart";
 import { useKitchenBlock } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
 import { photo, Photo } from "../lib/plate";
-import { useMenu } from "../lib/restaurants";
+import { useAvailability, useMenu } from "../lib/restaurants";
 
 export default function Item() {
   const { t, money } = useI18n();
@@ -23,7 +23,8 @@ export default function Item() {
   const [qty, setQty] = useState(1);
   const add = useBag((s) => s.add);
   // R19: the city's ordering paused or the kitchen closed: no adding, and the button says why.
-  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined);
+  const avail = useAvailability(restaurantId); // R27: closed by its hours too
+  const blocked = useKitchenBlock(menu?.restaurant as { is_open?: boolean; closed_for_now?: boolean } | undefined, avail);
   if (!menu || !item) return null;
   const chosen = picks ?? defaultPicks(groups);
   const currency = menu.restaurant.currency;

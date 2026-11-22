@@ -1,12 +1,13 @@
 // A kitchen on home and search, as the website's KitchenCard: its own cover or
 // initials tile, the offer with who pays, the heart, "New" or "★4.6 (23)",
 // cuisines and distance, minutes and the delivery fee, closed until when.
-import { color, type I18n, radius, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { color, radius, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
 import { offerBadge, ratingOf, type KitchenCard as Kitchen } from "../lib/contract";
 import { kitchenPhoto, KitchenCover } from "../lib/plate";
+import { useDiscoverStore } from "../lib/restaurants";
 import { FavouriteHeart } from "./Heart";
 
 /** "New" until a kitchen has 5 ratings, then "★4.6 (23)". */
@@ -28,13 +29,6 @@ export function RatingBadge({ x, testID }: { x: Parameters<typeof ratingOf>[0]; 
   );
 }
 
-/** "06:30" of an ISO time with its offset: the kitchen's own clock, in the country's format. */
-export function wallTime(iso: string, time: I18n["time"]): string {
-  const m = /T(\d{2}):(\d{2})/.exec(iso);
-  if (!m) return iso;
-  return time(new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))), { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
-}
-
 /** A distance as /discover sends it (already in the country's unit). */
 export function useCardDistance() {
   const { t, number } = useI18n();
@@ -43,8 +37,10 @@ export function useCardDistance() {
 }
 
 export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen; currency?: string | null; unit?: string | null; compact?: boolean }) {
-  const { t, money, time } = useI18n();
+  const { t, money, opens } = useI18n();
   const dist = useCardDistance();
+  // R27: "Closed · opens 6:30 am" (another day: "Closed · opens Sat 6:30 am") on the kitchen's city clock.
+  const zone = useDiscoverStore((s) => s.data?.timezone ?? null);
   const fee = k.delivery_fee != null ? Number(k.delivery_fee) : null;
   const meta = [...k.cuisine_types.slice(0, 2), dist(k.distance, unit) ?? k.area].filter(Boolean).join(" · ");
   const height = compact ? 120 : 172;
@@ -79,7 +75,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
             ) : null}
             {!k.open_now && k.closed_for_now ? <Text testID="closed-for-now" style={{ color: color.muted }}> · {t("kitchen.closed_for_now")}</Text> : null}
             {!k.open_now && k.not_taking_orders ? <Text testID="not-taking-orders" style={{ color: color.muted }}> · {t("kitchen.not_taking_orders")}</Text> : null}
-            {!k.open_now && !k.closed_for_now && k.opens_at ? <Text style={{ color: color.muted }}> · {t("common.closed_opens", { time: wallTime(k.opens_at, time) })}</Text> : null}
+            {!k.open_now && !k.closed_for_now && k.opens_at ? <Text style={{ color: color.muted }}> · {opens(k.opens_at, zone)}</Text> : null}
           </Text>
         </View>
       </Pressable>

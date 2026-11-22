@@ -40,3 +40,17 @@ test("only a quote of exactly nothing skips payment (R20 review orders)", () => 
   assert.equal(isFreeOrder(undefined), false);
   assert.equal(isFreeOrder("not a number"), false);
 });
+
+test("R27: a kitchen closed by its hours says when orders open; outside the city's hours, when deliveries start", async () => {
+  const { closedWords } = await import("../lib/ordering.ts");
+  const t = (k: string) => k;
+  const opens = (iso: string | null | undefined, zone?: string | null, keys?: { today: string; day: string }) =>
+    iso ? `${keys?.today ?? "common.closed_opens"}@${iso}@${zone}` : null;
+  assert.equal(closedWords({ open_now: true }, opens, t), null);
+  assert.equal(closedWords(null, opens, t), null);
+  assert.equal(closedWords({ open_now: false, reason_code: "closed", next_open_at: "2026-11-21T06:30:00-07:00", timezone: "America/Boise" }, opens, t),
+    "common.closed_opens@2026-11-21T06:30:00-07:00@America/Boise");
+  assert.equal(closedWords({ open_now: false, reason_code: "outside_delivery_hours", next_open_at: "2026-11-21T08:00:00-07:00", timezone: "America/Boise" }, opens, t),
+    "kitchen.deliveries_start@2026-11-21T08:00:00-07:00@America/Boise");
+  assert.equal(closedWords({ open_now: false, reason_code: "closed", next_open_at: null }, opens, t), "kitchen.bag_closed");
+});

@@ -18,6 +18,11 @@ export interface Availability {
   closed_for_now?: boolean; // R17: paused by an admin
   not_taking_orders?: boolean; // R27: open by its hours, but its tablet isn't connected
   back_at?: string | null;
+  /** R27: why it's closed (closed, closed_today, outside_delivery_hours, paused, ...); next_open_at is then
+   *  when orders can next come in (the kitchen's hours and the city's delivery hours both). */
+  reason_code?: string | null;
+  closed_note?: string | null;
+  open_until?: string | null;
 }
 
 export async function availability(id: string): Promise<Availability | null> {

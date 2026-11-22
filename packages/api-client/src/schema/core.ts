@@ -3553,8 +3553,9 @@ export interface paths {
         };
         /**
          * Get Availability
-         * @description Open now? If not, why and when it opens (restaurant hours, holidays,
-         *     the city's delivery hours, a paused listing).
+         * @description Open now? If not, why (`reason_code`) and when an order can next be placed (`next_open_at`:
+         *     inside both the kitchen's hours and the city's delivery hours), in the city's `timezone`.
+         *     While open, `open_until` is when ordering stops.
          */
         get: operations["get_availability_api_v1_restaurants__restaurant_id__availability_get"];
         put?: never;
@@ -10161,6 +10162,10 @@ export interface components {
             closes_at: string | null;
             /** Currency */
             currency: string;
+            /** Delivery Hours */
+            delivery_hours?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name: string;
             /**
@@ -10174,6 +10179,8 @@ export interface components {
             offline_to?: string | null;
             /** Open Now */
             open_now: boolean;
+            /** Opens At */
+            opens_at?: string | null;
             /** Paused */
             paused: boolean;
             /** Paused Until */
@@ -10182,6 +10189,8 @@ export interface components {
             prep_minutes: number;
             /** Reason */
             reason: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
             /** Restaurant Id */
             restaurant_id: string;
             /** Status */

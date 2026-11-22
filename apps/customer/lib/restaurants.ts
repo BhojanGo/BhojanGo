@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { create } from "zustand";
 
 import type { KitchenCard } from "./contract";
+import type { Availability } from "./ordering";
 
 export type Restaurant = CoreSchemas["PublicRestaurant"];
 export type Discover = CoreSchemas["Discover"];
@@ -95,4 +96,27 @@ export function useMenu(id: string | undefined) {
     void reload();
   }, [reload]);
   return { menu, failure, reload };
+}
+
+/**
+ * R27: is the kitchen taking orders now, and if not why and when (its hours, the city's delivery
+ * hours, a pause). Asked again every minute, and whenever `nonce` changes, so a kitchen that opens
+ * while its page is up lets you order without leaving it. Null until the first answer.
+ */
+export function useAvailability(id: string | null | undefined, nonce = 0, every = 60_000): Availability | null {
+  const [state, setState] = useState<{ id: string; a: Availability } | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    let live = true;
+    const load = () => api.core.GET("/api/v1/restaurants/{restaurant_id}/availability", { params: { path: { restaurant_id: id } } })
+      .then((r) => { if (live && r.data) setState({ id, a: r.data as unknown as Availability }); })
+      .catch(() => undefined);
+    void load();
+    const timer = setInterval(load, every);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [id, nonce, every]);
+  return state && state.id === id ? state.a : null;
 }

@@ -1,5 +1,6 @@
 // Cards from the design (WebHome): a kitchen, an offer, a cuisine. Everything on
 // them is data from /discover; words come from the messages.
+import { opensLabel, wallClock } from "@bhojango/i18n";
 import Link from "next/link";
 
 import { ratingOf } from "@/lib/contract";
@@ -43,11 +44,13 @@ export function offerSubtitle(o: Offer, t: T, currency: string, formatLocale: st
   return t("offers.every_order");
 }
 
-/** "06:30" of an ISO time with its offset, i.e. the kitchen's own clock, whatever the viewer's (or server's) zone. */
-function wallTime(iso: string, formatLocale: string): string {
+/** R27: "Closed · opens 6:30 am" (another day: "Closed · opens Sat 6:30 am", the weekday in the visitor's language),
+ *  on the kitchen's city clock: `timeZone` (discover's), else the time's own offset. */
+function closedOpens(t: T, iso: string, formatLocale: string, timeZone?: string | null, language?: string | null): string {
+  if (timeZone) return opensLabel(t, iso, { timeZone, formatLocale, language }) ?? t("common.closed_opens", { time: iso });
   const m = /T(\d{2}):(\d{2})/.exec(iso);
-  if (!m) return iso;
-  return new Date(Date.UTC(2000, 0, 1, Number(m[1]), Number(m[2]))).toLocaleTimeString(formatLocale, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
+  const time = m ? wallClock(`${m[1]}:${m[2]}`, formatLocale) : null;
+  return t("common.closed_opens", { time: time ?? iso });
 }
 
 function Img({ src, alt = "", className }: { src: string | null; alt?: string; className?: string }) {
@@ -68,11 +71,14 @@ export function RatingBadge({ x, t, formatLocale }: { x: Parameters<typeof ratin
   );
 }
 
-export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFrom }: {
+export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFrom, timeZone, language }: {
   k: Kitchen;
   t: T;
   currency: string;
   formatLocale: string;
+  /** The kitchens' city time zone (GET /discover's timezone) and the visitor's language: "opens Sat 6:30 am". */
+  timeZone?: string | null;
+  language?: string | null;
   distanceUnit: string;
   /** No address yet: the city's lowest delivery fee ("from … delivery"). */
   feeFrom?: number | null;
@@ -117,7 +123,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
           )}
           {!k.open_now && k.closed_for_now && <span className="text-muted" data-testid="closed-for-now"> · {t("kitchen.closed_for_now")}</span>}
           {!k.open_now && k.not_taking_orders && <span className="text-muted" data-testid="not-taking-orders"> · {t("kitchen.not_taking_orders")}</span>}
-          {!k.open_now && !k.closed_for_now && k.opens_at && <span className="text-muted"> · {t("common.closed_opens", { time: wallTime(k.opens_at, formatLocale) })}</span>}
+          {!k.open_now && !k.closed_for_now && k.opens_at && <span className="text-muted"> · {closedOpens(t, k.opens_at, formatLocale, timeZone, language)}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">

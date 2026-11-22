@@ -44,3 +44,14 @@ export declare function pluralSelector(language: string): (count: number) => str
 /** For the visible text only (tel: links keep the E.164): "+12085550291" -> "+1 208-555-0291",
  * "+919876543210" -> "+91 98765 43210"; rules per country in phone.js. Unknown or invalid input as is. */
 export function formatPhone(e164: string | null | undefined): string;
+
+/** R27: when a kitchen opens, for "Closed · opens {time}". The time on the city's clock in the country's
+ *  format; the weekday (another day only) in the visitor's language. Null for no time. */
+export interface OpensOptions { timeZone?: string | null; formatLocale?: string | null; language?: string | null; now?: Date }
+export declare function opensWhen(iso: string | null | undefined, options?: OpensOptions): { time: string; day: string | null } | null;
+/** "Closed · opens 6:30 am" (keys.today, later today) or "Closed · opens Sat 6:30 am" (keys.day);
+ *  defaults common.closed_opens / common.closed_opens_day. */
+export declare function opensLabel(t: Translate, iso: string | null | undefined, options?: OpensOptions,
+  keys?: { today: string; day: string }): string | null;
+/** "08:00" -> "8:00 am" in the country's format. */
+export declare function wallClock(hhmm: string | null | undefined, formatLocale?: string | null): string | null;

@@ -50,7 +50,8 @@
     "people_waiting": {
       "one": "{n} व्यक्ती वाट पाहत आहे",
       "other": "{n} लोक वाट पाहत आहेत"
-    }
+    },
+    "closed_opens_day": "बंद · {day} {time} वाजता उघडेल"
   },
   "header": {
     "where_we_deliver": "आम्ही कुठे डिलिव्हरी करतो",
@@ -370,7 +371,12 @@
     "bag_paused": "ऑर्डर करणे थांबले आहे",
     "bag_closed_for_now": "हे किचन सध्या बंद आहे",
     "not_taking_orders": "सध्या ऑर्डर घेत नाही",
-    "not_taking_orders_note": "हे किचन सध्या ऑर्डर घेत नाही. तुम्ही मेन्यू पाहू शकता; किचन परत येताच ऑर्डर पुन्हा सुरू होतील."
+    "not_taking_orders_note": "हे किचन सध्या ऑर्डर घेत नाही. तुम्ही मेन्यू पाहू शकता; किचन परत येताच ऑर्डर पुन्हा सुरू होतील.",
+    "opens_at_day": "{day} {time} वाजता उघडेल",
+    "bag_closed": "हे किचन आत्ता बंद आहे",
+    "bill_when_open": "किचन उघडल्यावर पूर्ण बिल इथे दिसेल.",
+    "deliveries_start": "डिलिव्हरी {time} वाजता सुरू",
+    "deliveries_start_day": "डिलिव्हरी {day} {time} वाजता सुरू"
   },
   "checkout": {
     "title": "चेकआउट",
@@ -1588,7 +1594,8 @@
       "min_away": "{min} मि दूर",
       "finding_rider": "डिलिव्हरी पार्टनर शोधत आहोत",
       "order_code": "ऑर्डर कोड {code}",
-      "today_refunds": "{amount} परत"
+      "today_refunds": "{amount} परत",
+      "deliveries_run": "डिलिव्हरी {from}–{to}"
     },
     "offline": {
       "banner": "ऑर्डर मिळत नाहीत: पुन्हा जोडत आहोत"

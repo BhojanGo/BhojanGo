@@ -66,7 +66,7 @@ function matches(k: Kitchen, cuisine: string, q: string): boolean {
 }
 
 async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) {
-  const { t, formatLocale, place } = await getContext();
+  const { t, formatLocale, place, language } = await getContext();
   // With an address in this city, each kitchen's fee is the exact one to that address.
   const here = place && place.served !== false && place.city_code === c.code ? place : null;
   const [d, bill, near] = await Promise.all([discover({ city: c.code }), exampleBill(c.code), here ? discover({ lat: here.lat, lng: here.lng }) : Promise.resolve(null)]);
@@ -168,7 +168,8 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
           {shown.length ? (
             <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map((k) => (
-                <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={unit} feeFrom={feeFrom} />
+                <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={unit} feeFrom={feeFrom}
+                  timeZone={(near ?? d)?.timezone} language={language} />
               ))}
             </div>
           ) : (

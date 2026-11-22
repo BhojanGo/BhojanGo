@@ -23,7 +23,7 @@ import { AddressPill } from "@/components/HeaderParts";
 import { api, authed, useBag, useHydrated, useSession } from "@/lib/client";
 import { riderFirstName } from "@/lib/contract";
 import { partOfDay, photo } from "@/lib/format";
-import { useFormat, useT } from "@/lib/i18n";
+import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import type { KitchenCard as Kitchen } from "@/lib/server";
 
 type Order = CoreSchemas["OrderResponse"];
@@ -222,6 +222,7 @@ export function HomeFeed({
   offers: React.ReactNode;
 }) {
   const t = useT();
+  const { language } = useLanguage();
   const { orders, user, hydrated } = useMyOrders();
   const [on, setOn] = useState<Set<Filter>>(new Set());
   const [all, setAll] = useState(false);
@@ -299,7 +300,8 @@ export function HomeFeed({
         {shown.length ? (
           <div id="kitchens-list" className="mt-3 grid gap-[18px] sm:grid-cols-2 md:mt-5 md:gap-6 lg:grid-cols-3 xl:grid-cols-4" aria-live="polite">
             {(all ? shown : shown.slice(0, SHOWN)).map((k) => (
-              <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={distanceUnit} />
+              <KitchenCard key={k.id} k={k} t={t} currency={currency} formatLocale={formatLocale} distanceUnit={distanceUnit}
+                timeZone={timeZone} language={language} />
             ))}
           </div>
         ) : (

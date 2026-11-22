@@ -95,8 +95,9 @@ def _menu_error(e: svc.MenuError) -> HTTPException:
 
 @router.get("/{restaurant_id}/availability")
 async def get_availability(restaurant_id: uuid.UUID, db: DB) -> dict:
-    """Open now? If not, why and when it opens (restaurant hours, holidays,
-    the city's delivery hours, a paused listing)."""
+    """Open now? If not, why (`reason_code`) and when an order can next be placed (`next_open_at`:
+    inside both the kitchen's hours and the city's delivery hours), in the city's `timezone`.
+    While open, `open_until` is when ordering stops."""
     try:
         a = await svc.availability(db, restaurant_id)
     except svc.MenuError:
@@ -108,6 +109,9 @@ async def get_availability(restaurant_id: uuid.UUID, db: DB) -> dict:
         "closed_for_now": a.closed_for_now, "back_at": a.back_at.isoformat() if a.back_at else None,
         # R27: open by its hours, but its tablet isn't connected ("Not taking orders right now")
         "not_taking_orders": a.no_tablet,
+        # R27: for apps to word the status in their language ("Closed · opens 6:30 am").
+        "reason_code": a.reason_code, "closed_note": a.closed_note, "delivery_hours": a.delivery_hours,
+        "open_until": a.open_until.isoformat() if a.open_until else None,
     }
 
 

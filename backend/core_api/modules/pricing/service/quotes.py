@@ -168,9 +168,15 @@ class QuoteService:
         now = now or datetime.now(UTC)
         items = [i.model_dump(mode="json") for i in req.items]
         try:
-            rest, priced = await price_cart(self.db, req.restaurant_id, items, now=now)
+            # R27: a closed kitchen is refused below, once the city's tip buttons are known (the bag still shows them).
+            rest, priced = await price_cart(self.db, req.restaurant_id, items, check_open=False, now=now)
         except CartError as e:
             raise QuoteError(str(e))
+        from core_api.modules.catalog.service.menu import availability
+
+        avail = await availability(self.db, uuid.UUID(rest.id), now)
+        if avail.reason_code in ("inactive", "unavailable"):
+            raise QuoteError(f"{rest.name}: {avail.reason}")
         lat, lng, postal = await self._deliver_to(user_id, req)
 
         where = await MarketService(self.db).locate(lat, lng)
@@ -201,6 +207,14 @@ class QuoteService:
         presets = tip_presets(rules)
         # From here on a refusal still tells the client the city's tip buttons.
         tips = {"tip_presets": presets.model_dump(mode="json") if presets else None}
+        if not avail.open_now:
+            # R27: closed by its hours, the city's delivery hours, or paused: the bag says why and when it opens.
+            # Open by its hours but its tablet isn't live: KITCHEN_OFFLINE ("Not taking orders right now").
+            offline = avail.reason_code == "not_taking_orders"
+            raise QuoteError(f"{rest.name}: {avail.reason}", code="KITCHEN_OFFLINE" if offline else "KITCHEN_CLOSED", details={
+                "reason_code": avail.reason_code, "closed_note": avail.closed_note,
+                "opens_at": avail.next_open_at.isoformat() if avail.next_open_at else None,
+                "time_zone": avail.timezone, "delivery_hours": avail.delivery_hours, **tips})
         if where.min_order is not None and food < where.min_order:
             shown = format_money(where.min_order, country.currency, (country.locales or [None])[0], whole=True)
             raise QuoteError(f"The minimum order in {where.zone_name} is {shown}", code="MIN_ORDER", details={

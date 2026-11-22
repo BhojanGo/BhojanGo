@@ -5,7 +5,7 @@ they never read these tables.
 """
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -34,8 +34,8 @@ class Availability:
     restaurant_id: str
     listed: bool  # customers can see it (not paused for a licence or by an admin)
     open_now: bool  # can take an order right now
-    reason: str | None  # why not, in plain words
-    next_open_at: datetime | None
+    reason: str | None  # why not, in plain English (admin, logs); apps word it from reason_code
+    next_open_at: datetime | None  # when an order can next be placed (now while open); None: not known
     local_time: datetime
     timezone: str
     city_code: str | None
@@ -45,6 +45,25 @@ class Availability:
     # R27: open by its hours and settings, but its tablet (BhojanGo Kitchen) has sent no heartbeat
     # for 60 s: customers see "Not taking orders right now" (shared/kitchen_live.py).
     no_tablet: bool = False
+    # R27: why it's closed, for apps to word in their language: inactive, closed_for_now, unavailable,
+    # paused (by the kitchen), closed (its own hours), closed_today (a day closed, with its note),
+    # outside_delivery_hours (open, but the city isn't delivering), not_taking_orders (no live tablet). None while open.
+    reason_code: str | None = None
+    closed_note: str | None = None  # the kitchen's note on a day it's closed ("Staff holiday")
+    delivery_hours: dict | None = None  # the city's delivery window {"open": "08:00", "close": "23:00"}, local
+    open_until: datetime | None = None  # while open: when ordering stops (kitchen closes or deliveries end)
+
+
+def clock_words(t: datetime) -> str:
+    """"6:30 am" (English, for the plain-words reason; apps format times in their own locale)."""
+    return f"{t.hour % 12 or 12}:{t.minute:02d} {'am' if t.hour < 12 else 'pm'}"
+
+
+def _opens_words(nxt: datetime | None, local: datetime) -> str:
+    if nxt is None:
+        return ""
+    day = "" if nxt.date() == local.date() else f"{nxt:%a} "
+    return f" · opens {day}{clock_words(nxt)}"
 
 
 # R22: a kitchen's market and its hours, kept in each process until the kitchen, its hours or
@@ -121,33 +140,52 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
     local = (now or datetime.now(UTC)).astimezone(tz)
     weekly, overrides = await _hours(db, r.id)
     paused = r.paused_reason or licence_problem(r, local.date(), fssai)
-    nxt = H.next_open(local, weekly, overrides) if weekly or overrides else None
+    hours_known = bool(weekly or overrides)
+    # R27: the next moment an order can be placed is inside the kitchen's hours AND the city's
+    # delivery window (06:30 kitchen, 08:00 city: 08:00), never "now" while it can't take one.
+    nxt = H.next_orderable(local, weekly, overrides, service_hours)
+    code_ = None
     if not r.is_active:
-        reason = "Not taking orders"
+        reason, code_, nxt = "Not taking orders", "inactive", None
     elif r.closed_for_now:  # R17: an admin paused it (an incident); before the kitchen's own settings
-        reason = "Closed for now"
+        reason, code_ = "Closed for now", "closed_for_now"
+        back = r.admin_paused_until.astimezone(tz) if r.admin_paused_until else None
+        nxt = H.next_orderable(back, weekly, overrides, service_hours) if back else None
     elif paused:
-        reason = "Temporarily unavailable"
+        reason, code_, nxt = "Temporarily unavailable", "unavailable", None
     elif paused_by_kitchen(r, local):
-        reason = "Paused by the restaurant"
-    elif (weekly or overrides) and not H.is_open(local, weekly, overrides):
+        reason, code_ = "Paused by the restaurant", "paused"
+        back = r.paused_until.astimezone(tz) if r.paused_until else None
+        nxt = H.next_orderable(back, weekly, overrides, service_hours) if back else None
+    elif hours_known and not H.is_open(local, weekly, overrides):
         o = overrides.get(local.date())
-        reason = (f"Closed today: {o.note}" if o and o.closed and o.note else "Closed now") + (
-            f" · opens {nxt.strftime('%a %H:%M')}" if nxt else "")
+        code_ = "closed_today" if o and o.closed else "closed"
+        reason = (f"Closed today: {o.note}" if o and o.closed and o.note else "Closed now") + _opens_words(nxt, local)
     elif not H.within_service_hours(local, service_hours):
-        reason = f"Deliveries run {service_hours['open']}–{service_hours['close']}"  # type: ignore[index]
+        code_ = "outside_delivery_hours"
+        reason = (f"Deliveries run {clock_words(datetime.combine(local.date(), time.fromisoformat(service_hours['open'])))}"  # type: ignore[index]
+                  f"–{clock_words(datetime.combine(local.date(), time.fromisoformat(service_hours['close'])))}"  # type: ignore[index]
+                  + _opens_words(nxt, local))
     else:
         reason = None
     # A tablet heartbeat says whether the kitchen is there now; a question about another time (the demo
     # seed pricing months of past orders at the time they happened) has no tablet to ask.
     no_tablet = reason is None and is_present(now) and not await tablet_live(db, r, code)
     if no_tablet:
-        reason = NO_TABLET
+        # R27: open by its hours, but its tablet isn't live: after the hours (a closed kitchen says when it
+        # opens), before "open". No time known for when the tablet comes back.
+        reason, code_, nxt = NO_TABLET, "not_taking_orders", None
+    open_now = reason is None
+    note = overrides.get(local.date())
+    until = H.orderable_until(local, weekly, overrides, service_hours) if open_now else None
     return Availability(
-        restaurant_id=str(r.id), listed=r.is_active and not paused, open_now=reason is None, reason=reason,
-        next_open_at=nxt.replace(tzinfo=tz) if nxt else None, local_time=local, timezone=str(tz), city_code=code,
+        restaurant_id=str(r.id), listed=r.is_active and not paused, open_now=open_now, reason=reason,
+        next_open_at=(local if open_now else nxt.replace(tzinfo=tz) if nxt else None), local_time=local,
+        timezone=str(tz), city_code=code,
         paused_reason=r.paused_reason or (FSSAI_EXPIRED if licence_problem(r, local.date(), fssai) else None),
         closed_for_now=r.closed_for_now, back_at=r.admin_paused_until if r.closed_for_now else None, no_tablet=no_tablet,
+        reason_code=code_, closed_note=note.note if note and note.closed and code_ == "closed_today" else None,
+        delivery_hours=service_hours, open_until=until.replace(tzinfo=tz) if until else None,
     )
 
 
