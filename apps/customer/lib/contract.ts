@@ -192,11 +192,20 @@ export function trackHeadline(status: string, who: string | null, kitchen: strin
   return status === "placed" ? ["s_placed", { kitchen }] : ["s_cooking", { kitchen }];
 }
 
+type PaidOrder = { total: string | number; refunded?: number | null; status?: string; status_history?: readonly { status?: unknown }[] | null };
+
+/** R28 journey: cancelled before it was paid (e.g. the payment timed out), so it cost nothing. Old rows without a history count as paid. */
+function neverPaid(o: PaidOrder): boolean {
+  const h = o.status_history ?? [];
+  return o.status === "cancelled" && h.length > 0 && !h.some((e) => e.status === "placed");
+}
+
 /**
  * R28: what an order cost the customer after refunds (the orders list showed the total before them:
  * 38.85 for an order with 16.96 refunded). In cents, so 38.85 − 16.96 is 21.89, never 21.889999.
  */
-export function paidAfterRefunds(o: { total: string | number; refunded?: number | null }): { paid: number; refunded: number | null } {
+export function paidAfterRefunds(o: PaidOrder): { paid: number; refunded: number | null } {
+  if (neverPaid(o)) return { paid: 0, refunded: null };
   const total = Math.round(Number(o.total) * 100);
   const back = o.refunded ? Math.round(Number(o.refunded) * 100) : 0;
   return { paid: Math.max(0, total - back) / 100, refunded: back > 0 ? back / 100 : null };
