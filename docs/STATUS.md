@@ -372,6 +372,54 @@ Found on the journey:
   designed. GitHub reports 10 Dependabot alerts on dev (the repo is public since R27; branches dev, main
   and QA are protected: PR required, required checks, no force-push or deletion).
 
+## Pilot blockers from R27: the idle bag, offers, location, keep-awake (round 28, 2026-11-22)
+
+PRs #208-#220, each merged only after every check was green.
+
+- **The bag after ~15 idle minutes (#208, #218): root cause found on QA, not guessed.** Request IDs now go
+  from the apps (`X-Request-ID`, logged on failure as `[api] <id> <method> <path> <status|error> <ms>`)
+  into the API logs. With a 17-minute idle on QA, the tip tap's quote got 401, the token refresh 200 and
+  the retried quote 200 (same request id + `-r`) - so the request reached the API and succeeded - yet the
+  app showed "Can't reach". Cause: on React Native the retry's answer is not `instanceof Response`, and
+  openapi-fetch 0.17 throws "onResponse: must return new Response()". A second cause: the 10-minute
+  price hold ran out with no re-quote, leaving Pay off ("Price held 0:00"). Fix: the retry's answer is
+  copied into a real Response; a network error retries once on a fresh connection (only for safe
+  requests: GET, idempotency-keyed, quotes); an expired hold re-quotes silently; a temporary provider
+  lookup error shows "Couldn't check payments. Tap to try again." and retries (2, 5, 15 s) - "Payments aren't available in this city yet"
+  only when the country's provider really isn't live. The keep-alive and provider lookup were checked
+  and were not the cause. Proven on QA: after 17 min "Price held 2:47", Pay live; after 30 min the API
+  log shows quote 401 -> refresh 200 -> retried quote 200, the tip re-priced and Pay opened the test sheet.
+- **Delivery offers (#214).** A timed-out or passed offer excludes that partner from that order only,
+  and from its new offers for at most 2 min (was 24 h). Admin rules per city: `dispatch_offer_exclusion`
+  (0-120 s, default 120) and `no_partner_alert` (1-60 min, default 8). No partner after N minutes: an
+  Operations alert (resolved when someone accepts) and the customer sees "Finding a delivery partner is taking longer than usual" with the
+  new arrival time. Test: two partners, the first misses the offer, the second gets it.
+- **Partner location (#216).** Online partners send a fix every 5 s (distance filter off, background
+  allowed while online; a task started with old options restarts). No fix for 60 s: "Location lost" on
+  the partner's screen and the server drops them from offers (location TTL 60 s). Emulator, 60 min
+  online on a moving route: 352 checks, 0 nulls, newest fix at most 5.3 s old; location off for 80 s
+  showed the banner, which cleared when it came back.
+- **Kitchen tablet keep-awake (#215).** Held while signed in, retried on error (no more
+  `ExpoKeepAwake` toast). Emulator, screen-off timeout 15 s, 2 hours: 119 checks, always awake, never
+  "Not taking orders".
+- **P1:** tracking says "<Name> is heading to the kitchen" as soon as a partner accepts (#209);
+  adding a dish or Order again from another kitchen asks "Start a new bag?" (#210, #219: the home
+  Order again card on the app and web, and the web receipt, were missed in #210 and found on the
+  journey); the orders list shows what was paid after refunds, and $0.00 for an order cancelled before
+  it was paid (#211, #220); receipt PDF dates follow the country ("Nov 22, 2026" in the US) and the
+  tablet's outage note says "for a few seconds" for a short gap (#212); Dependabot: 0 open alerts on dev (#213).
+- **QA journey (Boise, Sun 22 Nov, one order with a test card, two partners online).**
+  07:55 both partners online (the scripted one at the kitchen, rider1 in the app ~2 km away) ·
+  08:00:50 bag built (Morning Ridge, $21.54) · idle 20 min · 08:21:10 bag still "Price held 9:49",
+  Pay live · 08:22:33 paid $24.54 with 4242 ($3 tip) · order #846C20 on the tablet at once, accepted
+  08:23:04 · almost ready 08:23:15 · 08:23:16 offer to the first partner, left to time out at 08:23:47
+  (never offered to them again) · ~08:23:49 offer to rider1, accepted 08:24:04 · customer: "Jake is
+  heading to the kitchen" · ready 08:24:33 · picked up 08:24:49 · delivered with the PIN 08:25:59.
+  Receipt PDF "Date: Nov 22, 2026". Screenshots: `Claude outputs/review/r28/qa/journey/`.
+- **Still open:** the server side of "Location lost" (dropped from offers after 60 s) is unit-tested
+  but not watched live on QA; QA has no rows yet for the two new rules, so the defaults apply; the
+  commission invoice PDF date is unchanged; the tablet's "Not receiving" sound needs a native build.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
