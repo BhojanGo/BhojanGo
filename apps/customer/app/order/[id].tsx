@@ -11,10 +11,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CancelOrder, RefundLine } from "../../components/CancelOrder";
 import { LiveMap } from "../../components/LiveMap";
-import { distanceLeft, nextStop, riderFirstName, type Eta, type Order, type Pt } from "../../lib/contract";
+import { distanceLeft, nextStop, riderFirstName, trackHeadline, type Eta, type Order, type Pt } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
 
-interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean }
+interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; assigned: boolean }
 
 const STEPS = [
   { key: "placed", states: ["pending_payment", "placed", "accepted"] },
@@ -37,7 +37,7 @@ export default function Tracking() {
   const [failure, setFailure] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
-  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false });
+  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false, assigned: false });
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 15000);
@@ -78,7 +78,7 @@ export default function Tracking() {
           case "searching_rider":
             return { ...s, searching: true };
           case "rider_assigned":
-            return { ...s, searching: false, eta: (p.eta as Eta) ?? s.eta };
+            return { ...s, searching: false, assigned: true, eta: (p.eta as Eta) ?? s.eta };
           case "location_update": {
             const pt: Pt = [Number(p.lat), Number(p.lng)];
             return { ...s, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
@@ -126,7 +126,11 @@ export default function Tracking() {
   const finished = delivered || cancelled;
   const stepIndex = Math.max(0, STEPS.findIndex((st) => st.states.includes(status)));
   const progress = delivered ? 1 : [0.12, 0.42, 0.78, 1][stepIndex] ?? 0.12;
+  // R28: a partner who accepted is heading to the kitchen at once, named or not ("Your delivery partner"):
+  // never "Finding a delivery partner" after someone took the order (rider_assigned reloads the order).
+  const assigned = !!order?.driver_id || !!order?.rider || live.assigned;
   const rider = riderFirstName(order);
+  const who = rider ?? (assigned ? t("track.your_rider") : null);
   const kitchen = order?.restaurant_name ?? "";
   const tz = inZone(order?.time_zone); // the order's city clock, never the phone's
   const pickup = live.pickup ?? (order?.pickup_lat != null && order.pickup_lng != null ? [order.pickup_lat, order.pickup_lng] as Pt : null);
@@ -140,14 +144,9 @@ export default function Tracking() {
   const left = finished ? null : distanceLeft(live.eta, riderAt, next);
   const leftText = left ? (left.km ? distance(left.value) : t(`app.units.${left.unit}`, { value: number(left.value, 1) })) : null;
 
-  const headline =
-    cancelled ? t("track.s_cancelled") :
-    delivered ? t("track.s_delivered") :
-    status === "pending_payment" ? t("track.s_payment") :
-    status === "picked_up" ? t("track.s_picked_up", { rider: rider ?? t("track.your_rider") }) :
-    status === "ready" ? (rider ? t("track.s_heading", { rider }) : t("track.s_finding")) :
-    rider ? t("track.s_heading", { rider }) :
-    status === "placed" ? t("track.s_placed", { kitchen }) : t("track.s_cooking", { kitchen });
+  const [headKey, headValues] = trackHeadline(status, who, kitchen);
+  const headline = headKey === "s_picked_up" && !headValues
+    ? t("track.s_picked_up", { rider: t("track.your_rider") }) : t(`track.${headKey}`, headValues);
   const stamp = (...states: string[]) => {
     const h = (order?.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status));
     return h ? time(h.at, tz) : "";
@@ -193,7 +192,7 @@ export default function Tracking() {
           </View>
           <View style={{ alignItems: "flex-end", gap: 2 }}>
             {leftText ? <Text testID="distance-left" style={[type.label, { color: color.kohl }]}>{t("track.away", { left: leftText })}</Text> : null}
-            {live.searching && !rider ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
+            {live.searching && !assigned ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
           </View>
         </View>
         <View accessibilityLabel={t("app.track.progress", { step: t(`app.track.step_${STEPS[stepIndex]?.key ?? "placed"}`), n: stepIndex + 1, total: STEPS.length })}>

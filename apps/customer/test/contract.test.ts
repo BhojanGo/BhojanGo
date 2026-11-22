@@ -6,7 +6,7 @@ import test from "node:test";
 
 import {
   activeOrder, boundsOf, cuisineTiles, distanceLeft, initials, kmBetween, minutesUntil, nextStop, ofCuisine, offerBadge, offerPayer,
-  orderAgain, photoUrl, ratingOf, riderFirstName, type KitchenCard, type Offer, type Order,
+  orderAgain, photoUrl, ratingOf, riderFirstName, trackHeadline, type KitchenCard, type Offer, type Order,
 } from "../lib/contract.ts";
 
 const WEB = "https://web.example.test/";
@@ -114,4 +114,16 @@ test("R8 sign-in photos: the country's hero dish first, then kitchens' photos, e
   assert.deepEqual(signInPhotos("cheeseburger", kitchens), ["/food/cheeseburger-800.webp", "/food/tacos-800.webp", "/food/sushi-800.webp", "/food/poke-bowl-800.webp"]);
   assert.deepEqual(signInPhotos(null, kitchens, 2), ["/food/tacos-800.webp", "/food/sushi-800.webp"]);
   assert.deepEqual(signInPhotos("../evil", []), []);
+});
+
+// R28: R27's journey showed "Finding a delivery partner" after a partner had accepted.
+test("tracking headline: an accepted partner is heading to the kitchen at once, named or not", () => {
+  assert.deepEqual(trackHeadline("almost_ready", "Ravi", "Boise Bowl Co."), ["s_heading", { rider: "Ravi" }]);
+  assert.deepEqual(trackHeadline("ready", "Your delivery partner", "K"), ["s_heading", { rider: "Your delivery partner" }]);
+  assert.deepEqual(trackHeadline("preparing", "Ravi", "K"), ["s_heading", { rider: "Ravi" }]);
+  assert.deepEqual(trackHeadline("ready", null, "K"), ["s_finding"]);
+  assert.deepEqual(trackHeadline("preparing", null, "K"), ["s_cooking", { kitchen: "K" }]);
+  assert.deepEqual(trackHeadline("placed", null, "K"), ["s_placed", { kitchen: "K" }]);
+  assert.deepEqual(trackHeadline("picked_up", "Ravi", "K"), ["s_picked_up", { rider: "Ravi" }]);
+  assert.deepEqual(trackHeadline("delivered", "Ravi", "K"), ["s_delivered"]);
 });

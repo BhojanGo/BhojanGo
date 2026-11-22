@@ -177,6 +177,21 @@ export function riderFirstName(o: unknown): string | null {
   return name ? (name.trim().split(/\s+/)[0] ?? null) : null;
 }
 
+/**
+ * R28: the tracking headline, as an i18n key under "track." and its values. A partner who accepted
+ * is heading to the kitchen at once (`who`: their first name, or "Your delivery partner" when the
+ * order has a partner without a name); "Finding a delivery partner" only while nobody has it.
+ */
+export function trackHeadline(status: string, who: string | null, kitchen: string): [string, Record<string, string>?] {
+  if (status === "cancelled") return ["s_cancelled"];
+  if (status === "delivered") return ["s_delivered"];
+  if (status === "pending_payment") return ["s_payment"];
+  if (status === "picked_up") return who ? ["s_picked_up", { rider: who }] : ["s_picked_up"];
+  if (who) return ["s_heading", { rider: who }];
+  if (status === "ready") return ["s_finding"];
+  return status === "placed" ? ["s_placed", { kitchen }] : ["s_cooking", { kitchen }];
+}
+
 /** Order again: the latest delivered order from each kitchen, at most `limit`. */
 export function orderAgain(orders: readonly Order[] | null | undefined, limit = 3): Order[] {
   const seen = new Set<string>();
