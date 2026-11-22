@@ -13,14 +13,30 @@ import Svg, { Circle, Text as SvgText } from "react-native-svg";
 
 import { Checklist } from "../../lib/checklist";
 import { BackgroundDisclosure } from "../../lib/disclosure";
-import { askForBackgroundLocation, askForLocation, hasBackgroundLocation, sendNow, setTrackingNotice, startTracking, stopTracking,
+import { askForBackgroundLocation, askForLocation, hasBackgroundLocation, lastSentAt, sendNow, setTrackingNotice, startTracking, stopTracking,
   trackingHere } from "../../lib/location";
+import { locationLost, SEND_EVERY_MS } from "../../lib/locationLogic";
 import { RouteMap } from "../../lib/map";
 import { useFormat, useLive, useLiveRider, useOnboarding, useWeek, type Offer } from "../../lib/rider";
 import { night, radius, space, ui } from "../../lib/theme";
 
 /** The background location disclosure shows by itself once per app run (going online); the banner reopens it. */
 let disclosedThisRun = false;
+
+/** R28: true while online here and BhojanGo has had no position from this phone for LOST_AFTER_MS. */
+function useLocationLost(active: boolean): boolean {
+  const [lost, setLost] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    const since = Date.now();
+    const timer = setInterval(() => setLost(locationLost(true, lastSentAt(), since, Date.now())), SEND_EVERY_MS);
+    return () => {
+      clearInterval(timer);
+      setLost(false);
+    };
+  }, [active]);
+  return lost;
+}
 
 export default function Drive() {
   const { cash, cityName, cityCentre } = useFormat();
@@ -49,6 +65,8 @@ export default function Drive() {
   }, []));
 
   const status = now?.state.status ?? "offline";
+  // R28: no position reached BhojanGo for a minute while online here: "Location lost" (no offers meanwhile).
+  const lost = useLocationLost(status !== "offline" && here === true);
   const known = now != null; // the server's state has arrived (until then "offline" is only a default)
   const finished = useLive((s) => s.finished);
   const busyWith = status === "busy" && !finished.includes(now?.state.order_id ?? "") ? now?.state.order_id : undefined;
@@ -210,6 +228,13 @@ export default function Drive() {
                 <Text style={ui.bold}>{t("rider.drive.elsewhere_title")}</Text> {t("rider.drive.elsewhere_sub")}
               </Text>
             </Pressable>
+          ) : null}
+          {lost ? (
+            <View testID="location-lost" accessibilityRole="alert" style={[styles.bg, { borderColor: night.sosText }]}>
+              <Text style={ui.note}>
+                <Text style={[ui.bold, { color: night.sosText }]}>{t("rider.drive.location_lost_title")}</Text> {t("rider.drive.location_lost_sub")}
+              </Text>
+            </View>
           ) : null}
           {online && here && !background ? (
             <Pressable testID="bg-banner" accessibilityRole="button" onPress={() => setDisclose(true)} style={styles.bg}>

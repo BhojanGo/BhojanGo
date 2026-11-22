@@ -1237,6 +1237,8 @@
       "elsewhere_sub": "Its location is used now. Tap to share this phone's location instead.",
       "background_title": "Keep offers coming with the screen off.",
       "background_sub": "Allow location “all the time”; you can turn it off by going offline.",
+      "location_lost_title": "Location lost.",
+      "location_lost_sub": "BhojanGo hasn't had your location for a minute, so you won't get offers. Check that location is on.",
       "go_offline": "Go offline",
       "go_online": "Go online",
       "going_online": "Going online…",
