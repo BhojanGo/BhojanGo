@@ -317,6 +317,56 @@ noindex on QA; Stripe's test webhooks point at the new API address. Details: [ra
   CGST + SGST or IGST, signature; also a 16-character consecutive invoice number and credit notes), the questions
   for the CA, CIN and grievance officer, and FSSAI checks per kitchen. Nothing built yet.
 
+## Kitchen tablet, PIN, hours, time zones, money words (round 27, 2026-11-21)
+
+Everything from the R26 walkthrough, PRs #190-#203 and #205 (each merged only after every check was green).
+
+- **The kitchen tablet can't miss an order silently (#196, #201).** R26's stall: the access token
+  (15 min) expired and the token refresh hung with no timeout; every later board request waited on it.
+  The refresh now gives up after 15 s and requests wait at most 20 s. The tablet gets orders over the
+  kitchen socket (polling as fallback) with a heartbeat; after 15 s without one it shows a red
+  "Not receiving orders: reconnecting" banner and rings. With no heartbeat for 60 s while open, the
+  kitchen stops taking orders ("Not taking orders right now": quote 422, order and payment 409
+  `KITCHEN_OFFLINE`) until the tablet is back. New-order push to the kitchen. Accept timer on the server's clock.
+  Tested: tablet cut off locally: banner at 21 s, paused at 58 s, back 3 s after reconnecting.
+  2-hour soak on a fresh local stack, an order every 10 min: 12/12 on the tablet in 0.3-1.8 s, 0 missed.
+  On QA the tablet stayed open 17:58-19:58 (118 checks, no banner, never paused) before the journey order.
+- **Delivery PIN (#192):** 4 random digits per order from `secrets`, weak codes (1234, 0000...) redrawn,
+  no fixed PIN in any config; shown only once the order is picked up.
+- **Opening hours (#199):** the next opening is inside the kitchen's hours and the city's delivery window
+  (Morning Ridge 06:30, Boise delivery from 08:00: "Closed · opens Sun 8:00 am"); "+" disabled, no checkout.
+- **Time zones (#194):** each city has its own zone (Boise: America/Boise); payout weeks use the
+  country's payout zone (US: America/Boise). Admin times show the zone (MST).
+- **Access (#193):** Viewer (IN) can't open US Finance; the sweep covers 560 role × country × page cases.
+- **Money words (#198):** a week says "Waiting for approval", "Waiting for your payout account" or
+  "Paid on <date>", the same in admin and the apps. Receipts (app and PDF) show each refund and the
+  total paid; no $0.00 tax lines; the kitchen's "today" is net of refunds charged to it.
+- **Order again (#200), refund panel (#197), city/out-of-area/payment-failed wording (#195), Documents
+  Back (#190), Kitchen app portrait (#191), Boise live everywhere + Basque Corner photo (#203),
+  translations and a CI gate that renders every website page in every language at 360 and 1440 px (#202).**
+- **India commission:** the Hyderabad applicant's 15% comes from India's commission rule (tiers A 18%,
+  B 15%, C 12%; default B), not code.
+
+QA journey, 2026-11-21 (Boise, order #2A649D, Boise Bowl Co., customer1.boi, test card 4242, one partial
+refund): paid 20:09:27, on the tablet 11 s later, accepted 20:09:52, almost ready 20:10, delivery
+partner accepted 20:23:55, ready 20:24, picked up 20:24:51 (PIN 3736 shown from then), delivered 20:26:20,
+Salmon Poke Bowl refunded $16.96 (missing item) 20:27; receipt: total $38.85, refunded $16.96, paid $21.89.
+
+Found on the journey:
+- **Fixed in #205:** a POST sent after the 15-minute access token expired failed as "Can't reach
+  BhojanGo" (the bag couldn't price or pay; Retry failed too) because the retry reused the sent request's
+  body. Since P17, not an R27 change. Same PR: the Delivery app's GPS now refreshes the token on a 401
+  (it stopped sharing its position after 15 min online).
+- Open: an offer that times out counts as declined for a day, so with one partner nearby the order waits
+  until another partner comes online. Customer tracking says "Finding a delivery partner" after a partner
+  has accepted (until pickup). Adding a dish from another kitchen replaces the bag without asking. The
+  orders list shows the original total, not the total paid after a refund. The PDF date is day-first
+  ("21 Nov 2026") on a US receipt. The tablet's outage note reads "from 2:50 pm to 2:50 pm" for a gap
+  under a minute. Kitchen app (dev build): an uncaught `ExpoKeepAwake.deactivate` error toast.
+- QA's demo kitchens with no tablet open (and no simulator) now show "Not taking orders right now", as
+  designed. GitHub reports 10 Dependabot alerts on dev (the repo is public since R27; branches dev, main
+  and QA are protected: PR required, required checks, no force-push or deletion).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
