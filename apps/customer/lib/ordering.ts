@@ -68,3 +68,14 @@ export function isFreeOrder(total: string | number | null | undefined): boolean 
   const n = Number(total);
   return Number.isFinite(n) && Math.abs(n) < 0.005;
 }
+
+/**
+ * R28: a bag holds one kitchen. Adding from another kitchen while the bag has dishes asks first:
+ * this is the kitchen whose bag would be cleared (its name), or null when nothing would be lost
+ * (an empty bag, or the same kitchen).
+ */
+export function bagConflict(bag: { restaurantId: string | null; restaurantName: string | null; lines: readonly unknown[] },
+  restaurantId: string): string | null {
+  if (!bag.lines.length || !bag.restaurantId || bag.restaurantId === restaurantId) return null;
+  return bag.restaurantName ?? "";
+}

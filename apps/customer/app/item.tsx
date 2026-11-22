@@ -10,6 +10,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { FavouriteHeart } from "../components/Heart";
 import { useKitchenBlock } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
+import { okToReplaceBag } from "../lib/newBag";
 import { photo, Photo } from "../lib/plate";
 import { useAvailability, useMenu } from "../lib/restaurants";
 
@@ -126,7 +127,8 @@ export default function Item() {
             accessibilityRole="button"
             accessibilityState={{ disabled: !complete || !!blocked }}
             disabled={!complete || !!blocked}
-            onPress={() => {
+            onPress={async () => {
+              if (!(await okToReplaceBag(menu.restaurant.id, t))) return; // R28: asks before clearing another kitchen's bag
               const summary = chosen.map((p) => p.option.split(" · ")[0]?.toLowerCase()).join(", ");
               add({ id: menu.restaurant.id, name: menu.restaurant.name },
                 { menuItemId: item.id, name: item.name, unitPrice: unit, quantity: qty, picks: chosen, summary });

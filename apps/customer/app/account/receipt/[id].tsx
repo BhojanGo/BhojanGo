@@ -14,6 +14,7 @@ import {
 } from "../../../lib/account";
 import { RateOrder } from "../../../lib/account-rating";
 import { ScreenBar, Section, Status, ui } from "../../../lib/account-ui";
+import { okToReplaceBag } from "../../../lib/newBag";
 
 export default function Receipt() {
   const { t, money, date, time } = useI18n();
@@ -78,6 +79,7 @@ export default function Receipt() {
       // R27: the same items, options and quantities; what's sold out or no longer offered is named (packages/ui reorder.js)
       const { restaurant, lines, notes } = reorderToBag(await reorder(order.id));
       if (lines.length) {
+        if (!(await okToReplaceBag(restaurant.id, t))) return; // R28: asks before clearing another kitchen's bag
         const bag = useBag.getState();
         bag.clear();
         for (const line of lines) bag.add({ id: restaurant.id, name: restaurant.name }, line);
