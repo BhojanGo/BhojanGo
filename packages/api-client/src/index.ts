@@ -137,6 +137,12 @@ function within<T>(p: Promise<T>, ms: number): Promise<T> {
 
 export function createApi(config: ApiConfig): Api {
   let refreshing: Promise<string | null> | null = null;
+  // R27: an unread copy of each request that may need a retry after a 401. Sending a request reads
+  // its body, and a request whose body was read can't be copied any more; rebuilding the retry from
+  // the sent request threw ("already used"), so every POST after the 15-minute access token expired
+  // failed once as "Can't reach BhojanGo" (the bag couldn't price or pay). Kept per request, freed
+  // with it.
+  const unsent = new WeakMap<Request, Request>();
   const auth: Middleware = {
     onRequest({ request }) {
       if (config.session) {
@@ -147,6 +153,7 @@ export function createApi(config: ApiConfig): Api {
       }
       const token = config.getAccessToken();
       if (token && !request.headers.has("Authorization")) request.headers.set("Authorization", `Bearer ${token}`);
+      if (config.refreshAccessToken && request.method !== "GET" && request.method !== "HEAD") unsent.set(request, request.clone());
       return request;
     },
     // Return nothing to keep the response as it is (openapi-fetch's contract).
@@ -168,7 +175,8 @@ export function createApi(config: ApiConfig): Api {
         config.onSignedOut?.();
         return undefined;
       }
-      const retry = new Request(request, { headers: new Headers(request.headers) });
+      const retry = new Request(unsent.get(request) ?? request, { headers: new Headers(request.headers) });
+      unsent.delete(request);
       if (!config.session) retry.headers.set("Authorization", `Bearer ${token}`);
       retry.headers.set("X-Retried", "1");
       return (config.fetch ?? fetch)(retry);
