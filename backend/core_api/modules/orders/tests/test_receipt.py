@@ -125,7 +125,7 @@ def test_the_date_is_the_orders_city_day() -> None:
     r = receipt("US")
     r.issued_at = datetime(2026, 11, 15, 1, 30, tzinfo=UTC)
     r.time_zone = "America/Boise"
-    assert "Date: 14 Nov 2026" in pdf_text(R.render(r))
+    assert "Date: Nov 14, 2026" in pdf_text(R.render(r))  # R28: the US way
     r = receipt("IN")
     r.issued_at = datetime(2026, 11, 14, 20, 0, tzinfo=UTC)
     r.time_zone = "Asia/Kolkata"
@@ -181,3 +181,11 @@ def test_paid_after_refunds_and_reason_codes() -> None:
     assert refund_reason_code("items", "missing_item") == "missing_item"
     assert refund_reason_code("full", "Kitchen didn't accept in time") == "full"
     assert refund_reason_code("items", "something else") == "other"
+
+
+def test_the_date_is_written_the_countrys_way() -> None:
+    """R28: R27's US receipt said "21 Nov 2026"; a US receipt says "Nov 21, 2026", India "21 Nov 2026",
+    with no leading zero either way."""
+    at = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
+    assert R.receipt_date(at, "US") == "Nov 1, 2026"
+    assert R.receipt_date(at, "IN") == "1 Nov 2026"

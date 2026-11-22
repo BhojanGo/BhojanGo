@@ -1581,6 +1581,7 @@
       "closed": "Closed",
       "not_taking_orders": "Not taking orders: this tablet was offline",
       "offline_gap": "Customers couldn't order from {from} to {to}: this tablet wasn't connected.",
+      "offline_gap_brief": "Customers couldn't order for a few seconds: this tablet wasn't connected.",
       "today_orders": {
         "one": "today {count} order",
         "other": "today {count} orders"

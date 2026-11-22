@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  acceptLeft, clockSkew, isOffline, mayStart, mmss, OFFLINE_AFTER_MS, pollDue, pollEvery, POLL_WITH_SOCKET_MS, POLL_WITHOUT_SOCKET_MS,
+  acceptLeft, clockSkew, isOffline, mayStart, mmss, offlineGapNote, OFFLINE_AFTER_MS, pollDue, pollEvery, POLL_WITH_SOCKET_MS, POLL_WITHOUT_SOCKET_MS,
   socketAlive, STUCK_AFTER_MS,
 } from "../lib/liveness.ts";
 
@@ -66,4 +66,12 @@ test("the accept timer counts to the server's deadline and never shows 0:00 for 
   // Past the deadline (until the sweep cancels it, within 10 s) it is 0: the card says "Accept now".
   assert.equal(acceptLeft(due, placed + 185_000, 0), 0);
   assert.equal(acceptLeft(null, placed, 0), null);
+});
+
+// R28: R27's board said "Customers couldn't order from 2:50 pm to 2:50 pm".
+test("offlineGapNote: a gap within one minute is 'for a few seconds'; otherwise the real range", () => {
+  const clock = (iso: string) => iso.slice(11, 16); // stands in for the board's clock
+  assert.deepEqual(offlineGapNote("2026-11-21T14:50:05Z", "2026-11-21T14:50:40Z", clock), { key: "partner.orders.offline_gap_brief" });
+  assert.deepEqual(offlineGapNote("2026-11-21T14:50:05Z", "2026-11-21T14:53:10Z", clock),
+    { key: "partner.orders.offline_gap", values: { from: "14:50", to: "14:53" } });
 });
