@@ -1,6 +1,6 @@
 // Favourites (GET /me/favourites): saved kitchens and dishes, as on the website's
 // account favourites. Reached from home (the heart) and from Account (link to /favourites).
-import { Button, color, num, radius, SafeAreaView, space, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { Button, color, cuisineName, num, radius, SafeAreaView, space, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -57,7 +57,7 @@ export default function FavouritesScreen() {
                   <RatingBadge x={k} />
                 </View>
                 <Text numberOfLines={1} style={[type.small, { color: color.muted }]}>
-                  {[...k.cuisine_types.slice(0, 2), t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })].join(" · ")}
+                  {[...k.cuisine_types.slice(0, 2).map((c) => cuisineName(t, c)), t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })].join(" · ")}
                 </Text>
               </View>
             </Pressable>

@@ -2,17 +2,17 @@
 // every line with who gets it. Lines come from the engine (quote, order bill or
 // example bill); amounts are never computed here.
 import { fairSplit, payeeOf, type Payee, type Shares } from "@/lib/fairSplit";
+import { billLineLabel } from "@bhojango/i18n";
 import { shownLines } from "@bhojango/ui/bill";
 import { money } from "@/lib/format";
 import type { BillLine } from "@/lib/server";
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
-const TRANSLATED = new Set(["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
-
 export function billLabel(ln: BillLine, t: T, distance?: string | null): string {
-  if (!TRANSLATED.has(ln.code)) return ln.label; // tax and offers: the rule's own name (rates, terms)
-  const base = t(`bill.line_${ln.code}`);
+  // R27: the engine's lines and the known tax lines ("<state> sales tax", "GST on food") in the
+  // language (@bhojango/i18n billLineLabel); offers keep the rule's own name (terms).
+  const base = billLineLabel(t, ln);
   return ln.code === "delivery_fee" && distance ? `${base} · ${distance}` : base;
 }
 

@@ -8,7 +8,7 @@
 // "<City>, ID"); anything else only "Set your delivery location" (it opens Change
 // city). Never a city we guessed, never a city we don't serve.
 import {
-  Button, color, LanguagePill, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
+  Button, color, cuisineName, LanguagePill, LoadError, radius, SafeAreaView, space, Txt, type, useBag, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -118,7 +118,7 @@ export default function Home() {
         <OfferRow offers={data?.offers ?? []} currency={currency} covers={covers} />
 
         <View style={styles.sectionHead}>
-          <Txt variant="h2" accessibilityRole="header">{cuisine ? t("app.home.cuisine_near", { cuisine }) : t("home.kitchens_near")}</Txt>
+          <Txt variant="h2" accessibilityRole="header">{cuisine ? t("app.home.cuisine_near", { cuisine: cuisineName(t, cuisine) }) : t("home.kitchens_near")}</Txt>
           {cuisine ? (
             <Text testID="clear-cuisine" accessibilityRole="button" onPress={() => setCuisine(null)} style={[type.label, { color: color.peacock }]}>
               {t("app.home.all_kitchens")}

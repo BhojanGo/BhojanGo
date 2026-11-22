@@ -244,7 +244,7 @@ function TabBoard({ fresh, cooking, ready, defaultPrep, act, cards = false }: {
 
   const tabs: { key: Tab; title: string; short: string; list: Order[]; badge: [string, string] }[] = [
     { key: "new", title: tr("partner.orders.new"), short: tr("partner.orders.new"), list: fresh, badge: [color.peacock, color.white] },
-    { key: "preparing", title: tr("partner.orders.preparing"), short: tr("partner.orders.preparing"), list: cooking, badge: [tone.kesarSoft, tone.kesarInk] },
+    { key: "preparing", title: tr("partner.orders.preparing"), short: cards ? tr("partner.orders.preparing") : tr("partner.orders.preparing_short"), list: cooking, badge: [tone.kesarSoft, tone.kesarInk] },
     { key: "ready", title: tr("partner.orders.ready"), short: cards ? tr("partner.orders.ready") : tr("partner.orders.ready_short"), list: ready, badge: [color.peacockTint, color.peacockDeep] },
   ];
   const current = tabs.find((x) => x.key === tab)!;
@@ -354,7 +354,7 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
         </View>
         {left != null ? (
           <View testID="accept-timer" style={{ alignItems: "flex-end" }}
-            accessibilityLabel={left > 0 ? tr("partner.orders.left_to_accept", { min: Math.floor(left / 60), sec: left % 60 }) : tr("partner.orders.accept_now")}>
+            accessibilityLabel={left > 0 ? tr("partner.orders.left_to_accept", { min: tr("common.n_minutes", { count: Math.floor(left / 60) }), sec: tr("common.n_seconds", { count: left % 60 }) }) : tr("partner.orders.accept_now")}>
             <Text style={[type.h3, num, { color: color.chili }]}>{acceptText(left, tr)}</Text>
             {left > 0 ? <Text style={[type.caption, { color: color.muted }]}>{tr("partner.orders.to_accept")}</Text> : null}
           </View>

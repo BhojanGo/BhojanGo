@@ -1,7 +1,7 @@
 // A kitchen on home and search, as the website's KitchenCard: its own cover or
 // initials tile, the offer with who pays, the heart, "New" or "★4.6 (23)",
 // cuisines and distance, minutes and the delivery fee, closed until when.
-import { color, radius, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
+import { color, cuisineName, radius, space, textFont, Txt, type, useI18n } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
@@ -42,7 +42,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
   // R27: "Closed · opens 6:30 am" (another day: "Closed · opens Sat 6:30 am") on the kitchen's city clock.
   const zone = useDiscoverStore((s) => s.data?.timezone ?? null);
   const fee = k.delivery_fee != null ? Number(k.delivery_fee) : null;
-  const meta = [...k.cuisine_types.slice(0, 2), dist(k.distance, unit) ?? k.area].filter(Boolean).join(" · ");
+  const meta = [...k.cuisine_types.slice(0, 2).map((c) => cuisineName(t, c)), dist(k.distance, unit) ?? k.area].filter(Boolean).join(" · ");
   const height = compact ? 120 : 172;
   return (
     <View testID={`kitchen-card-${k.slug}`}>

@@ -37,6 +37,11 @@ translation in every file (mark it here) before CI passes.
 - `common.test_site_banner`: the strip on every page outside production (QA, staging,
   local); it must say plainly that kitchens are demos and nothing is really ordered or paid.
 - `checkout.card_ending`, `account.payments.ending`: "{brand} ending {last4}" word order.
+- R27 (2026-11-21, machine-translated): `cuisine_names.*` (cuisine tags on kitchens; the kitchens'
+  own data stays English where a name isn't listed), `bill.line_gst_*`, `bill.line_sales_tax*`,
+  `bill.line_tax_included` (tax line names on the fair bill), `common.n_minutes` / `n_seconds`,
+  and the plurals `common.rating_label`, `partner.ratings.chip` / `bar`, `rider.offer.label_batch` /
+  `pickup_of`, `partner.orders.left_to_accept` (now "{min} {sec}", each a plural).
 
 ## Per language
 

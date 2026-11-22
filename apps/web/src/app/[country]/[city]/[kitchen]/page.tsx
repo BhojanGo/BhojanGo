@@ -2,7 +2,7 @@
 // server-rendered with Restaurant + Menu structured data. The fee, the offer
 // and the distance are for the visitor's address (discover) when one is set;
 // adding to the bag happens in the browser.
-import { opensLabel } from "@bhojango/i18n";
+import { cuisineName, opensLabel } from "@bhojango/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { t } = await getContext();
   const { r, path } = hit;
   const title = t("kitchen.meta_title", { name: r.name, city: r.city });
-  const description = t("kitchen.meta_description", { name: r.name, cuisines: r.cuisine_types.join(", "), city: r.city, min: r.delivery_time_min, max: r.delivery_time_max });
+  const description = t("kitchen.meta_description", { name: r.name, cuisines: r.cuisine_types.map((x) => cuisineName(t, x)).join(", "), city: r.city, min: r.delivery_time_min, max: r.delivery_time_max });
   const image = photo(r.cover_url, 1600);
   return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path, ...(image ? { images: [image] } : {}) } };
 }
@@ -140,8 +140,8 @@ export default async function KitchenPage({ params }: { params: Params }) {
   // photo_url: its cover, else a dish of its own, else its cuisine's photo (R8); else the branded tile
   const cover = photo(kitchenPhoto(r), 1600);
   const logo = photo(r.logo_url ?? kitchenPhoto(r), 400);
-  const metaDesktop = [...r.cuisine_types, area, distance].filter(Boolean).join(" · ");
-  const metaPhone = [r.cuisine_types[0], distance, !closedNow && closes ? t("kitchen.open_till", { time: closes }) : null].filter(Boolean).join(" · ");
+  const metaDesktop = [...r.cuisine_types.map((x) => cuisineName(t, x)), area, distance].filter(Boolean).join(" · ");
+  const metaPhone = [r.cuisine_types[0] ? cuisineName(t, r.cuisine_types[0]) : null, distance, !closedNow && closes ? t("kitchen.open_till", { time: closes }) : null].filter(Boolean).join(" · ");
   const cityPath = `/${r.country.toLowerCase()}/${slugify(r.city)}`;
 
   return (

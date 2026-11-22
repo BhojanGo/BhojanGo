@@ -38,6 +38,15 @@ export interface ResolvedLocation<C extends LocationCity = LocationCity> {
 }
 export declare function resolveLocation<C extends LocationCity>(evidence: LocationEvidence, cities: readonly C[] | null | undefined): ResolvedLocation<C>;
 export declare function formatLocale(locales: string[] | null | undefined): string;
+/** Dates and times in the visitor's language, the country's region, Latin digits ("es", "en-US" -> "es-US-u-nu-latn"). */
+export declare function dateLocale(language: string, formatLocale: string): string;
+/** "Middle Eastern" -> "cuisine_names.middle_eastern". */
+export declare function cuisineKey(name: string): string;
+/** A cuisine tag in the language when the catalog knows it, else as written (R27). */
+export declare function cuisineName(t: (key: string, vars?: Record<string, string | number>) => string, name: string): string;
+/** A fair-bill line's name in the language: the engine's lines by code, known tax lines by name (R27). */
+export declare function billLineLabel(t: (key: string, vars?: Record<string, string | number>) => string,
+  line: { code: string; label: string }): string;
 export declare function createTranslator(language: string, messages: Messages, fallback: Messages): Translate;
 export declare function pluralSelector(language: string): (count: number) => string;
 

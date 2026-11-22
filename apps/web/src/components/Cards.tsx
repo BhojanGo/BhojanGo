@@ -1,6 +1,6 @@
 // Cards from the design (WebHome): a kitchen, an offer, a cuisine. Everything on
 // them is data from /discover; words come from the messages.
-import { opensLabel, wallClock } from "@bhojango/i18n";
+import { cuisineName, opensLabel, wallClock } from "@bhojango/i18n";
 import Link from "next/link";
 
 import { ratingOf } from "@/lib/contract";
@@ -84,7 +84,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
   feeFrom?: number | null;
 }) {
   const fee = k.delivery_fee != null ? Number(k.delivery_fee) : null;
-  const meta = [...k.cuisine_types.slice(0, 2), k.distance != null ? t(distanceUnit === "mi" ? "common.mi" : "common.km", { n: k.distance }) : k.area].filter(Boolean).join(" · ");
+  const meta = [...k.cuisine_types.slice(0, 2).map((c) => cuisineName(t, c)), k.distance != null ? t(distanceUnit === "mi" ? "common.mi" : "common.km", { n: k.distance }) : k.area].filter(Boolean).join(" · ");
   return (
     <div className="relative">
       <Link href={k.path} className="block text-[#111418] hover:text-[#111418]">
@@ -138,8 +138,9 @@ const OFFER_TINTS = ["#F6E7CC", "#DDEBEC", "#F1E3E1"];
 export function OfferCard({ o, i, t, currency, formatLocale, fallbackPhoto, href }: { o: Offer; i: number; t: T; currency: string; formatLocale: string; fallbackPhoto?: string | null; href?: string }) {
   const img = photo(kitchenPhoto(o.restaurant as { photo_url?: string | null; cover_url?: string | null } | null) ?? fallbackPhoto ?? null, 800);
   return (
-    <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
-      <span className="flex flex-grow flex-col justify-center py-5 pl-6 pr-5">
+    // R27: at least 150 px, taller when a translated headline needs two lines (Telugu was cut off).
+    <Link href={href ?? (o.restaurant?.path as string | undefined) ?? "#kitchens"} style={{ background: OFFER_TINTS[i % 3] }} className="flex min-h-[150px] overflow-hidden rounded-[20px] text-[#111418] hover:text-[#111418]">
+      <span className="flex min-w-0 flex-grow flex-col justify-center py-5 pl-6 pr-5 [overflow-wrap:anywhere]">
         <b className="text-h2">{offerTitle(o, t, currency, formatLocale)}</b>
         <span className="mt-1 text-small text-[#24383B]">{offerSubtitle(o, t, currency, formatLocale)}</span>
         <span className="mt-[10px] text-caption text-muted">{o.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays")}</span>
@@ -155,7 +156,7 @@ export function CuisineTile({ name, image, href }: { name: string; image: string
       <span className="block h-[72px] w-[72px] overflow-hidden rounded-full border-[3px] border-white shadow-[0_0_0_1px_#E2E7E8] md:h-[150px] md:w-[120px]">
         <KitchenPhoto src={photo(image, 400)} className="h-full w-full rounded-full" />
       </span>
-      <span className="mt-[6px] block text-label md:mt-3">{name}</span>
+      <span className="mt-[6px] block break-words text-label [hyphens:auto] md:mt-3">{name}</span>
     </Link>
   );
 }

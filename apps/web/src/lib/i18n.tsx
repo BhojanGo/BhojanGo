@@ -14,6 +14,8 @@ interface I18n {
   language: string;
   languages: string[];
   formatLocale: string;
+  /** Dates and times in the visitor's language (R27; prefs.ts). */
+  dateLocale: string;
   country: { code: string; name: string; currency: string; timezone: string; distance_unit: string; phone_code: string;
     /** Who operates BhojanGo in the country (R15, Markets "legal": name, address, support contacts...). */
     legal?: Record<string, string> } | null;
@@ -50,10 +52,12 @@ export function useT() {
  * country's (a label only in a country with several zones).
  */
 export function useFormat() {
-  const { formatLocale, country } = useI18n();
+  const { formatLocale, dateLocale, country } = useI18n();
   return useMemo(() => {
+    // R27: dates in the visitor's language ("17 nov" in Spanish); times, money and numbers in the
+    // country's format (as @bhojango/i18n hours.js: "Closed · opens Sat 6:30 am").
     const inZone = (tz?: string | null) => ({
-      date: (iso: string | Date, opts?: Intl.DateTimeFormatOptions) => date(iso, formatLocale, tz || country?.timezone, opts),
+      date: (iso: string | Date, opts?: Intl.DateTimeFormatOptions) => date(iso, dateLocale, tz || country?.timezone, opts),
       time: (iso: string | Date) => time(iso, formatLocale, tz || country?.timezone),
     });
     return {
@@ -63,8 +67,9 @@ export function useFormat() {
       ...inZone(null),
       zone: inZone,
       formatLocale,
+      dateLocale,
     };
-  }, [formatLocale, country]);
+  }, [formatLocale, dateLocale, country]);
 }
 
 export function useLanguage() {

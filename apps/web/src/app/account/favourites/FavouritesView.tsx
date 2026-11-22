@@ -3,6 +3,7 @@
 // The heart removes one; a dish opens its kitchen's page, where it's added
 // with its options.
 
+import { cuisineName } from "@bhojango/i18n";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -68,7 +69,7 @@ function KitchenFav({ k }: { k: FavKitchen }) {
           <b className="truncate text-h3">{k.name}</b>
           {k.is_new && <span className="shrink-0 rounded-md bg-[#DDEBEC] px-2 py-[3px] text-caption text-[#083F46]">{t("common.new")}</span>}
         </div>
-        <div className="mt-1 truncate text-small text-muted">{[...k.cuisine_types.slice(0, 2), k.city].filter(Boolean).join(" · ")}</div>
+        <div className="mt-1 truncate text-small text-muted">{[...k.cuisine_types.slice(0, 2).map((c) => cuisineName(t, c)), k.city].filter(Boolean).join(" · ")}</div>
         <div className="mt-1 text-small">
           <b>{t("common.minutes", { min: k.delivery_time_min, max: k.delivery_time_max })}</b>
           {fee !== null && (

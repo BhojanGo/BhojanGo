@@ -5,6 +5,7 @@
 // - an address (WebHome and inside the app): search, language pill, account, bag. The
 //   address itself is on the page (the home's "N kitchens deliver to <address>" opens it).
 // On a phone (MWeb*): the same pill + account, search on its own row.
+import { cuisineName } from "@bhojango/i18n";
 import Link from "next/link";
 
 import { getContext } from "@/lib/prefs";
@@ -17,7 +18,9 @@ export async function SiteHeader() {
   const brand = (
     <Link href="/" aria-label={t("common.home")} className="flex shrink-0 items-center gap-[10px] text-[#111418] hover:text-[#111418]">
       <LogoMark />
-      <span className="text-h2 tracking-[-0.4px]">{t("common.brand")}</span>
+      {/* R27: under 420 px the mark alone (as in the phone header with an address), so a longer
+          "Sign in" ("Iniciar sesión") and the language pill fit a 360 px phone. */}
+      <span className="text-h2 tracking-[-0.4px] max-[419px]:hidden">{t("common.brand")}</span>
     </Link>
   );
 
@@ -41,7 +44,7 @@ export async function SiteHeader() {
 
   // "Search biryani, dosa, kitchens…" from what's actually near the address (data, not copy).
   const near = place.served === false ? null : await discover({ lat: place.lat, lng: place.lng });
-  const top = ((near?.cuisines ?? []) as { name: string }[]).slice(0, 2).map((c) => c.name.toLowerCase());
+  const top = ((near?.cuisines ?? []) as { name: string }[]).slice(0, 2).map((c) => cuisineName(t, c.name).toLocaleLowerCase());
   const placeholder = top.length === 2 ? t("common.search_placeholder_near", { a: top[0]!, b: top[1]! }) : t("common.search_placeholder");
   return (
     <header className="sticky top-0 z-30 border-b border-[#E2E7E8] bg-white print:hidden">

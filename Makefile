@@ -146,11 +146,15 @@ ci-web-data:
 # every language a live country lists in Markets; the self-test proves it fails.
 # Wording (Round 8): no "rider" or old app name (BhojanGo Partner/Rider) in text a person
 # reads, in any language: messages, backend texts, app names, app and website UI strings.
+# R27: the apps' one-line labels (tabs, rail, short buttons) fit their box in every language;
+# the website's pages are rendered in every language at 360 and 1440 px in e2e.yml (i18n_layout).
 ci-i18n:
 	python tools/i18n/check_locales.py --self-test
 	python tools/i18n/check_locales.py
 	python tools/i18n/check_wording_test.py
 	python tools/i18n/check_wording.py
+	python tools/i18n/check_app_lengths.py --self-test
+	python tools/i18n/check_app_lengths.py
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
 ci-observe:

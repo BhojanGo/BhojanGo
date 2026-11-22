@@ -41,7 +41,7 @@ function countryName(ctx: Context, code: string): string {
 }
 
 const day = (ctx: Context, iso?: string | null) =>
-  iso ? date(iso.slice(0, 10), ctx.formatLocale, null, { day: "numeric", month: "long", year: "numeric" }) : "";
+  iso ? date(iso.slice(0, 10), ctx.dateLocale, null, { day: "numeric", month: "long", year: "numeric" }) : "";
 
 function showDraft(doc: LegalPage | null): boolean {
   return !isProduction(process.env.APP_ENV) || doc?.status === "draft" || !doc || doc.status === "unavailable";

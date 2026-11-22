@@ -291,7 +291,7 @@ export function HomeFeed({
               aria-controls="kitchens-list"
               aria-expanded={false}
               onClick={() => setAll(true)}
-              className="shrink-0 font-bold text-[#0B5D66] hover:underline"
+              className="min-w-0 text-right font-bold text-[#0B5D66] hover:underline"
             >
               {t("home.see_all", { count: shown.length })}
             </button>

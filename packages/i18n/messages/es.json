@@ -44,14 +44,25 @@
     "skip_to_content": "Saltar al contenido",
     "test_site_banner": "Sitio de prueba: cocinas de demostración, sin pedidos ni pagos reales",
     "search_placeholder_near": "Busca {a}, {b}, cocinas…",
-    "rating_label": "Calificación de {stars} sobre 5, de {count} calificaciones",
+    "rating_label": {
+      "one": "Calificación de {stars} sobre 5, de {count} calificación",
+      "other": "Calificación de {stars} sobre 5, de {count} calificaciones"
+    },
     "rating_short": "★{stars} ({count})",
     "delivery_from": "envío desde {fee}",
     "people_waiting": {
       "one": "{n} persona esperando",
       "other": "{n} personas esperando"
     },
-    "closed_opens_day": "Cerrado · abre el {day} a las {time}"
+    "closed_opens_day": "Cerrado · abre el {day} a las {time}",
+    "n_minutes": {
+      "one": "{count} minuto",
+      "other": "{count} minutos"
+    },
+    "n_seconds": {
+      "one": "{count} segundo",
+      "other": "{count} segundos"
+    }
   },
   "header": {
     "where_we_deliver": "Dónde entregamos",
@@ -116,7 +127,12 @@
     "line_surge": "Tarifa por alta demanda",
     "line_late_night_fee": "Tarifa nocturna",
     "line_tip": "Propina para tu repartidor",
-    "exact_note": "Tu cuenta real muestra los montos exactos, línea por línea, antes de pagar."
+    "exact_note": "Tu cuenta real muestra los montos exactos, línea por línea, antes de pagar.",
+    "line_gst_food": "GST sobre la comida",
+    "line_gst_fees": "GST sobre las tarifas de la plataforma",
+    "line_sales_tax": "Impuesto sobre las ventas de {region}",
+    "line_sales_tax_plain": "Impuesto sobre las ventas",
+    "line_tax_included": "{tax} (incluido en los precios)"
   },
   "notify": {
     "title": "Avísame",
@@ -1232,7 +1248,10 @@
       "new_delivery": "NUEVA ENTREGA",
       "batch_title": "{count} ENTREGAS · UNA RECOGIDA",
       "label_single": "Nueva oferta de entrega",
-      "label_batch": "Nueva oferta: {count} entregas",
+      "label_batch": {
+        "one": "Nueva oferta: {count} entrega",
+        "other": "Nueva oferta: {count} entregas"
+      },
       "guaranteed": "Garantizado",
       "guaranteed_all": "Garantizado para ambas",
       "includes_tip": "incluye {amount} de propina",
@@ -1243,7 +1262,10 @@
       "minutes": "~{min} min",
       "per_hour": "{amount}/h",
       "pickup": "Recogida",
-      "pickup_of": "Recogida de {count} pedidos",
+      "pickup_of": {
+        "one": "Recogida de {count} pedido",
+        "other": "Recogida de {count} pedidos"
+      },
       "being_prepared": "en preparación",
       "ready_now": "listo ya",
       "ready_in": "listo en {min} min",
@@ -1542,6 +1564,7 @@
       "new": "Nuevos",
       "new_empty": "Los pedidos nuevos suenan aquí.",
       "preparing": "En preparación",
+      "preparing_short": "Preparando",
       "ready": "Listos para recoger",
       "ready_note": "Los pedidos salen de esta columna cuando el repartidor confirma la recogida.",
       "ready_short": "Listos",
@@ -1569,7 +1592,7 @@
       "resume": "Reanudar pedidos",
       "customer": "Cliente",
       "delivery_paid": "Entrega · pagado · {time}",
-      "left_to_accept": "{min} minutos {sec} segundos para aceptar",
+      "left_to_accept": "{min} {sec} para aceptar",
       "to_accept": "para aceptar",
       "accept_now": "Acepta ahora",
       "note": "Nota: {note}",
@@ -1602,7 +1625,10 @@
     },
     "ratings": {
       "title": "Tus calificaciones",
-      "chip": "★ {stars} · {count} calificaciones",
+      "chip": {
+        "one": "★ {stars} · {count} calificación",
+        "other": "★ {stars} · {count} calificaciones"
+      },
       "chip_new": {
         "one": "Nuevo · {count} calificación",
         "other": "Nuevo · {count} calificaciones"
@@ -1618,8 +1644,8 @@
       "average_so_far": "Promedio hasta ahora: ★ {stars}",
       "distribution": "Calificaciones por estrellas",
       "bar": {
-        "one": "{stars} estrellas: {count} calificación",
-        "other": "{stars} estrellas: {count} calificaciones"
+        "one": "{stars}: {count} calificación",
+        "other": "{stars}: {count} calificaciones"
       },
       "recent": "Comentarios recientes",
       "no_comments": "Aún no hay comentarios. Los clientes pueden dejar uno al calificar un pedido.",
@@ -2356,5 +2382,61 @@
   "incident": {
     "paused_area": "Los pedidos en {area} están en pausa mientras arreglamos un problema. Los pedidos en camino llegarán.",
     "paused_everywhere": "Los pedidos están en pausa mientras arreglamos un problema. Los pedidos en camino llegarán."
+  },
+  "cuisine_names": {
+    "american": "Americana",
+    "andhra": "Andhra",
+    "bakery": "Panadería",
+    "bbq": "Barbacoa",
+    "basque": "Vasca",
+    "biryani": "Biryani",
+    "bowls": "Bowls",
+    "breakfast": "Desayunos",
+    "burgers": "Hamburguesas",
+    "burritos": "Burritos",
+    "chaat": "Chaat",
+    "chinese": "China",
+    "coffee": "Café",
+    "comfort": "Comida casera",
+    "desserts": "Postres",
+    "dosa": "Dosa",
+    "fried_chicken": "Pollo frito",
+    "gujarati": "Guyaratí",
+    "haleem": "Haleem",
+    "healthy": "Saludable",
+    "hyderabadi": "Hyderabadí",
+    "indian": "Comida india",
+    "indo_chinese": "Indochina",
+    "irani_cafe": "Café iraní",
+    "italian": "Italiana",
+    "japanese": "Japonesa",
+    "kebabs": "Kebabs",
+    "kerala": "Kerala",
+    "meals": "Comidas",
+    "mediterranean": "Mediterránea",
+    "mexican": "Mexicana",
+    "middle_eastern": "De Medio Oriente",
+    "momos": "Momos",
+    "mughlai": "Mogol",
+    "nepalese": "Nepalí",
+    "noodles": "Fideos",
+    "north_indian": "Comida norteindia",
+    "pizza": "Pizza",
+    "punjabi": "Panyabí",
+    "pure_veg": "Vegetariana",
+    "rajasthani": "Rajastaní",
+    "ramen": "Ramen",
+    "salads": "Ensaladas",
+    "snacks": "Botanas",
+    "south_indian": "Comida sudindia",
+    "spanish": "Española",
+    "street_food": "Comida callejera",
+    "sushi": "Sushi",
+    "sweets": "Dulces",
+    "tacos": "Tacos",
+    "tandoor": "Tandoor",
+    "thai": "Tailandesa",
+    "thali": "Thali",
+    "tiffins": "Tiffins"
   }
 }

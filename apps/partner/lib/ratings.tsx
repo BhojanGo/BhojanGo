@@ -102,7 +102,8 @@ export function RatingSummaryCard({ summary, onClose }: { summary: RatingSummary
               const n = summary.distribution[star - 1] ?? 0;
               return (
                 <View key={star} testID={`rating-bar-${star}`} style={s.barRow}
-                  accessibilityLabel={tr("partner.ratings.bar", { stars: star, count: n })}>
+                  // R27: "1 star: 3 ratings" (each count with its own plural), not "1 stars"
+                  accessibilityLabel={tr("partner.ratings.bar", { stars: tr("partner.ratings.stars_label", { count: star }), count: n })}>
                   <Text style={[type.label, { width: 36 }]}>{star} ★</Text>
                   <View style={s.track}><View style={[s.fill, { width: `${(n / most) * 100}%` }]} /></View>
                   <Text style={[type.label, { width: 44, textAlign: "right", color: color.muted }]}>{number(n, 0)}</Text>
