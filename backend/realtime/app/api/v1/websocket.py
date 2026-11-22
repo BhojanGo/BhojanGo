@@ -157,7 +157,9 @@ async def _track(websocket: WebSocket, order_id: str, current_user: CurrentUser,
             "payload": {"order_id": order_id, "user_id": current_user.user_id, "status": info.get("status"),
                         "driver_id": info.get("driver_id"), "location": fix,
                         "eta": dispatch.eta_for(info, (fix["lat"], fix["lng"])) if fix else None,
-                        "pickup": info.get("pickup"), "dropoff": info.get("dropoff"), "trail": list(reversed(trail))},
+                        "pickup": info.get("pickup"), "dropoff": info.get("dropoff"), "trail": list(reversed(trail)),
+                        # R28: still no partner after the city's minutes (the customer was told; partner_search_slow)
+                        "searching_slow": not info.get("driver_id") and bool(await (await get_redis()).exists(dispatch.late_key(order_id)))},
             "timestamp": datetime.now(UTC).isoformat(),
         })
 

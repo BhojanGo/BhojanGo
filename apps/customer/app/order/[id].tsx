@@ -14,7 +14,7 @@ import { LiveMap } from "../../components/LiveMap";
 import { distanceLeft, nextStop, riderFirstName, trackHeadline, type Eta, type Order, type Pt } from "../../lib/contract";
 import { Icon } from "../../lib/icons";
 
-interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; assigned: boolean }
+interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; assigned: boolean; slow: boolean }
 
 const STEPS = [
   { key: "placed", states: ["pending_payment", "placed", "accepted"] },
@@ -37,7 +37,7 @@ export default function Tracking() {
   const [failure, setFailure] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
-  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false, assigned: false });
+  const [live, setLive] = useState<Live>({ status: null, pickup: null, dropoff: null, rider: null, trail: [], eta: null, searching: false, assigned: false, slow: false });
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 15000);
@@ -73,12 +73,15 @@ export default function Tracking() {
               ...s, status: (p.status as string) ?? s.status, pickup: (p.pickup as Pt) ?? null, dropoff: (p.dropoff as Pt) ?? null,
               rider: loc ? [loc.lat, loc.lng] : null, eta: (p.eta as Eta) ?? null,
               trail: ((p.trail as [number, number, string][]) ?? []).map((x) => [x[0], x[1]] as Pt),
+              slow: !!p.searching_slow,
             };
           }
           case "searching_rider":
             return { ...s, searching: true };
+          case "partner_search_slow": // R28: no partner after the city's minutes: said honestly, with the later time
+            return { ...s, slow: true, eta: (p.eta as Eta) ?? s.eta };
           case "rider_assigned":
-            return { ...s, searching: false, assigned: true, eta: (p.eta as Eta) ?? s.eta };
+            return { ...s, searching: false, assigned: true, slow: false, eta: (p.eta as Eta) ?? s.eta };
           case "location_update": {
             const pt: Pt = [Number(p.lat), Number(p.lng)];
             return { ...s, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
@@ -192,7 +195,8 @@ export default function Tracking() {
           </View>
           <View style={{ alignItems: "flex-end", gap: 2 }}>
             {leftText ? <Text testID="distance-left" style={[type.label, { color: color.kohl }]}>{t("track.away", { left: leftText })}</Text> : null}
-            {live.searching && !assigned ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
+            {live.slow && !assigned ? <Text testID="slow-search" style={[type.small, { color: color.chili, maxWidth: 220, textAlign: "right" }]}>{t("track.s_slow_search")}</Text> : null}
+            {live.searching && !live.slow && !assigned ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
           </View>
         </View>
         <View accessibilityLabel={t("app.track.progress", { step: t(`app.track.step_${STEPS[stepIndex]?.key ?? "placed"}`), n: stepIndex + 1, total: STEPS.length })}>

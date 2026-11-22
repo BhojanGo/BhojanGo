@@ -581,6 +581,10 @@ RULES = [
     ("business", "cancel_window", None, "Free cancellation window", "platform", "*", {"minutes": 2}),
     ("business", "refund_window", None, "Refund requests", "platform", "*", {"hours": 72}),
     ("business", "dispatch_offer_timeout", None, "Delivery partner offer timeout", "platform", "*", {"seconds": 30}),
+    # R28: a pass or a timed-out offer keeps that partner off that order for 2 minutes (never 24 hours);
+    # an order with no partner after 8 minutes alerts Operations and tells the customer. Per city in admin.
+    ("business", "dispatch_offer_exclusion", None, "Delivery partner pass: off that order for", "platform", "*", {"seconds": 120}),
+    ("business", "no_partner_alert", None, "No delivery partner yet: alert after", "platform", "*", {"minutes": 8}),
     # What payment providers keep (item 1): Stripe in the US (2.9% + $0.30, Stripe Tax 0.5%),
     # Razorpay in India (2% on cards, wallets and net banking; UPI free). Editable in admin.
     ("business", "payment_fees", None, "Payment fees (Stripe)", "country", "US",

@@ -233,6 +233,20 @@ class DispatchOfferTimeout(_P):
     seconds: int = Field(ge=10, le=120)
 
 
+class DispatchOfferExclusion(_P):
+    """R28: how long a delivery partner who passed on an order, or let its offer time out, isn't
+    offered that same order again (other orders: at once). At most 2 minutes; 0 means at once."""
+
+    seconds: int = Field(ge=0, le=120)
+
+
+class NoPartnerAlert(_P):
+    """R28: an order still without a delivery partner this many minutes after it started looking
+    alerts admin Operations, and the customer is told (with a later arrival time)."""
+
+    minutes: int = Field(ge=1, le=60)
+
+
 class Batching(_P):
     """Task 43: one rider carries two orders from the same kitchen. The batch
     engine always runs in shadow (it only logs what it would do); ``live`` lets
@@ -400,6 +414,8 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "tip_presets": TipPresets,
         "max_radius": MaxRadius,
         "dispatch_offer_timeout": DispatchOfferTimeout,
+        "dispatch_offer_exclusion": DispatchOfferExclusion,
+        "no_partner_alert": NoPartnerAlert,
         "support_refund_limit": SupportRefundLimit,
         "auto_refund_limit": AutoRefundLimit,
         "payment_fees": PaymentFees,

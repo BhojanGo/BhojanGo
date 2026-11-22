@@ -24,6 +24,8 @@ class DispatchInfo(BaseModel):
     pickup: list[float] | None  # [lat, lng]
     dropoff: list[float] | None
     offer_timeout_seconds: int
+    offer_exclusion_seconds: int = 120  # R28: business:dispatch_offer_exclusion (this order only)
+    no_partner_alert_minutes: int = 8  # R28: business:no_partner_alert
     distance_unit: str  # km | mi
     # What the rider sees on the offer (P18)
     code: str

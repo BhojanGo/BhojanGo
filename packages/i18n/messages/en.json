@@ -500,6 +500,7 @@
     "s_placed": "{kitchen} has your order",
     "s_cooking": "{kitchen} is cooking",
     "s_finding": "Finding a delivery partner",
+    "s_slow_search": "Finding a delivery partner is taking longer than usual. Your new arrival time is below.",
     "s_heading": "{rider} is heading to the kitchen",
     "s_picked_up": "{rider} has picked up your order",
     "s_delivered": "Delivered. Enjoy your meal.",
