@@ -40,6 +40,11 @@ async function fetchOrders(f: { q: string; status: Filter; from: string; to: str
   return { ...r, items: r.items.filter((o) => o.status !== "pending_payment") };
 }
 
+/** R28: the total less refunds, in cents (38.85 − 16.96 is 21.89, never 21.889999). */
+function paidCents(o: { total: string | number; refunded?: number | null }): number {
+  return Math.max(0, Math.round(Number(o.total) * 100) - Math.round(Number(o.refunded ?? 0) * 100));
+}
+
 export function StatusPill({ status }: { status: string }) {
   const t = useT();
   const cls = isActive(status)
@@ -51,6 +56,7 @@ export function StatusPill({ status }: { status: string }) {
 }
 
 function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick: () => void }) {
+  const t = useT();
   const f = useFormat();
   const kitchen = useKitchenBrief(o.restaurant_id);
   const summary = o.items_summary ?? (o.items as { name?: string; quantity?: number }[]).map((i) => (i.quantity && i.quantity > 1 ? `${i.quantity} × ${i.name}` : i.name)).join(", ");
@@ -69,8 +75,14 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
       <span className="min-w-0 flex-grow">
         <span className="flex justify-between gap-2">
           <b className="truncate text-label">{o.restaurant_name}</b>
-          <b className="shrink-0 text-label tabular-nums">{f.money(o.total, o.currency)}</b>
+          <b className="shrink-0 text-label tabular-nums">{f.money(paidCents(o) / 100, o.currency)}</b>
         </span>
+        {/* R28: what was actually paid after refunds, and how much came back */}
+        {Number(o.refunded) > 0 && (
+          <span className="mt-[2px] block text-small tabular-nums text-muted">
+            {t("account.orders.refunded", { amount: f.money(Number(o.refunded), o.currency) })}
+          </span>
+        )}
         <span className="mt-[2px] block truncate text-small text-muted">{summary}</span>
         {/* R27: the order code is never cut ("#7..." at phone width); the status moves under it when short of room */}
         <span className="mt-[6px] flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-small text-muted">

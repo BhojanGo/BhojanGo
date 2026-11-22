@@ -45,6 +45,11 @@ async def test_a_partial_refund_is_on_the_receipt_and_off_the_kitchens_today(cli
     assert Decimal(bill["refunds"][0]["amount"]) == back
     assert Decimal(bill["refunded"]) == back and Decimal(bill["paid"]) == Decimal(bill["total"]) - back
 
+    # R28: the orders list says what was refunded too (the apps show what was paid: total − refunded).
+    mine = (await client.get("/api/v1/orders", headers=cust)).json()["items"]
+    listed = next(o for o in mine if o["id"] == order["id"])
+    assert Decimal(str(listed["refunded"])) == back
+
     # The PDF says it too.
     pdf = await client.get(f"/api/v1/orders/{order['id']}/receipt.pdf", headers=cust)
     assert pdf.status_code == 200, pdf.text

@@ -140,6 +140,19 @@ async def refunded_total(db: AsyncSession, order_id: uuid.UUID) -> float | None:
     return float(minor) / 100 if minor else None
 
 
+async def refunded_totals(db: AsyncSession, order_ids: list[uuid.UUID]) -> dict[uuid.UUID, float]:
+    """R28: refunded_total for many orders in one query (the orders list); orders with none are left out."""
+    if not order_ids:
+        return {}
+    from sqlalchemy import func
+
+    from core_api.modules.payments.models.payment import Refund
+
+    rows = await db.execute(select(Refund.order_id, func.sum(Refund.amount))
+                            .where(Refund.order_id.in_(order_ids)).group_by(Refund.order_id))
+    return {oid: float(minor) / 100 for oid, minor in rows.all() if minor}
+
+
 class OrderService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
