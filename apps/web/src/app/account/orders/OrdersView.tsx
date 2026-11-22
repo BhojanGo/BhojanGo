@@ -40,8 +40,11 @@ async function fetchOrders(f: { q: string; status: Filter; from: string; to: str
   return { ...r, items: r.items.filter((o) => o.status !== "pending_payment") };
 }
 
-/** R28: the total less refunds, in cents (38.85 − 16.96 is 21.89, never 21.889999). */
-function paidCents(o: { total: string | number; refunded?: number | null }): number {
+/** R28: the total less refunds, in cents (38.85 − 16.96 is 21.89, never 21.889999). An order cancelled before it was
+ * paid (the payment timed out) cost nothing; old rows without a history count as paid. */
+function paidCents(o: { total: string | number; refunded?: number | null; status?: string; status_history?: readonly { status?: unknown }[] | null }): number {
+  const h = o.status_history ?? [];
+  if (o.status === "cancelled" && h.length > 0 && !h.some((e) => e.status === "placed")) return 0;
   return Math.max(0, Math.round(Number(o.total) * 100) - Math.round(Number(o.refunded ?? 0) * 100));
 }
 

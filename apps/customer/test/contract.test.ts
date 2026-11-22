@@ -135,3 +135,13 @@ test("paidAfterRefunds: the total less refunds, in cents", () => {
   assert.deepEqual(paidAfterRefunds({ total: 12.5 }), { paid: 12.5, refunded: null });
   assert.deepEqual(paidAfterRefunds({ total: "20.00", refunded: 20 }), { paid: 0, refunded: 20 });
 });
+
+// R28 journey: #748E60 (Foothills, cancelled when its payment timed out) was listed at $21.01; it cost nothing.
+test("paidAfterRefunds: an order cancelled before it was paid cost nothing", () => {
+  const unpaid = [{ status: "pending_payment" }, { status: "cancelled" }];
+  assert.deepEqual(paidAfterRefunds({ total: "21.01", status: "cancelled", status_history: unpaid }), { paid: 0, refunded: null });
+  const paid = [{ status: "pending_payment" }, { status: "placed" }, { status: "cancelled" }];
+  assert.deepEqual(paidAfterRefunds({ total: "21.54", refunded: 21.54, status: "cancelled", status_history: paid }), { paid: 0, refunded: 21.54 });
+  assert.deepEqual(paidAfterRefunds({ total: "21.01", status: "cancelled", status_history: [] }), { paid: 21.01, refunded: null });
+  assert.deepEqual(paidAfterRefunds({ total: "24.54", status: "delivered", status_history: unpaid.slice(0, 1) }), { paid: 24.54, refunded: null });
+});
