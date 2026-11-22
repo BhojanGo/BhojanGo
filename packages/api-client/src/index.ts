@@ -153,6 +153,27 @@ export class RefreshWaitError extends Error {
   }
 }
 
+/** R28: the longest a network retry may take before it fails like the first try. */
+export const NET_RETRY_WAIT_MS = 15000;
+
+/**
+ * R28: may this request go again after no answer? Reads, the price quote (it only reads), and changes
+ * that carry an idempotency key (the server does them once). Never another change.
+ */
+export function retrySafe(request: Request): boolean {
+  if (request.method === "GET" || request.method === "HEAD") return true;
+  if (request.headers.has("X-Idempotency-Key")) return true;
+  return request.method === "POST" && new URL(request.url).pathname.endsWith("/pricing/quote");
+}
+
+function withinMs<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`No answer in ${Math.round(ms / 1000)} s`)), ms);
+  });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
+
 /** `p`, or a RefreshWaitError after `ms` (its timer is always cleared). */
 function within<T>(p: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -160,6 +181,22 @@ function within<T>(p: Promise<T>, ms: number): Promise<T> {
     timer = setTimeout(() => reject(new RefreshWaitError(ms)), ms);
   });
   return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * R28: the answer a middleware hands back must be an instance of this runtime's global Response, or
+ * openapi-fetch throws "onResponse: must return new Response() when modifying the response". On a phone
+ * the fetch behind the retry (React Native's / Expo's) returns a response of another class: the retry
+ * after the 15-minute access token expired got its 200 and then failed, so the bag said "Can't reach
+ * BhojanGo" after sitting idle (QA, R28: API log 401 -> refresh 200 -> retry 200; app: that error).
+ * The answer is copied into a global Response (same status, headers and body).
+ */
+export async function asResponse(got: Response): Promise<Response> {
+  if (got instanceof Response) return got;
+  const other: Pick<Response, "status" | "statusText" | "headers" | "arrayBuffer"> = got;
+  const empty = other.status === 204 || other.status === 205 || other.status === 304;
+  const body = empty ? null : await other.arrayBuffer();
+  return new Response(body, { status: other.status, statusText: other.statusText, headers: new Headers(other.headers) });
 }
 
 export function createApi(config: ApiConfig): Api {
@@ -189,14 +226,32 @@ export function createApi(config: ApiConfig): Api {
       // a CORS preflight. Their requests still get an id from the API (its response says it).
       if (!config.session && !request.headers.has("X-Request-ID")) request.headers.set("X-Request-ID", newRequestId());
       started.set(request, Date.now());
+      // An unread copy of a change, for a retry (sending reads the body; a read body can't be copied).
+      if (!config.session && request.method !== "GET" && request.method !== "HEAD") unsent.set(request, request.clone());
       return request;
     },
     onResponse({ request, response }) {
       if (response.status >= 400) report(request, { status: response.status });
       return undefined;
     },
-    onError({ request, error }) {
+    async onError({ request, error }) {
       report(request, { error: error instanceof Error ? `${error.name}: ${error.message}` : String(error) });
+      // R28: no answer at all (a dropped connection: fetch's TypeError, not our timeout) on a request that
+      // is safe to send again: once more, as its own request ("<id>-n"). The failed connection is gone
+      // from the pool, so the retry opens a new one. Never for the website (it has its own browser).
+      if (config.session || !(error instanceof TypeError) || !retrySafe(request) || request.headers.get("X-Net-Retry")) return undefined;
+      const again = new Request(unsent.get(request) ?? request, { headers: new Headers(request.headers) });
+      unsent.delete(request);
+      again.headers.set("X-Net-Retry", "1");
+      const first = request.headers.get("X-Request-ID");
+      if (first) again.headers.set("X-Request-ID", `${first}-n`);
+      started.set(again, Date.now());
+      try {
+        return await asResponse(await withinMs((config.fetch ?? fetch)(again), NET_RETRY_WAIT_MS));
+      } catch (e) {
+        report(again, { error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) });
+        return e instanceof Error ? e : new Error(String(e));
+      }
     },
   };
   const auth: Middleware = {
@@ -209,7 +264,6 @@ export function createApi(config: ApiConfig): Api {
       }
       const token = config.getAccessToken();
       if (token && !request.headers.has("Authorization")) request.headers.set("Authorization", `Bearer ${token}`);
-      if (config.refreshAccessToken && request.method !== "GET" && request.method !== "HEAD") unsent.set(request, request.clone());
       return request;
     },
     // Return nothing to keep the response as it is (openapi-fetch's contract).
@@ -240,7 +294,7 @@ export function createApi(config: ApiConfig): Api {
       if (first) retry.headers.set("X-Request-ID", `${first}-r`);
       started.set(retry, Date.now());
       try {
-        return await (config.fetch ?? fetch)(retry);
+        return asResponse(await (config.fetch ?? fetch)(retry));
       } catch (e) {
         report(retry, { error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) });
         throw e;
