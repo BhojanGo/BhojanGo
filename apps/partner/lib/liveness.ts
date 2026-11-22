@@ -90,3 +90,14 @@ export function acceptLeft(dueAt: string | null | undefined, now: number, skew: 
 export function mmss(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
+
+/**
+ * R28: the note after customers couldn't order because this tablet wasn't connected. A gap that
+ * starts and ends on the same minute said "from 2:50 pm to 2:50 pm": it is "for a few seconds".
+ * `clock` writes a time as the board does (the kitchen's city, the app's language).
+ */
+export function offlineGapNote(from: string, to: string, clock: (iso: string) => string): { key: string; values?: Record<string, string> } {
+  const a = clock(from);
+  const b = clock(to);
+  return a === b ? { key: "partner.orders.offline_gap_brief" } : { key: "partner.orders.offline_gap", values: { from: a, to: b } };
+}

@@ -51,6 +51,14 @@ def money(amount: Decimal | float | str, currency: str) -> str:
     return format_money(amount, currency)
 
 
+def receipt_date(at: datetime, country: str) -> str:
+    """R28: the date as the receipt's country writes it: "Nov 21, 2026" in the US, "21 Nov 2026" in
+    India (and elsewhere). The US receipt said "21 Nov 2026"."""
+    if country == "US":
+        return f"{at:%b} {at.day}, {at.year}"
+    return f"{at.day} {at:%b} {at.year}"
+
+
 def _pct(rate: str | None) -> str:
     if not rate:
         return ""
@@ -226,7 +234,7 @@ def render(r: Receipt) -> bytes:
     text(r.title, 14, "B", 8)
     tz = ZoneInfo(r.time_zone or TIMEZONE.get(r.country, "UTC"))
     text(f"{'Invoice' if r.country == 'IN' else 'Receipt'} number: {r.invoice_no}")
-    text(f"Date: {r.issued_at.astimezone(tz):%d %b %Y}    Order: {r.order_code}")
+    text(f"Date: {receipt_date(r.issued_at.astimezone(tz), r.country)}    Order: {r.order_code}")
     if r.payment_method:
         text(f"Paid by: {r.payment_method.replace('_', ' ')}")
     rule()

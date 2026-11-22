@@ -11,7 +11,7 @@ import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, Vie
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
 import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
-import { acceptLeft, mmss } from "../../lib/liveness";
+import { acceptLeft, mmss, offlineGapNote } from "../../lib/liveness";
 import { RatingChip } from "../../lib/ratings";
 import { Btn, Card, color, Count, Icon, radius, Segmented, t, textFont, tone } from "../../lib/ui";
 
@@ -60,13 +60,17 @@ export default function Orders() {
       params: { path: { restaurant_id: kitchen.id } }, body: { paused, minutes } }))));
   }
 
+  // R28: "for a few seconds" when the gap starts and ends on the same minute (it said "2:50 pm to 2:50 pm")
+  const gap = today?.offline_from && today.offline_to
+    ? offlineGapNote(today.offline_from, today.offline_to, (at) => clock(at, today.time_zone)) : null;
+
   return (
     <SafeAreaView testID="orders-screen" edges={["top", "right"]} style={{ flex: 1 }}>
       <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} />
       {/* R27: customers couldn't order for a while because this tablet wasn't connected: say when (for an hour). */}
-      {today?.offline_from && today.offline_to ? (
+      {gap ? (
         <Text testID="offline-gap" accessibilityRole="alert" style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>
-          {tr("partner.orders.offline_gap", { from: clock(today.offline_from, today.time_zone), to: clock(today.offline_to, today.time_zone) })}
+          {tr(gap.key, gap.values)}
         </Text>
       ) : null}
       {/* R9: the first load failed: the error state and Retry; later polls that fail: one line over the board (it keeps polling). */}

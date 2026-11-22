@@ -1580,6 +1580,7 @@
       "closed": "Cerrado",
       "not_taking_orders": "No acepta pedidos: esta tableta estaba sin conexión",
       "offline_gap": "Los clientes no pudieron pedir de {from} a {to}: esta tableta no estaba conectada.",
+      "offline_gap_brief": "Los clientes no pudieron pedir durante unos segundos: esta tableta no estaba conectada.",
       "today_orders": {
         "one": "hoy {count} pedido",
         "other": "hoy {count} pedidos"
