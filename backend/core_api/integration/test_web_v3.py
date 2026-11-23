@@ -135,20 +135,20 @@ async def test_city_pricing_from_the_rules(client: AsyncClient) -> None:  # noqa
     p = (await client.get("/api/v1/markets/cities/in/hyderabad")).json()["pricing"]
     assert p["currency"] == "INR" and p["distance_unit"] == "km"
     fee = p["delivery_fee"]
-    assert fee["type"] == "base_per_distance"  # R30: ₹20 + ₹6 per km
-    assert (float(fee["base"]), float(fee["per_unit"])) == (20, 6)
-    assert float(p["delivery_from"]) == 20
+    assert fee["type"] == "distance_slabs"  # R31: distance bands
+    assert [(float(s["up_to"]), float(s["fee"])) for s in fee["slabs"]] == [(3, 30), (5, 40), (7, 50)]
+    assert float(p["delivery_from"]) == 30
     assert p["service_fee"] is None  # R29: the platform fee replaced it
     assert {k: float(v) for k, v in p["platform_fee"].items()} == {"percent": 10, "min": 15}
     assert {k: float(v) for k, v in p["small_order_fee"].items()} == {"below": 99, "fee": 15}
     assert [float(a) for a in p["tip_presets"]["amounts"]] == [10, 20, 30] and p["tip_presets"]["default_index"] == 1
-    assert float(p["max_distance"]) == 10
+    assert float(p["max_distance"]) == 7  # R31: the last band
     assert all(m["zone"] and float(m["min_order"]) >= 0 for m in p["min_order"])
     us = (await client.get("/api/v1/markets/cities/us/boise")).json()["pricing"]
-    assert us["currency"] == "USD" and us["distance_unit"] == "mi" and float(us["delivery_from"]) == 3  # R30: $3.00 + $1.00/mile
+    assert us["currency"] == "USD" and us["distance_unit"] == "mi" and float(us["delivery_from"]) == 3.5  # R31: 0-2 mi $3.50
     # a coming-soon city is priced by its country's rules
     soon = (await client.get("/api/v1/markets/cities/us/nampa")).json()["pricing"]
-    assert soon["delivery_fee"]["type"] == "base_per_distance" and float(soon["tip_presets"]["amounts"][0]) == 2
+    assert soon["delivery_fee"]["type"] == "distance_slabs" and float(soon["tip_presets"]["amounts"][0]) == 2
 
 
 async def test_quote_has_tip_presets(client: AsyncClient) -> None:  # noqa: F811

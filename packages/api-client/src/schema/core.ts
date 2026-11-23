@@ -5376,6 +5376,11 @@ export interface components {
             cover_url: string | null;
             /** Cuisine Types */
             cuisine_types: string[];
+            /**
+             * Deliverable
+             * @default true
+             */
+            deliverable?: boolean;
             /** Delivery Fee */
             delivery_fee: string | null;
             /** Distance */
@@ -6074,6 +6079,10 @@ export interface components {
         /** DeliveryTerms */
         DeliveryTerms: {
             apps: components["schemas"]["AppLinks"];
+            /** Bands */
+            bands?: {
+                [key: string]: string;
+            }[] | null;
             /** Batch Bonus */
             batch_bonus?: string | null;
             /**
@@ -9994,7 +10003,7 @@ export interface components {
              * Field
              * @enum {string}
              */
-            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee";
+            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance";
             /**
              * Level
              * @enum {string}
@@ -18496,7 +18505,7 @@ export interface operations {
             query: {
                 level: "country" | "region" | "city" | "restaurant";
                 scope_id: string;
-                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee";
+                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance";
             };
             header?: never;
             path?: never;

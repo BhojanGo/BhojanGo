@@ -170,11 +170,14 @@ function PayCards({ ok, t, m, loc, language }: { ok: DeliveryTerms; t: T; m: (v:
   if (!ex) return <p className="mt-6 rounded-[20px] bg-porcelain p-6 text-body">{t("deliver_page.pay_none", { city: ok.city.name })}</p>;
   const unit = unitName(ok.distance_unit, loc);
   const biweekly = ok.pay_schedule?.frequency === "biweekly";
+  const bands = bandWords(ok, t, m, loc);
   return (
     <>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="pay-cards" data-city={ok.city.code}>
         <Card title={t("deliver_page.pay_trip_title")} big={m(ex.total)} testid="pay-trip" sub={t("deliver_page.pay_trip_example", { distance: distance(ex.distance, ok.distance_unit, loc) })}>
-          <p className="m-0">{t("deliver_page.pay_trip_body", { base: m(ex.base), per_unit: m(ex.per_unit), unit })}</p>
+          <p className="m-0">{bands
+            ? t("deliver_page.pay_trip_bands", { bands })
+            : t("deliver_page.pay_trip_body", { base: m(ex.base), per_unit: m(ex.per_unit), unit })}</p>
           {Number(ex.per_wait_minute) > 0 && (
             <p className="m-0 mt-2">{t("deliver_page.pay_wait", { per_minute: m(ex.per_wait_minute), minutes: ex.free_wait_minutes })}</p>
           )}
@@ -241,14 +244,24 @@ function Requirements({ ok, t, language, countryName }: { ok: DeliveryTerms; t: 
   );
 }
 
+/** R31: a trip pays its delivery fee by road-distance band: "$3.50 up to 2 mi; $4.50 up to 4 mi; ..." */
+function bandWords(ok: DeliveryTerms, t: T, m: (v: string | number | null | undefined) => string, loc: string): string | null {
+  return ok.bands?.length
+    ? ok.bands.map((b) => t("city.faq_band_upto", { fee: m(b.fee), distance: distance(b.up_to ?? 0, ok.distance_unit, loc) })).join("; ")
+    : null;
+}
+
 function Faq({ ok, t, m, loc, language, countryName }: { ok: DeliveryTerms; t: T; m: (v: string | number | null | undefined) => string; loc: string; language: string; countryName: string }) {
   const ex = ok.example;
+  const bands = bandWords(ok, t, m, loc);
   const insurance = ok.requirements.papers.find((d) => d.step === "insurance");
   const vehicles = ok.requirements.vehicles.map((v) => t(`deliver_page.vehicle_${v}`));
   const qa: { id: string; q: string; a: string }[] = [
     ...(ex ? [{
       id: "pay", q: t("deliver_page.faq_pay_q"),
-      a: [Number(ex.per_wait_minute) === 0
+      a: [bands
+        ? t("deliver_page.faq_pay_a_bands", { city: ok.city.name, bands })
+        : Number(ex.per_wait_minute) === 0
         ? t("deliver_page.faq_pay_a_fee", { city: ok.city.name, base: m(ex.base), per_unit: m(ex.per_unit), unit: unitName(ok.distance_unit, loc) })
         : t("deliver_page.faq_pay_a", { city: ok.city.name, base: m(ex.base), per_unit: m(ex.per_unit), unit: unitName(ok.distance_unit, loc),
         per_minute: m(ex.per_wait_minute), minutes: ex.free_wait_minutes }),

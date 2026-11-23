@@ -96,7 +96,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {offerBadge(k.offer, t, currency, formatLocale)}
             </span>
           )}
-          {!k.open_now && <span className="absolute inset-0 bg-white/40" aria-hidden="true" />}
+          {(!k.open_now || k.deliverable === false) && <span className="absolute inset-0 bg-white/40" aria-hidden="true" />}
         </div>
         <div className="mt-3 flex items-baseline justify-between gap-2">
           <b className="truncate text-h3">{k.name}</b>
@@ -121,6 +121,7 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
               {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale) })}
             </>
           )}
+          {k.deliverable === false && <span className="text-muted" data-testid="too-far"> · {t("common.too_far")}</span>}
           {!k.open_now && k.closed_for_now && <span className="text-muted" data-testid="closed-for-now"> · {t("kitchen.closed_for_now")}</span>}
           {!k.open_now && k.not_taking_orders && <span className="text-muted" data-testid="not-taking-orders"> · {t("kitchen.not_taking_orders")}</span>}
           {!k.open_now && !k.closed_for_now && k.opens_at && <span className="text-muted"> · {closedOpens(t, k.opens_at, formatLocale, timeZone, language)}</span>}

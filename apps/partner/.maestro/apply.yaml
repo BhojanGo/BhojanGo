@@ -9,7 +9,9 @@ env:
     timeout: 30000
 - tapOn: "FSSAI licence"
 - assertVisible: "Your terms"
-- assertVisible: "15%"
+# R29/R30: commission 0% and the sign-up terms sentence (was 15% before fee model v2)
+- assertVisible: "0%"
+- assertVisible: "You receive your dine-in menu price minus the payment processing fee.*"
 - tapOn:
     id: "fssai-number"
 - eraseText: 20

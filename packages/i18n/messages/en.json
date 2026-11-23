@@ -62,7 +62,8 @@
     "n_seconds": {
       "one": "{count} second",
       "other": "{count} seconds"
-    }
+    },
+    "too_far": "Too far to deliver"
   },
   "header": {
     "where_we_deliver": "Where we deliver",
@@ -133,7 +134,8 @@
     "line_gst_fees": "GST on platform fees",
     "line_sales_tax": "{region} sales tax",
     "line_sales_tax_plain": "Sales tax",
-    "line_tax_included": "{tax} (included in prices)"
+    "line_tax_included": "{tax} (included in prices)",
+    "tax_on": "{rate}% on {line}"
   },
   "notify": {
     "title": "Notify me",
@@ -166,7 +168,7 @@
     "kitchens_cta": "Add your restaurant",
     "riders_eyebrow": "For delivery partners",
     "riders_title": "Deliver with BhojanGo",
-    "riders_body": "See the full pay before you accept. A minimum hourly pay. Tips are 100% yours.",
+    "riders_body": "See the full pay before you accept: the whole delivery fee, and tips are 100% yours.",
     "riders_cta": "Start delivering",
     "greeting": "Hello",
     "greeting_morning": "Good morning",
@@ -396,7 +398,8 @@
     "bag_closed": "This restaurant is closed now",
     "bill_when_open": "The whole bill shows here when the restaurant is open.",
     "deliveries_start": "Deliveries start {time}",
-    "deliveries_start_day": "Deliveries start {day} {time}"
+    "deliveries_start_day": "Deliveries start {day} {time}",
+    "too_far_note": "This restaurant is too far from your address to deliver. Pick a restaurant nearer to you, or change your address."
   },
   "checkout": {
     "title": "Checkout",
@@ -1154,7 +1157,7 @@
     },
     "join": {
       "title": "Sign up to deliver",
-      "sub": "Full pay shown before you accept, tips stay 100% yours, and a minimum hourly pay in every city. Next: a few documents.",
+      "sub": "Full pay shown before you accept: the whole delivery fee and 100% of your tips. Next: a few documents.",
       "name": "Your full name",
       "name_hint": "As on your licence",
       "city": "Where you'll deliver",
@@ -1180,7 +1183,7 @@
       "progress": "{done} of {total} steps done",
       "progress_short": "{done} of {total}",
       "how_pay_title": "How pay works.",
-      "how_pay": "You see the full pay before you accept, tips stay 100% yours, and every city has a minimum pay per active hour.",
+      "how_pay": "You see the full pay before you accept: the whole delivery fee of each trip, and 100% of your tips.",
       "how_pay_floor": "You see the full pay before you accept, tips stay 100% yours, and {floor}.",
       "cta_payouts": "Set up payouts",
       "cta_licence": "Upload licence",
@@ -1947,7 +1950,7 @@
     "faq_hours_q": "When can I deliver?",
     "faq_hours_a": "Whenever you like. Go online in the app when you want trips and offline when you're done; there are no shifts to book. Trips come in while restaurants are open.",
     "faq_tips_q": "Do I keep my tips?",
-    "faq_tips_a": "Yes, all of them. Tips are paid on top of your trip pay and don't count towards the hourly minimum.",
+    "faq_tips_a": "Yes, all of them. Tips are paid on top of the trip's delivery fee.",
     "faq_vehicle_q": "What vehicle can I use?",
     "faq_vehicle_a": "In {country}: {vehicles}. You upload its documents in the app (see What you need).",
     "faq_insurance_q": "Do I need insurance?",
@@ -1978,7 +1981,9 @@
     "gs_vehicle": "Your vehicle",
     "gs_err_vehicle": "That vehicle can't be used for deliveries here. Pick one from the list.",
     "gs_rules_failed": "We couldn't load the sign-up form. Refresh the page to try again.",
-    "faq_pay_a_fee": "In {city}, each trip pays its delivery fee: {base} plus {per_unit} per {unit} from the restaurant to the customer. You keep the whole delivery fee and every tip, and you see each trip's pay before you accept it."
+    "faq_pay_a_fee": "In {city}, each trip pays its delivery fee: {base} plus {per_unit} per {unit} from the restaurant to the customer. You keep the whole delivery fee and every tip, and you see each trip's pay before you accept it.",
+    "pay_trip_bands": "Each trip pays its delivery fee, by road distance from the restaurant to the customer: {bands}.",
+    "faq_pay_a_bands": "In {city}, each trip pays its delivery fee, by road distance from the restaurant to the customer: {bands}. You keep the whole delivery fee and every tip, and you see each trip's pay before you accept it."
   },
   "errors": {
     "title_404": "We can't find that page",

@@ -322,7 +322,11 @@ class ProviderSettings(BaseSettings):
     APNS_PRIVATE_KEY: str = ""  # the .p8 key (PEM)
     APNS_BUNDLE_ID: str = "com.bhojango.app"
     APNS_SANDBOX: bool = False
-    ROUTING_PROVIDER: str = "straight_line"
+    # R31: osrm = road distance from a self-hosted OSRM (free, no API key; docker compose service "osrm");
+    # when it's down, straight-line x ROAD_FACTOR, logged as routing_fallback. straight_line = always that.
+    ROUTING_PROVIDER: str = "straight_line"  # straight_line | osrm
+    OSRM_URL: str = "http://osrm:5000"
+    OSRM_TIMEOUT_SECONDS: float = 1.5
     # Uploaded files (P18: delivery photos, rider documents): local disk, or S3
     # (LocalStack in `make dev`).
     STORAGE_PROVIDER: str = "local"  # local | s3

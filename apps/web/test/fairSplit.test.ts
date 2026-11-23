@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fairSplit } from "../src/lib/fairSplit.ts";
+import { fairSplit, taxShares } from "../src/lib/fairSplit.ts";
 
 const sum = (s: { percent: number }[]) => s.reduce((a, b) => a + b.percent, 0);
 
@@ -40,4 +40,11 @@ test("no shares, or a zero bill, has no split", () => {
   assert.equal(fairSplit(null), null);
   assert.equal(fairSplit(undefined), null);
   assert.equal(fairSplit({ kitchen: 0, rider: 0, tax: 0, us: 0 }), null);
+});
+
+test("R31: GST per bill line, shown under a tax that covers several lines", () => {
+  const fees = { code: "tax", detail: { rate_percent: "18", by_line: "delivery_fee=5.40;platform_fee=5.40" } };
+  assert.deepEqual(taxShares(fees), [["delivery_fee", "5.40"], ["platform_fee", "5.40"]]);
+  assert.deepEqual(taxShares({ code: "tax", detail: { by_line: "food=15.00" } }), []); // one line: nothing to break down
+  assert.deepEqual(taxShares({ code: "delivery_fee", detail: null }), []);
 });

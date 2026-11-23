@@ -359,7 +359,9 @@ class Demo:
         city = DEMO[key]
         q, priced_at, why = await self.price(key, customer, slug, lines, city["tip"], times)
         if q is None or priced_at is None:
-            if history:
+            # R31: past the city's max delivery distance (road distance, delivery bands) a demo order can't be
+            # placed any more: skip it, as for history; any other reason still stops the seed.
+            if history or "too far" in str(why):
                 self.counts["history_skipped"] += 1
                 print(f"demo seed: skipped a past order at {slug} for {customer}: {why}")
                 return False

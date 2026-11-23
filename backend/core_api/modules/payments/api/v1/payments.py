@@ -291,6 +291,9 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
                                 **({"provider_method": event["method"]} if event.get("method") else {})}
             if get_settings().is_production:  # R29: local and QA keep the configured estimate
                 await OrderService(db).apply_actual_card_fee(intent.order_id, fee)
+        if event.get("method") and not get_settings().is_production:
+            # R31: local and QA: the estimate follows the method the gateway reports (a gateway wallet...)
+            await OrderService(db).apply_reported_method(intent.order_id, event["method"])
     else:
         intent.metadata_ = {**intent.metadata_, "failure_reason": event.get("failure_reason") or event["event_type"]}
         await outbox.add(db, "payment.failed", "order", intent.order_id,

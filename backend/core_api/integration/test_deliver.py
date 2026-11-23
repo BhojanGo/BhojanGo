@@ -43,9 +43,10 @@ async def test_hyderabad_terms_come_from_its_rules(client: AsyncClient) -> None:
     assert r.status_code == 200, r.text
     t = r.json()
     assert t["city"]["name"] == "Hyderabad" and t["country"] == "IN" and t["currency"] == "INR" and t["phone_code"] == "+91"
-    ex = t["example"]  # R30: a trip pays its delivery fee, seed ₹20 + ₹6 per km, at 3 km; no waiting pay
-    assert Decimal(ex["distance"]) == 3 and Decimal(ex["base"]) == 20 and Decimal(ex["per_unit"]) == 6
-    assert Decimal(ex["total"]) == 38 and Decimal(ex["distance_pay"]) == 18 and ex["free_wait_minutes"] == 0
+    ex = t["example"]  # R31: a trip pays its delivery fee from the distance bands; 3 km is in 0-3 km: ₹30
+    assert Decimal(ex["distance"]) == 3 and Decimal(ex["base"]) == 30 and Decimal(ex["per_unit"]) == 0
+    assert Decimal(ex["total"]) == 30 and Decimal(ex["distance_pay"]) == 0 and ex["free_wait_minutes"] == 0
+    assert [(Decimal(b["up_to"]), Decimal(b["fee"])) for b in t["bands"]] == [(3, 30), (5, 40), (7, 50)]
     assert Decimal(ex["per_wait_minute"]) == 0
     assert t["hourly_floor"] is None and t["batch_bonus"] is None and t["tips_percent"] == 100
     assert t["pay_schedule"] == {"frequency": "weekly", "day": "mon"}
@@ -57,7 +58,8 @@ async def test_hyderabad_terms_come_from_its_rules(client: AsyncClient) -> None:
 async def test_boise_terms_are_in_dollars_and_miles(client: AsyncClient) -> None:
     t = (await client.get("/api/v1/delivery/terms", params={"city": "US-ID-BOI"})).json()
     assert t["currency"] == "USD" and t["distance_unit"] == "mi"
-    assert Decimal(t["example"]["distance"]) == 2 and Decimal(t["example"]["total"]) == 5  # $3.00 + 2 mi x $1.00
+    assert Decimal(t["example"]["distance"]) == 2 and Decimal(t["example"]["total"]) == Decimal("3.50")  # R31: 0-2 mi
+    assert [Decimal(b["fee"]) for b in t["bands"]] == [Decimal("3.50"), Decimal("4.50"), Decimal("5.50"), Decimal("6.50")]
     assert t["hourly_floor"] is None and t["batch_bonus"] is None
     assert [d["key"] for d in t["requirements"]["papers"]] == ["drivers_license", "vehicle_insurance", "payout_account",
                                                                   "background_check"] and "car" in t["requirements"]["vehicles"]

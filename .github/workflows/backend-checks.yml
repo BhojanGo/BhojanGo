@@ -93,7 +93,8 @@ jobs:
         working-directory: backend
         env:
           RUN_MIGRATED_DB_TESTS: "1"
-        run: uv run pytest core_api/integration -v --tb=short
+        # The markets-only seed tests need their own database: they run in the step above, not here (R31).
+        run: uv run pytest core_api/integration -v --tb=short --ignore=core_api/integration/test_markets_only_seed.py
 
       - name: API contract (generated client matches OpenAPI)
         working-directory: backend

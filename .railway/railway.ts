@@ -96,7 +96,10 @@ export default defineRailway((ctx, project) => {
     ...(prod ? { OTP_FIXED_CODE: "" } : {}),
     // Error reports (Sentry, free plan; shared/observability.py): one backend project, sealed.
     ...(prod ? { SENTRY_DSN: preserve() } : {}),
-    ROUTING_PROVIDER: "straight_line",
+    // R31: road distance from the private OSRM service below (QA); production keeps the straight-line
+    // estimate until a routing service is chosen for it. OSRM down: straight-line x 1.3, logged.
+    ROUTING_PROVIDER: qa ? "osrm" : "straight_line",
+    ...(qa ? { OSRM_URL: "http://osrm.railway.internal:5000", ROAD_FACTOR: "1.3" } : {}),
     LOG_FORMAT: "json",
     // The client's address for rate limits (sign-in, OTP) and logs: Railway's edge puts it in
     // X-Real-IP and overwrites one a client sends. The socket peer is Railway's proxy
@@ -123,6 +126,18 @@ export default defineRailway((ctx, project) => {
       deploy: { ...cap(opts.cpu, opts.memoryGiB) },
       env: { ...backendEnv, PORT: String(port), ...extra },
     });
+
+  // ── Road distance (R31, QA only) ───────────────────────────────────────
+  // OSRM on OpenStreetMap roads of the live cities (infra/docker/osrm: the map is fetched and prepared at
+  // build time). Private only: core_api, realtime and the worker reach it on the private network.
+  if (qa) {
+    service("osrm", {
+      source: src("infra/docker/osrm"),
+      build: { builder: "DOCKERFILE", dockerfilePath: "Dockerfile", watchPatterns: ["infra/docker/osrm/**"] },
+      deploy: { ...cap(0.5, 1) },
+      env: {},
+    });
+  }
 
   // ── Backend ────────────────────────────────────────────────────────────
   // core_api: migrations run before each deploy goes live (pre-deploy, in its

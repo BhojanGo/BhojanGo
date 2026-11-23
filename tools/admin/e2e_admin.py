@@ -758,8 +758,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(800)
         check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda n=name: AXE.scan(page, n))
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
-    # R30: Hyderabad's delivery fee is base + per km ("₹20 + ₹6 per km, all of it to the delivery partner")
-    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"₹\d+ \+ ₹\d+ per km, all of it to the delivery partner")).first).to_be_visible(timeout=10000))
+    # R31: Hyderabad's delivery fee from distance bands ("0–3 km: ₹30 · …")
+    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"0–\d+ km: ₹\d+")).first).to_be_visible(timeout=10000))
 
     # Role scopes: a Hyderabad city ops sees Hyderabad only, and no Finance or Settings.
     ops = b.new_page(viewport={"width": 1440, "height": 1000})

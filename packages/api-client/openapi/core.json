@@ -1673,6 +1673,11 @@
             "title": "Cuisine Types",
             "type": "array"
           },
+          "deliverable": {
+            "default": true,
+            "title": "Deliverable",
+            "type": "boolean"
+          },
           "delivery_fee": {
             "anyOf": [
               {
@@ -3561,6 +3566,23 @@
         "properties": {
           "apps": {
             "$ref": "#/components/schemas/AppLinks"
+          },
+          "bands": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bands"
           },
           "batch_bonus": {
             "anyOf": [
@@ -14141,7 +14163,8 @@
               "min_platform_fee",
               "restaurant_commission_pct",
               "card_fee_estimate",
-              "delivery_fee"
+              "delivery_fee",
+              "max_delivery_distance"
             ],
             "title": "Field",
             "type": "string"
@@ -28998,7 +29021,8 @@
                 "min_platform_fee",
                 "restaurant_commission_pct",
                 "card_fee_estimate",
-                "delivery_fee"
+                "delivery_fee",
+                "max_delivery_distance"
               ],
               "title": "Field",
               "type": "string"

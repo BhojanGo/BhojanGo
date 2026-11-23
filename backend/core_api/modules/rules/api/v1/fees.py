@@ -3,7 +3,7 @@ each fee setting's effective value and where it comes from ("Inherited from: USA
 effective dates), changes waiting for a second admin, and the audit log (who, when, old -> new).
 
 Settings: platform_fee_pct, min_platform_fee, restaurant_commission_pct, card_fee_estimate (R30: per payment method),
-delivery_fee (R30: base + per km/mi, all of it to the delivery partner). Each is a rule in the
+delivery_fee (R31: distance bands, all of it to the delivery partner), max_delivery_distance (R31). Each is a rule in the
 rule engine (one slot each, so each inherits on its own). Setting a value makes a draft (or a new version of the
 level's rule) and sends it for approval: these are money rules, so a second admin approves them (rules API).
 Unsetting ends the level's rule, so the level inherits again.
@@ -35,7 +35,8 @@ Editor = Annotated[AdminContext, Depends(require_permission("rules.edit"))]
 Approver = Annotated[AdminContext, Depends(require_permission("rules.approve"))]
 
 Level = Literal["country", "region", "city", "restaurant"]
-Field_ = Literal["platform_fee_pct", "min_platform_fee", "restaurant_commission_pct", "card_fee_estimate", "delivery_fee"]
+Field_ = Literal["platform_fee_pct", "min_platform_fee", "restaurant_commission_pct", "card_fee_estimate", "delivery_fee",
+                 "max_delivery_distance"]
 LEVELS: tuple[str, ...] = ("country", "region", "city", "restaurant")
 # field -> (family, template, rule name)
 TEMPLATE = {
@@ -43,7 +44,8 @@ TEMPLATE = {
     "min_platform_fee": ("fee", "min_platform_fee", "Minimum platform fee"),
     "restaurant_commission_pct": ("commission", "percent", "Restaurant commission"),
     "card_fee_estimate": ("fee", "card_fee_estimate", "Payment fee estimate"),
-    "delivery_fee": ("delivery_fee", "base_per_distance", "Delivery fee"),
+    "delivery_fee": ("delivery_fee", "distance_slabs", "Delivery fee"),  # R31: distance bands
+    "max_delivery_distance": ("business", "max_radius", "Max delivery distance"),
 }
 
 
@@ -219,6 +221,8 @@ async def set_fee(data: SetFee, admin: Editor, db: DB) -> dict:
     admin.require("rules.edit", _market(chain))
     family, template, name = TEMPLATE[data.field]
     params = {"percent": data.value.get("percent")} if template == "percent" else data.value
+    if template == "distance_slabs":  # R31: {"bands": [{up_to, fee}...]}
+        params = {"slabs": data.value.get("bands") or data.value.get("slabs") or []}
     svc = RuleService(db)
     scope = chain[-1]["scope_id"]
     own = await _own(db, data.level, scope)

@@ -15,8 +15,44 @@ appId: com.bhojango.rider
 - inputText: "Kiran Rao"
 - hideKeyboard
 - tapOn: "Hyderabad"
+# the date of birth (18+) and the vehicle (R20); Continue is below them
+- scrollUntilVisible:
+    element:
+      id: "dob-day"
+    direction: DOWN
+- tapOn:
+    id: "dob-day"
+- inputText: "14"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "dob-month"
+    direction: DOWN
+- tapOn:
+    id: "dob-month"
+- inputText: "06"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "dob-year"
+    direction: DOWN
+- tapOn:
+    id: "dob-year"
+- inputText: "1995"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "vehicle-motorcycle"
+    direction: DOWN
+- tapOn:
+    id: "vehicle-motorcycle"
 - takeScreenshot: docs/screenshots/rider/14-signup
-- tapOn: "Continue"
+- scrollUntilVisible:
+    element:
+      id: "join-continue"
+    direction: DOWN
+- tapOn:
+    id: "join-continue"
 - extendedWaitUntil:
     visible: "Almost ready to deliver, Kiran"
     timeout: 30000
