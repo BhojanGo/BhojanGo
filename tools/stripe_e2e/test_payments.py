@@ -53,12 +53,25 @@ def _calc(h: H, platform_code: str, shipping_code: str) -> dict:
         customer_details={"address": {"country": "US", "state": "ID", "city": "Boise", "postal_code": "83702",
                                       "line1": "1510 N 13th St"}, "address_source": "shipping"},
         expand=["line_items.data.tax_breakdown"])
+    def g(obj, key: str, default=None):  # type: ignore[no-untyped-def]
+        """A field of a StripeObject (or dict) that may be missing from the answer (as tax.py's _g)."""
+        try:
+            v = obj[key]
+        except (KeyError, TypeError, AttributeError):
+            v = default
+        return default if v is None else v
+
+    def reasons(obj) -> list[str]:  # type: ignore[no-untyped-def]
+        return sorted({str(g(b, "taxability_reason")) for b in g(obj, "tax_breakdown", [])})
+
     out: dict = {}
-    for li in calc.line_items.data:
-        out[li.reference] = (li.amount_tax, sorted({str(b.taxability_reason) for b in li.tax_breakdown}))
-    ship = calc.shipping_cost
-    out["delivery_fee(shipping)"] = (ship.amount_tax, sorted({str(b.taxability_reason) for b in (ship.tax_breakdown or [])}))
-    out["total_tax"] = calc.tax_amount_exclusive
+    for li in g(g(calc, "line_items", {}), "data", []):
+        out[g(li, "reference")] = (g(li, "amount_tax"), reasons(li))
+    ship = g(calc, "shipping_cost", {})
+    out["delivery_fee(shipping)"] = (g(ship, "amount_tax"), reasons(ship))
+    out["total_tax"] = g(calc, "tax_amount_exclusive")
+    out["by_reason"] = sorted((str(g(b, "taxability_reason")), g(b, "taxable_amount"), g(b, "amount"))
+                              for b in g(calc, "tax_breakdown", []))
     return out
 
 
