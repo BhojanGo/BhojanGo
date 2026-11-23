@@ -120,7 +120,7 @@ async def test_quote_refuses_changed_bag_and_bad_places(client: AsyncClient) -> 
             "delivery_address": {"street": "x", "city": "Hyderabad", "state": "TG", "zip": "500081", "country": "IN"},
             "payment_method": "upi", "quote_token": q["token"]}
     r = await client.post("/api/v1/orders", headers={**h, "X-Idempotency-Key": str(uuid.uuid4())}, json=body)
-    assert r.status_code == 409 and "bag changed" in r.text
+    assert r.status_code == 409 and "cart changed" in r.text
 
     cases = [
         ({"lat": 15.0, "lng": 65.0}, cart, "don't deliver here"),

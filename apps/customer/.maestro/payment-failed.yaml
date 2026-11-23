@@ -25,7 +25,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "add-to-bag"
 - tapOn:
-    text: "View bag.*"
+    text: "View cart.*"
 - extendedWaitUntil:
     visible: "The fair bill"
     timeout: 20000

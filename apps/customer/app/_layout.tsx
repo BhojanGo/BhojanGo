@@ -56,8 +56,8 @@ export default function RootLayout() {
         {status === "unreachable" ? <UnreachableScreen error={failure} onRetry={initialize} /> : (
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.porcelain } }}>
             <Stack.Screen name="item" options={{ presentation: "modal" }} />
-            {/* R20: the bag is a full screen, also when it opens over the dish modal (a link, "View bag"): saying so
-                removes Expo Router's dev warning ("Route bag has no presentation option ... shown as a modal"). */}
+            {/* R20: the cart (route "bag") is a full screen, also when it opens over the dish modal (a link, View cart):
+                saying so removes Expo Router's dev warning that the route has no presentation option. */}
             <Stack.Screen name="bag" options={{ presentation: "card" }} />
           </Stack>
         )}

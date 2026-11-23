@@ -6,7 +6,7 @@ or writes the brand other than "BhojanGo" (the wordmark: "bhojango", "Bhojango",
 
 The words (docs: Round 8 wording contract): delivery people are "delivery partners"
 (in every language: डिलीवरी पार्टनर, డెలివరీ పార్ట్‌నర్, repartidor ...), restaurants are
-"restaurant partners" (R30; never "kitchen": tools/i18n/kitchen_scan.py), and the apps are BhojanGo,
+"restaurant partners" (R30; never "kitchen": tools/i18n/wording_scan.py), and the apps are BhojanGo,
 BhojanGo Restaurant and BhojanGo Delivery.
 Code names stay: identifiers, routes, i18n keys, DB columns, comments and tests may
 say "rider".

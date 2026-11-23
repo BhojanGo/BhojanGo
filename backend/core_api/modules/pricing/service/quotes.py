@@ -62,10 +62,21 @@ class QuoteError(ValueError):
         self.details = details or {}
 
 
-def tax_lines(inputs: QuoteInputs, result: QuoteResult) -> list[TaxableLine]:
+def taxable_set(rules) -> set[str] | None:  # type: ignore[no-untyped-def]
+    """R33: the bill lines the state's tax rule (tax:external taxable_lines) taxes; None when it doesn't say."""
+    ext = rules.get("tax:external") if rules else None
+    listed = ext.params.get("taxable_lines") if ext is not None else None
+    return set(listed) if listed is not None else None
+
+
+def tax_lines(inputs: QuoteInputs, result: QuoteResult, taxable: set[str] | None = None) -> list[TaxableLine]:
     """What the tax provider is sent: each cart line (its share of the food
     after food discounts, so the lines add up to the bill's food line) and each
-    taxable fee."""
+    fee, marked taxable or not by the state's rule (R33; ``taxable`` None: the
+    provider decides)."""
+    def says(kind: str) -> bool | None:
+        return None if taxable is None else kind in taxable
+
     amounts = taxable_amounts(result)
     food = amounts.pop("food", Decimal(0))
     out: list[TaxableLine] = []
@@ -77,10 +88,10 @@ def tax_lines(inputs: QuoteInputs, result: QuoteResult) -> list[TaxableLine]:
             share = left if i == len(gross) - 1 else money(food * g / total)
             left -= share
             if share > 0:
-                out.append(TaxableLine(f"food-{i + 1}-{ln.item_id or 'item'}", share, kind="food"))
+                out.append(TaxableLine(f"food-{i + 1}-{ln.item_id or 'item'}", share, kind="food", taxable=says("food")))
     elif food > 0:
-        out.append(TaxableLine("food", food, kind="food"))
-    out += [TaxableLine(ref, amount, kind=ref) for ref, amount in amounts.items()]
+        out.append(TaxableLine("food", food, kind="food", taxable=says("food")))
+    out += [TaxableLine(ref, amount, kind=ref, taxable=says(ref)) for ref, amount in amounts.items()]
     return out
 
 
@@ -156,7 +167,7 @@ class QuoteService:
         address = TaxAddress(country=region_code[:2], state=region_code[3:], city=postal.get("city") or city_name,
                              postal_code=postal.get("postal_code"), line1=postal.get("street"))
         try:
-            calc = await get_tax_provider().calculate(inputs.currency, tax_lines(inputs, result), address,
+            calc = await get_tax_provider().calculate(inputs.currency, tax_lines(inputs, result, taxable_set(rules)), address,
                                                       idempotency_key=f"taxcalc:{quote_id}")
         except TaxError as e:
             raise QuoteError(str(e))
@@ -311,10 +322,10 @@ class QuoteService:
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:
         raw = await (await get_redis()).get(_key(str(quote_id)))
         if raw is None:
-            raise QuoteError("This quote has expired; we'll price your bag again")
+            raise QuoteError("This quote has expired; we'll price your cart again")
         q = json.loads(raw)
         if q["user_id"] != str(user_id):
-            raise QuoteError("This quote has expired; we'll price your bag again")
+            raise QuoteError("This quote has expired; we'll price your cart again")
         return q
 
     async def redeem(self, token: str, user_id: uuid.UUID, restaurant_id: uuid.UUID, items: list[dict]) -> dict:
@@ -323,12 +334,12 @@ class QuoteService:
         try:
             claims = decode_jwt(token)
         except InvalidTokenError:
-            raise QuoteError("Prices have changed since you opened your bag; please review the new total")
+            raise QuoteError("Prices have changed since you opened your cart; please review the new total")
         if claims.get("type") != "quote" or claims.get("sub") != str(user_id):
             raise QuoteError("This quote isn't yours")
         q = await self.get(user_id, uuid.UUID(claims["qid"]))
         if q["cart"] != json.loads(json.dumps(_cart_signature(str(restaurant_id), items))):
-            raise QuoteError("Your bag changed after it was priced; please review the new total")
+            raise QuoteError("Your cart changed after it was priced; please review the new total")
         if q["total"] != claims["total"]:
             raise QuoteError("This quote has been tampered with")
         return q

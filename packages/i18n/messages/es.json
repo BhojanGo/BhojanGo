@@ -700,7 +700,7 @@
         "removed": "{item} ya no está en el menú",
         "unavailable": "{item} no se puede pedir ahora",
         "option_gone": "{option} ya no se ofrece para {item}",
-        "rest_added": "El resto está en tu bolsa."
+        "rest_added": "El resto está en tu carrito."
       }
     },
     "pay": {

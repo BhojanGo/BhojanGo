@@ -56,6 +56,9 @@ TAX_CODES = {
     "late_night_fee": "txcd_20030000",
     "packaging": "txcd_99999999",     # general tangible goods
 }
+# R33: the state's tax rule (tax:external taxable_lines) decides what is taxable; the Stripe mapping follows it.
+NONTAXABLE_CODE = "txcd_00000000"     # Stripe's "nontaxable": the line is reported, never taxed
+MEAL_CODE = TAX_CODES["food"]         # a fee the rule taxes (a service charge) is part of the meal's sale price
 
 
 class TaxError(RuntimeError):
@@ -68,6 +71,7 @@ class TaxableLine:
     amount: Decimal  # after discounts, in major units
     kind: str | None = None  # food | delivery_fee | service_fee | ... (defaults to reference)
     tax_code: str | None = None  # a product tax code for this line (else the kind's)
+    taxable: bool | None = None  # R33: the state's tax rule says (None: the provider decides by the tax code)
 
     @property
     def what(self) -> str:
@@ -112,7 +116,8 @@ class TaxProvider(Protocol):
 
 
 # Illustrative combined rates for the local stand-in (state rate; Boise has no
-# local sales tax). Food, delivery and service fees are treated as taxable.
+# local sales tax). R33: which lines are taxable comes from the state's tax rule
+# (TaxableLine.taxable); LOCAL_TAXABLE is only used when no rule says.
 LOCAL_RATES: dict[str, tuple[str, Decimal]] = {
     "ID": ("Idaho sales tax", Decimal("6")),
     "WA": ("Washington sales tax", Decimal("6.5")),
@@ -132,7 +137,7 @@ class LocalTax:
         if address.state not in LOCAL_RATES:
             raise TaxError(f"No local tax rate for {address.state}; add it to LOCAL_RATES or use Stripe Tax")
         label, rate = LOCAL_RATES[address.state]
-        base = sum((ln.amount for ln in lines if ln.what in LOCAL_TAXABLE), Decimal(0))
+        base = sum((ln.amount for ln in lines if (ln.what in LOCAL_TAXABLE if ln.taxable is None else ln.taxable)), Decimal(0))
         amount = (base * rate / 100).quantize(CENT, rounding=ROUND_HALF_UP)
         return TaxResult(
             provider=self.name, calculation_id=f"taxcalc_local_{uuid.uuid4().hex[:20]}",
@@ -208,6 +213,20 @@ UNAVAILABLE = "stripe_tax_unavailable"
 SHIPPING_TAX_CODE = "txcd_92010001"
 
 
+def stripe_code(ln: TaxableLine) -> str:
+    """R33: the tax code a line is sent with. The state's rule decides: a line it doesn't tax goes as
+    non-taxable (still reported); a fee it taxes goes as part of the meal (Idaho: a service charge with a
+    meal is part of its sale price); otherwise the line's own code, and Stripe Tax decides."""
+    if ln.tax_code:
+        return ln.tax_code
+    own = TAX_CODES.get(ln.what, "txcd_99999999")
+    if ln.taxable is False:
+        return NONTAXABLE_CODE
+    if ln.taxable and own == TAX_CODES["service_fee"]:
+        return MEAL_CODE
+    return own
+
+
 def _not_set_up(e) -> bool:  # type: ignore[no-untyped-def]
     """Stripe's answer when Stripe Tax isn't activated (head office, settings) on the account."""
     text = f"{getattr(e, 'code', '') or ''} {e}".lower()
@@ -231,7 +250,7 @@ class StripeTax:
             "currency": currency.lower(),
             "line_items": [
                 {"amount": _cents(ln.amount), "reference": ln.reference[:500],
-                 "tax_code": ln.tax_code or TAX_CODES.get(ln.what, "txcd_99999999"), "tax_behavior": "exclusive"}
+                 "tax_code": stripe_code(ln), "tax_behavior": "exclusive"}
                 for ln in lines if ln.amount > 0 and ln not in shipping
             ],
             "customer_details": {
@@ -242,8 +261,10 @@ class StripeTax:
             "expand": ["line_items.data.tax_breakdown"],
         }
         if shipping:
+            # Separately stated delivery; R33: non-taxable when the state's rule says so (Idaho).
+            taxed = any(ln.taxable is not False for ln in shipping)
             params["shipping_cost"] = {"amount": sum(_cents(ln.amount) for ln in shipping),
-                                       "tax_code": SHIPPING_TAX_CODE, "tax_behavior": "exclusive"}
+                                       "tax_code": SHIPPING_TAX_CODE if taxed else NONTAXABLE_CODE, "tax_behavior": "exclusive"}
         if idempotency_key:
             params["idempotency_key"] = idempotency_key
         try:

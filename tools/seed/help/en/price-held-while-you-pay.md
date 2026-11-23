@@ -29,4 +29,4 @@ If you never complete the payment, the order is cancelled after a while. You are
 
 Your order keeps the bill you paid, and it never changes afterwards. Your receipt and any refunds use those exact amounts.
 
-> Changing your bag, address or tip at checkout gives you a new price, and the hold starts again.
+> Changing your cart, address or tip at checkout gives you a new price, and the hold starts again.

@@ -1,6 +1,7 @@
 # R32: order for pickup. The bag offers Delivery or Pickup (the restaurant takes pickup orders): pickup has no
 # delivery fee and no tip, shows the restaurant's address with "Open in Maps"; once the restaurant marks it
 # ready, the order screen shows the 4-digit pickup code; when the restaurant enters it, the order is collected.
+# R33: the cart (not "bag"); the order's steps are Placed -> Preparing -> Ready for pickup -> Picked up (no Home).
 appId: com.bhojango.app
 ---
 - runFlow: sign-in.yaml
@@ -24,7 +25,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "add-to-bag"
 - tapOn:
-    text: "View bag.*"
+    text: "View cart.*"
 - extendedWaitUntil:
     visible: "The fair bill"
     timeout: 20000
@@ -62,6 +63,24 @@ appId: com.bhojango.app
 - assertVisible: "Your pickup code shows here when your order is ready"
 - assertNotVisible:
     id: "pickup-code"
+# R33: the pickup steps, no delivery steps
+- extendedWaitUntil:
+    visible:
+      id: "pickup-steps"
+    timeout: 20000
+- assertVisible:
+    id: "step-placed"
+- assertVisible:
+    id: "step-preparing"
+- assertVisible:
+    id: "step-ready"
+- assertVisible:
+    id: "step-collected"
+- assertNotVisible:
+    id: "step-home"
+- assertNotVisible:
+    id: "delivery-steps"
+- assertNotVisible: "Home"
 - runScript:
     file: scripts/pickup.js
     env:
@@ -71,11 +90,19 @@ appId: com.bhojango.app
       id: "pickup-code"
     timeout: 30000
 - assertVisible: "Show this code at the counter"
+- assertVisible: "Ready for pickup"
 - takeScreenshot: docs/screenshots/customer/22-pickup-code
 - runScript:
     file: scripts/pickup.js
     env:
       STEP: hand
 - extendedWaitUntil:
-    visible: "Picked up"
+    notVisible:
+      id: "pickup-code"
     timeout: 30000
+- assertVisible:
+    id: "step-collected"
+- assertVisible: "Picked up.*"
+- assertNotVisible:
+    id: "step-home"
+- takeScreenshot: docs/screenshots/customer/23-pickup-steps-collected

@@ -30,6 +30,8 @@ const LiveMap = dynamic(() => import("./LiveMap"), { ssr: false, loading: () => 
 
 // Where each status sits on the five steps (placed, cooking, picked up, on the way, delivered).
 const STAGE: Record<string, number> = { pending_payment: 0, placed: 1, accepted: 1, preparing: 1, almost_ready: 1, ready: 2, picked_up: 3, delivered: 5 };
+// R33: a pickup order's four steps (placed, preparing, ready for pickup, picked up): no "on the way", no home.
+const PICKUP_STAGE: Record<string, number> = { pending_payment: 0, placed: 1, accepted: 1, preparing: 1, almost_ready: 1, ready: 2, delivered: 4 };
 
 function kmBetween(a: Pt, b: Pt): number {
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -151,7 +153,8 @@ export function Tracking({ id }: { id: string }) {
   const status = order.status === "delivered" || order.status === "cancelled" || !live.status ? order.status : live.status;
   const cancelled = status === "cancelled";
   const delivered = status === "delivered";
-  const stage = STAGE[status] ?? 1;
+  const isPickup = order.fulfillment === "pickup";
+  const stage = (isPickup ? PICKUP_STAGE : STAGE)[status] ?? 1;
   const rider = riderFirstName(order);
   // R28: a partner who accepted is heading to the kitchen at once, named or not; never "Finding a
   // delivery partner" after someone took the order.
@@ -195,7 +198,12 @@ export function Tracking({ id }: { id: string }) {
               ? t("track.s_placed", { kitchen })
               : t("track.s_cooking", { kitchen });
 
-  const steps = [
+  const steps: { label: string; at: string | null; now?: boolean; eta?: string | null }[] = isPickup ? [
+    { label: t("account.status.placed"), at: stamp("placed") },
+    { label: t("account.status.preparing"), at: stamp("accepted", "preparing") },
+    { label: t("track.s_pickup_ready"), at: stamp("ready") },
+    { label: t("track.collected"), at: stamp("delivered") },
+  ] : [
     { label: t("track.step_placed"), at: stamp("placed") },
     { label: t("track.step_cooking", { kitchen }), at: stamp("accepted", "preparing") },
     { label: t("track.step_picked", { rider: rider ?? t("track.your_rider") }), at: stamp("picked_up") },
@@ -248,7 +256,7 @@ export function Tracking({ id }: { id: string }) {
             )}
           </div>
           {!cancelled && (
-            <div className="mt-4 grid grid-cols-5 gap-[6px]" role="progressbar" aria-valuemin={0} aria-valuemax={5} aria-valuenow={Math.min(stage, 5)} aria-label={t("track.progress")}>
+            <div className={`mt-4 grid ${isPickup ? "grid-cols-4" : "grid-cols-5"} gap-[6px]`} role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={Math.min(stage, steps.length)} aria-label={t("track.progress")}>
               {steps.map((s, i) => (
                 <span key={i} className={`h-[6px] rounded-full ${i < stage ? "bg-[#0B5D66]" : i === stage ? "bg-[#E8A93C]" : "bg-[#E2E7E8]"}`} />
               ))}
@@ -302,7 +310,7 @@ export function Tracking({ id }: { id: string }) {
         {/* the steps */}
         {!cancelled && (
           <section className="rounded-[24px] border border-[#E2E7E8] p-[22px]" aria-label={t("track.timeline")}>
-            <ol className="m-0 flex list-none flex-col gap-4 p-0">
+            <ol className="m-0 flex list-none flex-col gap-4 p-0" data-testid={isPickup ? "pickup-steps" : "delivery-steps"}>
               {steps.map((s, i) => {
                 const done = i < stage;
                 const current = i === stage;

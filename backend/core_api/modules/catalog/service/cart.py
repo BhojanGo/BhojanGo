@@ -62,7 +62,7 @@ async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dic
     for raw in items:
         m = menu.get(uuid.UUID(str(raw["menu_item_id"])))
         if m is None or m.restaurant_id != r.id or m.deleted_at is not None:
-            raise CartError("An item in your bag is no longer on the menu")
+            raise CartError("An item in your cart is no longer on the menu")
         if not m.is_available or is_sold_out(m, now):
             raise CartError(f"{m.name} is sold out today")
         qty = int(raw["quantity"])

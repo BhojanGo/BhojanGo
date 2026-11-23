@@ -123,7 +123,7 @@ function Gallery() {
       ]} />
 
       <Sheet visible={sheet} onClose={() => setSheet(false)} title="Chicken Dum Biryani"
-        footer={<Button title={`Add to bag · ${money(340, cur)}`} size="lg" block onPress={() => setSheet(false)} />}>
+        footer={<Button title={`Add to cart · ${money(340, cur)}`} size="lg" block onPress={() => setSheet(false)} />}>
         <Txt style={{ color: color.muted }}>Pick a size, spice level and add-ons.</Txt>
       </Sheet>
     </ScrollView>

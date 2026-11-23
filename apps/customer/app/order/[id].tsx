@@ -17,10 +17,17 @@ import { Icon } from "../../lib/icons";
 interface Live { status: string | null; pickup: Pt | null; dropoff: Pt | null; rider: Pt | null; trail: Pt[]; eta: Eta | null; searching: boolean; assigned: boolean; slow: boolean }
 
 const STEPS = [
-  { key: "placed", states: ["pending_payment", "placed", "accepted"] },
-  { key: "cooking", states: ["preparing", "almost_ready", "ready"] },
-  { key: "picked", states: ["picked_up"] },
-  { key: "home", states: ["delivered"] },
+  { key: "placed", label: "app.track.step_placed", states: ["pending_payment", "placed", "accepted"] },
+  { key: "cooking", label: "app.track.step_cooking", states: ["preparing", "almost_ready", "ready"] },
+  { key: "picked", label: "app.track.step_picked", states: ["picked_up"] },
+  { key: "home", label: "app.track.step_home", states: ["delivered"] },
+];
+// R33: a pickup order: Placed -> Preparing -> Ready for pickup -> Picked up (no "Home": the customer collects it).
+const PICKUP_STEPS = [
+  { key: "placed", label: "app.track.step_placed", states: ["pending_payment", "placed", "accepted"] },
+  { key: "preparing", label: "account.status.preparing", states: ["preparing", "almost_ready"] },
+  { key: "ready", label: "track.s_pickup_ready", states: ["ready"] },
+  { key: "collected", label: "app.track.step_picked", states: ["delivered"] },
 ];
 
 const SHEET = 400; // the sheet's height over the map's bottom
@@ -127,7 +134,8 @@ export default function Tracking() {
   const delivered = status === "delivered";
   const cancelled = status === "cancelled";
   const finished = delivered || cancelled;
-  const stepIndex = Math.max(0, STEPS.findIndex((st) => st.states.includes(status)));
+  const steps = order?.fulfillment === "pickup" ? PICKUP_STEPS : STEPS;
+  const stepIndex = Math.max(0, steps.findIndex((st) => st.states.includes(status)));
   const progress = delivered ? 1 : [0.12, 0.42, 0.78, 1][stepIndex] ?? 0.12;
   // R28: a partner who accepted is heading to the kitchen at once, named or not ("Your delivery partner"):
   // never "Finding a delivery partner" after someone took the order (rider_assigned reloads the order).
@@ -155,7 +163,9 @@ export default function Tracking() {
     const h = (order?.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status));
     return h ? time(h.at, tz) : "";
   };
-  const stamps = [stamp("placed"), stamp("accepted", "preparing"), stamp("picked_up"), stamp("delivered")];
+  const stamps = steps === PICKUP_STEPS
+    ? [stamp("placed"), stamp("accepted", "preparing"), stamp("ready"), stamp("delivered")]
+    : [stamp("placed"), stamp("accepted", "preparing"), stamp("picked_up"), stamp("delivered")];
   // The door PIN only once the rider has the food (R27; the API holds it back before that too).
   const pin = order?.pin && status === "picked_up" ? order.pin : null;
   const mapHeight = Math.max(360, screen - SHEET + 40);
@@ -200,15 +210,16 @@ export default function Tracking() {
             {live.searching && !live.slow && !assigned ? <Text style={[type.small, { color: color.muted }]}>{t("track.s_finding")}</Text> : null}
           </View>
         </View>
-        <View accessibilityLabel={t("app.track.progress", { step: t(`app.track.step_${STEPS[stepIndex]?.key ?? "placed"}`), n: stepIndex + 1, total: STEPS.length })}>
+        <View testID={steps === PICKUP_STEPS ? "pickup-steps" : "delivery-steps"}
+          accessibilityLabel={t("app.track.progress", { step: t(steps[stepIndex]?.label ?? "app.track.step_placed"), n: stepIndex + 1, total: steps.length })}>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progress * 100}%` }]} />
             <View style={[styles.knob, { left: `${progress * 100}%` }]} />
           </View>
           <View style={styles.steps}>
-            {STEPS.map((st, i) => (
-              <Text key={st.key} style={[type.small, { flex: 1, color: i === stepIndex ? color.kohl : color.muted, textAlign: "center" }]}>
-                {t(`app.track.step_${st.key}`)}{stamps[i] ? `\n${stamps[i]}` : ""}
+            {steps.map((st, i) => (
+              <Text key={st.key} testID={`step-${st.key}`} style={[type.small, { flex: 1, color: i === stepIndex ? color.kohl : color.muted, textAlign: "center" }]}>
+                {t(st.label)}{stamps[i] ? `\n${stamps[i]}` : ""}
               </Text>
             ))}
           </View>

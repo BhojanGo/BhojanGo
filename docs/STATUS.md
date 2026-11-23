@@ -513,6 +513,29 @@ Migration `0048_pickup_orders` (adds columns, none dropped or renamed; plus rule
   Idaho's 6%; the tip is never sent for tax. Production uses Stripe Tax with a tax code per line; Stripe decides
   per jurisdiction. See the round 32 report for the table and the open question on fees in Idaho.
 
+## Idaho tax lines, the cart, busy-hour fee to the partner, pickup steps (round 33, 2026-11-23)
+
+Migration `0049_idaho_tax_lines` (rules only: nothing added, dropped or renamed).
+
+- **Idaho tax (Tax Commission guidance).** Which bill lines are taxable is now a per-state setting on the tax rule
+  (`tax:external` `taxable_lines`, rules at state level; admin shows it in plain words). Idaho: food and the platform
+  fee (a service charge) are taxable, plus packaging and the other service charges; a separately stated delivery
+  fee, the busy-hour fee (a delivery charge) and the tip are not. A state with no list keeps the old behaviour
+  (Stripe Tax decides by tax code). Both providers follow the rule: the local/CI stand-in taxes exactly the listed
+  lines; Stripe Tax gets the delivery fee as a separately stated shipping line (non-taxable code where the rule
+  says so), a taxed fee as part of the meal, and any other line as non-taxable (reported, not taxed).
+  Boise delivery 3.00 mi (3.99 + 10.99 + 22.00, card): platform 3.70, delivery 4.50 untaxed, tax 2.44, total
+  47.62, card fee 1.68, restaurant 35.30, partner 4.50. Boise pickup: platform 1.85, tax 2.33, total 41.16, card
+  fee 1.49, restaurant 35.49.
+- **Cart, not bag.** Every customer-facing "Bag / Add to bag / basket" is now "Cart / Add to cart / View cart" in
+  all 8 languages (app, website, backend messages, help, privacy). The delivery partner's and restaurant's
+  insulated delivery bags stay bags. `tools/i18n/kitchen_scan.py` is now `tools/i18n/wording_scan.py` and also
+  fails on bag/basket in every language (`make ci-i18n`).
+- **Busy-hour fee.** Off (0) in every seed (only Hyderabad had one: ₹15, 19:00–21:30). If it is turned on, all
+  of it goes to the delivery partner (with the delivery fee), never BhojanGo; before this round it went to BhojanGo.
+- **Pickup tracking.** Web and app: Placed → Preparing → Ready for pickup → Picked up (no "On the way", no Home).
+- `packages/i18n/REVIEW.md`: the round 32 pickup strings are listed as needing native review.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

@@ -131,14 +131,16 @@ def a11y(page, name: str) -> None:  # type: ignore[no-untyped-def]
     check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda: AXE.scan(page, name))
 
 
-def api(method: str, path: str, token: str | None = None, body: dict | None = None, host: int = 8001) -> dict:
+def api(method: str, path: str, token: str | None = None, body: dict | None = None, host: int = 8001,
+        headers: dict | None = None) -> dict:
     """The rest of the world (kitchen, ops, rider) through the same APIs the apps use."""
     import urllib.request
 
     root = (QA_RT if host == 8004 else QA_CORE) or f"http://localhost:{host}"
     req = urllib.request.Request(f"{root}/api/v1{path}", method=method,
                                  data=json.dumps(body).encode() if body is not None else None,
-                                 headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})})
+                                 headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {}),
+                                          **(headers or {})})
     with urllib.request.urlopen(req, timeout=20) as r:
         raw = r.read()
     return json.loads(raw) if raw else {}
@@ -619,12 +621,12 @@ with sync_playwright() as p:
         expect(dialog.get_by_role("group", name=re.compile("^Size Required"))).to_be_visible(),
         expect(dialog.get_by_role("radio", name=re.compile(r"^Regular"))).to_be_checked(),
         expect(dialog.get_by_role("checkbox", name=re.compile(r"^Extra raita \+₹\d+"))).to_be_visible()))
-    total_before = dialog.get_by_role("button", name=re.compile("^Add to bag")).inner_text()
+    total_before = dialog.get_by_role("button", name=re.compile("^Add to cart")).inner_text()
     dialog.get_by_text("Extra raita").click()
-    check("customise sheet: an add-on changes the price on the button", lambda: expect(dialog.get_by_role("button", name=re.compile("^Add to bag"))).not_to_have_text(total_before))
+    check("customise sheet: an add-on changes the price on the button", lambda: expect(dialog.get_by_role("button", name=re.compile("^Add to cart"))).not_to_have_text(total_before))
     shot(page, "07-customise")
-    dialog.get_by_role("button", name=re.compile("^Add to bag")).click()
-    bag = page.get_by_role("complementary", name="Your bag")
+    dialog.get_by_role("button", name=re.compile("^Add to cart")).click()
+    bag = page.get_by_role("complementary", name="Your cart")
     check("bag: the dish with its options; asks to sign in for the whole bill", lambda: (
         expect(bag.get_by_text(re.compile(rf"1 × {DISH}"))).to_be_visible(),
         expect(bag.get_by_text(re.compile("Extra raita"))).to_be_visible(),
@@ -901,6 +903,42 @@ with sync_playwright() as p:
         expect(status).to_contain_text("Delivered. Enjoy your meal.", timeout=20000),
         expect(page.get_by_role("button", name="Message")).to_have_count(0, timeout=10000)))
     shot(page, "14-delivered")
+
+    # R33: a pickup order's steps: Placed -> Preparing -> Ready for pickup -> Picked up (no "On the way", no home).
+    import uuid as _uuid
+
+    thali = next(x for x in api("GET", "/restaurants?limit=50")["items"] if x.get("slug") == "hitech-thali-hitec-city")
+    meals = next(i["id"] for c in api("GET", f"/restaurants/{thali['id']}/menu")["categories"] for i in c["items"] if i["name"] == "Andhra Meals")
+    cart = [{"menu_item_id": meals, "quantity": 2}]
+    pq = api("POST", "/pricing/quote", customer, {"restaurant_id": thali["id"], "items": cart, "fulfillment": "pickup"})
+    po = api("POST", "/orders", customer, {"restaurant_id": thali["id"], "items": cart, "payment_method": "upi", "quote_token": pq["token"]},
+             headers={"X-Idempotency-Key": str(_uuid.uuid4())})
+    intent = api("POST", "/payments/initiate", customer, {"order_id": po["id"], "payment_method_type": "upi"})
+    api("POST", f"/payments/fake/{intent['payment_intent_id']}/complete", customer, {"outcome": "succeeded"})
+    eventually(lambda: _assert(api("GET", f"/orders/{po['id']}", customer)["status"] == "placed", "pickup order not placed"), 30)
+    pk = ctx.new_page()
+    pk.goto(f"{base}/orders/{po['id']}/track", wait_until="networkidle")
+    steps = pk.get_by_test_id("pickup-steps")
+    check("pickup tracking: Placed, Preparing, Ready for pickup, Picked up; no delivery steps", lambda: (
+        expect(steps.locator("li")).to_have_count(4, timeout=20000),
+        expect(steps.locator("li b")).to_have_text(["Placed", "Preparing", "Ready for pickup", "Picked up"]),
+        expect(pk.get_by_test_id("delivery-steps")).to_have_count(0),
+        expect(steps).not_to_contain_text("On the way")))
+    for st in ("accepted", "preparing", "ready"):
+        api("PUT", f"/orders/{po['id']}/status", partner, {"status": st})
+    check("pickup tracking: ready, the code shown, live", lambda: (
+        expect(steps.locator("li[aria-current=step] b")).to_have_text("Ready for pickup", timeout=20000),
+        expect(pk.get_by_test_id("pickup-code")).to_be_visible()))
+    shot(pk, "14b-pickup-steps-ready")
+    code = api("GET", f"/orders/{po['id']}", customer)["pickup_code"]
+    api("POST", f"/orders/{po['id']}/pickup", partner, {"code": code})
+    pk.reload(wait_until="networkidle")
+    check("pickup tracking: picked up, every step done", lambda: (
+        expect(steps.locator("li")).to_have_count(4, timeout=20000),
+        expect(steps.locator("li[aria-current=step]")).to_have_count(0),
+        expect(pk.get_by_test_id("pickup-code")).to_have_count(0)))
+    shot(pk, "14c-pickup-steps-collected")
+    pk.close()
     # Rate after delivery: 1-5 stars, saved, shown back.
     rate = page.get_by_role("radiogroup", name="Your rating")
     rate.get_by_role("radio", name="5 stars").click()
@@ -1298,9 +1336,9 @@ with sync_playwright() as p:
     us.get_by_role("button", name="Add Teriyaki Chicken Bowl").click()
     us_dialog = us.get_by_role("dialog", name="Teriyaki Chicken Bowl")
     if us_dialog.count():
-        us_dialog.get_by_role("button", name=re.compile("^Add to bag")).click()
-    us.get_by_role("complementary", name="Your bag").get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
-    us.get_by_role("complementary", name="Your bag").get_by_role("link", name="Go to checkout").click()
+        us_dialog.get_by_role("button", name=re.compile("^Add to cart")).click()
+    us.get_by_role("complementary", name="Your cart").get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
+    us.get_by_role("complementary", name="Your cart").get_by_role("link", name="Go to checkout").click()
     url_is(us, r"/signin\?")
     # R22: the code screen shows the number in its country's format ("+1 208-555-0101").
     us.get_by_label("Country code").select_option("US")

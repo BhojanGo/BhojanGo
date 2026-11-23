@@ -26,7 +26,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "add-to-bag"
 - tapOn:
-    text: "View bag.*"
+    text: "View cart.*"
 - extendedWaitUntil:
     visible:
       id: "fair-bill"
