@@ -33,7 +33,7 @@ function money(amount, currency) {
 }
 
 // What a person reads for each payee code (the codes stay: PAYEE, funded_by).
-const PAYEE_LABEL = { KITCHEN: "Kitchen", BHOJANGO: "BhojanGo", TAX: "Tax", "DELIVERY PARTNER": "Delivery partner" };
+const PAYEE_LABEL = { KITCHEN: "Restaurant", BHOJANGO: "BhojanGo", TAX: "Tax", "DELIVERY PARTNER": "Delivery partner" };
 
 /** A line of 0 (a tax of $0.00, a free fee) is not shown (R12); the total still counts every line. */
 function shownLines(lines) {

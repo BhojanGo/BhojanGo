@@ -16,7 +16,7 @@ import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
 
 const TABS = [
-  { key: "kitchens", label: "Kitchens" },
+  { key: "kitchens", label: "Restaurants" },
   { key: "applications", label: "Applications" },
   { key: "riders", label: "Delivery partner documents" },
 ] as const;

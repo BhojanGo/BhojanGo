@@ -86,7 +86,7 @@ function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
             <tr key={o.id} className="hover:bg-porcelain">
-              <td className="stack-title px-4 py-3 font-bold">{o.code}</td><td data-label="Kitchen">{o.restaurant_name}</td><td data-label="Customer">{o.customer}</td>
+              <td className="stack-title px-4 py-3 font-bold">{o.code}</td><td data-label="Restaurant">{o.restaurant_name}</td><td data-label="Customer">{o.customer}</td>
               <td data-label="Status"><span className="flex flex-wrap justify-end gap-1 md:justify-start"><span className="font-semibold">{STATUS[o.status] ?? o.status}</span> <Flags o={o} className="basis-full justify-end md:justify-start" /></span></td>
               <td data-label="Delivery partner">{o.rider ?? <span className="text-muted">—</span>}</td><td data-label="Placed">{clock(o.placed_at, o.time_zone)}</td><td data-label="Due">{clock(o.estimated_delivery_time, o.time_zone)}</td>
               <td data-label="Total">{money(o.total, o.currency, 2)}</td>

@@ -94,6 +94,9 @@ def code_hits() -> list[str]:
                     continue
                 for m in STRING.finditer(line):
                     s = m.group("s")
+                    if s in ("Kitchen", "Kitchens"):  # a one-word label (aria-label, data-label, a tab): copy, not code
+                        out.append(f"{f.relative_to(ROOT)}:{n}: {s!r}")
+                        continue
                     if WORD.search(s) and not is_code(PLACE.sub("", s)) and not s.lstrip().startswith(("//", "/*"))                             and "=>" not in s and ": Record" not in s and WORD.search(PLACE.sub("", s)) and PROSE.search(s):
                         out.append(f"{f.relative_to(ROOT)}:{n}: {s[:120]!r}")
 

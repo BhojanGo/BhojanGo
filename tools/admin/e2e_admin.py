@@ -758,7 +758,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(800)
         check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda n=name: AXE.scan(page, n))
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
-    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"0–\d+ km: ₹\d+")).first).to_be_visible(timeout=10000))
+    # R30: Hyderabad's delivery fee is base + per km ("₹20 + ₹6 per km, all of it to the delivery partner")
+    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"₹\d+ \+ ₹\d+ per km, all of it to the delivery partner")).first).to_be_visible(timeout=10000))
 
     # Role scopes: a Hyderabad city ops sees Hyderabad only, and no Finance or Settings.
     ops = b.new_page(viewport={"width": 1440, "height": 1000})
@@ -786,7 +787,7 @@ with sync_playwright() as p:
             ops.goto(f"{BASE}/incidents?scope=IN-TG-HYD", wait_until="networkidle")
             check("incidents: pause ordering, pause a kitchen, bulk refund, message customers and the log", lambda: [
                 expect(ops.get_by_role("region", name=n)).to_be_visible(timeout=15000)
-                for n in ("Pause ordering", "Pause a kitchen", "Bulk refund", "Message customers", "Incident log")])
+                for n in ("Pause ordering", "Pause a restaurant", "Bulk refund", "Message customers", "Incident log")])
             ops.screenshot(path=f"{OUT}/13-incidents.png", full_page=True)
             sec = ops.get_by_role("region", name="Pause ordering")
             sec.get_by_label("Note for customers").fill("Back by 9 pm")

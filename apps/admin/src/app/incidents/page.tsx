@@ -245,7 +245,7 @@ function Refunds({ scope }: { scope: string }) {
       {mayRefund ? (
         <div className="flex flex-wrap items-end gap-3 text-small">
           <label className="font-bold">Restaurant
-            <select aria-label="Kitchen" value={kitchen} onChange={(e) => { setKitchen(e.target.value); setPreview(null); }} className={field}>
+            <select aria-label="Restaurant" value={kitchen} onChange={(e) => { setKitchen(e.target.value); setPreview(null); }} className={field}>
               <option value="">Every restaurant</option>
               {(kitchens.data ?? []).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
             </select>

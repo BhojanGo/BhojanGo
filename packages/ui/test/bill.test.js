@@ -23,7 +23,7 @@ test("each row says who gets the money", () => {
     { code: "tip", label: "Tip", amount: "20.00" },
   ];
   assert.deepEqual(billRows(lines, "INR").map((r) => [r.label, r.payee, r.amount]), [
-    ["Food", "Kitchen", "₹560.00"], ["Code BHOJAN10", "BhojanGo", "−₹50.00"], ["Packaging", "Kitchen", "₹10.00"],
+    ["Food", "Restaurant", "₹560.00"], ["Code BHOJAN10", "BhojanGo", "−₹50.00"], ["Packaging", "Restaurant", "₹10.00"],
     ["Service fee", "BhojanGo", "₹11.20"], ["GST", "Tax", "₹30.72"], ["Tip", "Delivery partner", "₹20.00"],
   ]);
   assert.equal(billRows(lines, "INR")[1].accent, true);
@@ -83,7 +83,7 @@ test("R29 fee model v2: who gets your money (food, delivery, tip, platform fee, 
     { code: "tip", label: "Tip for your delivery partner", amount: "2.00" },
   ];
   assert.deepEqual(billRows(lines, "USD").map((r) => [r.label, r.payee, r.amount]), [
-    ["Food", "Kitchen", "$36.98"],
+    ["Food", "Restaurant", "$36.98"],
     ["Delivery fee", "Delivery partner", "$3.99"],
     ["Platform fee", "BhojanGo", "$3.70"],
     ["Idaho sales tax", "Tax", "$2.22"],

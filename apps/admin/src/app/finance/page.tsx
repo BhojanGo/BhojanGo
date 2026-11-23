@@ -204,7 +204,7 @@ function FinancePage() {
             {(runs.data ?? []).map((r) => (
               <tr key={r.id} className={selected === r.id ? "bg-peacock-wash" : ""}>
                 <td className="stack-title py-3 font-bold"><span className="whitespace-nowrap">{weekLabel(r.period_start, r.period_end)}</span></td><td data-label="Status">{RUN_STATUS[r.status] ?? r.status}</td><td data-label="Orders">{r.totals.orders ?? 0}</td>
-                <td data-label="Kitchens"><span>{money(r.totals.restaurants_to_pay ?? r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span>
+                <td data-label="Restaurants"><span>{money(r.totals.restaurants_to_pay ?? r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span>
                   {Number(r.totals.kitchen_carried_in ?? 0) || Number(r.totals.kitchen_carried_forward ?? 0) ? (
                     // R23: earned this week, the balances carried in and on, and what is paid after them
                     <span data-testid="run-carry" className="block text-small text-muted">Earned {money(r.totals.restaurants, r.currency, 2)}
@@ -239,7 +239,7 @@ function FinancePage() {
               {run.data.statements.map((s) => (
                 <tr key={s.id} data-testid="statement-row"><td className="stack-title py-2.5 font-semibold">
                   {s.payee_type === "restaurant" ? <Link href={`/finance/statements/${s.id}`} className="text-peacock">{s.payee_name}</Link> : s.payee_name}</td>
-                  <td data-label="Type">{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
+                  <td data-label="Type">{s.payee_type === "restaurant" ? "Restaurant" : "Delivery partner"}</td>
                   <td data-label="Amount"><div className="text-right md:text-left">{money(s.amount / 100, s.currency, 2)}
                     {s.carried_in ? <span data-testid="carried-in" className="block text-small text-muted">Carried from last week {money(s.carried_in / 100, s.currency, 2)}</span> : null}
                     {s.payee_type === "restaurant" ? belowZeroLines(s.amount, s.carried_in).map((l) => (
