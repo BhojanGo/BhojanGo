@@ -263,6 +263,9 @@ POLICY: dict[tuple[str, str], Policy] = {
                                                        body=lambda c: {"reason": "customer_cancelled"}),
     ("PUT", "/api/v1/orders/{order_id}/status"): user("other_customer", "other_partner", "other_rider", "ops_boi",
                                                       body=lambda c: {"status": "delivered"}),
+    # R32: the restaurant enters the customer's pickup code; nobody else (the customer neither)
+    ("POST", "/api/v1/orders/{order_id}/pickup"): user("customer", "other_customer", "other_partner", "rider", "other_rider", "ops_boi",
+                                                       body=lambda c: {"code": "0000"}),
     ("GET", "/api/v1/orders/restaurant/{restaurant_id}"): user("customer", "other_partner", "rider", "ops_boi"),
     ("GET", "/api/v1/orders/driver/active"): user("customer", "partner"),
     ("GET", "/api/v1/orders/admin/pain-points"): admin("ops_boi"),
@@ -394,6 +397,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("DELETE", "/api/v1/admin/legal/documents/{doc_id}"): admin("viewer", "ops_hyd", "finance_in", "cm_us"),
     # admin console (P21): cut to your scopes; another city's scope is refused
     ("GET", "/api/v1/ops/overview"): admin("ops_boi", params=lambda c: {"scope": "IN-TG-HYD"}),
+    ("GET", "/api/v1/ops/routing"): admin(),  # R32: road vs fallback counts only, no money or people
     ("GET", "/api/v1/ops/orders"): admin("ops_boi", "finance_us", params=lambda c: {"scope": "IN-TG-HYD"}),
     ("GET", "/api/v1/riders/documents"): admin(),  # filtered to the countries you can see
     ("POST", "/api/v1/riders/documents/{document_id}/review"): admin("viewer", "ops_boi", "finance_in", "support_hyd",

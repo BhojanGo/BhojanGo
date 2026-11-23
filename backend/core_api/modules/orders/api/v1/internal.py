@@ -55,6 +55,7 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
     return {**offer,
         "restaurant_owner_id": str(rest.owner_id) if rest and rest.owner_id else None,
         "order_id": str(order.id), "status": order.status, "customer_id": str(order.customer_id),
+        "fulfillment": order.fulfillment or "delivery",  # R32: realtime never dispatches a pickup order
         "restaurant_id": str(order.restaurant_id), "restaurant_name": order.restaurant_name,
         "driver_id": str(order.driver_id) if order.driver_id else None, "market_city": order.market_city,
         "pickup": [order.pickup_lat, order.pickup_lng] if order.pickup_lat is not None else None,

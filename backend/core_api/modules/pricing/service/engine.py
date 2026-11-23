@@ -89,6 +89,7 @@ class QuoteInputs:
     promo_spent_week: dict[str, Decimal] = field(default_factory=dict)  # rule_key -> spent this week
     wait_minutes: Decimal = ZERO  # expected rider wait at the restaurant (rider pay)
     payment_method: str = "card"  # R30: the payment fee estimate's method (card until the customer picks)
+    fulfillment: str = "delivery"  # R32: delivery | pickup (no delivery fee, no partner, no distance limit)
     # None = not calculated yet (the quote is marked tax_pending); [] = no tax due.
     external_tax: list[ExternalTax] | None = None
     # R20: an app store review account ordering in its review-only city (markets.service.review).
@@ -187,7 +188,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     # ── guard rails ──────────────────────────────────────────────────────────
     if not inp.lines:
         raise NotDeliverable("Your bag is empty")
-    radius = biz("max_radius")
+    pickup = inp.fulfillment == "pickup"
+    radius = None if pickup else biz("max_radius")  # R32: a pickup order has no distance limit
     if radius:
         used.append(radius)  # it decided this order can be delivered
         if inp.distance > D(radius.params["distance"]):
@@ -239,11 +241,13 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
 
     # ── 4 fees ───────────────────────────────────────────────────────────────
     fees: dict[str, Decimal] = {}
-    dr = rules.get("delivery_fee")
-    if dr is None:
+    dr = None if pickup else rules.get("delivery_fee")  # R32: pickup: no delivery fee
+    if dr is None and not pickup:
         raise NotDeliverable("Delivery isn't set up here yet")
-    p = dr.params
-    if dr.template == "flat":
+    p = dr.params if dr else {}
+    if dr is None:
+        delivery = None
+    elif dr.template == "flat":
         delivery = D(p["amount"])
     elif dr.template == "distance_slabs":
         slab = next((s for s in p["slabs"] if inp.distance <= D(s["up_to"])), None)
@@ -263,12 +267,15 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         delivery = D(p["tiers"].get(inp.restaurant_tier or p["default_tier"], p["tiers"][p["default_tier"]]))
     else:
         delivery = ZERO
-    fees["delivery_fee"] = add("delivery_fee", "Delivery fee", delivery, dr, taxable_as="delivery_fee").amount
-    if free_delivery is not None and fees["delivery_fee"] > 0:
+    if delivery is not None:
+        fees["delivery_fee"] = add("delivery_fee", "Delivery fee", delivery, dr, taxable_as="delivery_fee").amount
+    if free_delivery is not None and fees.get("delivery_fee", ZERO) > 0:
         add("promotion", free_delivery.name or "Free delivery", -fees["delivery_fee"], free_delivery,
             funded_by=free_delivery.params["funded_by"], taxable_as="delivery_fee")
 
     pf = rules.get("fee:platform_fee_pct")
+    if pickup:  # R32: a pickup order's own platform fee (5% seeded), the same minimum
+        pf = rules.get("fee:pickup_platform_fee_pct") or pf
     if pf:
         # R29: a percentage of the food subtotal (food only), never below the minimum. Integer cents, half-up.
         from core_api.modules.pricing.service.fees import from_cents, platform_fee_cents, to_cents
@@ -291,13 +298,17 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     pk = rules.get("customer_fee:packaging_levy")
     if pk and D(pk.params["amount"]) > 0:
         fees["packaging"] = add("packaging", "Packaging", D(pk.params["amount"]), pk, taxable_as="packaging").amount
-    sg = rules.get("customer_fee:surge_levy")
+    sg = None if pickup else rules.get("customer_fee:surge_levy")  # R32: busy hours are about delivery demand
     if sg and any(_in_window(inp.local_time, w) for w in sg.params["windows"]):
         fees["surge"] = add("surge", "Busy-hour fee", D(sg.params["amount"]), sg, taxable_as="surge").amount
     ln = rules.get("customer_fee:late_night_fee")
     if ln and _in_window(inp.local_time, ln.params["window"]):
         fees["late_night_fee"] = add("late_night_fee", "Late-night fee", D(ln.params["amount"]), ln,
                                      taxable_as="late_night_fee").amount
+
+    offer_base = rules.get("business:gst_offer_base")  # R32
+    if offer_base is not None:
+        used.append(offer_base)
 
     # ── 5 taxes ──────────────────────────────────────────────────────────────
     tax_added = ZERO
@@ -332,9 +343,12 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         def in_base(bl: BillLine) -> bool:
             # R16: a discount lowers the base by who funds it (the kitchen: after_promotions; the
             # platform: platform_discounts_reduce_base; India's default is that it doesn't).
+            # R32: the country setting business:gst_offer_base, when set, decides for platform-funded offers.
             if bl.code != "promotion":
                 return True
             if bl.funded_by == "platform":
+                if offer_base is not None:
+                    return bool(offer_base.params.get("platform_offers_reduce_base"))
                 return bool(tp.get("platform_discounts_reduce_base", True))
             return bool(tp.get("after_promotions", True))
 

@@ -8886,7 +8886,14 @@
       "OrderCreateRequest": {
         "properties": {
           "delivery_address": {
-            "$ref": "#/components/schemas/AddressInput"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AddressInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "items": {
             "items": {
@@ -8956,7 +8963,6 @@
         "required": [
           "restaurant_id",
           "items",
-          "delivery_address",
           "payment_method",
           "quote_token"
         ],
@@ -9343,6 +9349,11 @@
             ],
             "title": "Eta"
           },
+          "fulfillment": {
+            "default": "delivery",
+            "title": "Fulfillment",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -9430,6 +9441,29 @@
             ],
             "title": "Picked Up At"
           },
+          "pickup_address": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Address"
+          },
+          "pickup_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Code"
+          },
           "pickup_lat": {
             "anyOf": [
               {
@@ -9451,6 +9485,11 @@
               }
             ],
             "title": "Pickup Lng"
+          },
+          "pickup_locked": {
+            "default": false,
+            "title": "Pickup Locked",
+            "type": "boolean"
           },
           "pin": {
             "anyOf": [
@@ -10536,6 +10575,21 @@
         "title": "PhoneSignInRequest",
         "type": "object"
       },
+      "PickupCodeRequest": {
+        "description": "R32: the restaurant enters the code the customer shows at the counter.",
+        "properties": {
+          "code": {
+            "pattern": "^\\d{4}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "PickupCodeRequest",
+        "type": "object"
+      },
       "PlatformFeeSummary": {
         "description": "R29: the platform fee, a percentage of the food subtotal, never below the minimum.",
         "properties": {
@@ -11004,6 +11058,11 @@
             ],
             "title": "Photo Url"
           },
+          "pickup_enabled": {
+            "default": false,
+            "title": "Pickup Enabled",
+            "type": "boolean"
+          },
           "rating": {
             "title": "Rating",
             "type": "number"
@@ -11301,12 +11360,30 @@
             "title": "Expires At",
             "type": "string"
           },
+          "fulfillment": {
+            "default": "delivery",
+            "title": "Fulfillment",
+            "type": "string"
+          },
           "lines": {
             "items": {
               "$ref": "#/components/schemas/BillLineOut"
             },
             "title": "Lines",
             "type": "array"
+          },
+          "pickup_address": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "pickup: the restaurant's address (street, city, lat, lng)",
+            "title": "Pickup Address"
           },
           "quote_id": {
             "format": "uuid",
@@ -11362,7 +11439,23 @@
       "QuoteRequest": {
         "properties": {
           "deliver_to": {
-            "$ref": "#/components/schemas/Where"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Where"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fulfillment": {
+            "default": "delivery",
+            "enum": [
+              "delivery",
+              "pickup"
+            ],
+            "title": "Fulfillment",
+            "type": "string"
           },
           "items": {
             "items": {
@@ -11405,8 +11498,7 @@
         },
         "required": [
           "restaurant_id",
-          "items",
-          "deliver_to"
+          "items"
         ],
         "title": "QuoteRequest",
         "type": "object"
@@ -12887,6 +12979,11 @@
             ],
             "title": "Photo Url"
           },
+          "pickup_enabled": {
+            "default": false,
+            "title": "Pickup Enabled",
+            "type": "boolean"
+          },
           "pricing_model": {
             "default": "percentage_commission",
             "title": "Pricing Model",
@@ -13161,6 +13258,17 @@
               }
             ],
             "title": "Opens At"
+          },
+          "pickup_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Enabled"
           },
           "status": {
             "anyOf": [
@@ -13552,6 +13660,69 @@
           "created_at"
         ],
         "title": "RoleAssignmentResponse",
+        "type": "object"
+      },
+      "RoutingShare": {
+        "description": "R32: placed orders in the last `hours` by how the delivery distance was measured.",
+        "properties": {
+          "alert_pct": {
+            "title": "Alert Pct",
+            "type": "number"
+          },
+          "fallback": {
+            "title": "Fallback",
+            "type": "integer"
+          },
+          "fallback_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Pct"
+          },
+          "hours": {
+            "title": "Hours",
+            "type": "integer"
+          },
+          "pickup": {
+            "title": "Pickup",
+            "type": "integer"
+          },
+          "road": {
+            "title": "Road",
+            "type": "integer"
+          },
+          "road_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Road Pct"
+          },
+          "straight_line": {
+            "title": "Straight Line",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hours",
+          "road",
+          "fallback",
+          "straight_line",
+          "pickup",
+          "road_pct",
+          "fallback_pct",
+          "alert_pct"
+        ],
+        "title": "RoutingShare",
         "type": "object"
       },
       "RuleCreate": {
@@ -14164,7 +14335,9 @@
               "restaurant_commission_pct",
               "card_fee_estimate",
               "delivery_fee",
-              "max_delivery_distance"
+              "max_delivery_distance",
+              "pickup_platform_fee_pct",
+              "gst_offer_base"
             ],
             "title": "Field",
             "type": "string"
@@ -14807,6 +14980,11 @@
               }
             ],
             "title": "Paused Until"
+          },
+          "pickup_enabled": {
+            "default": false,
+            "title": "Pickup Enabled",
+            "type": "boolean"
           },
           "prep_minutes": {
             "title": "Prep Minutes",
@@ -23445,6 +23623,33 @@
         ]
       }
     },
+    "/api/v1/ops/routing": {
+      "get": {
+        "description": "R32: the dashboard tile: % of the last 24 hours' orders priced by road distance (OSRM) vs the fallback\n(straight-line x road factor, used when OSRM didn't answer). Pickup orders have no distance.",
+        "operationId": "routing_api_v1_ops_routing_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingShare"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Routing",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
     "/api/v1/ops/tickets": {
       "get": {
         "description": "Tickets in your scope for the support console: open ones oldest first,\nresolved ones newest first.",
@@ -24389,6 +24594,65 @@
           }
         ],
         "summary": "Report Message",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/pickup": {
+      "post": {
+        "description": "R32: the restaurant enters the code the customer shows: the pickup order is collected. Wrong: 422 with\nthe tries left; the 5th wrong code locks it (423: call support).",
+        "operationId": "collect_pickup_api_v1_orders__order_id__pickup_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickupCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Collect Pickup",
         "tags": [
           "Orders"
         ]
@@ -29022,7 +29286,9 @@
                 "restaurant_commission_pct",
                 "card_fee_estimate",
                 "delivery_fee",
-                "max_delivery_distance"
+                "max_delivery_distance",
+                "pickup_platform_fee_pct",
+                "gst_offer_base"
               ],
               "title": "Field",
               "type": "string"

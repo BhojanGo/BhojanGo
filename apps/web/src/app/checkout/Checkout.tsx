@@ -152,7 +152,11 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   const lines = bag.lines;
   const subtotal = foodSubtotal(lines);
-  const quote = useQuote({ enabled: hydrated && !!user, restaurantId: bag.restaurant?.id, lines, deliverTo, tip: bag.tip, promo, nonce, fallbackError: t("common.error") });
+  // R32: Delivery or Pickup, when the restaurant takes pickup orders (no delivery fee, no tip, no address).
+  const [how, setHow] = useState<"delivery" | "pickup">("delivery");
+  const pickup = how === "pickup" && !!rest?.pickup_enabled;
+  const quote = useQuote({ enabled: hydrated && !!user, restaurantId: bag.restaurant?.id, lines, deliverTo, fulfillment: pickup ? "pickup" : "delivery",
+    tip: bag.tip, promo, nonce, fallbackError: t("common.error") });
   const q = quote.quote;
   const money = (n: number | string) => f.money(n, bag.restaurant?.currency ?? q?.currency);
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
@@ -213,6 +217,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const distance = q ? t(q.distance_unit === "mi" ? "common.mi" : "common.km",
     { n: Number(q.distance).toLocaleString(f.formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : null; // R31: 2 decimals
   const placeLine = (a: Address) => [a.label, a.street].filter(Boolean).join(" · ");
+  const readyAt = rest ? t("checkout.pickup_ready", { time: f.zone(rest.time_zone).time(new Date(now + (rest.delivery_time_min ?? 20) * 60000)) }) : null;
 
   async function settle(orderId: string) {
     const s = await waitForPayment(orderId);
@@ -226,7 +231,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   }
 
   async function pay() {
-    if (!q || !deliverTo || !chosen) return;
+    if (!q || (!deliverTo && !pickup) || !chosen) return;
     setBusy(true);
     setError(null);
     try {
@@ -243,9 +248,9 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               items: cartItems(lines),
               payment_method: chosen.type,
               quote_token: q.token,
-              delivery_address: where,
+              ...(pickup ? {} : { delivery_address: where }),
               ...(promo ? { promo_code: promo } : {}),
-              ...(riderNote.trim() ? { special_instructions: riderNote.trim() } : {}),
+              ...(riderNote.trim() && !pickup ? { special_instructions: riderNote.trim() } : {}),
             },
           }),
         ) as { id: string };
@@ -306,7 +311,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       ) : (
         <div>
           <div className="flex justify-between text-body"><span>{t("bill.line_food")}</span><b className="tabular-nums">{money(subtotal)}</b></div>
-          <p className="mt-2 text-small text-muted" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
+          <p className="mt-2 text-small text-muted" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo || pickup ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
         </div>
       )}
     </>
@@ -327,8 +332,43 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
         <div className="flex flex-col gap-4">
           <h1 className="m-0 text-h1">{t("checkout.title")}</h1>
 
+          {/* R32: delivery or pickup */}
+          {rest?.pickup_enabled ? (
+            <section className={card} aria-labelledby="how-h">
+              <h2 id="how-h" className="m-0 text-h3">{t("checkout.how")}</h2>
+              <div role="radiogroup" aria-labelledby="how-h" className="mt-3 grid grid-cols-2 gap-2 md:max-w-[420px]">
+                {(["delivery", "pickup"] as const).map((k) => (
+                  <button key={k} type="button" role="radio" aria-checked={how === k} data-testid={`how-${k}`} onClick={() => setHow(k)}
+                    className={`h-12 rounded-full text-label font-bold ${how === k ? "bg-[#111418] text-white" : "border-[1.5px] border-[#C9D3D4] bg-white"}`}>
+                    {t(`checkout.${k}`)}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {pickup && rest ? (
+            <section className={card} aria-labelledby="pickup-h" data-testid="pickup-at">
+              <StepHead n={1} done title={t("checkout.pickup_at")} />
+              <span id="pickup-h" className="sr-only">{t("checkout.pickup_at")}</span>
+              <div className="mt-3 flex items-start gap-3 md:pl-[46px]">
+                <span className="mt-[2px]"><Pin size={20} color="#0B5D66" /></span>
+                <span className="min-w-0">
+                  <b className="block text-label">{rest.name}</b>
+                  <span className="block text-small text-muted">{[(rest.address as { street?: string }).street, rest.city].filter(Boolean).join(", ")}</span>
+                  {readyAt && <span className="block text-small text-muted">{readyAt}</span>}
+                  {rest.lat != null && rest.lng != null && (
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${rest.lat},${rest.lng}`} target="_blank" rel="noopener noreferrer"
+                      data-testid="open-in-maps" className="mt-2 inline-block font-bold text-[#0B5D66]">{t("checkout.open_in_maps")}</a>
+                  )}
+                  <span className="mt-2 block text-small text-muted">{t("checkout.pickup_note")}</span>
+                </span>
+              </div>
+            </section>
+          ) : null}
+
           {/* where */}
-          <section className={card} aria-labelledby="where-h">
+          <section className={`${card}${pickup ? " hidden" : ""}`} aria-labelledby="where-h">
             <StepHead
               n={1}
               done={!!deliverTo}
@@ -386,13 +426,13 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
             <div className="mt-4 pl-[46px]">
               <div className="flex max-w-[350px] items-center gap-3 rounded-2xl border-2 border-[#0B5D66] bg-[#EFF6F6] px-4 py-3">
                 <Radio on />
-                <span><b className="block">{t("checkout.asap")}</b>{arrive && <span className="text-small text-muted">{arrive}</span>}</span>
+                <span><b className="block">{t("checkout.asap")}</b>{(pickup ? readyAt : arrive) && <span className="text-small text-muted">{pickup ? readyAt : arrive}</span>}</span>
               </div>
             </div>
           </section>
 
-          {/* tip */}
-          <section className={card} aria-labelledby="tip-h">
+          {/* tip (delivery only: it goes to the delivery partner) */}
+          <section className={`${card}${pickup ? " hidden" : ""}`} aria-labelledby="tip-h">
             <StepHead n={3} done={false} title={t("checkout.tip_title")} />
             <span id="tip-h" className="sr-only">{t("checkout.tip_title")}</span>
             <div className="mt-4 flex flex-wrap gap-2 md:gap-[10px] md:pl-[46px]" role="radiogroup" aria-label={t("checkout.tip_title")}>
@@ -422,7 +462,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
           {/* pay with */}
           <section className={card} aria-labelledby="pay-h">
-            <StepHead n={4} done={false} title={t("checkout.pay_with_title")} />
+            <StepHead n={pickup ? 3 : 4} done={false} title={t("checkout.pay_with_title")} />
             <span id="pay-h" className="sr-only">{t("checkout.pay_with_title")}</span>
             <fieldset className="m-0 mt-4 flex flex-col gap-[10px] border-0 p-0 md:pl-[46px]">
               <legend className="sr-only">{t("checkout.pay_with_title")}</legend>
@@ -439,7 +479,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
             </fieldset>
           </section>
           {/* rider note (phone) */}
-          {deliverTo && (
+          {deliverTo && !pickup && (
             <label className="md:hidden">
               <span className="sr-only">{t("checkout.rider_note")}</span>
               <input value={riderNote} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("checkout.rider_note")} className="h-12 w-full rounded-[14px] border border-[#C9D3D4] px-[14px] text-body outline-none focus:border-[#0B5D66]" />

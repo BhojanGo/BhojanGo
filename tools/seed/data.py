@@ -42,6 +42,7 @@ MARKETS = [
         "restaurants": [
             {
                 "name": "Spice Route Kitchen",  # board
+                "pickup": True,  # R32: takes pickup orders
                 "slug": "spice-route-kitchen-madhapur",
                 "area": "Madhapur",
                 "street": "Plot 14, 100 Feet Rd",
@@ -153,6 +154,7 @@ MARKETS = [
             },
             {
                 "name": "Hitech Thali",
+                "pickup": True,  # R32: takes pickup orders
                 "slug": "hitech-thali-hitec-city",
                 "area": "HITEC City",
                 "street": "Cyber Towers Rd",
@@ -201,6 +203,7 @@ MARKETS = [
         "restaurants": [
             {
                 "name": "Boise Bowl Co.",  # board ("near Hyde Park")
+                "pickup": True,  # R32: takes pickup orders
                 "slug": "boise-bowl-co-hyde-park",
                 "area": "Hyde Park",
                 "street": "1520 N 13th St",
@@ -532,6 +535,10 @@ RULES = [
     # R30: ₹15 (₹100 of food -> ₹15, ₹300 -> ₹30); configurable per country, state, city and restaurant in admin
     # (Pricing -> Fees).
     ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "IN", {"amount": 15}),
+    # R32: pickup orders: 5% of food (same minimum); platform-funded offers don't lower the GST base (default)
+    ("fee", "pickup_platform_fee_pct", None, "Pickup platform fee", "country", "IN", {"percent": 5}),
+    ("business", "gst_offer_base", None, "Platform-funded offers reduce GST base", "country", "IN",
+     {"platform_offers_reduce_base": False}),
     # R30: per payment method (Razorpay's standard rates; UPI free); cash has none. Production uses the fee
     # Razorpay reports for each payment.
     ("fee", "card_fee_estimate", None, "Payment fee estimate (Razorpay)", "country", "IN",
@@ -570,6 +577,7 @@ RULES = [
     ("commission", "percent", None, "Restaurant commission", "country", "US", {"percent": 0}),
     ("fee", "platform_fee_pct", None, "Platform fee", "country", "US", {"percent": 10}),
     ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "US", {"amount": "0.99"}),
+    ("fee", "pickup_platform_fee_pct", None, "Pickup platform fee", "country", "US", {"percent": 5}),  # R32
     ("fee", "card_fee_estimate", None, "Payment fee estimate (Stripe)", "country", "US", {"card": {"percent": "2.9", "fixed": "0.30"}}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     # R31: delivery fee from distance bands (road miles), all of it (and the tip) to the delivery partner.

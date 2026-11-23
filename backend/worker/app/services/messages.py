@@ -98,6 +98,27 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "bn": ("পথে আছে", "{rider} আপনার অর্ডার নিয়ে আপনার কাছে আসছেন। {arriving}"),
         "es": ("En camino", "{rider} recogió tu pedido y va hacia ti. {arriving}"),
     },
+    # R32: a pickup order is ready: the customer shows {pin} at the counter
+    "order_ready_for_pickup": {
+        "en": ("Ready for pickup", "Your order from {restaurant} is ready. Show pickup code {pin} at the counter."),
+        "hi": ("पिकअप के लिए तैयार", "{restaurant} से आपका ऑर्डर तैयार है। काउंटर पर पिकअप कोड {pin} दिखाएं।"),
+        "te": ("పికప్‌కు సిద్ధం", "{restaurant} నుండి మీ ఆర్డర్ సిద్ధంగా ఉంది. కౌంటర్ వద్ద పికప్ కోడ్ {pin} చూపించండి."),
+        "ta": ("பிக்கப்பிற்குத் தயார்", "{restaurant}-இலிருந்து உங்கள் ஆர்டர் தயார். கவுண்டரில் பிக்கப் குறியீடு {pin} காட்டுங்கள்."),
+        "kn": ("ಪಿಕಪ್‌ಗೆ ಸಿದ್ಧ", "{restaurant}ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ಸಿದ್ಧವಾಗಿದೆ. ಕೌಂಟರ್‌ನಲ್ಲಿ ಪಿಕಪ್ ಕೋಡ್ {pin} ತೋರಿಸಿ."),
+        "mr": ("पिकअपसाठी तयार", "{restaurant} मधील तुमची ऑर्डर तयार आहे. काउंटरवर पिकअप कोड {pin} दाखवा."),
+        "bn": ("পিকআপের জন্য তৈরি", "{restaurant} থেকে আপনার অর্ডার তৈরি। কাউন্টারে পিকআপ কোড {pin} দেখান।"),
+        "es": ("Listo para recoger", "Tu pedido de {restaurant} está listo. Muestra el código de recogida {pin} en el mostrador."),
+    },
+    "order_collected": {
+        "en": ("Picked up", "You collected your order from {restaurant}. Enjoy your meal."),
+        "hi": ("ले लिया गया", "आपने {restaurant} से अपना ऑर्डर ले लिया। खाने का आनंद लें।"),
+        "te": ("తీసుకున్నారు", "మీరు {restaurant} నుండి మీ ఆర్డర్ తీసుకున్నారు. హాయిగా ఆస్వాదించండి."),
+        "ta": ("பெற்றுக்கொண்டீர்கள்", "{restaurant}-இலிருந்து உங்கள் ஆர்டரைப் பெற்றுக்கொண்டீர்கள். சுவைத்து மகிழுங்கள்."),
+        "kn": ("ಪಡೆದಿದ್ದೀರಿ", "ನೀವು {restaurant}ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ಪಡೆದಿದ್ದೀರಿ. ಊಟವನ್ನು ಆನಂದಿಸಿ."),
+        "mr": ("घेतली", "तुम्ही {restaurant} मधून तुमची ऑर्डर घेतली. जेवणाचा आनंद घ्या."),
+        "bn": ("নিয়ে নিয়েছেন", "আপনি {restaurant} থেকে আপনার অর্ডার নিয়ে নিয়েছেন। খাবার উপভোগ করুন।"),
+        "es": ("Recogido", "Recogiste tu pedido de {restaurant}. Buen provecho."),
+    },
     "order_almost_there": {
         "en": ("Almost there", "{rider} is a couple of minutes away with your order from {restaurant}."),
         "hi": ("बस पहुंचने वाले हैं", "{rider} {restaurant} से आपका ऑर्डर लेकर बस कुछ मिनट दूर हैं।"),

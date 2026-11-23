@@ -122,7 +122,9 @@ before the first production frontend build.
 | `SMS_PROVIDER` | yes (worker), `off` (no SMS: order updates by push, codes by Verify) or `live` | railway.ts | no | `log` | supplied (`off`) |
 | `PUSH_PROVIDER` | yes (worker), `live` (Expo push) | railway.ts | no | `log` | supplied |
 | `OTP_FIXED_CODE` | yes, must be `""` | railway.ts | no | default fixed code for seed phones | supplied (`""`) |
-| `ROUTING_PROVIDER` | yes (`straight_line`) | railway.ts | no | same | supplied |
+| `ROUTING_PROVIDER` | yes (`osrm`, R32) | railway.ts | no | same | supplied |
+| `OSRM_URL` | yes (`http://osrm.railway.internal:5000`, R32) | railway.ts | no | same | supplied |
+| `ROAD_FACTOR` | yes (`1.3`, the fallback detour factor) | railway.ts | no | same | supplied |
 | `SERVICE_NAME`, `PORT` | yes | railway.ts | no | same | supplied |
 | `RAILWAY_ENVIRONMENT_NAME` | automatic | Railway | no | `QA` | automatic (also checked by the production guard) |
 | `SENTRY_DSN` | yes (Srini's decision; errors only, off when unset) | Sentry, one backend project | yes | not set | by hand (`sentry-sdk` is a dependency since R19) |

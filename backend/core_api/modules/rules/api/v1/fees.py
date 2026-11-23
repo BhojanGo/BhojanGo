@@ -36,7 +36,7 @@ Approver = Annotated[AdminContext, Depends(require_permission("rules.approve"))]
 
 Level = Literal["country", "region", "city", "restaurant"]
 Field_ = Literal["platform_fee_pct", "min_platform_fee", "restaurant_commission_pct", "card_fee_estimate", "delivery_fee",
-                 "max_delivery_distance"]
+                 "max_delivery_distance", "pickup_platform_fee_pct", "gst_offer_base"]
 LEVELS: tuple[str, ...] = ("country", "region", "city", "restaurant")
 # field -> (family, template, rule name)
 TEMPLATE = {
@@ -46,6 +46,8 @@ TEMPLATE = {
     "card_fee_estimate": ("fee", "card_fee_estimate", "Payment fee estimate"),
     "delivery_fee": ("delivery_fee", "distance_slabs", "Delivery fee"),  # R31: distance bands
     "max_delivery_distance": ("business", "max_radius", "Max delivery distance"),
+    "pickup_platform_fee_pct": ("fee", "pickup_platform_fee_pct", "Pickup platform fee"),  # R32
+    "gst_offer_base": ("business", "gst_offer_base", "Platform-funded offers reduce GST base"),  # R32, country only
 }
 
 
@@ -185,7 +187,14 @@ async def fee_level(admin: Viewer, db: DB, level: Level = Query(...), scope_id: 
     names = {(c["level"], c["scope_id"]): c["name"] for c in chain}
     own = await _own(db, level, scope_id)
     fields = []
+    from core_api.modules.rules.service.templates import allowed_levels
+
     for f in fees.FIELDS:
+        family, template, _ = TEMPLATE[f]
+        if level not in allowed_levels(family, template):
+            continue  # R32: e.g. the GST offer setting is the country's only
+        if f == "gst_offer_base" and chain[0]["scope_id"] != "IN":
+            continue  # India's GST
         s = effective[f]
         src = s.source
         rules = own[f]
@@ -221,6 +230,8 @@ async def set_fee(data: SetFee, admin: Editor, db: DB) -> dict:
     admin.require("rules.edit", _market(chain))
     family, template, name = TEMPLATE[data.field]
     params = {"percent": data.value.get("percent")} if template == "percent" else data.value
+    if template == "gst_offer_base":  # R32: {"on": true|false}
+        params = {"platform_offers_reduce_base": str(data.value.get("on")).lower() in ("true", "1", "on")}
     if template == "distance_slabs":  # R31: {"bands": [{up_to, fee}...]}
         params = {"slabs": data.value.get("bands") or data.value.get("slabs") or []}
     svc = RuleService(db)

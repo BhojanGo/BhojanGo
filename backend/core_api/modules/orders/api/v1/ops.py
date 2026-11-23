@@ -264,6 +264,28 @@ def search_terms(q: str) -> tuple[str, bool, bool]:
     return term, True, False
 
 
+class RoutingShare(BaseModel):
+    """R32: placed orders in the last `hours` by how the delivery distance was measured."""
+
+    hours: int
+    road: int
+    fallback: int
+    straight_line: int
+    pickup: int
+    road_pct: float | None
+    fallback_pct: float | None
+    alert_pct: float
+
+
+@router.get("/routing", response_model=RoutingShare)
+async def routing(admin: Viewer, db: DB) -> dict:
+    """R32: the dashboard tile: % of the last 24 hours' orders priced by road distance (OSRM) vs the fallback
+    (straight-line x road factor, used when OSRM didn't answer). Pickup orders have no distance."""
+    from core_api.modules.pricing.service.routing_stats import routing_share
+
+    return await routing_share(db)
+
+
 @router.get("/orders", response_model=list[OpsOrder])
 async def orders(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*|[A-Z]{2}(-[A-Z0-9]{1,3}(-[A-Z0-9]{2,5})?)?)$"),
                  view: Literal["live", "attention", "today", "search"] = "live", q: str | None = Query(None, max_length=40),

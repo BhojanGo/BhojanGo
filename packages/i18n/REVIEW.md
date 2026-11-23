@@ -161,6 +161,7 @@ Python, not in these files, because the backend images can't read
   "BhojanGo: <body>", email wraps the same words): `order_placed`, `order_accepted`,
   `order_preparing`, `driver_assigned`, `order_picked_up`, `order_almost_there`,
   `order_message` (title only: "Message from {name}"), `order_delivered`,
+  `order_ready_for_pickup` and `order_collected` (R32, machine-translated 2026-11-23; "pickup code {pin}"),
   `order_cancelled_refunded`, `order_cancelled_unpaid`, `payment_failed`, `refund_items`,
   `partner_new_order`, `payout_paid`; `ARRIVING` ("Arriving around {eta}."), `ITEMS`
   ("{n} item(s)"), `EMAIL_FOOTER`, `EMAIL_TOTAL`, `EMAIL_ORDER`.

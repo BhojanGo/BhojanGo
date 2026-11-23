@@ -48,6 +48,20 @@ export function useOverview(scope: string) {
   });
 }
 
+/** R32: the last 24 hours' orders by how the delivery distance was measured (GET /ops/routing). */
+export interface RoutingShare {
+  hours: number; road: number; fallback: number; straight_line: number; pickup: number;
+  road_pct: number | null; fallback_pct: number | null; alert_pct: number;
+}
+
+export function useRouting() {
+  return useQuery({
+    queryKey: ["ops", "routing"],
+    queryFn: async () => (await adminApi.get<RoutingShare>("/user/ops/routing")).data,
+    refetchInterval: 60_000,
+  });
+}
+
 // ── orders ───────────────────────────────────────────────────────────────────
 
 export interface OpsOrder {

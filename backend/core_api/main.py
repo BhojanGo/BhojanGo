@@ -66,6 +66,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings.check_core_api_production()
     # Warm up Redis connection
     await get_redis()
+    # R32: is road routing (OSRM) answering? Logged; if not, prices use straight-line x ROAD_FACTOR.
+    import asyncio
+
+    from shared.providers.routing import check_routing
+
+    try:
+        await asyncio.wait_for(asyncio.to_thread(check_routing), timeout=10)
+    except Exception as e:  # noqa: BLE001 - never block start-up on routing
+        logger.warning("routing_health", status="unknown", error=type(e).__name__)
     async with AsyncExitStack() as stack:
         for module_lifespan in app.state.module_lifespans:
             await stack.enter_async_context(module_lifespan(app))

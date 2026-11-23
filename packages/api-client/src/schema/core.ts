@@ -2615,6 +2615,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Routing
+         * @description R32: the dashboard tile: % of the last 24 hours' orders priced by road distance (OSRM) vs the fallback
+         *     (straight-line x road factor, used when OSRM didn't answer). Pickup orders have no distance.
+         */
+        get: operations["routing_api_v1_ops_routing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/tickets": {
         parameters: {
             query?: never;
@@ -2867,6 +2888,27 @@ export interface paths {
          *     the same message again returns the open report.
          */
         post: operations["report_message_api_v1_orders__order_id__messages__message_id__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Collect Pickup
+         * @description R32: the restaurant enters the code the customer shows: the pickup order is collected. Wrong: 422 with
+         *     the tries left; the 5th wrong code locks it (423: call support).
+         */
+        post: operations["collect_pickup_api_v1_orders__order_id__pickup_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8021,7 +8063,7 @@ export interface components {
         };
         /** OrderCreateRequest */
         OrderCreateRequest: {
-            delivery_address: components["schemas"]["AddressInput"];
+            delivery_address?: components["schemas"]["AddressInput"] | null;
             /** Items */
             items: components["schemas"]["OrderItemInput"][];
             /**
@@ -8192,6 +8234,11 @@ export interface components {
             /** Eta */
             eta?: string | null;
             /**
+             * Fulfillment
+             * @default delivery
+             */
+            fulfillment?: string;
+            /**
              * Id
              * Format: uuid
              */
@@ -8221,10 +8268,21 @@ export interface components {
             payment_method: string;
             /** Picked Up At */
             picked_up_at?: string | null;
+            /** Pickup Address */
+            pickup_address?: {
+                [key: string]: unknown;
+            } | null;
+            /** Pickup Code */
+            pickup_code?: string | null;
             /** Pickup Lat */
             pickup_lat?: number | null;
             /** Pickup Lng */
             pickup_lng?: number | null;
+            /**
+             * Pickup Locked
+             * @default false
+             */
+            pickup_locked?: boolean;
             /** Pin */
             pin?: string | null;
             /** Placed At */
@@ -8648,6 +8706,14 @@ export interface components {
             phone: string;
         };
         /**
+         * PickupCodeRequest
+         * @description R32: the restaurant enters the code the customer shows at the counter.
+         */
+        PickupCodeRequest: {
+            /** Code */
+            code: string;
+        };
+        /**
          * PlatformFeeSummary
          * @description R29: the platform fee, a percentage of the food subtotal, never below the minimum.
          */
@@ -8828,6 +8894,11 @@ export interface components {
             paused_reason?: string | null;
             /** Photo Url */
             photo_url?: string | null;
+            /**
+             * Pickup Enabled
+             * @default false
+             */
+            pickup_enabled?: boolean;
             /** Rating */
             rating: number;
             /** @description Public stars: {"new": true} below 5 ratings, else {"new": false, "stars": 4.6, "count": 23}. */
@@ -8940,8 +9011,20 @@ export interface components {
              * Format: date-time
              */
             expires_at: string;
+            /**
+             * Fulfillment
+             * @default delivery
+             */
+            fulfillment?: string;
             /** Lines */
             lines: components["schemas"]["BillLineOut"][];
+            /**
+             * Pickup Address
+             * @description pickup: the restaurant's address (street, city, lat, lng)
+             */
+            pickup_address?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Quote Id
              * Format: uuid
@@ -8966,7 +9049,13 @@ export interface components {
         };
         /** QuoteRequest */
         QuoteRequest: {
-            deliver_to: components["schemas"]["Where"];
+            deliver_to?: components["schemas"]["Where"] | null;
+            /**
+             * Fulfillment
+             * @default delivery
+             * @enum {string}
+             */
+            fulfillment?: "delivery" | "pickup";
             /** Items */
             items: components["schemas"]["CartItem"][];
             /** Promo Code */
@@ -9564,6 +9653,11 @@ export interface components {
             /** Photo Url */
             photo_url?: string | null;
             /**
+             * Pickup Enabled
+             * @default false
+             */
+            pickup_enabled?: boolean;
+            /**
              * Pricing Model
              * @default percentage_commission
              */
@@ -9620,6 +9714,8 @@ export interface components {
             name?: string | null;
             /** Opens At */
             opens_at?: string | null;
+            /** Pickup Enabled */
+            pickup_enabled?: boolean | null;
             /** Status */
             status?: ("active" | "inactive" | "pending_approval" | "suspended") | null;
             /** Tags */
@@ -9763,6 +9859,28 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /**
+         * RoutingShare
+         * @description R32: placed orders in the last `hours` by how the delivery distance was measured.
+         */
+        RoutingShare: {
+            /** Alert Pct */
+            alert_pct: number;
+            /** Fallback */
+            fallback: number;
+            /** Fallback Pct */
+            fallback_pct: number | null;
+            /** Hours */
+            hours: number;
+            /** Pickup */
+            pickup: number;
+            /** Road */
+            road: number;
+            /** Road Pct */
+            road_pct: number | null;
+            /** Straight Line */
+            straight_line: number;
         };
         /** RuleCreate */
         RuleCreate: {
@@ -10003,7 +10121,7 @@ export interface components {
              * Field
              * @enum {string}
              */
-            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance";
+            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance" | "pickup_platform_fee_pct" | "gst_offer_base";
             /**
              * Level
              * @enum {string}
@@ -10271,6 +10389,11 @@ export interface components {
             paused: boolean;
             /** Paused Until */
             paused_until: string | null;
+            /**
+             * Pickup Enabled
+             * @default false
+             */
+            pickup_enabled?: boolean;
             /** Prep Minutes */
             prep_minutes: number;
             /** Reason */
@@ -15281,6 +15404,26 @@ export interface operations {
             };
         };
     };
+    routing_api_v1_ops_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingShare"];
+                };
+            };
+        };
+    };
     list_tickets_api_v1_ops_tickets_get: {
         parameters: {
             query?: {
@@ -15753,6 +15896,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    collect_pickup_api_v1_orders__order_id__pickup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PickupCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18505,7 +18683,7 @@ export interface operations {
             query: {
                 level: "country" | "region" | "city" | "restaurant";
                 scope_id: string;
-                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance";
+                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee" | "max_delivery_distance" | "pickup_platform_fee_pct" | "gst_offer_base";
             };
             header?: never;
             path?: never;

@@ -22,7 +22,7 @@ VALID_TRANSITIONS: Final[dict[str, set[str]]] = {
     "accepted": {"preparing", "cancelled"},
     "preparing": {"almost_ready", "ready", "cancelled"},
     "almost_ready": {"ready", "cancelled"},
-    "ready": {"picked_up", "cancelled"},
+    "ready": {"picked_up", "delivered", "cancelled"},  # R32: delivered straight from ready = collected (pickup)
     "picked_up": {"delivered"},
     "delivered": set(),
     "cancelled": set(),
@@ -43,6 +43,7 @@ TRANSITION_ACTORS: Final[dict[tuple[str, str], frozenset[str]]] = {
     ("almost_ready", "cancelled"): RESTAURANT,
     ("ready", "picked_up"): frozenset({"rider", "admin"}),
     ("ready", "cancelled"): frozenset({"admin"}),
+    ("ready", "delivered"): frozenset({"restaurant", "admin"}),  # R32: pickup, with the customer's code
     ("picked_up", "delivered"): frozenset({"rider", "admin"}),
 }
 
@@ -59,6 +60,13 @@ LEGACY_NAMES: Final[dict[str, str]] = {"pending": "pending_payment", "confirmed"
 
 def can_transition(current: str, new: str) -> bool:
     return new in VALID_TRANSITIONS.get(current, set())
+
+
+def fits(fulfillment: str | None, current: str, new: str) -> bool:
+    """R32: a pickup order is never picked up by a partner; a delivery order is never collected at the counter."""
+    if (fulfillment or "delivery") == "pickup":
+        return new != "picked_up"
+    return not (current == "ready" and new == "delivered")
 
 
 def actor_allowed(current: str, new: str, actor: str) -> bool:

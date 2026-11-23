@@ -10,6 +10,8 @@ GOOD = {
     ("delivery_fee", "free_above"): {"min_subtotal": 499, "otherwise": 30},
     ("delivery_fee", "tier_base"): {"tiers": {"A": 25, "B": 30}, "default_tier": "B"},
     ("delivery_fee", "base_per_distance"): {"base": "3.00", "per_unit": "1.00"},
+    ("fee", "pickup_platform_fee_pct"): {"percent": 5},  # R32
+    ("business", "gst_offer_base"): {"platform_offers_reduce_base": False},  # R32
     ("customer_fee", "service_fee"): {"percent": 2, "min": 5, "max": 15},
     ("fee", "platform_fee_pct"): {"percent": 10},
     ("fee", "min_platform_fee"): {"amount": "0.99"},

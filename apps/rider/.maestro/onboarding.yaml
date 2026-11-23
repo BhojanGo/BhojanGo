@@ -12,7 +12,7 @@ env:
 - assertVisible: "Vehicle insurance"
 - assertVisible: "Needed now.*"
 - assertVisible: "Starts after insurance.*"
-- assertVisible: ".*per active hour.*"
+- assertVisible: "How pay works.*"  # R30 removed the per-hour floor rules; the pay note took its place
 - takeScreenshot: docs/screenshots/rider/03-onboarding
 - tapOn: "Upload insurance"
 - extendedWaitUntil:

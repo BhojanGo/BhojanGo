@@ -36,6 +36,11 @@ class Order(Base):
     picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # P18: the customer gives the rider this PIN at the door; the proof the rider gave.
     delivery_pin: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    # R32: delivery (default) or pickup. A pickup order's delivery_pin is its pickup code: the customer shows it at
+    # the counter and the restaurant enters it; 5 wrong tries lock it until support helps.
+    fulfillment: Mapped[str] = mapped_column(String(10), nullable=False, default="delivery", server_default="delivery")
+    pickup_code_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    pickup_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivery_proof: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     # Dispatch and tracking (P14): the restaurant and the delivery point.
     pickup_lat: Mapped[float | None] = mapped_column(Float, nullable=True)

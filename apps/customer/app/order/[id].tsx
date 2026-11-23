@@ -6,7 +6,7 @@
 import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, liveSocket } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CancelOrder, RefundLine } from "../../components/CancelOrder";
@@ -148,7 +148,8 @@ export default function Tracking() {
   const leftText = left ? (left.km ? distance(left.value) : t(`app.units.${left.unit}`, { value: number(left.value, 1) })) : null;
 
   const [headKey, headValues] = trackHeadline(status, who, kitchen);
-  const headline = headKey === "s_picked_up" && !headValues
+  const headline = order?.fulfillment === "pickup" && status === "ready" ? t("track.s_pickup_ready")  // R32
+    : headKey === "s_picked_up" && !headValues
     ? t("track.s_picked_up", { rider: t("track.your_rider") }) : t(`track.${headKey}`, headValues);
   const stamp = (...states: string[]) => {
     const h = (order?.status_history as { status: string; at: string }[] | undefined)?.find((x) => states.includes(x.status));
@@ -232,6 +233,31 @@ export default function Tracking() {
           <View style={styles.pinRow} accessibilityLabel={t("app.track.pin_a11y", { pin: pin.split("").join(" ") })}>
             <Text style={[type.small, { color: color.muted, flex: 1 }]}>{t("track.pin_long")}</Text>
             <Text testID="delivery-pin" style={[type.h2, { letterSpacing: 6, color: color.kohl }]}>{pin}</Text>
+          </View>
+        ) : null}
+        {/* R32: a pickup order: where to collect it, and the code once it's ready */}
+        {order?.fulfillment === "pickup" && !cancelled ? (
+          <View testID="pickup-card" style={styles.pinRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[type.small, { color: color.muted }]}>{t("checkout.pickup_at")}</Text>
+              <Text style={type.label}>{[order.pickup_address?.street, order.pickup_address?.city].filter(Boolean).join(", ") || kitchen}</Text>
+              {order.pickup_address?.lat != null && order.pickup_address?.lng != null ? (
+                <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void Linking.openURL(
+                  `https://www.google.com/maps/search/?api=1&query=${String(order.pickup_address?.lat)},${String(order.pickup_address?.lng)}`)}>
+                  <Text style={[type.label, { color: color.peacock }]}>{t("checkout.open_in_maps")}</Text>
+                </Pressable>
+              ) : null}
+              <Text style={[type.small, { color: order.pickup_locked ? color.chili : color.muted }]}>
+                {delivered ? t("track.collected") : order.pickup_locked ? t("track.pickup_locked")
+                  : order.pickup_code ? t("track.pickup_code_note") : t("track.pickup_waiting")}
+              </Text>
+            </View>
+            {order.pickup_code && !delivered && !order.pickup_locked ? (
+              <View style={{ alignItems: "flex-end" }} accessibilityLabel={`${t("track.pickup_code")} ${order.pickup_code.split("").join(" ")}`}>
+                <Text style={[type.caption, { color: color.muted }]}>{t("track.pickup_code")}</Text>
+                <Text testID="pickup-code" style={[type.h2, { letterSpacing: 6, color: color.kohl }]}>{order.pickup_code}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
         {/* R8: cancel while the API says the customer may; after it, the refund line */}

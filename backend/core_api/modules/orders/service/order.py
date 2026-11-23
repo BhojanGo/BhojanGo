@@ -46,11 +46,15 @@ def _err(code: int, key: str, message: str) -> HTTPException:
     return HTTPException(status_code=code, detail={"code": key, "message": message})
 
 
+PICKUP_CODE_TRIES = 5  # R32: then the order is locked until support helps
+
+
 def _event_payload(order: Order, **extra: object) -> dict:
     return {
         "order_id": str(order.id), "customer_id": str(order.customer_id), "restaurant_id": str(order.restaurant_id),
         "restaurant_name": order.restaurant_name, "status": order.status, "total": str(order.total),
         "currency": order.currency, "market_city": order.market_city,
+        "fulfillment": order.fulfillment or "delivery",  # R32: realtime never dispatches a pickup order
         "driver_id": str(order.driver_id) if order.driver_id else None,
         # dispatch and tracking (P14)
         "pickup": [order.pickup_lat, order.pickup_lng] if order.pickup_lat is not None else None,
@@ -207,6 +211,9 @@ class OrderService:
         if offline:
             raise _err(status.HTTP_409_CONFLICT, "KITCHEN_OFFLINE", offline)
         drop = ctx.get("deliver_to") or {}
+        fulfillment = ctx.get("fulfillment", "delivery")  # R32: the quote decides
+        if fulfillment == "delivery" and data.delivery_address is None:
+            raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "ADDRESS_REQUIRED", "Choose where to deliver")
         from core_api.modules.catalog.service.menu import busy_minutes
 
         prep = (rest.avg_prep_minutes + busy_minutes(rest, now)) if rest else 20
@@ -240,13 +247,16 @@ class OrderService:
             delivery_distance_km=_money(ctx["distance"]),
             is_long_distance=False,
             status_history=[{"status": "pending_payment", "at": now.isoformat()}],
-            delivery_address=data.delivery_address.model_dump(),
+            delivery_address=(data.delivery_address.model_dump() if fulfillment == "delivery"
+                              else {**(ctx.get("pickup_address") or {}), "pickup": True}),
+            fulfillment=fulfillment,
             payment_method=data.payment_method,
             special_instructions=data.special_instructions,
             promo_code=data.promo_code,
             delivery_pin=delivery_pin(),
             loyalty_points_used=0,
-            estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
+            estimated_delivery_time=(now + timedelta(minutes=prep) if fulfillment == "pickup"
+                                     else delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now)),
         )
         try:
             await quotes.attach(q, order.id)
@@ -442,8 +452,10 @@ class OrderService:
         actor = await self.actor_for(user, order, new)
         if actor is None:
             raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
-        if not sm.can_transition(order.status, new):
+        if not sm.can_transition(order.status, new) or not sm.fits(order.fulfillment, order.status, new):
             raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", f"Can't go from {order.status} to {new}")
+        if order.fulfillment == "pickup" and new == "delivered" and actor != "admin":
+            raise _err(status.HTTP_409_CONFLICT, "PICKUP_CODE_REQUIRED", "Enter the customer's pickup code")
         if not sm.actor_allowed(order.status, new, actor):
             raise _err(status.HTTP_403_FORBIDDEN, "FORBIDDEN", f"You can't move this order to {new}")
         now = datetime.now(UTC)
@@ -487,6 +499,37 @@ class OrderService:
                 or not await get_storage().exists(p.photo_key)):
             raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "PHOTO_REQUIRED", "Take a photo of the bags at the door")
         return {"method": "photo", "photo_key": p.photo_key, "at": at}
+
+    async def collect_pickup(self, order_id: uuid.UUID, code: str, user: CurrentUser) -> Order:
+        """R32: the restaurant enters the customer's pickup code: the order is collected. A wrong code is
+        refused and counted (the count is kept even though the request fails); 5 wrong codes lock the order:
+        the restaurant calls support, who can complete it (admins mark it delivered)."""
+        order = await self._locked(order_id)
+        if order is None:
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        actor = await self.actor_for(user, order, "delivered")
+        if actor not in ("restaurant", "admin"):
+            raise _err(status.HTTP_404_NOT_FOUND, "NOT_FOUND", "Order not found")
+        if order.fulfillment != "pickup" or order.status != "ready":
+            raise _err(status.HTTP_409_CONFLICT, "ORDER_STATE_INVALID", "This order isn't waiting for pickup")
+        if order.pickup_locked_at is not None:
+            raise _err(status.HTTP_423_LOCKED, "PICKUP_LOCKED",
+                       "Too many wrong codes. Call BhojanGo support to hand this order over")
+        if not order.delivery_pin or not secrets.compare_digest(code, order.delivery_pin):
+            order.pickup_code_attempts = (order.pickup_code_attempts or 0) + 1
+            left = PICKUP_CODE_TRIES - order.pickup_code_attempts
+            if left <= 0:
+                order.pickup_locked_at = datetime.now(UTC)
+            await self.db.commit()  # the wrong try counts, though this request fails
+            logger.warning("pickup_code_wrong", order_id=str(order.id), attempts=order.pickup_code_attempts)
+            if left <= 0:
+                raise _err(status.HTTP_423_LOCKED, "PICKUP_LOCKED",
+                           "Too many wrong codes. Call BhojanGo support to hand this order over")
+            raise _err(status.HTTP_422_UNPROCESSABLE_CONTENT, "PICKUP_CODE_WRONG",
+                       f"That code doesn't match. {left} {'try' if left == 1 else 'tries'} left")
+        now = datetime.now(UTC)
+        return await self._move(order, "delivered", actor, extra={
+            "actual_delivery_time": now, "delivery_proof": {"method": "pickup_code", "at": now.isoformat()}})
 
     async def cancel_order(self, order_id: uuid.UUID, data: OrderCancelRequest, user: CurrentUser) -> Order:
         order = await self._locked(order_id)

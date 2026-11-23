@@ -66,6 +66,7 @@ class StateOut(BaseModel):
     # 60 s (shown on the tablet for an hour after it ended): from, to.
     offline_from: datetime | None = None
     offline_to: datetime | None = None
+    pickup_enabled: bool = False  # R32: customers can collect orders here (the tablet turns it on and off)
 
 
 def kitchen_refunds(refunds_by_order: object) -> Decimal:
@@ -102,6 +103,7 @@ async def _state(db: AsyncSession, r: Restaurant) -> StateOut:
         status=r.status, open_now=a.open_now, reason=a.reason, paused=paused_by_kitchen(r, now),
         paused_until=r.paused_until if paused_by_kitchen(r, now) else None,
         busy_extra_minutes=busy_minutes(r, now), busy_until=r.busy_until if busy_minutes(r, now) else None,
+        pickup_enabled=bool(r.pickup_enabled),
         prep_minutes=r.avg_prep_minutes + busy_minutes(r, now), today_orders=n, today_sales=sales - refunded,
         today_refunds=refunded,
         # r.closes_at is the legacy "HH:MM" string, used when the hours give no end (open all day, or closed now).

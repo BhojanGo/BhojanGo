@@ -480,7 +480,14 @@
     "back_home": "Back to home",
     "payments_unavailable": "Payments aren't available in this city yet.",
     "payments_retry": "Couldn't check payments. Tap to try again.",
-    "place_free": "Place order"
+    "place_free": "Place order",
+    "how": "How do you want it?",
+    "delivery": "Delivery",
+    "pickup": "Pickup",
+    "pickup_at": "Pick up at",
+    "open_in_maps": "Open in Maps",
+    "pickup_ready": "Ready around {time}",
+    "pickup_note": "No delivery fee. When it's ready you get a pickup code to show at the counter."
   },
   "track": {
     "title": "Your order",
@@ -552,7 +559,13 @@
     "cancel_too_late": "The restaurant has already started cooking, so this order can't be cancelled now. If something is wrong, ask us from the order.",
     "cancel_failed": "We couldn't cancel the order. Try again.",
     "refunded": "{amount} refunded to your {method}.",
-    "refund_pending": "Your refund of {amount} to your {method} is on its way."
+    "refund_pending": "Your refund of {amount} to your {method} is on its way.",
+    "pickup_code": "Pickup code",
+    "pickup_code_note": "Show this code at the counter",
+    "pickup_waiting": "Your pickup code shows here when your order is ready",
+    "pickup_locked": "Too many wrong codes. The restaurant is calling BhojanGo support to hand it over.",
+    "collected": "Picked up",
+    "s_pickup_ready": "Ready for pickup"
   },
   "signin": {
     "title": "Sign in",
@@ -1633,7 +1646,16 @@
       "finding_rider": "Finding a delivery partner",
       "order_code": "Order code {code}",
       "today_refunds": "{amount} refunded",
-      "deliveries_run": "Deliveries run {from}–{to}"
+      "deliveries_run": "Deliveries run {from}–{to}",
+      "pickup_badge": "Customer pickup",
+      "enter_code": "Enter the customer's pickup code",
+      "hand_over": "Hand over",
+      "code_wrong": "That code doesn't match. Check it with the customer.",
+      "code_locked": "Too many wrong codes. Call BhojanGo support to hand this order over.",
+      "waiting_customer": "Waiting for the customer",
+      "pickup_on": "Pickup on",
+      "pickup_off": "Pickup off",
+      "pickup_toggle": "Customers can collect orders at your counter"
     },
     "offline": {
       "banner": "Not receiving orders: reconnecting"

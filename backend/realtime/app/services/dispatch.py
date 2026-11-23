@@ -407,6 +407,8 @@ async def start_dispatch(order: str, info: dict | None = None) -> str | None:
     info = info or await order_info(order, refresh=True)
     if not info or info.get("driver_id") or not info.get("pickup"):
         return None
+    if info.get("fulfillment") == "pickup":  # R32: the customer collects it: no delivery partner
+        return None
     await _save_info(info)
     r = await get_redis()
     if not await r.sadd(ACTIVE, order):  # already dispatching (duplicate event)
@@ -838,6 +840,7 @@ async def on_order_event(event: dict) -> None:
         info.update(status=status or info.get("status"), driver_id=p.get("driver_id") or info.get("driver_id"))
         await _save_info(info)
     if (kind == "order.status_changed" and status in DISPATCH_STATES and not p.get("driver_id")
+            and p.get("fulfillment", "delivery") != "pickup"
             and not await r.exists(in_batch_offer_key(order))):
         await start_dispatch(order)
     if kind in KITCHEN_EVENTS and p.get("restaurant_id"):

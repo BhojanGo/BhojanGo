@@ -18,15 +18,20 @@ export function useQuote(opts: {
   restaurantId: string | null | undefined;
   lines: BagLine[];
   deliverTo: DeliverTo | null;
+  /** R32: pickup: collected at the restaurant (no address, no delivery fee, no tip). */
+  fulfillment?: "delivery" | "pickup";
   tip?: number;
   promo?: string | null;
   nonce?: number; // bump to ask again (an expired price)
   fallbackError: string;
 }) {
   const { enabled, restaurantId, lines, deliverTo, tip, promo, nonce, fallbackError } = opts;
+  const pickup = opts.fulfillment === "pickup";
   const body =
-    enabled && restaurantId && deliverTo && lines.length
-      ? { restaurant_id: restaurantId, items: cartItems(lines), deliver_to: deliverTo, tip: tip ?? 0, ...(promo ? { promo_code: promo } : {}) }
+    enabled && restaurantId && (deliverTo || pickup) && lines.length
+      ? pickup
+        ? { restaurant_id: restaurantId, items: cartItems(lines), fulfillment: "pickup" as const, tip: 0, ...(promo ? { promo_code: promo } : {}) }
+        : { restaurant_id: restaurantId, items: cartItems(lines), deliver_to: deliverTo!, tip: tip ?? 0, ...(promo ? { promo_code: promo } : {}) }
       : null;
   const key = body ? JSON.stringify([body, nonce ?? 0]) : null;
   const t = useT();

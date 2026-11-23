@@ -96,10 +96,11 @@ export default defineRailway((ctx, project) => {
     ...(prod ? { OTP_FIXED_CODE: "" } : {}),
     // Error reports (Sentry, free plan; shared/observability.py): one backend project, sealed.
     ...(prod ? { SENTRY_DSN: preserve() } : {}),
-    // R31: road distance from the private OSRM service below (QA); production keeps the straight-line
-    // estimate until a routing service is chosen for it. OSRM down: straight-line x 1.3, logged.
-    ROUTING_PROVIDER: qa ? "osrm" : "straight_line",
-    ...(qa ? { OSRM_URL: "http://osrm.railway.internal:5000", ROAD_FACTOR: "1.3" } : {}),
+    // R31: road distance from the private OSRM service below (QA). R32: production too (the same image, Boise
+    // and Hyderabad roads); staging keeps the straight-line estimate. OSRM down: straight-line x 1.3, logged
+    // (routing_fallback), and admin Operations alerts when over 5% of an hour's deliveries fall back.
+    ROUTING_PROVIDER: qa || prod ? "osrm" : "straight_line",
+    ...(qa || prod ? { OSRM_URL: "http://osrm.railway.internal:5000", ROAD_FACTOR: "1.3" } : {}),
     LOG_FORMAT: "json",
     // The client's address for rate limits (sign-in, OTP) and logs: Railway's edge puts it in
     // X-Real-IP and overwrites one a client sends. The socket peer is Railway's proxy
@@ -127,10 +128,12 @@ export default defineRailway((ctx, project) => {
       env: { ...backendEnv, PORT: String(port), ...extra },
     });
 
-  // ── Road distance (R31, QA only) ───────────────────────────────────────
+  // ── Road distance (R31 QA, R32 production) ─────────────────────────────
   // OSRM on OpenStreetMap roads of the live cities (infra/docker/osrm: the map is fetched and prepared at
   // build time). Private only: core_api, realtime and the worker reach it on the private network.
-  if (qa) {
+  // Production: the same image; 1 vCPU / 1 GB (cap() limits QA only). Config only until production is
+  // created (docs/runbooks/railway-deploy.md, "Road distance in production"): nothing here is deployed.
+  if (qa || prod) {
     service("osrm", {
       source: src("infra/docker/osrm"),
       build: { builder: "DOCKERFILE", dockerfilePath: "Dockerfile", watchPatterns: ["infra/docker/osrm/**"] },
