@@ -3,9 +3,11 @@ appId: com.bhojango.app
 ---
 - runFlow: sign-in.yaml
 # Home lists the kitchens below Order again, the cuisines and the offers: scroll to the card.
-- extendedWaitUntil:
-    visible:
+# R31: an earlier flow's order adds "Order again" above the list: scroll to it rather than expect it on screen
+- scrollUntilVisible:
+    element:
       id: "kitchens"
+    direction: DOWN
     timeout: 30000
 - scrollUntilVisible:
     element:
