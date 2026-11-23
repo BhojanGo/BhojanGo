@@ -20,6 +20,7 @@ Revises: 0044_boise_live_basque_photo
 """
 import json
 import uuid
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
 from alembic import op
@@ -31,7 +32,8 @@ branch_labels = None
 depends_on = None
 
 NS = uuid.UUID("6f1d7a52-2b0e-4d38-9d0a-2f0c1b5e7a29")  # this migration's rules: uuid5(NS, name)
-START = "2026-11-22T00:00:00+00:00"
+START = "2026-11-22T00:00:00+00:00"  # shown in the audit rows
+START_AT = datetime(2026, 11, 22, tzinfo=UTC)  # bound to queries (asyncpg wants a datetime)
 
 NEW_RULES = {
     "US": [
@@ -84,12 +86,12 @@ def upgrade() -> None:
             "SELECT rule_key, version, family, template, params FROM rules WHERE slot = 'commission:rate' "
             "AND scope_level = 'country' AND scope_id = :c AND status = 'published' "
             "AND (effective_to IS NULL OR effective_to > CAST(:start AS timestamptz)) ORDER BY version DESC LIMIT 1"),
-            {"c": country, "start": START}).mappings().first()
-        conn.execute(ended, {"start": START, "scope": f"{country}%"})
+            {"c": country, "start": START_AT}).mappings().first()
+        conn.execute(ended, {"start": START_AT, "scope": f"{country}%"})
         for family, template, slot, name, params in NEW_RULES[country]:
             rid = _id(country, slot)
             conn.execute(insert, {"id": rid, "family": family, "template": template, "slot": slot,
-                                  "name": name, "params": json.dumps(params), "country": country, "start": START})
+                                  "name": name, "params": json.dumps(params), "country": country, "start": START_AT})
             after = {"id": rid, "rule_key": rid, "version": 1, "family": family, "template": template, "params": params,
                      "scope_level": "country", "scope_id": country, "status": "published", "effective_from": START,
                      "effective_to": None, "note": "Fee model v2 (migration 0045)"}
@@ -112,7 +114,7 @@ def upgrade() -> None:
             params["target_lines"] = [*params["target_lines"], "platform_fee"]
             new_id = _id("IN", "gst_fees", str(r["rule_key"]))
             conn.execute(sa.text("UPDATE rules SET effective_to = GREATEST(effective_from, CAST(:start AS timestamptz)) "
-                                 "WHERE id = :id"), {"id": r["id"], "start": START})
+                                 "WHERE id = :id"), {"id": r["id"], "start": START_AT})
             conn.execute(sa.text(
                 "INSERT INTO rules (id, rule_key, version, family, template, key, slot, name, params, scope_level, scope_id, "
                 "market_scope, priority, locked, status, effective_from, effective_to, created_by, created_at, updated_at) "
@@ -120,7 +122,7 @@ def upgrade() -> None:
                 "CAST(:params AS jsonb), 'country', 'IN', :scope, :priority, :locked, 'published', "
                 "GREATEST(CAST(:start AS timestamptz), now()), NULL, NULL, now(), now()) ON CONFLICT DO NOTHING"),
                 {"id": new_id, "key": r["rule_key"], "version": r["version"] + 1, "name": r["name"], "params": json.dumps(params),
-                 "scope": r["market_scope"], "priority": r["priority"], "locked": r["locked"], "start": START})
+                 "scope": r["market_scope"], "priority": r["priority"], "locked": r["locked"], "start": START_AT})
 
 
 def downgrade() -> None:
@@ -139,6 +141,6 @@ def downgrade() -> None:
         "AND effective_to = GREATEST(effective_from, CAST(:start AS timestamptz)) "
         "AND (slot LIKE 'customer_fee:service_fee%' OR (slot = 'commission:rate' AND scope_level = 'country') "
         "OR (slot = 'tax:rate_on_lines:gst_fees' AND scope_id = 'IN')) AND (market_scope LIKE 'US%' OR market_scope LIKE 'IN%')"),
-        {"start": START})
+        {"start": START_AT})
     op.drop_column("order_pricing_snapshots", "fee_settings")
     op.drop_column("orders", "card_fee")
