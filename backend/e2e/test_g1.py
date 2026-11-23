@@ -4,7 +4,7 @@ Customer pays (fake provider) → restaurant accepts through the API → dispatc
 offers it to the nearest rider → rider accepts → pickup → delivered →
 restaurant and rider are in the weekly payout run → messages were sent.
 
-Run twice: the Hyderabad worked example (R31 delivery bands: ₹699.48, restaurant nets ₹470.88)
+Run twice: the Hyderabad worked example (R31 delivery bands, R33 busy-hour fee off: ₹681.78, restaurant nets ₹470.88)
 and a Boise order with Idaho sales tax from the tax provider.
 """
 import asyncio
@@ -172,7 +172,7 @@ def test_g1_hyderabad_worked_example() -> None:
                 {"group": "Add-ons", "option": "Extra raita"}]},
             {"menu_item_id": items["Paneer Tikka"], "quantity": 1}]
 
-    # The worked example is priced on a Thursday at 8 PM (evening surge); the quote
+    # The worked example is priced on a Thursday at 8 PM (the busy-hour window; R33: the fee is 0, off); the quote
     # service runs at that time, everything after it goes through the API.
     async def price():  # type: ignore[no-untyped-def]
         async with AsyncSessionLocal() as db:
@@ -184,9 +184,10 @@ def test_g1_hyderabad_worked_example() -> None:
 
     q = run(price())
     # R31: 560 food − 50 offer + 10 packaging + 40 delivery (3.77 km: the >3-5 km band) + 56 platform fee (10%; above
-    # the ₹15 minimum) + 15 surge + 28.50 GST on food (before the platform's discount, R16) + 19.98 GST on fees
-    # (18% of 40 + 56 + 15) + 20 tip
-    assert q.total == Decimal("699.48"), q.lines
+    # the ₹15 minimum) + 28.50 GST on food (before the platform's discount, R16) + 17.28 GST on fees (18% of 40 + 56)
+    # + 20 tip. R33: no busy-hour fee (0 in every seed; when on, it is the delivery partner's).
+    assert "surge" not in {ln.code for ln in q.lines}
+    assert q.total == Decimal("681.78"), q.lines
 
     r = customer.core("POST", "/orders", headers=idem(), json={
         "restaurant_id": rid, "items": cart, "payment_method": "upi", "quote_token": q.token,
@@ -194,13 +195,13 @@ def test_g1_hyderabad_worked_example() -> None:
                              "zip": "500033", "country": "IN"}})
     assert r.status_code == 201, r.text
     order = r.json()
-    assert Decimal(str(order["total"])) == Decimal("699.48")
+    assert Decimal(str(order["total"])) == Decimal("681.78")
 
     deliver_through_dispatch(order, customer, partner, rider, SPICE_AT)
     pay = customer.core("GET", f"/payments/{order['id']}").json()
-    assert pay["amount"] == 69948 and pay["status"] == "succeeded", pay
+    assert pay["amount"] == 68178 and pay["status"] == "succeeded", pay
     bill = customer.core("GET", f"/pricing/orders/{order['id']}/bill").json()
-    assert bill["total"] == "699.48"
+    assert bill["total"] == "681.78"
 
     delivered_on = datetime.now(IST).date()
     weekly_payout_job(delivered_on, "Asia/Kolkata")
@@ -227,8 +228,10 @@ def test_g1_boise_with_idaho_sales_tax() -> None:
     assert r.status_code == 200, r.text
     q = r.json()
     tax = next(ln for ln in q["lines"] if ln["label"] == "Idaho sales tax")
+    # R33: Idaho taxes the food and the platform fee, not the (separately stated) delivery fee or the tip
     taxable = sum(Decimal(ln["amount"]) for ln in q["lines"]
-                  if ln["code"] in ("food", "promotion", "delivery_fee", "platform_fee", "service_fee", "small_order_fee"))
+                  if ln["code"] in ("food", "promotion", "platform_fee", "service_fee", "small_order_fee"))
+    assert "delivery_fee" not in tax["detail"]["targets"]
     assert tax["detail"]["rate_percent"] == "6" and Decimal(tax["amount"]) == (taxable * Decimal("0.06")).quantize(Decimal("0.01"))
 
     r = customer.core("POST", "/orders", headers=idem(), json={
