@@ -9,10 +9,15 @@ env:
     visible: "You're offline"
     timeout: 30000
 - tapOn: "Account"
-- extendedWaitUntil:
-    visible: "Sign out"
-    timeout: 10000
+# the language list sits above Sign out on a phone: scroll to it (R31)
+- scrollUntilVisible:
+    element: "Sign out"
+    direction: DOWN
+    timeout: 30000
 - takeScreenshot: docs/screenshots/rider/11-account
+- scrollUntilVisible:
+    element: "Safety"
+    direction: UP
 - tapOn: "Safety"
 - extendedWaitUntil:
     visible: "Get help now"
@@ -21,7 +26,7 @@ env:
 - tapOn: "Alert BhojanGo safety team"
 - extendedWaitUntil:
     visible: "The safety team has your alert.*"
-    timeout: 15000
+    timeout: 45000  # the app takes a location fix first (slow on an emulator)
 - takeScreenshot: docs/screenshots/rider/12-sos
 - tapOn: "Close"
 - tapOn: "Payouts"
