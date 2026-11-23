@@ -883,8 +883,9 @@ with sync_playwright() as p:
             before = km_left()
             minutes = int(re.search(r"\d+", eta_box.inner_text()).group())  # type: ignore[union-attr]
             _assert(km_left() == before, "the ETA changed while reading it")
-            # road distance (x1.3) from the rider to the door, as realtime worked it out
-            _assert(abs(before - km * 1.3) < 0.3, f"{before} km left for a rider {km} km away")
+            # R31: the road distance from the rider to the door (OSRM, or straight-line x 1.3 when routing is off):
+            # never less than the straight line, and not absurdly more
+            _assert(km - 0.05 <= before <= km * 2.5, f"{before} km left for a rider {km} km away")
             # the minutes are realtime's for the rider's last fix (GET /delivery/{id}/eta)
             want = api("GET", f"/delivery/{order_id}/eta", rider, host=8004)["estimated_delivery_minutes"]
             _assert(minutes == want, f"page says {minutes} min, realtime {want} min ({before} km left)")
