@@ -47,9 +47,11 @@ async def test_boise_live_and_india_switched_off(db) -> None:  # type: ignore[no
 async def test_legal_entities_and_rules(db) -> None:  # type: ignore[no-untyped-def]
     names = dict((await db.execute(text("SELECT code, settings->'legal'->>'name' FROM countries"))).all())
     assert names == {"US": "DeepTrics LLC", "IN": "DeepTrics Software Solutions Pvt Ltd"}
-    commission = await scalar(db, "SELECT params FROM rules WHERE family = 'commission' AND template = 'percent_by_tier' "
+    commission = await scalar(db, "SELECT params FROM rules WHERE family = 'commission' AND template = 'percent' "
                                   "AND scope_level = 'country' AND scope_id = 'US' AND status = 'published'")
-    assert {Decimal(str(v)) for v in commission["tiers"].values()} == {Decimal(15)}
+    assert Decimal(str(commission["percent"])) == 0  # R29: fee model v2
+    fee = await scalar(db, "SELECT params FROM rules WHERE slot = 'fee:platform_fee_pct' AND scope_id = 'US' AND status = 'published'")
+    assert Decimal(str(fee["percent"])) == 10
     for family, template in (("business", "commission_tax"), ("business", "payout_tds"), ("business", "payment_fees")):
         assert await scalar(db, "SELECT count(*) FROM rules WHERE family = :f AND template = :t AND scope_id = 'IN'",
                             f=family, t=template) == 1

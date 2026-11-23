@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.finance.service import statements as S
 
-FEE_CODES = ("delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee")
+FEE_CODES = ("delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee")
 FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "payment_fees", "refunds",
           "min_pay_top_ups", "keeps")
 
@@ -106,6 +106,10 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
             tax_calc = any((ln.get("detail") or {}).get("provider") for ln in snap.lines if ln["code"] == "tax")
             fees, _ = payment_fee(S.D(snap.total), o.payment_method or "card", rules_now[city], tax_calc)
             estimated += 1
+        if "card_fee" in detail:
+            # R29 fee model v2: the restaurant pays the card fee (estimate, or production's actual one);
+            # the platform pays only the rest (the tax service).
+            fees = max(Decimal(0), fees - S.D(o.card_fee if o.card_fee is not None else detail["card_fee"]))
         _, _, kitchen = S.restaurant_statement([S.OrderForPayout(
             order_id=str(o.id), delivered_at=o.actual_delivery_time, restaurant_id=str(o.restaurant_id), rider_id=None,
             lines=snap.lines, split=split, distance=Decimal(0), rider_rule=None, started_at=None,
@@ -117,7 +121,9 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         b["commission"] += S.D(detail.get("commission"))
         b["customer_fees"] += amt(*FEE_CODES)
         b["platform_promos"] += S.D(detail.get("platform_funded_offers"))
-        if (o.batch_position or 0) >= 2:
+        if "delivery_fee_to_partner" in detail:  # R29: the delivery fee, plus any guaranteed-pay top-up
+            b["rider_pay"] += S.D(detail["delivery_fee_to_partner"]) + S.D(detail.get("rider_top_up"))
+        elif (o.batch_position or 0) >= 2:
             rp = next((rider_rules.get(v["rule_id"]) for v in snap.rule_versions if v["slot"] == rider_slot), None) or {}
             platform += S.D(rp.get("base")) - S.D(o.batch_bonus)  # what the platform pays differs by base - bonus
             b["rider_pay"] += S.D(detail.get("rider_base")) - S.D(rp.get("base")) + S.D(o.batch_bonus)

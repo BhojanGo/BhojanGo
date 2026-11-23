@@ -88,21 +88,22 @@ INSERT_ORDER = text("""
 INSERT INTO orders (id, customer_id, restaurant_id, restaurant_name, driver_id, items, status, market_city, zone_id,
     payment_due_at, accept_due_at, placed_at, rider_assigned_at, picked_up_at, delivery_pin, delivery_proof,
     pickup_lat, pickup_lng, delivery_lat, delivery_lng, subtotal, delivery_fee, taxes, tip, discount, total, currency,
-    platform_fee, restaurant_payout, estimated_prep_minutes, restaurant_accepted_at, actual_ready_at,
+    platform_fee, restaurant_payout, card_fee, estimated_prep_minutes, restaurant_accepted_at, actual_ready_at,
     delivery_distance_km, is_long_distance, status_history, delivery_address, estimated_delivery_time,
     actual_delivery_time, payment_method, payment_intent_id, loyalty_points_earned, loyalty_points_used,
     created_at, updated_at)
 VALUES (:id, :customer_id, :restaurant_id, :restaurant_name, :driver_id, CAST(:items AS jsonb), :status, :market_city,
     :zone_id, :payment_due_at, NULL, :placed_at, :rider_assigned_at, :picked_up_at, :pin, CAST(:proof AS jsonb),
     :pickup_lat, :pickup_lng, :delivery_lat, :delivery_lng, :subtotal, :delivery_fee, :taxes, :tip, :discount, :total,
-    :currency, :platform_fee, :restaurant_payout, :prep, :accepted_at, :ready_at, :distance, false,
+    :currency, :platform_fee, :restaurant_payout, :card_fee, :prep, :accepted_at, :ready_at, :distance, false,
     CAST(:history AS jsonb), CAST(:address AS jsonb), :eta, :delivered_at, :method, :pi, 0, 0, :created_at, :updated_at)
 """)
 
 INSERT_SNAPSHOT = text("""
-INSERT INTO order_pricing_snapshots (id, order_id, quote_id, currency, total, lines, rule_versions, split, context, created_at)
+INSERT INTO order_pricing_snapshots (id, order_id, quote_id, currency, total, lines, rule_versions, split, context,
+    fee_settings, created_at)
 VALUES (:id, :order_id, :quote_id, :currency, :total, CAST(:lines AS jsonb), CAST(:rules AS jsonb), CAST(:split AS jsonb),
-        CAST(:context AS jsonb), :created_at)
+        CAST(:context AS jsonb), CAST(:fee_settings AS jsonb), :created_at)
 """)
 
 INSERT_PAYMENT = text("""
@@ -400,10 +401,10 @@ class Demo:
             "proof": None if active else json.dumps({"method": "pin", "at": t["delivered"].isoformat()}),
             "pickup_lat": k["lat"], "pickup_lng": k["lng"], "delivery_lat": cust[5], "delivery_lng": cust[6],
             "subtotal": Decimal(q["food_subtotal"]),
-            "delivery_fee": line_sum("delivery_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee"),
+            "delivery_fee": line_sum("delivery_fee", "platform_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee"),
             "taxes": line_sum("tax"), "tip": line_sum("tip"), "discount": -line_sum("promotion"), "total": Decimal(q["total"]),
             "currency": q["currency"], "platform_fee": Decimal(q["split"]["platform"]),
-            "restaurant_payout": Decimal(q["split"]["restaurant"]), "prep": 20, "accepted_at": t["accepted"],
+            "restaurant_payout": Decimal(q["split"]["restaurant"]), "card_fee": Decimal(q["split"].get("card_fee", "0")), "prep": 20, "accepted_at": t["accepted"],
             "ready_at": t["ready"], "distance": Decimal(ctx["distance"]), "history": json.dumps(history_rows),
             "address": json.dumps(address), "eta": t["delivered"], "delivered_at": None if active else t["delivered"],
             "method": city["method"], "pi": pi, "created_at": start, "updated_at": t["picked_up"] if active else t["delivered"],
@@ -412,7 +413,7 @@ class Demo:
             "id": sid("snapshot", str(oid)), "order_id": oid, "quote_id": uuid.UUID(q["quote_id"]), "currency": q["currency"],
             "total": Decimal(q["total"]), "lines": json.dumps(q["lines"]), "rules": json.dumps(q["rules_used"]),
             "split": json.dumps(q["split"]), "context": json.dumps({**ctx, "tax_calculation": q.get("tax_calculation")}),
-            "created_at": start})
+            "fee_settings": json.dumps(q.get("fee_settings")), "created_at": start})
         minor = 100  # INR and USD both have two decimals
         await self.db.execute(INSERT_PAYMENT, {
             "id": sid("payment", str(oid)), "order_id": oid, "user_id": self.users[customer], "ppid": pi,

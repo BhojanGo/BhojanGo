@@ -66,7 +66,7 @@ function tiers(t: unknown, fmt: (v: unknown) => string, def: unknown): string {
 }
 
 const LINE_NAMES: Record<string, string> = {
-  food: "food", delivery_fee: "delivery fee", service_fee: "service fee", small_order_fee: "small-order fee",
+  food: "food", delivery_fee: "delivery fee", platform_fee: "platform fee", service_fee: "service fee", small_order_fee: "small-order fee",
   packaging: "packaging", surge: "busy-hour fee", late_night_fee: "late-night fee", tip: "tip",
 };
 
@@ -106,6 +106,9 @@ export function describe(template: string, params: P, units: Units): string {
       ? `${String(p.label ?? "TDS")}: ${n(p.rate_percent)}% of the kitchen's food and packaging sales, taken from its payout`
       : `${String(p.label ?? "TDS")}: none deducted (0%)`;
     case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo";
+    case "platform_fee_pct": return `${n(p.percent)}% of the food subtotal, paid by the customer to BhojanGo`;
+    case "min_platform_fee": return `At least ${m(p.amount, cur)} (when the percentage comes to less)`;
+    case "card_fee_estimate": return `${n(p.percent)}% + ${m(p.fixed ?? 0, cur)} of the charge less the tip, taken from the kitchen's payout`;
     case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";
     case "flat_per_order": return `${m(p.amount, cur)} per order on top of the percentage`;

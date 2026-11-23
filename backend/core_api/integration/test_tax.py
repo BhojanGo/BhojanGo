@@ -60,7 +60,7 @@ async def test_boise_quote_has_idaho_sales_tax(client: AsyncClient) -> None:
     assert q["currency"] == "USD" and q["tax_pending"] is False and q["distance_unit"] == "mi"
     lines = {ln["label"]: ln for ln in q["lines"]}
     tax = lines["Idaho sales tax"]
-    taxable = sum(Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in ("food", "promotion", "delivery_fee", "service_fee", "small_order_fee"))
+    taxable = sum(Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in ("food", "promotion", "delivery_fee", "platform_fee", "service_fee", "small_order_fee"))
     assert tax["detail"]["rate_percent"] == "6" and Decimal(tax["detail"]["base"]) == taxable
     assert Decimal(tax["amount"]) == (taxable * Decimal("0.06")).quantize(Decimal("0.01"))
     assert tax["detail"]["calculation_id"].startswith("taxcalc_local_")

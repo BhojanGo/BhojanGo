@@ -1,6 +1,6 @@
 // The design system for the Expo apps (P16): the same components as
 // @bhojango/ui on the web, in React Native, from the same tokens.
-import { billTotal, PAYEE, shownLines, type BillLine } from "@bhojango/ui/bill";
+import { billTotal, payeeOf, shownLines, type BillLine } from "@bhojango/ui/bill";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ActivityIndicator, Animated, Image, Modal, Pressable, StyleSheet, Text, TextInput, View,
@@ -186,7 +186,7 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
       const by = ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO";
       rows.push({ label: ln.label, payee: payee(by), amount: money(amount, currency), accent: true });
     } else {
-      const to = PAYEE[ln.code] ?? "BHOJANGO";
+      const to = payeeOf(ln, lines);
       rows.push({ label: ln.label, payee: payee(to), amount: money(amount, currency) });
     }
   }

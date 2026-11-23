@@ -1,7 +1,7 @@
 """Payout statements, pure (no database): what each restaurant and rider earned.
 
 Restaurant, per delivered order (from its pricing snapshot):
-    food + packaging - commission - offers the restaurant funded
+    food + packaging - commission - card fee (R29) - offers the restaurant funded
     (+ tax the restaurant collects itself)
     - item refunds that were the restaurant's fault (wrong or missing item,
       quality): the item's food value less the commission it paid on it.
@@ -10,6 +10,8 @@ Restaurant, per delivered order (from its pricing snapshot):
 
 Rider, per delivered order:
     base + per km/mi x distance + waiting pay, + tip
+  R29 (fee model v2): the delivery fee is the partner's; where it is more than that guaranteed pay,
+  the difference is added ("delivery_fee_extra"), so the partner gets max(delivery fee, guaranteed) + tip
   a later drop-off of a batch (item 2): no base; distance + waiting + the city's
   batch bonus, + tip
   and for the period a top-up to the hourly floor:
@@ -51,6 +53,7 @@ class OrderForPayout:
     refund_lines: list[dict] = field(default_factory=list)  # refunded items (P12), each with "reason" and "fault"
     batch_position: int | None = None  # item 2: 2+ = a later drop-off of a batch
     batch_bonus: Decimal | None = None
+    card_fee: Decimal | None = None  # R29: the order's card fee (production: the actual one); None: the snapshot's
 
 
 def restaurant_statement(orders: list[OrderForPayout], commission_tax_pct: Decimal = ZERO,
@@ -59,13 +62,14 @@ def restaurant_statement(orders: list[OrderForPayout], commission_tax_pct: Decim
     percent of the kitchen's gross sales: food and packaging) come off the kitchen's payout; the
     platform owes both to the government (Reconciliation's tax owed, by type)."""
     lines: list[dict] = []
-    totals = {k: ZERO for k in ("food", "packaging", "commission", "commission_tax", "tds", "restaurant_funded_offers",
-                                "restaurant_tax", "refunds")}
+    totals = {k: ZERO for k in ("food", "packaging", "commission", "commission_tax", "tds", "card_fee",
+                                "restaurant_funded_offers", "restaurant_tax", "refunds")}
     for o in orders:
         amt = lambda code: sum((D(ln["amount"]) for ln in o.lines if ln["code"] == code), ZERO)  # noqa: E731
         food, packaging = amt("food"), amt("packaging")
         detail = o.split.get("detail", {})
         commission = D(detail.get("commission"))
+        card_fee = m(D(o.card_fee if o.card_fee is not None else detail.get("card_fee")))
         funded = D(detail.get("restaurant_funded_offers"))
         tax = D(detail.get("tax_collected_by_restaurant"))
         refund = ZERO
@@ -79,14 +83,14 @@ def restaurant_statement(orders: list[OrderForPayout], commission_tax_pct: Decim
                         for r in o.refund_lines]
         commission_tax = m(commission * D(commission_tax_pct) / 100)
         tds = m((food + packaging) * D(tds_pct) / 100)
-        net = m(food + packaging - commission - commission_tax - tds - funded + tax - refund)
+        net = m(food + packaging - commission - commission_tax - tds - card_fee - funded + tax - refund)
         lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "food": str(food),
-                      "packaging": str(packaging), "commission": str(-commission), "commission_tax": str(-commission_tax),
-                      "tds": str(-tds), "restaurant_funded_offers": str(-funded),
+                      "packaging": str(packaging), "commission": str(m(ZERO - commission)), "commission_tax": str(-commission_tax),
+                      "tds": str(-tds), "card_fee": str(-card_fee), "restaurant_funded_offers": str(-funded),
                       "restaurant_tax": str(tax), "refunds": str(-refund), "refund_details": refund_notes,
                       "net": str(net)})
         for k, v in (("food", food), ("packaging", packaging), ("commission", commission), ("commission_tax", commission_tax),
-                     ("tds", tds), ("restaurant_funded_offers", funded), ("restaurant_tax", tax), ("refunds", refund)):
+                     ("tds", tds), ("card_fee", card_fee), ("restaurant_funded_offers", funded), ("restaurant_tax", tax), ("refunds", refund)):
             totals[k] += v
     total = m(sum((D(ln["net"]) for ln in lines), ZERO))
     summary = {"orders": len(orders), **{k: str(m(v)) for k, v in totals.items()}, "net": str(total),
@@ -111,7 +115,7 @@ def active_seconds(intervals: list[tuple[datetime, datetime]]) -> float:
 
 def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None) -> tuple[Decimal, dict, list[dict]]:
     lines: list[dict] = []
-    earned = {"base": ZERO, "distance": ZERO, "waiting": ZERO, "tips": ZERO}
+    earned = {"base": ZERO, "distance": ZERO, "waiting": ZERO, "delivery_fee_extra": ZERO, "tips": ZERO}
     for o in orders:
         p = o.rider_rule or {}
         later = bool(o.batch_position and o.batch_position >= 2)  # item 2: no base, the batch bonus instead
@@ -120,17 +124,21 @@ def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None
         dist = m(D(p.get("per_unit")) * o.distance)
         wait = m(D(p.get("per_wait_minute")) * max(ZERO, o.wait_minutes - D(p.get("free_wait_minutes", 0))))
         tip = m(D(o.split.get("detail", {}).get("tip")))
+        to_partner = o.split.get("detail", {}).get("delivery_fee_to_partner")  # R29: present on v2 orders
+        extra = m(max(ZERO, D(to_partner) - (base + bonus + dist + wait))) if to_partner is not None else m(ZERO)
         lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "base": str(base),
                       "distance": str(dist), "distance_units": str(o.distance), "waiting": str(wait), "tip": str(tip),
                       **({"batch_bonus": str(bonus), "batch_position": o.batch_position} if later else {}),
-                      "total": str(base + bonus + dist + wait + tip)})
+                      **({"delivery_fee": str(m(D(to_partner))), "delivery_fee_extra": str(extra)} if to_partner is not None else {}),
+                      "total": str(base + bonus + dist + wait + extra + tip)})
         earned["base"] += base + bonus
         earned["distance"] += dist
         earned["waiting"] += wait
+        earned["delivery_fee_extra"] += extra
         earned["tips"] += tip
     seconds = active_seconds([(o.started_at, o.delivered_at) for o in orders if o.started_at])
     hours = (Decimal(seconds) / 3600).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    pay = earned["base"] + earned["distance"] + earned["waiting"]
+    pay = earned["base"] + earned["distance"] + earned["waiting"] + earned["delivery_fee_extra"]
     top_up = m(max(ZERO, (floor_per_hour or ZERO) * hours - pay)) if floor_per_hour else m(ZERO)
     total = m(pay + earned["tips"] + top_up)
     summary = {"deliveries": len(orders), **{k: str(m(v)) for k, v in earned.items()}, "active_hours": str(hours),

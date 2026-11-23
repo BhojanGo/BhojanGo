@@ -142,6 +142,32 @@ class TaxExternal(_P):
     collected_by: Literal["platform"] = "platform"
 
 
+# ── Fee model v2 (R29): platform fee, its minimum, the card fee estimate ───────
+# Each is its own slot, so each inherits on its own: Country -> State -> City -> Restaurant,
+# the most specific published, in-date rule wins; a level with no rule inherits.
+
+class FeePlatformPct(_P):
+    """The platform fee the customer pays: this percentage of the food subtotal (food only: not
+    delivery, tax or tip). Goes to BhojanGo."""
+
+    percent: Decimal = Pct
+
+
+class FeeMinPlatform(_P):
+    """The smallest platform fee charged (e.g. 0.99: food 6.00 at 10% is 0.60, so 0.99)."""
+
+    amount: Money = Field(ge=0)
+
+
+class FeeCardEstimate(_P):
+    """The card processing fee, estimated as percent + fixed of what the customer is charged less the tip.
+    Deducted from the restaurant's payout. In production the processor's actual fee replaces it once the
+    payment provider reports it; local and QA keep the estimate."""
+
+    percent: Decimal = Field(ge=0, le=10)
+    fixed: Money = Field(default=Decimal(0), ge=0)
+
+
 # ── Commission ────────────────────────────────────────────────────────────────
 
 class CommissionByTier(_P):
@@ -347,7 +373,7 @@ class PromoReferral(_Promo):
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
-FAMILIES = ("delivery_fee", "customer_fee", "tax", "commission", "rider_pay", "business", "promotion")
+FAMILIES = ("delivery_fee", "customer_fee", "fee", "tax", "commission", "rider_pay", "business", "promotion")
 MONEY_FAMILIES = frozenset(FAMILIES) - {"business"}
 # Business rules publish at once, except these: they change what riders are paid or
 # offered (batching: a second drop-off's pay), so a second admin approves them too.
@@ -376,7 +402,8 @@ ALLOWED_LEVELS: dict[str, frozenset[str]] = {
     "delivery_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "customer_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "tax": frozenset({"country", "region", "city"}),
-    "commission": frozenset({"country", "city", "zone", "restaurant"}),  # R15: zones too
+    "fee": frozenset({"country", "region", "city", "restaurant"}),  # R29: platform fee, its minimum, card fee estimate
+    "commission": frozenset({"country", "region", "city", "zone", "restaurant"}),  # R15: zones too; R29: states
     "rider_pay": frozenset({"country", "region", "city"}),
     "business": frozenset({"platform", "country", "city"}),
     "promotion": frozenset({"country", "city", "restaurant"}),
@@ -396,6 +423,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "surge_levy": SurgeLevy,
         "late_night_fee": LateNightFee,
     },
+    "fee": {"platform_fee_pct": FeePlatformPct, "min_platform_fee": FeeMinPlatform, "card_fee_estimate": FeeCardEstimate},
     "tax": {"rate_on_lines": TaxRateOnLines, "external": TaxExternal},
     "commission": {"percent": CommissionPercent, "percent_by_tier": CommissionByTier, "flat_per_order": CommissionFlat,
                    "payout_schedule": PayoutSchedule},

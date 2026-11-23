@@ -76,6 +76,7 @@ class SplitOut(BaseModel):
     tax: Decimal
     platform: Decimal
     detail: dict[str, Decimal]
+    card_fee: Decimal = Decimal(0)  # R29: the card processing fee, taken from the restaurant's payout
 
 
 class SimCart(BaseModel):
@@ -144,6 +145,13 @@ class ServiceFeeSummary(BaseModel):
     max: Decimal
 
 
+class PlatformFeeSummary(BaseModel):
+    """R29: the platform fee, a percentage of the food subtotal, never below the minimum."""
+
+    percent: Decimal
+    min: Decimal
+
+
 class SmallOrderFeeSummary(BaseModel):
     below: Decimal = Field(description="Charged when the food subtotal is below this")
     fee: Decimal
@@ -164,6 +172,7 @@ class CityPricing(BaseModel):
     delivery_fee: DeliveryFeeSummary | None = None
     delivery_from: Decimal | None = Field(default=None, description="The lowest delivery fee (before offers)")
     service_fee: ServiceFeeSummary | None = None
+    platform_fee: PlatformFeeSummary | None = None
     small_order_fee: SmallOrderFeeSummary | None = None
     min_order: list[ZoneMinOrder] = Field(default=[], description="Minimum order per open zone that has one")
     max_distance: Decimal | None = Field(default=None, description="The farthest a kitchen delivers (max_radius rule)")

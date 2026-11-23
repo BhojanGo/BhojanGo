@@ -2362,6 +2362,16 @@
             "title": "Min Order",
             "type": "array"
           },
+          "platform_fee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlatformFeeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "service_fee": {
             "anyOf": [
               {
@@ -10480,6 +10490,25 @@
         "title": "PhoneSignInRequest",
         "type": "object"
       },
+      "PlatformFeeSummary": {
+        "description": "R29: the platform fee, a percentage of the food subtotal, never below the minimum.",
+        "properties": {
+          "min": {
+            "title": "Min",
+            "type": "string"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "percent",
+          "min"
+        ],
+        "title": "PlatformFeeSummary",
+        "type": "object"
+      },
       "PrepIn": {
         "properties": {
           "minutes": {
@@ -14056,6 +14085,71 @@
         "title": "ServiceHours",
         "type": "object"
       },
+      "SetFee": {
+        "properties": {
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "field": {
+            "enum": [
+              "platform_fee_pct",
+              "min_platform_fee",
+              "restaurant_commission_pct",
+              "card_fee_estimate"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "country",
+              "region",
+              "city",
+              "restaurant"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "scope_id": {
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "level",
+          "scope_id",
+          "field",
+          "value"
+        ],
+        "title": "SetFee",
+        "type": "object"
+      },
       "SettingValue": {
         "properties": {
           "key": {
@@ -14506,6 +14600,11 @@
       },
       "SplitOut": {
         "properties": {
+          "card_fee": {
+            "default": "0",
+            "title": "Card Fee",
+            "type": "string"
+          },
           "detail": {
             "additionalProperties": {
               "type": "string"
@@ -28830,6 +28929,197 @@
           }
         ],
         "summary": "Reject Tier Change",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/fees": {
+      "delete": {
+        "description": "Stop this level's own value: from now the level inherits again (the version stays in the history).",
+        "operationId": "unset_fee_api_v1_rules_fees_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "level",
+            "required": true,
+            "schema": {
+              "enum": [
+                "country",
+                "region",
+                "city",
+                "restaurant"
+              ],
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "enum": [
+                "platform_fee_pct",
+                "min_platform_fee",
+                "restaurant_commission_pct",
+                "card_fee_estimate"
+              ],
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Unset Fee Api V1 Rules Fees Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Unset Fee",
+        "tags": [
+          "Rules"
+        ]
+      },
+      "get": {
+        "description": "Every fee setting at this level: the effective value, where it comes from, and the level's own rule.",
+        "operationId": "fee_level_api_v1_rules_fees_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "level",
+            "required": true,
+            "schema": {
+              "enum": [
+                "country",
+                "region",
+                "city",
+                "restaurant"
+              ],
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "minLength": 2,
+              "title": "Scope Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Fee Level Api V1 Rules Fees Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Fee Level",
+        "tags": [
+          "Rules"
+        ]
+      },
+      "post": {
+        "description": "Set a fee at this level from ``effective_from`` (now if empty): a draft sent for a second admin's approval.",
+        "operationId": "set_fee_api_v1_rules_fees_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFee"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Set Fee Api V1 Rules Fees Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Fee",
         "tags": [
           "Rules"
         ]

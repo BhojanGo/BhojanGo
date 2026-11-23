@@ -59,6 +59,9 @@ class Order(Base):
     # restaurant_payout = subtotal - platform_fee. Neither changes the customer's total.
     platform_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     restaurant_payout: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    # R29 fee model v2: the card processing fee taken from the restaurant's payout (the estimate at
+    # placement; in production the processor's actual fee once the payment provider reports it).
+    card_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"), server_default="0")
 
     # ── Pain-Point Layer: restaurant readiness / predictive dispatch ──────────
     estimated_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)

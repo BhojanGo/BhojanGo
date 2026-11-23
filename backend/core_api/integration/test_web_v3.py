@@ -138,7 +138,8 @@ async def test_city_pricing_from_the_rules(client: AsyncClient) -> None:  # noqa
     assert fee["type"] == "distance_slabs"
     assert [(float(s["up_to"]), float(s["fee"])) for s in fee["slabs"]] == [(3, 25), (6, 35), (10, 50)]
     assert float(p["delivery_from"]) == 25
-    assert {k: float(v) for k, v in p["service_fee"].items()} == {"percent": 2, "min": 5, "max": 15}
+    assert p["service_fee"] is None  # R29: the platform fee replaced it
+    assert {k: float(v) for k, v in p["platform_fee"].items()} == {"percent": 10, "min": 85}
     assert {k: float(v) for k, v in p["small_order_fee"].items()} == {"below": 99, "fee": 15}
     assert [float(a) for a in p["tip_presets"]["amounts"]] == [10, 20, 30] and p["tip_presets"]["default_index"] == 1
     assert float(p["max_distance"]) == 10

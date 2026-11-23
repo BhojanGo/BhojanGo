@@ -73,3 +73,25 @@ test("a receipt names each refund and what was paid after them", () => {
   assert.equal(receiptRefunds({ total: "17.50", refunds: [{ amount: "4.51", reason: "quality" }] }, false).paid, 12.99);
   assert.deepEqual(receiptRefunds({ total: "17.50" }, false), { refunds: [], refunded: 0, paid: 17.5 });
 });
+
+test("R29 fee model v2: who gets your money (food, delivery, tip, platform fee, tax)", () => {
+  const lines = [
+    { code: "food", label: "Food", amount: "36.98" },
+    { code: "delivery_fee", label: "Delivery fee", amount: "3.99" },
+    { code: "platform_fee", label: "Platform fee", amount: "3.70" },
+    { code: "tax", label: "Idaho sales tax", amount: "2.22" },
+    { code: "tip", label: "Tip for your delivery partner", amount: "2.00" },
+  ];
+  assert.deepEqual(billRows(lines, "USD").map((r) => [r.label, r.payee, r.amount]), [
+    ["Food", "Kitchen", "$36.98"],
+    ["Delivery fee", "Delivery partner", "$3.99"],
+    ["Platform fee", "BhojanGo", "$3.70"],
+    ["Idaho sales tax", "Tax", "$2.22"],
+    ["Tip for your delivery partner", "Delivery partner", "$2.00"],
+  ]);
+  // A bill from before R29 (no platform fee line): the delivery fee was BhojanGo's.
+  assert.equal(billRows([{ code: "delivery_fee", label: "Delivery fee", amount: "1.99" }], "USD")[0].payee, "BhojanGo");
+  const { payeeOf } = require("../bill");
+  assert.equal(payeeOf({ code: "delivery_fee" }, lines), "DELIVERY PARTNER");
+  assert.equal(payeeOf({ code: "platform_fee" }, lines), "BHOJANGO");
+});

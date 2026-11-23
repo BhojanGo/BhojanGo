@@ -101,9 +101,9 @@ async def test_terms_come_from_the_live_rules_and_markets(client: AsyncClient) -
     t = (await client.get("/api/v1/kitchens/terms", params={"country": "IN", "language": "hi"})).json()
     assert t["currency"] == "INR" and t["phone_code"] == "+91"
     c = t["commission"]
-    assert c["base"] == "food_subtotal" and c["starting_percent"] == "15"  # the seeded country rule, default tier B
-    assert {x["tier"]: x["percent"] for x in c["tiers"]} == {"A": "18", "B": "15", "C": "12"}
-    assert float(c["percent_min"]) <= 12 and float(c["percent_max"]) >= 18
+    # R29 fee model v2: the country's commission is 0% (a kitchen's own deal is not a public term)
+    assert c["base"] == "food_subtotal" and float(c["starting_percent"]) == 0
+    assert c["tiers"] == [] and float(c["percent_min"]) == 0 and float(c["percent_max"]) == 0
     assert t["payout"] == {"frequency": "weekly", "day": "mon", "hold_days": 2}
     assert [d["key"] for d in t["documents"]] == ["fssai", "gstin", "pan", "bank"]
     assert t["documents"][0]["title"] == "FSSAI लाइसेंस"  # in the visitor's language

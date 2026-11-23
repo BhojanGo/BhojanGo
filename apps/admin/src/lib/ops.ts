@@ -169,6 +169,7 @@ export interface Rule {
 export const FAMILIES: { key: string; label: string }[] = [
   { key: "delivery_fee", label: "Delivery fees" },
   { key: "customer_fee", label: "Customer fees" },
+  { key: "fee", label: "Platform & card fees" },  // R29 fee model v2
   { key: "tax", label: "Taxes" },
   { key: "commission", label: "Commissions" },
   { key: "rider_pay", label: "Delivery partner pay" },

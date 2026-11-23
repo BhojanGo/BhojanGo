@@ -62,8 +62,11 @@ async def test_hyderabad_quote_from_the_database(client: AsyncClient) -> None:
     lines = {ln.label: ln.amount for ln in q.lines}
     assert lines["Food"] == 560  # biryani 300 + extra raita 40 + paneer tikka 220
     # R16: the platform's 10% off doesn't lower the GST base in India: 5% of 570, not 520 (+2.50)
-    assert q.total == Decimal("640.72"), q.lines
-    assert lines["Delivery fee"] == 35 and lines["Busy-hour fee"] == 15 and lines["GST on platform fees"] == Decimal("11.02")
+    # R29 fee model v2: the ₹85 minimum platform fee (10% of 560 is 56) replaces the service fee; GST on fees is
+    # 18% of 35 + 85 + 15 = 24.30. 560 − 50 + 10 + 35 + 85 + 15 + 28.50 + 24.30 + 20 tip = 727.80
+    assert q.total == Decimal("727.80"), q.lines
+    assert lines["Platform fee"] == 85 and "Service fee" not in lines
+    assert lines["Delivery fee"] == 35 and lines["Busy-hour fee"] == 15 and lines["GST on platform fees"] == Decimal("24.30")
     assert q.zone == "Jubilee Hills" and q.city == "Hyderabad" and 3 < q.distance < 6
 
 
@@ -99,7 +102,7 @@ async def test_quote_order_snapshot_and_single_use(client: AsyncClient) -> None:
     admin, _ = await login(client, "ops.hyd@example.com", "BhojanGoAdmin1")
     snap = (await client.get(f"/api/v1/pricing/orders/{order['id']}/snapshot", headers=admin)).json()
     assert snap["total"] == q["total"] and snap["context"]["zone"] == "Jubilee Hills"
-    assert {r["slot"] for r in snap["rule_versions"]} >= {"delivery_fee", "customer_fee:service_fee", "tax:rate_on_lines:gst_food"}
+    assert {r["slot"] for r in snap["rule_versions"]} >= {"delivery_fee", "fee:platform_fee_pct", "tax:rate_on_lines:gst_food"}
     split = snap["split"]
     assert Decimal(split["restaurant"]) + Decimal(split["rider"]) + Decimal(split["tax"]) + Decimal(split["platform"]) == Decimal(q["total"])
     boise_ops, _ = await login(client, "ops.boi@example.com", "BhojanGoAdmin1")
@@ -143,14 +146,14 @@ async def test_simulator_live_vs_draft(client: AsyncClient) -> None:
         r = await client.post("/api/v1/pricing/simulate", headers=maker, json=body)
         assert r.status_code == 200, r.text
         sim = r.json()
-        # No restaurant picked, so no ₹10 packaging: 640.72 - 10.00 - 0.50 (GST on food is 5% of 560, not 570;
+        # No restaurant picked, so no ₹10 packaging: 727.80 - 10.00 - 0.50 (GST on food is 5% of 560, not 570;
         # R16: the platform's discount doesn't lower the base).
-        assert sim["live"]["total"] == "630.22"
+        assert sim["live"]["total"] == "717.30"
     finally:
         await client.delete(f"/api/v1/rules/{draft['id']}", headers=maker)
     changes = {c["label"]: (c["live"], c["draft"]) for c in sim["changes"]}
     assert changes["Delivery fee"] == ("35.00", "45.00")
-    assert changes["GST on platform fees"] == ("11.02", "12.82")
+    assert changes["GST on platform fees"] == ("24.30", "26.10")
     assert changes["Platform keeps"][1] == str(Decimal(changes["Platform keeps"][0]) + 10)
 
     viewer, _ = await login(client, "viewer@example.com", "BhojanGoAdmin1")

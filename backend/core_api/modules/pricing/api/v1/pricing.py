@@ -126,6 +126,7 @@ async def order_snapshot(
         "order_id": str(snap.order_id), "quote_id": str(snap.quote_id), "currency": snap.currency,
         "total": str(snap.total), "lines": relabel(snap.lines), "rule_versions": snap.rule_versions, "split": snap.split,
         "context": snap.context, "created_at": snap.created_at.isoformat(),
+        "fee_settings": snap.fee_settings,  # R29: the fee settings in force at placement, and their source
     }
 
 
@@ -172,9 +173,11 @@ def _shares(split: dict, total: Decimal | str) -> dict[str, str]:
     (its payout), the rider (rider pay: base + distance + wait, plus the whole tip), the
     tax the platform remits, and BhojanGo (what is left: fees less rider pay and
     platform-funded offers; below zero when an order costs us money). The four add up
-    to the total exactly."""
+    to the total exactly. R29: the card fee is the kitchen's cost, paid out of its food money, so it counts in the
+    kitchen's share (never as tax)."""
     total = Decimal(str(total))
     kitchen, rider, us = (Decimal(str(split[k])) for k in ("restaurant", "rider", "platform"))
+    kitchen += Decimal(str(split.get("card_fee") or 0))
     return {"kitchen": str(kitchen), "rider": str(rider), "tax": str(total - kitchen - rider - us), "us": str(us)}
 
 
@@ -246,7 +249,8 @@ async def _typical_bill(db: AsyncSession, city: str) -> dict:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "NOT_PRICED", "message": out.live.message})
     lines = [{**ln.model_dump(mode="json"), "label": "Food" if ln.code == "food" else ln.label} for ln in out.live.lines]
     sp = out.live.split
-    shares = _shares({"restaurant": sp.restaurant, "rider": sp.rider, "platform": sp.platform}, out.live.total) if sp else None
+    shares = (_shares({"restaurant": sp.restaurant, "rider": sp.rider, "platform": sp.platform, "card_fee": sp.card_fee},
+                      out.live.total) if sp else None)
     return {"city": city, "city_name": c.name, "currency": out.currency, "lines": lines, "total": str(out.live.total),
             "shares": shares, "source": "typical", "assumptions": {"food": str(food), "distance": "3", "distance_unit": country.distance_unit,
                                                  "tip": str(tip), "local_time": local.isoformat()}}
