@@ -1,5 +1,7 @@
 """R29 fee model v2: platform fee on food, card fee off the restaurant's payout, delivery fee and tip to the
-partner, each setting inherited Country -> State -> City -> Restaurant (most specific wins)."""
+partner, each setting inherited Country -> State -> City -> Restaurant (most specific wins).
+R30: India's ₹15 minimum, the delivery fee as base + per mile/km with nothing topped up out of the platform fee,
+and the payment fee estimate per payment method."""
 import uuid
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -65,7 +67,7 @@ def test_a_each_setting_inherits_on_its_own() -> None:
     assert (s["platform_fee_pct"].value, s["platform_fee_pct"].source.level) == ({"percent": "9"}, "region")
     assert (s["min_platform_fee"].value, s["min_platform_fee"].source.level) == ({"amount": "0.99"}, "country")
     assert (s["restaurant_commission_pct"].value, s["restaurant_commission_pct"].source.scope_id) == ({"percent": "0"}, "US")
-    assert s["card_fee_estimate"].value == {"percent": "2.9", "fixed": "0.30"}
+    assert s["card_fee_estimate"].value == {"card": {"percent": "2.9", "fixed": "0.30"}}  # R29's single rate = card
 
 
 # ── B, C: the money ──────────────────────────────────────────────────────────
@@ -126,13 +128,105 @@ def test_c_minimum_platform_fee() -> None:
     assert next(ln.amount for ln in q.lines if ln.code == "platform_fee") == Decimal("0.99")  # not 0.60
 
 
-def test_guaranteed_pay_top_up_never_pays_a_partner_less() -> None:
-    guaranteed = rule("rider_pay", "base_distance_wait", {"base": "3.00", "per_unit": "1.00"})  # 3.00 + 1.2 mi = 4.20
+def test_r30_rider_pay_rule_no_longer_tops_up_the_partner() -> None:
+    """R29 topped the partner up to a guaranteed-pay rule out of the platform fee; R30 doesn't."""
+    guaranteed = rule("rider_pay", "base_distance_wait", {"base": "3.00", "per_unit": "1.00"})  # would be 4.20
     q = priced([Decimal("20.00")], tax=Decimal("1.20"), rules=us_rules(**{guaranteed.slot: guaranteed}))
     assert q.split.detail["delivery_fee_to_partner"] == Decimal("3.99")
-    assert q.split.detail["rider_top_up"] == Decimal("0.21")  # BhojanGo funds it, out of the platform fee
-    assert q.split.rider == Decimal("4.20")
+    assert "rider_top_up" not in q.split.detail
+    assert q.split.rider == Decimal("3.99")
+    assert q.split.platform == Decimal("2.00")  # the whole platform fee (10% of 20.00)
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform + q.split.card_fee == q.total
+
+
+# ── R30 ──────────────────────────────────────────────────────────────────────
+
+def in_rules() -> dict[str, Candidate]:
+    rs = [rule("delivery_fee", "base_per_distance", {"base": 20, "per_unit": 6}, scope_id="IN"),
+          rule("fee", "platform_fee_pct", {"percent": 10}, scope_id="IN"),
+          rule("fee", "min_platform_fee", {"amount": 15}, scope_id="IN"),
+          rule("commission", "percent", {"percent": 0}, scope_id="IN")]
+    return {r.slot: r for r in rs}
+
+
+def india(food: str, distance: str = "2") -> object:
+    inp = QuoteInputs(currency="INR", lines=[CartLine("Biryani", 1, Decimal(food))], distance=Decimal(distance),
+                      local_time=datetime(2026, 11, 22, 12, 0, tzinfo=ZoneInfo("Asia/Kolkata")))
+    return compute(inp, in_rules())
+
+
+def test_r30_india_minimum_platform_fee_is_15_rupees() -> None:
+    fee = lambda q: next(ln.amount for ln in q.lines if ln.code == "platform_fee")  # noqa: E731
+    assert fee(india("100")) == Decimal("15.00")  # 10% would be ₹10
+    assert fee(india("300")) == Decimal("30.00")  # 10% of ₹300 is above the minimum
+    assert fees.platform_fee_cents(10000, 10, 1500) == 1500
+    assert fees.platform_fee_cents(30000, 10, 1500) == 3000
+
+
+def test_r30_hyderabad_delivery_fee_is_20_plus_6_per_km() -> None:
+    q = india("300", distance="4")
+    assert next(ln.amount for ln in q.lines if ln.code == "delivery_fee") == Decimal("44.00")  # 20 + 6 x 4 km
+    assert q.split.rider == Decimal("44.00")
+
+
+def boise_rules(**extra: Candidate) -> dict[str, Candidate]:
+    return us_rules(**{"delivery_fee": rule("delivery_fee", "base_per_distance", {"base": "3.00", "per_unit": "1.00"},
+                                            "city", "US-ID-BOI")}, **extra)
+
+
+def boise(miles: str, tip: str = "0", food: str = "30.00", method: str = "card"):  # type: ignore[no-untyped-def]
+    inp = QuoteInputs(currency="USD", lines=[CartLine("Bowl", 1, Decimal(food))], distance=Decimal(miles),
+                      local_time=datetime(2026, 11, 22, 12, 0, tzinfo=ZoneInfo("America/Boise")), tip=Decimal(tip),
+                      payment_method=method,
+                      external_tax=[ExternalTax("Idaho sales tax", Decimal("6"), Decimal(food), Decimal("1.80"), "US-ID",
+                                                "local", "taxcalc_test")])
+    return compute(inp, boise_rules())
+
+
+def test_r30_boise_3_miles_partner_gets_the_whole_delivery_fee_and_platform_fee_is_untouched() -> None:
+    q = boise("3")
+    line = {ln.code: ln.amount for ln in q.lines}
+    assert line["delivery_fee"] == Decimal("6.00")  # $3.00 + 3 mi x $1.00
+    assert q.split.rider == Decimal("6.00")
+    assert q.split.detail["delivery_fee_to_partner"] == Decimal("6.00")
+    assert line["platform_fee"] == Decimal("3.00")  # 10% of $30.00 food
+    assert q.split.platform == Decimal("3.00")  # never reduced by partner pay
+    assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform + q.split.card_fee == q.total
+    # the platform fee is the same whatever the distance; the partner's pay follows the distance
+    far = boise("5.5", tip="4.00")
+    assert next(ln.amount for ln in far.lines if ln.code == "platform_fee") == Decimal("3.00")
+    assert far.split.platform == Decimal("3.00")
+    assert far.split.rider == Decimal("12.50")  # 3.00 + 5.5 x 1.00, plus the whole $4.00 tip
+
+
+def test_r30_payment_fee_estimate_per_method() -> None:
+    est = validate_params("fee", "card_fee_estimate", {"card": {"percent": "2", "fixed": "0"}, "upi": {"percent": "0"},
+                                                       "wallet": {"percent": "1.5", "fixed": "0"}})
+    assert Decimal(fees.method_rate(est, "upi")["percent"]) == 0
+    assert Decimal(fees.method_rate(est, "wallet")["percent"]) == Decimal("1.5")
+    assert Decimal(fees.method_rate(est, "net_banking")["percent"]) == Decimal("2")  # not listed: the card rate
+    assert fees.method_rate(est, "cash_on_delivery") is None  # cash: no fee
+    assert fees.method_rate({"percent": "2.9", "fixed": "0.30"}, "upi") == {"percent": "2.9", "fixed": "0.30"}  # R29 shape
+    card, upi, cash = boise("3"), boise("3", method="upi"), boise("3", method="cash_on_delivery")
+    assert card.total == Decimal("40.80")  # 30.00 food + 6.00 delivery + 3.00 platform fee + 1.80 tax
+    assert card.split.card_fee == Decimal("1.48")  # 2.9% of 40.80 + 0.30
+    assert upi.split.card_fee == Decimal("1.48")  # the US lists only card: other methods use its rate
+    assert cash.split.card_fee == Decimal("0")
+    assert cash.split.restaurant == card.split.restaurant + Decimal("1.48")
+    assert {card.split.platform, cash.split.platform} == {Decimal("3.00")}
+
+
+def test_r30_single_rate_estimate_still_validates_as_the_card_rate() -> None:
+    assert validate_params("fee", "card_fee_estimate", {"percent": "2.9", "fixed": "0.30"})["card"] == {"percent": "2.9", "fixed": "0.30"}
+
+
+def test_r30_settings_show_each_method_and_the_delivery_fee() -> None:
+    rs = [rule("fee", "card_fee_estimate", {"card": {"percent": 2}, "upi": {"percent": 0}}, scope_id="IN"),
+          rule("delivery_fee", "base_per_distance", {"base": 20, "per_unit": 6}, "city", "IN-TG-HYD")]
+    s = fees.settings(resolve(rs, Context(country="IN", region="IN-TG", city="IN-TG-HYD"), NOW))
+    assert s["card_fee_estimate"].value == {"card": {"percent": "2", "fixed": "0.00"}, "upi": {"percent": "0", "fixed": "0.00"}}
+    assert s["delivery_fee"].value == {"base": "20.00", "per_unit": "6.00"}
+    assert s["delivery_fee"].source.level == "city"
 
 
 def test_integer_cents_half_up() -> None:

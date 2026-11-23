@@ -420,6 +420,48 @@ PRs #208-#220, each merged only after every check was green.
   but not watched live on QA; QA has no rows yet for the two new rules, so the defaults apply; the
   commission invoice PDF date is unchanged; the tablet's "Not receiving" sound needs a native build.
 
+## Fee model v2 (round 29, 2026-11-22) and its follow-up (round 30, 2026-11-22)
+
+PR #222 (R29) and PR #223 (R30), each merged only after every check was green.
+
+- **Who pays what (R29, #222).** The customer pays a platform fee of 10% of the food subtotal (food only),
+  at least $0.99, to BhojanGo. Restaurant commission defaults to 0%. The payment processing fee comes off
+  the restaurant's payout: an estimate at placement; in production, the gateway's actual fee from the
+  payment webhook. The delivery fee and the tip go 100% to the delivery partner. Tax comes from the tax
+  provider (Stripe Tax) or India's tax rules; the platform fee is its own taxable line. All the money math
+  runs in integer cents, rounded half-up per line. Migration `0045_fee_model_v2`.
+- **Settings at every level (R29).** In admin, Pricing → Fees: Country → State → City → Restaurant. The
+  most specific value wins and an unset level inherits. The page shows each value and where it comes from
+  ("Inherited from: United States"), its start and end dates, changes waiting for a second admin, and
+  the history (who, when, old → new). Every order keeps a snapshot of the settings that priced it, so a
+  later change never alters a past order.
+- **R30 follow-up (#223), migration `0046_fee_model_v2_fix` (data only).**
+  India's minimum platform fee is ₹15 (was ₹85): ₹100 of food → ₹15, ₹300 → ₹30. The minimum, like every
+  fee, is set per level on the Fees page. The delivery fee is distance-based: base + per mile (per km in
+  India), configurable per country, state, city and restaurant. Seed: Boise $3.00 + $1.00/mile, Hyderabad
+  ₹20 + ₹6/km. The partner gets the delivery fee + 100% of the tip, nothing else: the R29 guaranteed-pay
+  top-up out of the platform fee is gone, and so are the seeded delivery-partner pay rules (base +
+  distance + waiting, the hourly floor and the batch bonus). The platform fee is never reduced by partner
+  pay. The payment fee estimate is set per method (card, UPI, wallet, net banking; cash has none), and in
+  production Razorpay's reported fee replaces it per payment, as Stripe's already did. Restaurant
+  sign-up terms say "You receive your dine-in menu price minus the payment processing fee. Commission:
+  0%." in every language. Spice Route's 15% commission deal stays in the dev/QA seed only; the
+  production seed has no restaurant-level rule (tested).
+- **"Restaurant", never "kitchen" (R30).** Every text a customer or restaurant reads, in all 8 languages:
+  website, apps, admin, push/SMS/email texts, help articles, legal drafts and the app's name
+  (BhojanGo Restaurant). `tools/i18n/kitchen_scan.py` runs in `make ci-i18n` and fails on any hit.
+  Code names stay (KitchenCard, `kitchen_join` keys, `/kitchens/join` routes, help slugs). So do
+  demo restaurants' own names (Spice Route Kitchen, Basque Corner Kitchen, Kesar Kitchen).
+- **Tests (R30).** New unit tests: ₹100 → ₹15 and ₹300 → ₹30; Boise 3 miles → delivery fee $6.00, partner
+  $6.00, platform fee unchanged and never reduced by partner pay; payment fee per method (UPI, wallet, net banking,
+  cash 0); the rider statement pays only the delivery fee + tip. Migration 0046 proven up → down → up on a
+  database seeded as R29 left it (13 audited changes, then the exact R29 rules back). Local: backend unit 850,
+  realtime 194, worker 397, seed 20, integration 1958 passed / 6 skipped, JS (admin 133, web 53, mobile-core 82,
+  customer 32, ui 32, i18n 28, partner 15, rider 1). Screenshots (local-fresh): `qa-artifacts/pricing-v2-fix/`.
+- **Still open:** QA's legal documents are published versions: their "kitchen" wording changes only when
+  an admin publishes the new drafts. The app store listing name changes with the next store build. The
+  hourly-floor code stays for a city that legally needs one (no city has one now).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

@@ -137,7 +137,10 @@ export default function Earnings() {
                 <Text style={ui.bold}>{ln.restaurant_name}{ln.drop_area ? ` → ${ln.drop_area}` : ""}</Text>
                 <Text style={[ui.muted, num]}>
                   {[
-                    `${time(ln.delivered_at, inZone(w.time_zone))} · ${t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
+                    // R30: a trip pays its delivery fee (and the tip); older trips show base + distance + waiting
+                    `${time(ln.delivered_at, inZone(w.time_zone))} · ${ln.delivery_fee != null && Number(ln.base) === 0
+                      ? t("rider.earnings.delivery_fee", { amount: cash(ln.delivery_fee, cur) })
+                      : t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
                     Number(ln.distance) > 0 ? `${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : null,
                     Number(ln.waiting) > 0 ? t("rider.earnings.wait", { amount: cash(ln.waiting, cur) }) : null,
                     Number(ln.tip) > 0 ? t("rider.earnings.tip", { amount: cash(ln.tip, cur) }) : null,

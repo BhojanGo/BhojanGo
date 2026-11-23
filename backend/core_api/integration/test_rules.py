@@ -73,7 +73,9 @@ async def test_every_seeded_rule_is_valid_and_hyderabad_resolves(client: AsyncCl
     h = await auth(client, "cm.in@example.com")
     restaurant = next(r for r in rows if r.scope_level == "restaurant").scope_id
     got = await resolved(client, h, {**ctx("IN-TG-HYD"), "restaurant_id": restaurant})
-    assert got["delivery_fee"]["template"] == "distance_slabs" and got["delivery_fee"]["scope_level"] == "city"
+    assert got["delivery_fee"]["template"] == "base_per_distance" and got["delivery_fee"]["scope_level"] == "city"  # R30
+    assert got["delivery_fee"]["params"] == {"base": "20", "per_unit": "6"}
+    assert not any(slot.startswith("rider_pay:") for slot in got)  # R30: the partner gets the delivery fee + tip
     assert got["customer_fee:packaging_levy"]["params"]["amount"] == "10"
     assert "customer_fee:service_fee" not in got  # R29: the platform fee replaced it
     assert got["fee:platform_fee_pct"]["params"]["percent"] == "10" and got["fee:platform_fee_pct"]["scope_level"] == "country"

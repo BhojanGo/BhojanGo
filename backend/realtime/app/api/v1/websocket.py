@@ -250,7 +250,7 @@ async def kitchen_socket(
         await websocket.close(code=TRY_AGAIN_LATER, reason="Try again")
         return
     if not staff:
-        await websocket.close(code=4004, reason="Kitchen not found")
+        await websocket.close(code=4004, reason="Restaurant not found")
         return
     try:
         async with sockets.limits.hold(current_user.user_id, sockets.address(websocket)):

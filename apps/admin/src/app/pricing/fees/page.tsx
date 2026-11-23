@@ -4,6 +4,8 @@
  * setting's effective value and where it comes from ("Inherited from: United States"), the level's own value with
  * its dates, changes waiting for a second admin, and who changed what (old → new). Setting a value sends it for
  * approval (money rule); clearing it makes the level inherit again. API: /rules/fees (core_api rules/api/v1/fees.py).
+ * R30: the payment fee estimate per payment method (card, UPI, wallet, net banking; cash has none) and the delivery
+ * fee (base + per mile / km, all of it to the delivery partner) are set the same way.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -16,7 +18,8 @@ import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { apiMessage } from "@/lib/ops";
 
 type Level = "country" | "region" | "city" | "restaurant";
-type Value = Record<string, string>;
+type Rate = { percent: string; fixed?: string };
+type Value = Record<string, string | Rate | undefined>;
 interface Ref { level: Level; scope_id: string; name: string }
 interface OwnRule { rule_id: string; version: number; status: string; value: Value; effective_from: string; effective_to: string | null }
 interface FieldRow {
@@ -30,7 +33,7 @@ interface FieldRow {
 }
 interface History { at: string; who: string; action: string; field: string; old: Value | null; new: Value | null }
 interface FeeLevel { level: Level; scope_id: string; name: string; chain: Ref[]; fields: FieldRow[]; history: History[] }
-interface Kitchen { id: string; name: string }
+interface Restaurant { id: string; name: string }
 
 const LEVELS: { key: Level; label: string }[] = [
   { key: "country", label: "Country" }, { key: "region", label: "State" }, { key: "city", label: "City" }, { key: "restaurant", label: "Restaurant" },
@@ -38,9 +41,17 @@ const LEVELS: { key: Level; label: string }[] = [
 const FIELDS: Record<string, { label: string; hint: string }> = {
   platform_fee_pct: { label: "Platform fee", hint: "% of the food subtotal, paid by the customer to BhojanGo" },
   min_platform_fee: { label: "Minimum platform fee", hint: "the smallest platform fee charged" },
-  restaurant_commission_pct: { label: "Restaurant commission", hint: "% of food, taken from the kitchen's payout" },
-  card_fee_estimate: { label: "Card fee estimate", hint: "% + fixed of the charge less the tip, taken from the kitchen's payout" },
+  restaurant_commission_pct: { label: "Restaurant commission", hint: "% of food, taken from the restaurant's payout" },
+  card_fee_estimate: {
+    label: "Payment fee estimate",
+    hint: "per payment method, % + fixed of the charge less the tip, taken from the restaurant's payout; cash has none. Production uses the gateway's actual fee",
+  },
+  delivery_fee: { label: "Delivery fee", hint: "base + per distance from the restaurant to the customer; all of it goes to the delivery partner" },
 };
+const METHODS: { key: string; label: string }[] = [
+  { key: "card", label: "Card" }, { key: "upi", label: "UPI" }, { key: "wallet", label: "Wallet" }, { key: "net_banking", label: "Net banking" },
+];
+const OLD_DELIVERY: Record<string, string> = { flat: "a flat fee", distance_slabs: "distance slabs", free_above: "free above a subtotal", tier_base: "by restaurant tier" };
 const ACTION: Record<string, string> = {
   "rule.created": "drafted", "rule.version_created": "drafted", "rule.edited": "edited", "rule.submitted": "sent for approval",
   "rule.approved": "approved", "rule.published": "published", "rule.rejected": "rejected", "rule.ended": "cleared", "rule.rolled_back": "rolled back",
@@ -52,11 +63,20 @@ const LEVEL_WORD: Record<Level, string> = { country: "country", region: "state",
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-function show(field: string, v: Value | null | undefined, sym: string): string {
+const rate = (r: Rate, sym: string) => (Number(r.fixed ?? 0) > 0 ? `${r.percent}% + ${sym}${Number(r.fixed).toFixed(2)}` : `${r.percent}%`);
+
+function show(field: string, v: Value | null | undefined, sym: string, unit = "mile"): string {
   if (!v) return "—";
   if (field === "min_platform_fee") return `${sym}${Number(v.amount).toFixed(2)}`;
-  if (field === "card_fee_estimate") return `${v.percent}% + ${sym}${Number(v.fixed ?? 0).toFixed(2)}`;
-  return `${v.percent}%`;
+  if (field === "card_fee_estimate") {
+    if (typeof v.percent === "string") return `Card ${rate(v as unknown as Rate, sym)}`; // the R29 single rate
+    return METHODS.filter((m) => v[m.key]).map((m) => `${m.label} ${rate(v[m.key] as Rate, sym)}`).join(" · ");
+  }
+  if (field === "delivery_fee") {
+    if (v.template) return `Older shape: ${OLD_DELIVERY[v.template as string] ?? String(v.template)}`;
+    return `${sym}${Number(v.base).toFixed(2)} + ${sym}${Number(v.per_unit).toFixed(2)} per ${unit}`;
+  }
+  return `${String(v.percent)}%`;
 }
 
 function Fees() {
@@ -73,14 +93,15 @@ function Fees() {
   const cities = regions.find((r) => r.code === region)?.cities ?? [];
   const city = params.get("city") || cities[0]?.code || "";
   const cityName = cities.find((c) => c.code === city)?.name ?? "";
-  const kitchens = useQuery({
+  const restaurants = useQuery({
     queryKey: ["fees", "kitchens", cityName],
     enabled: level === "restaurant" && !!cityName,
-    queryFn: async () => (await adminApi.get<{ items: Kitchen[] }>("/user/restaurants", { params: { city: cityName, limit: 100 } })).data.items,
+    queryFn: async () => (await adminApi.get<{ items: Restaurant[] }>("/user/restaurants", { params: { city: cityName, limit: 100 } })).data.items,
   });
-  const kitchen = params.get("restaurant") || kitchens.data?.[0]?.id || "";
-  const scope = level === "country" ? country : level === "region" ? region : level === "city" ? city : kitchen;
+  const restaurant = params.get("restaurant") || restaurants.data?.[0]?.id || "";
+  const scope = level === "country" ? country : level === "region" ? region : level === "city" ? city : restaurant;
   const sym = countryInfo?.currency === "INR" ? "₹" : "$";
+  const unit = countryInfo?.code === "US" ? "mile" : "km";
 
   const data = useQuery({
     queryKey: ["fees", level, scope],
@@ -92,7 +113,7 @@ function Fees() {
   const canClear = can(me.data, "rules.approve", market);
 
   const go = (patch: Record<string, string>) => {
-    const q = new URLSearchParams({ level, country, region, city, ...(kitchen ? { restaurant: kitchen } : {}), ...patch });
+    const q = new URLSearchParams({ level, country, region, city, ...(restaurant ? { restaurant } : {}), ...patch });
     router.replace(`/pricing/fees?${q.toString()}`);
   };
 
@@ -131,9 +152,9 @@ function Fees() {
           </select>
         ) : null}
         {level === "restaurant" ? (
-          <select aria-label="Restaurant" value={kitchen} onChange={(e) => go({ restaurant: e.target.value })}
+          <select aria-label="Restaurant" value={restaurant} onChange={(e) => go({ restaurant: e.target.value })}
             className="h-9 rounded-xl border border-line px-2 text-label">
-            {(kitchens.data ?? []).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+            {(restaurants.data ?? []).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
           </select>
         ) : null}
       </nav>
@@ -153,7 +174,7 @@ function Fees() {
             </thead>
             <tbody>
               {data.data.fields.map((f) => (
-                <FeeRow key={f.field} row={f} sym={sym} level={level} scope={data.data!.scope_id} canEdit={canEdit} canClear={canClear}
+                <FeeRow key={f.field} row={f} sym={sym} unit={unit} level={level} scope={data.data!.scope_id} canEdit={canEdit} canClear={canClear}
                   onDone={() => void qc.invalidateQueries({ queryKey: ["fees"] })} />
               ))}
             </tbody>
@@ -166,7 +187,7 @@ function Fees() {
                 {data.data.history.map((h, i) => (
                   <li key={i} className="border-t border-line-soft py-2 text-small">
                     <b>{when(h.at)}</b> · {h.who} {ACTION[h.action] ?? h.action} <b>{FIELDS[h.field]?.label ?? h.field}</b>:{" "}
-                    {STEPS.has(h.action) ? show(h.field, h.new, sym) : `${h.old ? show(h.field, h.old, sym) : "inherited"} → ${h.action === "rule.ended" ? "inherited" : show(h.field, h.new, sym)}`}
+                    {STEPS.has(h.action) ? show(h.field, h.new, sym, unit) : `${h.old ? show(h.field, h.old, sym, unit) : "inherited"} → ${h.action === "rule.ended" ? "inherited" : show(h.field, h.new, sym, unit)}`}
                   </li>
                 ))}
               </ul>
@@ -178,12 +199,13 @@ function Fees() {
   );
 }
 
-function FeeRow({ row, sym, level, scope, canEdit, canClear, onDone }: {
-  row: FieldRow; sym: string; level: Level; scope: string; canEdit: boolean; canClear: boolean; onDone: () => void;
+function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
+  row: FieldRow; sym: string; unit: string; level: Level; scope: string; canEdit: boolean; canClear: boolean; onDone: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [a, setA] = useState("");
   const [b, setB] = useState("");
+  const [rates, setRates] = useState<Record<string, string>>({}); // "upi.percent" -> "0"
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
@@ -192,9 +214,22 @@ function FeeRow({ row, sym, level, scope, canEdit, canClear, onDone }: {
   const src = row.source;
   const value = useMemo((): Value => {
     if (row.field === "min_platform_fee") return { amount: a };
-    if (row.field === "card_fee_estimate") return { percent: a, fixed: b || "0" };
+    if (row.field === "delivery_fee") return { base: a, per_unit: b || "0" };
+    if (row.field === "card_fee_estimate") {
+      const out: Value = { card: { percent: a, fixed: b || "0" } };
+      for (const m of METHODS.slice(1)) {
+        const pct = rates[`${m.key}.percent`];
+        if (pct) out[m.key] = { percent: pct, fixed: rates[`${m.key}.fixed`] || "0" };
+      }
+      return out;
+    }
     return { percent: a };
-  }, [row.field, a, b]);
+  }, [row.field, a, b, rates]);
+  const input = (label: string, v: string, set: (s: string) => void, aria: string) => (
+    <label className="text-small">{label}
+      <input aria-label={aria} value={v} onChange={(e) => set(e.target.value)} inputMode="decimal" className="ml-1 h-8 w-20 rounded-lg border border-line px-2" />
+    </label>
+  );
 
   async function save() {
     setBusy(true); setProblem(null);
@@ -215,26 +250,29 @@ function FeeRow({ row, sym, level, scope, canEdit, canClear, onDone }: {
   return (
     <tr className="border-t border-line-soft align-top" data-field={row.field}>
       <td className="p-3"><b>{meta.label}</b><div className="text-small text-muted">{meta.hint}</div></td>
-      <td className="p-3 text-label tabular-nums" data-testid="effective">{show(row.field, row.effective, sym)}</td>
+      <td className="p-3 text-label tabular-nums" data-testid="effective">{show(row.field, row.effective, sym, unit)}</td>
       <td className="p-3 text-small" data-testid="source">
         {src ? (row.inherited ? <>Inherited from: <b>{src.name}</b></> : <>Set here</>) : "Not set anywhere"}
         {src ? <div className="text-muted">version {src.version}</div> : null}
       </td>
       <td className="p-3 text-small">
-        {row.own ? <>{show(row.field, row.own.value, sym)} · from {day(row.own.effective_from)}{row.own.effective_to ? ` to ${day(row.own.effective_to)}` : ""}</> : <span className="text-muted">—</span>}
-        {row.scheduled.map((s) => <div key={s.rule_id} className="text-peacock-dark">Scheduled: {show(row.field, s.value, sym)} from {day(s.effective_from)}</div>)}
-        {row.pending.map((p) => <div key={p.rule_id} className="text-kesar-ink">Waiting for approval: {show(row.field, p.value, sym)} from {day(p.effective_from)}</div>)}
+        {row.own ? <>{show(row.field, row.own.value, sym, unit)} · from {day(row.own.effective_from)}{row.own.effective_to ? ` to ${day(row.own.effective_to)}` : ""}</> : <span className="text-muted">—</span>}
+        {row.scheduled.map((s) => <div key={s.rule_id} className="text-peacock-dark">Scheduled: {show(row.field, s.value, sym, unit)} from {day(s.effective_from)}</div>)}
+        {row.pending.map((p) => <div key={p.rule_id} className="text-kesar-ink">Waiting for approval: {show(row.field, p.value, sym, unit)} from {day(p.effective_from)}</div>)}
         {problem ? <div role="alert" className="text-danger">{problem}</div> : null}
         {editing ? (
           <div className="mt-2 flex flex-wrap items-end gap-2">
-            <label className="text-small">{row.field === "min_platform_fee" ? `Amount (${sym})` : "Percent"}
-              <input aria-label={`${meta.label} value`} value={a} onChange={(e) => setA(e.target.value)} inputMode="decimal" className="ml-1 h-8 w-20 rounded-lg border border-line px-2" />
-            </label>
-            {row.field === "card_fee_estimate" ? (
-              <label className="text-small">Fixed ({sym})
-                <input aria-label="Fixed fee" value={b} onChange={(e) => setB(e.target.value)} inputMode="decimal" className="ml-1 h-8 w-20 rounded-lg border border-line px-2" />
-              </label>
-            ) : null}
+            {input(row.field === "min_platform_fee" ? `Amount (${sym})` : row.field === "delivery_fee" ? `Base (${sym})`
+              : row.field === "card_fee_estimate" ? "Card %" : "Percent", a, setA, `${meta.label} value`)}
+            {row.field === "card_fee_estimate" ? input(`Card fixed (${sym})`, b, setB, "Fixed fee") : null}
+            {row.field === "delivery_fee" ? input(`Per ${unit} (${sym})`, b, setB, "Per distance") : null}
+            {row.field === "card_fee_estimate" ? METHODS.slice(1).map((m) => (
+              <span key={m.key} className="flex gap-1">
+                {input(`${m.label} %`, rates[`${m.key}.percent`] ?? "", (v) => setRates((r) => ({ ...r, [`${m.key}.percent`]: v })), `${m.label} percent`)}
+                {input(`fixed (${sym})`, rates[`${m.key}.fixed`] ?? "", (v) => setRates((r) => ({ ...r, [`${m.key}.fixed`]: v })), `${m.label} fixed`)}
+              </span>
+            )) : null}
+            {row.field === "card_fee_estimate" ? <span className="text-small text-muted">A method left empty uses the card rate.</span> : null}
             <label className="text-small">From <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 rounded-lg border border-line px-2" /></label>
             <label className="text-small">Until <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 rounded-lg border border-line px-2" /></label>
             <button type="button" disabled={busy || !a} onClick={() => void save()} className="h-8 rounded-lg bg-peacock px-3 text-label text-white disabled:opacity-50">Send for approval</button>

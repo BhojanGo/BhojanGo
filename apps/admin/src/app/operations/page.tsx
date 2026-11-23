@@ -36,7 +36,7 @@ const TABS = [
 ] as const;
 
 const STATUS: Record<string, string> = {
-  placed: "Waiting for kitchen", accepted: "Accepted", preparing: "Cooking", almost_ready: "Almost ready", ready: "Ready",
+  placed: "Waiting for restaurant", accepted: "Accepted", preparing: "Cooking", almost_ready: "Almost ready", ready: "Ready",
   picked_up: "On the way", delivered: "Delivered", cancelled: "Cancelled", pending_payment: "Not paid",
 };
 
@@ -63,7 +63,7 @@ function Flags({ o, className = "" }: { o: OpsOrder; className?: string }) {
     <span className={`flex flex-wrap gap-1 ${className}`}>
       {o.flags.includes("late") ? <span className="rounded-md bg-danger-tint px-1.5 py-0.5 text-caption text-danger-ink">{o.minutes_late} min late</span> : null}
       {o.flags.includes("waiting_for_rider") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">no delivery partner · {o.waiting_for_rider_min} min</span> : null}
-      {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">kitchen not answering</span> : null}
+      {o.flags.includes("kitchen_not_answering") ? <span className="rounded-md bg-kesar-tint px-1.5 py-0.5 text-caption text-kesar-ink">restaurant not answering</span> : null}
     </span>
   );
 }
@@ -73,7 +73,7 @@ function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen
     return (
       <div className="space-y-1 rounded-2xl bg-white p-6">
         <p className="m-0 font-bold">{attention ? "Nothing needs attention right now." : "No live orders here right now."}</p>
-        <p className="m-0 text-small text-muted">{attention ? "Late orders, orders without a delivery partner and kitchens not answering show here." : "Orders show here from the moment they are placed until they are delivered."}</p>
+        <p className="m-0 text-small text-muted">{attention ? "Late orders, orders without a delivery partner and restaurants not answering show here." : "Orders show here from the moment they are placed until they are delivered."}</p>
       </div>
     );
   }
@@ -81,7 +81,7 @@ function OrdersTable({ orders, onOpen, attention }: { orders: OpsOrder[]; onOpen
     <div className="table-scroll rounded-2xl">
       <table className="table-stack w-full text-left text-small tabular-nums [--stack-inset:1rem]">
         <thead className="text-caption text-muted"><tr>
-          <th className="px-4 py-3">Order</th><th>Kitchen</th><th>Customer</th><th>Status</th><th>Delivery partner</th><th>Placed</th><th>Due</th><th>Total</th><th><span className="sr-only">Open</span></th>
+          <th className="px-4 py-3">Order</th><th>Restaurant</th><th>Customer</th><th>Status</th><th>Delivery partner</th><th>Placed</th><th>Due</th><th>Total</th><th><span className="sr-only">Open</span></th>
         </tr></thead>
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
@@ -432,12 +432,12 @@ function OrderCase({ id }: { id: string }) {
             {REFUND_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </label>
-        <label className="text-label">Note (on the kitchen&apos;s statement)
+        <label className="text-label">Note (on the restaurant&apos;s statement)
           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} className="mt-1 block h-10 w-full rounded-lg border border-line px-2 font-normal" />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-3 rounded-xl bg-porcelain p-4 text-small">
-        <span className="flex-1 tabular-nums">About <b>{money(estimate, order.currency, 2)}</b> plus its tax · charged to {fault === "kitchen" ? "the kitchen's payout" : "BhojanGo"} ({REFUND_REASONS.find((r) => r.value === reason)?.label.toLowerCase()})</span>
+        <span className="flex-1 tabular-nums">About <b>{money(estimate, order.currency, 2)}</b> plus its tax · charged to {fault === "kitchen" ? "the restaurant's payout" : "BhojanGo"} ({REFUND_REASONS.find((r) => r.value === reason)?.label.toLowerCase()})</span>
         <button type="button" disabled={!chosen.length || busy} onClick={refund}
           className="h-11 rounded-full bg-peacock px-5 font-bold text-white disabled:opacity-40">{busy ? "Refunding…" : "Refund to original payment"}</button>
       </div>

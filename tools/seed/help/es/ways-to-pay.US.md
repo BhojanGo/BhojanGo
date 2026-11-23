@@ -7,7 +7,7 @@ summary: Paga con tarjeta de crédito o débito, Apple Pay o Google Pay, a trav�
 popular: 8
 related: price-held-while-you-pay, addresses-and-payment-methods, how-refunds-work
 ---
-En EE. UU., BhojanGo recibe los pagos a través de Stripe, nuestro socio de pagos. Pagas antes de que la cocina reciba tu pedido, así que no hay nada que pagar en la puerta.
+En EE. UU., BhojanGo recibe los pagos a través de Stripe, nuestro socio de pagos. Pagas antes de que el restaurante reciba tu pedido, así que no hay nada que pagar en la puerta.
 
 ## Formas de pago
 

@@ -88,6 +88,7 @@ export function describe(template: string, params: P, units: Units): string {
       return parts.join(" · ");
     }
     case "flat": return `${m(p.amount, cur)} per order`;
+    case "base_per_distance": return `${m(p.base, cur)} + ${m(p.per_unit, cur)} per ${dist === "mi" ? "mile" : "km"}, all of it to the delivery partner`;
     case "free_above": return `Free at ${m(p.min_subtotal, cur)} of food or more · ${m(p.otherwise, cur)} below that`;
     case "tier_base": return tiers(p.tiers, (v) => m(v, cur), p.default_tier);
     case "service_fee": case "percent_of_food":
@@ -101,14 +102,20 @@ export function describe(template: string, params: P, units: Units): string {
         + ` · collected by ${p.collected_by === "restaurant" ? "the kitchen" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`
         // R17: who funds a discount decides whether it lowers the tax base (R16)
         + (p.platform_discounts_reduce_base === false ? " · discounts BhojanGo pays for don't reduce it" : "");
-    case "commission_tax": return `${String(p.label ?? "Tax on commission")}: ${n(p.rate_percent)}% of BhojanGo's commission, taken from the kitchen's payout`;
+    case "commission_tax": return `${String(p.label ?? "Tax on commission")}: ${n(p.rate_percent)}% of BhojanGo's commission, taken from the restaurant's payout`;
     case "payout_tds": return Number(p.rate_percent) > 0
-      ? `${String(p.label ?? "TDS")}: ${n(p.rate_percent)}% of the kitchen's food and packaging sales, taken from its payout`
+      ? `${String(p.label ?? "TDS")}: ${n(p.rate_percent)}% of the restaurant's food and packaging sales, taken from its payout`
       : `${String(p.label ?? "TDS")}: none deducted (0%)`;
     case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo";
     case "platform_fee_pct": return `${n(p.percent)}% of the food subtotal, paid by the customer to BhojanGo`;
     case "min_platform_fee": return `At least ${m(p.amount, cur)} (when the percentage comes to less)`;
-    case "card_fee_estimate": return `${n(p.percent)}% + ${m(p.fixed ?? 0, cur)} of the charge less the tip, taken from the kitchen's payout`;
+    case "card_fee_estimate": {
+      // R30: a rate per payment method (card, UPI, wallet, net banking); the R29 single rate reads as the card rate
+      const rate = (r: { percent?: unknown; fixed?: unknown }) => (Number(r.fixed ?? 0) > 0 ? `${n(r.percent)}% + ${m(r.fixed, cur)}` : `${n(r.percent)}%`);
+      const methods = p.card ? ([["card", "card"], ["upi", "UPI"], ["wallet", "wallet"], ["net_banking", "net banking"]] as const)
+        .filter(([k]) => p[k]).map(([k, label]) => `${label} ${rate(p[k] as { percent?: unknown; fixed?: unknown })}`) : [`card ${rate(p)}`];
+      return `${methods.join(" · ")} of the charge less the tip, taken from the restaurant's payout; cash: none`;
+    }
     case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";
     case "flat_per_order": return `${m(p.amount, cur)} per order on top of the percentage`;
@@ -118,7 +125,7 @@ export function describe(template: string, params: P, units: Units): string {
     case "hourly_floor": return `At least ${m(p.per_active_hour, cur)} per active hour (topped up weekly)`;
     case "batch_bonus": return `${m(p.per_extra_order, cur)} for each extra order in a batch`;
     case "peak_bonus": return `${m(p.per_order, cur)} per order during ${((p.windows as unknown[]) ?? []).map(window).join(", ")}`;
-    case "accept_timeout": return `Kitchens have ${n(p.seconds)} ${word(p.seconds, "second")} to accept`;
+    case "accept_timeout": return `Restaurants have ${n(p.seconds)} ${word(p.seconds, "second")} to accept`;
     case "unpaid_auto_cancel": return `Unpaid orders cancel after ${n(p.minutes)} ${word(p.minutes, "minute")}`;
     case "cancel_window": return `Customers can cancel for free for ${n(p.minutes)} ${word(p.minutes, "minute")}`;
     case "refund_window": return `Refunds can be asked for up to ${n(p.hours)} ${word(p.hours, "hour")} after delivery`;
@@ -127,14 +134,14 @@ export function describe(template: string, params: P, units: Units): string {
       const amounts = (p.amounts as unknown[]) ?? [];
       return `Tips offered: ${amounts.map((a) => m(a, cur)).join(", ")}${p.default_index != null ? ` · ${m(amounts[Number(p.default_index)], cur)} picked by default` : " · none picked by default"}`;
     }
-    case "max_radius": return `Deliver up to ${d(p.distance, dist)} from the kitchen`;
+    case "max_radius": return `Deliver up to ${d(p.distance, dist)} from the restaurant`;
     case "dispatch_offer_timeout": return `Delivery partners have ${n(p.seconds)} seconds to accept an offer`;
     case "dispatch_offer_exclusion": return Number(p.seconds) > 0
       ? `A delivery partner who passes or lets an offer time out isn't offered that order again for ${n(p.seconds)} seconds (other orders at once)`
       : "A delivery partner who passes can be offered that order again at once";
     case "no_partner_alert": return `An order without a delivery partner after ${n(p.minutes)} minutes alerts Operations, and the customer gets a later arrival time`;
     case "batching": return p.live
-      ? "Live: delivery partners can be offered two orders from the same kitchen at once (they see both drop-offs and the total pay)"
+      ? "Live: delivery partners can be offered two orders from the same restaurant at once (they see both drop-offs and the total pay)"
       : "Off: the batch engine only suggests pairs in the background; delivery partners get one order at a time";
     case "support_refund_limit": return `Support agents can refund up to ${m(p.max_per_order, cur)} per order`;
     case "payment_fees": {

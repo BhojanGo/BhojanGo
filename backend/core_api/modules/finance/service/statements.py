@@ -115,8 +115,19 @@ def active_seconds(intervals: list[tuple[datetime, datetime]]) -> float:
 
 def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None) -> tuple[Decimal, dict, list[dict]]:
     lines: list[dict] = []
-    earned = {"base": ZERO, "distance": ZERO, "waiting": ZERO, "delivery_fee_extra": ZERO, "tips": ZERO}
+    earned = {"base": ZERO, "distance": ZERO, "waiting": ZERO, "delivery_fee_extra": ZERO, "delivery_fee": ZERO, "tips": ZERO}
     for o in orders:
+        detail = o.split.get("detail", {})
+        if detail.get("delivery_fee_to_partner") is not None and "rider_top_up" not in detail:
+            # R30: the partner gets the order's delivery fee and the whole tip, nothing else (no base,
+            # distance or waiting pay, no batch rate; nothing tops it up out of the platform fee).
+            fee, tip = m(D(detail["delivery_fee_to_partner"])), m(D(detail.get("tip")))
+            lines.append({"order_id": o.order_id, "delivered_at": o.delivered_at.isoformat(), "base": "0.00",
+                          "distance": "0.00", "distance_units": str(o.distance), "waiting": "0.00", "tip": str(tip),
+                          "delivery_fee": str(fee), "total": str(fee + tip)})
+            earned["delivery_fee"] += fee
+            earned["tips"] += tip
+            continue
         p = o.rider_rule or {}
         later = bool(o.batch_position and o.batch_position >= 2)  # item 2: no base, the batch bonus instead
         base = m(ZERO) if later else m(D(p.get("base")))
@@ -138,7 +149,7 @@ def rider_statement(orders: list[OrderForPayout], floor_per_hour: Decimal | None
         earned["tips"] += tip
     seconds = active_seconds([(o.started_at, o.delivered_at) for o in orders if o.started_at])
     hours = (Decimal(seconds) / 3600).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    pay = earned["base"] + earned["distance"] + earned["waiting"] + earned["delivery_fee_extra"]
+    pay = earned["base"] + earned["distance"] + earned["waiting"] + earned["delivery_fee_extra"] + earned["delivery_fee"]
     top_up = m(max(ZERO, (floor_per_hour or ZERO) * hours - pay)) if floor_per_hour else m(ZERO)
     total = m(pay + earned["tips"] + top_up)
     summary = {"deliveries": len(orders), **{k: str(m(v)) for k, v in earned.items()}, "active_hours": str(hours),

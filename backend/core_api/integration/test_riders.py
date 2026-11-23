@@ -182,7 +182,7 @@ async def test_week_so_far_for_a_rider(client: AsyncClient) -> None:
     assert w["currency"] == "INR" and len(w["days"]) == 7 and w["payout_date"] == w["period_end"]
     assert set(w["summary"]) >= {"deliveries", "tips", "active_hours", "hourly_floor", "floor_top_up", "total"}
     assert w["summary"]["deliveries"] >= 1  # the test above delivered one this week
-    assert w["city"] == "IN-TG-HYD" and w["summary"]["hourly_floor"] == "120"
+    assert w["city"] == "IN-TG-HYD" and w["summary"]["hourly_floor"] is None  # R30: no hourly floor in the seed
     assert w["time_zone"] == "Asia/Kolkata"  # delivered_at shown on the city's clock
     line = next(ln for d in [w["today"]] for ln in d["lines"])
     assert line["restaurant_name"] == "Spice Route Kitchen" and line["drop_area"] == "Hyderabad"
@@ -191,7 +191,7 @@ async def test_week_so_far_for_a_rider(client: AsyncClient) -> None:
 async def test_new_rider_week_uses_their_countrys_city(client: AsyncClient) -> None:
     _, h = await new_rider("US")
     w = (await client.get("/api/v1/finance/earnings/me", headers=h)).json()
-    assert w["city"] == "US-ID-BOI" and w["summary"]["hourly_floor"] == "15" and w["summary"]["deliveries"] == 0
+    assert w["city"] == "US-ID-BOI" and w["summary"]["hourly_floor"] is None and w["summary"]["deliveries"] == 0
 
 
 async def test_today_counts_only_completed_deliveries(client: AsyncClient) -> None:
@@ -232,7 +232,9 @@ async def test_today_counts_only_completed_deliveries(client: AsyncClient) -> No
     w = (await client.get("/api/v1/finance/earnings/me", headers=rider)).json()
     line = next(ln for ln in w["today"]["lines"] if ln["order_id"] == order["id"])
     assert after == (before[0] + Decimal(line["total"]), before[1] + 1)
-    assert Decimal(line["total"]) == sum(Decimal(line[k]) for k in ("base", "distance", "waiting", "tip"))
+    # R30: the order's delivery fee + the tip (base, distance and waiting are 0 on fee model v2 orders)
+    assert Decimal(line["total"]) == Decimal(line["delivery_fee"]) + Decimal(line["tip"])
+    assert sum(Decimal(line[k]) for k in ("base", "distance", "waiting")) == 0
     # An order assigned and then cancelled never counts.
     other = await new_order(client, cust)
     await pay(client, cust, other)

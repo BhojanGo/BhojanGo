@@ -12,8 +12,9 @@ RIDER_RULE = {"base": "25", "per_unit": "6", "per_wait_minute": "1", "free_wait_
 
 def worked_example(order_id: str = "o1", start: datetime = T, minutes: int = 30, refunds: list | None = None) -> OrderForPayout:
     q = quote()  # the Hyderabad worked example: ₹638.22
+    # priced before fee model v2 (no delivery_fee_to_partner): the partner is paid by the rider_pay rule
     split = {"restaurant": str(q.split.restaurant), "rider": str(q.split.rider),
-             "detail": {k: str(v) for k, v in q.split.detail.items()}}
+             "detail": {k: str(v) for k, v in q.split.detail.items() if k != "delivery_fee_to_partner"}}
     return OrderForPayout(
         order_id=order_id, delivered_at=start + timedelta(minutes=minutes), restaurant_id="r1", rider_id="d1",
         lines=[{**asdict(ln), "amount": str(ln.amount)} for ln in q.lines], split=split, distance=Decimal("4.2"),
@@ -158,9 +159,23 @@ def test_r29_partner_gets_the_delivery_fee_when_it_is_more_than_guaranteed_pay()
 
     def order(fee: str) -> OrderForPayout:
         return OrderForPayout(order_id="o1", delivered_at=T, restaurant_id="r1", rider_id="d1",
-                              lines=[], split={"detail": {"tip": "2.00", "delivery_fee_to_partner": fee}},
+                              lines=[], split={"detail": {"tip": "2.00", "delivery_fee_to_partner": fee, "rider_top_up": "0"}},
                               distance=Decimal("1"), rider_rule={"base": "3.00", "per_unit": "1.00"}, started_at=None)
     total, summary, lines = rider_statement([order("4.99")], None)
     assert lines[0]["delivery_fee_extra"] == "0.99" and total == Decimal("6.99")  # 4.99 delivery fee + 2.00 tip
     total, _, lines = rider_statement([order("1.99")], None)
     assert lines[0]["delivery_fee_extra"] == "0.00" and total == Decimal("6.00")  # guaranteed 4.00 + 2.00 tip
+
+
+def test_r30_partner_gets_the_delivery_fee_and_the_tip_and_nothing_else() -> None:
+    """R30 orders (no rider_top_up in the split): no base, distance, waiting or batch pay, no top-up."""
+    from core_api.modules.finance.service.statements import rider_statement
+
+    o = OrderForPayout(order_id="o1", delivered_at=T + timedelta(minutes=40), restaurant_id="r1", rider_id="d1", lines=[],
+                       split={"detail": {"tip": "2.00", "delivery_fee_to_partner": "6.00"}}, distance=Decimal("3"),
+                       rider_rule={"base": "3.00", "per_unit": "1.00"}, started_at=T, wait_minutes=Decimal("20"),
+                       batch_position=2, batch_bonus=Decimal("1.50"))
+    total, summary, lines = rider_statement([o], None)
+    assert total == Decimal("8.00")  # 6.00 delivery fee + 2.00 tip
+    assert (lines[0]["delivery_fee"], lines[0]["base"], lines[0]["distance"], lines[0]["waiting"]) == ("6.00", "0.00", "0.00", "0.00")
+    assert (summary["delivery_fee"], summary["tips"], summary["floor_top_up"]) == ("6.00", "2.00", "0.00")

@@ -35,7 +35,7 @@ test("free delivery the kitchen pays is one row, struck through", () => {
     { code: "promotion", label: "Free delivery", amount: "-35.00", funded_by: "restaurant" },
   ];
   assert.deepEqual(billRows(lines, "INR"), [
-    { label: "Delivery · 4.2 km", payee: "Kitchen's treat", amount: "₹0.00", struck: "₹35.00" },
+    { label: "Delivery · 4.2 km", payee: "Restaurant's treat", amount: "₹0.00", struck: "₹35.00" },
   ]);
   assert.equal(billTotal(lines), 0);
 });

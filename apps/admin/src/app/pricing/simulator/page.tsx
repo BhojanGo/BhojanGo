@@ -21,7 +21,7 @@ type Rule = { id: string; family: string; template: string; name: string | null;
 type Restaurant = { id: string; name: string; city: string };
 
 const SPLIT_ROWS: [Exclude<keyof Split, "detail">, string][] = [
-  ["restaurant", "Kitchen gets"],
+  ["restaurant", "Restaurant gets"],
   ["rider", "Delivery partner gets"],
   ["tax", "Tax"],
   ["platform", "Platform keeps"],
@@ -154,7 +154,7 @@ function Simulator() {
               <input type="number" min="0" step="1" value={form.tip} onChange={(e) => setForm({ ...form, tip: e.target.value })} className={field} />
             </label>
             <label className="flex-1 text-small text-muted">
-              Kitchen tier
+              Restaurant tier
               <select value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} className={field}>
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -163,9 +163,9 @@ function Simulator() {
             </label>
           </div>
           <label className="text-small text-muted">
-            Kitchen (adds its own rules, e.g. packaging)
+            Restaurant (adds its own rules, e.g. packaging)
             <select value={form.restaurant} onChange={(e) => setForm({ ...form, restaurant: e.target.value })} className={field}>
-              <option value="">Any kitchen</option>
+              <option value="">Any restaurant</option>
               {restaurants?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -246,7 +246,7 @@ function Simulator() {
                     <td className="text-right">{fmt(sym, sim.data.draft.total)}</td>
                   </tr>
                   <tr data-testid="sim-commission" className="border-t border-line-soft">
-                    <td className="py-2">Commission (from the kitchen)</td>
+                    <td className="py-2">Commission (from the restaurant)</td>
                     <td className="text-right">{fmt(sym, sim.data.live.split?.detail?.commission)}</td>
                     <td className="text-right">{fmt(sym, sim.data.draft.split?.detail?.commission)}</td>
                   </tr>

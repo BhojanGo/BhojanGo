@@ -171,15 +171,17 @@ class RuleService:
 
     async def new_version(self, actor: uuid.UUID, rule_id: uuid.UUID, *, params: dict | None = None,
                           effective_from: datetime | None = None, name: str | None = None,
-                          from_version: Rule | None = None, action: str = "rule.version_created") -> Rule:
+                          from_version: Rule | None = None, action: str = "rule.version_created",
+                          template: str | None = None) -> Rule:
         base = from_version or await self.get(rule_id)
         versions = await self.versions(base.rule_key)
         if any(v.status in OPEN_STATUSES for v in versions):
             raise RuleError("This rule already has a draft or a version waiting for approval; finish that first")
         r = Rule(
             rule_key=base.rule_key, version=max(v.version for v in versions) + 1, family=base.family,
-            template=base.template, key=base.key, slot=base.slot, name=name or base.name,
-            params=templates.validate_params(base.family, base.template, params if params is not None else base.params),
+            template=template or base.template, key=base.key, slot=base.slot, name=name or base.name,
+            # R30: a new version may change the template within the slot (a delivery fee's slabs -> base + per km/mi)
+            params=templates.validate_params(base.family, template or base.template, params if params is not None else base.params),
             scope_level=base.scope_level, scope_id=base.scope_id, market_scope=base.market_scope,
             priority=base.priority, locked=base.locked, status="draft",
             effective_from=effective_from or now(), created_by=actor,
@@ -288,7 +290,7 @@ class RuleService:
         applying at once and the kitchen sees why. Resume brings it back."""
         r = await self.get(rule_id)
         if r.family != "promotion" or r.scope_level != "restaurant" or r.params.get("funded_by") != "restaurant":
-            raise RuleError("Only a kitchen's own offer can be paused; end other rules instead")
+            raise RuleError("Only a restaurant's own offer can be paused; end other rules instead")
         if r.status != "published" or (r.effective_to is not None and r.effective_to <= now()):
             raise RuleError("Only a live offer can be paused")
         if r.paused_at is not None:

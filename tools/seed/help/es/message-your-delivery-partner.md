@@ -18,7 +18,7 @@ Toca un mensaje predefinido para enviarlo al instante:
 - Por favor, toca el timbre.
 - Por favor, pregúntale al guardia de la entrada.
 
-Tu socio repartidor también puede enviarte mensajes rápidos, como "Estoy en la cocina, esperando tu pedido", "Ya lo recogí. Voy en camino", "Estoy afuera" o "No encuentro la dirección. Revisa la ubicación en el mapa".
+Tu socio repartidor también puede enviarte mensajes rápidos, como "Estoy en el restaurante, esperando tu pedido", "Ya lo recogí. Voy en camino", "Estoy afuera" o "No encuentro la dirección. Revisa la ubicación en el mapa".
 
 Los mensajes rápidos aparecen en el idioma de cada persona, para que ambos puedan leerlos fácilmente.
 

@@ -2,7 +2,8 @@
 each fee setting's effective value and where it comes from ("Inherited from: USA"), the level's own rule (with its
 effective dates), changes waiting for a second admin, and the audit log (who, when, old -> new).
 
-Settings: platform_fee_pct, min_platform_fee, restaurant_commission_pct, card_fee_estimate. Each is a rule in the
+Settings: platform_fee_pct, min_platform_fee, restaurant_commission_pct, card_fee_estimate (R30: per payment method),
+delivery_fee (R30: base + per km/mi, all of it to the delivery partner). Each is a rule in the
 rule engine (one slot each, so each inherits on its own). Setting a value makes a draft (or a new version of the
 level's rule) and sends it for approval: these are money rules, so a second admin approves them (rules API).
 Unsetting ends the level's rule, so the level inherits again.
@@ -34,14 +35,15 @@ Editor = Annotated[AdminContext, Depends(require_permission("rules.edit"))]
 Approver = Annotated[AdminContext, Depends(require_permission("rules.approve"))]
 
 Level = Literal["country", "region", "city", "restaurant"]
-Field_ = Literal["platform_fee_pct", "min_platform_fee", "restaurant_commission_pct", "card_fee_estimate"]
+Field_ = Literal["platform_fee_pct", "min_platform_fee", "restaurant_commission_pct", "card_fee_estimate", "delivery_fee"]
 LEVELS: tuple[str, ...] = ("country", "region", "city", "restaurant")
 # field -> (family, template, rule name)
 TEMPLATE = {
     "platform_fee_pct": ("fee", "platform_fee_pct", "Platform fee"),
     "min_platform_fee": ("fee", "min_platform_fee", "Minimum platform fee"),
     "restaurant_commission_pct": ("commission", "percent", "Restaurant commission"),
-    "card_fee_estimate": ("fee", "card_fee_estimate", "Card fee estimate"),
+    "card_fee_estimate": ("fee", "card_fee_estimate", "Payment fee estimate"),
+    "delivery_fee": ("delivery_fee", "base_per_distance", "Delivery fee"),
 }
 
 
@@ -204,7 +206,8 @@ class SetFee(BaseModel):
     level: Level
     scope_id: str
     field: Field_
-    value: dict[str, Any]  # {"percent": 9} | {"amount": "0.99"} | {"percent": "2.9", "fixed": "0.30"}
+    value: dict[str, Any]  # {"percent": 9} | {"amount": "0.99"} | {"card": {"percent": "2.9", "fixed": "0.30"}, "upi": ...}
+    #                        | {"base": "3.00", "per_unit": "1.00"} (delivery fee)
     effective_from: datetime | None = None
     effective_to: datetime | None = None
 
@@ -223,8 +226,9 @@ async def set_fee(data: SetFee, admin: Editor, db: DB) -> dict:
         if own[data.field] and any(r.status in ("draft", "pending_approval") for r in own[data.field]):
             raise RuleError("A change to this fee is already waiting for approval here; approve or reject it first")
         base = next((r for r in own[data.field] if r.status == "published"), None)
-        if base is not None and base.template == template:
-            r = await svc.new_version(admin.user.id, base.id, params=params, effective_from=data.effective_from)
+        if base is not None:  # R30: a delivery fee on slabs becomes base + per km/mi in a new version of its rule
+            r = await svc.new_version(admin.user.id, base.id, params=params, effective_from=data.effective_from,
+                                      template=template)
             if data.effective_to is not None:
                 r = await svc.update_draft(admin.user.id, r.id, {"effective_to": data.effective_to})
         else:

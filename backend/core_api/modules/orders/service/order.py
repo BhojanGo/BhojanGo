@@ -287,12 +287,14 @@ class OrderService:
         if any(r.get("slot") == "fee:card_fee_estimate" for r in q["rules_used"]):
             # R29 fee model v2: the card fee comes off the restaurant's payout (engine split); the platform
             # pays only the tax service. A cash order has no card fee: the restaurant gets it back.
+            # R30: re-priced at the chosen method's rate (UPI, wallet, net banking...); cash has none.
             split = dict(q["split"])
-            card = Decimal(split.get("card_fee", "0"))
-            if method == "cash_on_delivery" and card:
-                split["restaurant"] = str(Decimal(split["restaurant"]) + card)
-                split["card_fee"], card = "0.00", Decimal(0)
-                split["detail"] = {**split.get("detail", {}), "card_fee": "0.00"}
+            quoted = Decimal(split.get("card_fee", "0"))
+            card = await self._method_fee(q, method)
+            if card != quoted:
+                split["restaurant"] = str(_money(Decimal(split["restaurant"]) + quoted - card))
+                split["card_fee"] = str(card)
+                split["detail"] = {**split.get("detail", {}), "card_fee": str(card)}
             tax_service = Decimal(0)
             if rule and tax_calculated and method != "cash_on_delivery":
                 tax_service = _money(Decimal(q["total"]) * Decimal(str(rule.params.get("tax_service_percent", 0))) / 100)
@@ -300,7 +302,8 @@ class OrderService:
             q["split"] = {**split, "payment_fees": str(fee), "platform_keeps": str(_money(Decimal(split["platform"]) - tax_service)),
                           "detail": {**split.get("detail", {}), "payment_fees": {"method": method, "processing": str(card),
                                                                                "tax_service": str(tax_service),
-                                                                               "processing_paid_by": "restaurant"}}}
+                                                                               "processing_paid_by": "restaurant",
+                                                                               "estimated": True}}}
         else:
             fee, detail = payment_fee(Decimal(q["total"]), method, rule.params if rule else None, tax_calculated)
             q["split"] = {**q["split"], "payment_fees": str(fee),
@@ -310,16 +313,36 @@ class OrderService:
             q["rules_used"] = [*q["rules_used"], {"rule_id": str(rule.id), "rule_key": str(rule.rule_key), "version": rule.version,
                                                  "slot": rule.slot, "scope_level": rule.scope_level, "scope_id": rule.scope_id}]
 
+    async def _method_fee(self, q: dict, method: str) -> Decimal:
+        """R30: the payment fee estimate for this method, from the estimate rule the quote used."""
+        from core_api.modules.pricing.service.fees import card_fee_cents, from_cents, method_rate, to_cents
+        from core_api.modules.rules.models import Rule
+
+        ref = next(r for r in q["rules_used"] if r.get("slot") == "fee:card_fee_estimate")
+        rule = await self.db.get(Rule, uuid.UUID(ref["rule_id"]))
+        rate = method_rate(rule.params, method) if rule else None
+        if not rate or Decimal(q["total"]) <= 0:
+            return Decimal("0.00")
+        tip = Decimal(str((q["split"].get("detail") or {}).get("tip") or 0))
+        return from_cents(card_fee_cents(to_cents(q["total"]), to_cents(tip), rate["percent"], to_cents(rate.get("fixed", 0))))
+
     async def apply_actual_card_fee(self, order_id: uuid.UUID, fee_minor: int) -> None:
-        """R29, production only: the processor's actual fee for the charge replaces the estimate taken
-        from the restaurant's payout at placement (only for orders priced with a card fee estimate)."""
+        """R29, production only: the gateway's actual fee for the payment (R30: any method: card, UPI,
+        wallet, net banking) replaces the estimate taken from the restaurant's payout at placement (only
+        for orders priced with a payment fee estimate)."""
+        from core_api.modules.pricing.models import OrderPricingSnapshot
+
         order = await self._locked(order_id)
-        if order is None or not order.card_fee:
+        if order is None or order.payment_method == "cash_on_delivery":
+            return
+        settings_ = (await self.db.execute(select(OrderPricingSnapshot.fee_settings)
+                                           .where(OrderPricingSnapshot.order_id == order.id))).scalar()
+        if not settings_:  # priced before fee model v2: the platform pays the processing fee
             return
         actual = (Decimal(fee_minor) / 100).quantize(Decimal("0.01"))
         if actual == order.card_fee:
             return
-        before = order.card_fee
+        before = order.card_fee or Decimal(0)
         order.restaurant_payout = _money(order.restaurant_payout + before - actual)
         order.card_fee = actual
         await self.db.flush()
@@ -339,7 +362,7 @@ class OrderService:
                 # R27: paid while the kitchen's tablet went silent (payment was refused for such a
                 # kitchen up to the moment it started): nobody would see it, so it is cancelled
                 # and refunded at once rather than waiting out the accept timer.
-                await self._cancel(order, "system", "restaurant_no_response", "The kitchen's tablet wasn't connected", paid=True)
+                await self._cancel(order, "system", "restaurant_no_response", "The restaurant's tablet wasn't connected", paid=True)
                 return
             now = datetime.now(UTC)
             rules = await business_rules(self.db, order)
@@ -451,7 +474,7 @@ class OrderService:
             allowed, _ = customer_cancel_window(order.status, order.placed_at, window, datetime.now(UTC))
             if not allowed:
                 raise _err(status.HTTP_409_CONFLICT, "CANCEL_WINDOW_PASSED",
-                           "The kitchen has started on your order, so it can't be cancelled now. Ask us from the order for help")
+                           "The restaurant has started on your order, so it can't be cancelled now. Ask us from the order for help")
         return await self._cancel(order, actor, data.reason, data.note)
 
     # ── dispatch (called by realtime over the internal API) ──────────────────

@@ -112,7 +112,7 @@ def apply(template: str, params: dict, limits: dict[str, Decimal], currency: str
     def over(key: str, asked: Decimal) -> None:
         cap = limits.get(key)
         if cap is None:
-            raise OfferOverCeiling(f"BhojanGo hasn't set offer limits for {currency} yet, so kitchen offers can't start here. "
+            raise OfferOverCeiling(f"BhojanGo hasn't set offer limits for {currency} yet, so restaurant offers can't start here. "
                                    "Contact your partner manager")
         if asked > cap:
             raise OfferOverCeiling(f"The most {WORDS[key]} can be here is {cap.normalize():f} {currency}")
@@ -122,7 +122,7 @@ def apply(template: str, params: dict, limits: dict[str, Decimal], currency: str
     over("weekly_cap", asked)
     if running and limits.get("weekly_cap") is not None and asked + running > limits["weekly_cap"]:
         left = max(limits["weekly_cap"] - running, Decimal(0))
-        raise OfferOverCeiling(f"This kitchen's offers together can give at most {limits['weekly_cap'].normalize():f} {currency} a week; "
+        raise OfferOverCeiling(f"This restaurant's offers together can give at most {limits['weekly_cap'].normalize():f} {currency} a week; "
                                f"its other offers already use {running.normalize():f}, so this one can have a weekly cap of up to "
                                f"{left.normalize():f}. End an offer to make room")
     if template == "flat_off":

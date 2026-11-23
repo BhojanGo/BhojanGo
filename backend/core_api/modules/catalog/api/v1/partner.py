@@ -320,7 +320,7 @@ class BusinessIn(BaseModel):
     area: str = Field(min_length=2, max_length=80, description="Neighbourhood, e.g. Banjara Hills")
     zip: str = Field(min_length=3, max_length=12, description="PIN or ZIP code")
     cuisines: list[str] = Field(min_length=1, max_length=5)
-    lat: float | None = Field(default=None, ge=-90, le=90, description="The kitchen's pin; None keeps the current one")
+    lat: float | None = Field(default=None, ge=-90, le=90, description="The restaurant's pin; None keeps the current one")
     lng: float | None = Field(default=None, ge=-180, le=180)
 
 
@@ -380,7 +380,7 @@ async def set_business(restaurant_id: uuid.UUID, data: BusinessIn, user: User, d
     r = await access.manage(db, user, restaurant_id)
     if r.status != "pending_approval":
         raise HTTPException(status.HTTP_409_CONFLICT, detail={
-            "code": "NOT_APPLYING", "message": "Your kitchen is already approved. Ask support to change its address."})
+            "code": "NOT_APPLYING", "message": "Your restaurant is already approved. Ask support to change its address."})
     lat = r.lat if data.lat is None or data.lng is None else data.lat
     lng = r.lng if data.lat is None or data.lng is None else data.lng
     r.address = {**(r.address or {}), "street": data.street.strip(), "landmark": data.area.strip(), "zip": data.zip.strip(),

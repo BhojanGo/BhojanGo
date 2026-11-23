@@ -7,7 +7,7 @@ summary: Sign up in the BhojanGo Delivery app with your phone number, upload you
 popular: 0
 related: delivery-partner-pay, delivery-app-guide, tipping-your-delivery-partner
 ---
-Deliver from local kitchens in your city, on your own hours, and see what a trip pays before you take it. You apply in the BhojanGo Delivery app. We never ask for a fee to join.
+Deliver from local restaurants in your city, on your own hours, and see what a trip pays before you take it. You apply in the BhojanGo Delivery app. We never ask for a fee to join.
 
 ## Sign up
 
@@ -15,7 +15,7 @@ Deliver from local kitchens in your city, on your own hours, and see what a trip
 2. Sign in with your phone number and the 6-digit code we text you.
 3. Enter your full name, as on your licence, your date of birth, your vehicle and the city you'll deliver in. Each country sets a minimum age and the vehicles you can use: the app and the [deliver with BhojanGo](/deliver) page list them.
 
-Use a phone number that isn't already used to order food on BhojanGo or to run a kitchen. One number has one role.
+Use a phone number that isn't already used to order food on BhojanGo or to run a restaurant. One number has one role.
 
 ## Your checklist
 

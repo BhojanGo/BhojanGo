@@ -56,7 +56,7 @@ function billRows(lines, currency) {
     if (ln === freeDelivery) continue;
     const amount = Number(ln.amount);
     if (ln === delivery && freeDelivery) {
-      rows.push({ label: ln.label, payee: freeDelivery.funded_by === "restaurant" ? "Kitchen's treat" : "On us",
+      rows.push({ label: ln.label, payee: freeDelivery.funded_by === "restaurant" ? "Restaurant's treat" : "On us",
                   amount: money(0, currency), struck: money(amount, currency) });
     } else if (ln.code === "promotion") {
       rows.push({ label: ln.label, payee: PAYEE_LABEL[ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO"],

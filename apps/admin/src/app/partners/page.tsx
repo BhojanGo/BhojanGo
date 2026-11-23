@@ -44,7 +44,7 @@ interface Commission {
   pending_tier_change: { id: string; to: string; from: string | null; requested_by: string; note: string } | null;
 }
 
-const LEVEL_SOURCE: Record<string, string> = { restaurant: "this kitchen's own rule", city: "the city's rule", country: "the country's rule", region: "the state's rule" };
+const LEVEL_SOURCE: Record<string, string> = { restaurant: "this restaurant's own rule", city: "the city's rule", country: "the country's rule", region: "the state's rule" };
 
 /** A kitchen's commission (Pricing & Rules, commissions first): the rate it pays now, which
  * rule sets it and until when, and its tier; a tier change waits for a second admin. */
@@ -133,23 +133,23 @@ function Kitchens({ scope }: { scope: string }) {
   const opened = list.find((k) => k.id === open) ?? null;
   return (
     <section className="space-y-3">
-      <input aria-label="Search kitchens" placeholder="Search kitchens" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-full max-w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
+      <input aria-label="Search restaurants" placeholder="Search restaurants" value={q} onChange={(e) => setQ(e.target.value)} className="h-11 w-full max-w-80 rounded-full border border-line-strong bg-white px-4 text-small" />
       {isLoading ? (
         <ul aria-busy="true" className="space-y-2 rounded-2xl bg-white p-4">{[0, 1, 2, 3].map((i) => <li key={i} className="h-10 animate-pulse rounded-lg bg-porcelain" />)}</ul>
       ) : isError ? (
         <div role="alert" className="space-y-2 rounded-2xl bg-white p-6">
-          <p className="m-0 font-bold">The kitchens didn&apos;t load.</p>
+          <p className="m-0 font-bold">The restaurants didn&apos;t load.</p>
           <button type="button" onClick={() => void refetch()} className="h-10 rounded-full border border-line px-4 font-bold text-peacock">Try again</button>
         </div>
       ) : !list.length ? (
         <div className="space-y-1 rounded-2xl bg-white p-6">
-          <p className="m-0 font-bold">{q ? "No kitchen matches that name." : "No live kitchens here yet."}</p>
-          <p className="m-0 text-small text-muted">{q ? "Check the spelling, or clear the search." : "Kitchens show here once their application is approved (see Applications)."}</p>
+          <p className="m-0 font-bold">{q ? "No restaurant matches that name." : "No live restaurants here yet."}</p>
+          <p className="m-0 text-small text-muted">{q ? "Check the spelling, or clear the search." : "Restaurants show here once their application is approved (see Applications)."}</p>
         </div>
       ) : (
         <div className="table-scroll rounded-2xl">
           <table className="table-stack w-full text-left text-small [--stack-inset:1rem]">
-            <thead className="text-caption text-muted"><tr><th className="px-4 py-3">Kitchen</th><th>City</th><th>Cuisine</th><th>Rating</th><th>Food licence</th><th>Open</th></tr></thead>
+            <thead className="text-caption text-muted"><tr><th className="px-4 py-3">Restaurant</th><th>City</th><th>Cuisine</th><th>Rating</th><th>Food licence</th><th>Open</th></tr></thead>
             <tbody className="divide-y divide-line">
               {list.map((k) => (
                 <tr key={k.id} onClick={() => setOpen(k.id)} className={`cursor-pointer ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
@@ -190,7 +190,7 @@ function Applications({ scope }: { scope: string }) {
     try {
       if (ok) await adminApi.post(`/user/restaurants/${id}/approve`);
       else await adminApi.post(`/user/restaurants/${id}/reject`, null, { params: { reason } });
-      setMsg(ok ? "Approved: the kitchen is live and its tablet starts ringing." : "Turned down.");
+      setMsg(ok ? "Approved: the restaurant is live and its tablet starts ringing." : "Turned down.");
       setOpen(null);
       await qc.invalidateQueries({ queryKey: ["applications"] });
     } catch (e) {
@@ -203,11 +203,11 @@ function Applications({ scope }: { scope: string }) {
   const docs = app.data ? applicationDocs(app.data, country?.settings) : [];
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
-      <section className="rounded-2xl bg-white p-2" aria-label="Kitchens applying">
+      <section className="rounded-2xl bg-white p-2" aria-label="Restaurants applying">
         <div className="px-3 py-2 text-label">Applying · {mine.length}</div>
         {pending.isLoading ? <p aria-busy="true" className="px-3 pb-3 text-small text-muted">Loading applications…</p> : null}
         {pending.isError ? <p role="alert" className="px-3 pb-3 text-small">The applications didn&apos;t load. <button type="button" onClick={() => void pending.refetch()} className="font-bold text-peacock">Try again</button></p> : null}
-        {pending.data && mine.length === 0 ? <p className="px-3 pb-3 text-small text-muted">No kitchens waiting. New applications from the website&apos;s Add your kitchen page show here.</p> : null}
+        {pending.data && mine.length === 0 ? <p className="px-3 pb-3 text-small text-muted">No restaurants waiting. New applications from the website&apos;s Add your restaurant page show here.</p> : null}
         {mine.map((k) => (
           <button key={k.id} type="button" onClick={() => setOpen(k.id)} className={`block w-full rounded-xl px-3 py-2.5 text-left text-small ${open === k.id ? "bg-peacock-tint" : "hover:bg-porcelain"}`}>
             <b>{k.name}</b><div className="text-muted">{k.city} · {k.cuisine_types.join(", ")} · applied {ago(k.created_at)}</div>
@@ -248,7 +248,7 @@ function Applications({ scope }: { scope: string }) {
           ) : <p className="text-small text-muted">You can view this application; approving needs partners.edit for {kitchen?.city}.</p>}
           {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
         </section>
-      ) : <div className="rounded-2xl bg-white p-6 text-muted">{open && app.isLoading ? "Loading the application…" : open && app.isError ? "The application didn't load. Pick it again to retry." : msg ?? "Pick a kitchen to see its application."}</div>}
+      ) : <div className="rounded-2xl bg-white p-6 text-muted">{open && app.isLoading ? "Loading the application…" : open && app.isError ? "The application didn't load. Pick it again to retry." : msg ?? "Pick a restaurant to see its application."}</div>}
     </div>
   );
 }

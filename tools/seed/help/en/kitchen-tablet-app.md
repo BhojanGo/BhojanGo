@@ -2,12 +2,12 @@
 slug: kitchen-tablet-app
 topic: kitchen-partners
 country: *
-title: How do I use the BhojanGo Kitchen tablet app?
+title: How do I use the BhojanGo Restaurant tablet app?
 summary: Accept or reject new orders, mark them ready, pause or slow down when you're busy, mark dishes sold out and run your own offers.
 popular: 0
 related: kitchen-payouts-and-statements, kitchen-call-back, add-your-kitchen
 ---
-The BhojanGo Kitchen app runs on your kitchen's tablet. New orders ring until you accept or reject them.
+The BhojanGo Restaurant app runs on your restaurant's tablet. New orders ring until you accept or reject them.
 
 ## New orders
 

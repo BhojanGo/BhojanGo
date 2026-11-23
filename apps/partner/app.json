@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BhojanGo Kitchen",
+    "name": "BhojanGo Restaurant",
     "slug": "bhojango-partner",
     "version": "1.0.0",
     "orientation": "default",
@@ -14,8 +14,8 @@
       "requireFullScreen": true,
       "bundleIdentifier": "com.bhojango.partner",
       "infoPlist": {
-        "NSCameraUsageDescription": "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu.",
-        "NSPhotoLibraryUsageDescription": "BhojanGo Kitchen lets you choose photos of your dishes for your menu."
+        "NSCameraUsageDescription": "BhojanGo Restaurant uses the camera to take photos of your dishes for your menu.",
+        "NSPhotoLibraryUsageDescription": "BhojanGo Restaurant lets you choose photos of your dishes for your menu."
       }
     },
     "android": {
@@ -48,8 +48,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "BhojanGo Kitchen lets you choose photos of your dishes for your menu.",
-          "cameraPermission": "BhojanGo Kitchen uses the camera to take photos of your dishes for your menu.",
+          "photosPermission": "BhojanGo Restaurant lets you choose photos of your dishes for your menu.",
+          "cameraPermission": "BhojanGo Restaurant uses the camera to take photos of your dishes for your menu.",
           "microphonePermission": false
         }
       ],

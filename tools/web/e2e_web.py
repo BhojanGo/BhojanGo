@@ -283,7 +283,7 @@ with sync_playwright() as p:
         _assert(page.get_by_test_id("landing-hero").evaluate("img => img.complete && img.naturalWidth > 0"), "hero not loaded")))
     # Outside production (make dev, QA, staging) every page says it's a test site; production never does
     # (packages/ui/environment.js, unit-tested there).
-    TEST_BANNER = "Test site: demo kitchens, no real orders or payments"
+    TEST_BANNER = "Test site: demo restaurants, no real orders or payments"
     check("test-site banner: on the landing page, above the header, a note (not an alert)", lambda: (
         expect(page.get_by_role("note").filter(has_text=TEST_BANNER)).to_be_visible(),
         expect(page.get_by_role("alert").filter(has_text=TEST_BANNER)).to_have_count(0),
@@ -390,7 +390,7 @@ with sync_playwright() as p:
     page.goto(base, wait_until="networkidle")
     choose_city(page, hyd_city)
     check("landing in a served city: the example bill is there", lambda: expect(
-        page.get_by_role("img", name=re.compile(r"^Kitchen \d+%"))).to_be_visible())
+        page.get_by_role("img", name=re.compile(r"^Restaurant \d+%"))).to_be_visible())
     check("location line: Hyderabad, TG · Change (above the hero)", lambda: (
         expect(page.get_by_test_id("location-line")).to_have_text("Hyderabad, TG · Change"),
         _assert(cookie(ctx, "bg_city") == "IN-TG-HYD", ctx.cookies()),
@@ -482,10 +482,10 @@ with sync_playwright() as p:
     check("address box: finds an area as you type, says we deliver there", lambda: (
         expect(option).to_be_visible(timeout=10000), expect(option).to_contain_text("Delivering")))
     option.click()
-    feed = page.get_by_role("region", name="Kitchens near you")
+    feed = page.get_by_role("region", name="Restaurants near you")
     check("personal home: kitchens for the address, offers with who pays, cards with the delivery fee", lambda: (
-        expect(page.get_by_text(re.compile(r"^\d+ kitchens? delivers? to Madhapur"))).to_be_visible(timeout=20000),
-        expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Kitchen pays")).first).to_be_visible(),
+        expect(page.get_by_text(re.compile(r"^\d+ restaurants? delivers? to Madhapur"))).to_be_visible(timeout=20000),
+        expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Restaurant pays")).first).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+\.\d{2} delivery|Free delivery")),
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
@@ -500,7 +500,7 @@ with sync_playwright() as p:
 
     def counts_agree() -> None:
         # "N kitchens deliver to <address>", "See all N" and the cards are one list (/discover for the address).
-        said = page.get_by_text(re.compile(r"^\d+ kitchens? delivers? to Madhapur")).inner_text()
+        said = page.get_by_text(re.compile(r"^\d+ restaurants? delivers? to Madhapur")).inner_text()
         n = int(said.split()[0])
         see_all = feed.get_by_role("button", name=re.compile(r"^See all \d+$"))
         if see_all.count():
@@ -510,11 +510,11 @@ with sync_playwright() as p:
         expect(cards).to_have_count(n)
     check("personal home: kitchens that deliver, See all and the cards are the same number", counts_agree)
     n_all = cards.count()
-    chips = page.get_by_role("group", name="Filter kitchens")
+    chips = page.get_by_role("group", name="Filter restaurants")
     chips.get_by_role("button", name="Veg only").click()
     check("filters: a chip narrows the kitchens, pressed state shown", lambda: (
         expect(chips.get_by_role("button", name="Veg only")).to_have_attribute("aria-pressed", "true"),
-        _assert(cards.count() < n_all or page.get_by_text("No kitchens match those filters. Try fewer.").is_visible(),
+        _assert(cards.count() < n_all or page.get_by_text("No restaurants match those filters. Try fewer.").is_visible(),
                 f"{cards.count()} of {n_all}")))
     chips.get_by_role("button", name="Veg only").click()
     chips.get_by_role("button", name="Open now").click()
@@ -573,7 +573,7 @@ with sync_playwright() as p:
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
         expect(page.get_by_text(re.compile(r"₹25\.00 up to 3 km; ₹35\.00 up to 6 km; ₹50\.00 up to 10 km"))).to_be_attached(),
         # R29 fee model v2: the platform fee replaced the service fee
-        expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹85\.00\) goes to BhojanGo"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹15\.00\) goes to BhojanGo"))).to_be_attached(),
         expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
@@ -597,8 +597,8 @@ with sync_playwright() as p:
     page.goto(base, wait_until="networkidle")
     page.get_by_role("combobox", name="Delivery address").fill("Madhapur")
     page.get_by_role("option", name=re.compile("^Madhapur")).click()
-    expect(page.get_by_role("region", name="Kitchens near you")).to_be_visible(timeout=20000)
-    page.get_by_role("region", name="Kitchens near you").get_by_role("link", name=re.compile(KITCHEN)).click()
+    expect(page.get_by_role("region", name="Restaurants near you")).to_be_visible(timeout=20000)
+    page.get_by_role("region", name="Restaurants near you").get_by_role("link", name=re.compile(KITCHEN)).click()
     url_is(page, KITCHEN_PATH + "$")
     ld = lambda: [json.loads(s) for s in page.locator('script[type="application/ld+json"]').all_inner_texts()]  # noqa: E731
     check("kitchen page: menu sections, Restaurant + Menu structured data", lambda: (
@@ -748,7 +748,7 @@ with sync_playwright() as p:
     # The bag on the kitchen page now has the whole bill (signed in, an address).
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
     check("bag: the fair bill once signed in", lambda: (
-        expect(bag.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(timeout=20000),
+        expect(bag.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(timeout=20000),
         expect(bag.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
         expect(bag.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
         expect(bag.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible()))
@@ -760,7 +760,7 @@ with sync_playwright() as p:
     check("checkout: saved address, live fair bill with who gets what, price held", lambda: (
         expect(page.get_by_role("region", name="Deliver to")).to_contain_text("Home", timeout=20000),
         expect(bill.get_by_text("The fair bill")).to_be_visible(timeout=20000),
-        expect(bill.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(),
+        expect(bill.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(),
         expect(bill.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
         expect(bill.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
@@ -815,7 +815,7 @@ with sync_playwright() as p:
     expect(chat.get_by_role("button", name="Message")).to_be_visible(timeout=20000)
     chat.get_by_role("button", name="Message").click()
     check("messages: the rider's quick message reaches the tracking page, numbers private", lambda: (
-        expect(chat.get_by_text("I'm at the kitchen, waiting for your order.")).to_be_visible(timeout=20000),
+        expect(chat.get_by_text("I'm at the restaurant, waiting for your order.")).to_be_visible(timeout=20000),
         expect(chat.get_by_text("Phone numbers stay private on both sides.")).to_be_visible()))
     chat.get_by_label("Write a short message").fill("Gate 2, my number is 98480 22334")
     chat.get_by_role("button", name="Send").click()
@@ -935,11 +935,11 @@ with sync_playwright() as p:
         expect(page.get_by_role("heading", name="Orders", level=1)).to_be_visible(timeout=15000),
         expect(lst.get_by_role("button", name=re.compile(re.escape(code))).first).to_contain_text("Delivered", timeout=15000)))
     a11y(page, "account-orders")
-    page.get_by_role("searchbox", name="Search by kitchen, dish or order code").fill(code[1:])
+    page.get_by_role("searchbox", name="Search by restaurant, dish or order code").fill(code[1:])
     check("orders: search by order code", lambda: (
         expect(lst.get_by_role("button", name=re.compile(re.escape(code)))).to_have_count(1, timeout=15000),
         expect(lst.get_by_role("button", name=re.compile(r"· #[0-9A-F]{6} "))).to_have_count(1)))
-    page.get_by_role("searchbox", name="Search by kitchen, dish or order code").fill("")
+    page.get_by_role("searchbox", name="Search by restaurant, dish or order code").fill("")
     page.get_by_role("group", name="Show orders").get_by_role("button", name="Cancelled").click()
     check("orders: status filter", lambda: (
         expect(page.get_by_role("group", name="Show orders").get_by_role("button", name="Cancelled")).to_have_attribute("aria-pressed", "true"),
@@ -966,7 +966,7 @@ with sync_playwright() as p:
     receipt = page.get_by_role("article", name=f"Receipt for order {code}")
     check("receipt: the full bill with who gets each line", lambda: (
         expect(receipt.get_by_role("heading", name=KITCHEN)).to_be_visible(timeout=15000),
-        expect(receipt.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(),
+        expect(receipt.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(),
         expect(receipt.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible(),
         expect(receipt.get_by_role("row", name=re.compile("^Tip for your delivery partner Delivery partner"))).to_be_visible(),
         expect(receipt.get_by_text("You paid")).to_be_visible()))
@@ -991,7 +991,7 @@ with sync_playwright() as p:
     url_is(page, r"/orders/[0-9a-f-]{36}/track$", 40000)
     cancel_box = page.get_by_test_id("cancel-order")
     check("cancel: offered while the kitchen hasn't started, with the API's rule", lambda: (
-        expect(cancel_box.get_by_text("You can cancel until the kitchen starts cooking.")).to_be_visible(timeout=20000),
+        expect(cancel_box.get_by_text("You can cancel until the restaurant starts cooking.")).to_be_visible(timeout=20000),
         expect(cancel_box.get_by_role("button", name="Cancel order")).to_be_visible()))
     cancel_box.get_by_role("button", name="Cancel order").click()
     check("cancel: asks once and says what comes back, to where", lambda: (
@@ -1141,11 +1141,11 @@ with sync_playwright() as p:
     form.get_by_role("button", name="Create account and continue").click()
     check("/partner form: empty fields are named, tied to their inputs, nothing sent", lambda: (
         expect(k.get_by_test_id("partner-form-error")).to_have_text(re.compile(r"Fix [67] fields to continue.")),  # 6 when the city is the visitor's own
-        expect(form.get_by_label("Kitchen name")).to_have_attribute("aria-invalid", "true"),
+        expect(form.get_by_label("Restaurant name")).to_have_attribute("aria-invalid", "true"),
         expect(form.get_by_text("Use at least 10 characters.")).to_be_visible()))
     n = random.randint(10000, 99999)
     email = f"kitchen{n}@example.com"
-    form.get_by_label("Kitchen name").fill("Lata's Kitchen")
+    form.get_by_label("Restaurant name").fill("Lata's Kitchen")
     form.get_by_label("City").select_option("IN-TG-HYD")
     form.get_by_label("Your name").fill("Lata Menon")
     form.get_by_label("Mobile number").fill(f"90002{n}")
@@ -1397,11 +1397,13 @@ with sync_playwright() as p:
         def deliver_page(code: str = code, terms: dict = terms) -> None:
             dl.goto(f"{base}/deliver?city={code}", wait_until="networkidle")
             sym = symbols[terms["currency"]]
-            expect(dl.get_by_role("heading", level=1)).to_have_text("Deliver from local kitchens, on your own hours")
+            expect(dl.get_by_role("heading", level=1)).to_have_text("Deliver from local restaurants, on your own hours")
             expect(dl.get_by_test_id("pay-cards")).to_have_attribute("data-city", code)
             expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['total'])}")
             expect(dl.get_by_test_id("pay-trip")).to_contain_text(f"{sym}{whole(terms['example']['base'])}")
-            expect(dl.get_by_test_id("pay-floor")).to_contain_text(f"{sym}{whole(terms['hourly_floor'])} an hour")
+            # R30: a trip pays its delivery fee + the tip; no hourly floor in the seed (the card shows only where a city has one)
+            _assert(terms["hourly_floor"] is None and terms["example"]["per_wait_minute"] in ("0", "0.00", 0), terms)
+            expect(dl.get_by_test_id("pay-floor")).to_have_count(0)
             expect(dl.get_by_test_id("pay-tips")).to_contain_text("100%")
             expect(dl.get_by_test_id("pay-weekly")).to_contain_text("Monday")
             expect(dl.get_by_test_id("requirements")).to_have_attribute("data-country", terms["country"])

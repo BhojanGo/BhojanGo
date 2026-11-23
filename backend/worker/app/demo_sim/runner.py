@@ -455,7 +455,7 @@ class City:
             await cust.call("core", "POST", "/payments/initiate", json=PAY_BODY(order["id"]))
             logger.info("demo_order_placed", city=self.key, order_id=order["id"], restaurant_id=kitchen)
             return str(order["id"])
-        logger.info("demo_order_not_placed", city=self.key, reason="no kitchen the demo customer ordered from is open now")
+        logger.info("demo_order_not_placed", city=self.key, reason="no restaurant the demo customer ordered from is open now")
         return None
 
 

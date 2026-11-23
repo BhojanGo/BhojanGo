@@ -21,7 +21,7 @@ Tap **Download my data** and we give you a file with everything we hold about yo
 - your support requests, problem reports and refunds,
 - your ratings and reviews.
 
-It contains only your own information, nothing about delivery partners, kitchen partners or other customers.
+It contains only your own information, nothing about delivery partners, restaurant partners or other customers.
 
 ## Delete your account
 
@@ -39,6 +39,6 @@ When you delete your account, we:
 
 ## What we keep
 
-Kitchens and tax records need past orders to stay complete, so your past orders stay in our records **without** your personal details: no name, no phone, and no street, map pin or delivery notes. Only the city, state, postal code and country stay, because they're needed for tax.
+Restaurants and tax records need past orders to stay complete, so your past orders stay in our records **without** your personal details: no name, no phone, and no street, map pin or delivery notes. Only the city, state, postal code and country stay, because they're needed for tax.
 
 > Want to download your data first? Do it before you delete your account. Once it's deleted, you can't sign in to get it.

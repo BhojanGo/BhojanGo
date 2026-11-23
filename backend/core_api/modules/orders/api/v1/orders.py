@@ -66,7 +66,7 @@ async def list_my_orders(
     db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    q: str | None = Query(None, min_length=1, max_length=100, description="Kitchen or item name (any case), or the order code (#A9D1F0)"),
+    q: str | None = Query(None, min_length=1, max_length=100, description="Restaurant or item name (any case), or the order code (#A9D1F0)"),
     status_filter: list[HistoryStatus] | None = Query(None, alias="status", description="delivered | cancelled | active; repeatable"),
     date_from: date | None = Query(None, alias="from", description="Placed on or after this day (UTC)"),
     date_to: date | None = Query(None, alias="to", description="Placed on or before this day (UTC)"),
@@ -442,7 +442,7 @@ async def reorder(
     order = await _own_order(db, current_user, order_id)
     kitchen = await restaurant_brief(db, order.restaurant_id)
     if kitchen is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This kitchen is no longer on BhojanGo")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This restaurant is no longer on BhojanGo")
     items, unavailable, problems = await reorder_lines(db, order.restaurant_id, order.items or [])
     return ReorderResponse.model_validate({"restaurant": kitchen, "items": items, "unavailable": unavailable,
                                            "problems": [asdict(p) for p in problems]})

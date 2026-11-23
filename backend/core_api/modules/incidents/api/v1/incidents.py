@@ -40,7 +40,7 @@ async def _kitchen_city(db: AsyncSession, restaurant_id: uuid.UUID) -> str:
 
     city = await restaurant_city_code(db, restaurant_id)
     if not city:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Kitchen not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     return city
 
 

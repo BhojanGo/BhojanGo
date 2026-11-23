@@ -32,7 +32,7 @@ class TermsCity(BaseModel):
 class ExampleTrip(BaseModel):
     """One trip as the engine pays it (rider_pay base_distance_wait), before tips."""
 
-    distance: Decimal = Field(description="Kitchen to customer, in the country's distance unit")
+    distance: Decimal = Field(description="Restaurant to customer, in the country's distance unit")
     base: Decimal
     per_unit: Decimal
     distance_pay: Decimal
@@ -101,7 +101,14 @@ async def terms(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z
         t = delivery.terms(country.settings)
         example = None
         pay = resolved.get("rider_pay:base_distance_wait")
-        if pay is not None:
+        fee = resolved.get("delivery_fee")
+        if fee is not None and fee.template == "base_per_distance":
+            # R30: a trip pays the order's delivery fee (base + per km/mi) and the whole tip; no waiting pay
+            p, dist = fee.params, t["example_distance"]
+            base, per = money(p["base"]), Decimal(str(p["per_unit"]))
+            example = ExampleTrip(distance=dist, base=base, per_unit=per, distance_pay=money(per * Decimal(str(dist))),
+                                  per_wait_minute=Decimal(0), free_wait_minutes=0, total=money(base + per * Decimal(str(dist))))
+        elif pay is not None:
             p, dist = pay.params, t["example_distance"]
             total = rider_base_pay(p, dist, 0)
             base = money(p["base"])

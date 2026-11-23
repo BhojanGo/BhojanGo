@@ -13,7 +13,7 @@ export const HELP_TOPICS = [
   { value: "payments-refunds", label: "Payments and refunds" },
   { value: "delivery", label: "Delivery" },
   { value: "account", label: "Account and sign-in" },
-  { value: "kitchen-partners", label: "Kitchen partners" },
+  { value: "kitchen-partners", label: "Restaurant partners" },
   { value: "delivery-partners", label: "Delivery partners" },
 ] as const;
 export const topicLabel = (v: string) => HELP_TOPICS.find((t) => t.value === v)?.label ?? v;

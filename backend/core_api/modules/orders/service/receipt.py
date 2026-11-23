@@ -21,8 +21,8 @@ from zoneinfo import ZoneInfo
 from shared.money import format_money, paid_after_refunds
 
 TIMEZONE = {"IN": "Asia/Kolkata", "US": "UTC"}
-WHO_FUNDS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
-WHO_COLLECTS = {"restaurant": "the kitchen", "platform": "BhojanGo"}
+WHO_FUNDS = {"restaurant": "the restaurant", "platform": "BhojanGo"}
+WHO_COLLECTS = {"restaurant": "the restaurant", "platform": "BhojanGo"}
 
 
 def country_of(market_city: str | None, currency: str) -> str:

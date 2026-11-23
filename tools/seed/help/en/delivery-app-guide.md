@@ -3,7 +3,7 @@ slug: delivery-app-guide
 topic: delivery-partners
 country: *
 title: How do I use the BhojanGo Delivery app?
-summary: Go online, accept offers, pick up from the kitchen and confirm the drop-off with the customer's PIN or a photo at the door. SOS is always one tap away.
+summary: Go online, accept offers, pick up from the restaurant and confirm the drop-off with the customer's PIN or a photo at the door. SOS is always one tap away.
 popular: 0
 related: delivery-partner-pay, become-a-delivery-partner, delivery-pin
 ---
@@ -15,11 +15,11 @@ Tap **Go online** on the **Drive** tab. Allow location so we can offer you deliv
 
 ## Offers
 
-A new offer shows the full pay, including any tip, the distance, the time and where the kitchen is. You only see the area of the drop-off until you pick up. Tap **Accept** before the timer runs out, or **Pass**.
+A new offer shows the full pay, including any tip, the distance, the time and where the restaurant is. You only see the area of the drop-off until you pick up. Tap **Accept** before the timer runs out, or **Pass**.
 
 ## Pickup
 
-1. Head to the kitchen. The app shows if the food is still being prepared or ready.
+1. Head to the restaurant. The app shows if the food is still being prepared or ready.
 2. Check the order code on the bag.
 3. Tap **Picked up**. The customer's full address appears now.
 

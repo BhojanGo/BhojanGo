@@ -2,12 +2,12 @@
 slug: kitchen-tablet-app
 topic: kitchen-partners
 country: *
-title: मैं BhojanGo Kitchen टैबलेट app कैसे इस्तेमाल करूँ?
+title: मैं BhojanGo Restaurant टैबलेट app कैसे इस्तेमाल करूँ?
 summary: नए ऑर्डर स्वीकार या अस्वीकार करें, उन्हें तैयार मार्क करें, व्यस्त होने पर ऑर्डर रोकें या धीमे करें, डिश को खत्म मार्क करें और अपने ऑफ़र चलाएँ।
 popular: 0
 related: kitchen-payouts-and-statements, kitchen-call-back, add-your-kitchen
 ---
-BhojanGo Kitchen app आपके किचन के टैबलेट पर चलता है। नए ऑर्डर तब तक बजते रहते हैं जब तक आप उन्हें स्वीकार या अस्वीकार नहीं करते।
+BhojanGo Restaurant app आपके रेस्टोरेंट के टैबलेट पर चलता है। नए ऑर्डर तब तक बजते रहते हैं जब तक आप उन्हें स्वीकार या अस्वीकार नहीं करते।
 
 ## नए ऑर्डर
 

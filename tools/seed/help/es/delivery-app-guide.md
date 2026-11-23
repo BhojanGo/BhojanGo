@@ -3,7 +3,7 @@ slug: delivery-app-guide
 topic: delivery-partners
 country: *
 title: ¿Cómo uso la app BhojanGo Delivery?
-summary: Conéctate, acepta ofertas, recoge en la cocina y confirma la entrega con el PIN del cliente o una foto en la puerta. El botón SOS siempre está a un toque.
+summary: Conéctate, acepta ofertas, recoge en el restaurante y confirma la entrega con el PIN del cliente o una foto en la puerta. El botón SOS siempre está a un toque.
 popular: 0
 related: delivery-partner-pay, become-a-delivery-partner, delivery-pin
 ---
@@ -15,11 +15,11 @@ Toca **Conectarte** en la pestaña **Conducir**. Permite el acceso a tu ubicaci�
 
 ## Ofertas
 
-Una oferta nueva muestra el pago completo, incluida la propina si la hay, la distancia, el tiempo y dónde está la cocina. Solo ves la zona de la entrega hasta que recoges el pedido. Toca **Aceptar** antes de que se acabe el tiempo, o **Pasar**.
+Una oferta nueva muestra el pago completo, incluida la propina si la hay, la distancia, el tiempo y dónde está el restaurante. Solo ves la zona de la entrega hasta que recoges el pedido. Toca **Aceptar** antes de que se acabe el tiempo, o **Pasar**.
 
 ## Recogida
 
-1. Ve a la cocina. La app muestra si la comida todavía se está preparando o si ya está lista.
+1. Ve al restaurante. La app muestra si la comida todavía se está preparando o si ya está lista.
 2. Verifica el código del pedido en la bolsa.
 3. Toca **Recogido**. Ahora aparece la dirección completa del cliente.
 

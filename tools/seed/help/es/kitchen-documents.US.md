@@ -2,16 +2,16 @@
 slug: kitchen-documents
 topic: kitchen-partners
 country: US
-title: ¿Qué necesita mi cocina para empezar a operar en EE. UU.?
+title: ¿Qué necesita mi restaurante para empezar a operar en EE. UU.?
 summary: Los datos de tu negocio, tu menú y una cuenta bancaria para tu pago semanal, que se configura de forma segura con nuestro socio de pagos Stripe.
 popular: 0
 related: add-your-kitchen, kitchen-payouts-and-statements, kitchen-tablet-app
 ---
-En EE. UU., la solicitud de socio en la app BhojanGo Kitchen te pide los datos de tu negocio, tu menú y una cuenta bancaria.
+En EE. UU., la solicitud de socio en la app BhojanGo Restaurant te pide los datos de tu negocio, tu menú y una cuenta bancaria.
 
 ## Datos del negocio
 
-El nombre de tu cocina tal como lo verán los clientes, tu dirección y la ubicación en el mapa donde los socios repartidores recogen los pedidos.
+El nombre de tu restaurante tal como lo verán los clientes, tu dirección y la ubicación en el mapa donde los socios repartidores recogen los pedidos.
 
 ## Permiso de alimentos
 
@@ -37,4 +37,4 @@ Si tu banco no está confirmado cuando toca un pago, tu estado de cuenta queda e
 
 Agrega al menos 5 platillos con precios. Tu gerente de socios de BhojanGo te ayuda a configurar tu menú y tus fotos.
 
-> Cuando completes todos los pasos, revisamos tus datos y activamos tu cocina. A partir de entonces, los pedidos nuevos sonarán en tu tableta de BhojanGo Kitchen.
+> Cuando completes todos los pasos, revisamos tus datos y activamos tu restaurante. A partir de entonces, los pedidos nuevos sonarán en tu tableta de BhojanGo Restaurant.

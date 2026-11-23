@@ -20,7 +20,7 @@ type Kind = "terms" | "privacy" | "kitchen_partner_terms" | "delivery_partner_te
 const KINDS: { value: Kind; label: string }[] = [
   { value: "terms", label: "Terms of use" },
   { value: "privacy", label: "Privacy notice" },
-  { value: "kitchen_partner_terms", label: "Kitchen partner terms" },
+  { value: "kitchen_partner_terms", label: "Restaurant partner terms" },
   { value: "delivery_partner_terms", label: "Delivery partner terms" },
 ];
 const kindLabel = (k: string) => KINDS.find((x) => x.value === k)?.label ?? k;

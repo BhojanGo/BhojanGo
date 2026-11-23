@@ -30,6 +30,8 @@ export function cityFaq(c: CityPage, p: CityPricing | null, t: T, formatLocale: 
       parts.push(t("city.faq_band_beyond_per", { fee: m(f.beyond_per_unit), unit, distance: dist(last.up_to) }));
     }
     cost.push(t("city.faq_bands", { bands: parts.join("; ") }));
+  } else if (f?.type === "base_per_distance" && f.base != null && f.per_unit != null) {
+    cost.push(t("city.faq_base_per", { base: m(f.base), per_unit: m(f.per_unit), unit }));
   } else if (f?.type === "free_above" && f.min_subtotal != null && f.otherwise != null) {
     cost.push(t("city.faq_free_above", { min: m(f.min_subtotal), fee: m(f.otherwise) }));
   } else if (p.delivery_from != null) {

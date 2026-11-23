@@ -128,7 +128,7 @@ class FeeSlab(BaseModel):
 class DeliveryFeeSummary(BaseModel):
     """The city's delivery fee rule. ``type`` is the rule's template:
     distance_slabs (slabs, beyond_per_unit), flat (amount), free_above
-    (min_subtotal, otherwise) or tier_base (tiers by kitchen tier)."""
+    (min_subtotal, otherwise), tier_base (tiers by restaurant tier) or base_per_distance (R30: base, per_unit)."""
 
     type: str
     slabs: list[FeeSlab] = []
@@ -137,6 +137,8 @@ class DeliveryFeeSummary(BaseModel):
     min_subtotal: Decimal | None = None
     otherwise: Decimal | None = None
     tiers: dict[str, Decimal] | None = None
+    base: Decimal | None = Field(default=None, description="base_per_distance: the fee at zero distance")
+    per_unit: Decimal | None = Field(default=None, description="base_per_distance: per km/mi from the restaurant")
 
 
 class ServiceFeeSummary(BaseModel):
@@ -175,5 +177,5 @@ class CityPricing(BaseModel):
     platform_fee: PlatformFeeSummary | None = None
     small_order_fee: SmallOrderFeeSummary | None = None
     min_order: list[ZoneMinOrder] = Field(default=[], description="Minimum order per open zone that has one")
-    max_distance: Decimal | None = Field(default=None, description="The farthest a kitchen delivers (max_radius rule)")
+    max_distance: Decimal | None = Field(default=None, description="The farthest a restaurant delivers (max_radius rule)")
     tip_presets: TipPresetsOut | None = None

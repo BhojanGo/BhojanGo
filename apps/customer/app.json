@@ -36,7 +36,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "BhojanGo uses your location only while you use the app, to find kitchens near you and set your delivery address.",
+          "locationWhenInUsePermission": "BhojanGo uses your location only while you use the app, to find restaurants near you and set your delivery address.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false
         }

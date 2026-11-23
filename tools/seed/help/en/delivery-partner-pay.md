@@ -14,10 +14,10 @@ You see the whole pay for a trip before you accept it, and the amounts for your 
 Each delivery pays the whole delivery fee the customer paid. Where your city guarantees a minimum for the trip, you get whichever is more: the delivery fee, or
 
 - a **base** amount for the trip,
-- an amount for the **distance** from the kitchen to the customer,
-- **waiting pay**, in cities that pay for waiting, when you wait at the kitchen longer than a few free minutes.
+- an amount for the **distance** from the restaurant to the customer,
+- **waiting pay**, in cities that pay for waiting, when you wait at the restaurant longer than a few free minutes.
 
-In cities where combined trips are switched on, you may be offered two orders from the same kitchen. The second drop-off pays its distance and waiting time plus a bonus for the extra order.
+In cities where combined trips are switched on, you may be offered two orders from the same restaurant. The second drop-off pays its distance and waiting time plus a bonus for the extra order.
 
 BhojanGo pays any difference between the delivery fee and that guaranteed amount. The offer shows this pay as **Guaranteed**, together with the tip, before you accept.
 
@@ -25,7 +25,7 @@ BhojanGo pays any difference between the delivery fee and that guaranteed amount
 
 Every city has a minimum pay: the least you earn for each active hour.
 
-- **Active time** runs from when you accept an offer to when you drop off. Driving to the kitchen and waiting there count. Overlapping deliveries count once.
+- **Active time** runs from when you accept an offer to when you drop off. Driving to the restaurant and waiting there count. Overlapping deliveries count once.
 - At the end of the week, if your trip pay for your active hours comes to less than the minimum pay, we top it up.
 - Tips don't count towards the minimum pay. They're always on top.
 

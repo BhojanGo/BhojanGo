@@ -326,7 +326,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
             PayoutStatement.id.in_([uuid.UUID(i) for i in carry.statements]), PayoutStatement.carried_to.is_(None))
             .values(carried_to=st.id).execution_options(synchronize_session=False))
         if done.rowcount != len(carry.statements):  # type: ignore[attr-defined]
-            raise FinanceError("Another payout run carried this kitchen's balance at the same time: try again")
+            raise FinanceError("Another payout run carried this restaurant's balance at the same time: try again")
     ct = carry_totals(list(balances.values()))
     run.totals = {"orders": len(week.orders), "restaurants": str(week.restaurants_total), "riders": str(week.riders_total),
                   "min_pay_top_ups": str(week.top_ups),

@@ -297,6 +297,7 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
             )}
           </Field>
         </div>
+        <p className="m-0 mt-5 rounded-[12px] bg-peacock-mist px-4 py-3 text-body" data-testid="signup-terms">{t("kitchen_join.terms_payout")}</p>
         <div className="mt-5">
           <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-body">
             <input type="checkbox" name="accept_terms" checked={f.accept_terms} onChange={(e) => set("accept_terms", e.target.checked)}

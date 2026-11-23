@@ -394,7 +394,7 @@ def _changes(live: SimSide, draft: SimSide) -> list[dict]:
         b = sum((ln.amount for ln in draft.lines if ln.label == label), Decimal(0))
         if a != b:
             out.append({"label": label, "live": a, "draft": b})
-    for label, key in (("Customer pays", None), ("Kitchen gets", "restaurant"), ("Delivery partner gets", "rider"),
+    for label, key in (("Customer pays", None), ("Restaurant gets", "restaurant"), ("Delivery partner gets", "rider"),
                        ("Tax", "tax"), ("Platform keeps", "platform")):
         a = live.total if key is None else getattr(live.split, key)
         b = draft.total if key is None else getattr(draft.split, key)

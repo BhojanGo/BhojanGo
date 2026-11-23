@@ -68,7 +68,7 @@ def require_phone_in(country: CountryInfo, phone: str | None) -> None:
 
 def require_currency_of(country: CountryInfo, currency: str) -> None:
     if currency != country.currency:
-        raise _bad("CURRENCY_MISMATCH", f"Kitchens in {country.code} charge in {country.currency}")
+        raise _bad("CURRENCY_MISMATCH", f"Restaurants in {country.code} charge in {country.currency}")
 
 
 async def require_known_currency(db: AsyncSession, currency: str) -> None:

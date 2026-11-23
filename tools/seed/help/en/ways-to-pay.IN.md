@@ -7,7 +7,7 @@ summary: Pay with UPI, credit or debit cards and wallets, through our payment pa
 popular: 8
 related: price-held-while-you-pay, addresses-and-payment-methods, how-refunds-work
 ---
-In India, BhojanGo takes payments through Razorpay, our payment partner. You pay before the kitchen gets your order, so there's nothing to settle at the door.
+In India, BhojanGo takes payments through Razorpay, our payment partner. You pay before the restaurant gets your order, so there's nothing to settle at the door.
 
 ## Ways to pay
 

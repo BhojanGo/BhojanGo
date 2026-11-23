@@ -13,7 +13,7 @@ on fees).
 """
 import re
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -72,6 +72,14 @@ class DeliveryFreeAbove(_P):
     otherwise: Money = Field(ge=0, description="Fee below the threshold")
 
 
+class DeliveryBasePerDistance(_P):
+    """R30: base + per km/mi from the restaurant to the customer (the country's unit: per mile in the
+    USA, per km in India). The whole fee goes to the delivery partner."""
+
+    base: Money = Field(ge=0)
+    per_unit: Money = Field(ge=0, description="Per km/mi from the restaurant to the customer")
+
+
 class DeliveryTierBase(_P):
     tiers: dict[str, Money] = Field(min_length=1, examples=[{"A": 25, "B": 30, "C": 40}])
     default_tier: str
@@ -128,7 +136,7 @@ class TaxRateOnLines(_P):
     target_lines: list[TaxLine] = Field(min_length=1)
     collected_by: Literal["platform", "restaurant"] = "platform"
     inclusive: bool = False
-    after_promotions: bool = Field(default=True, description="A discount the kitchen funds reduces the tax base")
+    after_promotions: bool = Field(default=True, description="A discount the restaurant funds reduces the tax base")
     # R16: who funds a discount decides whether it lowers the tax base. India's default: a discount the
     # platform funds does NOT (5% GST on the food before it). Until a CA confirms, admin says so.
     platform_discounts_reduce_base: bool = Field(default=True, description="A discount the platform funds reduces the tax base")
@@ -159,13 +167,31 @@ class FeeMinPlatform(_P):
     amount: Money = Field(ge=0)
 
 
-class FeeCardEstimate(_P):
-    """The card processing fee, estimated as percent + fixed of what the customer is charged less the tip.
-    Deducted from the restaurant's payout. In production the processor's actual fee replaces it once the
-    payment provider reports it; local and QA keep the estimate."""
-
+class MethodFee(_P):
     percent: Decimal = Field(ge=0, le=10)
     fixed: Money = Field(default=Decimal(0), ge=0)
+
+
+PAY_METHODS = ("card", "upi", "wallet", "net_banking")  # cash: never a fee
+
+
+class FeeCardEstimate(_P):
+    """The payment processing fee estimate per payment method (R30), percent + fixed of what the customer
+    is charged less the tip, deducted from the restaurant's payout. A method left out uses the card rate;
+    cash has no fee. In production the gateway's actual fee for the payment (webhook) replaces it; local
+    and QA keep the estimate. The R29 shape ``{percent, fixed}`` still reads as the card rate."""
+
+    card: MethodFee
+    upi: MethodFee | None = None
+    wallet: MethodFee | None = None
+    net_banking: MethodFee | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def single_rate(cls, v: Any) -> Any:
+        if isinstance(v, dict) and "percent" in v and "card" not in v:
+            return {"card": {"percent": v["percent"], "fixed": v.get("fixed", 0)}}
+        return v
 
 
 # ── Commission ────────────────────────────────────────────────────────────────
@@ -399,7 +425,7 @@ LEVELS = ("platform", "country", "region", "city", "zone", "restaurant")
 ALLOWED_LEVELS: dict[str, frozenset[str]] = {
     # A country default that a new city inherits (a city launched in admin prices
     # orders from day one); cities, zones and kitchens override it.
-    "delivery_fee": frozenset({"country", "city", "zone", "restaurant"}),
+    "delivery_fee": frozenset({"country", "region", "city", "zone", "restaurant"}),  # R30: states too
     "customer_fee": frozenset({"country", "city", "zone", "restaurant"}),
     "tax": frozenset({"country", "region", "city"}),
     "fee": frozenset({"country", "region", "city", "restaurant"}),  # R29: platform fee, its minimum, card fee estimate
@@ -415,6 +441,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "distance_slabs": DeliveryDistanceSlabs,
         "free_above": DeliveryFreeAbove,
         "tier_base": DeliveryTierBase,
+        "base_per_distance": DeliveryBasePerDistance,
     },
     "customer_fee": {
         "service_fee": ServiceFee,

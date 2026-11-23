@@ -58,6 +58,10 @@ async def process_webhook(payload: bytes, sig_header: str) -> dict:
             "razorpay_payment_id": payment_entity.get("id", ""),
             "status": "succeeded",
             "event_id": f"{payment_entity.get('id', '')}:captured",
+            # R30: what Razorpay kept of this payment (paise, its GST included) and the method used
+            # (card, upi, wallet, netbanking): the actual payment fee, per method
+            "provider_fee": payment_entity.get("fee") if isinstance(payment_entity.get("fee"), int) else None,
+            "method": payment_entity.get("method"),
         }
     elif event_type == "payment.failed":
         return {

@@ -2,16 +2,16 @@
 slug: kitchen-documents
 topic: kitchen-partners
 country: US
-title: What does my kitchen need to go live in the US?
+title: What does my restaurant need to go live in the US?
 summary: Your business details, your menu and a bank account for your weekly payout, set up securely with our payments partner Stripe.
 popular: 0
 related: add-your-kitchen, kitchen-payouts-and-statements, kitchen-tablet-app
 ---
-In the US, the partner application in the BhojanGo Kitchen app asks for your business details, your menu and a bank account.
+In the US, the partner application in the BhojanGo Restaurant app asks for your business details, your menu and a bank account.
 
 ## Business details
 
-Your kitchen's name as customers will see it, your street address, and the pin on the map where delivery partners pick up.
+Your restaurant's name as customers will see it, your street address, and the pin on the map where delivery partners pick up.
 
 ## Food permit
 
@@ -37,4 +37,4 @@ If your bank isn't confirmed when a payout is due, your statement waits and is p
 
 Add at least 5 dishes with prices. Your BhojanGo partner manager helps you set up your menu and photos.
 
-> When every step is done, we review your details and switch your kitchen on. New orders then ring on your BhojanGo Kitchen tablet.
+> When every step is done, we review your details and switch your restaurant on. New orders then ring on your BhojanGo Restaurant tablet.
