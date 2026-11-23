@@ -208,8 +208,9 @@ async def test_data_export_has_everything_of_mine_and_nothing_of_anyone_else(cli
     assert data["favourites"]["restaurants"][0]["id"] == rest["id"]
     assert data["notification_preferences"]["offers"]["email"] is True
     # Nobody else: no rider, no kitchen payout split, no rule internals.
-    for other in ("driver_id", "rider", "restaurant_payout", "platform_fee", "rule_id", "split"):
-        assert f'"{other}"' not in r.text, other
+    # (as keys: R29's bill has a line whose code is "platform_fee", the customer's own fee)
+    for other in ("driver_id", "rider", "restaurant_payout", "platform_fee", "rule_id", "split", "card_fee"):
+        assert f'"{other}":' not in r.text, other
 
 
 async def test_account_deletion_keeps_orders_for_tax_without_personal_details(client: AsyncClient) -> None:  # noqa: F811

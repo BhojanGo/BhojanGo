@@ -104,7 +104,8 @@ async def test_quote_order_snapshot_and_single_use(client: AsyncClient) -> None:
     assert snap["total"] == q["total"] and snap["context"]["zone"] == "Jubilee Hills"
     assert {r["slot"] for r in snap["rule_versions"]} >= {"delivery_fee", "fee:platform_fee_pct", "tax:rate_on_lines:gst_food"}
     split = snap["split"]
-    assert Decimal(split["restaurant"]) + Decimal(split["rider"]) + Decimal(split["tax"]) + Decimal(split["platform"]) == Decimal(q["total"])
+    assert (Decimal(split["restaurant"]) + Decimal(split["rider"]) + Decimal(split["tax"]) + Decimal(split["platform"])
+            + Decimal(split["card_fee"]) == Decimal(q["total"]))  # R29: the card fee goes to the payment provider
     boise_ops, _ = await login(client, "ops.boi@example.com", "BhojanGoAdmin1")
     assert (await client.get(f"/api/v1/pricing/orders/{order['id']}/snapshot", headers=boise_ops)).status_code == 403
 

@@ -56,7 +56,9 @@ async def test_payment_fees_in_the_split_by_method(client: AsyncClient) -> None:
     s_card, s_upi = await split_of(client, fin, card["id"]), await split_of(client, fin, upi["id"])
     total = Decimal(str(card["total"]))
     assert Decimal(s_card["payment_fees"]) == (total * 2 / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)  # Razorpay cards: 2%
-    assert Decimal(s_card["platform_keeps"]) == Decimal(s_card["platform"]) - Decimal(s_card["payment_fees"])
+    # R29 fee model v2: the card fee is the kitchen's (off its payout); the platform pays only the tax service (none in India)
+    assert Decimal(s_card["card_fee"]) == Decimal(s_card["payment_fees"])
+    assert Decimal(s_card["platform_keeps"]) == Decimal(s_card["platform"])
     assert s_card["detail"]["payment_fees"]["method"] == "card"
     # R15: the expected Razorpay rate is 2% on every method (UPI too) until Razorpay reports real fees.
     upi_total = Decimal(str(upi["total"]))
@@ -89,7 +91,7 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
         "scope": "IN-TG-HYD", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=2))})).json()
     city = next(c for c in rep["cities"] if c["city"] == "IN-TG-HYD")
     t = {k: Decimal(v) for k, v in city["totals"].items()}
-    assert city["orders"] >= 1 and t["payment_fees"] > 0
+    assert city["orders"] >= 1 and t["payment_fees"] >= 0  # R29: card fees are the kitchens'; India has no tax service fee
     assert t["keeps"] == t["platform"] - t["payment_fees"] - t["refunds"] - t["min_pay_top_ups"]  # R14: top-ups are ours
     # the platform line is the snapshot's: commission + customer fees - our offers - rider pay (tips excluded)
     assert t["platform"] == t["commission"] + t["customer_fees"] - t["platform_promos"] - t["rider_pay"]

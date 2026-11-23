@@ -128,8 +128,9 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
         ("missing_item", "restaurant"), ("damaged_in_transit", "platform")]
     # R16: GST on our commission (India 18%) and TDS (0% until a CA confirms) come off the kitchen's payout too
     assert Decimal(line["commission_tax"]) == -(commission * Decimal("0.18")).quantize(Decimal("0.01")) and Decimal(line["tds"]) == 0
+    assert Decimal(line["card_fee"]) < 0  # R29: the card fee comes off the kitchen's payout
     assert Decimal(line["net"]) == (food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
-                                    + Decimal(line["commission_tax"]) + Decimal(line["tds"]))
+                                    + Decimal(line["commission_tax"]) + Decimal(line["tds"]) + Decimal(line["card_fee"]))
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()
     rl = next(ln for ln in rs["lines"] if ln["order_id"] == order["id"])

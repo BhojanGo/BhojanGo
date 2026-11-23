@@ -139,7 +139,7 @@ async def test_application_steps(client: AsyncClient) -> None:
         rid = str((await db.execute(select(Restaurant.id).where(Restaurant.slug == "kesar-kitchen-kondapur"))).scalar())
     a = (await client.get(f"/api/v1/restaurants/{rid}/application", headers=h)).json()
     assert (a["done"], a["total"], a["current"], a["status"]) == (1, 5, "fssai", "pending_approval")
-    assert a["commission_percent"] == "15.0" and [s["title"] for s in a["steps"]][1] == "FSSAI licence"
+    assert a["commission_percent"] == "0.0" and [s["title"] for s in a["steps"]][1] == "FSSAI licence"
     from core_api.integration.test_orders_flow import upload
 
     assert (await upload(client, h, "rider_document")).status_code == 403  # partners upload partner documents only

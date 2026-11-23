@@ -136,7 +136,7 @@ async def test_a_new_kitchen_partner_signs_up_and_continues(client: AsyncClient)
     assert [k["id"] for k in (await client.get("/api/v1/restaurants/mine", headers=h)).json()] == [rid]
     a = (await client.get(f"/api/v1/restaurants/{rid}/application", headers=h)).json()
     assert a["current"] == "business" and a["done"] == 0 and a["status"] == "pending_approval"
-    assert a["commission_percent"] == "15.0"
+    assert a["commission_percent"] == "0.0"  # R29 fee model v2: India's commission is 0%
     a = (await client.put(f"/api/v1/restaurants/{rid}/business", headers=h, json={
         "street": "Plot 4, Road 2", "area": "Madhapur", "zip": "500081", "cuisines": ["Andhra"], "lat": 17.45, "lng": 78.39})).json()
     assert a["current"] == "fssai" and a["street"] == "Plot 4, Road 2" and a["cuisines"] == ["Andhra"]

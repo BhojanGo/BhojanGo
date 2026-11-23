@@ -7,7 +7,8 @@ from decimal import ROUND_HALF_UP, Decimal
 import pytest
 from httpx import AsyncClient
 
-from core_api.integration.test_tax import client, login, menu, place  # noqa: F401 - fixture
+from core_api.integration.test_orders_flow import login
+from core_api.integration.test_tax import client, menu, place  # noqa: F401 - fixture
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -45,7 +46,7 @@ async def test_boise_order_fees_snapshot_admin_levels_and_a_later_change(client:
 
     # The bill: the platform fee is 10% of food (at least $0.99); the partner gets the delivery fee and the tip.
     rid, cart, q = await boise_quote(client, cust)
-    food = Decimal(q["food_subtotal"])
+    food = line(q, "food")
     fee = line(q, "platform_fee")
     assert fee == max(Decimal("0.99"), (food * Decimal("0.10")).quantize(C, rounding=ROUND_HALF_UP))
     assert "service_fee" not in {ln["code"] for ln in q["lines"]}
