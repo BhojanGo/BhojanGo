@@ -250,7 +250,7 @@ export function HomeFeed({
         <div>
           <h1 id="greeting" className="m-0 text-h1">{greeting}</h1>
           <p className="mt-[6px] text-body text-muted">
-            {t("home.kitchens_deliver", { count: kitchens.length, place: "\u0000" }).split("\u0000").map((part, i) => (
+            {t("home.kitchens_deliver", { count: kitchens.filter((k) => k.deliverable !== false).length, place: "\u0000" }).split("\u0000").map((part, i) => (
               <span key={i}>{i > 0 && <AddressPill inline label={placeLabel} country={placeCountry ?? null} />}{part}</span>
             ))}
           </p>

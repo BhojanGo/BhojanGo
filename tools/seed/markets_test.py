@@ -75,10 +75,16 @@ class MarketsTests(unittest.TestCase):
         self.assertNotIn(deal, md.rules())
         self.assertEqual([r for r in md.rules() if r[4] == "restaurant"], [])
         keyed = {(r[0], r[1], r[4], r[5]): r[6] for r in md.rules()}
-        # R30: ₹15 minimum, the delivery fee as base + per mile/km, no delivery partner pay rules
+        # R30: ₹15 minimum, no delivery partner pay rules. R31: the delivery fee from distance bands, up to the
+        # max delivery distance (Boise 8 mi, Hyderabad 7 km); no base + per mile/km rules in the seed.
         self.assertEqual(keyed[("fee", "min_platform_fee", "country", "IN")]["amount"], 15)
-        self.assertEqual(keyed[("delivery_fee", "base_per_distance", "city", "US-ID-BOI")], {"base": "3.00", "per_unit": "1.00"})
-        self.assertEqual(keyed[("delivery_fee", "base_per_distance", "city", "IN-TG-HYD")], {"base": 20, "per_unit": 6})
+        self.assertEqual([(s["up_to"], s["fee"]) for s in keyed[("delivery_fee", "distance_slabs", "city", "US-ID-BOI")]["slabs"]],
+                         [(2, "3.50"), (4, "4.50"), (6, "5.50"), (8, "6.50")])
+        self.assertEqual([(s["up_to"], s["fee"]) for s in keyed[("delivery_fee", "distance_slabs", "city", "IN-TG-HYD")]["slabs"]],
+                         [(3, 30), (5, 40), (7, 50)])
+        self.assertEqual((keyed[("business", "max_radius", "country", "US")]["distance"],
+                          keyed[("business", "max_radius", "country", "IN")]["distance"]), (8, 7))
+        self.assertFalse([r for r in md.rules() if r[1] == "base_per_distance"])
         self.assertFalse([r for r in md.rules() if r[0] == "rider_pay"])
 
 

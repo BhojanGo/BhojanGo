@@ -68,7 +68,7 @@ export interface Week {
 
 export interface WeekLine {
   order_id: string; delivered_at: string; base: string; distance: string; waiting: string; tip: string; total: string;
-  restaurant_name?: string; drop_area?: string | null; delivery_fee?: string;
+  restaurant_name?: string; drop_area?: string | null; delivery_fee?: string; distance_units?: string;
 }
 
 // ── formatting ───────────────────────────────────────────────────────────────

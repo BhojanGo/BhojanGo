@@ -72,8 +72,10 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const eta = t("common.minutes", { min: etaMin, max: etaMax });
   const fee = card ? (card.delivery_fee != null ? Number(card.delivery_fee) : null) : Number(r.delivery_fee);
   const free = card?.free_delivery || fee === 0;
-  const feeText = free ? t("common.free_delivery") : fee == null ? null : card ? t("kitchen.fee_to_address", { fee: fmt(fee) }) : t("common.delivery_fee", { fee: fmt(fee) });
-  const feeChip = free ? t("common.free_delivery") : fee == null ? null : t("common.delivery_fee", { fee: fmt(fee) });
+  // R31: past the max delivery distance from this address (delivery bands, road distance): no delivery
+  const tooFar = card?.deliverable === false;
+  const feeText = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : card ? t("kitchen.fee_to_address", { fee: fmt(fee) }) : t("common.delivery_fee", { fee: fmt(fee) });
+  const feeChip = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : t("common.delivery_fee", { fee: fmt(fee) });
 
   const opens = clock(r.opens_at, formatLocale);
   const closes = clock(r.closes_at, formatLocale);
@@ -204,8 +206,9 @@ export default async function KitchenPage({ params }: { params: Params }) {
         restaurant={{ id: r.id, name: r.name, slug: r.slug, city: r.city, currency }}
         categories={categories}
         deliverTo={place ? (place.address_id ? { address_id: place.address_id } : { lat: place.lat, lng: place.lng }) : null}
-        closed={closedNow}
-        closedLabel={closedLabel}
+        closed={closedNow || tooFar}
+        closedLabel={tooFar ? t("common.too_far") : closedLabel}
+        tooFar={tooFar}
         closedNote={avail?.closed_note ?? null}
         forNow={forNow}
         notTaking={notTaking}

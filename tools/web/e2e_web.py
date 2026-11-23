@@ -499,15 +499,19 @@ with sync_playwright() as p:
     cards = feed.get_by_role("link")
 
     def counts_agree() -> None:
-        # "N kitchens deliver to <address>", "See all N" and the cards are one list (/discover for the address).
+        # "N restaurants deliver to <address>" counts the deliverable cards; "See all M" opens every card, R31: with
+        # the ones past the max delivery distance last, marked "Too far to deliver" (/discover for the address).
         said = page.get_by_text(re.compile(r"^\d+ restaurants? delivers? to Madhapur")).inner_text()
         n = int(said.split()[0])
         see_all = feed.get_by_role("button", name=re.compile(r"^See all \d+$"))
+        total = int(see_all.inner_text().split()[-1]) if see_all.count() else None
         if see_all.count():
-            _assert(int(see_all.inner_text().split()[-1]) == n, f"{said!r} but {see_all.inner_text()!r}")
             see_all.click()
             expect(see_all).to_have_count(0)
-        expect(cards).to_have_count(n)
+        far = feed.get_by_test_id("too-far").count()
+        _assert(cards.count() - far == n, f"{said!r} but {cards.count()} cards, {far} too far")
+        if total is not None:
+            _assert(cards.count() == total, f"See all {total} but {cards.count()} cards")
     check("personal home: kitchens that deliver, See all and the cards are the same number", counts_agree)
     n_all = cards.count()
     chips = page.get_by_role("group", name="Filter restaurants")
@@ -571,8 +575,8 @@ with sync_playwright() as p:
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
-        # R30: the delivery fee is base + per km, all of it to the delivery partner
-        expect(page.get_by_text(re.compile(r"The delivery fee is ₹20\.00 plus ₹6\.00 per km from the restaurant to you, and all of it goes to your delivery partner"))).to_be_attached(),
+        # R31: the delivery fee from distance bands, up to the max delivery distance
+        expect(page.get_by_text(re.compile(r"₹30\.00 up to 3 km; ₹40\.00 up to 5 km; ₹50\.00 up to 7 km"))).to_be_attached(),
         # R29 fee model v2: the platform fee replaced the service fee
         expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹15\.00\) goes to BhojanGo"))).to_be_attached(),
         expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))

@@ -210,7 +210,8 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
     // on the kitchen's city clock (where the order is cooked and delivered), not the device's
     ? t("checkout.arrives", { from: f.zone(rest.time_zone).time(new Date(now + rest.delivery_time_min * 60000)), to: f.zone(rest.time_zone).time(new Date(now + rest.delivery_time_max * 60000)) })
     : null;
-  const distance = q ? t(q.distance_unit === "mi" ? "common.mi" : "common.km", { n: q.distance }) : null;
+  const distance = q ? t(q.distance_unit === "mi" ? "common.mi" : "common.km",
+    { n: Number(q.distance).toLocaleString(f.formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : null; // R31: 2 decimals
   const placeLine = (a: Address) => [a.label, a.street].filter(Boolean).join(" · ");
 
   async function settle(orderId: string) {

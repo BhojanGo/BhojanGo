@@ -139,7 +139,8 @@ export default function Earnings() {
                   {[
                     // R30: a trip pays its delivery fee (and the tip); older trips show base + distance + waiting
                     `${time(ln.delivered_at, inZone(w.time_zone))} · ${ln.delivery_fee != null && Number(ln.base) === 0
-                      ? t("rider.earnings.delivery_fee", { amount: cash(ln.delivery_fee, cur) })
+                      ? `${t("rider.earnings.delivery_fee", { amount: cash(ln.delivery_fee, cur) })}${ln.distance_units != null
+                        ? ` · ${Number(ln.distance_units).toFixed(2)} ${cur === "USD" ? "mi" : "km"}` : ""}` // R31: road distance, 2 decimals
                       : t("rider.earnings.base", { amount: cash(ln.base, cur) })}`,
                     Number(ln.distance) > 0 ? `${t("rider.earnings.distance")} ${cash(ln.distance, cur)}` : null,
                     Number(ln.waiting) > 0 ? t("rider.earnings.wait", { amount: cash(ln.waiting, cur) }) : null,

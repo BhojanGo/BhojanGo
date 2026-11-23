@@ -435,6 +435,17 @@ ALLOWED_LEVELS: dict[str, frozenset[str]] = {
     "promotion": frozenset({"country", "city", "restaurant"}),
 }
 
+# R31: a template allowed at more levels than its family (the max delivery distance goes with the
+# delivery bands: country, state, city, restaurant).
+TEMPLATE_LEVELS: dict[tuple[str, str], frozenset[str]] = {
+    ("business", "max_radius"): frozenset({"platform", "country", "region", "city", "restaurant"}),
+}
+
+
+def allowed_levels(family: str, template: str) -> frozenset[str]:
+    return TEMPLATE_LEVELS.get((family, template), ALLOWED_LEVELS[family])
+
+
 TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
     "delivery_fee": {
         "flat": DeliveryFlat,
@@ -527,7 +538,7 @@ def catalogue() -> list[dict]:
             "family": family,
             "template": name,
             "money": needs_approval(family, name),
-            "allowed_levels": sorted(ALLOWED_LEVELS[family], key=LEVELS.index),
+            "allowed_levels": sorted(allowed_levels(family, name), key=LEVELS.index),
             "params_schema": model.model_json_schema(),
         }
         for family, templates in TEMPLATES.items()

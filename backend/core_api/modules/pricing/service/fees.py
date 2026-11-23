@@ -5,7 +5,8 @@
     payment fee    = card_fee_estimate for the payment method (R30: card, UPI, wallet, net banking; cash 0):
                      percent x (charge - tip) + fixed                                off the restaurant's payout
                      (production: the gateway's actual fee for the payment replaces it, from the webhook)
-    delivery fee   = R30: base + per km/mi (template base_per_distance), 100% to the delivery partner;
+    delivery fee   = R31: distance bands on the road distance (template distance_slabs), up to the max delivery
+                     distance (business:max_radius); 100% to the delivery partner;
                      tip = 100% to the delivery partner. Nothing tops the partner up from the platform fee.
 
 Settings live in the rule engine (family ``fee`` and the ``commission:rate`` slot), one slot each, so each
@@ -24,9 +25,14 @@ SLOTS = {
     "min_platform_fee": "fee:min_platform_fee",
     "restaurant_commission_pct": "commission:rate",
     "card_fee_estimate": "fee:card_fee_estimate",
-    "delivery_fee": "delivery_fee",  # R30: base + per km/mi, at every level like the others
+    "delivery_fee": "delivery_fee",  # R31: distance bands (R30's base + per km/mi still reads), every level
+    "max_delivery_distance": "business:max_radius",  # R31: beyond it a restaurant doesn't deliver
 }
 CASH = "cash_on_delivery"
+BHOJANGO_WALLET = "wallet"  # an order's "wallet": the customer's BhojanGo wallet, no gateway, no fee (R31)
+# what a gateway reports for a payment (Razorpay "method") -> the estimate's method
+GATEWAY_METHOD = {"card": "card", "upi": "upi", "wallet": "gateway_wallet", "netbanking": "net_banking",
+                  "net_banking": "net_banking", "emi": "card", "paylater": "card"}
 FIELDS = tuple(SLOTS)
 
 
@@ -55,13 +61,15 @@ def platform_fee_cents(food_cents: int, percent: Any, min_cents: int = 0) -> int
 
 
 def method_rate(params: dict, method: str | None) -> dict | None:
-    """The estimate's rate for a payment method: its own, else the card rate; None for cash (no fee).
+    """The estimate's rate for a payment method: its own, else the card rate; None for cash and the BhojanGo
+    wallet (no fee). ``gateway_wallet`` (a wallet inside the gateway's checkout) uses the "wallet" rate.
     Reads the R29 single-rate shape ``{percent, fixed}`` as the card rate."""
-    if method == CASH:
+    if method in (CASH, BHOJANGO_WALLET):  # R31: the BhojanGo wallet has no gateway, so no fee
         return None
     if "card" not in params:
         return {"percent": params["percent"], "fixed": params.get("fixed", 0)}
-    return params.get(method or "card") or params["card"]
+    key = "wallet" if method == "gateway_wallet" else (method or "card")  # a gateway's wallet (Paytm...): "wallet" rate
+    return params.get(key) or params["card"]
 
 
 def card_fee_cents(charge_cents: int, tip_cents: int, percent: Any, fixed_cents: int) -> int:
@@ -112,9 +120,14 @@ def _value(field: str, c: Candidate, tier: str | None) -> dict[str, Any]:
                 out[m] = {"percent": _num(r["percent"]), "fixed": _money(r.get("fixed", 0))}
         return out
     if field == "delivery_fee":
+        if c.template == "distance_slabs":
+            return {"bands": [{"up_to": _num(b["up_to"]), "fee": _money(b["fee"])} for b in p["slabs"]],
+                    **({"beyond_per_unit": _money(p["beyond_per_unit"])} if p.get("beyond_per_unit") is not None else {})}
         if c.template == "base_per_distance":
             return {"base": _money(p["base"]), "per_unit": _money(p["per_unit"])}
-        return {"template": c.template}  # an older delivery fee shape (flat, slabs...): shown by name
+        return {"template": c.template}  # another delivery fee shape (flat, free above...): shown by name
+    if field == "max_delivery_distance":
+        return {"distance": _num(p["distance"])}
     if field == "min_platform_fee":
         return {"amount": _money(p["amount"])}
     return {"percent": _num(p["percent"])}

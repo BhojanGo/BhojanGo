@@ -238,7 +238,7 @@ function FinancePage() {
             <tbody className="divide-y divide-line">
               {run.data.statements.map((s) => (
                 <tr key={s.id} data-testid="statement-row"><td className="stack-title py-2.5 font-semibold">
-                  {s.payee_type === "restaurant" ? <Link href={`/finance/statements/${s.id}`} className="text-peacock">{s.payee_name}</Link> : s.payee_name}</td>
+                  <Link href={`/finance/statements/${s.id}`} className="text-peacock">{s.payee_name}</Link></td>
                   <td data-label="Type">{s.payee_type === "restaurant" ? "Restaurant" : "Delivery partner"}</td>
                   <td data-label="Amount"><div className="text-right md:text-left">{money(s.amount / 100, s.currency, 2)}
                     {s.carried_in ? <span data-testid="carried-in" className="block text-small text-muted">Carried from last week {money(s.carried_in / 100, s.currency, 2)}</span> : null}

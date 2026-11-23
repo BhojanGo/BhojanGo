@@ -539,10 +539,13 @@ RULES = [
       "net_banking": {"percent": 2, "fixed": 0}}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
     # R30: the delivery partner gets the delivery fee + the whole tip, nothing else: no rider_pay rules (base,
-    # hourly floor, batch bonus) and nothing topped up out of the platform fee. The delivery fee is base + per km.
+    # hourly floor, batch bonus) and nothing topped up out of the platform fee. R31: the delivery fee comes from
+    # distance bands (road km, whole rupees), up to the max delivery distance; beyond it a restaurant doesn't deliver.
     # Country default: a city launched in admin prices orders from day one (Hyderabad's own rule wins there).
-    ("delivery_fee", "base_per_distance", None, "India delivery fee", "country", "IN", {"base": 20, "per_unit": 6}),
-    ("delivery_fee", "base_per_distance", None, "Hyderabad delivery fee", "city", "IN-TG-HYD", {"base": 20, "per_unit": 6}),
+    ("delivery_fee", "distance_slabs", None, "India delivery fee", "country", "IN",
+     {"slabs": [{"up_to": 3, "fee": 30}, {"up_to": 5, "fee": 40}, {"up_to": 7, "fee": 50}]}),
+    ("delivery_fee", "distance_slabs", None, "Hyderabad delivery fee", "city", "IN-TG-HYD",
+     {"slabs": [{"up_to": 3, "fee": 30}, {"up_to": 5, "fee": 40}, {"up_to": 7, "fee": 50}]}),
     ("customer_fee", "small_order_fee", None, "Small order fee", "city", "IN-TG-HYD", {"below": 99, "fee": 15}),
     ("customer_fee", "surge_levy", None, "Evening surge", "city", "IN-TG-HYD",
      {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 15}),
@@ -552,7 +555,7 @@ RULES = [
     ("commission", "percent", None, "Commission deal", "restaurant", "spice-route-kitchen-madhapur", {"percent": 15}),
     ("promotion", "percent_off", "hyd_launch", "10% off, up to ₹50", "city", "IN-TG-HYD",
      {"percent": 10, "max_discount": 50, "funded_by": "platform", "budget_cap": 100000}),
-    ("business", "max_radius", None, "Max delivery distance", "country", "IN", {"distance": 10}),
+    ("business", "max_radius", None, "Max delivery distance", "country", "IN", {"distance": 7}),  # R31: the last band
     ("business", "tip_presets", None, "Tip presets", "country", "IN", {"amounts": [10, 20, 30], "default_index": 1}),
     ("business", "cod_limit", None, "Cash on delivery limit", "country", "IN", {"max_amount": 1000}),
     ("business", "support_refund_limit", None, "Support refund limit", "country", "IN", {"max_per_order": 500}),
@@ -569,11 +572,13 @@ RULES = [
     ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "US", {"amount": "0.99"}),
     ("fee", "card_fee_estimate", None, "Payment fee estimate (Stripe)", "country", "US", {"card": {"percent": "2.9", "fixed": "0.30"}}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    # R30: delivery fee = base + per mile, all of it (and the tip) to the delivery partner.
-    ("delivery_fee", "base_per_distance", None, "United States delivery fee", "country", "US", {"base": "3.00", "per_unit": "1.00"}),
-    ("delivery_fee", "base_per_distance", None, "Boise delivery fee", "city", "US-ID-BOI", {"base": "3.00", "per_unit": "1.00"}),
+    # R31: delivery fee from distance bands (road miles), all of it (and the tip) to the delivery partner.
+    ("delivery_fee", "distance_slabs", None, "United States delivery fee", "country", "US",
+     {"slabs": [{"up_to": 2, "fee": "3.50"}, {"up_to": 4, "fee": "4.50"}, {"up_to": 6, "fee": "5.50"}, {"up_to": 8, "fee": "6.50"}]}),
+    ("delivery_fee", "distance_slabs", None, "Boise delivery fee", "city", "US-ID-BOI",
+     {"slabs": [{"up_to": 2, "fee": "3.50"}, {"up_to": 4, "fee": "4.50"}, {"up_to": 6, "fee": "5.50"}, {"up_to": 8, "fee": "6.50"}]}),
     ("customer_fee", "small_order_fee", None, "Small order fee", "city", "US-ID-BOI", {"below": 12, "fee": 2}),
-    ("business", "max_radius", None, "Max delivery distance", "country", "US", {"distance": 6}),
+    ("business", "max_radius", None, "Max delivery distance", "country", "US", {"distance": 8}),  # R31: the last band
     ("business", "tip_presets", None, "Tip presets", "country", "US", {"amounts": [2, 3, 5], "default_index": 1}),
     ("business", "cod_limit", None, "Cash on delivery off", "country", "US", {"max_amount": 0}),
     ("business", "support_refund_limit", None, "Support refund limit", "country", "US", {"max_per_order": 25}),

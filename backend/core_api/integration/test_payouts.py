@@ -134,8 +134,9 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()
     rl = next(ln for ln in rs["lines"] if ln["order_id"] == order["id"])
-    # R30: the partner gets the order's delivery fee (₹20 + ₹6/km) and the whole tip; no hourly floor top-up
-    assert rl["base"] == "0.00" and Decimal(rl["delivery_fee"]) == (20 + 6 * Decimal(rl["distance_units"])).quantize(Decimal("0.01"))
+    # R31: the partner gets the order's delivery fee (its distance band: 0-3 km ₹30, 3-5 ₹40, 5-7 ₹50) and the whole tip
+    band = next(fee for up_to, fee in ((3, 30), (5, 40), (7, 50)) if Decimal(rl["distance_units"]) <= up_to)
+    assert rl["base"] == "0.00" and Decimal(rl["delivery_fee"]) == band
     assert Decimal(rl["total"]) == Decimal(rl["delivery_fee"]) + Decimal(rl["tip"])
     assert rs["summary"]["hourly_floor"] is None and Decimal(rs["summary"]["floor_top_up"]) == 0
 

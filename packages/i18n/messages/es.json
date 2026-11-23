@@ -62,7 +62,8 @@
     "n_seconds": {
       "one": "{count} segundo",
       "other": "{count} segundos"
-    }
+    },
+    "too_far": "Demasiado lejos para entregar"
   },
   "header": {
     "where_we_deliver": "Dónde entregamos",
@@ -133,7 +134,8 @@
     "line_gst_fees": "GST sobre las tarifas de la plataforma",
     "line_sales_tax": "Impuesto sobre las ventas de {region}",
     "line_sales_tax_plain": "Impuesto sobre las ventas",
-    "line_tax_included": "{tax} (incluido en los precios)"
+    "line_tax_included": "{tax} (incluido en los precios)",
+    "tax_on": "{rate}% sobre {line}"
   },
   "notify": {
     "title": "Avísame",
@@ -396,7 +398,8 @@
     "bag_closed": "Este restaurante está cerrado ahora",
     "bill_when_open": "La cuenta completa aparece aquí cuando el restaurante abra.",
     "deliveries_start": "Las entregas empiezan a las {time}",
-    "deliveries_start_day": "Las entregas empiezan el {day} a las {time}"
+    "deliveries_start_day": "Las entregas empiezan el {day} a las {time}",
+    "too_far_note": "Este restaurante está demasiado lejos de tu dirección para entregar. Elige un restaurante más cercano o cambia tu dirección."
   },
   "checkout": {
     "title": "Pagar",
@@ -1978,7 +1981,9 @@
     "gs_vehicle": "Tu vehículo",
     "gs_err_vehicle": "Ese vehículo no se puede usar para repartir aquí. Elige uno de la lista.",
     "gs_rules_failed": "No pudimos cargar el formulario de registro. Actualiza la página para intentarlo de nuevo.",
-    "faq_pay_a_fee": "En {city}, cada viaje paga su tarifa de envío: {base} más {per_unit} por {unit} desde el restaurante hasta el cliente. Te quedas con toda la tarifa de envío y con todas las propinas, y ves el pago de cada viaje antes de aceptarlo."
+    "faq_pay_a_fee": "En {city}, cada viaje paga su tarifa de envío: {base} más {per_unit} por {unit} desde el restaurante hasta el cliente. Te quedas con toda la tarifa de envío y con todas las propinas, y ves el pago de cada viaje antes de aceptarlo.",
+    "pay_trip_bands": "Cada viaje paga su tarifa de entrega, según la distancia por carretera del restaurante al cliente: {bands}.",
+    "faq_pay_a_bands": "En {city}, cada viaje paga su tarifa de entrega, según la distancia por carretera del restaurante al cliente: {bands}. Te quedas con toda la tarifa de entrega y cada propina, y ves el pago de cada viaje antes de aceptarlo."
   },
   "errors": {
     "title_404": "No encontramos esa página",

@@ -1,7 +1,7 @@
 // The fair bill (design: WebKitchen "Your bag", WebCheckout, WebOrders receipt):
 // every line with who gets it. Lines come from the engine (quote, order bill or
 // example bill); amounts are never computed here.
-import { fairSplit, payeeOf, type Payee, type Shares } from "@/lib/fairSplit";
+import { fairSplit, payeeOf, taxShares, type Payee, type Shares } from "@/lib/fairSplit";
 import { billLineLabel } from "@bhojango/i18n";
 import { shownLines } from "@bhojango/ui/bill";
 import { money } from "@/lib/format";
@@ -49,13 +49,22 @@ export function FairBill({
         <tbody>
           {shownLines(lines).map((ln, i) => { // a line of 0 (a $0.00 tax) is not shown (R12)
             const promo = ln.code === "promotion";
-            return (
+            return [
               <tr key={`${ln.code}-${i}`}>
                 <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
                 <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t, lines)}</td>
                 <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale)}</td>
-              </tr>
-            );
+              </tr>,
+              // R31: what each bill line carries of a tax (GST on the delivery fee, on the platform fee...)
+              ...taxShares(ln).map(([code, amt]) => (
+                <tr key={`${ln.code}-${i}-${code}`} data-testid="tax-share">
+                  <td colSpan={2} className="py-0 pl-3 pr-2 text-small text-muted">
+                    {t("bill.tax_on", { rate: ln.detail?.rate_percent ?? "", line: t(`bill.line_${code}`) })}
+                  </td>
+                  <td className="py-0 text-right text-small text-muted">{money(amt, currency, formatLocale)}</td>
+                </tr>
+              )),
+            ];
           })}
         </tbody>
       </table>

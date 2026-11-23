@@ -462,6 +462,29 @@ PR #222 (R29) and PR #223 (R30), each merged only after every check was green.
   an admin publishes the new drafts. The app store listing name changes with the next store build. The
   hourly-floor code stays for a city that legally needs one (no city has one now).
 
+## Delivery bands, road distance, GST per line (round 31, 2026-11-23)
+
+PR #224, merged only after every check was green. Migration `0047_delivery_bands` (data only).
+
+- **Delivery fee = distance bands.** 100% to the delivery partner, plus 100% of the tip; BhojanGo never adds to or
+  takes from it. Bands and the max delivery distance are set per country, state, city and restaurant (admin
+  Pricing → Fees; the most specific wins, maker-checker, audited). Seed: Boise 0–2 mi $3.50, >2–4 $4.50, >4–6 $5.50,
+  >6–8 $6.50, max 8 mi; Hyderabad 0–3 km ₹30, >3–5 ₹40, >5–7 ₹50, max 7 km. R30's base + per mile stays in the
+  rules engine as a template, unused. A restaurant past the max shows "Too far to deliver" in the list and on its
+  page, and its menu can't be ordered (BhojanGo has no pickup orders).
+- **Road distance.** Until R31 every distance was straight-line × 1.3. Now quotes and the listing use OSRM, a
+  free self-hosted router on OpenStreetMap roads of the live cities (`infra/docker/osrm`, compose service `osrm`;
+  QA service `osrm`). If OSRM can't answer, the straight-line × 1.3 estimate (`ROAD_FACTOR`) is used and each
+  fallback is logged (`routing_fallback`). Production keeps the straight-line estimate until a router is chosen
+  for it. The bill and the delivery partner's statement show the distance to 2 decimals.
+- **Payment fee:** an order paid from the BhojanGo wallet has no fee (no gateway); only a wallet inside the
+  gateway's checkout uses the wallet estimate.
+- **GST per bill line (India, rates unchanged):** the bill shows each line's share under the GST line, e.g.
+  ₹300 food at 2.50 km: GST on food ₹15.00 (5%); GST on platform fees ₹10.80 = 18% on delivery ₹5.40 + 18% on the
+  platform fee ₹5.40. BhojanGo collects it (e-commerce operator); the restaurant gets ₹300.
+- **CI:** the markets-only seed tests are no longer collected (and skipped) in the main integration run; they run
+  in their own step against a markets-only database.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

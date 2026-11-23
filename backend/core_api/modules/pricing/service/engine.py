@@ -347,7 +347,19 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             amount = money(base - base / (1 + rate))  # already inside the prices
             add("tax_included", f'{tp["label"]} (included in prices)', ZERO, t, detail={**detail, "included": str(amount)})
         else:
-            amount = add("tax", tp["label"], base * rate, t, detail=detail).amount
+            amount = money(base * rate)
+            # R31: how much of this tax each bill line carries (e.g. GST on the delivery fee and on the
+            # platform fee), shown under the tax line. Same rate and total; the last share takes the rounding.
+            by_line: dict[str, Decimal] = {}
+            for bl in lines:
+                if bl.taxable_as in targets and in_base(bl):
+                    by_line[bl.taxable_as] = by_line.get(bl.taxable_as, ZERO) + bl.amount
+            shares = {k: money(v * rate) for k, v in by_line.items() if v != 0}
+            if shares:
+                last = list(shares)[-1]
+                shares[last] = money(amount - sum((v for k, v in shares.items() if k != last), ZERO))
+                detail["by_line"] = ";".join(f"{k}={v}" for k, v in shares.items())
+            amount = add("tax", tp["label"], amount, t, detail=detail).amount
             tax_added += amount
         tax_owed += amount
         tax_by_collector[tp.get("collected_by", "platform")] += amount

@@ -135,8 +135,8 @@ class RuleService:
         if effective_to is not None and effective_to <= (effective_from or now()):
             raise RuleError("The end date must be after the start")
         templates.check_key(key)
-        if scope_level not in templates.ALLOWED_LEVELS[family]:
-            allowed = ", ".join(sorted(templates.ALLOWED_LEVELS[family], key=templates.LEVELS.index))
+        if scope_level not in templates.allowed_levels(family, template):
+            allowed = ", ".join(sorted(templates.allowed_levels(family, template), key=templates.LEVELS.index))
             raise RuleError(f"{family} rules can be set for: {allowed}")
         market_scope = await self.market_scope_for(scope_level, scope_id)
         r = Rule(

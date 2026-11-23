@@ -71,8 +71,10 @@ class Card(BaseModel):
     not_taking_orders: bool = False
     eta_min: int
     eta_max: int
-    distance: float | None  # in the country's unit, from the address
-    delivery_fee: str | None  # from the rule engine for this address (None on a city page)
+    distance: float | None  # in the country's unit, by road from the restaurant to the address (R31: 2 decimals)
+    delivery_fee: str | None  # from the rule engine for this address (None on a city page, or when not deliverable)
+    # R31: false when the address is beyond the max delivery distance / last band (the card says so; no delivery)
+    deliverable: bool = True
     free_delivery: bool
     offer: Offer | None
 
@@ -141,7 +143,6 @@ FACT_SCOPES = ("kitchens", "kitchen:*", "rules", "markets")
 
 async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city_code: str | None,
                     hide: frozenset[str] = frozenset(), fresh: bool = False) -> Discover:
-    from core_api.modules.catalog.service import geo
     from core_api.modules.markets.api.v1.public import public_status, slugify
     from core_api.modules.markets.models import City, Country, Region
     from core_api.modules.markets.service.markets import MarketService
@@ -178,28 +179,36 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     facts = await _city_facts(db, city, region, country, zone_id, city_path, hide, now, fresh=fresh)
     cards: list[Card] = []
     offers: dict[str, Offer] = {}
+    road: dict[str, float] = {}
+    if lat is not None and lng is not None:
+        # R31: road distance from each restaurant to the address, in one routing call (OSRM table; falls back
+        # to the straight-line estimate, logged). The delivery bands and max distance decide, not a radius.
+        from shared.providers.routing import get_routing_provider
+
+        placed = [f for f in facts.kitchens if f.k.lat is not None and f.k.lng is not None]
+        legs = get_routing_provider().legs_to([(f.k.lat, f.k.lng) for f in placed], (lat, lng))
+        road = {str(f.k.id): leg.distance_km for f, leg in zip(placed, legs, strict=True)}
     for f in facts.kitchens:
         k = f.k
         distance_km = None
+        deliverable = True
         if lat is not None and lng is not None:
-            if k.lat is None or k.lng is None:
+            if str(k.id) not in road:
                 continue
-            distance_km = geo.haversine_km(k.lat, k.lng, lat, lng)
-            if distance_km > float(k.delivery_radius_km):
-                continue  # doesn't deliver to this address
+            distance_km = road[str(k.id)]
         for o in f.offers:
             offers.setdefault(o.id, o)
         fee = None
         distance = None
         if distance_km is not None:
-            distance = Decimal(str(distance_km)) / (KM_PER_MI if country.distance_unit == "mi" else 1)
+            distance = (Decimal(str(distance_km)) / (KM_PER_MI if country.distance_unit == "mi" else 1)).quantize(Decimal("0.01"))
             food = max(Decimal(k.minimum_order_amount or 0), Decimal("1"))
             try:
                 q = compute(QuoteInputs(currency=country.currency, lines=[CartLine("Cart", 1, food)],
-                                        distance=distance.quantize(Decimal("0.01")), local_time=local), f.resolved)
+                                        distance=distance, local_time=local), f.resolved)
                 fee = str(sum((ln.amount for ln in q.lines if ln.code == "delivery_fee"), Decimal("0")))
             except NotDeliverable:
-                continue
+                deliverable = False  # R31: beyond its max distance: shown, but "too far to deliver"
         a = f.a
         created = k.created_at
         cards.append(Card(
@@ -213,9 +222,9 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             else a.next_open_at.isoformat() if a.next_open_at and not a.open_now and not a.no_tablet else None,
             closed_for_now=a.closed_for_now, not_taking_orders=a.no_tablet,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
-            distance=float(round(distance, 1)) if distance is not None else None, delivery_fee=fee,
+            distance=float(distance) if distance is not None else None, delivery_fee=fee, deliverable=deliverable,
             free_delivery=f.free_delivery, offer=f.card_offer))
-    cards.sort(key=lambda c: (not c.open_now, c.distance if c.distance is not None else 0, c.name))
+    cards.sort(key=lambda c: (not c.deliverable, not c.open_now, c.distance if c.distance is not None else 0, c.name))
     cuisines: dict[str, int] = {}
     for c in cards:
         for name in c.cuisine_types:

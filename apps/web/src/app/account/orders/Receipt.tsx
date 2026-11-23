@@ -92,7 +92,7 @@ export function Receipt({ id }: { id: string }) {
   // R27: refunds ("Refunded 4.51 · missing item") and what was paid after them; a cancelled order refunded in full has a receipt too
   const back = bill ? receiptRefunds(bill, cancelled) : { refunds: [], refunded: 0, paid: 0 };
   const hasReceipt = !cancelled || back.refunds.length > 0;
-  const distance = bill?.distance != null && bill.distance !== "" ? t(bill.distance_unit === "mi" ? "common.mi" : "common.km", { n: f.number(Number(bill.distance)) }) : null;
+  const distance = bill?.distance != null && bill.distance !== "" ? t(bill.distance_unit === "mi" ? "common.mi" : "common.km", { n: Number(bill.distance).toLocaleString(f.formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : null;
 
   async function download() {
     setBusy("pdf");

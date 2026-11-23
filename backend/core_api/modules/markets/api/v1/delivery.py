@@ -70,6 +70,8 @@ class DeliveryTerms(BaseModel):
     distance_unit: str
     phone_code: str
     example: ExampleTrip | None = None  # None: the city has no rider pay rule yet
+    # R31: the city's delivery bands (road distance up to, fee): a trip pays its band's fee + the tip
+    bands: list[dict[str, Decimal]] | None = None
     hourly_floor: Decimal | None = None  # per active hour (accepting to delivering), before tips
     batch_bonus: Decimal | None = None  # each extra drop-off of a batched trip
     tips_percent: int = Field(default=100, description="The share of every tip the delivery partner gets "
@@ -102,7 +104,15 @@ async def terms(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z
         example = None
         pay = resolved.get("rider_pay:base_distance_wait")
         fee = resolved.get("delivery_fee")
-        if fee is not None and fee.template == "base_per_distance":
+        bands = None
+        if fee is not None and fee.template == "distance_slabs":
+            # R31: a trip pays the order's delivery fee (its distance band) and the whole tip; no waiting pay
+            bands = [{"up_to": Decimal(str(b["up_to"])), "fee": money(b["fee"])} for b in fee.params["slabs"]]
+            dist = t["example_distance"]
+            band = next((b for b in bands if Decimal(str(dist)) <= b["up_to"]), bands[-1])
+            example = ExampleTrip(distance=dist, base=band["fee"], per_unit=Decimal(0), distance_pay=Decimal(0),
+                                  per_wait_minute=Decimal(0), free_wait_minutes=0, total=band["fee"])
+        elif fee is not None and fee.template == "base_per_distance":
             # R30: a trip pays the order's delivery fee (base + per km/mi) and the whole tip; no waiting pay
             p, dist = fee.params, t["example_distance"]
             base, per = money(p["base"]), Decimal(str(p["per_unit"]))
@@ -122,7 +132,7 @@ async def terms(db: DB, city: str = Query(pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z
             city=TermsCity(code=c.code, name=c.name, region=region.name),
             cities=[TermsCity(code=x.code, name=x.name, region=r.name) for r, x in live],
             country=k.code, currency=k.currency, distance_unit=k.distance_unit, phone_code=k.phone_code,
-            example=example,
+            example=example, bands=bands,
             hourly_floor=Decimal(str(floor.params["per_active_hour"])) if floor else None,
             batch_bonus=Decimal(str(bonus.params["per_extra_order"])) if bonus else None,
             pay_schedule=Payout(frequency=sched.params.get("frequency", "weekly"), day=sched.params.get("day", "mon")) if sched else None,

@@ -326,6 +326,34 @@ class OrderService:
         tip = Decimal(str((q["split"].get("detail") or {}).get("tip") or 0))
         return from_cents(card_fee_cents(to_cents(q["total"]), to_cents(tip), rate["percent"], to_cents(rate.get("fixed", 0))))
 
+    async def apply_reported_method(self, order_id: uuid.UUID, reported: str) -> None:
+        """R31, local and QA: the gateway said how the customer actually paid inside its checkout (e.g. a
+        Paytm wallet on Razorpay); the estimate is re-priced at that method's rate. Production uses the
+        gateway's actual fee instead (apply_actual_card_fee)."""
+        from core_api.modules.pricing.models import OrderPricingSnapshot
+        from core_api.modules.pricing.service.fees import GATEWAY_METHOD, card_fee_cents, from_cents, method_rate, to_cents
+        from core_api.modules.rules.models import Rule
+
+        method = GATEWAY_METHOD.get((reported or "").lower())
+        order = await self._locked(order_id)
+        if method is None or order is None or order.payment_method in ("cash_on_delivery", "wallet"):
+            return
+        snap = (await self.db.execute(select(OrderPricingSnapshot).where(OrderPricingSnapshot.order_id == order.id))).scalar()
+        ref = next((v for v in (snap.rule_versions if snap else []) if v.get("slot") == "fee:card_fee_estimate"), None)
+        rule = await self.db.get(Rule, uuid.UUID(ref["rule_id"])) if ref else None
+        rate = method_rate(rule.params, method) if rule else None
+        if rate is None:
+            return
+        fee = from_cents(card_fee_cents(to_cents(order.total), to_cents(order.tip or 0), rate["percent"],
+                                        to_cents(rate.get("fixed", 0))))
+        if fee == order.card_fee:
+            return
+        before = order.card_fee or Decimal(0)
+        order.restaurant_payout = _money(order.restaurant_payout + before - fee)
+        order.card_fee = fee
+        await self.db.flush()
+        logger.info("card_fee_method", order_id=str(order_id), reported=reported, estimate=str(before), now=str(fee))
+
     async def apply_actual_card_fee(self, order_id: uuid.UUID, fee_minor: int) -> None:
         """R29, production only: the gateway's actual fee for the payment (R30: any method: card, UPI,
         wallet, net banking) replaces the estimate taken from the restaurant's payout at placement (only

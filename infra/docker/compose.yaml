@@ -30,7 +30,10 @@ x-backend-env: &backend-env
   EMAIL_PROVIDER: smtp
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
-  ROUTING_PROVIDER: straight_line
+  # R31: road distance from the self-hosted OSRM below; if it's down, straight-line x ROAD_FACTOR (logged)
+  ROUTING_PROVIDER: ${ROUTING_PROVIDER:-osrm}
+  OSRM_URL: http://osrm:5000
+  ROAD_FACTOR: "1.3"
   # R27: a kitchen takes orders only while its tablet (BhojanGo Kitchen) is connected. "auto" = off
   # here (APP_ENV development: flows order from kitchens with no tablet open); set 1 to try it:
   #   KITCHEN_TABLET_REQUIRED=1 make dev
@@ -119,6 +122,16 @@ services:
   # ── Backend (3 deployables) ───────────────
   # core-api runs as a non-root user (uid 10001); volumes made by older images are
   # owned by root, so hand the dev JWT key volume over once before it starts.
+  # R31: road distances (OSRM, OpenStreetMap roads of the live cities; infra/docker/osrm). Free, no API key.
+  # The first `make dev` builds it (downloads the map, a few minutes); the API works without it (fallback).
+  osrm:
+    profiles: ["backend", "all"]
+    build: ./osrm
+    image: bhojango-osrm:r31
+    ports:
+      - "${OSRM_PORT:-5005}:5000"
+    restart: unless-stopped  # no health check: the image has no HTTP client, and the API copes without it
+
   keys-init:
     profiles: ["backend", "all"]
     image: busybox:1.37.0

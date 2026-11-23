@@ -203,7 +203,8 @@ def test_r30_payment_fee_estimate_per_method() -> None:
     est = validate_params("fee", "card_fee_estimate", {"card": {"percent": "2", "fixed": "0"}, "upi": {"percent": "0"},
                                                        "wallet": {"percent": "1.5", "fixed": "0"}})
     assert Decimal(fees.method_rate(est, "upi")["percent"]) == 0
-    assert Decimal(fees.method_rate(est, "wallet")["percent"]) == Decimal("1.5")
+    assert Decimal(fees.method_rate(est, "gateway_wallet")["percent"]) == Decimal("1.5")  # R31: a gateway wallet
+    assert fees.method_rate(est, "wallet") is None  # R31: the BhojanGo wallet: no fee
     assert Decimal(fees.method_rate(est, "net_banking")["percent"]) == Decimal("2")  # not listed: the card rate
     assert fees.method_rate(est, "cash_on_delivery") is None  # cash: no fee
     assert fees.method_rate({"percent": "2.9", "fixed": "0.30"}, "upi") == {"percent": "2.9", "fixed": "0.30"}  # R29 shape

@@ -55,7 +55,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
               <Text style={[type.caption, { color: color.white }]}>{offerBadge(k.offer, t, money, currency)}</Text>
             </View>
           ) : null}
-          {!k.open_now ? <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.4)" }} /> : null}
+          {!k.open_now || k.deliverable === false ? <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(255,255,255,0.4)" }} /> : null}
         </View>
         <View style={{ padding: space[4], gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -73,6 +73,7 @@ export function KitchenCard({ k, currency, unit, compact = false }: { k: Kitchen
                 t("common.delivery_fee", { fee: money(fee, currency) })
               )
             ) : null}
+            {k.deliverable === false ? <Text testID="too-far" style={{ color: color.muted }}> · {t("common.too_far")}</Text> : null}
             {!k.open_now && k.closed_for_now ? <Text testID="closed-for-now" style={{ color: color.muted }}> · {t("kitchen.closed_for_now")}</Text> : null}
             {!k.open_now && k.not_taking_orders ? <Text testID="not-taking-orders" style={{ color: color.muted }}> · {t("kitchen.not_taking_orders")}</Text> : null}
             {!k.open_now && !k.closed_for_now && k.opens_at ? <Text style={{ color: color.muted }}> · {opens(k.opens_at, zone)}</Text> : null}

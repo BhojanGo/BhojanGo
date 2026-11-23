@@ -65,7 +65,7 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedLabel = null, closedNote = null, forNow = false, notTaking = false, orderingPaused = false }: {
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedLabel = null, closedNote = null, forNow = false, notTaking = false, orderingPaused = false, tooFar = false }: {
   restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean;
   /** R27: "Closed · opens 6:30 am" (the kitchen's hours or the city's delivery hours), worded on the server. */
   closedLabel?: string | null;
@@ -74,6 +74,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
   forNow?: boolean;
   /** R27: open by its hours, but the kitchen's tablet isn't connected: "Not taking orders right now". */
   notTaking?: boolean;
+  tooFar?: boolean; // R31: past the max delivery distance from this address
   orderingPaused?: boolean;
 }) {
   const t = useT();
@@ -171,7 +172,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
           <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]" data-testid="kitchen-closed">
             {!forNow && closedLabel ? <b className="block" data-testid="kitchen-status">{closedLabel}</b> : null}
             {closedNote ? <span className="block">{closedNote}</span> : null}
-            {t(forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}
+            {t(tooFar ? "kitchen.too_far_note" : forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}
           </p>
         )}
         {categories.length === 0 && <p className="mt-8 text-muted">{t("kitchen.menu_unavailable")}</p>}

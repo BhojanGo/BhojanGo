@@ -4,8 +4,8 @@
  * setting's effective value and where it comes from ("Inherited from: United States"), the level's own value with
  * its dates, changes waiting for a second admin, and who changed what (old → new). Setting a value sends it for
  * approval (money rule); clearing it makes the level inherit again. API: /rules/fees (core_api rules/api/v1/fees.py).
- * R30: the payment fee estimate per payment method (card, UPI, wallet, net banking; cash has none) and the delivery
- * fee (base + per mile / km, all of it to the delivery partner) are set the same way.
+ * R30: the payment fee estimate per payment method (card, UPI, wallet, net banking; cash has none). R31: the delivery
+ * fee from distance bands (all of it to the delivery partner) and the max delivery distance are set the same way.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -19,7 +19,8 @@ import { apiMessage } from "@/lib/ops";
 
 type Level = "country" | "region" | "city" | "restaurant";
 type Rate = { percent: string; fixed?: string };
-type Value = Record<string, string | Rate | undefined>;
+type Band = { up_to: string; fee: string };
+type Value = Record<string, string | Rate | Band[] | undefined>;
 interface Ref { level: Level; scope_id: string; name: string }
 interface OwnRule { rule_id: string; version: number; status: string; value: Value; effective_from: string; effective_to: string | null }
 interface FieldRow {
@@ -46,12 +47,25 @@ const FIELDS: Record<string, { label: string; hint: string }> = {
     label: "Payment fee estimate",
     hint: "per payment method, % + fixed of the charge less the tip, taken from the restaurant's payout; cash has none. Production uses the gateway's actual fee",
   },
-  delivery_fee: { label: "Delivery fee", hint: "base + per distance from the restaurant to the customer; all of it goes to the delivery partner" },
+  delivery_fee: { label: "Delivery bands", hint: "the fee for each road-distance band from the restaurant to the customer; all of it goes to the delivery partner" },
+  max_delivery_distance: { label: "Max delivery distance", hint: "beyond it the restaurant shows as too far to deliver" },
 };
 const METHODS: { key: string; label: string }[] = [
   { key: "card", label: "Card" }, { key: "upi", label: "UPI" }, { key: "wallet", label: "Wallet" }, { key: "net_banking", label: "Net banking" },
 ];
-const OLD_DELIVERY: Record<string, string> = { flat: "a flat fee", distance_slabs: "distance slabs", free_above: "free above a subtotal", tier_base: "by restaurant tier" };
+const OLD_DELIVERY: Record<string, string> = { flat: "a flat fee", free_above: "free above a subtotal", tier_base: "by restaurant tier" };
+const num = (v: string | number) => String(Number(v));
+/** "0–2 mi $3.50 · >2–4 mi $4.50 …" */
+function bands(b: Band[], sym: string, unitName: string): string {
+  const unit = unitName === "mile" ? "mi" : unitName;
+  return b.map((x, i) => `${i === 0 ? "0" : `>${num(b[i - 1]!.up_to)}`}–${num(x.up_to)} ${unit} ${sym}${Number(x.fee).toFixed(2)}`).join(" · ");
+}
+/** "2:3.50, 4:4.50" -> bands; null when it doesn't read */
+function parseBands(text: string): Band[] | null {
+  const out = text.split(",").map((p) => p.trim()).filter(Boolean).map((p) => p.split(":").map((x) => x.trim()));
+  if (!out.length || out.some((p) => p.length !== 2 || !p[0] || !p[1] || Number.isNaN(Number(p[0])) || Number.isNaN(Number(p[1])))) return null;
+  return out.map(([up_to, fee]) => ({ up_to: up_to!, fee: fee! }));
+}
 const ACTION: Record<string, string> = {
   "rule.created": "drafted", "rule.version_created": "drafted", "rule.edited": "edited", "rule.submitted": "sent for approval",
   "rule.approved": "approved", "rule.published": "published", "rule.rejected": "rejected", "rule.ended": "cleared", "rule.rolled_back": "rolled back",
@@ -72,9 +86,11 @@ function show(field: string, v: Value | null | undefined, sym: string, unit = "m
     if (typeof v.percent === "string") return `Card ${rate(v as unknown as Rate, sym)}`; // the R29 single rate
     return METHODS.filter((m) => v[m.key]).map((m) => `${m.label} ${rate(v[m.key] as Rate, sym)}`).join(" · ");
   }
+  if (field === "max_delivery_distance") return `${num(v.distance as string)} ${unit === "mile" ? "mi" : unit}`;
   if (field === "delivery_fee") {
     if (v.template) return `Older shape: ${OLD_DELIVERY[v.template as string] ?? String(v.template)}`;
-    return `${sym}${Number(v.base).toFixed(2)} + ${sym}${Number(v.per_unit).toFixed(2)} per ${unit}`;
+    if (v.bands) return bands(v.bands as Band[], sym, unit);
+    return `${sym}${Number(v.base).toFixed(2)} + ${sym}${Number(v.per_unit).toFixed(2)} per ${unit}`; // R30's shape
   }
   return `${String(v.percent)}%`;
 }
@@ -214,7 +230,8 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
   const src = row.source;
   const value = useMemo((): Value => {
     if (row.field === "min_platform_fee") return { amount: a };
-    if (row.field === "delivery_fee") return { base: a, per_unit: b || "0" };
+    if (row.field === "delivery_fee") return { bands: parseBands(a) ?? [] };
+    if (row.field === "max_delivery_distance") return { distance: a };
     if (row.field === "card_fee_estimate") {
       const out: Value = { card: { percent: a, fixed: b || "0" } };
       for (const m of METHODS.slice(1)) {
@@ -262,10 +279,15 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
         {problem ? <div role="alert" className="text-danger">{problem}</div> : null}
         {editing ? (
           <div className="mt-2 flex flex-wrap items-end gap-2">
-            {input(row.field === "min_platform_fee" ? `Amount (${sym})` : row.field === "delivery_fee" ? `Base (${sym})`
+            {row.field === "delivery_fee" ? (
+              <label className="text-small">Bands (up to {unit}: fee {sym})
+                <input aria-label="Delivery bands" value={a} onChange={(e) => setA(e.target.value)} placeholder={unit === "mile" ? "2:3.50, 4:4.50, 6:5.50, 8:6.50" : "3:30, 5:40, 7:50"}
+                  className="ml-1 h-8 w-72 rounded-lg border border-line px-2" />
+              </label>
+            ) : input(row.field === "min_platform_fee" ? `Amount (${sym})` : row.field === "max_delivery_distance" ? `Distance (${unit})`
               : row.field === "card_fee_estimate" ? "Card %" : "Percent", a, setA, `${meta.label} value`)}
+            {row.field === "delivery_fee" && a && !parseBands(a) ? <span className="text-small text-danger">Write each band as up to:fee, e.g. 2:3.50</span> : null}
             {row.field === "card_fee_estimate" ? input(`Card fixed (${sym})`, b, setB, "Fixed fee") : null}
-            {row.field === "delivery_fee" ? input(`Per ${unit} (${sym})`, b, setB, "Per distance") : null}
             {row.field === "card_fee_estimate" ? METHODS.slice(1).map((m) => (
               <span key={m.key} className="flex gap-1">
                 {input(`${m.label} %`, rates[`${m.key}.percent`] ?? "", (v) => setRates((r) => ({ ...r, [`${m.key}.percent`]: v })), `${m.label} percent`)}
@@ -275,7 +297,7 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
             {row.field === "card_fee_estimate" ? <span className="text-small text-muted">A method left empty uses the card rate.</span> : null}
             <label className="text-small">From <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 rounded-lg border border-line px-2" /></label>
             <label className="text-small">Until <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 rounded-lg border border-line px-2" /></label>
-            <button type="button" disabled={busy || !a} onClick={() => void save()} className="h-8 rounded-lg bg-peacock px-3 text-label text-white disabled:opacity-50">Send for approval</button>
+            <button type="button" disabled={busy || !a || (row.field === "delivery_fee" && !parseBands(a))} onClick={() => void save()} className="h-8 rounded-lg bg-peacock px-3 text-label text-white disabled:opacity-50">Send for approval</button>
             <button type="button" onClick={() => setEditing(false)} className="h-8 px-2 text-label text-muted">Cancel</button>
           </div>
         ) : null}
