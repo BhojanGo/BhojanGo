@@ -54,8 +54,9 @@ class MarketsTests(unittest.TestCase):
         self.assertTrue(rules)
         self.assertFalse([r for r in rules if r[4] == "restaurant" or r[0] == "promotion"])
         keyed = {(r[0], r[1], r[4], r[5]): r[6] for r in rules}
-        # Boise: 15% commission on every tier
-        self.assertEqual(set(keyed[("commission", "percent_by_tier", "country", "US")]["tiers"].values()), {15})
+        # R29 fee model v2: 0% commission, a 10% platform fee (Idaho and Boise inherit)
+        self.assertEqual(keyed[("commission", "percent", "country", "US")]["percent"], 0)
+        self.assertEqual(keyed[("fee", "platform_fee_pct", "country", "US")]["percent"], 10)
         # India's R16 tax rules and both payment fee rules are kept
         for family, template, level, scope in (("business", "commission_tax", "country", "IN"),
                                                ("business", "payout_tds", "country", "IN"),

@@ -286,6 +286,8 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
                 logger.info("stripe_fee_unavailable", intent_id=intent.provider_payment_id, error=str(e)[:200])
             if fee is not None:
                 intent.metadata_ = {**intent.metadata_, "provider_fee": fee}
+                if get_settings().is_production:  # R29: local and QA keep the configured estimate
+                    await OrderService(db).apply_actual_card_fee(intent.order_id, fee)
     else:
         intent.metadata_ = {**intent.metadata_, "failure_reason": event.get("failure_reason") or event["event_type"]}
         await outbox.add(db, "payment.failed", "order", intent.order_id,

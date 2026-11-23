@@ -353,6 +353,12 @@ POLICY: dict[tuple[str, str], Policy] = {
         "viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us", body=lambda c: {"tier": "A", "note": "access sweep"}),
     ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/approve"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
     ("POST", "/api/v1/rules/commission/tier-changes/{change_id}/reject"): admin("viewer", "ops_hyd", "cm_us", body=lambda c: {}),
+    # R29: admin Pricing -> Fees (read at the level's market; set: rules.edit; unset: rules.approve)
+    ("GET", "/api/v1/rules/fees"): admin("ops_boi", "cm_us", params=lambda c: {"level": "city", "scope_id": "IN-TG-HYD"}),
+    ("POST", "/api/v1/rules/fees"): admin("viewer", "ops_boi", "cm_us", "support_hyd", body=lambda c: {
+        "level": "city", "scope_id": "IN-TG-HYD", "field": "platform_fee_pct", "value": {"percent": 10}}),
+    ("DELETE", "/api/v1/rules/fees"): admin("viewer", "ops_hyd", "cm_us", params=lambda c: {
+        "level": "city", "scope_id": "IN-TG-HYD", "field": "platform_fee_pct"}),
     ("GET", "/api/v1/rules/commission/preview/{rule_id}"): admin("ops_boi", "cm_us", "finance_us"),
     ("GET", "/api/v1/finance/contribution"): admin(
         "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"scope": "IN-TG-HYD", "start": "2026-11-09", "end": "2026-11-16"}),

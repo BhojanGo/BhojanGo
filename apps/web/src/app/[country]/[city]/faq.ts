@@ -39,7 +39,10 @@ export function cityFaq(c: CityPage, p: CityPricing | null, t: T, formatLocale: 
     cost.push(t("city.faq_max_distance", { distance: dist(p.max_distance) }));
   }
   const s = p.service_fee;
-  if (s && Number(s.percent) > 0) {
+  const pf = p.platform_fee; // R29 fee model v2: a percentage of the food, at least a minimum
+  if (pf && Number(pf.percent) > 0) {
+    cost.push(t("city.faq_platform_fee", { percent: number(Number(pf.percent), formatLocale), min: m(pf.min ?? 0) }));
+  } else if (s && Number(s.percent) > 0) {
     const percent = number(Number(s.percent), formatLocale);
     const min = s.min != null && Number(s.min) > 0 ? m(s.min) : null;
     const max = s.max != null && Number(s.max) > 0 ? m(s.max) : null;

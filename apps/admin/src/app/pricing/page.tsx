@@ -440,6 +440,7 @@ function PricingPage() {
           <button key={f.key} type="button" onClick={() => go(f.key)} aria-current={tab === f.key ? "page" : undefined}
             className={`h-9 rounded-xl px-3 text-label ${tab === f.key ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>{f.label}</button>
         ))}
+        <Link href="/pricing/fees" className="flex h-9 items-center rounded-xl px-3 text-label font-semibold text-muted">Fees by level</Link>
         <Link href={`/pricing/simulator${simCity ? `?city=${simCity}` : ""}`} className="flex h-9 items-center rounded-xl px-3 text-label font-semibold text-muted">Price simulator</Link>
         <button type="button" onClick={() => go("approvals")} aria-current={tab === "approvals" ? "page" : undefined}
           className={`h-9 rounded-xl px-3 text-label ${tab === "approvals" ? "bg-kohl font-bold text-white" : "font-semibold text-muted"}`}>

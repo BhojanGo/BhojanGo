@@ -4289,6 +4289,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rules/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fee Level
+         * @description Every fee setting at this level: the effective value, where it comes from, and the level's own rule.
+         */
+        get: operations["fee_level_api_v1_rules_fees_get"];
+        put?: never;
+        /**
+         * Set Fee
+         * @description Set a fee at this level from ``effective_from`` (now if empty): a draft sent for a second admin's approval.
+         */
+        post: operations["set_fee_api_v1_rules_fees_post"];
+        /**
+         * Unset Fee
+         * @description Stop this level's own value: from now the level inherits again (the version stays in the history).
+         */
+        delete: operations["unset_fee_api_v1_rules_fees_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rules/resolve": {
         parameters: {
             query?: never;
@@ -5603,6 +5631,7 @@ export interface components {
              * @default []
              */
             min_order?: components["schemas"]["ZoneMinOrder"][];
+            platform_fee?: components["schemas"]["PlatformFeeSummary"] | null;
             service_fee?: components["schemas"]["ServiceFeeSummary"] | null;
             small_order_fee?: components["schemas"]["SmallOrderFeeSummary"] | null;
             tip_presets?: components["schemas"]["TipPresetsOut"] | null;
@@ -8599,6 +8628,16 @@ export interface components {
             /** Phone */
             phone: string;
         };
+        /**
+         * PlatformFeeSummary
+         * @description R29: the platform fee, a percentage of the food subtotal, never below the minimum.
+         */
+        PlatformFeeSummary: {
+            /** Min */
+            min: string;
+            /** Percent */
+            percent: string;
+        };
         /** PrepIn */
         PrepIn: {
             /** Minutes */
@@ -9935,6 +9974,29 @@ export interface components {
              */
             open: string;
         };
+        /** SetFee */
+        SetFee: {
+            /** Effective From */
+            effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate";
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "country" | "region" | "city" | "restaurant";
+            /** Scope Id */
+            scope_id: string;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+        };
         /** SettingValue */
         SettingValue: {
             /** Key */
@@ -10137,6 +10199,11 @@ export interface components {
         };
         /** SplitOut */
         SplitOut: {
+            /**
+             * Card Fee
+             * @default 0
+             */
+            card_fee?: string;
             /** Detail */
             detail: {
                 [key: string]: string;
@@ -18322,6 +18389,110 @@ export interface operations {
                 "application/json": components["schemas"]["core_api__modules__rules__api__v1__commission__Decision"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fee_level_api_v1_rules_fees_get: {
+        parameters: {
+            query: {
+                level: "country" | "region" | "city" | "restaurant";
+                scope_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_fee_api_v1_rules_fees_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFee"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unset_fee_api_v1_rules_fees_delete: {
+        parameters: {
+            query: {
+                level: "country" | "region" | "city" | "restaurant";
+                scope_id: string;
+                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

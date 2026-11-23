@@ -1,4 +1,4 @@
-// Payouts: the payout account and weekly statements (food sales, commission,
+// Payouts: the payout account and weekly statements (food sales, commission, card fees (R29, order by order),
 // offers you funded, refunds that were the kitchen's fault). On a phone (lib/layout.ts)
 // the account sits above the statements.
 // R23: a week below zero pays nothing and is carried into the next week's statement as
@@ -21,7 +21,9 @@ type Statement = { id: string; payee_id: string; amount: number; currency: strin
   /** R23: minor units, <= 0, already in amount */
   carried_in?: number; negative_weeks?: number;
   summary: { orders?: number; food?: string; commission?: string; restaurant_funded_offers?: string; refunds?: string;
-    commission_tax?: string; tds?: string; net?: string } };
+    commission_tax?: string; tds?: string; net?: string; card_fee?: string };
+  /** R29: order by order: food − commission − card fee (− offers, refunds, taxes) = payout */
+  lines?: { order_id: string; food: string; packaging?: string; commission: string; card_fee?: string; net: string }[] };
 
 // The set-up badge's colours per state (R10).
 const BADGE: Record<PayoutCopy["tone"], { bg: string; fg: string }> = {
@@ -46,6 +48,7 @@ export default function Payouts() {
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null); // R29: the statement showing its orders
   /** Ask Stripe (through our API) on the next load: back from its pages, or "Check again". */
   const refreshNext = useRef(false);
   /** We sent the kitchen to Stripe's pages; refresh when the app comes back to the front. */
@@ -168,6 +171,23 @@ export default function Payouts() {
                       </Text>
                     ))}
                     {(st.negative_weeks ?? 0) >= 4 ? <Text style={t.body}>{tr("partner.payouts.carried_collect", { weeks: st.negative_weeks ?? 4 })}</Text> : null}
+                  </View>
+                ) : null}
+                {st.lines?.length ? (
+                  <View style={{ marginTop: 4, gap: 2 }}>
+                    <Text testID={`statement-orders-${st.id}`} accessibilityRole="button" onPress={() => setOpen(open === st.id ? null : st.id)}
+                      style={[t.body, { color: color.peacockDeep, fontWeight: "600" }]}>
+                      {tr(open === st.id ? "partner.payouts.hide_orders" : "partner.payouts.show_orders")}
+                    </Text>
+                    {open === st.id ? st.lines.map((l) => (
+                      <Text key={l.order_id} testID={`statement-line-${l.order_id}`} style={[t.muted, num]}>
+                        {tr("partner.payouts.order_line", {
+                          code: `#${l.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+                          food: cash(Number(l.food) + Number(l.packaging ?? 0), st.currency), commission: cash(Math.abs(Number(l.commission)), st.currency),
+                          card: cash(Math.abs(Number(l.card_fee ?? 0)), st.currency), net: cash(Number(l.net), st.currency),
+                        })}
+                      </Text>
+                    )) : null}
                   </View>
                 ) : null}
                 {Number(st.summary.commission_tax ?? 0) > 0 ? (

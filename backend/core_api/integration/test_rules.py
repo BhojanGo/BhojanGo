@@ -75,10 +75,11 @@ async def test_every_seeded_rule_is_valid_and_hyderabad_resolves(client: AsyncCl
     got = await resolved(client, h, {**ctx("IN-TG-HYD"), "restaurant_id": restaurant})
     assert got["delivery_fee"]["template"] == "distance_slabs" and got["delivery_fee"]["scope_level"] == "city"
     assert got["customer_fee:packaging_levy"]["params"]["amount"] == "10"
-    assert got["customer_fee:service_fee"]["params"]["percent"] == "2"
+    assert "customer_fee:service_fee" not in got  # R29: the platform fee replaced it
+    assert got["fee:platform_fee_pct"]["params"]["percent"] == "10" and got["fee:platform_fee_pct"]["scope_level"] == "country"
+    assert got["commission:rate"]["scope_level"] == "restaurant" and got["commission:rate"]["params"]["percent"] == "15"
     assert got["tax:rate_on_lines:gst_food"]["params"]["rate_percent"] == "5"
     assert got["tax:rate_on_lines:gst_fees"]["params"]["rate_percent"] == "18"
-    assert got["commission:rate"]["scope_level"] == "country"
     assert got["business:accept_timeout"]["scope_level"] == "platform"
     assert "promotion:percent_off:hyd_launch" in got
 

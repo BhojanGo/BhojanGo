@@ -22,12 +22,14 @@ export interface SplitLine {
 // for the per-line tags; the shares come from the engine's split (rider pay comes
 // out of our fees).
 export const PAYEE: Record<string, Payee> = {
-  food: "kitchen", packaging: "kitchen", delivery_fee: "us", service_fee: "us", small_order_fee: "us",
+  food: "kitchen", packaging: "kitchen", delivery_fee: "us", platform_fee: "us", service_fee: "us", small_order_fee: "us",
   surge: "us", late_night_fee: "us", tax: "tax", tip: "rider",
 };
 
-export function payeeOf(line: SplitLine): Payee {
+/** R29 fee model v2 (a bill with a platform fee line): the delivery fee is all the delivery partner's. */
+export function payeeOf(line: SplitLine, lines: readonly SplitLine[] = []): Payee {
   if (line.code === "promotion") return line.funded_by === "restaurant" ? "kitchen" : "us";
+  if (line.code === "delivery_fee" && lines.some((l) => l.code === "platform_fee")) return "rider";
   return PAYEE[line.code] ?? "us";
 }
 

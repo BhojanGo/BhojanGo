@@ -3,12 +3,15 @@
     1 locate      (done by the caller: address -> zone -> city -> country, rules loaded)
     2 food        items + modifiers
     3 promotions  best food discount, plus free delivery; who funds each
-    4 fees        delivery, service, small-order, packaging, surge, late-night
+    4 fees        delivery, platform fee (R29), service, small-order, packaging, surge, late-night
     5 taxes       each tax rule on its target lines
     6 tip
     7 total       (R20: an app store review account's order in its review-only city:
                   one platform-funded line takes the total to zero)
     8 split       restaurant payout, rider pay, tax owed, platform revenue
+                  R29 fee model v2 (pricing.service.fees): the delivery fee and the tip go 100% to the
+                  delivery partner; the restaurant gets food - commission (default 0%) - card fee;
+                  BhojanGo keeps the platform fee (less any guaranteed-pay top-up it funds).
 
 Pure function over Decimals: no database, no clock (the caller passes the local
 time). Every line is rounded half-up to the currency's minor unit as it is
@@ -93,7 +96,7 @@ class QuoteInputs:
 
 @dataclass
 class BillLine:
-    code: str  # food | promotion | delivery_fee | service_fee | small_order_fee | packaging | surge | late_night_fee | tax | tip
+    code: str  # food | promotion | delivery_fee | platform_fee | service_fee | small_order_fee | packaging | surge | late_night_fee | tax | tip
     label: str
     amount: Decimal  # negative for discounts
     rule_id: str | None = None
@@ -110,6 +113,7 @@ class Split:
     tax: Decimal
     platform: Decimal
     detail: dict[str, Decimal]
+    card_fee: Decimal = ZERO  # R29: the card processor's (estimated) fee, taken from the restaurant's payout
 
 
 @dataclass
@@ -260,6 +264,16 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         add("promotion", free_delivery.name or "Free delivery", -fees["delivery_fee"], free_delivery,
             funded_by=free_delivery.params["funded_by"], taxable_as="delivery_fee")
 
+    pf = rules.get("fee:platform_fee_pct")
+    if pf:
+        # R29: a percentage of the food subtotal (food only), never below the minimum. Integer cents, half-up.
+        from core_api.modules.pricing.service.fees import from_cents, platform_fee_cents, to_cents
+
+        mf = rules.get("fee:min_platform_fee")
+        cents = platform_fee_cents(to_cents(food), pf.params["percent"], to_cents(mf.params["amount"]) if mf else 0)
+        fees["platform_fee"] = add("platform_fee", "Platform fee", from_cents(cents), pf, taxable_as="platform_fee").amount
+        if mf:
+            used.append(mf)
     sf = rules.get("customer_fee:service_fee")
     if sf:
         base = food - discount if sf.params.get("base") == "after_promotions" else food
@@ -286,7 +300,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     tax_owed = ZERO
     tax_by_collector: dict[str, Decimal] = {"platform": ZERO, "restaurant": ZERO}
     tax_pending = False
-    line_order = ["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee"]
+    line_order = ["food", "packaging", "delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee"]
 
     def tax_order(slot: str) -> tuple[int, str]:
         targets = rules[slot].params.get("target_lines", [])
@@ -361,22 +375,39 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         commission += money(D(cf.params["amount"]))
         used.append(cf)
     packaging = fees.get("packaging", ZERO)
-    restaurant = money(food + packaging - commission - restaurant_funded + tax_by_collector["restaurant"])
+    # R29: the card fee comes off the restaurant's payout: the estimate (percent + fixed) of what the
+    # customer is charged less the tip. Card is assumed at quote time; a cash order drops it (order service).
+    card_fee = ZERO
+    cfe = rules.get("fee:card_fee_estimate")
+    if cfe and total > 0:
+        from core_api.modules.pricing.service.fees import card_fee_cents, from_cents, to_cents
 
+        card_fee = from_cents(card_fee_cents(to_cents(total), to_cents(tip), cfe.params["percent"],
+                                             to_cents(cfe.params.get("fixed", 0))))
+        used.append(cfe)
+    restaurant = money(food + packaging - commission - restaurant_funded - card_fee + tax_by_collector["restaurant"])
+
+    # R29: the delivery fee (before any offer: whoever funds the offer pays it) goes 100% to the
+    # delivery partner, and so does the tip. Where a guaranteed-pay rule exists (base + distance +
+    # waiting), BhojanGo tops the partner up to it, so the new model never pays a partner less.
+    delivery_to_partner = fees.get("delivery_fee", ZERO)
     rider_base = ZERO
     rp = rules.get("rider_pay:base_distance_wait")
     if rp:
         rider_base = rider_base_pay(rp.params, inp.distance, inp.wait_minutes)
         used.append(rp)
-    rider = money(rider_base + tip)
+    top_up = money(max(ZERO, rider_base - delivery_to_partner))
+    rider = money(delivery_to_partner + top_up + tip)
 
     government = money(tax_by_collector["platform"])
-    platform = money(total - restaurant - rider - government)
+    platform = money(total - restaurant - rider - government - card_fee)
     split = Split(
-        restaurant=restaurant, rider=rider, tax=money(tax_owed), platform=platform,
+        restaurant=restaurant, rider=rider, tax=money(tax_owed), platform=platform, card_fee=card_fee,
         detail={"commission": commission, "restaurant_funded_offers": money(restaurant_funded),
                 "platform_funded_offers": money(-sum((bl.amount for bl in lines if bl.funded_by == "platform"), ZERO)),
-                "rider_base": rider_base, "tip": tip, "tax_collected_by_restaurant": money(tax_by_collector["restaurant"])},
+                "rider_base": rider_base, "tip": tip, "tax_collected_by_restaurant": money(tax_by_collector["restaurant"]),
+                "card_fee": card_fee, "delivery_fee_to_partner": delivery_to_partner, "rider_top_up": top_up,
+                "platform_fee": fees.get("platform_fee", ZERO)},
     )
     return QuoteResult(
         currency=inp.currency, lines=lines, food_subtotal=food, total=total, split=split,

@@ -56,12 +56,14 @@ async def test_restaurant_override_wins_ends_and_falls_back(client: AsyncClient)
     rid = await spice_route(client)
     view = f"/api/v1/rules/commission/restaurants/{rid}"
     start = (await client.get(view, headers=cm)).json()
-    assert start["rate_source"]["scope_level"] == "country" and start["percent"] == "15"  # IN tier B
+    # R29 fee model v2: India's commission is 0%; Spice Route has its own seeded 15% deal (a restaurant rule)
+    assert start["rate_source"]["scope_level"] == "restaurant" and start["percent"] == "15"
+    seeded = start["rate_source"]["rule_id"]
 
-    before = await new_order(client, cust)  # priced at the country's 15%
+    before = await new_order(client, cust)  # priced at the kitchen's 15%
     r = await client.post("/api/v1/rules", headers=cm, json={
         "family": "commission", "template": "percent", "params": {"percent": 12}, "name": "Spice Route launch deal",
-        "scope_level": "restaurant", "scope_id": rid})
+        "scope_level": "restaurant", "scope_id": rid, "priority": 1})  # beats the seeded deal at the same level
     assert r.status_code == 201, r.text
     rule = r.json()
     try:
@@ -74,10 +76,10 @@ async def test_restaurant_override_wins_ends_and_falls_back(client: AsyncClient)
         during = await new_order(client, cust)
         food = Decimal(str(during["subtotal"]))
         assert await snapshot_commission(during["id"]) == (food * 12 / 100).quantize(Decimal("0.01"))
-        # End it now: the restaurant falls back to the country's tier rate.
+        # End it now: the restaurant falls back to its seeded 15% deal.
         assert (await client.post(f"/api/v1/rules/{rule['id']}/end", headers=cm, json={})).status_code == 200
         back = (await client.get(view, headers=cm)).json()
-        assert back["percent"] == "15" and back["rate_source"]["scope_level"] == "country"
+        assert back["percent"] == "15" and back["rate_source"]["rule_id"] == seeded
         after = await new_order(client, cust)
         assert await snapshot_commission(after["id"]) == (Decimal(str(after["subtotal"])) * 15 / 100).quantize(Decimal("0.01"))
         # Orders keep the rate they were priced with, whatever happens to the rule later.
@@ -136,7 +138,8 @@ async def test_tier_change_needs_a_second_admin_and_is_audited(client: AsyncClie
     r = await client.post(f"/api/v1/rules/commission/tier-changes/{change}/approve", headers=fin, json={"note": "ok"})
     assert r.status_code == 200 and r.json()["tier"] == "A", r.text
     now = (await client.get(base, headers=cm)).json()
-    assert now["tier"] == "A" and now["percent"] == "18" and now["pending_tier_change"] is None
+    # R29: the kitchen's own deal is one percentage whatever its tier (tiers matter only to a percent_by_tier rule)
+    assert now["tier"] == "A" and now["percent"] == "15" and now["pending_tier_change"] is None
     audit = (await client.get("/api/v1/audit", headers=await login(client, "admin@example.com", PW),
                               params={"entity_type": "restaurant"})).json()
     assert any(a["action"] == "restaurant.tier_changed" and a["entity_id"] == rid for a in audit)
@@ -155,8 +158,8 @@ async def test_preview_recalculates_the_last_days(client: AsyncClient) -> None:
         p = (await client.get(f"/api/v1/rules/commission/preview/{draft['id']}", headers=cm)).json()
         assert p["days"] == 7 and p["orders"] >= 0
         assert Decimal(p["payout_difference"]) == Decimal(p["commission_now"]) - Decimal(p["commission_new"])
-        if p["orders"]:  # Hyderabad orders delivered earlier in the suite: 15% now, 10% with the draft
-            assert Decimal(p["commission_new"]) < Decimal(p["commission_now"]) and Decimal(p["payout_difference"]) > 0
+        if p["orders"]:  # R29: kitchens on the country's 0% would pay 10%; Spice Route's own 15% deal still wins
+            assert Decimal(p["commission_new"]) >= Decimal(p["commission_now"]) and Decimal(p["payout_difference"]) <= 0
     finally:
         assert (await client.delete(f"/api/v1/rules/{draft['id']}", headers=cm)).status_code == 204
     assert cust  # (signed in to keep the helper's rate limits warm)

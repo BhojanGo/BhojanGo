@@ -11,21 +11,21 @@ Antes de que pagues, BhojanGo te muestra la cuenta completa, línea por línea, 
 
 ## Qué significa cada etiqueta
 
-- **KITCHEN** [cocina]: la comida y el empaque, si lo hay. Es el dinero de la cocina, menos la comisión que le paga a BhojanGo sobre la comida.
-- **DELIVERY PARTNER** [socio repartidor]: tu propina. Va completa a la persona que te lleva la comida.
+- **KITCHEN** [cocina]: la comida y el empaque, si lo hay. Es el dinero de la cocina; de él sale la comisión de procesamiento con tarjeta de tu pago (y una comisión, si la cocina la acordó).
+- **DELIVERY PARTNER** [socio repartidor]: la tarifa de entrega y tu propina. Ambas van completas a la persona que te lleva la comida.
 - **TAX** [impuestos]: las líneas de impuestos, con su propio nombre y tasa, para que veas lo que va al gobierno.
-- **BHOJANGO**: la tarifa de entrega, la tarifa de servicio y cualquier otra tarifa que cobre tu ciudad, como una tarifa por pedido pequeño, una tarifa por hora pico o una tarifa nocturna.
+- **BHOJANGO**: la tarifa de plataforma, un porcentaje de la comida (con un mínimo pequeño), y cualquier otra tarifa que cobre tu ciudad, como una tarifa por pedido pequeño, una tarifa por hora pico o una tarifa nocturna.
 
 Las ofertas también muestran quién las paga. Una oferta que financia la cocina aparece como pagada por la cocina; una que financia BhojanGo aparece como pagada por BhojanGo.
 
 ## A dónde va la tarifa de entrega
 
-La tarifa de entrega no es lo mismo que el pago de tu socio repartidor. BhojanGo le paga a cada socio repartidor por cada viaje, según la recogida, la distancia y el tiempo de espera, si lo hay, y ese pago sale de las tarifas que cobramos. Tu propina se suma a eso.
+Toda la tarifa de entrega va a tu socio repartidor. Donde una ciudad garantiza un pago mínimo por viaje (según la recogida, la distancia y la espera) y la tarifa de entrega es menor, BhojanGo pone la diferencia con la tarifa de plataforma. Tu propina se suma a eso.
 
 Por eso la barra "¿Quién recibe tu dinero?" de nuestra página de inicio muestra cuatro partes de una cuenta real:
 
 1. **KITCHEN**: lo que se le paga a la cocina por el pedido.
-2. **DELIVERY PARTNER**: su pago por el viaje más la propina.
+2. **DELIVERY PARTNER**: la tarifa de entrega (y lo que se sume para llegar a su pago garantizado) más la propina.
 3. **TAX**: lo que va al gobierno.
 4. **BHOJANGO**: lo que queda.
 

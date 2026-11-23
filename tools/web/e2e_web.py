@@ -572,7 +572,8 @@ with sync_playwright() as p:
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
         expect(page.get_by_text(re.compile(r"₹25\.00 up to 3 km; ₹35\.00 up to 6 km; ₹50\.00 up to 10 km"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"service fee of 2% of the food \(at least ₹5\.00, at most ₹15\.00\)"))).to_be_attached(),
+        # R29 fee model v2: the platform fee replaced the service fee
+        expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹85\.00\) goes to BhojanGo"))).to_be_attached(),
         expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
@@ -748,7 +749,8 @@ with sync_playwright() as p:
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
     check("bag: the fair bill once signed in", lambda: (
         expect(bag.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(timeout=20000),
-        expect(bag.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
+        expect(bag.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
+        expect(bag.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
         expect(bag.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible()))
     check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("banner").get_by_role("link", name="Deliver with BhojanGo")).to_have_count(0))
 
@@ -759,7 +761,8 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Deliver to")).to_contain_text("Home", timeout=20000),
         expect(bill.get_by_text("The fair bill")).to_be_visible(timeout=20000),
         expect(bill.get_by_role("row", name=re.compile("^Food Kitchen"))).to_be_visible(),
-        expect(bill.get_by_role("row", name=re.compile("^Delivery.*BhojanGo"))).to_be_visible(),
+        expect(bill.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
+        expect(bill.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
     tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
     # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".

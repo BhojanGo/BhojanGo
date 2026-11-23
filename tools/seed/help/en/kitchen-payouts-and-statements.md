@@ -3,7 +3,7 @@ slug: kitchen-payouts-and-statements
 topic: kitchen-partners
 country: *
 title: How do kitchen payouts and statements work?
-summary: You're paid weekly for delivered orders: food and packaging, less commission, offers you fund and refunds for your own mistakes. Every line is on your statement.
+summary: You're paid weekly for delivered orders: food and packaging, less the card processing fee, any commission, offers you fund and refunds for your own mistakes. Every order is on your statement.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, add-your-kitchen
 ---
@@ -14,7 +14,8 @@ Kitchen partners are paid weekly, straight to your bank account, through our pay
 For every delivered order in the week:
 
 - **plus** the food and packaging,
-- **minus** BhojanGo's commission, a percentage of the food only,
+- **minus** the card processing fee for that order (the payment provider's fee on what the customer paid, not counting the tip),
+- **minus** BhojanGo's commission, a percentage of the food only (0% unless your agreement says otherwise),
 - **minus** any offers you funded on that order,
 - **minus** refunds for your own mistakes, such as a missing or wrong item or poor quality. For those, you lose the item's food value, less the commission you paid on it.
 

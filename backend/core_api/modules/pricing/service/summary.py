@@ -9,6 +9,7 @@ from core_api.modules.pricing.schemas import (
     CityPricing,
     DeliveryFeeSummary,
     FeeSlab,
+    PlatformFeeSummary,
     ServiceFeeSummary,
     SmallOrderFeeSummary,
     TipPresetsOut,
@@ -62,11 +63,14 @@ def summarize(resolved: dict[str, Candidate], *, currency: str, distance_unit: s
     fee, fee_from = delivery_fee(resolved.get("delivery_fee"))
     sf = _one(resolved, "customer_fee:service_fee")
     so = _one(resolved, "customer_fee:small_order_fee")
+    pf, pm = resolved.get("fee:platform_fee_pct"), resolved.get("fee:min_platform_fee")
     radius = _one(resolved, "business:max_radius")
     return CityPricing(
         currency=currency, distance_unit=distance_unit, delivery_fee=fee, delivery_from=fee_from,
         service_fee=ServiceFeeSummary(percent=_d(sf.params["percent"]), min=_d(sf.params["min"]), max=_d(sf.params["max"]))
         if sf else None,
+        platform_fee=PlatformFeeSummary(percent=_d(pf.params["percent"]), min=_d(pm.params["amount"]) if pm else Decimal(0))
+        if pf else None,
         small_order_fee=SmallOrderFeeSummary(below=_d(so.params["below"]), fee=_d(so.params["fee"])) if so else None,
         min_order=[ZoneMinOrder(zone=name, min_order=_d(m)) for name, m in zone_minimums if m is not None],
         max_distance=_d(radius.params["distance"]) if radius else None,

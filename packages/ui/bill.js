@@ -3,14 +3,21 @@
 
 // Who gets each line, in the words people read: KITCHEN, DELIVERY PARTNER, TAX,
 // BHOJANGO. A line is DELIVERY PARTNER only when all of it goes to them (the tip).
-// The delivery fee is BhojanGo's: delivery partners are paid separately (base,
-// distance, waiting, the floor).
+// Before R29 the delivery fee was BhojanGo's (partners were paid separately: base,
+// distance, waiting, the floor). R29 fee model v2 (a bill with a platform fee line):
+// the delivery fee goes 100% to the delivery partner, the platform fee to BhojanGo.
 const PAYEE = {
   food: "KITCHEN", packaging: "KITCHEN",
-  delivery_fee: "BHOJANGO",
+  delivery_fee: "BHOJANGO", platform_fee: "BHOJANGO",
   service_fee: "BHOJANGO", small_order_fee: "BHOJANGO", surge: "BHOJANGO", late_night_fee: "BHOJANGO",
   tax: "TAX", tip: "DELIVERY PARTNER",
 };
+
+/** Who gets this line of this bill (a payee code above). */
+function payeeOf(line, lines) {
+  if (line.code === "delivery_fee" && (lines || []).some((ln) => ln.code === "platform_fee")) return "DELIVERY PARTNER";
+  return PAYEE[line.code] ?? "BHOJANGO";
+}
 
 const SYMBOL = { INR: "₹", USD: "$" };
 
@@ -55,7 +62,7 @@ function billRows(lines, currency) {
       rows.push({ label: ln.label, payee: PAYEE_LABEL[ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO"],
                   amount: money(amount, currency), accent: true });
     } else {
-      rows.push({ label: ln.label, payee: PAYEE_LABEL[PAYEE[ln.code] ?? "BHOJANGO"], amount: money(amount, currency) });
+      rows.push({ label: ln.label, payee: PAYEE_LABEL[payeeOf(ln, lines)], amount: money(amount, currency) });
     }
   }
   return rows;
@@ -84,4 +91,4 @@ function receiptRefunds(bill, cancelled) {
   return { refunds, refunded, paid };
 }
 
-module.exports = { money, billRows, billTotal, shownLines, receiptRefunds, REFUND_REASONS, PAYEE };
+module.exports = { money, billRows, billTotal, shownLines, receiptRefunds, REFUND_REASONS, PAYEE, payeeOf };

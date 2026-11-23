@@ -10,6 +10,9 @@ GOOD = {
     ("delivery_fee", "free_above"): {"min_subtotal": 499, "otherwise": 30},
     ("delivery_fee", "tier_base"): {"tiers": {"A": 25, "B": 30}, "default_tier": "B"},
     ("customer_fee", "service_fee"): {"percent": 2, "min": 5, "max": 15},
+    ("fee", "platform_fee_pct"): {"percent": 10},
+    ("fee", "min_platform_fee"): {"amount": "0.99"},
+    ("fee", "card_fee_estimate"): {"percent": "2.9", "fixed": "0.30"},
     ("customer_fee", "small_order_fee"): {"below": 99, "fee": 15},
     ("customer_fee", "packaging_levy"): {"amount": 10},
     ("customer_fee", "surge_levy"): {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 15},
@@ -110,3 +113,16 @@ def test_catalogue_lists_everything_with_schemas() -> None:
     svc = next(c for c in cat if c["template"] == "service_fee")
     assert svc["money"] is True and svc["allowed_levels"] == ["country", "city", "zone", "restaurant"]
     assert set(svc["params_schema"]["properties"]) >= {"percent", "min", "max"}
+
+
+def test_every_seeded_rule_is_valid() -> None:
+    """R29: the seed's India GST rule named the new platform_fee line before tax rules allowed it; a fresh
+    local stack's seed failed. Every seeded rule must pass its template."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "tools" / "seed"))
+    from data import RULES  # type: ignore[import-not-found]
+
+    for family, template, _key, _name, _level, _scope, params in RULES:
+        t.validate_params(family, template, params)

@@ -17,7 +17,8 @@ PW = "BhojanGoAdmin1"
 
 async def test_kitchen_callback_reaches_the_support_console(client: AsyncClient) -> None:  # noqa: F811
     partner = await login(client, "partner.hyd@example.com")
-    spice = (await client.get("/api/v1/restaurants/mine", headers=partner)).json()[0]["id"]
+    spice = next(r["id"] for r in (await client.get("/api/v1/restaurants/mine", headers=partner)).json()
+                 if r["name"] == "Spice Route Kitchen")  # the partner has more than one kitchen; the list's order isn't fixed
     url = f"/api/v1/restaurants/{spice}/callback"
 
     r = await client.post(url, headers=partner, json={"topic": "payout", "note": "Last week's payout looks short"})

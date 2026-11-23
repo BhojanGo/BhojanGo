@@ -211,6 +211,7 @@ class OrderService:
 
         prep = (rest.avg_prep_minutes + busy_minutes(rest, now)) if rest else 20
         pickup = (rest.lat, rest.lng) if rest else None
+        await self._add_payment_fees(q, data.payment_method)  # R29: before the order, so a cash order's payout has no card fee
         order = await self.repo.create(
             pickup_lat=rest.lat if rest else None,
             pickup_lng=rest.lng if rest else None,
@@ -226,7 +227,7 @@ class OrderService:
             zone_id=uuid.UUID(ctx["zone_id"]) if ctx.get("zone_id") else None,
             payment_due_at=now + timedelta(minutes=rules["unpaid_minutes"]),
             subtotal=_money(q["food_subtotal"]),
-            delivery_fee=line_sum("delivery_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee"),
+            delivery_fee=line_sum("delivery_fee", "platform_fee", "service_fee", "small_order_fee", "packaging", "surge", "late_night_fee"),
             taxes=line_sum("tax"),
             tip=line_sum("tip"),
             discount=-line_sum("promotion"),
@@ -234,6 +235,7 @@ class OrderService:
             currency=q["currency"],
             platform_fee=_money(q["split"]["platform"]),
             restaurant_payout=_money(q["split"]["restaurant"]),
+            card_fee=_money(q["split"].get("card_fee", "0")),
             estimated_prep_minutes=prep,
             delivery_distance_km=_money(ctx["distance"]),
             is_long_distance=False,
@@ -246,7 +248,6 @@ class OrderService:
             loyalty_points_used=0,
             estimated_delivery_time=delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
-        await self._add_payment_fees(q, data.payment_method)
         try:
             await quotes.attach(q, order.id)
         except QuoteError as e:
@@ -283,13 +284,46 @@ class OrderService:
         rule = (await RuleService(self.db).resolve(Context(country=ctx.get("country"), region=ctx.get("region"),
                                                            city=ctx.get("city")))).get("business:payment_fees")
         tax_calculated = any((ln.get("detail") or {}).get("provider") for ln in q["lines"] if ln.get("code") == "tax")
-        fee, detail = payment_fee(Decimal(q["total"]), method, rule.params if rule else None, tax_calculated)
-        q["split"] = {**q["split"], "payment_fees": str(fee),
-                      "platform_keeps": str(Decimal(q["split"]["platform"]) - fee),
-                      "detail": {**q["split"].get("detail", {}), "payment_fees": detail}}
+        if any(r.get("slot") == "fee:card_fee_estimate" for r in q["rules_used"]):
+            # R29 fee model v2: the card fee comes off the restaurant's payout (engine split); the platform
+            # pays only the tax service. A cash order has no card fee: the restaurant gets it back.
+            split = dict(q["split"])
+            card = Decimal(split.get("card_fee", "0"))
+            if method == "cash_on_delivery" and card:
+                split["restaurant"] = str(Decimal(split["restaurant"]) + card)
+                split["card_fee"], card = "0.00", Decimal(0)
+                split["detail"] = {**split.get("detail", {}), "card_fee": "0.00"}
+            tax_service = Decimal(0)
+            if rule and tax_calculated and method != "cash_on_delivery":
+                tax_service = _money(Decimal(q["total"]) * Decimal(str(rule.params.get("tax_service_percent", 0))) / 100)
+            fee = _money(card + tax_service)
+            q["split"] = {**split, "payment_fees": str(fee), "platform_keeps": str(_money(Decimal(split["platform"]) - tax_service)),
+                          "detail": {**split.get("detail", {}), "payment_fees": {"method": method, "processing": str(card),
+                                                                               "tax_service": str(tax_service),
+                                                                               "processing_paid_by": "restaurant"}}}
+        else:
+            fee, detail = payment_fee(Decimal(q["total"]), method, rule.params if rule else None, tax_calculated)
+            q["split"] = {**q["split"], "payment_fees": str(fee),
+                          "platform_keeps": str(Decimal(q["split"]["platform"]) - fee),
+                          "detail": {**q["split"].get("detail", {}), "payment_fees": detail}}
         if rule:
             q["rules_used"] = [*q["rules_used"], {"rule_id": str(rule.id), "rule_key": str(rule.rule_key), "version": rule.version,
                                                  "slot": rule.slot, "scope_level": rule.scope_level, "scope_id": rule.scope_id}]
+
+    async def apply_actual_card_fee(self, order_id: uuid.UUID, fee_minor: int) -> None:
+        """R29, production only: the processor's actual fee for the charge replaces the estimate taken
+        from the restaurant's payout at placement (only for orders priced with a card fee estimate)."""
+        order = await self._locked(order_id)
+        if order is None or not order.card_fee:
+            return
+        actual = (Decimal(fee_minor) / 100).quantize(Decimal("0.01"))
+        if actual == order.card_fee:
+            return
+        before = order.card_fee
+        order.restaurant_payout = _money(order.restaurant_payout + before - actual)
+        order.card_fee = actual
+        await self.db.flush()
+        logger.info("card_fee_actual", order_id=str(order_id), estimate=str(before), actual=str(actual))
 
     # ── payment ──────────────────────────────────────────────────────────────
     async def on_payment_succeeded(self, order_id: uuid.UUID) -> None:

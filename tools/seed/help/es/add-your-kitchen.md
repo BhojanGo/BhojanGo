@@ -7,7 +7,7 @@ summary: Empieza tu solicitud en Agrega tu cocina con el nombre de tu cocina, la
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, kitchen-payouts-and-statements
 ---
-Las cocinas asociadas de BhojanGo pagan comisión solo sobre la comida, reciben sus pagos cada semana y fijan sus propios precios y ofertas. Verás tus condiciones antes de empezar a operar.
+Las cocinas asociadas de BhojanGo empiezan con 0% de comisión (los clientes pagan a BhojanGo una tarifa de plataforma), reciben sus pagos cada semana y fijan sus propios precios y ofertas. Verás tus condiciones antes de empezar a operar.
 
 ## Envía tu solicitud
 
@@ -33,7 +33,7 @@ Puedes guardar y volver cuando quieras. El paso en el que estás aparece resalta
 
 ## Tus condiciones
 
-La solicitud muestra la tasa de comisión de tu cocina. Es un porcentaje solo del total de la comida, nunca del empaque, las tarifas del cliente, los impuestos ni las propinas. Si tu acuerdo también incluye un monto fijo por pedido, aparece en tu estado de cuenta.
+La solicitud muestra la tasa de comisión de tu cocina: 0% para empezar. Cualquier comisión es un porcentaje solo del total de la comida, nunca del empaque, las tarifas del cliente, los impuestos ni las propinas. La comisión de procesamiento con tarjeta de cada pedido sale de tu pago, y tu estado de cuenta la muestra pedido por pedido.
 
 ## Activación
 

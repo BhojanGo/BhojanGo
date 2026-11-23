@@ -7,7 +7,7 @@ summary: Start your application on Add your kitchen with your kitchen's name, ci
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, kitchen-payouts-and-statements
 ---
-Kitchen partners on BhojanGo pay commission on food only, get paid weekly, and set their own prices and offers. You'll see your terms before you go live.
+Kitchen partners on BhojanGo start at 0% commission (customers pay BhojanGo a platform fee instead), get paid weekly, and set their own prices and offers. You'll see your terms before you go live.
 
 ## Apply
 
@@ -33,7 +33,7 @@ You can save and come back at any time. The step you're on is highlighted.
 
 ## Your terms
 
-The application shows the commission rate for your kitchen. It's a percentage of your food total only, never of packaging, customer fees, tax or tips. If your agreement also has a fixed amount per order, your statement shows it.
+The application shows the commission rate for your kitchen: 0% to start. Any commission is a percentage of your food total only, never of packaging, customer fees, tax or tips. Each order's card processing fee comes out of your payout, and your statement shows it order by order.
 
 ## Going live
 

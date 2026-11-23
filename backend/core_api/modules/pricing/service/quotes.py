@@ -33,6 +33,7 @@ from core_api.modules.pricing.service.engine import (
     money,
     taxable_amounts,
 )
+from core_api.modules.pricing.service.fees import snapshot as fee_snapshot
 from core_api.modules.pricing.service.summary import tip_presets
 from core_api.modules.rules.service.resolver import Context
 from core_api.modules.rules.service.rules import RuleService
@@ -251,6 +252,8 @@ class QuoteService:
             "split": {k: str(v) for k, v in asdict(result.split).items() if k != "detail"}
             | {"detail": {k: str(v) for k, v in result.split.detail.items()}},
             "rules_used": result.rules_used, "tax_pending": result.tax_pending,
+            # R29: the fee settings that priced it, each with the rule (level, scope, version) it came from
+            "fee_settings": fee_snapshot(rules, rest.tier),
             "context": {"country": country.code, "region": region.code, "city": city.code, "zone_id": str(where.zone_id),
                         "week_start": week_of(now.astimezone(tz)).isoformat(),
                         "zone": where.zone_name, "distance": str(distance), "distance_unit": country.distance_unit,
@@ -305,6 +308,7 @@ class QuoteService:
             order_id=order_id, quote_id=uuid.UUID(q["quote_id"]), currency=q["currency"], total=Decimal(q["total"]),
             lines=q["lines"], rule_versions=q["rules_used"], split=q["split"],
             context={**q["context"], "tax_calculation": q.get("tax_calculation")},
+            fee_settings=q.get("fee_settings"),
         )
         self.db.add(snap)
         for ln in q["lines"]:

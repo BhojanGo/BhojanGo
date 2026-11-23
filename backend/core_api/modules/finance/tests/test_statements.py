@@ -133,3 +133,34 @@ def test_a_later_drop_off_of_a_batch_pays_no_base_but_the_batch_bonus() -> None:
     assert (b["distance"], b["waiting"], b["tip"]) == (a["distance"], a["waiting"], a["tip"])  # the rest is unchanged
     assert Decimal(b["total"]) == Decimal(a["total"]) - Decimal(a["base"]) + Decimal("10.00")
     assert summary["base"] == str(Decimal(a["base"]) + Decimal("10.00"))  # the bonus counts as base pay
+
+
+def test_r29_payout_is_food_less_commission_less_card_fee() -> None:
+    """Fee model v2, the B example: food 36.98 - commission 0 - card fee 1.66 = 35.32, shown per order."""
+    o = OrderForPayout(order_id="o1", delivered_at=T, restaurant_id="r1", rider_id=None,
+                       lines=[{"code": "food", "amount": "36.98"}, {"code": "delivery_fee", "amount": "3.99"},
+                              {"code": "platform_fee", "amount": "3.70"}, {"code": "tax", "amount": "2.22"}],
+                       split={"restaurant": "35.32", "card_fee": "1.66",
+                              "detail": {"commission": "0", "card_fee": "1.66", "delivery_fee_to_partner": "3.99"}},
+                       distance=Decimal("1.2"), rider_rule=None, started_at=None)
+    total, summary, lines = restaurant_statement([o])
+    assert total == Decimal("35.32") and lines[0]["net"] == "35.32"
+    assert (lines[0]["food"], lines[0]["commission"], lines[0]["card_fee"]) == ("36.98", "0.00", "-1.66")
+    assert summary["card_fee"] == "1.66"
+    # Production: the processor's actual fee (on the order) replaces the estimate
+    from dataclasses import replace
+
+    assert restaurant_statement([replace(o, card_fee=Decimal("1.60"))])[0] == Decimal("35.38")
+
+
+def test_r29_partner_gets_the_delivery_fee_when_it_is_more_than_guaranteed_pay() -> None:
+    from core_api.modules.finance.service.statements import rider_statement
+
+    def order(fee: str) -> OrderForPayout:
+        return OrderForPayout(order_id="o1", delivered_at=T, restaurant_id="r1", rider_id="d1",
+                              lines=[], split={"detail": {"tip": "2.00", "delivery_fee_to_partner": fee}},
+                              distance=Decimal("1"), rider_rule={"base": "3.00", "per_unit": "1.00"}, started_at=None)
+    total, summary, lines = rider_statement([order("4.99")], None)
+    assert lines[0]["delivery_fee_extra"] == "0.99" and total == Decimal("6.99")  # 4.99 delivery fee + 2.00 tip
+    total, _, lines = rider_statement([order("1.99")], None)
+    assert lines[0]["delivery_fee_extra"] == "0.00" and total == Decimal("6.00")  # guaranteed 4.00 + 2.00 tip

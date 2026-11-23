@@ -16,9 +16,9 @@ export function billLabel(ln: BillLine, t: T, distance?: string | null): string 
   return ln.code === "delivery_fee" && distance ? `${base} · ${distance}` : base;
 }
 
-export function payeeLabel(ln: BillLine, t: T): string {
+export function payeeLabel(ln: BillLine, t: T, lines: readonly BillLine[] = []): string {
   if (ln.code === "promotion") return ln.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays");
-  const p = payeeOf(ln);
+  const p = payeeOf(ln, lines);
   return p === "kitchen" ? t("bill.kitchen") : p === "tax" ? t("bill.tax") : p === "rider" ? t("bill.rider") : t("bill.bhojango");
 }
 
@@ -52,7 +52,7 @@ export function FairBill({
             return (
               <tr key={`${ln.code}-${i}`}>
                 <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
-                <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t)}</td>
+                <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t, lines)}</td>
                 <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale)}</td>
               </tr>
             );

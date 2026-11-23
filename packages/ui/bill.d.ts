@@ -17,6 +17,8 @@ export declare function shownLines<L extends { amount: string | number }>(lines:
 export declare function billRows(lines: BillLine[], currency: string): BillRow[];
 export declare function billTotal(lines: BillLine[]): number;
 export declare const PAYEE: Record<string, string>;
+/** R29: who gets this line of this bill (on a bill with a platform fee, the delivery fee is the delivery partner's). */
+export declare function payeeOf(line: { code: string }, lines: readonly { code: string }[]): string;
 export interface BillRefund { amount: string | number; kind?: string; reason?: string | null; items?: string[] }
 export interface ReceiptRefund { amount: number; reason: string; items: string[] }
 export declare const REFUND_REASONS: string[];

@@ -121,15 +121,16 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     stmt = (await client.get(f"/api/v1/finance/statements/{spice['id']}", headers=finance)).json()
     line = next(ln for ln in stmt["lines"] if ln["order_id"] == order["id"])
     food, commission = Decimal(line["food"]), -Decimal(line["commission"])
-    assert commission == (food * Decimal("0.15")).quantize(Decimal("0.01"))  # tier B 15%
+    assert commission == (food * Decimal("0.15")).quantize(Decimal("0.01"))  # R29: Spice Route's own 15% deal
     # Only the restaurant's own mistake comes off its payout; both are listed with their reason.
     assert -Decimal(line["refunds"]) == (Decimal("240") * (1 - commission / food)).quantize(Decimal("0.01"))
     assert [(d["reason"], d["charged_to"]) for d in line["refund_details"]] == [
         ("missing_item", "restaurant"), ("damaged_in_transit", "platform")]
     # R16: GST on our commission (India 18%) and TDS (0% until a CA confirms) come off the kitchen's payout too
     assert Decimal(line["commission_tax"]) == -(commission * Decimal("0.18")).quantize(Decimal("0.01")) and Decimal(line["tds"]) == 0
+    assert Decimal(line["card_fee"]) < 0  # R29: the card fee comes off the kitchen's payout
     assert Decimal(line["net"]) == (food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
-                                    + Decimal(line["commission_tax"]) + Decimal(line["tds"]))
+                                    + Decimal(line["commission_tax"]) + Decimal(line["tds"]) + Decimal(line["card_fee"]))
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()
     rl = next(ln for ln in rs["lines"] if ln["order_id"] == order["id"])

@@ -11,7 +11,7 @@ Ves el pago total de un viaje antes de aceptarlo, y los montos de tu ciudad apar
 
 ## Pago por cada viaje
 
-Cada entrega paga:
+Cada entrega paga toda la tarifa de entrega que pagó el cliente. Donde tu ciudad garantiza un mínimo por viaje, recibes lo que sea mayor: la tarifa de entrega, o
 
 - un monto **base** por el viaje,
 - un monto por la **distancia** de la cocina al cliente,
@@ -19,7 +19,7 @@ Cada entrega paga:
 
 En las ciudades donde los viajes combinados están activados, es posible que te ofrezcan dos pedidos de la misma cocina. La segunda entrega paga su distancia y su tiempo de espera, más un bono por el pedido adicional.
 
-La oferta muestra este pago como **Garantizado**, junto con la propina, antes de que la aceptes.
+BhojanGo paga la diferencia entre la tarifa de entrega y ese monto garantizado. La oferta muestra este pago como **Garantizado**, junto con la propina, antes de que la aceptes.
 
 ## El mínimo por hora
 

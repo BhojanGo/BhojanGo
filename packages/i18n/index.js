@@ -246,7 +246,7 @@ function cuisineName(t, name) {
 }
 
 // Bill lines the catalog names (bill.line_<code>).
-const BILL_LINES = new Set(["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
+const BILL_LINES = new Set(["food", "packaging", "delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
 // Tax rules' names (Markets / the tax provider) the catalog translates (R27); others show as named.
 const TAX_LINES = { "GST on food": "bill.line_gst_food", "GST on platform fees": "bill.line_gst_fees", "Sales tax": "bill.line_sales_tax_plain" };
 

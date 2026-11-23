@@ -101,9 +101,9 @@ async def test_terms_come_from_the_live_rules_and_markets(client: AsyncClient) -
     t = (await client.get("/api/v1/kitchens/terms", params={"country": "IN", "language": "hi"})).json()
     assert t["currency"] == "INR" and t["phone_code"] == "+91"
     c = t["commission"]
-    assert c["base"] == "food_subtotal" and c["starting_percent"] == "15"  # the seeded country rule, default tier B
-    assert {x["tier"]: x["percent"] for x in c["tiers"]} == {"A": "18", "B": "15", "C": "12"}
-    assert float(c["percent_min"]) <= 12 and float(c["percent_max"]) >= 18
+    # R29 fee model v2: the country's commission is 0% (a kitchen's own deal is not a public term)
+    assert c["base"] == "food_subtotal" and float(c["starting_percent"]) == 0
+    assert c["tiers"] == [] and float(c["percent_min"]) == 0 and float(c["percent_max"]) == 0
     assert t["payout"] == {"frequency": "weekly", "day": "mon", "hold_days": 2}
     assert [d["key"] for d in t["documents"]] == ["fssai", "gstin", "pan", "bank"]
     assert t["documents"][0]["title"] == "FSSAI लाइसेंस"  # in the visitor's language
@@ -136,7 +136,7 @@ async def test_a_new_kitchen_partner_signs_up_and_continues(client: AsyncClient)
     assert [k["id"] for k in (await client.get("/api/v1/restaurants/mine", headers=h)).json()] == [rid]
     a = (await client.get(f"/api/v1/restaurants/{rid}/application", headers=h)).json()
     assert a["current"] == "business" and a["done"] == 0 and a["status"] == "pending_approval"
-    assert a["commission_percent"] == "15.0"
+    assert a["commission_percent"] == "0.0"  # R29 fee model v2: India's commission is 0%
     a = (await client.put(f"/api/v1/restaurants/{rid}/business", headers=h, json={
         "street": "Plot 4, Road 2", "area": "Madhapur", "zip": "500081", "cuisines": ["Andhra"], "lat": 17.45, "lng": 78.39})).json()
     assert a["current"] == "fssai" and a["street"] == "Plot 4, Road 2" and a["cuisines"] == ["Andhra"]

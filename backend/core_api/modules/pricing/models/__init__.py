@@ -25,6 +25,9 @@ class OrderPricingSnapshot(Base):
     rule_versions: Mapped[list] = mapped_column(JSONB, nullable=False)
     split: Mapped[dict] = mapped_column(JSONB, nullable=False)
     context: Mapped[dict] = mapped_column(JSONB, nullable=False)  # zone, city, distance, local time
+    # R29: the fee settings in force at placement (platform fee %, its minimum, commission %, card fee
+    # estimate), each with the rule it came from. Later rule changes never alter a placed order.
+    fee_settings: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 

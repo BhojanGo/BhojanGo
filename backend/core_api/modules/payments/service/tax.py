@@ -50,6 +50,7 @@ TAX_CODES = {
     "food": "txcd_40060003",          # prepared food
     "delivery_fee": "txcd_92010001",  # delivery / shipping
     "service_fee": "txcd_20030000",   # general services
+    "platform_fee": "txcd_20030000",  # R29: general services; Stripe Tax decides if it's taxable where the customer is
     "small_order_fee": "txcd_20030000",
     "surge": "txcd_20030000",
     "late_night_fee": "txcd_20030000",
@@ -118,7 +119,7 @@ LOCAL_RATES: dict[str, tuple[str, Decimal]] = {
     "OR": ("Oregon (no sales tax)", Decimal("0")),
     "UT": ("Utah sales tax", Decimal("6.1")),
 }
-LOCAL_TAXABLE = {"food", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "packaging"}
+LOCAL_TAXABLE = {"food", "delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "packaging"}
 
 
 class LocalTax:
