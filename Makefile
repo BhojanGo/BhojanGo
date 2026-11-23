@@ -39,8 +39,11 @@ dev: up seed
 
 # --wait blocks until every service is healthy (core-api only turns healthy
 # after `alembic upgrade head` has run in its container).
+# R31: with road distances (OSRM, compose profile "routing"); ROUTING_PROVIDER=straight_line make dev skips it.
+ROUTING_PROVIDER ?= osrm
+ROUTING_PROFILE = $(if $(filter osrm,$(ROUTING_PROVIDER)),--profile routing,)
 up:
-	$(COMPOSE) --profile $(PROFILE) up -d --build --wait
+	ROUTING_PROVIDER=$(ROUTING_PROVIDER) $(COMPOSE) --profile $(PROFILE) $(ROUTING_PROFILE) up -d --build --wait
 
 # P23: `make dev` plus local monitoring (OpenTelemetry to Tempo, Prometheus and
 # Alertmanager to the admin console, Loki, Grafana). Zero spend; see
@@ -58,7 +61,7 @@ observe:
 
 # The base seed, then the demo data on top (make dev and QA only: CI and G1 keep the base seed).
 seed:
-	$(COMPOSE) --profile backend up -d --wait core-api
+	ROUTING_PROVIDER=$(ROUTING_PROVIDER) $(COMPOSE) --profile backend up -d --wait core-api
 	$(COMPOSE) exec -T core-api python /srv/tools/seed/seed.py
 	$(COMPOSE) exec -T core-api python /srv/tools/seed/demo.py
 
@@ -175,10 +178,10 @@ ci-terraform:
 	MSYS_NO_PATHCONV=1 $(TF) 'terraform fmt -recursive -check -diff && for d in envs/staging envs/prod bootstrap; do echo "validate $$d"; (cd $$d && rm -rf /tmp/tfdata && terraform init -backend=false -input=false -lockfile=readonly >/dev/null && terraform validate) || exit 1; done'
 
 down:
-	$(COMPOSE) --profile all down
+	$(COMPOSE) --profile all --profile routing down
 
 reset:
-	$(COMPOSE) --profile all down -v
+	$(COMPOSE) --profile all --profile routing down -v
 	$(MAKE) dev
 
 logs:

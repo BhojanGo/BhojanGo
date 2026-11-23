@@ -30,8 +30,9 @@ x-backend-env: &backend-env
   EMAIL_PROVIDER: smtp
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
-  # R31: road distance from the self-hosted OSRM below; if it's down, straight-line x ROAD_FACTOR (logged)
-  ROUTING_PROVIDER: ${ROUTING_PROVIDER:-osrm}
+  # R31: road distance from the self-hosted OSRM below (profile "routing"; `make dev` turns both on); if it's
+  # down, straight-line x ROAD_FACTOR (logged). Plain compose (CI) stays on straight-line: no map download there.
+  ROUTING_PROVIDER: ${ROUTING_PROVIDER:-straight_line}
   OSRM_URL: http://osrm:5000
   ROAD_FACTOR: "1.3"
   # R27: a kitchen takes orders only while its tablet (BhojanGo Kitchen) is connected. "auto" = off
@@ -123,9 +124,9 @@ services:
   # core-api runs as a non-root user (uid 10001); volumes made by older images are
   # owned by root, so hand the dev JWT key volume over once before it starts.
   # R31: road distances (OSRM, OpenStreetMap roads of the live cities; infra/docker/osrm). Free, no API key.
-  # The first `make dev` builds it (downloads the map, a few minutes); the API works without it (fallback).
+  # `make dev` builds it once (downloads the map, a few minutes); the API works without it (fallback).
   osrm:
-    profiles: ["backend", "all"]
+    profiles: ["routing"]
     build: ./osrm
     image: bhojango-osrm:r31
     ports:
