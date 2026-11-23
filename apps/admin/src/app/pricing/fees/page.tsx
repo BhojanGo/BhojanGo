@@ -45,6 +45,8 @@ const ACTION: Record<string, string> = {
   "rule.created": "drafted", "rule.version_created": "drafted", "rule.edited": "edited", "rule.submitted": "sent for approval",
   "rule.approved": "approved", "rule.published": "published", "rule.rejected": "rejected", "rule.ended": "cleared", "rule.rolled_back": "rolled back",
 };
+// Steps of one change (no new value): show the value they're about, not "7% → 7%".
+const STEPS = new Set(["rule.submitted", "rule.approved", "rule.rejected"]);
 const LEVEL_WORD: Record<Level, string> = { country: "country", region: "state", city: "city", restaurant: "restaurant" };
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -164,7 +166,7 @@ function Fees() {
                 {data.data.history.map((h, i) => (
                   <li key={i} className="border-t border-line-soft py-2 text-small">
                     <b>{when(h.at)}</b> · {h.who} {ACTION[h.action] ?? h.action} <b>{FIELDS[h.field]?.label ?? h.field}</b>:{" "}
-                    {show(h.field, h.old, sym)} → {show(h.field, h.new, sym)}
+                    {STEPS.has(h.action) ? show(h.field, h.new, sym) : `${h.old ? show(h.field, h.old, sym) : "inherited"} → ${h.action === "rule.ended" ? "inherited" : show(h.field, h.new, sym)}`}
                   </li>
                 ))}
               </ul>

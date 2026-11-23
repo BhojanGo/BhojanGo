@@ -11,21 +11,21 @@ Before you pay, BhojanGo shows you the whole bill, line by line, and next to eac
 
 ## What each tag means
 
-- **KITCHEN**: the food and any packaging. This is the kitchen's money, less the commission it pays BhojanGo on food.
-- **DELIVERY PARTNER**: your tip. All of it goes to the person who brings your food.
+- **KITCHEN**: the food and any packaging. This is the kitchen's money; the card processing fee for your payment comes out of it (and a commission, where a kitchen has agreed one).
+- **DELIVERY PARTNER**: the delivery fee and your tip. All of both goes to the person who brings your food.
 - **TAX**: tax lines, shown with their own name and rate, so you can see what goes to the government.
-- **BHOJANGO**: the delivery fee, the service fee and any other fees your city charges, such as a small order fee, a busy-hour fee or a late-night fee.
+- **BHOJANGO**: the platform fee, a percentage of the food (with a small minimum), and any other fees your city charges, such as a small order fee, a busy-hour fee or a late-night fee.
 
 Offers show who pays for them too. An offer the kitchen funds is tagged as paid by the kitchen; one BhojanGo funds is tagged as paid by BhojanGo.
 
 ## Where the delivery fee goes
 
-The delivery fee is not the same as your delivery partner's pay. BhojanGo pays every delivery partner for each trip, worked out from the pickup, the distance and any waiting time, and that pay comes out of the fees we collect. Your tip is added on top.
+All of the delivery fee goes to your delivery partner. Where a city guarantees a minimum pay for a trip (from the pickup, the distance and any waiting time) and the delivery fee is less, BhojanGo adds the difference out of the platform fee. Your tip is added on top.
 
 That's why the "Who gets your money" bar on our home page shows four shares of a real bill:
 
 1. **KITCHEN**: what the kitchen is paid for the order.
-2. **DELIVERY PARTNER**: their pay for the trip plus the tip.
+2. **DELIVERY PARTNER**: the delivery fee (and any top-up to their guaranteed pay) plus the tip.
 3. **TAX**: what goes to the government.
 4. **BHOJANGO**: whatever is left.
 

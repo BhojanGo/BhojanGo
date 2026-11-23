@@ -3,7 +3,7 @@ slug: kitchen-payouts-and-statements
 topic: kitchen-partners
 country: *
 title: ¿Cómo funcionan los pagos y los estados de cuenta de las cocinas?
-summary: Te pagamos cada semana por los pedidos entregados: comida y empaque, menos la comisión, las ofertas que financias y los reembolsos por tus propios errores. Todo está en tu estado de cuenta.
+summary: Te pagamos cada semana por los pedidos entregados: comida y empaque, menos la comisión de procesamiento con tarjeta, cualquier comisión, las ofertas que financias y los reembolsos por tus propios errores. Cada pedido está en tu estado de cuenta.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, add-your-kitchen
 ---
@@ -14,7 +14,8 @@ Las cocinas asociadas reciben su pago cada semana, directamente en su cuenta ban
 Por cada pedido entregado en la semana:
 
 - **más** la comida y el empaque,
-- **menos** la comisión de BhojanGo, un porcentaje solo de la comida,
+- **menos** la comisión de procesamiento con tarjeta de ese pedido (lo que cobra el proveedor de pagos sobre lo que pagó el cliente, sin contar la propina),
+- **menos** la comisión de BhojanGo, un porcentaje solo de la comida (0% salvo que tu acuerdo diga otra cosa),
 - **menos** las ofertas que financiaste en ese pedido,
 - **menos** los reembolsos por tus propios errores, como un artículo faltante o equivocado o mala calidad. En esos casos, pierdes el valor de la comida del artículo, menos la comisión que pagaste por él.
 

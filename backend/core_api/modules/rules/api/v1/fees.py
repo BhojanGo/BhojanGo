@@ -65,10 +65,12 @@ async def _chain(db: AsyncSession, level: str, scope_id: str) -> list[dict[str, 
         if city_code is None:
             raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "NO_CITY", "message": f"{r.name} isn't in a city we know"})
         rest = {"level": "restaurant", "scope_id": str(r.id), "name": r.name}
+        country = r.country  # a restaurant: its own country (its scope id is a uuid)
     else:
         rest = None
         city_code = scope_id if level == "city" else None
-    codes = {"country": scope_id[:2], "region": scope_id if level == "region" else None, "city": city_code}
+        country = scope_id[:2]
+    codes = {"country": country, "region": scope_id if level == "region" else None, "city": city_code}
     if city_code:
         codes["region"] = city_code[:5]
     for lvl, model in (("country", Country), ("region", Region), ("city", City)):
@@ -128,8 +130,8 @@ async def _own(db: AsyncSession, level: str, scope_id: str) -> dict[str, list[Ru
 
 async def _history(db: AsyncSession, level: str, scope_id: str) -> list[dict[str, Any]]:
     """Who changed what at this level, and when: old -> new, from the audit log."""
-    keys = list((await db.execute(select(Rule.rule_key, Rule.slot).where(
-        Rule.scope_level == level, Rule.scope_id == scope_id, Rule.slot.in_(list(fees.SLOTS.values())))).all()))
+    keys = (await db.execute(select(Rule.rule_key, Rule.slot).where(
+        Rule.scope_level == level, Rule.scope_id == scope_id, Rule.slot.in_(list(fees.SLOTS.values()))))).all()
     if not keys:
         return []
     field_of = {str(k): next(f for f, s in fees.SLOTS.items() if s == slot) for k, slot in keys}

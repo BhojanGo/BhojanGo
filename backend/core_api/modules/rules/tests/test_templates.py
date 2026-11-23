@@ -113,3 +113,16 @@ def test_catalogue_lists_everything_with_schemas() -> None:
     svc = next(c for c in cat if c["template"] == "service_fee")
     assert svc["money"] is True and svc["allowed_levels"] == ["country", "city", "zone", "restaurant"]
     assert set(svc["params_schema"]["properties"]) >= {"percent", "min", "max"}
+
+
+def test_every_seeded_rule_is_valid() -> None:
+    """R29: the seed's India GST rule named the new platform_fee line before tax rules allowed it; a fresh
+    local stack's seed failed. Every seeded rule must pass its template."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "tools" / "seed"))
+    from data import RULES  # type: ignore[import-not-found]
+
+    for family, template, _key, _name, _level, _scope, params in RULES:
+        t.validate_params(family, template, params)

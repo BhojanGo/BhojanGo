@@ -68,9 +68,9 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
             <tr className="border-t border-line tabular-nums">
               <td className="p-3 font-bold" colSpan={2}>{s.lines.length} {s.lines.length === 1 ? "order" : "orders"}</td>
               <td className="p-3 text-right">{money(n(String(s.summary.food)) + n(String(s.summary.packaging ?? 0)), cur, 2)}</td>
-              <td className="p-3 text-right">{money(-n(String(s.summary.commission)), cur, 2)}</td>
-              <td className="p-3 text-right">{money(-n(String(s.summary.card_fee ?? 0)), cur, 2)}</td>
-              {extra.map((k) => <td key={k} className="p-3 text-right">{money(-n(String(s.summary[k] ?? 0)), cur, 2)}</td>)}
+              <td className="p-3 text-right">{money(-n(String(s.summary.commission)) || 0, cur, 2)}</td>
+              <td className="p-3 text-right">{money(-n(String(s.summary.card_fee ?? 0)) || 0, cur, 2)}</td>
+              {extra.map((k) => <td key={k} className="p-3 text-right">{money(-n(String(s.summary[k] ?? 0)) || 0, cur, 2)}</td>)}
               <td className="p-3 text-right font-bold">{money(n(String(s.summary.net)), cur, 2)}</td>
             </tr>
           </tfoot>

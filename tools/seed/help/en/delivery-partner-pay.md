@@ -11,7 +11,7 @@ You see the whole pay for a trip before you accept it, and the amounts for your 
 
 ## Pay for each trip
 
-Each delivery pays:
+Each delivery pays the whole delivery fee the customer paid. Where your city guarantees a minimum for the trip, you get whichever is more: the delivery fee, or
 
 - a **base** amount for the trip,
 - an amount for the **distance** from the kitchen to the customer,
@@ -19,7 +19,7 @@ Each delivery pays:
 
 In cities where combined trips are switched on, you may be offered two orders from the same kitchen. The second drop-off pays its distance and waiting time plus a bonus for the extra order.
 
-The offer shows this pay as **Guaranteed**, together with the tip, before you accept.
+BhojanGo pays any difference between the delivery fee and that guaranteed amount. The offer shows this pay as **Guaranteed**, together with the tip, before you accept.
 
 ## The minimum hourly pay
 

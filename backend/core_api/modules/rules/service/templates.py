@@ -119,7 +119,7 @@ class LateNightFee(_P):
 
 # ── Tax ───────────────────────────────────────────────────────────────────────
 
-TaxLine = Literal["food", "packaging", "delivery_fee", "service_fee", "small_order_fee", "surge", "late_night_fee"]
+TaxLine = Literal["food", "packaging", "delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee"]
 
 
 class TaxRateOnLines(_P):

@@ -22,7 +22,7 @@ La tarifa de entrega aparece en la tarjeta de cada cocina, y la tarifa exacta es
 
 ## Otras tarifas que podrías ver
 
-- **Tarifa de servicio**: una parte del total de tu comida, entre un mínimo y un máximo.
+- **Tarifa de plataforma**: un porcentaje del total de tu comida, con un mínimo pequeño. Va a BhojanGo.
 - **Tarifa por pedido pequeño**: solo cuando el total de tu comida está por debajo de cierto monto.
 - **Empaque**: por pedido, se le paga a la cocina.
 - **Tarifa por hora pico**: solo en horas de mucha demanda.
@@ -40,4 +40,4 @@ Tu hora estimada de llegada suma:
 
 Cuando una cocina está muy ocupada, puede agregar tiempo extra de preparación durante una hora, y las nuevas estimaciones lo incluyen. Tu página de seguimiento mantiene la hora actualizada.
 
-> La tarifa de entrega y las demás tarifas anteriores, excepto el empaque, van a BHOJANGO en la cuenta justa. A tu socio repartidor se le paga cada viaje con esas tarifas, y tu propina es completamente para él.
+> La tarifa de entrega va completa a tu socio repartidor, igual que tu propina. La tarifa de plataforma y las demás tarifas anteriores, excepto el empaque, van a BHOJANGO en la cuenta justa.

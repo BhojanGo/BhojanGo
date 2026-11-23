@@ -22,7 +22,7 @@ The delivery fee is shown on every kitchen card, and the exact fee is on your bi
 
 ## Other fees you might see
 
-- **Service fee**: a share of your food total, between a minimum and a maximum.
+- **Platform fee**: a percentage of your food total, with a small minimum. It goes to BhojanGo.
 - **Small order fee**: only when your food total is below a set amount.
 - **Packaging**: per order, paid to the kitchen.
 - **Busy-hour fee**: only at busy times.
@@ -40,4 +40,4 @@ Your estimated arrival time adds up:
 
 When a kitchen is very busy, it can add extra preparation time for an hour, and new estimates include it. Your tracking page keeps the time up to date.
 
-> The delivery fee and the other fees above, except packaging, go to BHOJANGO on the fair bill. Your delivery partner is paid for every trip from those fees, and your tip goes to them in full.
+> The delivery fee goes to your delivery partner in full, and so does your tip. The platform fee and the other fees above, except packaging, go to BHOJANGO on the fair bill.
