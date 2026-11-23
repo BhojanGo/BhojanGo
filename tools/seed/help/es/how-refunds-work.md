@@ -11,7 +11,7 @@ Cuando te hacemos un reembolso, el dinero vuelve al método con el que pagaste: 
 
 ## Reembolsos de un pedido cancelado
 
-Si se cancela un pedido pagado, ya sea por ti, por la cocina o porque la cocina no lo aceptó a tiempo, te reembolsamos todo lo que pagaste: comida, tarifas, impuestos y propina.
+Si se cancela un pedido pagado, ya sea por ti, por el restaurante o porque el restaurante no lo aceptó a tiempo, te reembolsamos todo lo que pagaste: comida, tarifas, impuestos y propina.
 
 ## Reembolsos de una parte del pedido
 

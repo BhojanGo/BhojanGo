@@ -9,7 +9,7 @@ appId: com.bhojango.partner
     env:
       PHONE: ${output.phone}
 - extendedWaitUntil:
-    visible: "Apply with your kitchen"
+    visible: "Apply with your restaurant"
     timeout: 60000
 - tapOn:
     id: "full_name"
@@ -39,7 +39,7 @@ appId: com.bhojango.partner
 - tapOn:
     id: "send-application"
 - extendedWaitUntil:
-    visible: "Kitchen partner application"
+    visible: "Restaurant partner application"
     timeout: 60000
 - tapOn:
     id: "open-account"
@@ -56,6 +56,6 @@ appId: com.bhojango.partner
 - tapOn:
     id: "confirm-delete"
 - extendedWaitUntil:
-    visible: "Sign in to your kitchen"
+    visible: "Sign in to your restaurant"
     timeout: 30000
 - takeScreenshot: stack-partner-deleted

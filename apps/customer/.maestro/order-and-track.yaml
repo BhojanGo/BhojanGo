@@ -30,7 +30,7 @@ appId: com.bhojango.app
 - extendedWaitUntil:
     visible: "The fair bill"
     timeout: 20000
-- assertVisible: "KITCHEN"
+- assertVisible: "RESTAURANT"
 - assertVisible: "GOVT"
 - takeScreenshot: docs/screenshots/customer/06-bag-fair-bill
 - tapOn:

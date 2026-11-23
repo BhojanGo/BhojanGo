@@ -2,9 +2,11 @@
 
     platform fee   = max(min_platform_fee, platform_fee_pct x food subtotal)      paid by the customer, to BhojanGo
     commission     = restaurant_commission_pct x food subtotal (default 0)         off the restaurant's payout
-    card fee       = card_fee_estimate: percent x (charge - tip) + fixed           off the restaurant's payout
-                     (production: the processor's actual fee replaces it once reported)
-    delivery fee   = 100% to the delivery partner; tip = 100% to the delivery partner
+    payment fee    = card_fee_estimate for the payment method (R30: card, UPI, wallet, net banking; cash 0):
+                     percent x (charge - tip) + fixed                                off the restaurant's payout
+                     (production: the gateway's actual fee for the payment replaces it, from the webhook)
+    delivery fee   = R30: base + per km/mi (template base_per_distance), 100% to the delivery partner;
+                     tip = 100% to the delivery partner. Nothing tops the partner up from the platform fee.
 
 Settings live in the rule engine (family ``fee`` and the ``commission:rate`` slot), one slot each, so each
 inherits on its own: Country -> State/Region -> City -> Restaurant, the most specific published rule in
@@ -22,7 +24,9 @@ SLOTS = {
     "min_platform_fee": "fee:min_platform_fee",
     "restaurant_commission_pct": "commission:rate",
     "card_fee_estimate": "fee:card_fee_estimate",
+    "delivery_fee": "delivery_fee",  # R30: base + per km/mi, at every level like the others
 }
+CASH = "cash_on_delivery"
 FIELDS = tuple(SLOTS)
 
 
@@ -50,6 +54,16 @@ def platform_fee_cents(food_cents: int, percent: Any, min_cents: int = 0) -> int
     return max(percent_of(food_cents, percent), min_cents)
 
 
+def method_rate(params: dict, method: str | None) -> dict | None:
+    """The estimate's rate for a payment method: its own, else the card rate; None for cash (no fee).
+    Reads the R29 single-rate shape ``{percent, fixed}`` as the card rate."""
+    if method == CASH:
+        return None
+    if "card" not in params:
+        return {"percent": params["percent"], "fixed": params.get("fixed", 0)}
+    return params.get(method or "card") or params["card"]
+
+
 def card_fee_cents(charge_cents: int, tip_cents: int, percent: Any, fixed_cents: int) -> int:
     """The card fee estimate on what the customer is charged, less the tip (46.89 at 2.9% + 0.30 -> 1.66)."""
     base = max(0, charge_cents - tip_cents)
@@ -68,7 +82,7 @@ class Source:
 
 @dataclass(frozen=True)
 class Setting:
-    value: dict[str, str] | None  # e.g. {"percent": "10"}; None: no rule at any level
+    value: dict[str, Any] | None  # e.g. {"percent": "10"}; None: no rule at any level
     source: Source | None
 
     def as_dict(self) -> dict[str, Any]:
@@ -80,16 +94,29 @@ def _num(v: Any) -> str:
     return format(Decimal(str(v)).normalize(), "f")
 
 
-def _value(field: str, c: Candidate, tier: str | None) -> dict[str, str]:
+def _money(v: Any) -> str:
+    return str(Decimal(str(v)).quantize(Decimal("0.01")))
+
+
+def _value(field: str, c: Candidate, tier: str | None) -> dict[str, Any]:
     p = c.params
     if field == "restaurant_commission_pct":
         from core_api.modules.rules.service.templates import commission_percent
 
         return {"percent": _num(commission_percent(c.template, p, tier))}
     if field == "card_fee_estimate":
-        return {"percent": _num(p["percent"]), "fixed": str(Decimal(str(p.get("fixed", 0))).quantize(Decimal("0.01")))}
+        out = {}
+        for m in ("card", "upi", "wallet", "net_banking"):
+            r = method_rate(p, m) if (m == "card" or p.get(m)) else None
+            if r:
+                out[m] = {"percent": _num(r["percent"]), "fixed": _money(r.get("fixed", 0))}
+        return out
+    if field == "delivery_fee":
+        if c.template == "base_per_distance":
+            return {"base": _money(p["base"]), "per_unit": _money(p["per_unit"])}
+        return {"template": c.template}  # an older delivery fee shape (flat, slabs...): shown by name
     if field == "min_platform_fee":
-        return {"amount": str(Decimal(str(p["amount"])).quantize(Decimal("0.01")))}
+        return {"amount": _money(p["amount"])}
     return {"percent": _num(p["percent"])}
 
 

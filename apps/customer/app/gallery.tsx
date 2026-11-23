@@ -104,7 +104,7 @@ function Gallery() {
 
       <View style={{ gap: 12 }}>
         <Txt variant="h2">Inputs and sheet</Txt>
-        <Input shape="pill" placeholder="Dishes, kitchens, cravings" />
+        <Input shape="pill" placeholder="Dishes, restaurants, cravings" />
         <Input label="Phone number" placeholder="98765 43210" hint="We'll text you a 6-digit code." keyboardType="phone-pad" />
         <Button title="Open the customise sheet" variant="secondary" onPress={() => setSheet(true)} />
       </View>

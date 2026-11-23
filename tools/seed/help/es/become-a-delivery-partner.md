@@ -7,7 +7,7 @@ summary: Regístrate en la app BhojanGo Delivery con tu número de teléfono, su
 popular: 0
 related: delivery-partner-pay, delivery-app-guide, tipping-your-delivery-partner
 ---
-Entrega pedidos de cocinas locales en tu ciudad, en tu propio horario, y ve cuánto paga un viaje antes de aceptarlo. La solicitud se hace en la app BhojanGo Delivery. Nunca te pedimos una cuota para unirte.
+Entrega pedidos de restaurantes locales en tu ciudad, en tu propio horario, y ve cuánto paga un viaje antes de aceptarlo. La solicitud se hace en la app BhojanGo Delivery. Nunca te pedimos una cuota para unirte.
 
 ## Regístrate
 
@@ -15,7 +15,7 @@ Entrega pedidos de cocinas locales en tu ciudad, en tu propio horario, y ve cuá
 2. Inicia sesión con tu número de teléfono y el código de 6 dígitos que te enviamos por mensaje de texto.
 3. Escribe tu nombre completo, tal como aparece en tu licencia, tu fecha de nacimiento, tu vehículo y la ciudad donde harás entregas. Cada país fija una edad mínima y los vehículos que puedes usar: la app y la página [Reparte con BhojanGo](/deliver) los muestran.
 
-Usa un número de teléfono que no se use ya para pedir comida en BhojanGo ni para administrar una cocina. Cada número tiene un solo rol.
+Usa un número de teléfono que no se use ya para pedir comida en BhojanGo ni para administrar un restaurante. Cada número tiene un solo rol.
 
 ## Tu lista de pasos
 

@@ -28,15 +28,15 @@ class ProblemTests(unittest.TestCase):
             self.assertIsNotNone(w.problem(text), text)
 
     def test_the_new_words_pass(self) -> None:
-        for text in ("Tip your delivery partner", "Delivery partner + tip", "BhojanGo Delivery", "BhojanGo Kitchen",
-                     "Kitchen partner support", "Tu repartidor", "डिलीवरी पार्टनर", "డెలివరీ పార్ట్‌నర్",
+        for text in ("Tip your delivery partner", "Delivery partner + tip", "BhojanGo Delivery", "BhojanGo Restaurant",
+                     "Restaurant partner support", "Tu repartidor", "डिलीवरी पार्टनर", "డెలివరీ పార్ట్‌నర్",
                      "Deliver with BhojanGo", "Ride share", "our payments partner", "Override the price"):
             self.assertIsNone(w.problem(text), text)
 
     def test_the_wordmark_is_BhojanGo(self) -> None:
         for text in ("bhojango", "Welcome to Bhojango", "BHOJANGO PAYS", "Bhojan Go", "bhojanGo admin"):
             self.assertIsNotNone(w.problem(text), text)
-        for text in ("BhojanGo", "BhojanGo Kitchen", "support@bhojango.com", "bhojango-rider", "@bhojango/ui",
+        for text in ("BhojanGo", "BhojanGo Restaurant", "support@bhojango.com", "bhojango-rider", "@bhojango/ui",
                      "bill.bhojango", "https://bhojango.com/x", "bhojango://pay", "bhojango_test"):
             self.assertIsNone(w.problem(text), text)
 

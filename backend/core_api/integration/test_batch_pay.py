@@ -1,6 +1,6 @@
-"""Item 2: batch rider pay on Postgres. When a rider takes two orders as one batch, the
-first drop-off pays as usual; the second pays no base, but distance + waiting + the
-city's batch bonus (Hyderabad ₹10), and the rider's statement shows it."""
+"""Batch rider pay on Postgres. R30: a delivery partner gets each order's delivery fee and the whole tip,
+batched or not: the second drop-off of a batch pays the same as on its own (no base taken off, no batch
+bonus: the seed has no rider_pay rules), and the partner's statement shows it."""
 import os
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -50,16 +50,16 @@ async def test_second_drop_off_pays_the_batch_rate(client: AsyncClient) -> None:
     r1 = await assign_in_batch(client, first["id"], rider, batch, 1)
     r2 = await assign_in_batch(client, second["id"], rider, batch, 2)
     assert r1.status_code == 200 and r2.status_code == 200, (r1.text, r2.text)
-    # the offer card's batch rate: the order's rider pay without the base (₹25 in India), + ₹10
+    # the offer card's batch rate: R30, the order's own pay (delivery fee + tip)
     info = r2.json()
-    assert Decimal(info["rider_pay_batched"]) == Decimal(info["rider_pay"]) - Decimal("25") + Decimal("10")
+    assert Decimal(info["rider_pay_batched"]) == Decimal(info["rider_pay"])
     # a bad place in a batch is refused
     assert (await assign_in_batch(client, second["id"], rider, batch, 9)).status_code == 422
 
     async with AsyncSessionLocal() as db:
         o1, o2 = await db.get(Order, uuid.UUID(first["id"])), await db.get(Order, uuid.UUID(second["id"]))
         assert (o1.batch_position, o1.batch_bonus) == (1, None)
-        assert (o2.batch_position, o2.batch_bonus, o2.batch_id) == (2, Decimal("10.00"), o1.batch_id)
+        assert (o2.batch_position, o2.batch_id) == (2, o1.batch_id) and not o2.batch_bonus
 
     for o in (first, second):
         assert (await move(client, rider, o["id"], "picked_up")).status_code == 200
@@ -73,5 +73,7 @@ async def test_second_drop_off_pays_the_batch_rate(client: AsyncClient) -> None:
                                           rider_id=uuid.UUID(user_id(rider)))
     _, _, lines = S.rider_statement(orders, floor_per_hour=None)
     by_id = {ln["order_id"]: ln for ln in lines}
-    assert by_id[first["id"]]["base"] == "25.00" and "batch_bonus" not in by_id[first["id"]]
-    assert by_id[second["id"]]["base"] == "0.00" and by_id[second["id"]]["batch_bonus"] == "10.00"
+    for o in (first, second):
+        ln = by_id[o["id"]]
+        assert ln["base"] == "0.00" and "batch_bonus" not in ln and Decimal(ln["delivery_fee"]) > 0
+        assert Decimal(ln["total"]) == Decimal(ln["delivery_fee"]) + Decimal(ln["tip"])

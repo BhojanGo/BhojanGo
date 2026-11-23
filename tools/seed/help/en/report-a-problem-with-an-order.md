@@ -32,6 +32,6 @@ Anything you were already refunded automatically on the same order counts toward
 - You can report a problem only after the order is delivered.
 - Reports have a time limit after delivery. It's set for each city; once it has passed, the app tells you the order can no longer be reported.
 - Items that were already refunded can't be refunded twice.
-- Kitchens pay for their own mistakes, like a missing or wrong item. BhojanGo pays for delivery problems.
+- Restaurants pay for their own mistakes, like a missing or wrong item. BhojanGo pays for delivery problems.
 
 > Something this form doesn't cover? Tap **Help** on the order page and we'll take it from there.

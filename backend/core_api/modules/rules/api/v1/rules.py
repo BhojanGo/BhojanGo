@@ -194,7 +194,7 @@ async def rollback(rule_id: uuid.UUID, admin: Editor, db: DB) -> RuleOut:
 
 
 class PauseOffer(BaseModel):
-    reason: str = Field(min_length=3, max_length=300, description="Shown to the kitchen")
+    reason: str = Field(min_length=3, max_length=300, description="Shown to the restaurant")
 
 
 # Pausing a kitchen's own offer protects customers or the kitchen (B4): city ops

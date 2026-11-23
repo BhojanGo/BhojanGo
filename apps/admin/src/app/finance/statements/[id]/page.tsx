@@ -36,9 +36,9 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
   return (
     <ConsoleShell section="Finance" country={cur === "INR" ? "IN" : "US"} hideScope>
       <div>
-        <div className="text-small text-muted"><Link href="/finance" className="text-peacock">Finance</Link> ▸ Kitchen statement</div>
-        <h1 className="m-0 mt-2 text-h1">{s?.payee_name ?? "Kitchen statement"}</h1>
-        <p className="mt-1 text-small text-muted">Each order: food subtotal − commission − card processing fee = what the kitchen is paid.</p>
+        <div className="text-small text-muted"><Link href="/finance" className="text-peacock">Finance</Link> ▸ Restaurant statement</div>
+        <h1 className="m-0 mt-2 text-h1">{s?.payee_name ?? "Restaurant statement"}</h1>
+        <p className="mt-1 text-small text-muted">Each order: food subtotal − commission − card processing fee = what the restaurant is paid.</p>
       </div>
       {st.isError ? <p role="alert">{apiMessage(st.error)}</p> : null}
       {s ? (

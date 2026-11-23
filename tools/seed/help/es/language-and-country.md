@@ -3,7 +3,7 @@ slug: language-and-country
 topic: account
 country: *
 title: ¿Cómo cambio mi idioma o mi país?
-summary: Elige tu idioma en Perfil y configuración. Tu país depende de tu dirección de entrega, que también define los precios, las cocinas y los métodos de pago.
+summary: Elige tu idioma en Perfil y configuración. Tu país depende de tu dirección de entrega, que también define los precios, los restaurantes y los métodos de pago.
 popular: 0
 related: where-we-deliver, addresses-and-payment-methods, sign-in-with-phone
 ---
@@ -31,10 +31,10 @@ Tu país se define según tu dirección de entrega. Para pedir en otro país, ca
 
 Tu país determina:
 
-- las cocinas que ves,
+- los restaurantes que ves,
 - la moneda y los precios, incluidas las tarifas y los impuestos,
 - las formas en que puedes pagar: Razorpay en India y Stripe en EE. UU.
 
 Los precios se definen ciudad por ciudad, así que incluso dentro de un mismo país, las tarifas pueden variar de una ciudad a otra.
 
-> ¿Vas a pedir para alguien en otra ciudad? Solo ingresa su dirección. Se mostrarán las cocinas, los precios y las tarifas de esa ciudad.
+> ¿Vas a pedir para alguien en otra ciudad? Solo ingresa su dirección. Se mostrarán los restaurantes, los precios y las tarifas de esa ciudad.

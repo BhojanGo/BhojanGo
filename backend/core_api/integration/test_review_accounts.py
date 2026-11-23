@@ -128,6 +128,6 @@ async def test_review_accounts_see_their_hidden_city_and_nobody_else_does(client
         # The delivery partner is approved; the kitchen owner has the kitchen.
         rider = await bearer(client, logins["BhojanGo Delivery"].email, logins["BhojanGo Delivery"].password)
         assert (await client.get("/api/v1/riders/me/onboarding", headers=rider)).json()["ready"] is True
-        await bearer(client, logins["BhojanGo Kitchen"].email, logins["BhojanGo Kitchen"].password)
+        await bearer(client, logins["BhojanGo Restaurant"].email, logins["BhojanGo Restaurant"].password)
     finally:
         await remove(code, emails)

@@ -3,7 +3,7 @@ slug: language-and-country
 topic: account
 country: *
 title: How do I change my language or country?
-summary: Pick your language in Profile & settings. Your country follows your delivery address, which also sets prices, kitchens and payment methods.
+summary: Pick your language in Profile & settings. Your country follows your delivery address, which also sets prices, restaurants and payment methods.
 popular: 0
 related: where-we-deliver, addresses-and-payment-methods, sign-in-with-phone
 ---
@@ -31,10 +31,10 @@ Your country is set by your delivery address. To order in another country, chang
 
 Your country decides:
 
-- the kitchens you see,
+- the restaurants you see,
 - the currency and the prices, including fees and tax,
 - the ways you can pay: Razorpay in India, Stripe in the US.
 
 Prices are set city by city, so even within a country, fees can be different from one city to another.
 
-> Ordering for someone in another city? Just enter their address. The kitchens, prices and fees for that city are shown.
+> Ordering for someone in another city? Just enter their address. The restaurants, prices and fees for that city are shown.

@@ -16,7 +16,7 @@ It creates, in one transaction:
   three accounts below (settings ``review_accounts``).
 - review.customer@<domain>: a customer with a saved "Home" address inside the zone;
 - review.kitchen@<domain>: a kitchen owner with an approved, open kitchen there
-  ("BhojanGo Review Kitchen") and a small menu;
+  ("BhojanGo Review Restaurant") and a small menu;
 - review.delivery@<domain>: an approved delivery partner (phone step, licence,
   insurance and background check done; no documents are stored).
 
@@ -49,7 +49,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 CITY_NAME = "App Review"
-KITCHEN_NAME = "BhojanGo Review Kitchen"
+KITCHEN_NAME = "BhojanGo Review Restaurant"
 HALF_SIDE = 0.05  # degrees: the zone is a square about 11 km across
 # Open sea, far from any coast, per country. Others: pass --centre LAT,LNG.
 CENTRES = {"US": (30.0, -140.0)}
@@ -57,7 +57,7 @@ CODE = re.compile(r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,4}$")  # markets.schemas.
 DOMAIN = re.compile(r"^(?=.{3,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 ACCOUNTS = (  # (key, role, full name)
     ("customer", "customer", "Review Customer"),
-    ("kitchen", "restaurant_owner", "Review Kitchen"),
+    ("kitchen", "restaurant_owner", "Review Restaurant"),
     ("delivery", "driver", "Review Delivery"),
 )
 MENU = {  # category -> (name, price, veg, description)
@@ -165,7 +165,7 @@ async def create(db, args: argparse.Namespace) -> list[Login]:  # type: ignore[n
     if country is None or country.status not in ("live", "beta"):
         raise Refused(f"Country {args.country} isn't live in Markets")
     if (country.settings or {}).get("fssai_required"):
-        raise Refused(f"{args.country} needs a food licence per kitchen; the review kitchen would be hidden. Use a country without one.")
+        raise Refused(f"{args.country} needs a food licence per restaurant; the review restaurant would be hidden. Use a country without one.")
     ref = None
     if args.region:
         region = (await db.execute(select(Region).where(Region.code == args.region, Region.country_id == country.id))).scalar_one_or_none()
@@ -192,7 +192,7 @@ async def create(db, args: argparse.Namespace) -> list[Login]:  # type: ignore[n
         raise Refused(f"These accounts already exist: {', '.join(sorted(taken))}. Nothing was changed.")
     slug = f"bhojango-review-kitchen-{code.lower()}"
     if (await db.execute(select(Restaurant.id).where(Restaurant.slug == slug))).first():
-        raise Refused(f"A kitchen with the slug {slug} already exists. Nothing was changed.")
+        raise Refused(f"A restaurant with the slug {slug} already exists. Nothing was changed.")
 
     now = datetime.now(UTC)
     logins: list[Login] = []
@@ -204,7 +204,7 @@ async def create(db, args: argparse.Namespace) -> list[Login]:  # type: ignore[n
                  is_active=True, is_verified=True, is_phone_verified=role == "driver", password_changed_at=now)
         db.add(u)
         users[key] = u
-        logins.append(Login({"customer": "BhojanGo", "kitchen": "BhojanGo Kitchen", "delivery": "BhojanGo Delivery"}[key],
+        logins.append(Login({"customer": "BhojanGo", "kitchen": "BhojanGo Restaurant", "delivery": "BhojanGo Delivery"}[key],
                             wanted[key], password))
     await db.flush()
 
@@ -226,7 +226,7 @@ async def create(db, args: argparse.Namespace) -> list[Login]:  # type: ignore[n
 
     kitchen = Restaurant(
         name=KITCHEN_NAME, slug=slug, owner_id=users["kitchen"].id,
-        description="A kitchen for app store review. It isn't shown to customers.",
+        description="A restaurant for app store review. It isn't shown to customers.",
         cuisine_types=["Indian"], tags=[], currency=country.currency, country=country.code, city=CITY_NAME,
         address={"street": "2 Review Way", "city": CITY_NAME, "state": region.name, "zip": args.postal_code, "country": country.code,
                  "lat": lat, "lng": lng, "landmark": "Review zone"},

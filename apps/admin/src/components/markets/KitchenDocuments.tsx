@@ -79,9 +79,9 @@ export function KitchenDocuments({ country }: { country: CountrySummary }) {
   }
 
   return (
-    <section aria-label="Documents kitchens need" className="rounded-2xl border border-line bg-white p-6">
+    <section aria-label="Documents restaurants need" className="rounded-2xl border border-line bg-white p-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="m-0 flex-1 text-h3">Documents kitchens need</h2>
+        <h2 className="m-0 flex-1 text-h3">Documents restaurants need</h2>
         {languages.length > 1 && (
           <label className="text-small text-muted">
             Language{" "}

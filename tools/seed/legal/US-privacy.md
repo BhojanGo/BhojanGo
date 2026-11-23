@@ -5,7 +5,7 @@ summary: First version for the United States.
 key_points:
 - We collect what we need to deliver your food: your name, phone number, email if you give it, delivery addresses, orders, payments and messages to support.
 - Your location is used while you choose an address and order; a delivery partner's location is shared with you only during your delivery.
-- Kitchen partners and delivery partners see only what they need for your order. Phone numbers in order messages are hidden.
+- Restaurant partners and delivery partners see only what they need for your order. Phone numbers in order messages are hidden.
 - We never see or store your full card number. We do not sell or share your personal information for targeted advertising.
 - You can download your data or delete your account from your profile at any time.
 - Residents of California and other states with privacy laws have extra rights, explained in section 9. We never treat you differently for using them.
@@ -14,7 +14,7 @@ key_points:
 
 This notice explains how [Legal entity name — to be confirmed] ("BhojanGo", "we", "us") collects, uses and discloses personal information when you use the BhojanGo website and apps in the United States. It is also our notice at collection under the California Consumer Privacy Act, as amended by the California Privacy Rights Act ("CCPA").
 
-It covers customers who order food. Kitchen partners and delivery partners receive an additional notice about the information we need to work with them; the main points are in section 5.
+It covers customers who order food. Restaurant partners and delivery partners receive an additional notice about the information we need to work with them; the main points are in section 5.
 
 ## 2. The information we collect
 
@@ -22,9 +22,9 @@ It covers customers who order food. Kitchen partners and delivery partners recei
 
 - **Account details** (identifiers): your name, mobile number, and your email address and password if you sign up with email (we store only a secure hash of your password, never the password itself). If you sign in with Google or Apple, we receive your name, email address and an account identifier from them.
 - **Delivery addresses**: the addresses you save or type, with their position on the map and any delivery instructions.
-- **Orders** (commercial information): what you order, from which kitchen, special requests, the bill, tips, ratings and reviews.
+- **Orders** (commercial information): what you order, from which restaurant, special requests, the bill, tips, ratings and reviews.
 - **Messages and reports**: quick messages to your delivery partner during an order, problem reports (with photos if you add them), and what you tell our support team.
-- **Preferences**: your language, favorite kitchens and dishes, and which notifications you want.
+- **Preferences**: your language, favorite restaurants and dishes, and which notifications you want.
 
 ### What we collect when you use BhojanGo
 
@@ -35,7 +35,7 @@ It covers customers who order food. Kitchen partners and delivery partners recei
 ### What we receive from others
 
 - **Payment processor (Stripe)**: whether a payment succeeded, a payment reference, and for saved cards only the card brand, last four digits and expiration date. **We never see or store your full card number or security code.**
-- **Kitchen partners and delivery partners**: updates about your order, for example that an item is unavailable or that your order was delivered (with the delivery PIN check or a photo at your door).
+- **Restaurant partners and delivery partners**: updates about your order, for example that an item is unavailable or that your order was delivered (with the delivery PIN check or a photo at your door).
 
 ## 3. How we use your information
 
@@ -61,7 +61,7 @@ We do not use your information for automated decisions that have legal or simila
 
 We disclose only what each party needs:
 
-- **The kitchen partner** sees your first name, what you ordered and any instructions for the kitchen. It does not see your phone number or address.
+- **The restaurant partner** sees your first name, what you ordered and any instructions for the restaurant. It does not see your phone number or address.
 - **The delivery partner** sees your first name and initial, and your delivery address and instructions once they are on the way to you. Quick messages between you and the delivery partner show first names only, and any phone number typed into a message is hidden automatically. Messages are hidden from both sides once the order is finished.
 - **Service providers** that process information on our behalf under contracts that limit their use of it: payment processing (Stripe), text messages (Twilio), email delivery, push notifications (Google Firebase Cloud Messaging and Apple Push Notification service) and cloud hosting.
 - **Authorities**, when the law requires it, for example under a valid subpoena, court order or tax law.
@@ -69,7 +69,7 @@ We disclose only what each party needs:
 
 **We do not sell your personal information, and we do not share it for cross-context behavioral advertising.** We have not done so in the past 12 months. We do not knowingly sell or share the personal information of consumers under 16.
 
-Kitchen partners and delivery partners: we collect the details needed to approve and pay you (for kitchens: health permit, EIN, bank account and contact details; for delivery partners: identity, date of birth (to check the minimum age), vehicle type, driving license, vehicle insurance, a background check with your consent, and a payout account through Stripe). Customers see a kitchen's name, address and ratings, and a delivery partner's first name and live position during a delivery.
+Restaurant partners and delivery partners: we collect the details needed to approve and pay you (for restaurants: health permit, EIN, bank account and contact details; for delivery partners: identity, date of birth (to check the minimum age), vehicle type, driving license, vehicle insurance, a background check with your consent, and a payout account through Stripe). Customers see a restaurant's name, address and ratings, and a delivery partner's first name and live position during a delivery.
 
 ## 6. Cookies and storage on your device
 
@@ -79,7 +79,7 @@ The BhojanGo website uses only functional cookies and browser storage that it ne
 |---|---|---|
 | bg_lang | The language you chose | 1 year |
 | bg_city | The city you chose with "Change city" | 1 year |
-| bg_addr | The delivery address you picked, so prices and kitchens are right for it | 1 year |
+| bg_addr | The delivery address you picked, so prices and restaurants are right for it | 1 year |
 | bg_hint, bg_hint_city | The country and city suggested from your IP address | 1 year |
 | bhojango-session (browser storage) | Keeps you signed in | Until you sign out |
 | bhojango-bag (browser storage) | The dishes in your bag | Until you order or empty it |

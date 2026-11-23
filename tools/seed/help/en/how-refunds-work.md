@@ -11,7 +11,7 @@ When we refund you, the money goes back to the way you paid: the same card, UPI 
 
 ## Refunds for a cancelled order
 
-If a paid order is cancelled, by you, by the kitchen or because the kitchen didn't accept it in time, we refund everything you paid: food, fees, tax and tip.
+If a paid order is cancelled, by you, by the restaurant or because the restaurant didn't accept it in time, we refund everything you paid: food, fees, tax and tip.
 
 ## Refunds for part of an order
 

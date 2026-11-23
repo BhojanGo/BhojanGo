@@ -360,7 +360,7 @@ async def _payee(db: AsyncSession, kind: str, payee_id: uuid.UUID) -> tuple[uuid
     if kind == "restaurant":
         r = await db.get(Restaurant, payee_id)
         if r is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Kitchen not found")
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
         owner = (await user_profile(db, r.owner_id)) or {}
         return r.id, r.country, None, {**owner, "name": r.name}
     u = await db.get(UserRow, payee_id)

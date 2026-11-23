@@ -30,7 +30,7 @@ const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleSt
 const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const iso = (v: string) => (v ? new Date(v).toISOString() : null);
 const ACTIONS: Record<string, string> = {
-  "kitchen.paused": "Kitchen paused", "kitchen.resumed": "Kitchen resumed", "ordering.paused": "Ordering paused",
+  "kitchen.paused": "Restaurant paused", "kitchen.resumed": "Restaurant resumed", "ordering.paused": "Ordering paused",
   "ordering.resumed": "Ordering resumed", "bulk_refund.requested": "Bulk refund asked for", "bulk_refund.approved": "Bulk refund approved",
   "bulk_refund.rejected": "Bulk refund rejected", "bulk_refund.done": "Bulk refund done", "customers.messaged": "Customers messaged",
 };
@@ -167,11 +167,11 @@ function Kitchens({ scope }: { scope: string }) {
   const mayPause = city ? can(me, "kitchens.pause", city) : false;
   const matches = (kitchens.data ?? []).filter((k) => !q || k.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
   return (
-    <section aria-label="Pause a kitchen" className="space-y-3 rounded-2xl bg-white p-6">
-      <h2 className="m-0 text-h2">Pause a kitchen</h2>
-      <p className="m-0 text-small text-muted">Customers see “Closed for now” and can&apos;t order; orders already placed carry on. The kitchen can&apos;t undo it from its tablet.</p>
+    <section aria-label="Pause a restaurant" className="space-y-3 rounded-2xl bg-white p-6">
+      <h2 className="m-0 text-h2">Pause a restaurant</h2>
+      <p className="m-0 text-small text-muted">Customers see “Closed for now” and can&apos;t order; orders already placed carry on. The restaurant can&apos;t undo it from its tablet.</p>
       {(paused.data ?? []).length ? (
-        <ul className="space-y-2" aria-label="Kitchens paused by an admin">
+        <ul className="space-y-2" aria-label="Restaurants paused by an admin">
           {(paused.data ?? []).map((k) => (
             <li key={k.id} data-testid="paused-kitchen" className="flex flex-wrap items-center gap-2 rounded-xl bg-danger-tint px-3 py-2 text-small">
               <b>{k.name}</b> closed for now since {when(k.paused_at)}{k.back_at ? `, back at ${when(k.back_at)}` : ""} · {k.reason}
@@ -187,8 +187,8 @@ function Kitchens({ scope }: { scope: string }) {
       {mayPause ? (
         <>
           <div className="flex flex-wrap items-end gap-3 text-small">
-            <label className="font-bold">Kitchen
-              <input aria-label="Find a kitchen" value={q} onChange={(e) => { setQ(e.target.value); setKitchen(null); }} placeholder={`A kitchen in ${cityName ?? "this city"}`} className={`${field} w-72`} />
+            <label className="font-bold">Restaurant
+              <input aria-label="Find a restaurant" value={q} onChange={(e) => { setQ(e.target.value); setKitchen(null); }} placeholder={`A restaurant in ${cityName ?? "this city"}`} className={`${field} w-72`} />
             </label>
             <label className="font-bold">Back at (optional)
               <input aria-label="Back at" type="datetime-local" value={backAt} min={local(new Date())} onChange={(e) => setBackAt(e.target.value)} className={field} />
@@ -202,12 +202,12 @@ function Kitchens({ scope }: { scope: string }) {
           ) : null}
           {kitchen && confirming === "pause" ? (
             <Confirm testId="confirm-pause-kitchen" title={`Pause ${kitchen.name}${backAt ? ` until ${when(iso(backAt))}` : " until someone resumes it"}? Customers see “Closed for now”.`}
-              yes="Yes, pause the kitchen" busy={busy} onCancel={() => setConfirming(null)}
+              yes="Yes, pause the restaurant" busy={busy} onCancel={() => setConfirming(null)}
               onYes={(reason) => void act(() => adminApi.post(`/user/incidents/kitchens/${kitchen.id}/pause`, { reason, back_at: iso(backAt), confirm: true }),
                 `${kitchen.name} is closed for now.`).then((ok) => { if (ok) { setConfirming(null); setKitchen(null); setQ(""); } })} />
           ) : null}
         </>
-      ) : <p className="m-0 text-small text-muted">Pick a city in the scope bar to pause one of its kitchens.</p>}
+      ) : <p className="m-0 text-small text-muted">Pick a city in the scope bar to pause one of its restaurants.</p>}
       {note}
     </section>
   );
@@ -241,12 +241,12 @@ function Refunds({ scope }: { scope: string }) {
   return (
     <section aria-label="Bulk refund" className="space-y-3 rounded-2xl bg-white p-6">
       <h2 className="m-0 text-h2">Bulk refund</h2>
-      <p className="m-0 text-small text-muted">Refund the paid orders of a kitchen, a zone or the whole city in a time window (7 days at most), in full or a percentage. BhojanGo pays it: kitchens&apos; payouts don&apos;t change. Above the city&apos;s automatic refund limit per order, a second admin approves it first.</p>
+      <p className="m-0 text-small text-muted">Refund the paid orders of a restaurant, a zone or the whole city in a time window (7 days at most), in full or a percentage. BhojanGo pays it: restaurants&apos; payouts don&apos;t change. Above the city&apos;s automatic refund limit per order, a second admin approves it first.</p>
       {mayRefund ? (
         <div className="flex flex-wrap items-end gap-3 text-small">
-          <label className="font-bold">Kitchen
-            <select aria-label="Kitchen" value={kitchen} onChange={(e) => { setKitchen(e.target.value); setPreview(null); }} className={field}>
-              <option value="">Every kitchen</option>
+          <label className="font-bold">Restaurant
+            <select aria-label="Restaurant" value={kitchen} onChange={(e) => { setKitchen(e.target.value); setPreview(null); }} className={field}>
+              <option value="">Every restaurant</option>
               {(kitchens.data ?? []).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
             </select>
           </label>
@@ -285,7 +285,7 @@ function Refunds({ scope }: { scope: string }) {
               ...(preview.approval_reasons ?? []).includes("total_over_limit") && preview.auto_refund_total_limit ? [`above ${units.money(Number(preview.auto_refund_total_limit), 2)} in all`] : [],
             ].join(" and ")})</span></> : " · runs at once (within the city's limits)"}</p>
           {preview.count ? (
-            <div className="table-scroll max-h-64 overflow-auto"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Order</th><th>Kitchen</th><th>Status</th><th>Placed</th><th>Paid</th><th>Refund</th></tr></thead>
+            <div className="table-scroll max-h-64 overflow-auto"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th>Order</th><th>Restaurant</th><th>Status</th><th>Placed</th><th>Paid</th><th>Refund</th></tr></thead>
               <tbody>{preview.orders.map((o) => <tr key={o.order_id}><td>#{o.order_id.replace(/-/g, "").slice(0, 6).toUpperCase()}</td><td>{o.restaurant}</td><td>{o.status}</td><td>{when(o.placed_at)}</td><td>{m(o.paid)}</td><td>{m(o.amount)}</td></tr>)}</tbody></table></div>
           ) : null}
           {preview.count && !confirming ? <button type="button" onClick={() => setConfirming(true)} className={danger}>Refund {preview.count} order{preview.count === 1 ? "" : "s"}…</button> : null}

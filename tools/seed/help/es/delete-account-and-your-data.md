@@ -21,7 +21,7 @@ Toca **Descargar mis datos** y te damos un archivo con todo lo que tenemos sobre
 - tus solicitudes de soporte, reportes de problemas y reembolsos,
 - tus calificaciones y reseñas.
 
-Solo contiene tu propia información, nada sobre socios repartidores, cocinas asociadas ni otros clientes.
+Solo contiene tu propia información, nada sobre socios repartidores, restaurantes asociados ni otros clientes.
 
 ## Elimina tu cuenta
 
@@ -39,6 +39,6 @@ Cuando eliminas tu cuenta:
 
 ## Lo que conservamos
 
-Las cocinas y los registros fiscales necesitan que los pedidos anteriores sigan completos, así que tus pedidos anteriores se quedan en nuestros registros **sin** tus datos personales: sin nombre, sin teléfono y sin calle, ubicación en el mapa ni instrucciones de entrega. Solo se conservan la ciudad, el estado, el código postal y el país, porque se necesitan para los impuestos.
+Los restaurantes y los registros fiscales necesitan que los pedidos anteriores sigan completos, así que tus pedidos anteriores se quedan en nuestros registros **sin** tus datos personales: sin nombre, sin teléfono y sin calle, ubicación en el mapa ni instrucciones de entrega. Solo se conservan la ciudad, el estado, el código postal y el país, porque se necesitan para los impuestos.
 
 > ¿Quieres descargar tus datos primero? Hazlo antes de eliminar tu cuenta. Una vez eliminada, no podrás iniciar sesión para obtenerlos.

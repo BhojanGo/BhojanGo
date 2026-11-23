@@ -5332,7 +5332,7 @@ export interface components {
             cuisines: string[];
             /**
              * Lat
-             * @description The kitchen's pin; None keeps the current one
+             * @description The restaurant's pin; None keeps the current one
              */
             lat?: number | null;
             /** Lng */
@@ -5622,7 +5622,7 @@ export interface components {
             distance_unit: string;
             /**
              * Max Distance
-             * @description The farthest a kitchen delivers (max_radius rule)
+             * @description The farthest a restaurant delivers (max_radius rule)
              */
             max_distance?: string | null;
             /**
@@ -5724,7 +5724,7 @@ export interface components {
             percent_min: string;
             /**
              * Starting Percent
-             * @description A new kitchen's rate at country level (the default tier)
+             * @description A new restaurant's rate at country level (the default tier)
              */
             starting_percent: string | null;
             /**
@@ -6019,11 +6019,16 @@ export interface components {
          * DeliveryFeeSummary
          * @description The city's delivery fee rule. ``type`` is the rule's template:
          *     distance_slabs (slabs, beyond_per_unit), flat (amount), free_above
-         *     (min_subtotal, otherwise) or tier_base (tiers by kitchen tier).
+         *     (min_subtotal, otherwise), tier_base (tiers by restaurant tier) or base_per_distance (R30: base, per_unit).
          */
         DeliveryFeeSummary: {
             /** Amount */
             amount?: string | null;
+            /**
+             * Base
+             * @description base_per_distance: the fee at zero distance
+             */
+            base?: string | null;
             /**
              * Beyond Per Unit
              * @description distance_slabs: per km/mi past the last slab; null = not delivered
@@ -6033,6 +6038,11 @@ export interface components {
             min_subtotal?: string | null;
             /** Otherwise */
             otherwise?: string | null;
+            /**
+             * Per Unit
+             * @description base_per_distance: per km/mi from the restaurant
+             */
+            per_unit?: string | null;
             /**
              * Slabs
              * @default []
@@ -6406,7 +6416,7 @@ export interface components {
             base: string;
             /**
              * Distance
-             * @description Kitchen to customer, in the country's distance unit
+             * @description Restaurant to customer, in the country's distance unit
              */
             distance: string;
             /** Distance Pay */
@@ -8409,7 +8419,7 @@ export interface components {
         PauseOffer: {
             /**
              * Reason
-             * @description Shown to the kitchen
+             * @description Shown to the restaurant
              */
             reason: string;
         };
@@ -9984,7 +9994,7 @@ export interface components {
              * Field
              * @enum {string}
              */
-            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate";
+            field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee";
             /**
              * Level
              * @enum {string}
@@ -15335,7 +15345,7 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
-                /** @description Kitchen or item name (any case), or the order code (#A9D1F0) */
+                /** @description Restaurant or item name (any case), or the order code (#A9D1F0) */
                 q?: string | null;
                 /** @description delivered | cancelled | active; repeatable */
                 status?: ("delivered" | "cancelled" | "active")[] | null;
@@ -18486,7 +18496,7 @@ export interface operations {
             query: {
                 level: "country" | "region" | "city" | "restaurant";
                 scope_id: string;
-                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate";
+                field: "platform_fee_pct" | "min_platform_fee" | "restaurant_commission_pct" | "card_fee_estimate" | "delivery_fee";
             };
             header?: never;
             path?: never;

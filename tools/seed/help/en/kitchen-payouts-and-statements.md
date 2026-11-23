@@ -2,12 +2,12 @@
 slug: kitchen-payouts-and-statements
 topic: kitchen-partners
 country: *
-title: How do kitchen payouts and statements work?
+title: How do restaurant payouts and statements work?
 summary: You're paid weekly for delivered orders: food and packaging, less the card processing fee, any commission, offers you fund and refunds for your own mistakes. Every order is on your statement.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, add-your-kitchen
 ---
-Kitchen partners are paid weekly, straight to your bank account, through our payments partner: Razorpay in India and Stripe in the US. Your statements are under **Payouts** in the BhojanGo Kitchen app.
+Restaurant partners are paid weekly, straight to your bank account, through our payments partner: Razorpay in India and Stripe in the US. Your statements are under **Payouts** in the BhojanGo Restaurant app.
 
 ## What you're paid for each order
 

@@ -173,7 +173,7 @@ with sync_playwright() as p:
     page = b.new_page(viewport={"width": 1440, "height": 1000})
     # Outside production (make dev, QA, staging) the console says it's a test site, on the
     # login page and inside; production never does (packages/ui/environment.js, unit-tested there).
-    test_banner = "Test site: demo kitchens, no real orders or payments"
+    test_banner = "Test site: demo restaurants, no real orders or payments"
     page.goto(f"{BASE}/login", wait_until="networkidle")
     check("test-site banner: on the login page, a note (not an alert)", lambda: (
         expect(page.get_by_role("note").filter(has_text=test_banner)).to_be_visible(),
@@ -197,7 +197,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="India")).to_be_visible(),
         expect(page.get_by_role("region", name="United States")).to_be_visible(),
         expect(page.get_by_role("region", name="Side by side")).to_be_visible(),
-        expect(page.get_by_text(re.compile("kitchen.* applying to join")).first).to_be_visible()))
+        expect(page.get_by_text(re.compile("restaurant.* applying to join")).first).to_be_visible()))
     page.screenshot(path=f"{OUT}/01-all-countries.png", full_page=True)
 
     page.get_by_role("link", name="Open India").click()
@@ -232,7 +232,7 @@ with sync_playwright() as p:
         expect(page.get_by_label("Order timeline")).to_be_visible()))
     page.get_by_label("How many Veg Dum Biryani to refund").fill("1")
     page.get_by_label("Reason").select_option("missing_item")
-    check("support: refund is charged to the kitchen for a missing item", lambda: expect(page.get_by_text(re.compile("charged to the kitchen's payout"))).to_be_visible())
+    check("support: refund is charged to the kitchen for a missing item", lambda: expect(page.get_by_text(re.compile("charged to the restaurant's payout"))).to_be_visible())
     page.screenshot(path=f"{OUT}/05-support-refund.png", full_page=True)
     page.get_by_role("button", name="Refund to original payment").click()
     check("support: refund by item goes through", lambda: expect(page.get_by_role("status")).to_contain_text("Refunded", timeout=20000))
@@ -254,7 +254,7 @@ with sync_playwright() as p:
     check("support: the call-back number is formatted, its tel: link is E.164", lambda: (
         expect(case.get_by_test_id("ticket-phone")).to_have_text(re.compile(r"^\+91 \d{5} \d{5}$"), timeout=10000),
         expect(case.get_by_test_id("ticket-phone")).to_have_attribute("href", re.compile(r"^tel:\+91\d{10}$"))))
-    case.get_by_label("What did you do?").fill("Called the kitchen; the payout covered six days, explained the cut-off")
+    case.get_by_label("What did you do?").fill("Called the restaurant; the payout covered six days, explained the cut-off")
     page.screenshot(path=f"{OUT}/05b-support-callback.png", full_page=True)
     case.get_by_role("button", name="Mark resolved").click()
     check("support: resolved tickets leave the open queue", lambda: (
@@ -321,14 +321,14 @@ with sync_playwright() as p:
     offer = next(o for o in offers if o["name"] == offer_name)
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=promotion", wait_until="networkidle")
     page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile(re.escape(offer_name))).first.click()
-    box = page.get_by_role("region", name="The kitchen's own offer")
+    box = page.get_by_role("region", name="The restaurant's own offer")
     check("promotions: the kitchen's own offer is live without approval", lambda: expect(box.get_by_text(re.compile("went live without approval"))).to_be_visible(timeout=15000))
-    box.get_by_label("Why pause it (the kitchen sees this)").fill("Looks like a typo in the amount; please check")
+    box.get_by_label("Why pause it (the restaurant sees this)").fill("Looks like a typo in the amount; please check")
     box.get_by_role("button", name="Pause offer").click()
     check("promotions: paused, the reason shown, audited", lambda: (
         expect(page.get_by_role("region", name="Rules").get_by_text("Paused").first).to_be_visible(timeout=15000),
         page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile(re.escape(offer_name))).first.click(),
-        expect(page.get_by_role("region", name="The kitchen's own offer").get_by_text(re.compile("Looks like a typo"))).to_be_visible(timeout=15000),
+        expect(page.get_by_role("region", name="The restaurant's own offer").get_by_text(re.compile("Looks like a typo"))).to_be_visible(timeout=15000),
         expect(page.get_by_role("button", name="Resume offer")).to_be_visible(),
         _ok(any(o["id"] == offer["id"] and o["paused"] for o in api.get(f"{CORE}/restaurants/{rest['id']}/offers", headers=partner_h).json())),
         _ok(any(a["action"] == "offer.paused" for a in api.get(f"{CORE}/audit", headers=token("admin@example.com", PW), params={"entity_type": "rule"}).json()))))
@@ -513,7 +513,7 @@ with sync_playwright() as p:
 
     # R22 (S11): the kitchen offer ceiling, inherited from India and overridden on the city;
     # the API then refuses a kitchen's offer above it. Put back afterwards.
-    ceiling_box = page.get_by_role("region", name="Kitchen offer ceiling")
+    ceiling_box = page.get_by_role("region", name="Restaurant offer ceiling")
     check("markets: the kitchen offer ceiling shows what the city inherits", lambda: (
         expect(ceiling_box.get_by_label("Amount off, per order")).to_have_attribute("placeholder", "200", timeout=15000),
         expect(ceiling_box.get_by_label("Most a %-off offer can take off one order")).to_be_visible(),
@@ -604,7 +604,7 @@ with sync_playwright() as p:
     page.goto(f"{BASE}/pricing?scope=IN&tab=business", wait_until="networkidle")
     check("business rules: GST on commission (18%) and TDS (0%), both to confirm with a CA", lambda: (
         expect(page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("GST on commission"))).not_to_have_count(0, timeout=15000),
-        expect(page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("TDS on kitchen payouts"))).not_to_have_count(0)))
+        expect(page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("TDS on restaurant payouts"))).not_to_have_count(0)))
     page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("GST on commission")).first.click()
     page.wait_for_timeout(1500)
     page.screenshot(path=f"{OUT}/07g-commission-tax-rule.png", full_page=True)
@@ -758,7 +758,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(800)
         check(f"a11y {name}: no serious or critical accessibility issues (axe)", lambda n=name: AXE.scan(page, n))
     page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=delivery_fee", wait_until="networkidle")
-    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"0–\d+ km: ₹\d+")).first).to_be_visible(timeout=10000))
+    # R30: Hyderabad's delivery fee is base + per km ("₹20 + ₹6 per km, all of it to the delivery partner")
+    check("rule settings read as plain words", lambda: expect(page.get_by_text(re.compile(r"₹\d+ \+ ₹\d+ per km, all of it to the delivery partner")).first).to_be_visible(timeout=10000))
 
     # Role scopes: a Hyderabad city ops sees Hyderabad only, and no Finance or Settings.
     ops = b.new_page(viewport={"width": 1440, "height": 1000})
@@ -786,7 +787,7 @@ with sync_playwright() as p:
             ops.goto(f"{BASE}/incidents?scope=IN-TG-HYD", wait_until="networkidle")
             check("incidents: pause ordering, pause a kitchen, bulk refund, message customers and the log", lambda: [
                 expect(ops.get_by_role("region", name=n)).to_be_visible(timeout=15000)
-                for n in ("Pause ordering", "Pause a kitchen", "Bulk refund", "Message customers", "Incident log")])
+                for n in ("Pause ordering", "Pause a restaurant", "Bulk refund", "Message customers", "Incident log")])
             ops.screenshot(path=f"{OUT}/13-incidents.png", full_page=True)
             sec = ops.get_by_role("region", name="Pause ordering")
             sec.get_by_label("Note for customers").fill("Back by 9 pm")
@@ -799,13 +800,13 @@ with sync_playwright() as p:
             dlg.get_by_role("button", name="Yes, pause ordering").click()
             check("incidents: ordering in Hyderabad paused, with its reason", lambda: expect(
                 sec.get_by_test_id("pause-row")).to_contain_text("E2E drill: the payment provider is down", timeout=15000))
-            kit = ops.get_by_role("region", name="Pause a kitchen")
-            kit.get_by_label("Find a kitchen").fill("Spice Route")
+            kit = ops.get_by_role("region", name="Pause a restaurant")
+            kit.get_by_label("Find a restaurant").fill("Spice Route")
             kit.get_by_role("button", name="Spice Route Kitchen").first.click()
             kit.get_by_role("button", name="Pause Spice Route Kitchen…").click()
             kd = ops.get_by_test_id("confirm-pause-kitchen")
             kd.get_by_label("Reason").fill("E2E drill: gas supply cut")
-            kd.get_by_role("button", name="Yes, pause the kitchen").click()
+            kd.get_by_role("button", name="Yes, pause the restaurant").click()
             check("incidents: Spice Route Kitchen closed for now", lambda: expect(
                 kit.get_by_test_id("paused-kitchen")).to_contain_text("Spice Route Kitchen", timeout=15000))
             ops.screenshot(path=f"{OUT}/13b-incidents-paused.png", full_page=True)
@@ -815,7 +816,7 @@ with sync_playwright() as p:
             def web_shows_both() -> None:  # the site caches the pause 30 s and availability 60 s
                 for _ in range(24):
                     wp.goto(f"{web}/in/hyderabad/spice-route-kitchen-madhapur", wait_until="networkidle")
-                    if wp.get_by_test_id("ordering-paused").count() and wp.get_by_text("This kitchen is closed for now").count():
+                    if wp.get_by_test_id("ordering-paused").count() and wp.get_by_text("This restaurant is closed for now").count():
                         return
                     page_wait(5000)
                 fail("the website didn't show the ordering pause and 'Closed for now' within 2 minutes")
@@ -833,7 +834,7 @@ with sync_playwright() as p:
             wp.close()
 
             ref = ops.get_by_role("region", name="Bulk refund")
-            ref.get_by_label("Kitchen").select_option(label="Spice Route Kitchen")
+            ref.get_by_label("Restaurant").select_option(label="Spice Route Kitchen")
             ref.get_by_label("Refund", exact=True).select_option("percent")
             ref.get_by_label("Percent").fill("50")
             ref.get_by_role("button", name="Preview").click()

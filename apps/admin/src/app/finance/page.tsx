@@ -199,12 +199,12 @@ function FinancePage() {
         {can(me, "finance.edit", target) && weeks.data ? <p className="m-0 text-small text-muted">This week ({weekLabel(weeks.data.weeks[0].end, addDays(weeks.data.weeks[0].end, 7))}) can be prepared once it ends.</p> : null}
         {msg ? <p role="status" className={`text-label ${msg.ok ? "text-peacock" : "text-chili"}`}>{msg.text}</p> : null}
         <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
-          <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Kitchens</th><th>Delivery partners</th><th><span className="sr-only">Actions</span></th></tr></thead>
+          <thead className="text-caption text-muted"><tr><th className="py-2">Week</th><th>Status</th><th>Orders</th><th>Restaurants</th><th>Delivery partners</th><th><span className="sr-only">Actions</span></th></tr></thead>
           <tbody className="divide-y divide-line">
             {(runs.data ?? []).map((r) => (
               <tr key={r.id} className={selected === r.id ? "bg-peacock-wash" : ""}>
                 <td className="stack-title py-3 font-bold"><span className="whitespace-nowrap">{weekLabel(r.period_start, r.period_end)}</span></td><td data-label="Status">{RUN_STATUS[r.status] ?? r.status}</td><td data-label="Orders">{r.totals.orders ?? 0}</td>
-                <td data-label="Kitchens"><span>{money(r.totals.restaurants_to_pay ?? r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span>
+                <td data-label="Restaurants"><span>{money(r.totals.restaurants_to_pay ?? r.totals.restaurants, r.currency, 2)} <span className="text-muted">· {r.totals.restaurant_statements ?? 0}</span></span>
                   {Number(r.totals.kitchen_carried_in ?? 0) || Number(r.totals.kitchen_carried_forward ?? 0) ? (
                     // R23: earned this week, the balances carried in and on, and what is paid after them
                     <span data-testid="run-carry" className="block text-small text-muted">Earned {money(r.totals.restaurants, r.currency, 2)}
@@ -239,7 +239,7 @@ function FinancePage() {
               {run.data.statements.map((s) => (
                 <tr key={s.id} data-testid="statement-row"><td className="stack-title py-2.5 font-semibold">
                   {s.payee_type === "restaurant" ? <Link href={`/finance/statements/${s.id}`} className="text-peacock">{s.payee_name}</Link> : s.payee_name}</td>
-                  <td data-label="Type">{s.payee_type === "restaurant" ? "Kitchen" : "Delivery partner"}</td>
+                  <td data-label="Type">{s.payee_type === "restaurant" ? "Restaurant" : "Delivery partner"}</td>
                   <td data-label="Amount"><div className="text-right md:text-left">{money(s.amount / 100, s.currency, 2)}
                     {s.carried_in ? <span data-testid="carried-in" className="block text-small text-muted">Carried from last week {money(s.carried_in / 100, s.currency, 2)}</span> : null}
                     {s.payee_type === "restaurant" ? belowZeroLines(s.amount, s.carried_in).map((l) => (
@@ -260,16 +260,16 @@ function FinancePage() {
           </table></div>
           {run.data.statements.length === 0 ? <p className="text-small text-muted">No statements: nothing was delivered in this period.</p> : null}
           {run.data.statements.some((s) => s.carried_in || s.status === "carried" || s.amount < 0) ? (
-            <p className="mt-3 text-small text-muted">A kitchen statement below zero pays nothing: the balance is carried into its next week&apos;s statement as &ldquo;Carried from last week&rdquo; and comes off what that week pays. Nothing is written off and a kitchen is never charged.</p>
+            <p className="mt-3 text-small text-muted">A restaurant statement below zero pays nothing: the balance is carried into its next week&apos;s statement as &ldquo;Carried from last week&rdquo; and comes off what that week pays. Nothing is written off and a restaurant is never charged.</p>
           ) : null}
         </section>
       ) : null}
       {collect.data && collect.data.length > 0 ? (
-        <section className="rounded-2xl bg-white p-6" aria-label="Kitchens to collect from" data-testid="to-collect">
-          <h2 className="m-0 mb-1 text-h3">Kitchens to collect from</h2>
+        <section className="rounded-2xl bg-white p-6" aria-label="Restaurants to collect from" data-testid="to-collect">
+          <h2 className="m-0 mb-1 text-h3">Restaurants to collect from</h2>
           <p className="mb-3 text-small text-muted">These kitchens&apos; statements have been below zero for {COLLECT_AFTER_WEEKS} weeks or more in a row: their sales haven&apos;t covered the refunds and offers they owe. Nothing is charged automatically; agree with the kitchen how it pays. Until then each week&apos;s sales keep coming off the balance.</p>
           <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
-            <thead className="text-caption text-muted"><tr><th className="py-2">Kitchen</th><th>Owes</th><th>Weeks below zero</th><th>Since</th><th>Latest statement</th></tr></thead>
+            <thead className="text-caption text-muted"><tr><th className="py-2">Restaurant</th><th>Owes</th><th>Weeks below zero</th><th>Since</th><th>Latest statement</th></tr></thead>
             <tbody className="divide-y divide-line">
               {collect.data.map((k) => (
                 <tr key={k.restaurant_id} data-testid="collect-row"><td className="stack-title py-2.5 font-semibold">{k.kitchen}</td>
@@ -309,12 +309,12 @@ function FinancePage() {
         <section className="rounded-2xl bg-white p-6" aria-label="Reconciliation">
           <h2 className="m-0 mb-3 text-h3">Reconciliation · {weekLabel(start, end)}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            {([["Captured", "captured"], ["Refunded", "refunded"], ["Kitchens are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
+            {([["Captured", "captured"], ["Refunded", "refunded"], ["Restaurants are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
               ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
               ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"],
               // R23: kitchens paid = kitchens are owed + carried from last week - carried to next week
-              ["Kitchens: carried from last week", "kitchen_carried_in"], ["Kitchens: carried to next week", "kitchen_carried_forward"],
-              ["Kitchens are paid", "restaurant_to_pay"]] as const)
+              ["Restaurants: carried from last week", "kitchen_carried_in"], ["Restaurants: carried to next week", "kitchen_carried_forward"],
+              ["Restaurants are paid", "restaurant_to_pay"]] as const)
               .map(([l0, k]) => [k === "payment_fees" && recon.data!.payment_fees_estimated ? `${l0} (estimated)` : l0, k] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
                 <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div>
@@ -327,7 +327,7 @@ function FinancePage() {
                   </div>
                 ) : null}</div>)}
           </div>
-          <p className="mt-3 text-small text-muted">Kitchens are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a kitchen.</p>
+          <p className="mt-3 text-small text-muted">Restaurants are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a restaurant.</p>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {count(recon.data.refunds_not_settled, "refund")} not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{count(recon.data.issues.length, "issue")} to look at</b> : <span className="text-peacock">everything lines up</span>}</p>
         </section>

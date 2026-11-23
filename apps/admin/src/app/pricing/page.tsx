@@ -110,7 +110,7 @@ function useKitchens(scope: string) {
 
 /** "Inherited from United States · 20% (tier B)" / "Set for Boise · 15%" / "Set for Spice Route Kitchen · 12% until 14 Feb 2027". */
 function source(r: Rule, scope: string, names: Record<string, string>, kitchens: Record<string, string>, units: Units): string {
-  const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a kitchen" : names[r.market_scope] ?? r.market_scope;
+  const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a restaurant" : names[r.market_scope] ?? r.market_scope;
   const inherited = r.scope_level !== "restaurant" && r.market_scope !== scope && scope !== "*" && r.market_scope.length < scope.length;
   const until = r.effective_to && !past(r.effective_to) ? ` until ${day(r.effective_to)}` : "";
   return `${inherited ? "Inherited from" : "Set for"} ${who} · ${short(r, units)}${until}`;
@@ -128,7 +128,7 @@ const STARTERS: Record<string, Record<string, unknown>> = {
   flat_per_order: { amount: 1 },
 };
 const TEMPLATE_WORDS: Record<string, string> = { percent: "Percent of food", percent_by_tier: "Percent by tier", flat_per_order: "Flat per order" };
-const LEVEL_WORDS: Record<string, string> = { platform: "Everywhere", country: "Country", region: "State", city: "City", zone: "Zone", restaurant: "A kitchen" };
+const LEVEL_WORDS: Record<string, string> = { platform: "Everywhere", country: "Country", region: "State", city: "City", zone: "Zone", restaurant: "A restaurant" };
 
 function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   family: string; scope: string; templates: Template[]; rules: Rule[]; kitchens: KitchenRef[];
@@ -155,7 +155,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
   const matches = kitchens.filter((k) => !kitchenQ || k.name.toLowerCase().includes(kitchenQ.toLowerCase())).slice(0, 8);
   const scopeId = level === "country" ? country : level === "city" ? city : level === "zone" ? zone || null : kitchen;
   async function create(params: Record<string, unknown>) {
-    if (!scopeId) return setErr(level === "restaurant" ? "Pick the kitchen." : level === "zone" ? "Pick the zone." : "Pick a country or city in the scope bar first.");
+    if (!scopeId) return setErr(level === "restaurant" ? "Pick the restaurant." : level === "zone" ? "Pick the zone." : "Pick a country or city in the scope bar first.");
     if (!from) return setErr("A start date is needed.");
     setBusy(true);
     setErr(null);
@@ -205,7 +205,7 @@ function AddRule({ family, scope, templates, rules, kitchens, names, onDone }: {
       </div>
       {level === "restaurant" ? (
         <div className="space-y-2 text-small">
-          <input aria-label="Find a kitchen" placeholder="Find a kitchen in this scope" value={kitchenQ} onChange={(e) => { setKitchenQ(e.target.value); setKitchen(null); }}
+          <input aria-label="Find a restaurant" placeholder="Find a restaurant in this scope" value={kitchenQ} onChange={(e) => { setKitchenQ(e.target.value); setKitchen(null); }}
             className="h-10 w-80 rounded-full border border-line-strong px-4" />
           <div className="flex flex-wrap gap-2">
             {matches.map((k) => (
@@ -236,7 +236,7 @@ function PreviewBox({ rule }: { rule: Rule }) {
         <>
           <p data-testid="preview-summary">{count(p.data.orders, "order")} · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · kitchen payouts{" "}
             <b className={diff >= 0 ? "text-peacock-dark" : "text-chili"}>{signed(diff)}</b></p>
-          <div className="table-scroll"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th className="py-1">Kitchen</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
+          <div className="table-scroll"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th className="py-1">Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
             <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table></div>
         </>
       )}
@@ -355,14 +355,14 @@ function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: str
         {simCity ? <Link href={`/pricing/simulator?city=${simCity}`} className="ml-auto text-label text-peacock">Try it in the price simulator →</Link> : null}
       </div>
       {kitchenOffer ? (
-        <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The kitchen's own offer">
+        <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The restaurant's own offer">
           <p className="text-small">The kitchen pays for this offer, so it went live without approval.{rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
           {mayPause && !rule.paused_at ? (
             <div className="flex flex-wrap gap-2">
-              <input aria-label="Why pause it (the kitchen sees this)" placeholder="Why pause it? The kitchen sees this" value={reason} maxLength={300}
+              <input aria-label="Why pause it (the restaurant sees this)" placeholder="Why pause it? The restaurant sees this" value={reason} maxLength={300}
                 onChange={(e) => setReason(e.target.value)} className="h-10 flex-1 rounded-full border border-line px-4 text-small" />
               <button type="button" disabled={busy || reason.trim().length < 3}
-                onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/pause`, { reason: reason.trim() }), "Paused. Customers stop seeing it now; the kitchen sees why.", rule.id)}
+                onClick={() => void run(() => adminApi.post(`/user/rules/${rule.id}/pause`, { reason: reason.trim() }), "Paused. Customers stop seeing it now; the restaurant sees why.", rule.id)}
                 className="h-10 rounded-full border border-line-strong px-4 font-bold text-chili disabled:opacity-40">Pause offer</button>
             </div>
           ) : null}

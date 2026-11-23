@@ -248,7 +248,9 @@ function Faq({ ok, t, m, loc, language, countryName }: { ok: DeliveryTerms; t: T
   const qa: { id: string; q: string; a: string }[] = [
     ...(ex ? [{
       id: "pay", q: t("deliver_page.faq_pay_q"),
-      a: [t("deliver_page.faq_pay_a", { city: ok.city.name, base: m(ex.base), per_unit: m(ex.per_unit), unit: unitName(ok.distance_unit, loc),
+      a: [Number(ex.per_wait_minute) === 0
+        ? t("deliver_page.faq_pay_a_fee", { city: ok.city.name, base: m(ex.base), per_unit: m(ex.per_unit), unit: unitName(ok.distance_unit, loc) })
+        : t("deliver_page.faq_pay_a", { city: ok.city.name, base: m(ex.base), per_unit: m(ex.per_unit), unit: unitName(ok.distance_unit, loc),
         per_minute: m(ex.per_wait_minute), minutes: ex.free_wait_minutes }),
       ok.hourly_floor ? t("deliver_page.faq_pay_floor", { amount: m(ok.hourly_floor) }) : ""].filter(Boolean).join(" "),
     }] : []),

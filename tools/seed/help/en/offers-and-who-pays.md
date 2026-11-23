@@ -3,7 +3,7 @@ slug: offers-and-who-pays
 topic: payments-refunds
 country: *
 title: How do offers work, and who pays for them?
-summary: Offers come off your bill automatically or with a promo code, and every offer shows whether the kitchen or BhojanGo pays for it.
+summary: Offers come off your bill automatically or with a promo code, and every offer shows whether the restaurant or BhojanGo pays for it.
 popular: 0
 related: fair-bill-who-gets-your-money, place-an-order, how-refunds-work
 ---
@@ -26,12 +26,12 @@ Most offers apply on their own. If more than one food offer fits your order, we 
 
 Each offer on your bill is tagged with who funds it:
 
-- **Kitchen pays**: the kitchen is giving you the discount, and it comes out of what the kitchen is paid for the order.
-- **BhojanGo pays**: we cover the discount. The kitchen is still paid in full for the food.
+- **Restaurant pays**: the restaurant is giving you the discount, and it comes out of what the restaurant is paid for the order.
+- **BhojanGo pays**: we cover the discount. The restaurant is still paid in full for the food.
 
 ## Limits
 
-Offers can have a budget. When an offer's budget for the week, or overall, is used up, it stops. Kitchens choose a weekly limit for the offers they fund.
+Offers can have a budget. When an offer's budget for the week, or overall, is used up, it stops. Restaurants choose a weekly limit for the offers they fund.
 
 ## Offers and refunds
 

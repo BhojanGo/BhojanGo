@@ -98,7 +98,7 @@ function AllCountries({ countries }: { countries: OCountry[] }) {
         <div className="table-scroll">
           <table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted">
-              <tr><th className="py-2">Country</th><th>Completed</th><th>On time</th><th>Median delivery</th><th>Live</th><th>Kitchens</th><th>Refunds</th></tr>
+              <tr><th className="py-2">Country</th><th>Completed</th><th>On time</th><th>Median delivery</th><th>Live</th><th>Restaurants</th><th>Refunds</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {countries.map((c) => (
@@ -156,7 +156,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
           <Link href={`/markets/${country.code}`} className="text-label text-peacock">Markets →</Link>
         </div>
         <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
-          <thead className="text-caption text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Kitchens</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
+          <thead className="text-caption text-muted"><tr><th className="py-2">Name</th><th>Status</th><th>Restaurants</th><th>Orders today</th><th>On time</th><th>Live now</th></tr></thead>
           <tbody className="divide-y divide-line">
             {states.map((s) => [
               <tr key={s.code} className="bg-porcelain/60"><td className="py-3 font-bold"><Link href={`/overview?scope=${s.code}`}>{s.name}</Link> <span className="font-normal text-muted">· {s.cities.length} {s.cities.length === 1 ? "city" : "cities"}</span></td>
@@ -181,7 +181,7 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
           <div><dt className="font-bold">Money and tax</dt><dd className="text-muted">{country.currency} · {country.tax}</dd></div>
           <div><dt className="font-bold">Payments</dt><dd className="text-muted">{country.payments}</dd></div>
           <div><dt className="font-bold">Main time zone</dt><dd className="text-muted">{country.timezone} · each city keeps its own ({[...new Set(country.states.flatMap((s) => s.cities.map((x) => x.timezone)))].join(", ")})</dd></div>
-          <div><dt className="font-bold">Compliance</dt><dd className="text-muted">{country.code === "IN" ? "FSSAI licence required for every kitchen" : "Local food permits; sales tax by Stripe Tax"}</dd></div>
+          <div><dt className="font-bold">Compliance</dt><dd className="text-muted">{country.code === "IN" ? "FSSAI licence required for every restaurant" : "Local food permits; sales tax by Stripe Tax"}</dd></div>
         </dl>
       </section>
     </>

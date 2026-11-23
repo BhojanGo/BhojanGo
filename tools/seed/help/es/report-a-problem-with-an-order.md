@@ -32,6 +32,6 @@ Cualquier monto que ya se te haya reembolsado automáticamente en el mismo pedid
 - Solo puedes reportar un problema después de que se entregue el pedido.
 - Los reportes tienen un plazo después de la entrega. Se define para cada ciudad; cuando pasa, la app te indica que ya no se puede reportar el pedido.
 - Los artículos que ya se reembolsaron no se pueden reembolsar dos veces.
-- Las cocinas pagan por sus propios errores, como un artículo faltante o equivocado. BhojanGo paga por los problemas con la entrega.
+- Los restaurantes pagan por sus propios errores, como un artículo faltante o equivocado. BhojanGo paga por los problemas con la entrega.
 
 > ¿Tu caso no está en este formulario? Toca **Ayuda** en la página del pedido y nosotros nos encargamos.

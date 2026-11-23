@@ -2,24 +2,24 @@
 slug: kitchen-documents
 topic: kitchen-partners
 country: IN
-title: What documents does my kitchen need in India?
+title: What documents does my restaurant need in India?
 summary: Your FSSAI licence number, its expiry date and a copy of the licence, your GSTIN, and a bank account for your weekly payout.
 popular: 0
 related: add-your-kitchen, kitchen-payouts-and-statements, kitchen-tablet-app
 ---
-To go live in India, your kitchen needs three things: an FSSAI licence, a GSTIN and a bank account. You add them in the partner application in the BhojanGo Kitchen app.
+To go live in India, your restaurant needs three things: an FSSAI licence, a GSTIN and a bank account. You add them in the partner application in the BhojanGo Restaurant app.
 
 ## FSSAI food licence
 
-Every kitchen on BhojanGo shows a valid FSSAI licence on its page. You'll need:
+Every restaurant on BhojanGo shows a valid FSSAI licence on its page. You'll need:
 
 - your **licence number**: 14 digits, at the top of your certificate,
 - the date it's **valid until**,
 - a copy of the **licence**, as a PDF or a photo.
 
-We check the licence before your kitchen goes live.
+We check the licence before your restaurant goes live.
 
-> If your FSSAI licence expires, your kitchen is paused automatically and customers can't order until you upload the renewed licence. As soon as you add it, your kitchen is listed again.
+> If your FSSAI licence expires, your restaurant is paused automatically and customers can't order until you upload the renewed licence. As soon as you add it, your restaurant is listed again.
 
 ## GSTIN
 

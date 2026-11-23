@@ -56,11 +56,11 @@ env:
 - extendedWaitUntil:
     visible: "Message Priya"
     timeout: 15000
-- tapOn: "I'm at the kitchen, waiting for your order."
+- tapOn: "I'm at the restaurant, waiting for your order."
 # Sent: the message now shows twice, as a bubble and as the quick-message chip.
 - extendedWaitUntil:
     visible:
-      text: "I'm at the kitchen, waiting for your order."
+      text: "I'm at the restaurant, waiting for your order."
       index: 1
     timeout: 15000
 - assertVisible: "Your number stays private.*"

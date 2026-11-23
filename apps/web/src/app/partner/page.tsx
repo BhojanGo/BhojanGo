@@ -35,8 +35,10 @@ export default async function Partner() {
   const weekly = (terms?.payout.frequency ?? "weekly") === "weekly";
   const openCities = terms?.cities.length ?? 0;
 
-  const commissionLines: string[] =
-    commission.kind === "unknown"
+  // R30: with no commission, the sign-up terms say exactly what the restaurant receives
+  const commissionLines: string[] = commission.kind === "one" && commission.percent === 0 && !commission.flat
+    ? [t("kitchen_join.terms_payout")]
+    : commission.kind === "unknown"
       ? [t("kitchen_join.why_commission_unknown")]
       : [
           commission.kind === "one"

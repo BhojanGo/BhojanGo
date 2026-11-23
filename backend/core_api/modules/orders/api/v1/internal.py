@@ -51,6 +51,7 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
 
     rest = await db.get(Restaurant, order.restaurant_id)
     offer = await offer_details(db, order)
+    flat_pay = offer.pop("pay_is_delivery_fee", False)
     return {**offer,
         "restaurant_owner_id": str(rest.owner_id) if rest and rest.owner_id else None,
         "order_id": str(order.id), "status": order.status, "customer_id": str(order.customer_id),
@@ -63,7 +64,8 @@ async def dispatch_info(db: AsyncSession, order: Order) -> dict:
         "no_partner_alert_minutes": int(late.params["minutes"]) if late else 8,
         "distance_unit": "mi" if city.startswith("US") else "km",
         "batching_live": bool(batching and batching.params.get("live")),
-        **batch_rate(offer.get("rider_pay"), base_rule, bonus_rule),
+        **(batch_rate(offer.get("rider_pay"), None, None) if flat_pay
+           else batch_rate(offer.get("rider_pay"), base_rule, bonus_rule)),
     }
 
 
@@ -99,6 +101,9 @@ async def offer_details(db: AsyncSession, order: Order) -> dict:
 
     snap = (await db.execute(select(OrderPricingSnapshot).where(OrderPricingSnapshot.order_id == order.id))).scalars().first()
     pay = (snap.split or {}).get("rider") if snap else None
+    detail = ((snap.split or {}).get("detail") or {}) if snap else {}
+    # R30: the partner's pay is the delivery fee + tip, the same whether or not the order is batched
+    flat = detail.get("delivery_fee_to_partner") is not None and "rider_top_up" not in detail
     ready_in = None
     if order.status == "ready":
         ready_in = 0
@@ -109,7 +114,7 @@ async def offer_details(db: AsyncSession, order: Order) -> dict:
     return {"code": "#" + str(order.id).replace("-", "")[:6].upper(), "currency": order.currency,
             "rider_pay": str(pay) if pay is not None else None, "tip": str(order.tip),
             "items_count": items, "bags": max(1, (items + 3) // 4), "ready_in_minutes": ready_in,
-            "drop_area": drop_area(order.delivery_address)}
+            "drop_area": drop_area(order.delivery_address), "pay_is_delivery_fee": flat}
 
 
 @router.get("/{order_id}/dispatch", dependencies=[Depends(signed)], response_model=DispatchInfo)

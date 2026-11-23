@@ -1550,7 +1550,7 @@
                 "type": "null"
               }
             ],
-            "description": "The kitchen's pin; None keeps the current one",
+            "description": "The restaurant's pin; None keeps the current one",
             "title": "Lat"
           },
           "lng": {
@@ -2350,7 +2350,7 @@
                 "type": "null"
               }
             ],
-            "description": "The farthest a kitchen delivers (max_radius rule)",
+            "description": "The farthest a restaurant delivers (max_radius rule)",
             "title": "Max Distance"
           },
           "min_order": {
@@ -2651,7 +2651,7 @@
                 "type": "null"
               }
             ],
-            "description": "A new kitchen's rate at country level (the default tier)",
+            "description": "A new restaurant's rate at country level (the default tier)",
             "title": "Starting Percent"
           },
           "tiers": {
@@ -3411,7 +3411,7 @@
         "type": "object"
       },
       "DeliveryFeeSummary": {
-        "description": "The city's delivery fee rule. ``type`` is the rule's template:\ndistance_slabs (slabs, beyond_per_unit), flat (amount), free_above\n(min_subtotal, otherwise) or tier_base (tiers by kitchen tier).",
+        "description": "The city's delivery fee rule. ``type`` is the rule's template:\ndistance_slabs (slabs, beyond_per_unit), flat (amount), free_above\n(min_subtotal, otherwise), tier_base (tiers by restaurant tier) or base_per_distance (R30: base, per_unit).",
         "properties": {
           "amount": {
             "anyOf": [
@@ -3423,6 +3423,18 @@
               }
             ],
             "title": "Amount"
+          },
+          "base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "base_per_distance: the fee at zero distance",
+            "title": "Base"
           },
           "beyond_per_unit": {
             "anyOf": [
@@ -3457,6 +3469,18 @@
               }
             ],
             "title": "Otherwise"
+          },
+          "per_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "base_per_distance: per km/mi from the restaurant",
+            "title": "Per Unit"
           },
           "slabs": {
             "default": [],
@@ -4437,7 +4461,7 @@
             "type": "string"
           },
           "distance": {
-            "description": "Kitchen to customer, in the country's distance unit",
+            "description": "Restaurant to customer, in the country's distance unit",
             "title": "Distance",
             "type": "string"
           },
@@ -10009,7 +10033,7 @@
       "PauseOffer": {
         "properties": {
           "reason": {
-            "description": "Shown to the kitchen",
+            "description": "Shown to the restaurant",
             "maxLength": 300,
             "minLength": 3,
             "title": "Reason",
@@ -14116,7 +14140,8 @@
               "platform_fee_pct",
               "min_platform_fee",
               "restaurant_commission_pct",
-              "card_fee_estimate"
+              "card_fee_estimate",
+              "delivery_fee"
             ],
             "title": "Field",
             "type": "string"
@@ -20402,7 +20427,7 @@
         },
         "summary": "Apply",
         "tags": [
-          "Kitchen partners (public)"
+          "Restaurant partners (public)"
         ]
       }
     },
@@ -20457,7 +20482,7 @@
         },
         "summary": "Terms",
         "tags": [
-          "Kitchen partners (public)"
+          "Restaurant partners (public)"
         ]
       }
     },
@@ -23565,7 +23590,7 @@
             }
           },
           {
-            "description": "Kitchen or item name (any case), or the order code (#A9D1F0)",
+            "description": "Restaurant or item name (any case), or the order code (#A9D1F0)",
             "in": "query",
             "name": "q",
             "required": false,
@@ -23580,7 +23605,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Kitchen or item name (any case), or the order code (#A9D1F0)",
+              "description": "Restaurant or item name (any case), or the order code (#A9D1F0)",
               "title": "Q"
             }
           },
@@ -28972,7 +28997,8 @@
                 "platform_fee_pct",
                 "min_platform_fee",
                 "restaurant_commission_pct",
-                "card_fee_estimate"
+                "card_fee_estimate",
+                "delivery_fee"
               ],
               "title": "Field",
               "type": "string"

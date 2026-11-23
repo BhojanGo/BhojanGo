@@ -11,7 +11,7 @@ appId: com.bhojango.app
 - runFlow: common/sign-in.yaml
 - extendedWaitUntil:
     visible:
-      text: "Finding kitchens near.*"
+      text: "Finding restaurants near.*"
     timeout: 60000
 - waitForAnimationToEnd:
     timeout: 3000

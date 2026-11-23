@@ -28,7 +28,7 @@ HEADERS = ["content-security-policy", "x-frame-options", "x-content-type-options
            "strict-transport-security", "permissions-policy", "cross-origin-opener-policy"]
 WEB_PAGES = ["/", "/cities", "/in/hyderabad", "/in/hyderabad/spice-route-kitchen-madhapur", "/signin", "/partner",
              "/deliver", "/help", "/help/delivery/delivery-pin", "/terms?country=IN", "/privacy?country=US"]
-TEST_BANNER = "Test site: demo kitchens, no real orders or payments"
+TEST_BANNER = "Test site: demo restaurants, no real orders or payments"
 DRAFT_BANNER = "Draft: pending legal review"
 
 

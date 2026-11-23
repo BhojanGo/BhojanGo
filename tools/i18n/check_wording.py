@@ -5,8 +5,9 @@ or writes the brand other than "BhojanGo" (the wordmark: "bhojango", "Bhojango",
     python tools/i18n/check_wording_test.py     (its unit tests, also in make ci-i18n)
 
 The words (docs: Round 8 wording contract): delivery people are "delivery partners"
-(in every language: डिलीवरी पार्टनर, డెలివరీ పార్ట్‌నర్, repartidor ...), kitchens are
-"kitchen partners", and the apps are BhojanGo, BhojanGo Kitchen and BhojanGo Delivery.
+(in every language: डिलीवरी पार्टनर, డెలివరీ పార్ట్‌నర్, repartidor ...), restaurants are
+"restaurant partners" (R30; never "kitchen": tools/i18n/kitchen_scan.py), and the apps are BhojanGo,
+BhojanGo Restaurant and BhojanGo Delivery.
 Code names stay: identifiers, routes, i18n keys, DB columns, comments and tests may
 say "rider".
 
@@ -60,7 +61,7 @@ def problem(text: str) -> str | None:
             return f'writes the brand "{m.group(0)}": write "BhojanGo"'
     m = APP_NAMES.search(t)
     if m:
-        return f'names an old app ("{m.group(0)}"): say BhojanGo Kitchen / BhojanGo Delivery'
+        return f'names an old app ("{m.group(0)}"): say BhojanGo Restaurant / BhojanGo Delivery'
     m = EN_WORD.search(t)
     if m:
         return f'says "{m.group(0)}": say "delivery partner"'
@@ -289,7 +290,7 @@ def main() -> int:
         print(f, file=sys.stderr)
     if found:
         print(f"\n{len(found)} text(s) say rider, an old app name or a wrong wordmark. People read "
-              "\"delivery partner\", BhojanGo Kitchen / BhojanGo Delivery, and \"BhojanGo\".", file=sys.stderr)
+              "\"delivery partner\", BhojanGo Restaurant / BhojanGo Delivery, and \"BhojanGo\".", file=sys.stderr)
         return 1
     print("wording ok: no user-facing 'rider', old app name or lowercase wordmark in messages, backend texts, app names or app code")
     return 0

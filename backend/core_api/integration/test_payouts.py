@@ -128,14 +128,16 @@ async def test_payout_run_end_to_end(client: AsyncClient) -> None:
         ("missing_item", "restaurant"), ("damaged_in_transit", "platform")]
     # R16: GST on our commission (India 18%) and TDS (0% until a CA confirms) come off the kitchen's payout too
     assert Decimal(line["commission_tax"]) == -(commission * Decimal("0.18")).quantize(Decimal("0.01")) and Decimal(line["tds"]) == 0
-    assert Decimal(line["card_fee"]) < 0  # R29: the card fee comes off the kitchen's payout
+    assert Decimal(line["card_fee"]) == 0  # R30: paid by UPI, whose estimate is 0% (a card order pays 2%: test_payment_fees)
     assert Decimal(line["net"]) == (food + Decimal(line["packaging"]) - commission + Decimal(line["refunds"])
                                     + Decimal(line["commission_tax"]) + Decimal(line["tds"]) + Decimal(line["card_fee"]))
 
     rs = (await client.get(f"/api/v1/finance/statements/{rider['id']}", headers=finance)).json()
     rl = next(ln for ln in rs["lines"] if ln["order_id"] == order["id"])
-    assert rl["base"] == "25.00" and Decimal(rl["distance"]) == (6 * Decimal(rl["distance_units"])).quantize(Decimal("0.01"))
-    assert rs["summary"]["hourly_floor"] == "120" and Decimal(rs["summary"]["floor_top_up"]) >= 0
+    # R30: the partner gets the order's delivery fee (₹20 + ₹6/km) and the whole tip; no hourly floor top-up
+    assert rl["base"] == "0.00" and Decimal(rl["delivery_fee"]) == (20 + 6 * Decimal(rl["distance_units"])).quantize(Decimal("0.01"))
+    assert Decimal(rl["total"]) == Decimal(rl["delivery_fee"]) + Decimal(rl["tip"])
+    assert rs["summary"]["hourly_floor"] is None and Decimal(rs["summary"]["floor_top_up"]) == 0
 
     # Maker-checker: the preparer can't approve; city ops can't at all.
     assert (await client.post(f"/api/v1/finance/payout-runs/{run['id']}/approve", headers=finance)).status_code == 409

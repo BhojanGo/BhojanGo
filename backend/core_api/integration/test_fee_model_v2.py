@@ -63,7 +63,8 @@ async def test_boise_order_fees_snapshot_admin_levels_and_a_later_change(client:
     assert fs["platform_fee_pct"]["value"] == {"percent": "10"} and fs["platform_fee_pct"]["source"]["level"] == "country"
     assert fs["min_platform_fee"]["value"] == {"amount": "0.99"}
     assert fs["restaurant_commission_pct"]["value"] == {"percent": "0"}
-    assert fs["card_fee_estimate"]["value"] == {"percent": "2.9", "fixed": "0.30"}
+    assert fs["card_fee_estimate"]["value"] == {"card": {"percent": "2.9", "fixed": "0.30"}}  # R30: per method
+    assert fs["delivery_fee"]["value"] == {"base": "3.00", "per_unit": "1.00"} and fs["delivery_fee"]["source"]["level"] == "city"
     before = {k: snap[k] for k in ("total", "lines", "split", "fee_settings")}
 
     # Admin Fees: every level shows the effective value and where it comes from.

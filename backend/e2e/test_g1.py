@@ -4,7 +4,7 @@ Customer pays (fake provider) → restaurant accepts through the API → dispatc
 offers it to the nearest rider → rider accepts → pickup → delivered →
 restaurant and rider are in the weekly payout run → messages were sent.
 
-Run twice: the Hyderabad worked example (R29 fee model v2: ₹727.80, restaurant nets ₹456.72)
+Run twice: the Hyderabad worked example (R30 fee model v2: ₹702.57, restaurant nets ₹470.88)
 and a Boise order with Idaho sales tax from the tax provider.
 """
 import asyncio
@@ -183,9 +183,10 @@ def test_g1_hyderabad_worked_example() -> None:
             return q
 
     q = run(price())
-    # R29 fee model v2: 560 food − 50 offer + 10 packaging + 35 delivery + 85 platform fee (the ₹85 minimum: 10% is 56)
-    # + 15 surge + 28.50 GST on food (before the platform's discount, R16) + 24.30 GST on fees (18% of 35 + 85 + 15) + 20 tip
-    assert q.total == Decimal("727.80"), q.lines
+    # R30: 560 food − 50 offer + 10 packaging + 42.62 delivery (₹20 + ₹6/km x 3.77 km) + 56 platform fee (10%; above
+    # the ₹15 minimum) + 15 surge + 28.50 GST on food (before the platform's discount, R16) + 20.45 GST on fees
+    # (18% of 42.62 + 56 + 15) + 20 tip
+    assert q.total == Decimal("702.57"), q.lines
 
     r = customer.core("POST", "/orders", headers=idem(), json={
         "restaurant_id": rid, "items": cart, "payment_method": "upi", "quote_token": q.token,
@@ -193,23 +194,24 @@ def test_g1_hyderabad_worked_example() -> None:
                              "zip": "500033", "country": "IN"}})
     assert r.status_code == 201, r.text
     order = r.json()
-    assert Decimal(str(order["total"])) == Decimal("727.80")
+    assert Decimal(str(order["total"])) == Decimal("702.57")
 
     deliver_through_dispatch(order, customer, partner, rider, SPICE_AT)
     pay = customer.core("GET", f"/payments/{order['id']}").json()
-    assert pay["amount"] == 72780 and pay["status"] == "succeeded", pay
+    assert pay["amount"] == 70257 and pay["status"] == "succeeded", pay
     bill = customer.core("GET", f"/pricing/orders/{order['id']}/bill").json()
-    assert bill["total"] == "727.80"
+    assert bill["total"] == "702.57"
 
     delivered_on = datetime.now(IST).date()
     weekly_payout_job(delivered_on, "Asia/Kolkata")
     week_start = delivered_on - timedelta(days=delivered_on.weekday())
     rest = statement_line("restaurant", rid, order["id"], week_start)
     # 560 food + 10 packaging − 84 commission (Spice Route's own 15% deal) − 15.12 GST on it (R16, 18%)
-    # − 14.16 card fee estimate (2% of 727.80 less the 20 tip) = 456.72
-    assert rest["net"] == "456.72" and rest["card_fee"] == "-14.16", rest
+    # − 0.00 payment fee (R30: paid by UPI, Razorpay's UPI estimate is 0%) = 470.88
+    assert rest["net"] == "470.88" and Decimal(rest["card_fee"]) == 0, rest
     ride = statement_line("rider", rider.user["id"], order["id"], week_start)
-    assert ride["base"] == "25.00" and ride["tip"] == "20.00", ride
+    # R30: the partner gets the delivery fee and the whole tip, nothing else
+    assert ride["delivery_fee"] == "42.62" and ride["base"] == "0.00" and ride["tip"] == "20.00" and ride["total"] == "62.62", ride
 
     assert_messages_sent(order["id"], customer, partner.user["id"], "customer1.hyd@example.com")
 

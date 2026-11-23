@@ -14,10 +14,10 @@ Ves el pago total de un viaje antes de aceptarlo, y los montos de tu ciudad apar
 Cada entrega paga toda la tarifa de entrega que pagó el cliente. Donde tu ciudad garantiza un mínimo por viaje, recibes lo que sea mayor: la tarifa de entrega, o
 
 - un monto **base** por el viaje,
-- un monto por la **distancia** de la cocina al cliente,
-- **pago por espera**, en las ciudades que pagan la espera, cuando esperas en la cocina más allá de unos minutos gratuitos.
+- un monto por la **distancia** del restaurante al cliente,
+- **pago por espera**, en las ciudades que pagan la espera, cuando esperas en el restaurante más allá de unos minutos gratuitos.
 
-En las ciudades donde los viajes combinados están activados, es posible que te ofrezcan dos pedidos de la misma cocina. La segunda entrega paga su distancia y su tiempo de espera, más un bono por el pedido adicional.
+En las ciudades donde los viajes combinados están activados, es posible que te ofrezcan dos pedidos del mismo restaurante. La segunda entrega paga su distancia y su tiempo de espera, más un bono por el pedido adicional.
 
 BhojanGo paga la diferencia entre la tarifa de entrega y ese monto garantizado. La oferta muestra este pago como **Garantizado**, junto con la propina, antes de que la aceptes.
 
@@ -25,7 +25,7 @@ BhojanGo paga la diferencia entre la tarifa de entrega y ese monto garantizado. 
 
 Cada ciudad tiene un mínimo: lo menos que ganas por cada hora activa.
 
-- El **tiempo activo** va desde que aceptas una oferta hasta que entregas el pedido. El trayecto a la cocina y la espera ahí cuentan. Las entregas que se superponen cuentan una sola vez.
+- El **tiempo activo** va desde que aceptas una oferta hasta que entregas el pedido. El trayecto al restaurante y la espera ahí cuentan. Las entregas que se superponen cuentan una sola vez.
 - Al final de la semana, si lo que ganaste por viajes en tus horas activas es menor que el mínimo, te pagamos la diferencia.
 - Las propinas no cuentan para el mínimo. Siempre son adicionales.
 

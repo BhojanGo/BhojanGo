@@ -2,12 +2,12 @@
 slug: kitchen-tablet-app
 topic: kitchen-partners
 country: *
-title: ¿Cómo uso la app de tableta BhojanGo Kitchen?
+title: ¿Cómo uso la app de tableta BhojanGo Restaurant?
 summary: Acepta o rechaza pedidos nuevos, márcalos como listos, pausa o ve más despacio cuando tengas mucho trabajo, marca platillos agotados y crea tus propias ofertas.
 popular: 0
 related: kitchen-payouts-and-statements, kitchen-call-back, add-your-kitchen
 ---
-La app BhojanGo Kitchen funciona en la tableta de tu cocina. Los pedidos nuevos suenan hasta que los aceptas o los rechazas.
+La app BhojanGo Restaurant funciona en la tableta de tu restaurante. Los pedidos nuevos suenan hasta que los aceptas o los rechazas.
 
 ## Pedidos nuevos
 

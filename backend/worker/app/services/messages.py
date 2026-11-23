@@ -79,14 +79,14 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "es": ("Cocinando", "{restaurant} está cocinando tu pedido. {arriving}"),
     },
     "driver_assigned": {
-        "en": ("Delivery partner on the way to the kitchen", "{rider} will bring your order from {restaurant}. {arriving}"),
+        "en": ("Delivery partner on the way to the restaurant", "{rider} will bring your order from {restaurant}. {arriving}"),
         "hi": ("डिलीवरी पार्टनर तय हो गया", "{rider} {restaurant} से आपका ऑर्डर लाएंगे। {arriving}"),
         "te": ("డెలివరీ పార్ట్‌నర్ ఖరారయ్యారు", "{rider} {restaurant} నుండి మీ ఆర్డర్ తెస్తారు. {arriving}"),
         "ta": ("டெலிவரி பார்ட்னர் உறுதியானார்", "{rider} {restaurant}-இலிருந்து உங்கள் ஆர்டரைக் கொண்டு வருவார். {arriving}"),
         "kn": ("ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್ ನಿಗದಿಯಾಗಿದ್ದಾರೆ", "{rider} {restaurant}ನಿಂದ ನಿಮ್ಮ ಆರ್ಡರ್ ತರುತ್ತಾರೆ. {arriving}"),
         "mr": ("डिलिव्हरी पार्टनर ठरला", "{rider} {restaurant} मधून तुमची ऑर्डर आणतील. {arriving}"),
         "bn": ("ডেলিভারি পার্টনার ঠিক হয়েছে", "{rider} {restaurant} থেকে আপনার অর্ডার নিয়ে আসবেন। {arriving}"),
-        "es": ("Repartidor en camino a la cocina", "{rider} llevará tu pedido de {restaurant}. {arriving}"),
+        "es": ("Repartidor en camino al restaurante", "{rider} llevará tu pedido de {restaurant}. {arriving}"),
     },
     "order_picked_up": {
         "en": ("On the way", "{rider} picked up your order and is heading to you. {arriving}"),

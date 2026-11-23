@@ -8,7 +8,7 @@ appId: com.bhojango.partner
       all: allow
 # A cold start with cleared state (the first bundle from Metro, fonts, Markets) can take over a minute on an emulator.
 - extendedWaitUntil:
-    visible: "Sign in to your kitchen"
+    visible: "Sign in to your restaurant"
     timeout: 120000
 - takeScreenshot: docs/screenshots/partner/01-sign-in
 - tapOn:

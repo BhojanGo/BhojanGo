@@ -14,17 +14,17 @@ Every fee is shown on your bill before you pay, with who it goes to. The amounts
 Your city uses one of these ways to set the delivery fee:
 
 - **One flat fee** for every order.
-- **By distance**, from the kitchen to you.
+- **By distance**, from the restaurant to you.
 - **Free above an amount**: free when your food total is above a set amount, a fee below it.
-- **By kitchen**: a fee that depends on the kitchen.
+- **By restaurant**: a fee that depends on the restaurant.
 
-The delivery fee is shown on every kitchen card, and the exact fee is on your bill. A free delivery offer can take it off.
+The delivery fee is shown on every restaurant card, and the exact fee is on your bill. A free delivery offer can take it off.
 
 ## Other fees you might see
 
 - **Platform fee**: a percentage of your food total, with a small minimum. It goes to BhojanGo.
 - **Small order fee**: only when your food total is below a set amount.
-- **Packaging**: per order, paid to the kitchen.
+- **Packaging**: per order, paid to the restaurant.
 - **Busy-hour fee**: only at busy times.
 - **Late-night fee**: only late at night.
 
@@ -34,10 +34,10 @@ Not every city uses every fee. If a fee isn't on your bill, you don't pay it.
 
 Your estimated arrival time adds up:
 
-1. the kitchen's preparation time,
-2. the trip from the kitchen to your address,
+1. the restaurant's preparation time,
+2. the trip from the restaurant to your address,
 3. a few minutes to park and hand over.
 
-When a kitchen is very busy, it can add extra preparation time for an hour, and new estimates include it. Your tracking page keeps the time up to date.
+When a restaurant is very busy, it can add extra preparation time for an hour, and new estimates include it. Your tracking page keeps the time up to date.
 
 > The delivery fee goes to your delivery partner in full, and so does your tip. The platform fee and the other fees above, except packaging, go to BHOJANGO on the fair bill.

@@ -39,7 +39,7 @@ export default function Search() {
         contentContainerStyle={{ paddingHorizontal: space[5], gap: space[3], paddingBottom: bottom }}
         ListEmptyComponent={
           <View testID="search-last">
-            {/* R9: the kitchens didn't load (offline, our servers): say so and Retry, not "no kitchens". */}
+            {/* R9: the kitchens didn't load (offline, our servers): say so and Retry, not "no restaurants". */}
             {error && !kitchens.length ? <LoadError error={failure} onRetry={reload} />
               : loading ? <ActivityIndicator color={color.peacock} />
               : <Txt style={{ color: color.muted }}>{needle ? t("app.search.no_match", { q: q.trim() }) : kitchens.length ? t("home.no_filter_match") : t("home.no_kitchens")}</Txt>}

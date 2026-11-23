@@ -52,6 +52,8 @@ def delivery_fee(rule: Candidate | None) -> tuple[DeliveryFeeSummary | None, Dec
     if rule.template == "free_above":
         return (DeliveryFeeSummary(type="free_above", min_subtotal=_d(p["min_subtotal"]), otherwise=_d(p["otherwise"])),
                 _d(p["otherwise"]))
+    if rule.template == "base_per_distance":  # R30: base + per km/mi, all of it to the delivery partner
+        return (DeliveryFeeSummary(type="base_per_distance", base=_d(p["base"]), per_unit=_d(p["per_unit"])), _d(p["base"]))
     if rule.template == "tier_base":
         tiers = {k: _d(v) for k, v in (p.get("tiers") or {}).items()}
         return DeliveryFeeSummary(type="tier_base", tiers=tiers), min(tiers.values(), default=None)

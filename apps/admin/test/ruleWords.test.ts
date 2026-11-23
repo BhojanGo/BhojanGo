@@ -61,8 +61,8 @@ test("pay, radius and money settings use the same units", () => {
   const us = unitsFor("US-ID-BOI", MARKETS);
   assert.equal(describe("base_distance_wait", { base: 3, per_unit: 0.6, per_wait_minute: 0.1, free_wait_minutes: 5 }, us),
     "$3 per delivery + $0.60 per mi + $0.10 per minute waiting after 5 free minutes");
-  assert.equal(describe("max_radius", { distance: 8 }, us), "Deliver up to 8 mi from the kitchen");
-  assert.equal(describe("max_radius", { distance: 8 }, unitsFor("*", MARKETS)), "Deliver up to 8 from the kitchen");
+  assert.equal(describe("max_radius", { distance: 8 }, us), "Deliver up to 8 mi from the restaurant");
+  assert.equal(describe("max_radius", { distance: 8 }, unitsFor("*", MARKETS)), "Deliver up to 8 from the restaurant");
   assert.equal(describe("free_above", { min_subtotal: 499, otherwise: 29 }, unitsFor("IN", MARKETS)),
     "Free at ₹499 of food or more · ₹29 below that");
   assert.equal(describe("flat", { amount: null }, us), "not set per order");
@@ -76,7 +76,7 @@ test("R17: India's tax settings in words, and a form that shows settings an olde
     "GST on food: 5% on food, packaging · collected by BhojanGo · discounts BhojanGo pays for don't reduce it");
   assert.equal(describe("rate_on_lines", gst, inr), "GST on food: 5% on food, packaging · collected by BhojanGo");
   assert.equal(describe("commission_tax", { label: "GST on commission", rate_percent: 18 }, inr),
-    "GST on commission: 18% of BhojanGo's commission, taken from the kitchen's payout");
+    "GST on commission: 18% of BhojanGo's commission, taken from the restaurant's payout");
   assert.equal(describe("payout_tds", { label: "TDS (section 194-O)", rate_percent: 0 }, inr), "TDS (section 194-O): none deducted (0%)");
   const schema = {
     properties: {
@@ -90,4 +90,13 @@ test("R17: India's tax settings in words, and a form that shows settings an olde
   assert.deepEqual(withTemplateSettings({ rate_percent: "5", target_lines: ["food"] }, schema),
     { rate_percent: "5", target_lines: ["food"], label: "GST on commission", ca_confirmed: false });
   assert.deepEqual(withTemplateSettings({ a: 1 }), { a: 1 });
+});
+
+test("R30: the payment fee estimate per method and the delivery fee as base + per distance", () => {
+  const us = unitsFor("US-ID-BOI", MARKETS);
+  assert.equal(describe("card_fee_estimate", { card: { percent: "2.9", fixed: "0.30" } }, us),
+    "card 2.9% + $0.30 of the charge less the tip, taken from the restaurant's payout; cash: none");
+  assert.equal(describe("card_fee_estimate", { percent: "2.9", fixed: "0.30" }, us),
+    "card 2.9% + $0.30 of the charge less the tip, taken from the restaurant's payout; cash: none");
+  assert.equal(describe("base_per_distance", { base: "3.00", per_unit: "1.00" }, us), "$3 + $1 per mile, all of it to the delivery partner");
 });

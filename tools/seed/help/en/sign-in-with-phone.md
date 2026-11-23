@@ -38,4 +38,4 @@ We'll never ask for your code on a call, and BhojanGo staff don't need it. If an
 
 Your mobile number is how you sign in, so you can't change it yourself. Contact support and we'll help.
 
-> Kitchen partners and delivery partners sign in with their phone number too, in the BhojanGo Kitchen and BhojanGo Delivery apps.
+> Restaurant partners and delivery partners sign in with their phone number too, in the BhojanGo Restaurant and BhojanGo Delivery apps.

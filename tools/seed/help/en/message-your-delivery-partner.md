@@ -18,7 +18,7 @@ Tap a ready-made message to send it in one go:
 - Please ring the bell.
 - Please ask the guard at the gate.
 
-Your delivery partner can send you quick messages too, like "I'm at the kitchen, waiting for your order", "Picked up. On my way to you", "I'm outside" or "I can't find the address. Please check the pin on the map".
+Your delivery partner can send you quick messages too, like "I'm at the restaurant, waiting for your order", "Picked up. On my way to you", "I'm outside" or "I can't find the address. Please check the pin on the map".
 
 Quick messages show up in each person's own language, so you can both read them easily.
 

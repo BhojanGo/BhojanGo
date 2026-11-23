@@ -7,7 +7,7 @@ summary: Pay with a credit or debit card, Apple Pay or Google Pay, through our p
 popular: 8
 related: price-held-while-you-pay, addresses-and-payment-methods, how-refunds-work
 ---
-In the US, BhojanGo takes payments through Stripe, our payment partner. You pay before the kitchen gets your order, so there's nothing to settle at the door.
+In the US, BhojanGo takes payments through Stripe, our payment partner. You pay before the restaurant gets your order, so there's nothing to settle at the door.
 
 ## Ways to pay
 

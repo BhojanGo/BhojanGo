@@ -148,6 +148,8 @@ ci-web-data:
 # reads, in any language: messages, backend texts, app names, app and website UI strings.
 # R27: the apps' one-line labels (tabs, rail, short buttons) fit their box in every language;
 # the website's pages are rendered in every language at 360 and 1440 px in e2e.yml (i18n_layout).
+# R30: no "kitchen" a customer or restaurant reads, in any language (locales, app and backend strings, app
+# names, help and legal text); code names (KitchenCard, kitchen_join, /kitchens/join) stay.
 ci-i18n:
 	python tools/i18n/check_locales.py --self-test
 	python tools/i18n/check_locales.py
@@ -155,6 +157,8 @@ ci-i18n:
 	python tools/i18n/check_wording.py
 	python tools/i18n/check_app_lengths.py --self-test
 	python tools/i18n/check_app_lengths.py
+	PYTHONIOENCODING=utf-8 python tools/i18n/kitchen_scan.py --self-test
+	PYTHONIOENCODING=utf-8 python tools/i18n/kitchen_scan.py
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
 ci-observe:

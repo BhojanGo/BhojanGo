@@ -120,11 +120,13 @@ export default function Apply() {
               );
             })}
           </View>
-          {a?.commission_percent ? (
+          {a?.commission_percent != null ? (
             <View style={[s.panel, { backgroundColor: color.peacockDeep, borderColor: color.peacockDeep }]} accessibilityLabel={tr("partner.apply.terms")}>
               <Text style={[type.label, { color: "#CFE3E5" }]}>{tr("partner.apply.terms")}</Text>
               <Text style={[type.display, { color: color.white }]}>{Number(a.commission_percent)}%</Text>
-              <Text style={[type.small, { color: "#CFE3E5" }]}>{tr("partner.apply.terms_body")}</Text>
+              <Text style={[type.small, { color: "#CFE3E5" }]}>
+                {tr(Number(a.commission_percent) === 0 ? "partner.apply.terms_payout" : "partner.apply.terms_body")}
+              </Text>
             </View>
           ) : null}
         </ScrollView>

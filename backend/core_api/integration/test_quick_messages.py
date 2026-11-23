@@ -38,7 +38,7 @@ async def test_quick_messages_during_the_order(client: AsyncClient) -> None:  # 
     assert theirs["me"] == "rider" and "outside" in {p["key"] for p in theirs["presets"]}
 
     r = await client.post(url, headers=rider, json={"preset": "at_kitchen"})
-    assert r.status_code == 201 and r.json()["text"].startswith("I'm at the kitchen") and r.json()["mine"]
+    assert r.status_code == 201 and r.json()["text"].startswith("I'm at the restaurant") and r.json()["mine"]
     assert (await client.post(url, headers=rider, json={"preset": "ring_bell"})).status_code == 422  # the customer's
     r = await client.post(url, headers=cust, json={"text": "Gate 2, call 98480 22334"})
     assert r.status_code == 201 and r.json()["text"] == "Gate 2, call •••"
@@ -50,11 +50,11 @@ async def test_quick_messages_during_the_order(client: AsyncClient) -> None:  # 
     # Round 5: each side reads a quick message in their own language (the app's `lang`);
     # free text stays as written.
     te = (await client.get(url + "?lang=te", headers=cust)).json()
-    assert [m["text"] for m in te["messages"]] == ["నేను కిచెన్ దగ్గర ఉన్నాను, మీ ఆర్డర్ కోసం ఎదురుచూస్తున్నాను.",
+    assert [m["text"] for m in te["messages"]] == ["నేను రెస్టారెంట్ దగ్గర ఉన్నాను, మీ ఆర్డర్ కోసం ఎదురుచూస్తున్నాను.",
                                                  "Gate 2, call •••"]
     assert "దయచేసి బెల్ కొట్టండి." in {p["text"] for p in te["presets"]}
     hi = (await client.get(url + "?lang=hi", headers=rider)).json()
-    assert hi["messages"][0]["text"] == "मैं किचन पर हूं, आपके ऑर्डर का इंतज़ार है।"
+    assert hi["messages"][0]["text"] == "मैं रेस्टोरेंट पर हूं, आपके ऑर्डर का इंतज़ार है।"
     r = await client.post(url + "?lang=es", headers=rider, json={"preset": "outside"})
     assert r.status_code == 201 and r.json()["text"] == "Estoy afuera."
     assert (await client.get(url + "?lang=xx", headers=cust)).json()["messages"][-1]["text"] == "I'm outside."

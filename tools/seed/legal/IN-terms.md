@@ -3,31 +3,31 @@ title: Terms of use
 effective_date: 2026-11-15
 summary: First version for India.
 key_points:
-- BhojanGo is a marketplace: independent kitchen partners cook your food and independent delivery partners bring it to you. We run the ordering, payments and support.
+- BhojanGo is a marketplace: independent restaurant partners cook your food and independent delivery partners bring it to you. We run the ordering, payments and support.
 - Before you pay you see the whole bill (food, fees, tax and tip) and who receives each part. You pay exactly that total.
-- You can cancel for a full refund any time before the kitchen accepts your order, and after that until 2 minutes after you placed it (unless your city sets another time; your order page shows it). Orders a kitchen does not accept in time are cancelled and refunded in full.
+- You can cancel for a full refund any time before the restaurant accepts your order, and after that until 2 minutes after you placed it (unless your city sets another time; your order page shows it). Orders a restaurant does not accept in time are cancelled and refunded in full.
 - If something is missing, wrong or not right, report it from the order within the time shown. Small amounts are refunded at once to your original payment; larger ones are reviewed by support within a day.
 - You must be 18 or older and keep your phone number and sign-in safe.
 - Indian law applies, including the Consumer Protection Act, 2019. You can reach our Grievance Officer for any complaint.
 ---
 ## 1. About these terms
 
-These terms are an agreement between you and [Legal entity name — to be confirmed], the company that operates BhojanGo in India ("BhojanGo", "we", "us"). They apply when you use the BhojanGo website, the BhojanGo app, or any other BhojanGo service to browse kitchens, place orders or contact us.
+These terms are an agreement between you and [Legal entity name — to be confirmed], the company that operates BhojanGo in India ("BhojanGo", "we", "us"). They apply when you use the BhojanGo website, the BhojanGo app, or any other BhojanGo service to browse restaurants, place orders or contact us.
 
 Please read them together with our [Privacy notice](/privacy), which explains what personal data we collect and how we use it. By creating an account or placing an order you agree to these terms. If you do not agree, please do not use BhojanGo.
 
-Kitchen partners and delivery partners have their own agreements with us in addition to these terms.
+Restaurant partners and delivery partners have their own agreements with us in addition to these terms.
 
 ## 2. What BhojanGo does
 
 BhojanGo is an online marketplace that connects you with:
 
-- **Kitchen partners**: independent restaurants and home-style kitchens that list their menus, set their prices, prepare your food and are responsible for it.
-- **Delivery partners**: independent people who choose when to go online and which deliveries to accept, and who bring your order from the kitchen to you.
+- **Restaurant partners**: independent restaurants and home-style restaurants that list their menus, set their prices, prepare your food and are responsible for it.
+- **Delivery partners**: independent people who choose when to go online and which deliveries to accept, and who bring your order from the restaurant to you.
 
-We provide the website and apps, take your order and payment, pass your order to the kitchen, offer the delivery to delivery partners nearby, show you live tracking, and handle support and refunds.
+We provide the website and apps, take your order and payment, pass your order to the restaurant, offer the delivery to delivery partners nearby, show you live tracking, and handle support and refunds.
 
-BhojanGo does not cook food and does not employ the kitchen partners or delivery partners. Each kitchen partner and delivery partner is an independent business that decides how to run its own work, subject to the standards in its agreement with us and the law.
+BhojanGo does not cook food and does not employ the restaurant partners or delivery partners. Each restaurant partner and delivery partner is an independent business that decides how to run its own work, subject to the standards in its agreement with us and the law.
 
 ## 3. Your account
 
@@ -39,11 +39,11 @@ You must be at least 18 years old and able to enter into a binding contract unde
 
 You can sign in with your mobile number and a one-time code we send by SMS, with an email address and password, or with Google. Keep access to your phone and email secure: anyone who receives your code or knows your password can use your account. Tell us at once at support@bhojango.com if you think someone else has used your account.
 
-One account has one role. A number used to order food cannot also be used for a kitchen partner or delivery partner account; please use a separate number for those.
+One account has one role. A number used to order food cannot also be used for a restaurant partner or delivery partner account; please use a separate number for those.
 
 ### Accurate details
 
-Give us accurate details, especially your name, phone number and delivery address, so the kitchen and the delivery partner can get your order to you. You can change them at any time in your account.
+Give us accurate details, especially your name, phone number and delivery address, so the restaurant and the delivery partner can get your order to you. You can change them at any time in your account.
 
 ### Closing your account
 
@@ -53,19 +53,19 @@ You can delete your account at any time on the website or in the app (Account �
 
 ### Placing an order
 
-Menus, dish descriptions, photos, prices and availability are provided by the kitchen partner. We work to keep them accurate, but a dish may sell out or change. If a kitchen cannot make something you ordered, we will tell you and you will not pay for it.
+Menus, dish descriptions, photos, prices and availability are provided by the restaurant partner. We work to keep them accurate, but a dish may sell out or change. If a restaurant cannot make something you ordered, we will tell you and you will not pay for it.
 
-When you place an order you are making an offer to buy the food from the kitchen partner through BhojanGo. The order is accepted when the kitchen partner accepts it in its BhojanGo Kitchen app. If the kitchen does not accept your order within the time set for your city (a few minutes), the order is cancelled automatically and any amount you paid is refunded in full.
+When you place an order you are making an offer to buy the food from the restaurant partner through BhojanGo. The order is accepted when the restaurant partner accepts it in its BhojanGo Restaurant app. If the restaurant does not accept your order within the time set for your city (a few minutes), the order is cancelled automatically and any amount you paid is refunded in full.
 
 ### Delivery
 
-Delivery times shown are estimates based on the kitchen's preparation time, distance and current demand. Traffic, weather and busy periods can make an order late. You can follow your order live on the tracking page.
+Delivery times shown are estimates based on the restaurant's preparation time, distance and current demand. Traffic, weather and busy periods can make an order late. You can follow your order live on the tracking page.
 
 To complete a delivery, the delivery partner asks for the delivery PIN shown on your tracking page or, if you are not there to give it, takes a photo of the order at your door. Please be available at the address you gave, and keep your PIN private until your order arrives.
 
 ### Food, allergies and dietary needs
 
-Kitchen partners describe their dishes, including whether a dish is vegetarian. If you have an allergy or a medical dietary need, check with the kitchen before you order by contacting support. We cannot guarantee that a kitchen is free of any ingredient.
+Restaurant partners describe their dishes, including whether a dish is vegetarian. If you have an allergy or a medical dietary need, check with the restaurant before you order by contacting support. We cannot guarantee that a restaurant is free of any ingredient.
 
 Alcohol, tobacco and other age-restricted products are not sold on BhojanGo.
 
@@ -73,11 +73,11 @@ Alcohol, tobacco and other age-restricted products are not sold on BhojanGo.
 
 ### The fair bill
 
-Before you pay, BhojanGo shows you the full bill in Indian rupees, line by line, and who receives each part: the **kitchen** (food and packaging), the **delivery partner** (delivery pay and your tip), **tax**, and **BhojanGo** (our service fee and any other fee). The total you see before you pay is the total you are charged. We do not add fees after you pay.
+Before you pay, BhojanGo shows you the full bill in Indian rupees, line by line, and who receives each part: the **restaurant** (food and packaging), the **delivery partner** (delivery pay and your tip), **tax**, and **BhojanGo** (our service fee and any other fee). The total you see before you pay is the total you are charged. We do not add fees after you pay.
 
 The bill can include:
 
-- **Food and packaging**, at the prices set by the kitchen partner.
+- **Food and packaging**, at the prices set by the restaurant partner.
 - **Delivery fee**, which depends on your area and distance.
 - **Service fee**, which pays for running the marketplace, payments and support.
 - **Small-order fee**, when the food in your order is below the minimum shown for your city.
@@ -89,7 +89,7 @@ Fees are set per city and may change. The fees that apply to your order are the 
 
 ### Offers
 
-An offer or discount shows who pays for it (the kitchen partner or BhojanGo) and any conditions, such as a minimum order or the days it applies. Offers cannot be exchanged for cash, and we may withdraw an offer that is being misused.
+An offer or discount shows who pays for it (the restaurant partner or BhojanGo) and any conditions, such as a minimum order or the days it applies. Offers cannot be exchanged for cash, and we may withdraw an offer that is being misused.
 
 ## 6. Payment
 
@@ -101,9 +101,9 @@ Your order is placed only after the payment is confirmed. An order that stays un
 
 ### Cancelling an order
 
-- **Before the kitchen accepts it:** you can cancel at any time from your order page and get a full refund.
-- **After the kitchen accepts it:** you can still cancel for a full refund until 2 minutes after you placed the order, unless your city sets a different time (your order page shows how long you have), and as long as the kitchen hasn't started cooking. After that the order can't be cancelled from the app; ask us from the order and we'll help where we can, but we may not be able to refund food that is already being prepared.
-- **When we or the kitchen cancel:** if the kitchen cannot make your order, does not accept it in time, or no delivery partner can deliver it, the order is cancelled and refunded in full.
+- **Before the restaurant accepts it:** you can cancel at any time from your order page and get a full refund.
+- **After the restaurant accepts it:** you can still cancel for a full refund until 2 minutes after you placed the order, unless your city sets a different time (your order page shows how long you have), and as long as the restaurant hasn't started cooking. After that the order can't be cancelled from the app; ask us from the order and we'll help where we can, but we may not be able to refund food that is already being prepared.
+- **When we or the restaurant cancel:** if the restaurant cannot make your order, does not accept it in time, or no delivery partner can deliver it, the order is cancelled and refunded in full.
 
 ### Something wrong with your order
 
@@ -112,7 +112,7 @@ If an item is missing, wrong, damaged in transit or not up to standard, or your 
 - Up to your city's automatic refund limit, we refund the affected items and their tax straight away to your original payment method.
 - Above that limit, our support team reviews your report and gets back to you, normally within one business day.
 
-Who bears the cost of a refund (the kitchen partner for its own mistakes, BhojanGo for delivery problems) does not change what you receive.
+Who bears the cost of a refund (the restaurant partner for its own mistakes, BhojanGo for delivery problems) does not change what you receive.
 
 ### How refunds are paid
 
@@ -125,7 +125,7 @@ Nothing in these terms takes away your rights under the Consumer Protection Act,
 Please do not:
 
 - give false details, order in someone else's name without their permission, or use someone else's payment method;
-- abuse, threaten, harass or discriminate against kitchen partners, delivery partners or our support team, in messages, ratings or in person;
+- abuse, threaten, harass or discriminate against restaurant partners, delivery partners or our support team, in messages, ratings or in person;
 - share phone numbers or contact details through order messages to take an order off BhojanGo;
 - post ratings or reviews that are false, offensive, or written in exchange for a benefit;
 - misuse offers, refunds or referral rewards, for example by creating several accounts;
@@ -135,7 +135,7 @@ Messages between you and your delivery partner are for the current order only. P
 
 ## 9. Ratings and reviews
 
-You can rate an order and the kitchen after delivery. Ratings and reviews must be honest and about your own experience. We may remove a review that breaks these terms or the law. Kitchen ratings are shown to other customers once a kitchen has enough ratings to be meaningful.
+You can rate an order and the restaurant after delivery. Ratings and reviews must be honest and about your own experience. We may remove a review that breaks these terms or the law. Restaurant ratings are shown to other customers once a restaurant has enough ratings to be meaningful.
 
 ## 10. Suspending or closing accounts
 
@@ -143,13 +143,13 @@ We may limit, suspend or close an account if we reasonably believe it is being u
 
 ## 11. Intellectual property
 
-The BhojanGo name, logo, website, apps and content we create belong to us or our licensors. Kitchen partners own their menus, dish names and photos and allow us to show them. You may use BhojanGo for your own personal, non-commercial use only.
+The BhojanGo name, logo, website, apps and content we create belong to us or our licensors. Restaurant partners own their menus, dish names and photos and allow us to show them. You may use BhojanGo for your own personal, non-commercial use only.
 
 ## 12. Our responsibility to you
 
-We will provide BhojanGo with reasonable care and skill. We are responsible for running the marketplace, taking payment, passing your order to the kitchen partner, arranging delivery and handling support and refunds as these terms describe.
+We will provide BhojanGo with reasonable care and skill. We are responsible for running the marketplace, taking payment, passing your order to the restaurant partner, arranging delivery and handling support and refunds as these terms describe.
 
-The kitchen partner is responsible for the food it prepares, its description, quality, safety, hygiene and compliance with food safety law, including its FSSAI licence. The delivery partner is responsible for carrying your order safely and lawfully.
+The restaurant partner is responsible for the food it prepares, its description, quality, safety, hygiene and compliance with food safety law, including its FSSAI licence. The delivery partner is responsible for carrying your order safely and lawfully.
 
 To the extent the law allows, our total liability to you in connection with an order is limited to the amount you paid for that order. We are not liable for losses that were not reasonably foreseeable, or for indirect or consequential losses. Nothing in these terms limits liability that cannot be limited by law, including for death or personal injury caused by negligence, for fraud, or your rights as a consumer under Indian law.
 

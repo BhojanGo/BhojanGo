@@ -524,29 +524,31 @@ RULES = [
     # 194-O on kitchen payouts. Values to confirm with a CA; admin says so until ca_confirmed.
     ("business", "commission_tax", None, "GST on commission", "country", "IN",
      {"label": "GST on commission", "rate_percent": 18, "ca_confirmed": False}),
-    ("business", "payout_tds", None, "TDS on kitchen payouts (194-O)", "country", "IN",
+    ("business", "payout_tds", None, "TDS on restaurant payouts (194-O)", "country", "IN",
      {"label": "TDS (section 194-O)", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
     # R29 fee model v2: commission defaults to 0%; the customer pays a platform fee instead.
     ("commission", "percent", None, "Restaurant commission", "country", "IN", {"percent": 0}),
     ("fee", "platform_fee_pct", None, "Platform fee", "country", "IN", {"percent": 10}),
-    # ₹85 ≈ $0.99 (Nov 2026); configurable per country, state, city and kitchen in admin (Pricing → Fees).
-    ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "IN", {"amount": 85}),
-    ("fee", "card_fee_estimate", None, "Card fee estimate (Razorpay)", "country", "IN", {"percent": 2, "fixed": 0}),
+    # R30: ₹15 (₹100 of food -> ₹15, ₹300 -> ₹30); configurable per country, state, city and restaurant in admin
+    # (Pricing -> Fees).
+    ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "IN", {"amount": 15}),
+    # R30: per payment method (Razorpay's standard rates; UPI free); cash has none. Production uses the fee
+    # Razorpay reports for each payment.
+    ("fee", "card_fee_estimate", None, "Payment fee estimate (Razorpay)", "country", "IN",
+     {"card": {"percent": 2, "fixed": 0}, "upi": {"percent": 0, "fixed": 0}, "wallet": {"percent": 2, "fixed": 0},
+      "net_banking": {"percent": 2, "fixed": 0}}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "IN", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "IN",
-     {"base": 25, "per_unit": 6, "per_wait_minute": 1, "free_wait_minutes": 5}),
-    ("rider_pay", "hourly_floor", None, "Minimum hourly pay", "city", "IN-TG-HYD", {"per_active_hour": 120}),
-    ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "IN-TG-HYD", {"per_extra_order": 10}),
-    # Country defaults: a city launched in admin prices orders from day one (Hyderabad's own rules win there).
-    ("delivery_fee", "distance_slabs", None, "India delivery fee", "country", "IN",
-     {"slabs": [{"up_to": 3, "fee": 25}, {"up_to": 6, "fee": 35}, {"up_to": 10, "fee": 50}]}),
-    ("delivery_fee", "distance_slabs", None, "Hyderabad delivery fee", "city", "IN-TG-HYD",
-     {"slabs": [{"up_to": 3, "fee": 25}, {"up_to": 6, "fee": 35}, {"up_to": 10, "fee": 50}]}),
+    # R30: the delivery partner gets the delivery fee + the whole tip, nothing else: no rider_pay rules (base,
+    # hourly floor, batch bonus) and nothing topped up out of the platform fee. The delivery fee is base + per km.
+    # Country default: a city launched in admin prices orders from day one (Hyderabad's own rule wins there).
+    ("delivery_fee", "base_per_distance", None, "India delivery fee", "country", "IN", {"base": 20, "per_unit": 6}),
+    ("delivery_fee", "base_per_distance", None, "Hyderabad delivery fee", "city", "IN-TG-HYD", {"base": 20, "per_unit": 6}),
     ("customer_fee", "small_order_fee", None, "Small order fee", "city", "IN-TG-HYD", {"below": 99, "fee": 15}),
     ("customer_fee", "surge_levy", None, "Evening surge", "city", "IN-TG-HYD",
      {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 15}),
     ("customer_fee", "packaging_levy", None, "Packaging", "restaurant", "spice-route-kitchen-madhapur", {"amount": 10}),
-    # R29: a kitchen's own commission deal (restaurant level beats the country's 0%), so the demo shows an override.
+    # R29: a restaurant's own commission deal (restaurant level beats the country's 0%), so the demo shows an
+    # override. Dev/QA seed only: the production seed (markets_data.rules) takes no restaurant-level rule (R30).
     ("commission", "percent", None, "Commission deal", "restaurant", "spice-route-kitchen-madhapur", {"percent": 15}),
     ("promotion", "percent_off", "hyd_launch", "10% off, up to ₹50", "city", "IN-TG-HYD",
      {"percent": 10, "max_discount": 50, "funded_by": "platform", "budget_cap": 100000}),
@@ -565,17 +567,11 @@ RULES = [
     ("commission", "percent", None, "Restaurant commission", "country", "US", {"percent": 0}),
     ("fee", "platform_fee_pct", None, "Platform fee", "country", "US", {"percent": 10}),
     ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "US", {"amount": "0.99"}),
-    ("fee", "card_fee_estimate", None, "Card fee estimate (Stripe)", "country", "US", {"percent": "2.9", "fixed": "0.30"}),
+    ("fee", "card_fee_estimate", None, "Payment fee estimate (Stripe)", "country", "US", {"card": {"percent": "2.9", "fixed": "0.30"}}),
     ("commission", "payout_schedule", None, "Weekly payouts", "country", "US", {"frequency": "weekly", "day": "mon", "hold_days": 2}),
-    ("rider_pay", "base_distance_wait", None, "Delivery partner pay", "country", "US",
-     {"base": "3.00", "per_unit": "1.00", "per_wait_minute": "0.25", "free_wait_minutes": 5}),
-    ("rider_pay", "hourly_floor", None, "Minimum hourly pay", "city", "US-ID-BOI", {"per_active_hour": 15}),
-    # Item 2: a later drop-off of a batch pays no base, but distance + waiting + this.
-    ("rider_pay", "batch_bonus", None, "Batch bonus (each extra drop-off)", "city", "US-ID-BOI", {"per_extra_order": 1.5}),
-    ("delivery_fee", "distance_slabs", None, "United States delivery fee", "country", "US",
-     {"slabs": [{"up_to": 2, "fee": "1.99"}, {"up_to": 4, "fee": "3.49"}, {"up_to": 6, "fee": "4.99"}]}),
-    ("delivery_fee", "distance_slabs", None, "Boise delivery fee", "city", "US-ID-BOI",
-     {"slabs": [{"up_to": 2, "fee": "1.99"}, {"up_to": 4, "fee": "3.49"}, {"up_to": 6, "fee": "4.99"}]}),
+    # R30: delivery fee = base + per mile, all of it (and the tip) to the delivery partner.
+    ("delivery_fee", "base_per_distance", None, "United States delivery fee", "country", "US", {"base": "3.00", "per_unit": "1.00"}),
+    ("delivery_fee", "base_per_distance", None, "Boise delivery fee", "city", "US-ID-BOI", {"base": "3.00", "per_unit": "1.00"}),
     ("customer_fee", "small_order_fee", None, "Small order fee", "city", "US-ID-BOI", {"below": 12, "fee": 2}),
     ("business", "max_radius", None, "Max delivery distance", "country", "US", {"distance": 6}),
     ("business", "tip_presets", None, "Tip presets", "country", "US", {"amounts": [2, 3, 5], "default_index": 1}),

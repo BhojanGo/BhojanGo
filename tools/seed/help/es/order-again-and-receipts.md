@@ -7,14 +7,14 @@ summary: Encuentra tus pedidos anteriores en Tus pedidos. Volver a pedir llena t
 popular: 0
 related: rate-your-order, report-a-problem-with-an-order, fair-bill-who-gets-your-money
 ---
-Todos tus pedidos están en [Tus pedidos](/account/orders), del más reciente al más antiguo. Puedes buscar por cocina, platillo o código de pedido, filtrar por en curso, entregados o cancelados, y elegir un rango de fechas.
+Todos tus pedidos están en [Tus pedidos](/account/orders), del más reciente al más antiguo. Puedes buscar por restaurante, platillo o código de pedido, filtrar por en curso, entregados o cancelados, y elegir un rango de fechas.
 
 ## Volver a pedir
 
 Abre un pedido anterior y toca **Volver a pedir**. Ponemos los mismos platillos y opciones en tu carrito para que puedas pagar.
 
 - Los platillos tienen los precios del menú de **hoy**, no lo que pagaste la última vez.
-- Los platillos que la cocina ya no tiene, o que están agotados hoy, no se incluyen.
+- Los platillos que el restaurante ya no tiene, o que están agotados hoy, no se incluyen.
 - No se pide nada hasta que completes el pago. Verás una cuenta nueva antes de pagar.
 
 ## Tu recibo
@@ -23,7 +23,7 @@ Cada pedido pagado tiene un recibo que muestra los artículos, la cuenta justa c
 
 También puedes descargarlo en PDF:
 
-- **En India**, es una factura fiscal, con el GST y los datos de la licencia FSSAI de la cocina.
+- **En India**, es una factura fiscal, con el GST y los datos de la licencia FSSAI del restaurante.
 - **En EE. UU.**, es un recibo que muestra el impuesto sobre las ventas.
 
 El PDF tiene las mismas líneas que la cuenta que viste al pagar.

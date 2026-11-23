@@ -67,6 +67,20 @@ class MarketsTests(unittest.TestCase):
             self.assertIn((family, template, level, scope), keyed)
         self.assertEqual(len(rules), len([r for r in RULES if r[4] != "restaurant" and r[0] != "promotion"]))
 
+    def test_production_seed_has_no_restaurant_overrides(self) -> None:
+        """R30 item 6: Spice Route's 15% commission deal (a restaurant-level override) is in the dev/QA seed
+        only; production's seed has no restaurant-level rule of any kind."""
+        deal = ("commission", "percent", None, "Commission deal", "restaurant", "spice-route-kitchen-madhapur", {"percent": 15})
+        self.assertIn(deal, RULES)
+        self.assertNotIn(deal, md.rules())
+        self.assertEqual([r for r in md.rules() if r[4] == "restaurant"], [])
+        keyed = {(r[0], r[1], r[4], r[5]): r[6] for r in md.rules()}
+        # R30: ₹15 minimum, the delivery fee as base + per mile/km, no delivery partner pay rules
+        self.assertEqual(keyed[("fee", "min_platform_fee", "country", "IN")]["amount"], 15)
+        self.assertEqual(keyed[("delivery_fee", "base_per_distance", "city", "US-ID-BOI")], {"base": "3.00", "per_unit": "1.00"})
+        self.assertEqual(keyed[("delivery_fee", "base_per_distance", "city", "IN-TG-HYD")], {"base": 20, "per_unit": 6})
+        self.assertFalse([r for r in md.rules() if r[0] == "rider_pay"])
+
 
 class FullSeedRefusesProduction(unittest.TestCase):
     def test_full_seed_refuses_before_any_database_import(self) -> None:

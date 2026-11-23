@@ -375,12 +375,12 @@ def approve(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     page.get_by_role("link", name="Partners", exact=True).first.click()
     page.wait_for_url("**/partners**")
     page.get_by_role("navigation", name="Partners", exact=True).get_by_role("button", name="Applications").click()
-    apps = page.get_by_role("region", name="Kitchens applying")
+    apps = page.get_by_role("region", name="Restaurants applying")
     apps.get_by_role("button", name=re.compile(m["kitchen"])).click()
     detail = page.get_by_role("region", name=f"Application · {m['kitchen']}")
     expect(detail).to_be_visible(timeout=15000)
     detail.get_by_role("button", name="Approve and go live").click()
-    expect(page.get_by_text("Approved: the kitchen is live")).to_be_visible(timeout=15000)
+    expect(page.get_by_text("Approved: the restaurant is live")).to_be_visible(timeout=15000)
     r = api("GET", f"/restaurants/{st['rid']}")
     assert r["status"] == "active", r["status"]  # type: ignore[index]
     assert r["currency"] == m["currency"], r["currency"]  # type: ignore[index]
@@ -397,7 +397,7 @@ def directory(page, m: dict) -> None:  # type: ignore[no-untyped-def]
         link = country.locator(f"xpath=.//h3[normalize-space()='{m['state']}']/following-sibling::div[1]//a[@href='{m['city_path']}']")
         expect(link).to_have_count(1, timeout=2000)
         expect(link).to_contain_text(m["city"])
-        expect(link).to_contain_text("1 kitchen")  # live: kitchens counted (soon would say "Coming soon")
+        expect(link).to_contain_text("1 restaurant")  # live: kitchens counted (soon would say "Coming soon")
     until(f"/cities lists {m['city']} live under {m['state']}", look)
     shot(page, f"02-directory-{m['slug']}")
 
@@ -438,7 +438,7 @@ def personal_home(browser, m: dict) -> None:  # type: ignore[no-untyped-def]
             opt = page.get_by_role("option").filter(has_text=f"{m['zone']}, {m['city']}")
             expect(opt).to_be_visible(timeout=5000)
             opt.get_by_role("button").click()
-            expect(page.get_by_text(re.compile(rf"1 kitchen delivers to .*{m['city']}"))).to_be_visible(timeout=10000)
+            expect(page.get_by_text(re.compile(rf"1 restaurant delivers to .*{m['city']}"))).to_be_visible(timeout=10000)
             expect(page.locator(f"a[href='{path}']").first).to_be_visible(timeout=2000)
         try:
             until(f"the personal home for an address in {m['city']} shows the kitchen", look)

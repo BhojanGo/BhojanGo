@@ -91,7 +91,7 @@ export const TICKET_TOPIC: Record<string, string> = {
   missing_item: "missing items", wrong_item: "a wrong item", quality: "food that wasn't good", damaged_in_transit: "spilled or damaged food",
   late: "a very late order",
   // Help (F9): the topic a customer or visitor picked when writing to us
-  orders: "an order", "payments-refunds": "payments or a refund", delivery: "a delivery", "kitchen-partners": "a kitchen partner question",
+  orders: "an order", "payments-refunds": "payments or a refund", delivery: "a delivery", "kitchen-partners": "a restaurant partner question",
   "delivery-partners": "a delivery partner question",
   // R19: a reported chat message (quick messages between a customer and their delivery partner)
   abusive: "an abusive or offensive message", harassment: "harassment in messages", spam: "spam or a scam in messages",

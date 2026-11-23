@@ -2,12 +2,12 @@
 slug: kitchen-payouts-and-statements
 topic: kitchen-partners
 country: *
-title: ¿Cómo funcionan los pagos y los estados de cuenta de las cocinas?
+title: ¿Cómo funcionan los pagos y los estados de cuenta de los restaurantes?
 summary: Te pagamos cada semana por los pedidos entregados: comida y empaque, menos la comisión de procesamiento con tarjeta, cualquier comisión, las ofertas que financias y los reembolsos por tus propios errores. Cada pedido está en tu estado de cuenta.
 popular: 0
 related: kitchen-documents, kitchen-tablet-app, add-your-kitchen
 ---
-Las cocinas asociadas reciben su pago cada semana, directamente en su cuenta bancaria, a través de nuestro socio de pagos: Razorpay en India y Stripe en EE. UU. Tus estados de cuenta están en **Pagos** en la app BhojanGo Kitchen.
+Los restaurantes asociados reciben su pago cada semana, directamente en su cuenta bancaria, a través de nuestro socio de pagos: Razorpay en India y Stripe en EE. UU. Tus estados de cuenta están en **Pagos** en la app BhojanGo Restaurant.
 
 ## Lo que te pagamos por cada pedido
 

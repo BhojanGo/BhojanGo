@@ -24,7 +24,7 @@ from core_api.modules.identity.schemas.user import MessageResponse
 from shared.client_ip import client_ip
 from shared.db import get_db
 
-router = APIRouter(prefix="/kitchens", tags=["Kitchen partners (public)"])
+router = APIRouter(prefix="/kitchens", tags=["Restaurant partners (public)"])
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 limiter = Limiter(key_func=client_ip)
 MIN_PASSWORD = 10
@@ -42,7 +42,7 @@ class CommissionTerms(BaseModel):
     base: Literal["food_subtotal"] = "food_subtotal"
     percent_min: Decimal
     percent_max: Decimal
-    starting_percent: Decimal | None = Field(description="A new kitchen's rate at country level (the default tier)")
+    starting_percent: Decimal | None = Field(description="A new restaurant's rate at country level (the default tier)")
     tiers: list[Tier] = Field(default=[], description="The country rule's tiers, when it is percent_by_tier")
     flat_per_order: Decimal | None = Field(default=None, description="A fixed amount per order on top, if a rule sets one")
 

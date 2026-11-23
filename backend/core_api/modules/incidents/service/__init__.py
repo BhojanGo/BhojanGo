@@ -39,7 +39,7 @@ async def pause_kitchen(db: AsyncSession, restaurant_id: uuid.UUID, *, reason: s
 
     r = await db.get(Restaurant, restaurant_id)
     if r is None or r.deleted_at is not None:
-        raise IncidentError("Kitchen not found")
+        raise IncidentError("Restaurant not found")
     if back_at is not None and back_at <= _now():
         raise IncidentError("The 'back at' time has already passed")
     before = _kitchen_state(r)
@@ -55,9 +55,9 @@ async def resume_kitchen(db: AsyncSession, restaurant_id: uuid.UUID, *, reason: 
 
     r = await db.get(Restaurant, restaurant_id)
     if r is None or r.deleted_at is not None:
-        raise IncidentError("Kitchen not found")
+        raise IncidentError("Restaurant not found")
     if r.admin_paused_at is None:
-        raise IncidentError("This kitchen isn't paused by an admin")
+        raise IncidentError("This restaurant isn't paused by an admin")
     before = _kitchen_state(r)
     r.admin_paused_at = r.admin_paused_until = r.admin_pause_reason = r.admin_paused_by = None
     await record(db, actor_id=actor_id, action="kitchen.resumed", entity_type="restaurant", entity_id=r.id, scope=scope,
@@ -191,7 +191,7 @@ async def select_orders(db: AsyncSession, pick: RefundPick) -> tuple[list[dict],
         .where(and_(*conds), PaymentIntent.status.in_(("succeeded", "partially_refunded")))
         .order_by(Order.placed_at).limit(MAX_ORDERS + 1))).all()
     if len(rows) > MAX_ORDERS:
-        raise IncidentError(f"More than {MAX_ORDERS} orders: pick a narrower window, a kitchen or a zone")
+        raise IncidentError(f"More than {MAX_ORDERS} orders: pick a narrower window, a restaurant or a zone")
     out: list[dict] = []
     currency = None
     for o, pi in rows:

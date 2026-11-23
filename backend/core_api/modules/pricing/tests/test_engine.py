@@ -74,13 +74,13 @@ def test_hyderabad_worked_example_to_the_paisa() -> None:
     ]
     assert q.total == Decimal("638.22")
     assert q.split.restaurant == Decimal("486.00")
-    assert q.split.rider == Decimal("70.20")
+    assert q.split.rider == Decimal("55.00")  # R30: the delivery fee + the whole tip (no rider_pay top-up)
     assert q.split.tax == Decimal("37.02")
-    assert q.split.platform == Decimal("45.00")
+    assert q.split.platform == Decimal("60.20")
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform == q.total
     assert q.split.detail["commission"] == Decimal("84.00")
     assert next(ln for ln in q.lines if ln.code == "promotion").funded_by == "platform"
-    assert len(q.rules_used) == 10  # every rule that priced this order is recorded
+    assert len(q.rules_used) == 9  # every rule that priced this order is recorded (R30: rider_pay no longer does)
 
 
 def test_design_board_live_column() -> None:
@@ -90,7 +90,7 @@ def test_design_board_live_column() -> None:
     q = quote(rules=live)
     assert q.line("tax") == Decimal("36.12")  # 26.00 + 10.12
     assert q.total == Decimal("632.32")
-    assert (q.split.restaurant, q.split.rider, q.split.platform) == (Decimal("486.00"), Decimal("70.20"), Decimal("40.00"))
+    assert (q.split.restaurant, q.split.rider, q.split.platform) == (Decimal("486.00"), Decimal("50.00"), Decimal("60.20"))
 
 
 def test_surge_only_in_its_window() -> None:
@@ -186,9 +186,9 @@ def test_restaurant_collected_tax_goes_to_the_restaurant() -> None:
     assert q.split.restaurant + q.split.rider + q.split.platform + Decimal("11.02") == q.total
 
 
-def test_rider_waiting_pay_after_free_minutes() -> None:
-    q = quote(wait_minutes=Decimal("12"))
-    assert q.split.rider == Decimal("70.20") + 7  # 7 paid minutes at ₹1
+def test_r30_waiting_no_longer_changes_partner_pay() -> None:
+    """R30: the partner gets the delivery fee + the tip; a rider_pay rule (waiting pay) no longer adds to it."""
+    assert quote(wait_minutes=Decimal("12")).split.rider == quote().split.rider == Decimal("55.00")
 
 
 def test_external_tax_marks_quote_pending() -> None:

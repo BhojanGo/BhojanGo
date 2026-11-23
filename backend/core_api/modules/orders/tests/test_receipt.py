@@ -54,7 +54,7 @@ def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
     ]
     rows = R.bill_rows(lines, "INR")
     assert rows[0] == ("Food", "₹560.00")
-    assert rows[1] == ("Weekend 10% (paid for by the kitchen)", "−₹56.00")
+    assert rows[1] == ("Weekend 10% (paid for by the restaurant)", "−₹56.00")
     assert rows[2] == ("Free delivery (paid for by BhojanGo)", "−₹30.00")
     assert rows[4] == ("GST on food @ 5% on ₹504.00 (collected by BhojanGo)", "₹25.20")
     assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "included")

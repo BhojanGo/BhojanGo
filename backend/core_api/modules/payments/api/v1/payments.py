@@ -278,16 +278,19 @@ async def apply_payment_event(db: AsyncSession, gateway_name: str, event: dict) 
 
         await OrderService(db).on_payment_succeeded(intent.order_id)  # same transaction: paid <=> placed
         await _record_tax_transaction(db, intent)
+        fee = None
         if gateway_name == "stripe":  # R15: the real fee for the finance reports (else they estimate it)
             try:
                 fee = await asyncio.to_thread(stripe_svc.actual_fee, intent.provider_payment_id)
             except Exception as e:  # noqa: BLE001 (best effort: never fails the webhook)
-                fee = None
                 logger.info("stripe_fee_unavailable", intent_id=intent.provider_payment_id, error=str(e)[:200])
-            if fee is not None:
-                intent.metadata_ = {**intent.metadata_, "provider_fee": fee}
-                if get_settings().is_production:  # R29: local and QA keep the configured estimate
-                    await OrderService(db).apply_actual_card_fee(intent.order_id, fee)
+        elif gateway_name == "razorpay":  # R30: Razorpay sends the fee with the payment (card, UPI, wallet, net banking)
+            fee = event.get("provider_fee")
+        if fee is not None:
+            intent.metadata_ = {**intent.metadata_, "provider_fee": fee,
+                                **({"provider_method": event["method"]} if event.get("method") else {})}
+            if get_settings().is_production:  # R29: local and QA keep the configured estimate
+                await OrderService(db).apply_actual_card_fee(intent.order_id, fee)
     else:
         intent.metadata_ = {**intent.metadata_, "failure_reason": event.get("failure_reason") or event["event_type"]}
         await outbox.add(db, "payment.failed", "order", intent.order_id,
