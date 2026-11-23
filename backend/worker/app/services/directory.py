@@ -47,7 +47,7 @@ class Directory:
     async def order(self, order_id: str) -> dict | None:
         row = (await self.db.execute(text(
             "SELECT id, customer_id, restaurant_id, restaurant_name, total, currency, market_city, "
-            "estimated_delivery_time, accept_due_at, driver_id, items FROM orders WHERE id = :id"),
+            "estimated_delivery_time, accept_due_at, driver_id, items, fulfillment, delivery_pin FROM orders WHERE id = :id"),
             {"id": order_id})).mappings().first()
         return dict(row) if row else None
 

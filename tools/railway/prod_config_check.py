@@ -333,6 +333,9 @@ REQUIRED: list[tuple[str, tuple[str, ...], str, str, str]] = [
     ("TWILIO_VERIFY_SERVICE_SID", C, "sealed", "backend/core_api/modules/identity/service/twilio_verify.py",
      "TWILIO_VERIFY_SERVICE_SID"),
     ("EMAIL_FROM_NAME", W, "set", "backend/shared/providers/email.py", "EMAIL_FROM_NAME"),
+    # R32: road distance from the private osrm service; down -> straight-line x ROAD_FACTOR (logged, alerted)
+    ("ROUTING_PROVIDER", BACKENDS, "one_of:osrm", "backend/shared/providers/routing.py", "def get_routing_provider"),
+    ("OSRM_URL", BACKENDS, "set", "backend/shared/providers/routing.py", "OsrmRouting(p.OSRM_URL"),
     ("TAX_PROVIDER", C, "one_of:stripe_tax", "backend/core_api/modules/payments/service/tax.py", "stripe_tax"),
     ("SENTRY_DSN", BACKENDS, "sealed", "backend/shared/observability.py", "SENTRY_DSN"),
     ("STORAGE_PROVIDER", C, "set", "backend/shared/providers/storage.py", "STORAGE_PROVIDER"),

@@ -52,7 +52,8 @@ class OrderItemInput(BaseModel):
 class OrderCreateRequest(BaseModel):
     restaurant_id: uuid.UUID
     items: list[OrderItemInput] = Field(min_length=1)
-    delivery_address: AddressInput
+    # R32: a pickup order (the quote decides) needs no delivery address
+    delivery_address: AddressInput | None = None
     payment_method: PaymentMethod
     special_instructions: str | None = Field(default=None, max_length=500)
     promo_code: str | None = None
@@ -70,6 +71,12 @@ class DeliveryProof(BaseModel):
     method: Literal["pin", "photo"]
     pin: str | None = Field(default=None, pattern=r"^\d{4}$")
     photo_key: str | None = Field(default=None, max_length=300)
+
+
+class PickupCodeRequest(BaseModel):
+    """R32: the restaurant enters the code the customer shows at the counter."""
+
+    code: str = Field(pattern=r"^\d{4}$")
 
 
 class OrderStatusUpdateRequest(BaseModel):
@@ -146,6 +153,12 @@ class OrderResponse(BaseModel):
     # Order list (GET /orders), the website's active-order bar: active orders only, the
     # customer's own; rider_first_name once a rider is assigned, the PIN once picked up; eta = estimated delivery.
     rider_first_name: str | None = None
+    # R32: delivery | pickup; a pickup order's code (the customer's own, once it is ready), where to collect
+    # it, and whether 5 wrong codes locked it (the restaurant calls support)
+    fulfillment: str = "delivery"
+    pickup_code: str | None = None
+    pickup_address: dict | None = None
+    pickup_locked: bool = False
     eta: datetime | None = None
     # Order list (GET /orders): has the customer rated it, and the rating ("Rate this order").
     rated: bool | None = None

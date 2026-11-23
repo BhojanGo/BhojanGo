@@ -201,7 +201,8 @@ async def _real_bill(db: AsyncSession, city: str, zone: uuid.UUID | None) -> dic
         snap = (await db.execute(
             select(OrderPricingSnapshot).join(Order, Order.id == OrderPricingSnapshot.order_id)
             .where(where, OrderPricingSnapshot.created_at >= since,
-                   Order.status.notin_(("pending_payment", "cancelled", "payment_failed")))
+                   Order.status.notin_(("pending_payment", "cancelled", "payment_failed")),
+                   Order.fulfillment == "delivery")  # R32: the example is a delivered order
             .order_by(OrderPricingSnapshot.created_at.desc()).limit(1))).scalar_one_or_none()
         if snap is not None:
             lines = relabel([{**ln, "label": "Food" if ln.get("code") == "food" else ln.get("label")} for ln in snap.lines])

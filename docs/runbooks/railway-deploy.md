@@ -313,6 +313,42 @@ Since 2026-11-19 QA has its own addresses (below, "QA's addresses on bhojango.co
   (`apps/web/src/lib/indexing.ts`, tested in `apps/web/test/indexing.test.ts`); production doesn't.
 - The apps' `eas.json` preview profile and `tools/mobile/env-profile.sh qa` use these addresses.
 
+## Road distance in production (R32, prepared, not deployed)
+
+Production prices deliveries by road distance from a private OSRM service, the same image QA runs (R31).
+Nothing is deployed yet (zero-spend rule): `.railway/railway.ts` declares it, and these are the steps for the day
+production is created.
+
+**What the config declares** (`.railway/railway.ts`, `if (qa || prod)`):
+
+| Item | Value |
+|---|---|
+| Service | `osrm`, private only (no public domain) |
+| Image | `infra/docker/osrm/Dockerfile`: OSRM v5.27.1 (ghcr.io/project-osrm), MLD, port 5000 |
+| Map data | Idaho (Geofabrik dated snapshot `idaho-260101`) clipped to Boise, Telangana (openstreetmap.fr) clipped to Hyderabad, merged with osmium at build time |
+| Backends | `ROUTING_PROVIDER=osrm`, `OSRM_URL=http://osrm.railway.internal:5000`, `ROAD_FACTOR=1.3` on core-api, realtime, worker |
+| Size | about 1 GB memory at run time; QA measured 0.5 vCPU / 1 GB enough for both cities |
+| Cost | QA's osrm: well under $1 a month idle; check the Usage page after the first week |
+
+**Steps (when production exists):**
+
+1. Apply the config to the production environment as for the other services (or create `osrm` in the dashboard:
+   source the repo, root directory `infra/docker/osrm`, Dockerfile builder, watch `infra/docker/osrm/**`).
+2. Wait for the first build (it downloads and prepares the maps: about 5-10 minutes).
+3. Check from core-api's shell: `curl -s "http://osrm.railway.internal:5000/route/v1/driving/-116.2023,43.6150;-116.2008,43.6295?overview=false"` answers `"code":"Ok"`.
+4. Redeploy core-api: its start-up log has `routing_health status=ok` (`down` means the fallback is in use).
+5. `python tools/railway/prod_config_check.py` lists `ROUTING_PROVIDER` and `OSRM_URL` as set.
+
+**When OSRM is down:** prices keep working. Each leg falls back to straight-line distance x `ROAD_FACTOR` (1.3) and
+logs `routing_fallback` with the reason. When more than 5% of an hour's delivery quotes (at least 20) fall back,
+admin Operations shows the alert "Road routing is failing" (`RoutingFallbackHigh`, one per hour; resolved once a
+later hour is healthy). The admin overview's **Routing** tile shows the last 24 hours' orders
+priced by road vs fallback. Fix: look at the osrm service's logs and restart it; a new city needs its map added to
+the Dockerfile.
+
+**A new city:** add its OSM extract and bounding box to `infra/docker/osrm/Dockerfile` (Geofabrik dated snapshot
+where one exists), rebuild, and check one route in the city as in step 3.
+
 ## Every deploy after that
 
 **Merging to `dev` deploys QA (and staging); merging to `main` deploys production.** Migrations run in core-api's

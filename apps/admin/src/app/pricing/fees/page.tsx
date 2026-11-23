@@ -49,6 +49,14 @@ const FIELDS: Record<string, { label: string; hint: string }> = {
   },
   delivery_fee: { label: "Delivery bands", hint: "the fee for each road-distance band from the restaurant to the customer; all of it goes to the delivery partner" },
   max_delivery_distance: { label: "Max delivery distance", hint: "beyond it the restaurant shows as too far to deliver" },
+  pickup_platform_fee_pct: {
+    label: "Pickup platform fee",
+    hint: "% of the food subtotal on a pickup order (no delivery fee, no delivery partner); the same minimum platform fee applies",
+  },
+  gst_offer_base: {
+    label: "Platform-funded offers reduce GST base",
+    hint: "country only: on, GST on food is charged after offers BhojanGo pays for; off (the default), on the price before them",
+  },
 };
 const METHODS: { key: string; label: string }[] = [
   { key: "card", label: "Card" }, { key: "upi", label: "UPI" }, { key: "wallet", label: "Wallet" }, { key: "net_banking", label: "Net banking" },
@@ -87,6 +95,7 @@ function show(field: string, v: Value | null | undefined, sym: string, unit = "m
     return METHODS.filter((m) => v[m.key]).map((m) => `${m.label} ${rate(v[m.key] as Rate, sym)}`).join(" · ");
   }
   if (field === "max_delivery_distance") return `${num(v.distance as string)} ${unit === "mile" ? "mi" : unit}`;
+  if (field === "gst_offer_base") return v.on === "true" ? "On" : "Off";
   if (field === "delivery_fee") {
     if (v.template) return `Older shape: ${OLD_DELIVERY[v.template as string] ?? String(v.template)}`;
     if (v.bands) return bands(v.bands as Band[], sym, unit);
@@ -232,6 +241,7 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
     if (row.field === "min_platform_fee") return { amount: a };
     if (row.field === "delivery_fee") return { bands: parseBands(a) ?? [] };
     if (row.field === "max_delivery_distance") return { distance: a };
+    if (row.field === "gst_offer_base") return { on: a };
     if (row.field === "card_fee_estimate") {
       const out: Value = { card: { percent: a, fixed: b || "0" } };
       for (const m of METHODS.slice(1)) {
@@ -283,6 +293,12 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
               <label className="text-small">Bands (up to {unit}: fee {sym})
                 <input aria-label="Delivery bands" value={a} onChange={(e) => setA(e.target.value)} placeholder={unit === "mile" ? "2:3.50, 4:4.50, 6:5.50, 8:6.50" : "3:30, 5:40, 7:50"}
                   className="ml-1 h-8 w-72 rounded-lg border border-line px-2" />
+              </label>
+            ) : row.field === "gst_offer_base" ? (
+              <label className="text-small">Setting
+                <select aria-label="Platform-funded offers reduce GST base" value={a} onChange={(e) => setA(e.target.value)} className="ml-1 h-8 rounded-lg border border-line px-2">
+                  <option value="">Choose</option><option value="false">Off</option><option value="true">On</option>
+                </select>
               </label>
             ) : input(row.field === "min_platform_fee" ? `Amount (${sym})` : row.field === "max_delivery_distance" ? `Distance (${unit})`
               : row.field === "card_fee_estimate" ? "Card %" : "Percent", a, setA, `${meta.label} value`)}

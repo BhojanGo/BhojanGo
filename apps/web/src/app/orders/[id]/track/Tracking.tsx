@@ -185,6 +185,8 @@ export function Tracking({ id }: { id: string }) {
         ? t("track.s_payment")
         : status === "picked_up"
           ? t("track.s_picked_up", { rider: rider ?? t("track.your_rider") })
+          : status === "ready" && order.fulfillment === "pickup"
+            ? t("track.s_pickup_ready")  // R32: the customer collects it
           : status === "ready"
             ? who ? t("track.s_heading", { rider: who }) : t("track.s_finding")
             : who
@@ -269,6 +271,33 @@ export function Tracking({ id }: { id: string }) {
           {live.slow && !assigned && <p data-testid="slow-search" className="m-0 mt-3 text-small text-[#FFB4A8]">{t("track.s_slow_search")}</p>}
           {live.searching && !live.slow && !assigned && <p className="m-0 mt-3 text-small text-[#C9D3D4]">{t("track.s_finding")}</p>}
         </section>
+
+        {/* R32: a pickup order: where to collect it and, once it's ready, the code to show at the counter */}
+        {order.fulfillment === "pickup" && !cancelled && (
+          <section className="rounded-[24px] border-2 border-[#0B5D66] bg-[#EFF6F6] p-[22px]" data-testid="pickup-card" aria-label={t("checkout.pickup_at")}>
+            <span className="text-small text-muted">{t("checkout.pickup_at")}</span>
+            <b className="block text-label">{kitchen}</b>
+            {order.pickup_address && (
+              <span className="block text-small text-muted">{[order.pickup_address.street, order.pickup_address.city].filter(Boolean).join(", ")}</span>
+            )}
+            {order.pickup_address?.lat != null && order.pickup_address?.lng != null && (
+              <a href={`https://www.google.com/maps/search/?api=1&query=${order.pickup_address.lat},${order.pickup_address.lng}`} target="_blank"
+                rel="noopener noreferrer" className="mt-1 inline-block font-bold text-[#0B5D66]">{t("checkout.open_in_maps")}</a>
+            )}
+            {delivered ? (
+              <p className="m-0 mt-3 text-label">{t("track.collected")}</p>
+            ) : order.pickup_locked ? (
+              <p className="m-0 mt-3 text-small text-[#B3261E]">{t("track.pickup_locked")}</p>
+            ) : order.pickup_code ? (
+              <div className="mt-4 rounded-[18px] bg-[#111418] px-[14px] py-3 text-white">
+                <span className="text-small text-[#C9D3D4]">{t("track.pickup_code")} · {t("track.pickup_code_note")}</span>
+                <b className="block text-h1 tracking-[0.3em]" data-testid="pickup-code">{order.pickup_code}</b>
+              </div>
+            ) : (
+              <p className="m-0 mt-3 text-small text-muted">{t("track.pickup_waiting")}</p>
+            )}
+          </section>
+        )}
 
         {/* the steps */}
         {!cancelled && (

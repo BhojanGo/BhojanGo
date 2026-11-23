@@ -43,6 +43,7 @@ SELECT id, status, restaurant_id, restaurant_name, market_city, pickup_lat, pick
 FROM orders
 WHERE status IN ('accepted', 'preparing', 'almost_ready', 'ready') AND driver_id IS NULL AND market_city IS NOT NULL
   AND pickup_lat IS NOT NULL AND delivery_lat IS NOT NULL AND created_at > :since
+  AND fulfillment = 'delivery'
 """)
 
 

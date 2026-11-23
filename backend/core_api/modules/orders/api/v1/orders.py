@@ -25,6 +25,7 @@ from core_api.modules.orders.schemas.order import (
     OrderRatingRequest,
     OrderResponse,
     OrderStatusUpdateRequest,
+    PickupCodeRequest,
     OrderTimelineResponse,
     PainPointMetrics,
     ReorderResponse,
@@ -106,6 +107,7 @@ async def list_my_orders(
         out.rated = review is not None
         out.rating = OrderRating.model_validate(ratings_svc.as_dict(review, now)) if review else None
         out.refunded = refunds.get(o.id)
+        _pickup_fields(out, o, current_user)
         if o.status in ACTIVE_STATES:  # the website's active-order bar
             out.eta = o.estimated_delivery_time
             if o.driver_id:  # a rider is assigned: their first name; the PIN once they have the food
@@ -276,8 +278,9 @@ async def get_order(
     if not await _can_see_order(db, current_user, order):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     out = OrderResponse.model_validate(order)
-    if order.customer_id == current_user.id and visible_to_customer(order.status):
+    if order.customer_id == current_user.id and visible_to_customer(order.status) and order.fulfillment != "pickup":
         out.pin = order.delivery_pin  # only once the rider has picked it up (R27)
+    _pickup_fields(out, order, current_user)
     if order.customer_id == current_user.id:
         from core_api.modules.orders.service.order import customer_cancel, refunded_total
 
@@ -356,6 +359,31 @@ async def update_order_status(
     """Move an order on: the restaurant accepts and prepares, the rider picks up
     and delivers (each only on their own orders; see service/state_machine.py)."""
     updated = await OrderService(db).update_status(order_id, data, current_user)
+    return (await _with_zones(db, [OrderResponse.model_validate(updated)]))[0]
+
+
+def _pickup_fields(out: OrderResponse, order, user: CurrentUser) -> None:  # type: ignore[no-untyped-def]
+    """R32: a pickup order says where to collect it; its code shows to its customer once it is ready."""
+    if (order.fulfillment or "delivery") != "pickup":
+        return
+    addr = dict(order.delivery_address or {})
+    addr.pop("pickup", None)
+    out.pickup_address = addr
+    out.pickup_locked = order.pickup_locked_at is not None
+    if order.customer_id == user.id and order.status == "ready":
+        out.pickup_code = order.delivery_pin
+
+
+@router.post("/{order_id}/pickup", response_model=OrderResponse)
+async def collect_pickup(
+    order_id: uuid.UUID,
+    data: PickupCodeRequest,
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
+) -> OrderResponse:
+    """R32: the restaurant enters the code the customer shows: the pickup order is collected. Wrong: 422 with
+    the tries left; the 5th wrong code locks it (423: call support)."""
+    updated = await OrderService(db).collect_pickup(order_id, data.code, current_user)
     return (await _with_zones(db, [OrderResponse.model_validate(updated)]))[0]
 
 

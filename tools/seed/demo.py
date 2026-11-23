@@ -216,7 +216,7 @@ class Demo:
             "lat": k["lat"], "lng": k["lng"], "rating": 0, "review_count": 0,  # from its ratings, after the orders
             "cover_url": None, "logo_url": None, "eta_min": k["eta"][0], "eta_max": k["eta"][1],
             "min_order": Decimal(k["min_order"]), "delivery_fee": Decimal(k["delivery_fee"]),
-            "currency": market["currency"], "country": market["country"], "city": market["city"], "tags": k["tags"],
+            "currency": market["currency"], "country": market["country"], "city": market["city"], "tags": k["tags"], "pickup": bool(k.get("pickup")),
         })).scalar_one()
         first = k["hours"][0]
         fssai = f"{city['fssai_base'] + i}" if city["fssai_base"] else None

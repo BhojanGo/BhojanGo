@@ -24,7 +24,7 @@ def test_happy_path_is_a_chain() -> None:
 @pytest.mark.parametrize(("a", "b"), [
     ("pending_payment", "accepted"),  # no order without payment
     ("placed", "preparing"),          # the restaurant must accept first
-    ("ready", "delivered"),           # must be picked up
+    ("picked_up", "ready"),           # no going back (R32: ready -> delivered is pickup only, see below)
     ("picked_up", "cancelled"),       # on its way: can't cancel
     ("delivered", "cancelled"),
     ("cancelled", "placed"),
@@ -69,3 +69,11 @@ def test_terminal_paid_active() -> None:
 
 def test_legacy_names_map_onto_new_states() -> None:
     assert {LEGACY_NAMES[k] for k in LEGACY_NAMES} <= set(VALID_TRANSITIONS)
+
+
+def test_a_delivery_order_must_be_picked_up_before_delivered() -> None:
+    """R32: ready -> delivered exists only for pickup orders (collected at the counter with the code)."""
+    from core_api.modules.orders.service.state_machine import fits
+
+    assert not fits("delivery", "ready", "delivered")
+    assert fits("pickup", "ready", "delivered")

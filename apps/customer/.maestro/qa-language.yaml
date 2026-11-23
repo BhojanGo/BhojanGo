@@ -81,7 +81,7 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "change-city"
-      text: "Change"
+      text: "Change.*"  # its accessible name is "Change city"
     timeout: 10000
 - assertVisible:
     id: "language-pill-code"

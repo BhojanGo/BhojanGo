@@ -27,6 +27,8 @@ SLOTS = {
     "card_fee_estimate": "fee:card_fee_estimate",
     "delivery_fee": "delivery_fee",  # R31: distance bands (R30's base + per km/mi still reads), every level
     "max_delivery_distance": "business:max_radius",  # R31: beyond it a restaurant doesn't deliver
+    "pickup_platform_fee_pct": "fee:pickup_platform_fee_pct",  # R32: a pickup order's platform fee
+    "gst_offer_base": "business:gst_offer_base",  # R32 (country): platform-funded offers reduce the GST base
 }
 CASH = "cash_on_delivery"
 BHOJANGO_WALLET = "wallet"  # an order's "wallet": the customer's BhojanGo wallet, no gateway, no fee (R31)
@@ -128,6 +130,8 @@ def _value(field: str, c: Candidate, tier: str | None) -> dict[str, Any]:
         return {"template": c.template}  # another delivery fee shape (flat, free above...): shown by name
     if field == "max_delivery_distance":
         return {"distance": _num(p["distance"])}
+    if field == "gst_offer_base":
+        return {"on": "true" if p.get("platform_offers_reduce_base") else "false"}
     if field == "min_platform_fee":
         return {"amount": _money(p["amount"])}
     return {"percent": _num(p["percent"])}

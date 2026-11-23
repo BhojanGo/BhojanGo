@@ -32,8 +32,13 @@ appId: com.bhojango.app
 - extendedWaitUntil:
     visible: "The fair bill"
     timeout: 20000
+# R32: Spice Route takes pickup orders, so "How do you want it?" sits above the bill: scroll to its tax line
+- scrollUntilVisible:
+    element:
+      text: "Tax"  # the tax line's payee (R8 onwards; was "GOVT")
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "RESTAURANT"
-- assertVisible: "Tax"  # the tax line's payee (R8 onwards; was "GOVT")
 - takeScreenshot: docs/screenshots/customer/06-bag-fair-bill
 - tapOn:
     text: "Pay .*"

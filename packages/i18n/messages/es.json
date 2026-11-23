@@ -480,7 +480,14 @@
     "back_home": "Volver al inicio",
     "payments_unavailable": "Los pagos aún no están disponibles en esta ciudad.",
     "payments_retry": "No pudimos comprobar los pagos. Toca para intentarlo de nuevo.",
-    "place_free": "Hacer pedido"
+    "place_free": "Hacer pedido",
+    "how": "¿Cómo lo quieres?",
+    "delivery": "Entrega",
+    "pickup": "Recoger",
+    "pickup_at": "Recoge en",
+    "open_in_maps": "Abrir en Mapas",
+    "pickup_ready": "Listo hacia las {time}",
+    "pickup_note": "Sin tarifa de entrega. Cuando esté listo recibirás un código para mostrar en el mostrador."
   },
   "track": {
     "title": "Tu pedido",
@@ -552,7 +559,13 @@
     "cancel_too_late": "El restaurante ya empezó a prepararlo, así que este pedido ya no se puede cancelar. Si algo va mal, pregúntanos desde el pedido.",
     "cancel_failed": "No pudimos cancelar el pedido. Inténtalo de nuevo.",
     "refunded": "{amount} devueltos a tu {method}.",
-    "refund_pending": "Tu reembolso de {amount} a tu {method} está en camino."
+    "refund_pending": "Tu reembolso de {amount} a tu {method} está en camino.",
+    "pickup_code": "Código de recogida",
+    "pickup_code_note": "Muestra este código en el mostrador",
+    "pickup_waiting": "Tu código de recogida aparece aquí cuando el pedido esté listo",
+    "pickup_locked": "Demasiados códigos incorrectos. El restaurante está llamando al soporte de BhojanGo para entregarlo.",
+    "collected": "Recogido",
+    "s_pickup_ready": "Listos para recoger"
   },
   "signin": {
     "title": "Iniciar sesión",
@@ -1633,7 +1646,16 @@
       "finding_rider": "Buscando repartidor",
       "order_code": "Código del pedido {code}",
       "today_refunds": "{amount} reembolsado",
-      "deliveries_run": "Entregas de {from} a {to}"
+      "deliveries_run": "Entregas de {from} a {to}",
+      "pickup_badge": "Recoge el cliente",
+      "enter_code": "Introduce el código de recogida del cliente",
+      "hand_over": "Entregar",
+      "code_wrong": "El código no coincide. Compruébalo con el cliente.",
+      "code_locked": "Demasiados códigos incorrectos. Llama al soporte de BhojanGo para entregar este pedido.",
+      "waiting_customer": "Esperando al cliente",
+      "pickup_on": "Recogida activada",
+      "pickup_off": "Recogida desactivada",
+      "pickup_toggle": "Los clientes pueden recoger pedidos en tu mostrador"
     },
     "offline": {
       "banner": "No se reciben pedidos: reconectando"

@@ -48,6 +48,8 @@ class Restaurant(Base):
 
     # ── Pain-Point Layer: hyper-local delivery radius & readiness ─────────────
     delivery_radius_km: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, default=Decimal("5.00"))
+    # R32: the restaurant takes pickup orders (it turns this on and off in its app)
+    pickup_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     avg_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
 
     # Market

@@ -133,6 +133,16 @@ export async function move(orderId: string, status: string, prepMinutes?: number
   }));
 }
 
+/** R32: the customer's pickup code, entered at the counter: the pickup order is collected. */
+export async function collectPickup(orderId: string, code: string): Promise<Order> {
+  return unwrap(await api.core.POST("/api/v1/orders/{order_id}/pickup", { params: { path: { order_id: orderId } }, body: { code } }));
+}
+
+/** R32: the restaurant takes pickup orders, or stops. */
+export async function setPickup(restaurantId: string, on: boolean): Promise<void> {
+  unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}", { params: { path: { restaurant_id: restaurantId } }, body: { pickup_enabled: on } }));
+}
+
 export async function reject(orderId: string): Promise<Order> {
   return unwrap(await api.core.POST("/api/v1/orders/{order_id}/cancel", {
     params: { path: { order_id: orderId } }, body: { reason: "restaurant_cancelled", note: "Rejected on the tablet" },

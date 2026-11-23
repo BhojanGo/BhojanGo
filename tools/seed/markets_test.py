@@ -86,6 +86,10 @@ class MarketsTests(unittest.TestCase):
                           keyed[("business", "max_radius", "country", "IN")]["distance"]), (8, 7))
         self.assertFalse([r for r in md.rules() if r[1] == "base_per_distance"])
         self.assertFalse([r for r in md.rules() if r[0] == "rider_pay"])
+        # R32: pickup platform fee 5% (US and India); India: platform-funded offers do not lower the GST base
+        self.assertEqual((keyed[("fee", "pickup_platform_fee_pct", "country", "US")]["percent"],
+                          keyed[("fee", "pickup_platform_fee_pct", "country", "IN")]["percent"]), (5, 5))
+        self.assertIs(keyed[("business", "gst_offer_base", "country", "IN")]["platform_offers_reduce_base"], False)
 
 
 class FullSeedRefusesProduction(unittest.TestCase):

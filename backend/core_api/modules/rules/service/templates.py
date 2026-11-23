@@ -161,6 +161,20 @@ class FeePlatformPct(_P):
     percent: Decimal = Pct
 
 
+class FeePickupPlatformPct(_P):
+    """R32: the platform fee on a pickup order: this percentage of the food subtotal (the same minimum as
+    delivery, fee:min_platform_fee). Goes to BhojanGo."""
+
+    percent: Decimal = Pct
+
+
+class GstOfferBase(_P):
+    """R32 (India): do offers BhojanGo funds lower the base GST is charged on? Off by default: GST is on the
+    price before the platform's offer (R16). Overrides the tax rules' own platform_discounts_reduce_base."""
+
+    platform_offers_reduce_base: bool = False
+
+
 class FeeMinPlatform(_P):
     """The smallest platform fee charged (e.g. 0.99: food 6.00 at 10% is 0.60, so 0.99)."""
 
@@ -439,6 +453,7 @@ ALLOWED_LEVELS: dict[str, frozenset[str]] = {
 # delivery bands: country, state, city, restaurant).
 TEMPLATE_LEVELS: dict[tuple[str, str], frozenset[str]] = {
     ("business", "max_radius"): frozenset({"platform", "country", "region", "city", "restaurant"}),
+    ("business", "gst_offer_base"): frozenset({"country"}),  # R32
 }
 
 
@@ -461,7 +476,8 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "surge_levy": SurgeLevy,
         "late_night_fee": LateNightFee,
     },
-    "fee": {"platform_fee_pct": FeePlatformPct, "min_platform_fee": FeeMinPlatform, "card_fee_estimate": FeeCardEstimate},
+    "fee": {"platform_fee_pct": FeePlatformPct, "min_platform_fee": FeeMinPlatform, "card_fee_estimate": FeeCardEstimate,
+            "pickup_platform_fee_pct": FeePickupPlatformPct},
     "tax": {"rate_on_lines": TaxRateOnLines, "external": TaxExternal},
     "commission": {"percent": CommissionPercent, "percent_by_tier": CommissionByTier, "flat_per_order": CommissionFlat,
                    "payout_schedule": PayoutSchedule},
@@ -478,6 +494,7 @@ TEMPLATES: dict[str, dict[str, type[BaseModel]]] = {
         "refund_window": RefundWindow,
         "cod_limit": CodLimit,
         "tip_presets": TipPresets,
+        "gst_offer_base": GstOfferBase,
         "max_radius": MaxRadius,
         "dispatch_offer_timeout": DispatchOfferTimeout,
         "dispatch_offer_exclusion": DispatchOfferExclusion,

@@ -485,6 +485,34 @@ PR #224, merged only after every check was green. Migration `0047_delivery_bands
 - **CI:** the markets-only seed tests are no longer collected (and skipped) in the main integration run; they run
   in their own step against a markets-only database.
 
+## Pickup orders, GST offer setting, production routing (round 32, 2026-11-23)
+
+Migration `0048_pickup_orders` (adds columns, none dropped or renamed; plus rules).
+
+- **Pickup orders.** At checkout (web and app) the customer picks Delivery or Pickup when the restaurant takes pickup
+  orders (it turns this on and off on its tablet; seed: Boise Bowl Co., Spice Route Kitchen, Hitech Thali). Pickup
+  has no delivery fee, no tip, no delivery partner and no distance limit; it is priced and taxed at the restaurant's
+  address, which checkout shows with "Open in Maps". Its platform fee is its own setting, 5% of food with the same
+  minimum ($0.99 / ₹15), at country, state, city or restaurant level (admin Pricing → Fees). The busy-hour fee
+  doesn't apply (it is about delivery demand). The payment fee comes out of the restaurant's payout, as for
+  delivery. Flow: the restaurant accepts and marks it ready; the customer gets a push (SMS if no app) with a
+  4-digit pickup code and sees it on the order; the restaurant enters it to hand the order over. A wrong code is
+  refused; the 5th wrong code locks the order and the restaurant calls support (an admin can complete it).
+  Boise pickup 3.99 + 10.99 + 22.00, 6% tax on food, card: platform 1.85, total 41.05, card fee 1.49, restaurant
+  35.49, nothing to a delivery partner. Hyderabad pickup ₹300, UPI: platform ₹15, GST ₹15.00 + ₹2.70, total
+  ₹332.70, restaurant ₹300.
+- **GST on platform-funded offers (India).** New country setting "Platform-funded offers reduce GST base", off by
+  default (today's behaviour). ₹480 food with a ₹48 BhojanGo offer: off → GST on food ₹24.00; on → ₹21.60.
+- **Road distance in production (prepared, not deployed).** `.railway/railway.ts` declares the osrm service and
+  `ROUTING_PROVIDER=osrm` for production too (the same image as QA, Boise and Hyderabad roads); the steps are in
+  [runbooks/railway-deploy.md](runbooks/railway-deploy.md) ("Road distance in production"). The API checks OSRM at
+  start-up (`routing_health`). Every delivery quote counts road vs fallback per hour; above 5% fallback (at least
+  20 quotes) admin Operations gets an alert, resolved by a later healthy hour. Admin Overview has a Routing tile:
+  the last 24 hours' orders priced by road vs fallback.
+- **US tax (no change):** the local stand-in taxes food, delivery fee and platform fee (and the other fees) at
+  Idaho's 6%; the tip is never sent for tax. Production uses Stripe Tax with a tax code per line; Stripe decides
+  per jurisdiction. See the round 32 report for the table and the open question on fees in Idaho.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

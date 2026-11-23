@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { StatusPill } from "@/components/console/StatusPill";
 import type { MarketStatus } from "@/lib/markets";
-import { money, useOverview, useScope, type Action, type OCountry, type Totals } from "@/lib/ops";
+import { money, useOverview, useRouting, useScope, type Action, type OCountry, type Totals } from "@/lib/ops";
 import { count } from "@/lib/count";
 
 function pct(v: number | null) {
@@ -188,6 +188,41 @@ function Market({ country, scope }: { country: OCountry; scope: string }) {
   );
 }
 
+/** R32: how the last 24 hours' delivery orders were priced: road distance (OSRM) or the fallback estimate
+ *  (straight-line x 1.3, when OSRM didn't answer). Over 5% fallback in an hour raises an Operations alert. */
+function RoutingTile() {
+  const { data } = useRouting();
+  if (!data) return null;
+  const measured = data.road + data.fallback;
+  const bad = data.fallback_pct != null && data.fallback_pct > data.alert_pct;
+  return (
+    <section className="rounded-2xl bg-white p-6" aria-label="Routing" data-testid="routing-tile">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="m-0 text-h3">Routing · last {data.hours} hours</h2>
+        <span className="text-small text-muted">delivery orders priced by road distance vs the fallback estimate</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <MiniStat label="By road" value={data.road_pct != null ? `${data.road_pct}%` : "—"} />
+        <MiniStat label="Fallback" value={data.fallback_pct != null ? `${data.fallback_pct}%` : "—"} />
+        <MiniStat label="Orders measured" value={measured.toLocaleString()} />
+        <MiniStat label="Pickup (no distance)" value={data.pickup.toLocaleString()} />
+      </div>
+      {measured ? (
+        <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-line-soft" role="img" aria-label={`${data.road_pct}% by road, ${data.fallback_pct}% fallback`}>
+          <div className="bg-peacock" style={{ width: `${data.road_pct}%` }} />
+          <div className="bg-chili" style={{ width: `${data.fallback_pct}%` }} />
+        </div>
+      ) : null}
+      <p className={`m-0 mt-3 text-small ${bad ? "text-danger" : "text-muted"}`}>
+        {measured ? (bad ? `Fallback is above ${data.alert_pct}%: check the osrm service (logs: routing_fallback).`
+          : `Fallback = straight-line distance x 1.3, used when OSRM doesn't answer. An alert fires above ${data.alert_pct}% in an hour.`)
+          : data.straight_line ? `${data.straight_line.toLocaleString()} orders priced by straight-line distance (road routing isn't switched on here).`
+          : "No delivery orders in the last 24 hours."}
+      </p>
+    </section>
+  );
+}
+
 function OverviewPage() {
   const scope = useScope();
   const { country, region, city } = parseScope(scope);
@@ -199,6 +234,7 @@ function OverviewPage() {
       {error ? <p className="text-chili">You can&apos;t see this part of BhojanGo.</p> : null}
       {data && country === "ALL" ? (data.countries.length === 1 ? <Market country={data.countries[0]!} scope={data.countries[0]!.code} /> : <AllCountries countries={data.countries} />) : null}
       {data && chosen ? <Market country={chosen} scope={scope} /> : null}
+      {data ? <RoutingTile /> : null}
     </ConsoleShell>
   );
 }

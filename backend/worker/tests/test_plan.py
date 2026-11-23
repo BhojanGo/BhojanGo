@@ -108,7 +108,8 @@ def test_sms_only_where_it_matters() -> None:
     always_sms = [k for k, c in POLICY.items() if "sms" in c]
     assert always_sms == []  # SMS costs money: only as a fallback
     assert {k for k, c in POLICY.items() if "sms_fallback" in c} == {
-        "order_picked_up", "order_cancelled_refunded", "order_cancelled_unpaid", "payment_failed", "partner_new_order"}
+        "order_picked_up", "order_cancelled_refunded", "order_cancelled_unpaid", "payment_failed", "partner_new_order",
+        "order_ready_for_pickup"}  # R32: the customer needs the pickup code
 
 
 async def test_quick_message_goes_to_the_other_person_by_push_only() -> None:
@@ -173,3 +174,19 @@ async def test_incident_messages_go_to_each_customer_in_their_language() -> None
         "user_id": CUSTOMER, "order_id": None, "template": "area_paused", "params": {"area": "Hyderabad"}}}, d))[0]
     assert city.order_id is None and m.render(city.key, "te", **city.params).body.startswith("ఒక సమస్యను")
     assert {f"incident_{k}" for k in m.INCIDENT_MESSAGES} <= set(POLICY)
+
+
+async def test_pickup_ready_sends_the_code_and_collected_is_the_receipt() -> None:
+    """R32: a pickup order's customer is told it's ready with the pickup code (push, SMS if no app); when the
+    restaurant enters the code, the receipt says it was collected. A delivery order's "ready" stays silent."""
+    from app.services import messages as m
+
+    d = FakeDirectory()
+    d.row = {**d.row, "fulfillment": "pickup", "delivery_pin": "4821", "driver_id": None}
+    ready = await plan(ev("order.status_changed", new_status="ready"), d)  # type: ignore[arg-type]
+    assert [(o.user_id, o.key, o.params["pin"]) for o in ready] == [(CUSTOMER, "order_ready_for_pickup", "4821")]
+    assert POLICY["order_ready_for_pickup"] == ("push", "sms_fallback")
+    assert "4821" in m.render("order_ready_for_pickup", "te", **ready[0].params).body
+    done = await plan(ev("order.status_changed", new_status="delivered"), d)  # type: ignore[arg-type]
+    assert [o.key for o in done] == ["order_collected"] and done[0].total == "₹638.22"
+    assert await plan(ev("order.status_changed", new_status="ready"), FakeDirectory()) == []  # type: ignore[arg-type]

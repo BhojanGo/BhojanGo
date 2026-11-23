@@ -7,7 +7,7 @@ straight-line estimate is used instead and every fallback is logged (``routing_f
 configurable) at AVG_SPEED_KMH: free and offline, and what the tests use.
 """
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 import structlog
@@ -32,6 +32,9 @@ def haversine_km(a: Point, b: Point) -> float:
 class Leg:
     distance_km: float
     minutes: float
+    # R32: how it was measured: road (OSRM), fallback (OSRM couldn't answer: straight-line x ROAD_FACTOR),
+    # straight_line (the configured estimate, no OSRM). The admin routing tile counts these.
+    source: str = "straight_line"
 
 
 class RoutingProvider(Protocol):
@@ -85,10 +88,10 @@ class OsrmRouting:
     def leg(self, a: Point, b: Point) -> Leg:
         try:  # OSRM takes lng,lat
             route = self._get(f"/route/v1/driving/{a[1]},{a[0]};{b[1]},{b[0]}?overview=false")["routes"][0]
-            return Leg(distance_km=route["distance"] / 1000, minutes=route["duration"] / 60)
+            return Leg(distance_km=route["distance"] / 1000, minutes=route["duration"] / 60, source="road")
         except Exception as e:  # noqa: BLE001 - routing must never fail an order: estimate instead
             self._fell_back(e, 1)
-            return self.fallback.leg(a, b)
+            return replace(self.fallback.leg(a, b), source="fallback")
 
     def legs_to(self, origins: list[Point], b: Point) -> list[Leg]:
         if not origins:
@@ -103,13 +106,35 @@ class OsrmRouting:
                 d, m = t["distances"][i][0], t["durations"][i][0]
                 if d is None or m is None:  # no road between them: estimate this one
                     self._fell_back(ValueError("no route"), 1)
-                    out.append(self.fallback.leg(a, b))
+                    out.append(replace(self.fallback.leg(a, b), source="fallback"))
                 else:
-                    out.append(Leg(distance_km=d / 1000, minutes=m / 60))
+                    out.append(Leg(distance_km=d / 1000, minutes=m / 60, source="road"))
             return out
         except Exception as e:  # noqa: BLE001
             self._fell_back(e, len(origins))
-            return self.fallback.legs_to(origins, b)
+            return [replace(x, source="fallback") for x in self.fallback.legs_to(origins, b)]
+
+    def health(self) -> bool:
+        """R32: can OSRM route at all? (A one-metre route; checked at API start-up.)"""
+        try:
+            self._get("/route/v1/driving/0,0;0.00001,0?overview=false")
+            return True
+        except Exception as e:  # noqa: BLE001
+            msg = f"{type(e).__name__}: {e}"[:300]
+            # "NoSegment"/"NoRoute" at 0,0 still means the server answered
+            return "NoSegment" in msg or "NoRoute" in msg or "400" in msg
+
+
+def check_routing() -> str:
+    """R32: start-up health check. ok | down (fallback in use: straight-line x ROAD_FACTOR) | straight_line."""
+    p = get_routing_provider()
+    if not isinstance(p, OsrmRouting):
+        logger.info("routing_health", provider=p.name, status="straight_line")
+        return "straight_line"
+    ok = p.health()
+    (logger.info if ok else logger.warning)("routing_health", provider="osrm", url=p.url,
+                                             status="ok" if ok else "down", road_factor=p.fallback.road_factor)
+    return "ok" if ok else "down"
 
 
 def get_routing_provider() -> RoutingProvider:

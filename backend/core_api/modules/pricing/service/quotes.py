@@ -40,6 +40,7 @@ from core_api.modules.rules.service.rules import RuleService
 from shared.auth import InvalidTokenError, decode_jwt, encode_jwt
 from shared.money import format_money
 from shared.providers.routing import get_routing_provider
+from core_api.modules.pricing.service.routing_stats import record_routing
 from shared.redis import get_redis
 
 QUOTE_TTL = timedelta(minutes=10)
@@ -168,6 +169,12 @@ class QuoteService:
     async def quote(self, user_id: uuid.UUID, req: QuoteRequest, now: datetime | None = None) -> QuoteOut:
         now = now or datetime.now(UTC)
         items = [i.model_dump(mode="json") for i in req.items]
+        if req.fulfillment == "pickup":  # R32: said first, whatever is in the bag
+            from core_api.modules.catalog.models.restaurant import Restaurant
+
+            found = await self.db.get(Restaurant, req.restaurant_id)
+            if found is not None and not found.pickup_enabled:
+                raise QuoteError(f"{found.name} doesn't take pickup orders", code="PICKUP_OFF")
         try:
             # R27: a closed kitchen is refused below, once the city's tip buttons are known (the bag still shows them).
             rest, priced = await price_cart(self.db, req.restaurant_id, items, check_open=False, now=now)
@@ -178,7 +185,25 @@ class QuoteService:
         avail = await availability(self.db, uuid.UUID(rest.id), now)
         if avail.reason_code in ("inactive", "unavailable"):
             raise QuoteError(f"{rest.name}: {avail.reason}")
-        lat, lng, postal = await self._deliver_to(user_id, req)
+        pickup = req.fulfillment == "pickup"
+        pickup_address = None
+        if pickup:  # R32: priced (and taxed) where the customer collects it: the restaurant
+            from core_api.modules.catalog.models.restaurant import Restaurant
+
+            model = await self.db.get(Restaurant, uuid.UUID(rest.id))
+            if model is None or not model.pickup_enabled:
+                raise QuoteError(f"{rest.name} doesn't take pickup orders", code="PICKUP_OFF")
+            if rest.lat is None or rest.lng is None:
+                raise QuoteError("This restaurant isn't on the map yet")
+            a = model.address or {}
+            lat, lng = rest.lat, rest.lng
+            postal = {"street": a.get("street"), "city": a.get("city"), "postal_code": a.get("zip")}
+            pickup_address = {"street": a.get("street"), "city": a.get("city"), "state": a.get("state"),
+                              "zip": a.get("zip"), "lat": lat, "lng": lng}
+        elif req.deliver_to is None:
+            raise QuoteError("Choose where to deliver")
+        else:
+            lat, lng, postal = await self._deliver_to(user_id, req)
 
         where = await MarketService(self.db).locate(lat, lng)
         if not where.serviceable:
@@ -198,7 +223,13 @@ class QuoteService:
         if rest.lat is None or rest.lng is None:
             raise QuoteError("This restaurant isn't on the map yet")
 
-        km = Decimal(str(get_routing_provider().leg((rest.lat, rest.lng), (lat, lng)).distance_km))
+        routing = "none"
+        if pickup:
+            km = Decimal(0)  # R32: nothing to drive
+        else:
+            leg = get_routing_provider().leg((rest.lat, rest.lng), (lat, lng))
+            km, routing = Decimal(str(leg.distance_km)), leg.source
+            await record_routing(self.db, routing)  # R32: road vs fallback, for the admin tile and the alert
         distance = money(km / KM_PER_MILE if country.distance_unit == "mi" else km)
         food = sum((ln.unit_price * ln.quantity for ln in priced), Decimal(0))
 
@@ -223,7 +254,8 @@ class QuoteService:
         inputs = QuoteInputs(
             currency=country.currency,
             lines=[CartLine(_label(ln), ln.quantity, ln.unit_price, ln.item_id, ln.options) for ln in priced],
-            distance=distance, local_time=now.astimezone(tz), tip=req.tip, restaurant_tier=rest.tier,
+            distance=distance, local_time=now.astimezone(tz), tip=Decimal(0) if pickup else req.tip, restaurant_tier=rest.tier,
+            fulfillment=req.fulfillment,
             first_order=not await has_previous_orders(self.db, user_id),
             promo_code=req.promo_code, promo_spent=await self._promo_spent(),
             promo_spent_week=await self._promo_spent_week(week_of(now.astimezone(tz))),
@@ -258,6 +290,8 @@ class QuoteService:
                         "week_start": week_of(now.astimezone(tz)).isoformat(),
                         "zone": where.zone_name, "distance": str(distance), "distance_unit": country.distance_unit,
                         "local_time": inputs.local_time.isoformat(), "deliver_to": {"lat": lat, "lng": lng},
+                        "fulfillment": req.fulfillment, "routing": routing,
+                        **({"pickup_address": pickup_address} if pickup_address else {}),
                         **({"review": True} if review_order else {})},
             "expires_at": expires.isoformat(),
         }
@@ -271,6 +305,7 @@ class QuoteService:
             quote_id=quote_id, token=token, expires_at=expires, currency=result.currency, lines=lines_out(result),
             total=result.total, tax_pending=result.tax_pending, zone=where.zone_name or "", city=city.name,
             distance=distance, distance_unit=country.distance_unit, tip_presets=presets,
+            fulfillment=req.fulfillment, pickup_address=pickup_address,
         )
 
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:

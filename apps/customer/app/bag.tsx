@@ -4,7 +4,7 @@ import {
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useOrderingPauses } from "../components/PauseBanner";
 import { Icon } from "../lib/icons";
@@ -78,18 +78,38 @@ export default function Bag() {
     };
   }, [payCountry, providerAsk, attempt]);
 
+  // R32: Delivery or Pickup, when the restaurant takes pickup orders (no delivery fee, no tip, no address).
+  const [rest, setRest] = useState<{ id: string; pickup: boolean; name: string; street?: string; city?: string; lat?: number | null; lng?: number | null } | null>(null);
+  const [how, setHow] = useState<"delivery" | "pickup">("delivery");
+  useEffect(() => {
+    if (!bag.restaurantId) return;
+    let live = true;
+    api.core.GET("/api/v1/restaurants/{restaurant_id}", { params: { path: { restaurant_id: bag.restaurantId } } })
+      .then((r) => {
+        const d = r.data;
+        if (live && d) setRest({ id: d.id, pickup: !!d.pickup_enabled, name: d.name, street: (d.address as { street?: string }).street, city: d.city, lat: d.lat, lng: d.lng });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [bag.restaurantId]);
+  const pickup = how === "pickup" && !!rest?.pickup && rest.id === bag.restaurantId;
+
   // Re-price whenever the bag or the tip changes; the quote is what gets charged.
   const lines = bag.lines;
   useEffect(() => {
-    if (!bag.restaurantId || !point || lines.length === 0) return;
+    if (!bag.restaurantId || (!point && !pickup) || lines.length === 0) return;
     let live = true;
     api.core
       .POST("/api/v1/pricing/quote", {
         fetch: quoteFetch,
-        body: {
-          restaurant_id: bag.restaurantId, items: cartItems(lines), tip: bag.tip,
-          deliver_to: point.addressId ? { address_id: point.addressId } : { lat: point.lat, lng: point.lng },
-        },
+        body: pickup
+          ? { restaurant_id: bag.restaurantId, items: cartItems(lines), tip: 0, fulfillment: "pickup" }
+          : {
+            restaurant_id: bag.restaurantId, items: cartItems(lines), tip: bag.tip,
+            deliver_to: point!.addressId ? { address_id: point!.addressId } : { lat: point!.lat, lng: point!.lng },
+          },
       })
       .then((r) => {
         if (!live) return;
@@ -118,7 +138,7 @@ export default function Bag() {
     return () => {
       live = false;
     };
-  }, [bag.restaurantId, lines, bag.tip, point, attempt, avail?.open_now]); // re-priced when the kitchen opens (R27)
+  }, [bag.restaurantId, lines, bag.tip, point, attempt, avail?.open_now, pickup]); // re-priced when the kitchen opens (R27)
 
   // R28: when the price hold runs out (the bag sat idle, or the app was in the background), price it
   // again, silently; Pay waits for the new quote. It said nothing and Pay stayed off.
@@ -161,7 +181,7 @@ export default function Bag() {
       params: { header: { "X-Idempotency-Key": quote!.quote_id } },
       body: {
         restaurant_id: bag.restaurantId!, items: cartItems(lines), payment_method: method, quote_token: quote!.token,
-        delivery_address: { street: point!.street, city: point!.city, state: point!.state, zip: point!.zip || "000000", country: point!.country || country?.code || "" },
+        ...(pickup ? {} : { delivery_address: { street: point!.street, city: point!.city, state: point!.state, zip: point!.zip || "000000", country: point!.country || country?.code || "" } }),
       },
     })) as { id: string };
     return order.id;
@@ -245,10 +265,32 @@ export default function Bag() {
         ) : null}
       </View>
       <ScrollView testID="bag" contentContainerStyle={{ paddingHorizontal: space[5], paddingVertical: space[2], gap: space[3] }}>
+        {rest?.pickup ? (
+          <View style={styles.card} testID="how">
+            <Text style={type.label}>{t("checkout.how")}</Text>
+            <Segmented label={t("checkout.how")} value={how} onChange={setHow}
+              options={[{ value: "delivery", label: t("checkout.delivery") }, { value: "pickup", label: t("checkout.pickup") }]} />
+          </View>
+        ) : null}
         <View style={styles.card}>
+          {pickup && rest ? (
+            <View testID="pickup-at" style={{ gap: space[1] }}>
+              <Text style={[type.small, { color: color.muted }]}>{t("checkout.pickup_at")}</Text>
+              <Text style={type.label}>{rest.name}</Text>
+              <Text style={[type.small, { color: color.muted }]}>{[rest.street, rest.city].filter(Boolean).join(", ")}</Text>
+              {rest.lat != null && rest.lng != null ? (
+                <Pressable testID="open-in-maps" accessibilityRole="link" hitSlop={8}
+                  onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${rest.lat},${rest.lng}`)}>
+                  <Text style={[type.label, { color: color.peacock }]}>{t("checkout.open_in_maps")}</Text>
+                </Pressable>
+              ) : null}
+              <Text style={[type.small, { color: color.muted }]}>{t("checkout.pickup_note")}</Text>
+            </View>
+          ) : (
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <Text style={[type.label, { flex: 1 }]} numberOfLines={1}>{point ? (point.label || t("app.home.current_location")) : ""}</Text>
           </View>
+          )}
           <View style={styles.rule} />
           {lines.map((l) => (
             <View key={l.key} style={styles.line}>
@@ -260,7 +302,7 @@ export default function Bag() {
             </View>
           ))}
         </View>
-        <View style={styles.card}>
+        {pickup ? null : <View style={styles.card}>
           <Text style={type.label}>
             {t("checkout.tip_title")} <Text style={[textFont("400"), { color: color.muted }]}>· {t("checkout.tip_note")}</Text>
           </Text>
@@ -270,7 +312,7 @@ export default function Bag() {
             onChange={(v) => bag.setTip(Number(v))}
             options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency) }))}
           />
-        </View>
+        </View>}
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View>
           : unreachable ? <LoadError error={unreachable} onRetry={() => setAttempt((a) => a + 1)} />
           : blocked ? <Text testID="bill-when-open" style={[type.small, { color: color.muted }]}>{t("kitchen.bill_when_open")}</Text>
@@ -286,7 +328,7 @@ export default function Bag() {
             <Text style={{ color: color.muted }}> · {t(`checkout.method_${method}_sub`)}</Text>
           </Text>
         </View>
-        {point?.browse ? (
+        {point?.browse && !pickup ? (
           // A city picked on "Change city" is for browsing: the order needs a real address.
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
         ) : (

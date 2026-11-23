@@ -1,3 +1,4 @@
+from typing import Literal
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -34,7 +35,10 @@ class Where(BaseModel):
 class QuoteRequest(BaseModel):
     restaurant_id: uuid.UUID
     items: list[CartItem] = Field(min_length=1)
-    deliver_to: Where
+    # R32: pickup = the customer collects it at the restaurant (no delivery fee, no partner, no distance limit);
+    # deliver_to is then not needed (the restaurant's own address prices it, taxes included)
+    fulfillment: Literal["delivery", "pickup"] = "delivery"
+    deliver_to: Where | None = None
     tip: Decimal = Field(default=Decimal("0"), ge=0)
     promo_code: str | None = Field(default=None, max_length=20)
 
@@ -68,6 +72,8 @@ class QuoteOut(BaseModel):
     distance: Decimal
     distance_unit: str
     tip_presets: TipPresetsOut | None = Field(default=None, description="null: no tip buttons (no tip_presets rule)")
+    fulfillment: str = "delivery"  # R32
+    pickup_address: dict | None = Field(default=None, description="pickup: the restaurant's address (street, city, lat, lng)")
 
 
 class SplitOut(BaseModel):

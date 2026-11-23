@@ -86,6 +86,7 @@ class RestaurantUpdateRequest(BaseModel):
     delivery_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     delivery_radius_km: Decimal | None = Field(default=None, gt=0, le=100, max_digits=6, decimal_places=2)
     avg_prep_minutes: int | None = Field(default=None, ge=1, le=240)
+    pickup_enabled: bool | None = None  # R32: the restaurant takes pickup orders
     tags: list[str] | None = None
     status: RestaurantStatus | None = None
 
@@ -139,6 +140,7 @@ class PublicRestaurant(BaseModel):
     lng: float | None
     rating: float
     review_count: int
+    pickup_enabled: bool = False  # R32: customers may collect orders here (checkout offers Pickup)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

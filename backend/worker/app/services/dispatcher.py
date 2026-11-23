@@ -42,7 +42,9 @@ POLICY: dict[str, tuple[str, ...]] = {
     "order_preparing": ("push",),
     "driver_assigned": ("push",),
     "order_picked_up": ("push", "sms_fallback"),
-    "order_almost_there": ("push",),  # a courtesy: the SMS-only customer already had "on the way"
+    "order_almost_there": ("push",),
+    "order_ready_for_pickup": ("push", "sms_fallback"),  # R32: the customer needs the code to collect it
+    "order_collected": ("push", "email"),  # R32: the receipt  # a courtesy: the SMS-only customer already had "on the way"
     "order_delivered": ("push", "email"),
     "order_cancelled_refunded": ("push", "email", "sms_fallback"),
     "order_cancelled_unpaid": ("push", "sms_fallback"),
@@ -59,7 +61,7 @@ POLICY: dict[str, tuple[str, ...]] = {
 NO_INBOX = {"order_message"}
 STATUS_MESSAGES = {"accepted": "order_accepted", "preparing": "order_preparing",
                    "picked_up": "order_picked_up", "delivered": "order_delivered"}
-RECEIPTS = {"order_placed", "order_delivered", "order_cancelled_refunded", "refund_items"}
+RECEIPTS = {"order_placed", "order_delivered", "order_collected", "order_cancelled_refunded", "refund_items"}
 # R27: a kitchen's new order sounds like the tablet's ring (apps/partner: Android channel "new_orders"
 # with new_order.wav, bundled for iOS too), so a tablet in the background or asleep still rings.
 PUSH_SOUND: dict[str, dict[str, str]] = {"partner_new_order": {"channel": "new_orders", "sound": "new_order.wav"}}
@@ -135,6 +137,12 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
         return out
     if kind == "order.status_changed":
         key = STATUS_MESSAGES.get(p.get("new_status", ""))
+        if (order.get("fulfillment") or "delivery") == "pickup":  # R32: no partner; collected with the code
+            new = p.get("new_status", "")
+            if new == "ready":
+                return [to_customer("order_ready_for_pickup", pin=order.get("delivery_pin") or "")]
+            if new == "delivered":
+                return [to_customer("order_collected")]
         if key == "order_picked_up":
             rider = await d.person(order["driver_id"]) if order["driver_id"] else None
             return [to_customer(key, rider=rider.first_name if rider else None)]  # None: "Your delivery partner", translated

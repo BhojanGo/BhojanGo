@@ -6,10 +6,10 @@
 // R27: a tablet held upright gets the same tabs, with the full cards in the list.
 import { api, ApiError, LanguagePill, LoadError, loadErrorText, num, SafeAreaView, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useState } from "react";
-import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { COOKING, NEW, READY, useBoard } from "../../lib/board";
-import { code, move, useFormat, reject, riderEta, useKitchen, type Order, type Today } from "../../lib/data";
+import { code, collectPickup, move, useFormat, reject, riderEta, setPickup, useKitchen, type Order, type Today } from "../../lib/data";
 import { useLayout } from "../../lib/layout";
 import { acceptLeft, mmss, offlineGapNote } from "../../lib/liveness";
 import { RatingChip } from "../../lib/ratings";
@@ -60,13 +60,17 @@ export default function Orders() {
       params: { path: { restaurant_id: kitchen.id } }, body: { paused, minutes } }))));
   }
 
+  async function pickupToggle() {  // R32
+    await act(async () => setPickup(kitchen.id, !today?.pickup_enabled));
+  }
+
   // R28: "for a few seconds" when the gap starts and ends on the same minute (it said "2:50 pm to 2:50 pm")
   const gap = today?.offline_from && today.offline_to
     ? offlineGapNote(today.offline_from, today.offline_to, (at) => clock(at, today.time_zone)) : null;
 
   return (
     <SafeAreaView testID="orders-screen" edges={["top", "right"]} style={{ flex: 1 }}>
-      <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} />
+      <Header today={today} onBusy={busy} onPause={() => (today?.paused ? pause(null, false) : setPausing(true))} onPickup={pickupToggle} />
       {/* R27: customers couldn't order for a while because this tablet wasn't connected: say when (for an hour). */}
       {gap ? (
         <Text testID="offline-gap" accessibilityRole="alert" style={[t.muted, { color: color.chili, paddingHorizontal: 24, paddingTop: 8 }]}>
@@ -93,7 +97,7 @@ export default function Orders() {
           {cooking.map((o) => <CookingCard key={o.id} order={o} act={act} />)}
         </Column>
         <Column testID="column-ready" title={tr("partner.orders.ready")} count={ready.length} badge={[color.peacockTint, color.peacockDeep]}>
-          {ready.map((o) => <ReadyCard key={o.id} order={o} />)}
+          {ready.map((o) => o.fulfillment === "pickup" ? <PickupReadyCard key={o.id} order={o} act={act} /> : <ReadyCard key={o.id} order={o} />)}
           <Text style={[t.muted, { textAlign: "center", marginTop: 4 }]}>{tr("partner.orders.ready_note")}</Text>
         </Column>
       </View>
@@ -114,7 +118,7 @@ export default function Orders() {
   );
 }
 
-function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () => void; onPause: () => void }) {
+function Header({ today, onBusy, onPause, onPickup }: { today: Today | null; onBusy: () => void; onPause: () => void; onPickup: () => void }) {
   const { cash, clock } = useFormat();
   const { t: tr, opens, wall } = useI18n();
   const { width, narrow: phone, portrait } = useLayout();
@@ -171,6 +175,10 @@ function Header({ today, onBusy, onPause }: { today: Today | null; onBusy: () =>
       <Btn testID="pause" height={phone ? 44 : 48} style={phone && { paddingHorizontal: 14 }}
         title={today?.paused ? tr("partner.orders.resume") : compact ? tr("partner.orders.pause_short") : tr("partner.orders.pause")}
         label={today?.paused ? undefined : tr("partner.orders.pause")} kind={today?.paused ? "dark" : "outline"} onPress={onPause} />
+      {/* R32: customers may collect orders at the counter */}
+      <Btn testID="pickup-toggle" height={phone ? 44 : 48} style={phone && { paddingHorizontal: 14 }}
+        title={today?.pickup_enabled ? tr("partner.orders.pickup_on") : tr("partner.orders.pickup_off")}
+        label={tr("partner.orders.pickup_toggle")} kind={today?.pickup_enabled ? "dark" : "outline"} onPress={onPickup} />
     </>
   );
   // A phone's width: the name and the rating on one line, the status and the buttons below.
@@ -241,7 +249,8 @@ function TabBoard({ fresh, cooking, ready, defaultPrep, act, cards = false }: {
           <Text style={type.label}>{tr("common.back")}</Text>
         </Pressable>
         {NEW.includes(open.status) ? <NewCard order={open} first defaultPrep={defaultPrep} act={act} />
-          : COOKING.includes(open.status) ? <CookingCard order={open} act={act} /> : <ReadyCard order={open} />}
+          : COOKING.includes(open.status) ? <CookingCard order={open} act={act} />
+          : open.fulfillment === "pickup" ? <PickupReadyCard order={open} act={act} /> : <ReadyCard order={open} />}
       </ScrollView>
     );
   }
@@ -272,7 +281,8 @@ function TabBoard({ fresh, cooking, ready, defaultPrep, act, cards = false }: {
         {tab === "new" && fresh.length === 0 ? <Text style={t.muted}>{tr("partner.orders.new_empty")}</Text> : null}
         {cards ? current.list.map((o, i) => (
           tab === "new" ? <NewCard key={o.id} order={o} first={i === 0} defaultPrep={defaultPrep} act={act} />
-            : tab === "preparing" ? <CookingCard key={o.id} order={o} act={act} /> : <ReadyCard key={o.id} order={o} />
+            : tab === "preparing" ? <CookingCard key={o.id} order={o} act={act} />
+            : o.fulfillment === "pickup" ? <PickupReadyCard key={o.id} order={o} act={act} /> : <ReadyCard key={o.id} order={o} />
         )) : current.list.map((o, i) => <OrderRow key={o.id} order={o} index={i} onOpen={() => setOpenId(o.id)} />)}
         {tab === "ready" ? <Text style={[t.muted, { textAlign: "center", marginTop: 4 }]}>{tr("partner.orders.ready_note")}</Text> : null}
       </ScrollView>
@@ -335,6 +345,17 @@ function name(o: Order, customer: string) {
   return (o.customer as { name?: string } | null)?.name ?? customer;
 }
 
+/** R32: "Customer pickup" on a pickup order's card (no delivery partner comes for it). */
+function PickupBadge({ order: o }: { order: Order }) {
+  const { t: tr } = useI18n();
+  if (o.fulfillment !== "pickup") return null;
+  return (
+    <View testID="pickup-badge" style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: tone.kesarSoft }}>
+      <Text style={[type.caption, { color: tone.kesarInk }]}>{tr("partner.orders.pickup_badge")}</Text>
+    </View>
+  );
+}
+
 function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: boolean; defaultPrep: number; act: Act }) {
   const { cash, clock } = useFormat();
   const { t: tr } = useI18n();
@@ -355,6 +376,7 @@ function NewCard({ order: o, first, defaultPrep, act }: { order: Order; first: b
         <View>
           <Text style={type.h3}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
           <Text style={[t.muted, { marginTop: 2 }]}>{tr("partner.orders.delivery_paid", { time: clock(o.placed_at ?? o.created_at, o.time_zone) })}</Text>
+          <PickupBadge order={o} />
         </View>
         {left != null ? (
           <View testID="accept-timer" style={{ alignItems: "flex-end" }}
@@ -406,6 +428,7 @@ function CookingCard({ order: o, act }: { order: Order; act: Act }) {
         <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
         <Text style={[type.label, { color: left < 0 ? color.chili : tone.kesarInk }]}>{cookingLabel(o, now, tr)}</Text>
       </View>
+      <PickupBadge order={o} />
       <Text style={t.muted}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
       <View style={s.track}><View style={[s.fill, { width: `${Math.round(done * 100)}%` }]} /></View>
       <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
@@ -419,6 +442,59 @@ function CookingCard({ order: o, act }: { order: Order; act: Act }) {
           if (o.status === "accepted") await move(o.id, "preparing");
           await move(o.id, "ready");
         })} />
+      </View>
+    </Card>
+  );
+}
+
+function PickupReadyCard({ order: o, act }: { order: Order; act: Act }) {
+  const { clock } = useFormat();
+  const { t: tr } = useI18n();
+  const [pin, setPin] = useState("");
+  const [why, setWhy] = useState<string | null>(o.pickup_locked ? tr("partner.orders.code_locked") : null);
+  const [busy, setBusy] = useState(false);
+  const locked = o.pickup_locked || why === tr("partner.orders.code_locked");
+  const items = (o.items ?? []) as Item[];
+  async function handOver() {
+    setBusy(true);
+    try {
+      await act(async () => {
+        try {
+          await collectPickup(o.id, pin);
+        } catch (e) {
+          const c = (e as { body?: { detail?: { code?: string } } }).body?.detail?.code;
+          if (c === "PICKUP_CODE_WRONG" || c === "PICKUP_LOCKED") {
+            setWhy(tr(c === "PICKUP_LOCKED" ? "partner.orders.code_locked" : "partner.orders.code_wrong"));
+            setPin("");
+            return;
+          }
+          throw e;
+        }
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card>
+      <View style={s.row}>
+        <Text style={t.title}>{code(o.id)} · {name(o, tr("partner.orders.customer"))}</Text>
+        <Text style={[type.label, { color: color.peacockDeep }]}>{tr("partner.orders.ready_at", { time: clock(o.actual_ready_at, o.time_zone) })}</Text>
+      </View>
+      <PickupBadge order={o} />
+      <Text style={t.muted}>{items.map((i) => `${i.quantity ?? 1}× ${i.name}`).join(" · ")}</Text>
+      <View style={[s.rider, { flexDirection: "column", alignItems: "stretch", gap: 8 }]}>
+        <Text style={type.label}>{locked ? tr("partner.orders.waiting_customer") : tr("partner.orders.enter_code")}</Text>
+        {!locked ? (
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+            <TextInput testID="pickup-code-input" value={pin} onChangeText={(v) => { setPin(v.replace(/\D/g, "").slice(0, 4)); setWhy(null); }}
+              keyboardType="number-pad" maxLength={4} accessibilityLabel={tr("partner.orders.enter_code")} placeholder="0000"
+              style={[type.h2, { flex: 1, height: 56, letterSpacing: 8, textAlign: "center", borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.white }]} />
+            <Btn testID="pickup-hand-over" title={tr("partner.orders.hand_over")} kind="primary" height={56} busy={busy}
+              onPress={() => { if (pin.length === 4) void handOver(); }} />
+          </View>
+        ) : null}
+        {why ? <Text testID="pickup-code-error" accessibilityRole="alert" style={[type.small, { color: color.chili }]}>{why}</Text> : null}
       </View>
     </Card>
   );
