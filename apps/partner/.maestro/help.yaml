@@ -6,7 +6,7 @@ appId: com.bhojango.partner
 - runFlow: sign-in.yaml
 - runFlow:
     when:
-      visible: "Which kitchen is this tablet for?"
+      visible: "Which restaurant is this tablet for?"
     commands:
       - tapOn: "Spice Route Kitchen"
 - extendedWaitUntil:

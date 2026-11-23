@@ -1,4 +1,4 @@
-# R20: the sign-in's Terms and Privacy policy line, and the languages BhojanGo Kitchen
+# R20: the sign-in's Terms and Privacy policy line, and the languages BhojanGo Restaurant
 # offers: the country's (Markets locales, in Markets order), signed out (the phone's
 # region, else the first live country) and signed in (the kitchen's country).
 # Reads only. Throwaway stack only (.github/workflows/app-screens.yml).
@@ -9,7 +9,7 @@ appId: com.bhojango.partner
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Sign in to your kitchen"
+    visible: "Sign in to your restaurant"
     timeout: 120000
 - scrollUntilVisible:
     element:
@@ -37,7 +37,7 @@ appId: com.bhojango.partner
 - runFlow: ../sign-in.yaml
 - runFlow:
     when:
-      visible: "Which kitchen is this tablet for?"
+      visible: "Which restaurant is this tablet for?"
     commands:
       - tapOn: "Spice Route Kitchen"
 - extendedWaitUntil:
@@ -57,7 +57,7 @@ appId: com.bhojango.partner
     id: "language-es"
 # R21: no customer-only note ("Country is separate: prices and kitchens follow your address.").
 - assertNotVisible:
-    text: ".*kitchens follow your address.*"
+    text: ".*restaurants follow your address.*"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-partner-language

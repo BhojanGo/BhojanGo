@@ -55,7 +55,7 @@ appId: com.bhojango.rider
     id: "language-en"
 # R21: no customer-only note ("Country is separate: prices and kitchens follow your address.").
 - assertNotVisible:
-    text: ".*kitchens follow your address.*"
+    text: ".*restaurants follow your address.*"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-rider-language

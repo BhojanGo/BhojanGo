@@ -11,8 +11,8 @@ appId: com.bhojango.app
 - tapOn: "Dosa"
 - assertVisible: "Dosa"
 - scrollUntilVisible:
-    element: "(?i)kitchen's treat"
-- assertVisible: "(?i)kitchen's treat"
+    element: "(?i)restaurant's treat"
+- assertVisible: "(?i)restaurant's treat"
 - scrollUntilVisible:
     element: "Open the customise sheet"
 - tapOn: "Open the customise sheet"

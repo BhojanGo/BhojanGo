@@ -135,7 +135,7 @@ with sync_playwright() as p:
             # Setup, as in e2e_web.py (same waits).
             expect(chat.get_by_role("button", name="Message")).to_be_visible(timeout=20000)
             chat.get_by_role("button", name="Message").click()
-            expect(chat.get_by_text("I'm at the kitchen, waiting for your order.")).to_be_visible(timeout=20000)
+            expect(chat.get_by_text("I'm at the restaurant, waiting for your order.")).to_be_visible(timeout=20000)
             chat.get_by_label("Write a short message").fill("Gate 2, my number is 98480 22334")
             chat.get_by_role("button", name="Send").click()
             expect(chat.get_by_text("Gate 2, my number is •••")).to_be_visible(timeout=10000)

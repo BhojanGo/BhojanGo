@@ -1,4 +1,4 @@
-# R9: BhojanGo Kitchen's sign-in when the API can't be reached. Run it with the app's API pointed at an
+# R9: BhojanGo Restaurant's sign-in when the API can't be reached. Run it with the app's API pointed at an
 # address nothing answers on (apps/partner/.env.local: EXPO_PUBLIC_CORE_URL=http://10.0.2.2:9,
 # then restart Metro with -c). Not part of the normal runs (tools/railway/maestro-qa.sh skips
 # offline-* flows unless ONLY names them): with the API up there is no error to see.

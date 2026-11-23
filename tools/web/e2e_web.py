@@ -564,14 +564,15 @@ with sync_playwright() as p:
     check("live city page: title, kitchens, a real bill, ItemList and canonical", lambda: (
         expect(page).to_have_title("Food delivery in Hyderabad · BhojanGo"),
         expect(page.get_by_role("heading", name="Food delivery in Hyderabad", level=1)).to_be_visible(),
-        expect(page.get_by_role("region", name="Kitchens in Hyderabad").get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
+        expect(page.get_by_role("region", name="Restaurants in Hyderabad").get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
         # a real recent order's bill, or a typical one on a fresh database
         expect(page.get_by_text(re.compile(r"^A (real|typical) Hyderabad bill$"))).to_be_visible(),
         _assert(any(json.loads(s).get("@type") == "ItemList" for s in page.locator('script[type="application/ld+json"]').all_inner_texts()), "no ItemList"),
         expect(page.locator('link[rel="canonical"]')).to_have_attribute("href", f"{SITE}{hyd['path']}")))
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
-        expect(page.get_by_text(re.compile(r"₹25\.00 up to 3 km; ₹35\.00 up to 6 km; ₹50\.00 up to 10 km"))).to_be_attached(),
+        # R30: the delivery fee is base + per km, all of it to the delivery partner
+        expect(page.get_by_text(re.compile(r"The delivery fee is ₹20\.00 plus ₹6\.00 per km from the restaurant to you, and all of it goes to your delivery partner"))).to_be_attached(),
         # R29 fee model v2: the platform fee replaced the service fee
         expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹15\.00\) goes to BhojanGo"))).to_be_attached(),
         expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))

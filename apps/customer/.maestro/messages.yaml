@@ -18,7 +18,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "chat-open"
 - extendedWaitUntil:
-    visible: "I'm at the kitchen, waiting for your order."
+    visible: "I'm at the restaurant, waiting for your order."
     timeout: 15000
 - assertVisible: "Your number stays private.*"
 - tapOn: "Please ring the bell."

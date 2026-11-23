@@ -524,7 +524,7 @@ RULES = [
     # 194-O on kitchen payouts. Values to confirm with a CA; admin says so until ca_confirmed.
     ("business", "commission_tax", None, "GST on commission", "country", "IN",
      {"label": "GST on commission", "rate_percent": 18, "ca_confirmed": False}),
-    ("business", "payout_tds", None, "TDS on kitchen payouts (194-O)", "country", "IN",
+    ("business", "payout_tds", None, "TDS on restaurant payouts (194-O)", "country", "IN",
      {"label": "TDS (section 194-O)", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
     # R29 fee model v2: commission defaults to 0%; the customer pays a platform fee instead.
     ("commission", "percent", None, "Restaurant commission", "country", "IN", {"percent": 0}),

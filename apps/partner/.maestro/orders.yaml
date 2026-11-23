@@ -4,7 +4,7 @@ appId: com.bhojango.partner
 ---
 - runFlow: sign-in.yaml
 - extendedWaitUntil:
-    visible: "Which kitchen is this tablet for?"
+    visible: "Which restaurant is this tablet for?"
     timeout: 30000
 - takeScreenshot: docs/screenshots/partner/02-kitchens
 - tapOn: "Spice Route Kitchen"
