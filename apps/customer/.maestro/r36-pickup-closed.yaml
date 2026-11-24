@@ -1,0 +1,79 @@
+# R36: pickup only and closed. From Old City, Spice Route Kitchen is too far to deliver but takes pickup:
+# the card says "Pickup only"; its menu says "Too far to deliver · Pickup available" with the switch locked to
+# Pickup and the adds on. Then Charminar Chai House is closed for the day (scripts/close-kitchen.js): its card
+# says Closed, its menu "Closed · opens …", every add is off, and the dishes are still there to read.
+appId: com.bhojango.app
+---
+- setLocation:
+    latitude: 17.3620
+    longitude: 78.4750
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-spice-route-kitchen-madhapur"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 50
+- assertVisible:
+    id: "pickup-only"
+    text: "Pickup only"
+- takeScreenshot: docs/screenshots/customer/r36-pickup-only-card
+- tapOn:
+    id: "kitchen-card-spice-route-kitchen-madhapur"
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-banner-pickup"
+    timeout: 20000
+- assertVisible: "Too far to deliver · Pickup available"
+- assertVisible:
+    id: "how-pickup"
+    checked: true
+- assertVisible:
+    id: "how-delivery"
+    enabled: false
+- assertVisible:
+    id: "dish-add-.*"
+- takeScreenshot: docs/screenshots/customer/r36-pickup-only-menu
+- back
+- runScript:
+    file: scripts/close-kitchen.js
+    env:
+      SLUG: charminar-chai-house-old-city
+      PARTNER: partner.hyd@example.com
+      UTC_OFFSET_MIN: "330"
+      STATE: closed
+- tapOn:
+    id: "tab-search"
+- tapOn:
+    id: "search-input"
+- inputText: "Charminar"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-card-charminar-chai-house-old-city"
+    timeout: 20000
+- assertVisible:
+    id: "closed"
+    text: "Closed.*"
+- tapOn:
+    id: "kitchen-card-charminar-chai-house-old-city"
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-banner-closed"
+    timeout: 20000
+- assertVisible:
+    id: "dish-add-blocked"
+- assertVisible:
+    id: "dish-blocked-reason"
+- takeScreenshot: docs/screenshots/customer/r36-closed-menu
+- runScript:
+    file: scripts/close-kitchen.js
+    env:
+      SLUG: charminar-chai-house-old-city
+      PARTNER: partner.hyd@example.com
+      UTC_OFFSET_MIN: "330"
+      STATE: open

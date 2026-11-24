@@ -34,8 +34,9 @@ def test_invoice_number_is_deterministic_and_dated_in_india_time() -> None:
 def test_country_and_money() -> None:
     assert R.country_of("IN-TG-HYD", "INR") == "IN" and R.country_of("US-TX-AUS", "USD") == "US"
     assert R.country_of(None, "INR") == "IN" and R.country_of(None, "USD") == "US"
-    assert R.money(Decimal("617.389"), "INR") == "₹617.39"
-    assert R.money("124050", "INR") == "₹1,24,050.00"
+    # R36: the customer's receipt shows rupees whole (half up, display only); dollars keep cents
+    assert R.money(Decimal("617.389"), "INR") == "₹617"
+    assert R.money("124050", "INR") == "₹1,24,050"
     assert R.money(-12.5, "USD") == "−$12.50"  # the minus sign the apps print
     assert R.money("1240.5", "AED") == "AED 1,240.50"  # a currency with no symbol here: its code
     assert R.country_of("GB-ENG-LON", "GBP") == "GB"  # from Markets' city code, no country list
@@ -53,11 +54,11 @@ def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
          "detail": {"rate_percent": "18.0", "included": "4.58"}},
     ]
     rows = R.bill_rows(lines, "INR")
-    assert rows[0] == ("Food", "₹560.00")
-    assert rows[1] == ("Weekend 10% (paid for by the restaurant)", "−₹56.00")
-    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "−₹30.00")
-    assert rows[4] == ("GST on food @ 5% on ₹504.00 (collected by BhojanGo)", "₹25.20")
-    assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "included")
+    assert rows[0] == ("Food", "₹560")
+    assert rows[1] == ("Weekend 10% (paid for by the restaurant)", "−₹56")
+    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "−₹30")
+    assert rows[4] == ("GST on food @ 5% on ₹504 (collected by BhojanGo)", "₹25")
+    assert rows[5] == ("VAT (included in prices) @ 18%: ₹5", "included")
 
 
 def receipt(country: str = "IN") -> R.Receipt:
@@ -81,7 +82,7 @@ def test_india_gets_a_tax_invoice_with_the_licence_and_gst() -> None:
     data = R.render(receipt("IN"))
     assert data.startswith(b"%PDF-")
     text = pdf_text(data)
-    for want in ("Tax invoice", "BG-IN-202611-1A2B3C4D", "₹617.39", "13622012000123", "36AABCS1429B1Z5",
+    for want in ("Tax invoice", "BG-IN-202611-1A2B3C4D", "₹617", "13622012000123", "36AABCS1429B1Z5",
                  "GST @ 5%", "Priya Sharma", "Flat 302", "Veg Dum Biryani"):
         assert want in text, want
 
@@ -108,7 +109,7 @@ def test_names_print_in_their_own_script_with_the_rupee_sign() -> None:
                {"name": "தோசை", "quantity": 1, "unit_price": 90.0}]
     data = R.render(r)
     text = pdf_text(data)
-    for want in ("శ్రీనివాస్ Rao", "प्रिया की रसोई", "₹617.39", "₹120.00", "Tax invoice"):
+    for want in ("శ్రీనివాస్ Rao", "प्रिया की रसोई", "₹617", "₹120", "Tax invoice"):
         assert want in text, (want, text)
     for script in ("NotoSans", "NotoSansTelugu", "NotoSansDevanagari", "NotoSansKannada", "NotoSansBengali", "NotoSansTamil"):
         assert f"/BaseFont /{script}".encode() in data or f"+{script}".encode() in data, script  # embedded, subset
@@ -161,7 +162,7 @@ def test_a_cancelled_order_refunded_in_full_shows_the_full_refund() -> None:
     r.cancelled = True
     r.refunds = [{"amount": "617.39", "kind": "full", "reason": "full", "items": []}]
     text = pdf_text(R.render(r))
-    for want in ("Refunded ₹617.39 · order cancelled", "−₹617.39", "Total paid", "₹0.00"):
+    for want in ("Refunded ₹617 · order cancelled", "−₹617", "Total paid", "₹0"):
         assert want in text, want
 
 

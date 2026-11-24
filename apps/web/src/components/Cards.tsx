@@ -150,8 +150,10 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
 
 /** R36: the card's third line: minutes and fee, pickup only, closed until when, or too far. */
 export function cardStatus(k: Pick<Kitchen, "open_now" | "deliverable"> & { pickup_only?: boolean }): "open" | "pickup_only" | "closed" | "too_far" {
+  // too far and no pickup can never be ordered here, open or not; a pickup-only kitchen that's closed says when it opens
+  if (k.deliverable === false && !k.pickup_only) return "too_far";
   if (!k.open_now) return "closed";
-  if (k.deliverable === false) return k.pickup_only ? "pickup_only" : "too_far";
+  if (k.deliverable === false) return "pickup_only";
   return "open";
 }
 

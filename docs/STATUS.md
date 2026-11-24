@@ -576,6 +576,30 @@ No migration.
   to deliver" on the website and nothing at all on the app's menu); the website's search page at phone width is
   wider than the screen (515 px at 390); a cart under the area's minimum shows the minimum note instead of the bill.
 
+## List and menu redesign (round 36, 2026-11-24)
+
+Migration `0050_no_zone_minimum` (data only: every zone's minimum order 0; Boise Bowl Co.'s own minimum $15).
+
+- **Restaurant list (app and website).** Compact cards: a wide 2.4:1 photo (heart and offer on it), the full
+  name on up to two lines (the rating moved off its line), "★4.4 (9) · Thai · 0.9 mi", then "25–40 min · $3.50
+  delivery", "Pickup only" or "Closed · opens 11:00 am". Order: open and deliverable, pickup only (too far to
+  deliver, takes pickup), closed, then too far without pickup. The website's city page now uses the address's
+  facts (can it deliver, pickup only) and the same order. "Free delivery" filter only where a restaurant funds a
+  free-delivery offer.
+- **Unique photos.** 8 new credited photos (CC0, CC BY, CC BY-SA; /credits); every kitchen in a city has its own
+  cover, one of its own dishes. `tools/seed/demo_test.py` fails on a missing or shared cover.
+- **Menu.** Under the name: rating · distance · time, then Delivery / Pickup ("$3.50 delivery" / "Pickup · 5%
+  fee"; the cart keeps the choice). Every dish has a "+" (on its photo's corner, or round), "− 1 +" once added.
+  Too far but pickup: "Too far to deliver · Pickup available", locked to Pickup. Too far, no pickup, or closed: a
+  banner, adds off, the menu still readable.
+- **India in whole rupees** for customers: app, website, receipts, customer messages (half up, display only;
+  amounts and charges stay exact). Restaurant and delivery-partner pages and statements keep paise.
+- **Search** (`/discover/search`): restaurants by name, cuisine or tag, then dishes by name with their restaurant,
+  price and add. The cuisine circles hide once you type.
+- **Minimums.** No platform (zone) minimum. A restaurant's own minimum shows the whole bill, "Add $0.50 more to
+  order from <restaurant>" and a progress bar; Pay is off and the API refuses the order (BELOW_MINIMUM) until met.
+- **Phones.** No page is wider than the screen at 360, 390 and 414 px (Playwright).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

@@ -27,7 +27,8 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from core_api.modules.finance.service.statements import NEVER_FROM_BANK, below_zero_text
-from core_api.modules.orders.service.receipt import BASE_FONT, _address_lines, _fonts, money
+from core_api.modules.orders.service.receipt import BASE_FONT, _address_lines, _fonts
+from shared.money import format_money as money  # R36: the restaurant's invoice keeps paise (the receipt shows whole rupees)
 from shared.texts import invoice_orders_line
 
 

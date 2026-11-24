@@ -1,0 +1,37 @@
+{
+ "suite": "web",
+ "tags": [
+  "wcag2a",
+  "wcag2aa",
+  "wcag21a",
+  "wcag21aa",
+  "wcag22aa",
+  "best-practice"
+ ],
+ "counts": {
+  "critical": 0,
+  "serious": 0,
+  "moderate": 0,
+  "minor": 0
+ },
+ "pages": {
+  "landing": [],
+  "cities": [],
+  "city": [],
+  "kitchen": [],
+  "signin-email": [],
+  "profile": [],
+  "signin-phone": [],
+  "checkout": [],
+  "tracking": [],
+  "account-orders": [],
+  "partner": [],
+  "terms": [],
+  "privacy": [],
+  "deliver-in-tg-hyd": [],
+  "deliver-us-id-boi": [],
+  "help": [],
+  "help-article": [],
+  "404": []
+ }
+}

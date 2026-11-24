@@ -42,8 +42,10 @@ export const CARD_PHOTO_RATIO = 2.4;
 /** R36: what the card's third line says: minutes and fee, pickup only, closed until when, or too far. */
 export function cardStatus(k: Pick<Kitchen, "open_now" | "deliverable" | "closed_for_now" | "not_taking_orders" | "opens_at"> & { pickup_only?: boolean }):
   "open" | "pickup_only" | "closed" | "too_far" {
+  // too far and no pickup can never be ordered here, open or not; a pickup-only kitchen that's closed says when it opens
+  if (k.deliverable === false && !k.pickup_only) return "too_far";
   if (!k.open_now) return "closed";
-  if (k.deliverable === false) return k.pickup_only ? "pickup_only" : "too_far";
+  if (k.deliverable === false) return "pickup_only";
   return "open";
 }
 
