@@ -350,7 +350,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   return (
     <div ref={shell} data-testid="checkout-shell" className="max-md:flex max-md:flex-col" style={fitHeight ? { height: fitHeight } : undefined}>
-    <div data-testid="checkout-scroll" className="container-page pb-6 pt-4 md:pb-20 md:pt-6 max-md:min-h-0 max-md:flex-1 max-md:overflow-y-auto">
+    <div data-testid="checkout-scroll" className="container-page relative pb-6 pt-4 md:pb-20 md:pt-6 max-md:min-h-0 max-md:flex-1 max-md:overflow-y-auto">
       <div className="mb-4 flex items-center justify-between text-body">
         <Link href={kitchenPath} className="inline-flex items-center gap-2 font-bold text-[#0B5D66]">
           <span aria-hidden="true">←</span> {t("checkout.back_to_menu")}

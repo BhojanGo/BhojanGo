@@ -1891,6 +1891,8 @@ with sync_playwright() as p:
       while (walker.nextNode()) {
         const n = walker.currentNode;
         if (!n.textContent.trim() || !n.parentElement || !n.parentElement.offsetParent) continue;
+        const own = n.parentElement.getBoundingClientRect();
+        if (own.width <= 1 || own.height <= 1) continue;  // text for screen readers only (sr-only)
         const range = document.createRange(); range.selectNodeContents(n);
         for (const q of range.getClientRects()) if (q.height > 0) last = Math.max(last, q.bottom);
       }
@@ -1970,10 +1972,14 @@ with sync_playwright() as p:
             pg.wait_for_timeout(300)
 
             def bottom(pg=pg) -> None:  # type: ignore[no-untyped-def]
-                pg.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
-                pg.evaluate("(() => { const b = document.querySelector(\"[data-testid='checkout-scroll']\"); b.scrollTop = b.scrollHeight })()")
-                pg.wait_for_timeout(100)
-                m = pg.evaluate(LAST_BOTTOM)
+                m: dict = {}
+                for _ in range(5):  # the box takes its height a frame after a scroll or a resize: measure once it has
+                    pg.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+                    pg.evaluate("(() => { const b = document.querySelector(\"[data-testid='checkout-scroll']\"); b.scrollTop = b.scrollHeight })()")
+                    pg.wait_for_timeout(300)
+                    m = pg.evaluate(LAST_BOTTOM)
+                    if m["last"] <= m["payTop"] + 0.5:
+                        break
                 _assert(m["last"] <= m["payTop"] + 0.5, m)
             check(f"R39 checkout {market} {width} px: scrolled to the bottom, the last content ends above the Pay button", bottom)
             check(f"R39 checkout {market} {width} px: no text behind the Pay button at any scroll position",
