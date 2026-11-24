@@ -84,47 +84,61 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
   feeFrom?: number | null;
 }) {
   const fee = k.delivery_fee != null ? Number(k.delivery_fee) : null;
-  const meta = [...k.cuisine_types.slice(0, 2).map((c) => cuisineName(t, c)), k.distance != null ? t(distanceUnit === "mi" ? "common.mi" : "common.km", { n: k.distance }) : k.area].filter(Boolean).join(" · ");
+  // R36: "★4.4 (9) · Thai · 0.9 mi" under the name (the rating never shares the name's line)
+  const meta = [k.cuisine_types[0] ? cuisineName(t, k.cuisine_types[0]) : null,
+    k.distance != null ? t(distanceUnit === "mi" ? "common.mi" : "common.km", { n: k.distance }) : k.area].filter(Boolean).join(" · ");
+  const status = cardStatus(k);
   return (
-    <div className="relative">
+    <div className="relative" data-testid={`kitchen-card-${k.slug}`} data-status={status}>
       <Link href={k.path} className="block text-[#111418] hover:text-[#111418]">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[20px]">
+        {/* R36: a wide photo (2.4:1), so about three kitchens show on a phone screen */}
+        <div className="relative aspect-[12/5] overflow-hidden rounded-[18px]" data-testid="card-photo">
           {/* photo_url: its cover, else a dish of its own, else its cuisine's photo; else the branded tile */}
-          <KitchenPhoto src={photo(kitchenPhoto(k), 800)} className="h-full w-full rounded-[20px]" />
+          <KitchenPhoto src={photo(kitchenPhoto(k), 800)} className="h-full w-full rounded-[18px]" />
           {k.offer && (
             <span className="absolute left-3 top-3 flex h-7 items-center rounded-full bg-[#111418] px-[10px] text-caption text-white">
               {offerBadge(k.offer, t, currency, formatLocale)}
             </span>
           )}
-          {(!k.open_now || k.deliverable === false) && <span className="absolute inset-0 bg-white/40" aria-hidden="true" />}
+          {status !== "open" && <span className="absolute inset-0 bg-white/40" aria-hidden="true" />}
         </div>
-        <div className="mt-3 flex items-baseline justify-between gap-2">
-          <b className="truncate text-h3">{k.name}</b>
+        <b className="mt-[10px] line-clamp-2 break-words text-h3" data-testid="card-name">{k.name}</b>
+        <div className="mt-1 flex min-w-0 items-baseline gap-[6px] text-small">
           <RatingBadge x={k} t={t} formatLocale={formatLocale} />
+          {meta && <span className="min-w-0 truncate text-muted">· {meta}</span>}
         </div>
-        <div className="mt-1 truncate text-small text-muted">{meta}</div>
-        <div className="mt-1 text-small tabular-nums">
-          <b>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</b>
-          {fee !== null && (
+        <div className="mt-[2px] text-small tabular-nums" data-testid="card-status">
+          {status === "open" ? (
             <>
-              {" · "}
-              {k.free_delivery || fee === 0 ? (
-                <b className="text-[#0B5D66]">{t("common.free_delivery")}</b>
-              ) : (
-                t("common.delivery_fee", { fee: money(fee, currency, formatLocale) })
+              <b>{t("common.minutes", { min: k.eta_min, max: k.eta_max })}</b>
+              {fee !== null && (
+                <>
+                  {" · "}
+                  {k.free_delivery || fee === 0 ? (
+                    <b className="text-[#0B5D66]">{t("common.free_delivery")}</b>
+                  ) : (
+                    t("common.delivery_fee", { fee: money(fee, currency, formatLocale) })
+                  )}
+                </>
+              )}
+              {fee === null && feeFrom != null && (
+                <>
+                  {" · "}
+                  {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale) })}
+                </>
               )}
             </>
+          ) : status === "pickup_only" ? (
+            <b className="text-[#0B5D66]" data-testid="pickup-only">{t("common.pickup_only")}</b>
+          ) : status === "too_far" ? (
+            <span className="text-muted" data-testid="too-far">{t("common.too_far")}</span>
+          ) : k.closed_for_now ? (
+            <span className="text-muted" data-testid="closed-for-now">{t("kitchen.closed_for_now")}</span>
+          ) : k.not_taking_orders ? (
+            <span className="text-muted" data-testid="not-taking-orders">{t("kitchen.not_taking_orders")}</span>
+          ) : (
+            <span className="text-muted" data-testid="closed">{k.opens_at ? closedOpens(t, k.opens_at, formatLocale, timeZone, language) : t("common.closed")}</span>
           )}
-          {fee === null && feeFrom != null && (
-            <>
-              {" · "}
-              {feeFrom === 0 ? <b className="text-[#0B5D66]">{t("common.free_delivery")}</b> : t("common.delivery_from", { fee: money(feeFrom, currency, formatLocale) })}
-            </>
-          )}
-          {k.deliverable === false && <span className="text-muted" data-testid="too-far"> · {t("common.too_far")}</span>}
-          {!k.open_now && k.closed_for_now && <span className="text-muted" data-testid="closed-for-now"> · {t("kitchen.closed_for_now")}</span>}
-          {!k.open_now && k.not_taking_orders && <span className="text-muted" data-testid="not-taking-orders"> · {t("kitchen.not_taking_orders")}</span>}
-          {!k.open_now && !k.closed_for_now && k.opens_at && <span className="text-muted"> · {closedOpens(t, k.opens_at, formatLocale, timeZone, language)}</span>}
         </div>
       </Link>
       <div className="absolute right-3 top-3">
@@ -132,6 +146,15 @@ export function KitchenCard({ k, t, currency, formatLocale, distanceUnit, feeFro
       </div>
     </div>
   );
+}
+
+/** R36: the card's third line: minutes and fee, pickup only, closed until when, or too far. */
+export function cardStatus(k: Pick<Kitchen, "open_now" | "deliverable"> & { pickup_only?: boolean }): "open" | "pickup_only" | "closed" | "too_far" {
+  // too far and no pickup can never be ordered here, open or not; a pickup-only kitchen that's closed says when it opens
+  if (k.deliverable === false && !k.pickup_only) return "too_far";
+  if (!k.open_now) return "closed";
+  if (k.deliverable === false) return "pickup_only";
+  return "open";
 }
 
 const OFFER_TINTS = ["#F6E7CC", "#DDEBEC", "#F1E3E1"];

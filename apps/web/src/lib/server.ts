@@ -77,6 +77,14 @@ export async function discover(where: { lat: number; lng: number } | { city: str
   return get<Discover>(`/discover?${q}`, 30);
 }
 
+/** R36: restaurants by name, cuisine or tag, and dishes by name, for an address or a whole city. */
+export type SearchHits = CoreSchemas["SearchOut"];
+export type DishHit = CoreSchemas["DishHit"];
+export async function search(q: string, where: { lat: number; lng: number } | { city: string }): Promise<SearchHits | null> {
+  const at = "city" in where ? `city=${encodeURIComponent(where.city)}` : `lat=${where.lat}&lng=${where.lng}`;
+  return get<SearchHits>(`/discover/search?q=${encodeURIComponent(q)}&${at}`, 30);
+}
+
 export async function restaurant(slug: string): Promise<Restaurant | null> {
   return get<Restaurant>(`/restaurants/by-slug/${encodeURIComponent(slug)}`);
 }

@@ -65,6 +65,16 @@ def format_money(amount: Decimal | float | int | str, currency: str, locale: str
     return f"{sign}{symbol}{body}" if symbol else f"{sign}{currency} {body}"
 
 
+def customer_money(amount: Decimal | float | int | str, currency: str, locale: str | None = None) -> str:
+    """R36: money as a customer reads it. India shows whole rupees (₹289, never ₹289.40): rounded half
+    up for display only, the amount itself (and what's charged) stays exact. Other currencies keep cents.
+    Restaurants' and delivery partners' statements keep ``format_money`` (exact paise)."""
+    if currency == "INR":
+        whole = Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        return format_money(whole, currency, locale, whole=True)
+    return format_money(amount, currency, locale)
+
+
 def paid_after_refunds(total: object, refunds: list[dict]) -> tuple[Decimal, Decimal]:
     """(refunded, paid): what came back on an order and what the customer paid after it (R27: the
     receipt's "Total paid"). Never below zero; ``refunds`` [{"amount": major units}]."""

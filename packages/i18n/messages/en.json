@@ -63,7 +63,9 @@
       "one": "{count} second",
       "other": "{count} seconds"
     },
-    "too_far": "Too far to deliver"
+    "too_far": "Too far to deliver",
+    "pickup_only": "Pickup only",
+    "closed": "Closed"
   },
   "header": {
     "where_we_deliver": "Where we deliver",
@@ -399,7 +401,9 @@
     "bill_when_open": "The whole bill shows here when the restaurant is open.",
     "deliveries_start": "Deliveries start {time}",
     "deliveries_start_day": "Deliveries start {day} {time}",
-    "too_far_note": "This restaurant is too far from your address to deliver. Pick a restaurant nearer to you, or change your address."
+    "too_far_note": "This restaurant is too far from your address to deliver. Pick a restaurant nearer to you, or change your address.",
+    "too_far_pickup": "Too far to deliver · Pickup available",
+    "pickup_fee": "Pickup · {pct}% fee"
   },
   "checkout": {
     "title": "Checkout",
@@ -487,7 +491,9 @@
     "pickup_at": "Pick up at",
     "open_in_maps": "Open in Maps",
     "pickup_ready": "Ready around {time}",
-    "pickup_note": "No delivery fee. When it's ready you get a pickup code to show at the counter."
+    "pickup_note": "No delivery fee. When it's ready you get a pickup code to show at the counter.",
+    "add_more": "Add {amount} more to order from {restaurant}",
+    "minimum_is": "Minimum order {amount}"
   },
   "track": {
     "title": "Your order",
@@ -1058,7 +1064,9 @@
       "failed": "Check the number and try again."
     },
     "search": {
-      "no_match": "Nothing matches “{q}” nearby."
+      "no_match": "Nothing matches “{q}” nearby.",
+      "restaurants": "Restaurants",
+      "dishes": "Dishes"
     },
     "item": {
       "customise": "Customise {name}"

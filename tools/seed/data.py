@@ -215,7 +215,7 @@ MARKETS = [
                 "rating": 4.7,
                 "eta": (20, 30),
                 "delivery_fee": "2.99",
-                "min_order": "12.00",
+                "min_order": "15.00",  # R36: Boise Bowl's own minimum ($14.50 Teriyaki bowl: "Add $0.50 more")
                 "tags": ["healthy"],
                 "menu": {
                     "Bowls": [
@@ -441,14 +441,14 @@ COUNTRIES = [
                         "code": "IN-TG-HYD", "name": "Hyderabad", "timezone": "Asia/Kolkata", "status": "live", "center": (17.4126, 78.4071),
                         "service_hours": {"open": "07:00", "close": "23:30"}, "settings": {},
                         "zones": [
-                            ("Hitech City", (17.440, 78.370, 17.460, 78.388), "149", "live", "#0B5D66"),
-                            ("Madhapur", (17.440, 78.388, 17.460, 78.405), "99", "live", "#5BA3AA"),
-                            ("Kondapur", (17.460, 78.350, 17.475, 78.370), "99", "live", "#2E7D86"),
-                            ("Gachibowli", (17.415, 78.335, 17.455, 78.370), "99", "live", "#D4932A"),
-                            ("Jubilee Hills", (17.405, 78.395, 17.440, 78.445), "149", "live", "#7FB7BD"),
-                            ("Tolichowki", (17.385, 78.400, 17.405, 78.430), "99", "live", "#B5762A"),
-                            ("Old City", (17.350, 78.460, 17.375, 78.490), "99", "live", "#8C6A2E"),
-                            ("Kokapet", (17.390, 78.320, 17.410, 78.345), "149", "draft", "#4C5A5E"),
+                            ("Hitech City", (17.440, 78.370, 17.460, 78.388), "0", "live", "#0B5D66"),
+                            ("Madhapur", (17.440, 78.388, 17.460, 78.405), "0", "live", "#5BA3AA"),
+                            ("Kondapur", (17.460, 78.350, 17.475, 78.370), "0", "live", "#2E7D86"),
+                            ("Gachibowli", (17.415, 78.335, 17.455, 78.370), "0", "live", "#D4932A"),
+                            ("Jubilee Hills", (17.405, 78.395, 17.440, 78.445), "0", "live", "#7FB7BD"),
+                            ("Tolichowki", (17.385, 78.400, 17.405, 78.430), "0", "live", "#B5762A"),
+                            ("Old City", (17.350, 78.460, 17.375, 78.490), "0", "live", "#8C6A2E"),
+                            ("Kokapet", (17.390, 78.320, 17.410, 78.345), "0", "draft", "#4C5A5E"),
                         ],
                     },
                     {"code": "IN-TG-WGL", "name": "Warangal", "timezone": "Asia/Kolkata", "status": "draft", "center": (17.9689, 79.5941),
@@ -490,11 +490,11 @@ COUNTRIES = [
                         "code": "US-ID-BOI", "name": "Boise", "timezone": "America/Boise", "status": "live", "center": (43.6150, -116.2023),
                         "service_hours": {"open": "08:00", "close": "23:00"}, "settings": {},
                         "zones": [
-                            ("Downtown", (43.605, -116.215, 43.625, -116.185), "15", "live", "#0B5D66"),
-                            ("North End", (43.625, -116.225, 43.645, -116.195), "15", "live", "#5BA3AA"),
-                            ("Boise Bench", (43.580, -116.250, 43.605, -116.215), "15", "live", "#D4932A"),
-                            ("West Boise", (43.598, -116.290, 43.620, -116.250), "20", "live", "#2E7D86"),
-                            ("Boise State", (43.590, -116.215, 43.605, -116.185), "15", "live", "#7FB7BD"),
+                            ("Downtown", (43.605, -116.215, 43.625, -116.185), "0", "live", "#0B5D66"),
+                            ("North End", (43.625, -116.225, 43.645, -116.195), "0", "live", "#5BA3AA"),
+                            ("Boise Bench", (43.580, -116.250, 43.605, -116.215), "0", "live", "#D4932A"),
+                            ("West Boise", (43.598, -116.290, 43.620, -116.250), "0", "live", "#2E7D86"),
+                            ("Boise State", (43.590, -116.215, 43.605, -116.185), "0", "live", "#7FB7BD"),
                         ],
                     },
                     # Coming soon: listed on the website's directory and collects "Notify me" sign-ups.
@@ -660,6 +660,15 @@ TIERS = {"spice-route-kitchen-madhapur": "B", "hitech-thali-hitec-city": "A", "b
 # image_url. A kitchen's cover is the photo of one of its own dishes, and no two
 # kitchens in a city share one (covers()); a kitchen with no such dish has none.
 PHOTO_DISHES = {
+    # R36: the 8 kitchens that had no cover of their own (each is one of their dishes)
+    "andhra-meals": ["Andhra Meals"],
+    "cheese-quesadilla": ["Cheese Quesadilla"],
+    "chilli-chicken": ["Chilli Chicken"],
+    "dan-dan-noodles": ["Dan Dan Noodles"],
+    "falafel-plate": ["Falafel Plate"],
+    "kerala-chicken-roast": ["Kerala Chicken Roast"],
+    "loaded-baked-potato": ["Loaded Baked Potato"],
+    "pad-thai": ["Pad Thai"],
     "bbq-ribs": ["BBQ Ribs", "Barbecue Ribs"],
     "butter-chicken": ["Butter Chicken", "Chicken Makhani", "Murgh Makhani"],
     "caesar-salad": ["Caesar Salad"],

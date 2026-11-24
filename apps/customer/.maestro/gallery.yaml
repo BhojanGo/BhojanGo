@@ -7,7 +7,7 @@ appId: com.bhojango.app
     visible: "Design system"
     timeout: 30000
 # Amounts are in the current country's currency (Markets), so match the number only.
-- assertVisible: 'Pay .*596\.92'
+- assertVisible: 'Pay .*(596\.92|597)'  # R36: rupees are whole (597), other currencies keep cents
 - tapOn: "Dosa"
 - assertVisible: "Dosa"
 - scrollUntilVisible:

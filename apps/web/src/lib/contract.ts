@@ -13,6 +13,20 @@ export type RatingDisplay = { new: true } | { new: false; stars: number; count: 
 export const RATINGS_SHOWN_FROM = 5;
 
 /** The API's rating_display, else the same rule over rating / review_count. */
+/** R36: the list's order: open and deliverable first, then pickup only, then closed; too far without pickup last
+ *  (nearest first within each). The API sends this order; a page that merges two lists sorts again. */
+export function listGroup(k: { open_now: boolean; deliverable?: boolean; pickup_only?: boolean }): number {
+  const deliverable = k.deliverable !== false;
+  if (k.open_now && deliverable) return 0;
+  if (k.open_now && k.pickup_only) return 1;
+  if (deliverable || k.pickup_only) return 2;
+  return 3;
+}
+
+export function byListOrder<K extends { open_now: boolean; deliverable?: boolean; pickup_only?: boolean; distance?: number | null; name: string }>(a: K, b: K): number {
+  return listGroup(a) - listGroup(b) || (a.distance ?? 0) - (b.distance ?? 0) || a.name.localeCompare(b.name);
+}
+
 export function ratingOf(x: { rating_display?: unknown; rating?: number | string | null; review_count?: number | string | null }): RatingDisplay {
   const d = x.rating_display as Partial<{ new: boolean; stars: number; count: number }> | null | undefined;
   if (d && typeof d === "object") {

@@ -63,7 +63,9 @@
       "one": "{count} segundo",
       "other": "{count} segundos"
     },
-    "too_far": "Demasiado lejos para entregar"
+    "too_far": "Demasiado lejos para entregar",
+    "pickup_only": "Solo para recoger",
+    "closed": "Cerrado"
   },
   "header": {
     "where_we_deliver": "Dónde entregamos",
@@ -399,7 +401,9 @@
     "bill_when_open": "La cuenta completa aparece aquí cuando el restaurante abra.",
     "deliveries_start": "Las entregas empiezan a las {time}",
     "deliveries_start_day": "Las entregas empiezan el {day} a las {time}",
-    "too_far_note": "Este restaurante está demasiado lejos de tu dirección para entregar. Elige un restaurante más cercano o cambia tu dirección."
+    "too_far_note": "Este restaurante está demasiado lejos de tu dirección para entregar. Elige un restaurante más cercano o cambia tu dirección.",
+    "too_far_pickup": "Demasiado lejos para entregar · Puedes recogerlo",
+    "pickup_fee": "Recoger · {pct}% de tarifa"
   },
   "checkout": {
     "title": "Pagar",
@@ -487,7 +491,9 @@
     "pickup_at": "Recoge en",
     "open_in_maps": "Abrir en Mapas",
     "pickup_ready": "Listo hacia las {time}",
-    "pickup_note": "Sin tarifa de entrega. Cuando esté listo recibirás un código para mostrar en el mostrador."
+    "pickup_note": "Sin tarifa de entrega. Cuando esté listo recibirás un código para mostrar en el mostrador.",
+    "add_more": "Añade {amount} más para pedir en {restaurant}",
+    "minimum_is": "Pedido mínimo {amount}"
   },
   "track": {
     "title": "Tu pedido",
@@ -1058,7 +1064,9 @@
       "failed": "Revisa el número e inténtalo de nuevo."
     },
     "search": {
-      "no_match": "Nada coincide con “{q}” cerca."
+      "no_match": "Nada coincide con “{q}” cerca.",
+      "restaurants": "Restaurantes",
+      "dishes": "Platos"
     },
     "item": {
       "customise": "Personaliza {name}"

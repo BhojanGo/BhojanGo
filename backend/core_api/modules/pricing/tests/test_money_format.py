@@ -84,3 +84,29 @@ def test_no_hand_made_money_strings() -> None:
 ])
 def test_the_guard_catches(line: str) -> None:
     assert any(rx.search(line) for rx, _ in FORBIDDEN)
+
+
+# ── R36: what customers read. India in whole rupees, rounded half up for display only ──
+
+from shared.money import customer_money  # noqa: E402
+
+
+@pytest.mark.parametrize("amount, shown", [
+    ("289.00", "₹289"), ("289.40", "₹289"), ("289.50", "₹290"), ("289.49", "₹289"),
+    ("558.54", "₹559"), ("124050.50", "₹1,24,051"), ("0.49", "₹0"), ("-48.50", "−₹49"), ("-48.40", "−₹48"),
+])
+def test_india_whole_rupees(amount: str, shown: str) -> None:
+    assert customer_money(amount, "INR") == shown
+
+
+def test_other_currencies_keep_cents() -> None:
+    assert customer_money("14.50", "USD") == "$14.50"
+    assert customer_money("15", "USD") == "$15.00"
+
+
+def test_display_only_the_amount_is_unchanged() -> None:
+    from decimal import Decimal
+
+    amount = Decimal("558.54")
+    customer_money(amount, "INR")
+    assert amount == Decimal("558.54")

@@ -9,7 +9,7 @@ from httpx import AsyncClient
 from core_api.integration.test_orders_flow import login, new_order, pay
 from core_api.integration.test_payments_refunds import ADMIN, client, delivered_order  # noqa: F401 - fixture
 from core_api.modules.orders.tests.test_receipt import pdf_text
-from shared.money import format_money
+from shared.money import customer_money  # R36: the receipt shows rupees whole
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -54,8 +54,8 @@ async def test_a_partial_refund_is_on_the_receipt_and_off_the_kitchens_today(cli
     pdf = await client.get(f"/api/v1/orders/{order['id']}/receipt.pdf", headers=cust)
     assert pdf.status_code == 200, pdf.text
     text = pdf_text(pdf.content)
-    for want in (f"Refunded {format_money(back, 'INR')} · missing item (Veg Dum Biryani)", "Total paid",
-                 format_money(Decimal(bill["paid"]), "INR")):
+    for want in (f"Refunded {customer_money(back, 'INR')} · missing item (Veg Dum Biryani)", "Total paid",
+                 customer_money(Decimal(bill["paid"]), "INR")):
         assert want in text, want
 
 
@@ -73,8 +73,8 @@ async def test_a_cancelled_order_refunded_in_full_has_a_receipt_with_the_full_re
     pdf = await client.get(f"/api/v1/orders/{order['id']}/receipt.pdf", headers=cust)
     assert pdf.status_code == 200, pdf.text
     text = pdf_text(pdf.content)
-    assert f"Refunded {format_money(Decimal(bill['total']), 'INR')} · order cancelled" in text
-    assert "Total paid" in text and format_money(0, "INR") in text
+    assert f"Refunded {customer_money(Decimal(bill['total']), 'INR')} · order cancelled" in text
+    assert "Total paid" in text and customer_money(0, "INR") in text
 
 
 async def test_a_cancelled_order_never_paid_has_no_receipt(client: AsyncClient) -> None:  # noqa: F811

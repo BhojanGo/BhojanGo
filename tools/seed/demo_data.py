@@ -828,8 +828,8 @@ DEMO = {
     "hyd": {
         "city_code": "IN-TG-HYD",
         "zones": [
-            ("Kukatpally", (17.475, 78.385, 17.500, 78.420), "99", "live", "#3F8F96"),
-            ("Begumpet", (17.435, 78.445, 17.455, 78.475), "149", "live", "#A9772F"),
+            ("Kukatpally", (17.475, 78.385, 17.500, 78.420), "0", "live", "#3F8F96"),
+            ("Begumpet", (17.435, 78.445, 17.455, 78.475), "0", "live", "#A9772F"),
         ],
         "kitchens": HYD_KITCHENS,
         "fssai_base": 13626010000200,
@@ -855,8 +855,8 @@ DEMO = {
     "boi": {
         "city_code": "US-ID-BOI",
         "zones": [
-            ("East End", (43.600, -116.185, 43.625, -116.150), "15", "live", "#3F8F96"),
-            ("Southeast Boise", (43.555, -116.215, 43.590, -116.160), "15", "live", "#A9772F"),
+            ("East End", (43.600, -116.185, 43.625, -116.150), "0", "live", "#3F8F96"),
+            ("Southeast Boise", (43.555, -116.215, 43.590, -116.160), "0", "live", "#A9772F"),
         ],
         "kitchens": BOI_KITCHENS,
         "fssai_base": None,

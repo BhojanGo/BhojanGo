@@ -45,7 +45,7 @@ tags:
       id: "kitchen"
     timeout: 30000
 - assertVisible:
-    id: "kitchen-rating"
+    id: "kitchen-meta"  # R36: rating · distance · time under the name
 - takeScreenshot: docs/screenshots/customer/qa-02-kitchen
 - scrollUntilVisible:
     element:

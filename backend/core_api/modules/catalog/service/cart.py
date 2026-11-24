@@ -40,6 +40,7 @@ class RestaurantInfo:
     country: str
     tier: str | None
     prep_minutes: int
+    minimum_order_amount: Decimal = Decimal(0)  # R36: the restaurant's own minimum (the quote says how much is missing)
 
 
 async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dict], *,
@@ -100,7 +101,7 @@ async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dic
 
     info = RestaurantInfo(
         id=str(r.id), name=r.name, lat=r.lat, lng=r.lng, currency=r.currency, country=r.country,
-        tier=r.tier, prep_minutes=r.avg_prep_minutes,
+        tier=r.tier, prep_minutes=r.avg_prep_minutes, minimum_order_amount=Decimal(r.minimum_order_amount or 0),
     )
     return info, lines
 

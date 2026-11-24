@@ -31,6 +31,9 @@ interface BagState {
   restaurantName: string | null;
   lines: BagLine[];
   tip: number;
+  /** R36: delivery or pickup, chosen on the menu (the switch) or in the cart; a new cart starts at delivery. */
+  fulfillment: "delivery" | "pickup";
+  setFulfillment: (how: "delivery" | "pickup") => void;
   add: (restaurant: { id: string; name: string }, line: Omit<BagLine, "key">) => void;
   setQuantity: (key: string, quantity: number) => void;
   setTip: (tip: number) => void;
@@ -44,6 +47,8 @@ export const useBag = create<BagState>()((set) => ({
   restaurantName: null,
   lines: [],
   tip: 0,
+  fulfillment: "delivery",
+  setFulfillment: (fulfillment) => set({ fulfillment }),
   add: (restaurant, line) =>
     set((s) => {
       // A bag holds one restaurant: adding from another starts a new bag.
@@ -64,7 +69,7 @@ export const useBag = create<BagState>()((set) => ({
       return lines.length ? { lines } : { lines, restaurantId: null, restaurantName: null };
     }),
   setTip: (tip) => set({ tip }),
-  clear: () => set({ restaurantId: null, restaurantName: null, lines: [], tip: 0 }),
+  clear: () => set({ restaurantId: null, restaurantName: null, lines: [], tip: 0, fulfillment: "delivery" }),
 }));
 
 /** The cart lines for /pricing/quote and /orders. */

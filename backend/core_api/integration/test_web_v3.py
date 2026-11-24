@@ -162,10 +162,12 @@ async def test_quote_has_tip_presets(client: AsyncClient) -> None:  # noqa: F811
     assert [float(a) for a in tips["amounts"]] == [10, 20, 30] and tips["default_index"] == 1
 
 
-async def test_us_bag_under_the_minimum_reads_dollars_and_keeps_us_tips(client: AsyncClient) -> None:  # noqa: F811
-    """Round 6: a Boise bag under Downtown's $15 minimum is refused as MIN_ORDER with
-    the amount for the client to format ("$15", never "USD 15") and the US
-    tip_presets rule's buttons; a bag over it is quoted with the same buttons."""
+async def test_us_bag_under_the_restaurant_minimum_is_priced_but_not_placed(client: AsyncClient) -> None:  # noqa: F811
+    """R36 (was round 6's zone minimum): no zone has a minimum any more. A Boise bag under Boise Bowl Co.'s
+    own $15 minimum still gets the whole bill with the US tip buttons, plus how much is missing; placing it
+    is refused (BELOW_MINIMUM, "Add $2.00 more ..."). Two bowls clear it."""
+    import uuid
+
     h = await login(client, "customer1.boi@example.com")
     rest = next(r for r in (await client.get("/api/v1/restaurants", params={"limit": 50})).json()["items"]
                 if r["name"] == "Boise Bowl Co.")
@@ -177,16 +179,21 @@ async def test_us_bag_under_the_minimum_reads_dollars_and_keeps_us_tips(client: 
         return {"restaurant_id": rest["id"], "items": [{"menu_item_id": tofu["id"], "quantity": n}], "deliver_to": downtown}
 
     r = await client.post("/api/v1/pricing/quote", headers=h, json=bag(1))
-    assert r.status_code == 422, r.text
-    d = r.json()["detail"]
-    assert d["code"] == "MIN_ORDER" and d["zone"] == "Downtown"
-    assert (d["amount"], d["currency"]) == ("15.00", "USD")
-    assert d["message"] == "The minimum order in Downtown is $15"
-    assert [float(a) for a in d["tip_presets"]["amounts"]] == [2, 3, 5] and d["tip_presets"]["default_index"] == 1
+    assert r.status_code == 200, r.text
+    q = r.json()
+    assert q["restaurant_minimum"] == "15.00" and q["short_by"] == "2.00"
+    assert any(ln["code"] == "food" for ln in q["lines"]) and float(q["total"]) > 13
+    assert [float(a) for a in q["tip_presets"]["amounts"]] == [2, 3, 5] and q["tip_presets"]["default_index"] == 1
+    placed = await client.post("/api/v1/orders", headers={**h, "X-Idempotency-Key": str(uuid.uuid4())}, json={
+        "restaurant_id": rest["id"], "items": bag(1)["items"], "payment_method": "card", "quote_token": q["token"],
+        "delivery_address": {"street": "1 Main St", "city": "Boise", "state": "ID", "zip": "83702", "country": "US"}})
+    assert placed.status_code == 409, placed.text
+    d = placed.json()["detail"]
+    assert d["code"] == "BELOW_MINIMUM" and d["message"] == "Add $2.00 more to order from Boise Bowl Co."
 
-    q = await client.post("/api/v1/pricing/quote", headers=h, json=bag(2))
-    assert q.status_code == 200, q.text
-    assert [float(a) for a in q.json()["tip_presets"]["amounts"]] == [2, 3, 5]
+    q2 = await client.post("/api/v1/pricing/quote", headers=h, json=bag(2))
+    assert q2.status_code == 200, q2.text
+    assert q2.json()["short_by"] == "0.00" and q2.json()["restaurant_minimum"] == "15.00"
 
 
 async def test_cuisines_have_two_kitchens_and_their_own_photos(client: AsyncClient) -> None:  # noqa: F811
@@ -206,3 +213,35 @@ def test_edit_window_is_seven_days() -> None:
     from core_api.modules.catalog.service.ratings import EDIT_WINDOW
 
     assert EDIT_WINDOW == timedelta(days=7)
+
+
+async def test_search_finds_dishes_and_old_city_is_pickup_only(client: AsyncClient) -> None:  # noqa: F811
+    """R36: /discover/search finds dishes by name in every kitchen that has one (against their own menus);
+    from Old City, Spice Route Kitchen (Madhapur, takes pickup) is too far to deliver: pickup only, listed after
+    the kitchens that deliver and before the ones that are too far without pickup."""
+    old_city = {"lat": 17.3620, "lng": 78.4750}
+    d = (await client.get("/api/v1/discover", params=old_city)).json()
+    spice = next(k for k in d["restaurants"] if k["slug"] == "spice-route-kitchen-madhapur")
+    assert spice["deliverable"] is False and spice["pickup_enabled"] is True and spice["pickup_only"] is True
+    assert spice["pickup_fee_percent"] == "5" and spice["delivery_fee"] is None
+
+    def group(k: dict) -> int:
+        if k["open_now"] and k["deliverable"]:
+            return 0
+        if k["open_now"] and k["pickup_only"]:
+            return 1
+        return 2 if (k["deliverable"] or k["pickup_only"]) else 3
+    assert [group(k) for k in d["restaurants"]] == sorted(group(k) for k in d["restaurants"])
+
+    madhapur = {"lat": 17.4483, "lng": 78.3915}
+    near = (await client.get("/api/v1/discover", params=madhapur)).json()["restaurants"]
+    want = set()
+    for k in near:
+        m = (await client.get(f"/api/v1/restaurants/{k['id']}/menu")).json()
+        for i in [i for c in m["categories"] for i in c["items"]] + m.get("uncategorized_items", []):
+            if "biryani" in i["name"].lower() and i.get("is_available", True):
+                want.add((k["id"], i["id"]))
+    s = (await client.get("/api/v1/discover/search", params={"q": "Biryani", **madhapur})).json()
+    assert want and {(x["restaurant_id"], x["id"]) for x in s["dishes"]} == want
+    assert all("biryani" in x["name"].lower() and float(x["price"]) > 0 for x in s["dishes"])
+    assert (await client.get("/api/v1/discover/search", params={"q": "b", **madhapur})).status_code == 422  # 2+ characters

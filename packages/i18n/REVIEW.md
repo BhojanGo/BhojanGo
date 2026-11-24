@@ -594,3 +594,12 @@ Round 33 changed "bag" to "cart" in these 15 keys; round 34 added 1.
   `place-an-order` and `price-held-while-you-pay` (`tools/seed/help/hi/`).
 - Pickup tracking (round 34): `track.ready_in_about` ("Ready in about", shown above "N min" on a pickup order
   until it's ready).
+
+## Lists, menu, search and cart minimum (round 36)
+
+Machine-translated on 2026-11-24 into all seven languages; **needs native review**.
+
+- Lists: `common.pickup_only` ("Pickup only"), `common.closed` ("Closed").
+- Menu: `kitchen.too_far_pickup` ("Too far to deliver · Pickup available"), `kitchen.pickup_fee` ("Pickup · {pct}% fee").
+- Cart: `checkout.add_more` ("Add {amount} more to order from {restaurant}"), `checkout.minimum_is` ("Minimum order {amount}").
+- Search: `app.search.restaurants` ("Restaurants"), `app.search.dishes` ("Dishes").

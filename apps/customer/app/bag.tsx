@@ -80,7 +80,9 @@ export default function Bag() {
 
   // R32: Delivery or Pickup, when the restaurant takes pickup orders (no delivery fee, no tip, no address).
   const [rest, setRest] = useState<{ id: string; pickup: boolean; name: string; street?: string; city?: string; lat?: number | null; lng?: number | null } | null>(null);
-  const [how, setHow] = useState<"delivery" | "pickup">("delivery");
+  // R36: the choice made on the menu's switch (or here) lives in the bag
+  const how = bag.fulfillment;
+  const setHow = bag.setFulfillment;
   useEffect(() => {
     if (!bag.restaurantId) return;
     let live = true;
@@ -173,6 +175,10 @@ export default function Bag() {
       ? t("checkout.min_order", { zone: refusal.zone, amount: money(refusal.amount, refusal.currency) })
       : blocked ? null : error; // a closed or paused kitchen: the button says why
   const held = quote ? Math.max(0, Math.floor((new Date(quote.expires_at).getTime() - now) / 1000)) : 0;
+  // R36: the restaurant's own minimum (the bill still shows); how far along the food subtotal is
+  const short = quote ? Number(quote.short_by ?? 0) : 0;
+  const minimum = quote?.restaurant_minimum ? Number(quote.restaurant_minimum) : 0;
+  const minProgress = minimum > 0 ? Math.max(0, Math.min(1, (minimum - short) / minimum)) : 1;
   // R20: nothing to pay (an app store review order): the server places it as it is made; no checkout.
   const free = isFreeOrder(quote?.total);
 
@@ -313,6 +319,19 @@ export default function Bag() {
             options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency) }))}
           />
         </View>}
+        {quote && short > 0 && quote.restaurant_minimum ? (
+          // R36: under the restaurant's own minimum: the whole bill still shows; Pay waits until it's met.
+          <View testID="restaurant-minimum" accessibilityRole="alert" style={styles.minimum}>
+            <Text testID="minimum-note" style={[type.label, { color: color.kohl }]}>
+              {t("checkout.add_more", { amount: money(short, quote.currency), restaurant: bag.restaurantName ?? rest?.name ?? "" })}
+            </Text>
+            <View style={styles.minTrack} accessibilityRole="progressbar"
+              accessibilityValue={{ min: 0, max: 100, now: Math.round(minProgress * 100) }}>
+              <View testID="minimum-progress" style={[styles.minFill, { width: `${Math.round(minProgress * 100)}%` }]} />
+            </View>
+            <Text style={[type.small, { color: color.muted }]}>{t("checkout.minimum_is", { amount: money(quote.restaurant_minimum, quote.currency) })}</Text>
+          </View>
+        ) : null}
         {quote ? <View testID="fair-bill"><FairBill lines={quote.lines} currency={quote.currency} /></View>
           : unreachable ? <LoadError error={unreachable} onRetry={() => setAttempt((a) => a + 1)} />
           : blocked ? <Text testID="bill-when-open" style={[type.small, { color: color.muted }]}>{t("kitchen.bill_when_open")}</Text>
@@ -340,7 +359,7 @@ export default function Bag() {
             size="lg"
             block
             loading={paying}
-            disabled={!!blocked || !quote || held === 0 || (!free && mode !== "stripe" && mode !== "test" && mode !== "retry")}
+            disabled={!!blocked || !quote || short > 0 || held === 0 || (!free && mode !== "stripe" && mode !== "test" && mode !== "retry")}
             onPress={() => (free ? void placeFree() : mode === "stripe" ? void payStripe() : mode === "test" ? setSheet(true)
               : mode === "retry" ? (setProvider(null), setProviderAsk((n) => n + 1)) : undefined)}
           />
@@ -360,6 +379,9 @@ export default function Bag() {
 }
 
 const styles = StyleSheet.create({
+  minimum: { gap: 8, padding: space[4], borderRadius: radius.card, backgroundColor: color.white, borderWidth: 1, borderColor: color.line },
+  minTrack: { height: 8, borderRadius: 4, backgroundColor: color.porcelain, overflow: "hidden" },
+  minFill: { height: 8, borderRadius: 4, backgroundColor: color.peacock },
   screen: { flex: 1, backgroundColor: color.porcelain },
   empty: { alignItems: "center", justifyContent: "center", gap: space[4], paddingHorizontal: space[6] },
   top: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: space[2], paddingRight: space[5], paddingTop: space[3], paddingBottom: space[2] },

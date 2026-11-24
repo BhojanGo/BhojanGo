@@ -7,7 +7,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { offerBadge, offerTitle, RatingBadge } from "@/components/Cards";
+import { offerBadge, offerTitle } from "@/components/Cards";
+import { ratingOf } from "@/lib/contract";
 import { BrandTile, kitchenPhoto } from "@/components/KitchenPhoto";
 import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
@@ -16,7 +17,7 @@ import { shownPauses } from "@/lib/pauses";
 import { discover, menu, orderingPauses, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
 import { KitchenActions } from "./KitchenActions";
-import { KitchenMenu, type Category } from "./KitchenMenu";
+import { HowSwitch, KitchenMenu, type Category } from "./KitchenMenu";
 
 type Params = Promise<{ country: string; city: string; kitchen: string }>;
 
@@ -74,6 +75,11 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const free = card?.free_delivery || fee === 0;
   // R31: past the max delivery distance from this address (delivery bands, road distance): no delivery
   const tooFar = card?.deliverable === false;
+  // R36: the kitchen takes pickup; too far to deliver but it does: pickup only (the switch is locked)
+  const pickupOn = Boolean(card?.pickup_enabled ?? (r as { pickup_enabled?: boolean }).pickup_enabled);
+  const pickupOnly = tooFar && pickupOn;
+  const deliveryLabel = free ? t("common.free_delivery") : fee != null ? t("common.delivery_fee", { fee: fmt(fee) }) : t("checkout.delivery");
+  const pickupLabel = card?.pickup_fee_percent ? t("kitchen.pickup_fee", { pct: number(Number(card.pickup_fee_percent), formatLocale) }) : t("checkout.pickup");
   const feeText = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : card ? t("kitchen.fee_to_address", { fee: fmt(fee) }) : t("common.delivery_fee", { fee: fmt(fee) });
   const feeChip = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : t("common.delivery_fee", { fee: fmt(fee) });
 
@@ -142,8 +148,11 @@ export default async function KitchenPage({ params }: { params: Params }) {
   // photo_url: its cover, else a dish of its own, else its cuisine's photo (R8); else the branded tile
   const cover = photo(kitchenPhoto(r), 1600);
   const logo = photo(r.logo_url ?? kitchenPhoto(r), 400);
-  const metaDesktop = [...r.cuisine_types.map((x) => cuisineName(t, x)), area, distance].filter(Boolean).join(" · ");
-  const metaPhone = [r.cuisine_types[0] ? cuisineName(t, r.cuisine_types[0]) : null, distance, !closedNow && closes ? t("kitchen.open_till", { time: closes }) : null].filter(Boolean).join(" · ");
+  const metaDesktop = [...r.cuisine_types.map((x) => cuisineName(t, x)), area].filter(Boolean).join(" · ");
+  // R36: under the name: "★4.4 (9) · 0.9 mi · 25–40 min"
+  const rated = ratingOf(r);
+  const headMeta = [rated.new ? t("common.new") : t("common.rating_short", { stars: number(rated.stars, formatLocale), count: rated.count }), distance, eta]
+    .filter(Boolean).join(" · ");
   const cityPath = `/${r.country.toLowerCase()}/${slugify(r.city)}`;
 
   return (
@@ -169,17 +178,21 @@ export default async function KitchenPage({ params }: { params: Params }) {
             </span>
           </span>
           <span className="min-w-0 flex-grow md:pb-[6px]">
-            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="m-0 text-h1 leading-tight">{r.name}</h1>
-              {/* "New" until 5 ratings, then the average and how many */}
-              <RatingBadge x={r} t={t} formatLocale={formatLocale} />
-            </span>
-            <span className="hidden text-body text-muted md:block">{metaDesktop}</span>
-            <span className="block text-body text-muted md:hidden">{metaPhone}</span>
+            <h1 className="m-0 break-words text-h1 leading-tight">{r.name}</h1>
+            <span className="mt-1 block text-label tabular-nums" data-testid="kitchen-meta">{headMeta}</span>
+            <span className="hidden text-small text-muted md:block">{metaDesktop}</span>
           </span>
           <span className="hidden md:block md:pb-[10px]">
             <KitchenActions id={r.id} name={r.name} />
           </span>
+        </div>
+
+        <div className="mt-4">
+          {pickupOn ? (
+            <HowSwitch restaurantId={r.id} deliveryLabel={tooFar ? t("common.too_far") : deliveryLabel} pickupLabel={pickupLabel} lockPickup={pickupOnly} />
+          ) : (
+            <span className="text-small text-muted" data-testid="kitchen-delivery-fee">{tooFar ? t("common.too_far") : deliveryLabel}</span>
+          )}
         </div>
 
         {/* desktop: the info boxes */}
@@ -206,9 +219,10 @@ export default async function KitchenPage({ params }: { params: Params }) {
         restaurant={{ id: r.id, name: r.name, slug: r.slug, city: r.city, currency }}
         categories={categories}
         deliverTo={place ? (place.address_id ? { address_id: place.address_id } : { lat: place.lat, lng: place.lng }) : null}
-        closed={closedNow || tooFar}
-        closedLabel={tooFar ? t("common.too_far") : closedLabel}
+        closed={closedNow || (tooFar && !pickupOnly)}
+        closedLabel={closedNow ? closedLabel : tooFar && !pickupOnly ? t("common.too_far") : closedLabel}
         tooFar={tooFar}
+        pickupOnly={pickupOnly && !closedNow}
         closedNote={avail?.closed_note ?? null}
         forNow={forNow}
         notTaking={notTaking}

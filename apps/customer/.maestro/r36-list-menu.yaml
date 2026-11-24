@@ -1,0 +1,96 @@
+# R36: compact list cards (photo, the full name, rating · cuisine · distance, minutes · fee); the menu's header
+# (rating · distance · time, Delivery / Pickup with "Pickup · 5% fee"); "+" on the dish photo's corner, which
+# becomes "− 1 +"; the cart under Boise Bowl Co.'s own $15 minimum: the whole bill, "Add $0.50 more to order
+# from Boise Bowl Co.", Pay off.
+appId: com.bhojango.app
+---
+- setLocation:
+    latitude: 43.6400
+    longitude: -116.2100
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: "2085550101"
+      COUNTRY: "US"
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-boise-bowl-co-hyde-park"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 50
+- assertVisible:
+    id: "card-photo"
+- assertVisible:
+    id: "card-name"
+- assertVisible:
+    id: "card-status"
+- takeScreenshot: docs/screenshots/customer/r36-list
+- tapOn:
+    id: "kitchen-card-boise-bowl-co-hyde-park"
+- extendedWaitUntil:
+    visible:
+      id: "kitchen-meta"
+    timeout: 20000
+- assertVisible:
+    id: "kitchen-meta"
+    text: ".* min"
+- assertVisible:
+    id: "how-pickup"
+    text: "Pickup · 5% fee"
+- assertVisible:
+    id: "how-delivery"
+    text: ".*delivery"
+- scrollUntilVisible:
+    element:
+      text: "Salmon Poke Bowl"
+    direction: DOWN
+    timeout: 20000
+# the "+" on the photo's bottom-right corner (dish-on-photo holds just that button)
+- tapOn:
+    id: "dish-on-photo"
+- extendedWaitUntil:
+    visible:
+      id: "dish-stepper-.*"
+    timeout: 10000
+- assertVisible:
+    id: "dish-qty-.*"
+    text: "1"
+- takeScreenshot: docs/screenshots/customer/r36-add-on-photo
+- tapOn:
+    id: "dish-minus-.*"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-stepper-.*"
+    timeout: 10000
+# The cart under the restaurant's own minimum: one Teriyaki Chicken Bowl ($14.50)
+- scrollUntilVisible:
+    element:
+      text: "Teriyaki Chicken Bowl"
+    direction: UP
+    timeout: 20000
+- tapOn: "Teriyaki Chicken Bowl"
+- extendedWaitUntil:
+    visible:
+      id: "add-to-bag"
+    timeout: 20000
+- tapOn:
+    id: "add-to-bag"
+- tapOn:
+    text: "View cart.*"
+- extendedWaitUntil:
+    visible:
+      id: "restaurant-minimum"
+    timeout: 30000
+- assertVisible: "Add \\$0\\.50 more to order from Boise Bowl Co\\."
+- assertVisible:
+    id: "minimum-progress"
+- assertVisible:
+    id: "fair-bill"
+- assertVisible:
+    text: "Pay.*"
+    enabled: false
+- takeScreenshot: docs/screenshots/customer/r36-cart-minimum

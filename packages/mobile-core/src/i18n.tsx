@@ -22,7 +22,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { create } from "zustand";
 
 import { convertDistance, deviceLocale, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
-  partnerCountry, partnerLanguage, resolveCountry, type CountrySource, type MarketCountry } from "./locale";
+  partnerCountry, partnerLanguage, resolveCountry, wholeForCustomers, type CountrySource, type MarketCountry } from "./locale";
 import { api } from "./session";
 import { loadScriptFonts } from "./ui/fonts";
 import { scriptFor, setTypeScript, type Script } from "./ui/type";
@@ -227,7 +227,8 @@ export function useI18n(): I18n {
       money: (amount, currency) => {
         const cur = currency || country?.currency;
         if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
-        return formatMoney(amount, cur, localeForCurrency(cur, country, countries));
+        // R36: the customer app shows rupees whole (display only; partners and riders keep paise)
+        return formatMoney(amount, cur, localeForCurrency(cur, country, countries), { whole: rule === "customer" && wholeForCustomers(cur) });
       },
       number: (n, digits = 1) => formatNumber(n, loc, digits),
       distance: (km, unit) => {

@@ -700,6 +700,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discover/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description R36: restaurants by name, cuisine or tag, and dishes by name ("curry": every restaurant's curries),
+         *     for a point (or a whole city), among the kitchens /discover lists there.
+         */
+        get: operations["search_api_v1_discover_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/commission-invoice": {
         parameters: {
             query?: never;
@@ -5439,6 +5460,8 @@ export interface components {
             is_new: boolean;
             /** Logo Url */
             logo_url: string | null;
+            /** Minimum Order */
+            minimum_order?: string | null;
             /** Name */
             name: string;
             /**
@@ -5455,6 +5478,18 @@ export interface components {
             path: string;
             /** Photo Url */
             photo_url?: string | null;
+            /**
+             * Pickup Enabled
+             * @default false
+             */
+            pickup_enabled?: boolean;
+            /** Pickup Fee Percent */
+            pickup_fee_percent?: string | null;
+            /**
+             * Pickup Only
+             * @default false
+             */
+            pickup_only?: boolean;
             /** Rating */
             rating: number;
             rating_display: components["schemas"]["RatingDisplay"];
@@ -6331,6 +6366,11 @@ export interface components {
             /** Distance Unit */
             distance_unit?: string | null;
             /**
+             * Free Delivery Chip
+             * @default false
+             */
+            free_delivery_chip?: boolean;
+            /**
              * Offers
              * @default []
              */
@@ -6348,6 +6388,36 @@ export interface components {
             timezone?: string | null;
             /** Zone */
             zone?: string | null;
+        };
+        /**
+         * DishHit
+         * @description R36: a dish whose name matches the search, with its restaurant (as the menu shows it).
+         */
+        DishHit: {
+            /** Deliverable */
+            deliverable: boolean;
+            /** Has Options */
+            has_options: boolean;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Open Now */
+            open_now: boolean;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Pickup Only */
+            pickup_only: boolean;
+            /** Price */
+            price: string;
+            /** Restaurant Id */
+            restaurant_id: string;
+            /** Restaurant Name */
+            restaurant_name: string;
+            /** Restaurant Path */
+            restaurant_path: string;
+            /** Restaurant Slug */
+            restaurant_slug: string;
         };
         /** Document */
         Document: {
@@ -9031,6 +9101,17 @@ export interface components {
              */
             quote_id: string;
             /**
+             * Restaurant Minimum
+             * @description R36: the restaurant's own minimum food subtotal (null: none)
+             */
+            restaurant_minimum?: string | null;
+            /**
+             * Short By
+             * @description R36: how much more food is needed to reach it (0: met); the order can't be placed until 0
+             * @default 0
+             */
+            short_by?: string;
+            /**
              * Tax Pending
              * @description True when an external tax provider still adds tax (US until P9)
              */
@@ -10052,6 +10133,21 @@ export interface components {
              * @description Local date, included
              */
             period_start: string;
+        };
+        /** SearchOut */
+        SearchOut: {
+            /**
+             * Dishes
+             * @default []
+             */
+            dishes?: components["schemas"]["DishHit"][];
+            /** Q */
+            q: string;
+            /**
+             * Restaurants
+             * @default []
+             */
+            restaurants?: components["schemas"]["Card"][];
         };
         /** SearchResults */
         SearchResults: {
@@ -11946,6 +12042,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Discover"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_discover_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                lat?: number | null;
+                lng?: number | null;
+                city?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchOut"];
                 };
             };
             /** @description Validation Error */

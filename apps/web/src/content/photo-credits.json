@@ -1,11 +1,29 @@
 [
   {
+    "slug": "andhra-meals",
+    "title": "The Great Andhra Meal",
+    "source": "https://www.flickr.com/photos/35581095@N00/3068074531",
+    "creator": "kkalyan",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "changes": "Resized"
+  },
+  {
     "slug": "butter-chicken",
     "title": "Chicken makhani",
     "source": "https://commons.wikimedia.org/wiki/File:Chicken_makhani.jpg",
     "creator": "stu_spivack",
     "license": "CC BY-SA 2.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "changes": "Resized"
+  },
+  {
+    "slug": "cheese-quesadilla",
+    "title": "Cheese quesadilla from Taqueria Pacifica",
+    "source": "https://www.flickr.com/photos/12176869@N00/3480190579",
+    "creator": "David Hilowitz",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
     "changes": "Resized"
   },
   {
@@ -27,10 +45,28 @@
     "changes": "Resized"
   },
   {
+    "slug": "dan-dan-noodles",
+    "title": "担担面 Dan Dan Noodles",
+    "source": "https://www.flickr.com/photos/7527824@N04/4931111997",
+    "creator": "timquijano",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "changes": "Resized"
+  },
+  {
     "slug": "delivery-partner-scooter",
     "title": "Motorcycle Courier, Soho",
     "source": "https://www.flickr.com/photos/52061252@N00/39425449902",
     "creator": "--Sam--",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "falafel-plate",
+    "title": "Falafel plate",
+    "source": "https://www.flickr.com/photos/98178986@N00/4646275511",
+    "creator": "@joefoodie",
     "license": "CC BY 2.0",
     "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
     "changes": "Resized"
@@ -54,6 +90,15 @@
     "changes": "Resized"
   },
   {
+    "slug": "loaded-baked-potato",
+    "title": "Loaded Baked Potato & Fried Catfish",
+    "source": "https://www.flickr.com/photos/44846110@N07/19392241499",
+    "creator": "Clotee Pridgen Allochuku",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "changes": "Cropped, resized"
+  },
+  {
     "slug": "mango-lassi",
     "title": "Mango Lassi",
     "source": "https://commons.wikimedia.org/wiki/File:Mango_Lassi_.jpg",
@@ -69,6 +114,15 @@
     "creator": "LuckyRani2990",
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "Resized"
+  },
+  {
+    "slug": "pad-thai",
+    "title": "Pad thai",
+    "source": "https://www.flickr.com/photos/35034346243@N01/15352940580",
+    "creator": "stu_spivack",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
     "changes": "Resized"
   },
   {

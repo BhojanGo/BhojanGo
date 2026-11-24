@@ -184,8 +184,8 @@ class OrderService:
         quotes = QuoteService(self.db)
         try:
             q = await quotes.redeem(data.quote_token, customer_id, data.restaurant_id, items)
-        except QuoteError as e:
-            raise _err(status.HTTP_409_CONFLICT, "QUOTE_INVALID", str(e))
+        except QuoteError as e:  # R36: BELOW_MINIMUM (the restaurant's own minimum) keeps its code
+            raise _err(status.HTTP_409_CONFLICT, "BELOW_MINIMUM" if e.code == "BELOW_MINIMUM" else "QUOTE_INVALID", str(e))
 
         def line_sum(*codes: str) -> Decimal:
             return _money(sum((Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] in codes), Decimal(0)))

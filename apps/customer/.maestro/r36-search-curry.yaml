@@ -1,0 +1,69 @@
+# R36: search finds dishes by name. "curry" in Boise (demo data): "Restaurants" (Himalayan Curry House), then
+# "Dishes" from every restaurant that has curry (Basil Leaf Thai: green, red, panang; Himalayan Curry House:
+# Nepali chicken, goat), each with its restaurant and an add button. The cuisine circles go once you type.
+appId: com.bhojango.app
+---
+- setLocation:
+    latitude: 43.6400
+    longitude: -116.2100
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: "2085550101"
+      COUNTRY: "US"
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- tapOn:
+    id: "tab-search"
+- extendedWaitUntil:
+    visible:
+      id: "search-cuisines"
+    timeout: 20000
+- tapOn:
+    id: "search-input"
+- inputText: "curry"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "search-restaurants"
+    timeout: 20000
+- assertNotVisible:
+    id: "search-cuisines"
+- assertVisible: "Himalayan Curry House"
+- takeScreenshot: docs/screenshots/customer/r36-search-curry
+- scrollUntilVisible:
+    element:
+      id: "search-dishes"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Green Curry"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Basil Leaf Thai"
+- scrollUntilVisible:
+    element:
+      text: "Red Curry"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Panang Curry"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Nepali Chicken Curry"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Goat Curry"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: "dish-hit-add-.*"
+- takeScreenshot: docs/screenshots/customer/r36-search-curry-dishes

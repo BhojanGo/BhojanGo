@@ -456,7 +456,7 @@ with sync_playwright() as p:
 
     # Language: Hindi changes the words, never a price; remembered after a reload.
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
-    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹[\d,]+\.\d{2}$")).first.inner_text()
+    price = page.get_by_role("region", name="Biryani").get_by_text(re.compile(r"^₹[\d,]+$")).first.inner_text()  # R36: whole rupees
     english_hero = "Real food. Fair prices."
     pill.click()
     page.get_by_role("menuitemradio", name=re.compile("^हिन्दी")).click()
@@ -489,7 +489,7 @@ with sync_playwright() as p:
         expect(page.get_by_text(re.compile(r"^\d+ restaurants? delivers? to Madhapur"))).to_be_visible(timeout=20000),
         expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Restaurant pays")).first).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
-        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+\.\d{2} delivery|Free delivery")),
+        expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+ delivery|Free delivery")),  # R36: whole rupees
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
     check("personal home: the address is on the page, not in the header; no marketing", lambda: (
         expect(page.get_by_test_id("change-address")).to_contain_text("Madhapur"),
@@ -511,7 +511,8 @@ with sync_playwright() as p:
             see_all.click()
             expect(see_all).to_have_count(0)
         far = feed.get_by_test_id("too-far").count()
-        _assert(cards.count() - far == n, f"{said!r} but {cards.count()} cards, {far} too far")
+        pickup = feed.get_by_test_id("pickup-only").count()  # R36: too far to deliver, but takes pickup
+        _assert(cards.count() - far - pickup == n, f"{said!r} but {cards.count()} cards, {far} too far, {pickup} pickup only")
         if total is not None:
             _assert(cards.count() == total, f"See all {total} but {cards.count()} cards")
     check("personal home: kitchens that deliver, See all and the cards are the same number", counts_agree)
@@ -578,10 +579,10 @@ with sync_playwright() as p:
     # The FAQ answers with Hyderabad's own rules (tools/seed/data.py): delivery slabs, service fee, tips.
     check("live city page: FAQ from the city's rules (actual amounts and distances)", lambda: (
         # R31: the delivery fee from distance bands, up to the max delivery distance
-        expect(page.get_by_text(re.compile(r"₹30\.00 up to 3 km; ₹40\.00 up to 5 km; ₹50\.00 up to 7 km"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"₹30 up to 3 km; ₹40 up to 5 km; ₹50 up to 7 km"))).to_be_attached(),
         # R29 fee model v2: the platform fee replaced the service fee
-        expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹15\.00\) goes to BhojanGo"))).to_be_attached(),
-        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10\.00, ₹20\.00, ₹30\.00"))).to_be_attached()))
+        expect(page.get_by_text(re.compile(r"A platform fee of 10% of the food \(at least ₹15\) goes to BhojanGo"))).to_be_attached(),
+        expect(page.get_by_text(re.compile(r"Checkout suggests ₹10, ₹20, ₹30"))).to_be_attached()))
     # Only cuisines with 2+ kitchens are listed: South Indian (Curry Leaf, Banjara Dosa Co.).
     check("live city page: a cuisine with one kitchen isn't listed", lambda:
           expect(page.get_by_role("navigation", name="Cuisines").get_by_role("link", name="Biryani")).to_have_count(0))
@@ -774,7 +775,7 @@ with sync_playwright() as p:
     tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
     # "None", then India's tip_presets rule (10, 20, 30; the second preselected), then "Other".
     check("tip: choices from the tip_presets rule, its default preselected", lambda: (
-        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10.00", "₹20.00", "₹30.00", "Other"],
+        _assert([tips.nth(i).inner_text().strip() for i in range(tips.count())] == ["None", "₹10", "₹20", "₹30", "Other"],  # R36: whole rupees
                 [tips.nth(i).inner_text() for i in range(tips.count())]),
         expect(tips.nth(2)).to_have_attribute("aria-checked", "true")))
     tip_label = tips.nth(2).inner_text().strip()
@@ -1569,6 +1570,169 @@ with sync_playwright() as p:
         check(f"phone width {path}: no sideways scroll", lambda: no_sideways_scroll(hpm))
         check(f"phone width {path}: only the type scale's font sizes", lambda: type_scale_only(hpm))
     help_ctx.close()
+
+    # ── R36: compact lists, menu add buttons, pickup only, closed, dish search, restaurant minimum, no overflow ──
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    import urllib.parse as _up
+
+    def place(ctx, label: str, lat: float, lng: float, country: str, city: str, path: str, zone: str) -> None:  # type: ignore[no-untyped-def]
+        """The delivery address cookie the website reads (bg_addr), as the address box writes it."""
+        ctx.add_cookies([{"name": "bg_addr", "url": base, "value": _up.quote(json.dumps({
+            "label": label, "lat": lat, "lng": lng, "country": country, "city_code": city, "city_path": path, "zone": zone, "served": True}))}])
+
+    NORTH_END = ("North End, Boise", 43.6400, -116.2100, "US", "US-ID-BOI", "/us/boise", "North End")
+    OLD_CITY = ("Old City, Hyderabad", 17.3620, 78.4750, "IN", "IN-TG-HYD", "/in/hyderabad", "Old City")
+
+    def list_group(k: dict) -> int:
+        if k["open_now"] and k["deliverable"]:
+            return 0
+        if k["open_now"] and k.get("pickup_only"):
+            return 1
+        return 2 if (k["deliverable"] or k.get("pickup_only")) else 3
+
+    def cards_are_compact_and_whole(pg) -> None:  # type: ignore[no-untyped-def]
+        cards = pg.locator("[data-testid^='kitchen-card-']")
+        _assert(cards.count() > 0, "no cards")
+        for i in range(cards.count()):
+            card = cards.nth(i)
+            box = card.get_by_test_id("card-photo").bounding_box()
+            _assert(2.2 <= box["width"] / box["height"] <= 2.6, ("photo ratio", box))
+            name = card.get_by_test_id("card-name")
+            # the whole name: up to two lines, nothing clipped (an ellipsis would mean scrollHeight > clientHeight)
+            _assert(name.evaluate("e => e.scrollHeight <= e.clientHeight + 1 && e.scrollWidth <= e.clientWidth + 1"),
+                    ("name cut off", name.inner_text()))
+
+    r36 = b.new_context(viewport={"width": 1440, "height": 900})
+    fake_hint(r36, {})
+    place(r36, *NORTH_END)
+    rp = r36.new_page()
+    near = api("GET", f"/discover?lat={NORTH_END[1]}&lng={NORTH_END[2]}")
+    for width in (1440, 1280):
+        rp.set_viewport_size({"width": width, "height": 900})
+        rp.goto(f"{base}/us/boise", wait_until="networkidle")
+        check(f"R36 {width} px: compact cards (2.4:1 photo), names never cut off", lambda: cards_are_compact_and_whole(rp))
+    shot(rp, "r36-boise-list-1280")
+    check("R36 list order: open and deliverable, then pickup only, then closed (the API's order on the page)", lambda: (
+        _assert([list_group(k) for k in near["restaurants"]] == sorted(list_group(k) for k in near["restaurants"]), near["restaurants"]),
+        _assert([e.get_attribute("data-testid") for e in rp.locator("[data-testid^='kitchen-card-']").all()]
+                == [f"kitchen-card-{k['slug']}" for k in near["restaurants"]], "page order differs from the API's")))
+    rp.goto(base, wait_until="networkidle")
+    check("R36 Free delivery filter only when a restaurant here funds free delivery", lambda: expect(
+        rp.get_by_role("group", name="Filter restaurants").get_by_role("button", name="Free delivery")).to_have_count(1 if near.get("free_delivery_chip") else 0))
+
+    # Menu: rating · distance · time, the Delivery / Pickup switch, "+" on the dish photo's corner, then "− 1 +"
+    def add_on_photo() -> None:
+        rp.goto(base + US_KITCHEN_PATH, wait_until="networkidle")
+        expect(rp.get_by_test_id("kitchen-meta")).to_contain_text(re.compile(r"min$"))
+        expect(rp.get_by_test_id("how-pickup")).to_have_text(re.compile(r"^Pickup · \d+% fee$"))
+        expect(rp.get_by_test_id("how-delivery")).to_have_text(re.compile(r"delivery$"))
+        row = rp.locator("div.flex.gap-4").filter(has=rp.locator("img")).first
+        plus = row.get_by_role("button", name=re.compile(r"^Add "))
+        img = row.locator("img").first.bounding_box()
+        btn = plus.bounding_box()
+        _assert(btn["x"] + btn["width"] / 2 > img["x"] + img["width"] / 2 and btn["y"] + btn["height"] / 2 > img["y"] + img["height"] / 2,
+                ("the + is not on the photo's bottom-right", img, btn))
+        plus.click()
+        if rp.get_by_role("dialog").count():
+            rp.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
+        expect(row.get_by_test_id("dish-stepper")).to_contain_text("1")
+    check("R36 menu: rating · distance · time; Delivery / Pickup; + on the photo's corner becomes − 1 +", add_on_photo)
+    shot(rp, "r36-menu-add-on-photo")
+
+    # Closed: a banner and no adds, the menu still readable (Basque Corner Kitchen closed today, then opened again)
+    partner_boi = login("partner.boi@example.com")
+    basque = next(k for k in near["restaurants"] if k["slug"].startswith("basque-corner-kitchen"))
+    boise_today = (_dt.now(_tz.utc) - _td(hours=7)).date()  # Boise's day (MST; an hour off can't matter: today and tomorrow)
+    for d in (boise_today, boise_today + _td(days=1)):
+        api("PUT", f"/restaurants/{basque['id']}/hours/overrides/{d}", partner_boi, {"closed": True, "note": "R36 test"})
+
+    def closed_menu() -> None:
+        rp.goto(base + basque["path"], wait_until="networkidle")
+        expect(rp.get_by_test_id("kitchen-closed")).to_contain_text("Closed")
+        adds = rp.get_by_role("button", name=re.compile(r"^Add "))
+        _assert(adds.count() > 0, "no dishes to browse")
+        for i in range(adds.count()):
+            expect(adds.nth(i)).to_be_disabled()
+    check("R36 closed: 'Closed · opens …' banner, adds disabled, the menu still there to browse", closed_menu)
+    shot(rp, "r36-menu-closed")
+    def closed_card() -> None:  # the website keeps a city's list for up to 30 s (its fetch cache)
+        rp.goto(f"{base}/us/boise", wait_until="networkidle")
+        expect(rp.get_by_test_id(f"kitchen-card-{basque['slug']}").get_by_test_id("card-status")).to_contain_text("Closed", timeout=3000)
+    check("R36 closed: the card says Closed, after the open ones", lambda: eventually(closed_card, 45))
+    for d in (boise_today, boise_today + _td(days=1)):
+        api("PUT", f"/restaurants/{basque['id']}/hours/overrides/{d}", partner_boi, {"closed": False, "opens": "00:00", "closes": "00:00", "note": "E2E"})
+
+    # Dish search: "curry" in Boise finds the dishes of every restaurant that has one (from their own menus)
+    def curry_search() -> None:
+        expected = set()
+        for k in near["restaurants"]:
+            m = api("GET", f"/restaurants/{k['id']}/menu")
+            for item in [i for c in m["categories"] for i in c["items"]] + m.get("uncategorized_items", []):
+                if "curry" in item["name"].lower() and item.get("is_available", True):
+                    expected.add((k["name"], item["name"]))
+        rp.goto(f"{base}/us/boise?q=curry", wait_until="networkidle")
+        expect(rp.get_by_role("navigation", name="Cuisines")).to_have_count(0)  # no cuisine chips while searching
+        hits = rp.get_by_test_id("dish-hit")
+        shown = {(h.get_by_test_id("dish-hit-restaurant").inner_text(), h.locator("b").first.inner_text()) for h in hits.all()}
+        _assert(shown == expected, (sorted(shown), sorted(expected)))
+        if expected:
+            expect(rp.get_by_test_id("search-dishes")).to_have_text("Dishes")
+    check("R36 search 'curry' (Boise): restaurants, then the dishes of every restaurant that has curry", curry_search)
+    shot(rp, "r36-search-curry")
+    r36.close()
+
+    # Pickup only: Old City is too far for Spice Route Kitchen to deliver, and it takes pickup
+    po = b.new_context(viewport={"width": 1440, "height": 900})
+    fake_hint(po, {})
+    place(po, *OLD_CITY)
+    pp = po.new_page()
+
+    def pickup_only() -> None:
+        pp.goto(f"{base}/in/hyderabad", wait_until="networkidle")
+        expect(pp.get_by_test_id("kitchen-card-spice-route-kitchen-madhapur").get_by_test_id("pickup-only")).to_have_text("Pickup only")
+        pp.goto(base + KITCHEN_PATH, wait_until="networkidle")
+        expect(pp.get_by_test_id("kitchen-banner-pickup")).to_have_text("Too far to deliver · Pickup available")
+        expect(pp.get_by_test_id("how-delivery")).to_be_disabled()
+        expect(pp.get_by_test_id("how-pickup")).to_have_attribute("aria-checked", "true")
+        expect(pp.get_by_role("button", name=re.compile(r"^Add ")).first).to_be_enabled()
+    check("R36 pickup only: 'Pickup only' card; menu banner, switch locked to Pickup, adds on", pickup_only)
+    shot(pp, "r36-menu-pickup-only")
+    po.close()
+
+    # The cart under Boise Bowl Co.'s own $15 minimum: the whole bill, "Add $0.50 more …", a progress bar, Pay off
+    mc = b.new_context(viewport={"width": 1440, "height": 900})
+    fake_hint(mc, {})
+    place(mc, *NORTH_END)
+    mp = mc.new_page()
+    mp.goto(base + "/signin", wait_until="networkidle")
+    sign_in(mp, "2085550101", "US")
+    mp.wait_for_url(lambda u: "/signin" not in u, timeout=30000)
+
+    def under_minimum() -> None:
+        mp.evaluate("localStorage.removeItem('bhojango-bag')")
+        mp.goto(base + US_KITCHEN_PATH, wait_until="networkidle")
+        mp.get_by_role("button", name="Add Teriyaki Chicken Bowl").click()  # $14.50
+        if mp.get_by_role("dialog").count():
+            mp.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
+        mp.goto(f"{base}/checkout", wait_until="networkidle")
+        expect(mp.get_by_test_id("minimum-note").first).to_have_text("Add $0.50 more to order from Boise Bowl Co.", timeout=20000)
+        expect(mp.get_by_role("progressbar").first).to_have_attribute("aria-valuenow", "97")
+        expect(mp.get_by_role("complementary", name="Your order").get_by_text("Food")).to_be_visible()
+        expect(mp.get_by_role("button", name=re.compile(r"^Pay ")).first).to_be_disabled()
+    check("R36 cart under the restaurant's minimum: the whole bill, Add $0.50 more, progress, Pay off", under_minimum)
+    shot(mp, "r36-cart-under-minimum")
+    mc.close()
+
+    # No sideways scroll on a phone, at 360, 390 and 414 px (the page is never wider than the screen)
+    for width in (360, 390, 414):
+        ph = b.new_context(viewport={"width": width, "height": 800})
+        fake_hint(ph, {})
+        place(ph, *OLD_CITY)
+        pg = ph.new_page()
+        for path in ("/", "/in/hyderabad", "/in/hyderabad?q=biryani", KITCHEN_PATH, "/us/boise?q=curry", "/checkout", "/cities", "/help"):
+            pg.goto(base + path, wait_until="networkidle")
+            check(f"R36 {width} px {path}: page no wider than the screen", lambda pg=pg, width=width: no_sideways_scroll_at(pg, width))
+        ph.close()
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")
