@@ -1824,18 +1824,19 @@ with sync_playwright() as p:
         pg.wait_for_load_state("networkidle")
         pg.evaluate("localStorage.removeItem('bhojango-bag')")
         pg.goto(base + path, wait_until="networkidle")
-        pg.get_by_role("button", name=f"Add {dish}").first.click()
-        if pg.get_by_role("dialog").count():
-            pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
+        check(f"R38 {market}: signed in, {dish} in the cart", lambda pg=pg, dish=dish: (
+            expect(pg.get_by_role("button", name=f"Add {dish}").first).to_be_enabled(timeout=15000),
+            pg.get_by_role("button", name=f"Add {dish}").first.click(),
+            pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click() if pg.get_by_role("dialog").count() else None,
+            expect(pg.get_by_role("link", name=re.compile(r"Cart · [1-9]"))).to_be_visible(timeout=15000)))
+        shot(pg, f"r38-1-cart-{market}")
         for width in (1440, 390, 360):
             pg.set_viewport_size({"width": width, "height": 900})
             pg.goto(f"{base}/checkout", wait_until="networkidle")
             check(f"R38 bill {market} {width} px: two columns, who gets it under the label, amounts on one line",
                   lambda pg=pg, width=width, market=market: two_column_bill(pg, width, market))
             if width != 360:
-                bill_box = pg.locator("[data-testid='bill-line']:visible").first
-                bill_box.scroll_into_view_if_needed()
-                shot(pg, f"r38-1-web{width}-{market}")
+                shot(pg, f"r38-1-web{width}-{market}")  # full page: the bill whatever the check found
         ctx.close()
 
     # ── SEO and headers ──────────────────────────────────────────────────────

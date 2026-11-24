@@ -25,7 +25,7 @@ export function FairBill({ lines, currency, totalLabel = "You pay", className }:
           <React.Fragment key={i}>
             <dt className={cn(r.accent && "font-semibold text-peacock")}>
               <span className="block">{r.label}</span>
-              <span className="block text-caption font-normal text-muted">{r.payee}</span>
+              <span className="block text-small font-normal text-muted">{r.payee}</span>
             </dt>
             <dd className={cn("whitespace-nowrap text-right", r.accent && "font-semibold text-peacock")}>
               {r.struck ? (<><s className="text-faint">{r.struck}</s> <b>{r.amount}</b></>) : r.amount}

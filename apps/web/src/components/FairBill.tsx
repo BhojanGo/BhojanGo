@@ -59,7 +59,7 @@ export function FairBill({
               <tr key={`${ln.code}-${i}`} data-testid="bill-line">
                 <td className={`py-[4px] pr-3 align-top ${compact ? "text-small" : ""}`}>
                   <span className="block">{billLabel(ln, t, distance)}</span>
-                  <span className="block text-caption text-muted" data-testid="bill-payee">{payeeLabel(ln, t, lines)}</span>
+                  <span className="block text-small text-muted" data-testid="bill-payee">{payeeLabel(ln, t, lines)}</span>
                 </td>
                 <td className={`whitespace-nowrap py-[4px] text-right align-top font-semibold ${promo ? "text-[#0B5D66]" : ""}`}
                   data-testid="bill-amount">{money(ln.amount, currency, formatLocale, EXACT)}</td>
