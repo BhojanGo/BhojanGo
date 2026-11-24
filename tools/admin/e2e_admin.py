@@ -7,6 +7,7 @@ API first so Operations and Support have something live. Screenshots go to
 docs/screenshots/admin.
 """
 import os
+import json
 import re
 import socket
 import sys
@@ -429,6 +430,117 @@ with sync_playwright() as p:
                 _ok("kitchen" not in left.lower())
             check(f"R38 admin wording {market} {width} px: 'paid by the restaurant', no 'kitchen'", restaurant_words)
             page.screenshot(path=f"{OUT}/r38-5-web{width}-{market}.png", full_page=True)
+    page.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ── R39 ── item 4: a chargeback (the fake provider's webhook, shaped as Stripe's charge.dispute.created) shows
+    # in Finance > Chargebacks with the restaurant's share held, and takes evidence; item 5: a food permit to review
+    # (a renewal from partner.boi), approved here; item 6: Settings > Monitoring > Send test alert. US and India,
+    # 1440 and 390 px. Not on QA (the fake provider's webhook secret is local).
+    import hashlib
+    import hmac
+    import time as _time
+
+    fake_secret = os.environ.get("FAKE_PAYMENT_WEBHOOK_SECRET", "local-fake-webhook-secret")
+    PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
+
+    def r39_dispute(cust_email: str, rest_name: str, dish: str, deliver_to: dict, address: dict, method: str, reason: str) -> str:
+        cust = token(cust_email)
+        rest = next(r for r in api.get(f"{CORE}/restaurants?limit=100").json()["items"] if r["name"] == rest_name)
+        item = next(i for c in api.get(f"{CORE}/restaurants/{rest['id']}/menu").json()["categories"] for i in c["items"] if i["name"] == dish)
+        items = [{"menu_item_id": item["id"], "quantity": 2}]
+        q = api.post(f"{CORE}/pricing/quote", headers=cust, data={"restaurant_id": rest["id"], "items": items, "deliver_to": deliver_to}).json()
+        o = api.post(f"{CORE}/orders", headers={**cust, "X-Idempotency-Key": str(uuid.uuid4())}, data={
+            "restaurant_id": rest["id"], "items": items, "payment_method": method, "quote_token": q["token"], "delivery_address": address}).json()
+        init = api.post(f"{CORE}/payments/initiate", headers=cust, data={"order_id": o["id"], "payment_method_type": method}).json()
+        api.post(f"{CORE}/payments/fake/{init['payment_intent_id']}/complete", headers=cust, data={"outcome": "succeeded"})
+        body = json.dumps({"id": f"evt_fake_{uuid.uuid4().hex[:16]}", "type": "dispute.created", "dispute": {
+            "id": f"dp_e2e_{uuid.uuid4().hex[:12]}", "amount": init["amount"], "currency": init["currency"].lower(), "reason": reason,
+            "status": "needs_response", "payment_intent": init["client_secret"].split("_secret_")[0],
+            "due_by": int(_time.time()) + 7 * 86400}})
+        sig = hmac.new(fake_secret.encode(), body.encode(), hashlib.sha256).hexdigest()
+        r = api.post(f"{CORE}/payments/fake/webhook", headers={"x-fake-signature": sig, "Content-Type": "application/json"}, data=body)
+        _ok(r.status == 200 and r.json().get("dispute"))
+        return o["id"]
+
+    if not os.environ.get("QA_CORE"):
+        for market, country, args, held_word in (
+                ("us", "US", ("customer2.boi@example.com", "Boise Bowl Co.", "Crispy Tofu Bowl", {"lat": 43.6150, "lng": -116.2023},
+                              {"street": "1 Main St", "city": "Boise", "state": "ID", "zip": "83702", "country": "US"}, "card", "fraudulent"), "$"),
+                ("in", "IN", ("customer3.hyd@example.com", "Spice Route Kitchen", "Veg Dum Biryani", {"lat": 17.4483, "lng": 78.3915},
+                              {"street": "Flat 302", "city": "Hyderabad", "state": "Telangana", "zip": "500081", "country": "IN"}, "upi",
+                              "product_unacceptable"), "₹")):
+            order_id = r39_dispute(*args)
+            code = order_id[:8].upper()
+            for width in (1440, 390):
+                page.set_viewport_size({"width": width, "height": 1000})
+                page.goto(f"{BASE}/finance?scope={country}", wait_until="networkidle")
+                box = page.get_by_role("region", name="Chargebacks")
+                row = box.get_by_test_id("dispute-row").filter(has_text=f"#{code}")
+
+                def held() -> None:
+                    expect(row).to_be_visible(timeout=15000)
+                    expect(row.get_by_test_id("dispute-state")).to_contain_text(re.compile(rf"^Open: {re.escape(held_word)}[\d,.]+ will be held from the next payout"))
+                check(f"R39 chargeback {market} {width} px: listed with the restaurant's share held from the next payout", held)
+                if width == 1440:
+                    row.get_by_role("button", name="Evidence").click()
+                    ev = box.get_by_test_id("dispute-evidence")
+                    ev.get_by_label("Note for the bank").fill("Delivered to the door at 19:42; photo and chat attached.")
+                    ev.get_by_label("Evidence file").set_input_files({"name": "door.png", "mimeType": "image/png", "buffer": PNG})
+                    ev.get_by_role("button", name="Add evidence").click()
+                    check(f"R39 chargeback {market}: evidence added (file and note), ready to send", lambda ev=ev: (
+                        expect(ev.get_by_role("button", name="door.png")).to_be_visible(timeout=15000),
+                        expect(ev.get_by_role("button", name="Send evidence to the bank")).to_be_enabled()))
+                else:
+                    row.get_by_role("button", name="Evidence").click()
+                    box.get_by_test_id("dispute-evidence").scroll_into_view_if_needed()
+                page.screenshot(path=f"{OUT}/r39-4-admin{width}-{market}.png", full_page=True)
+            page.set_viewport_size({"width": 1440, "height": 1000})
+
+    # Item 5: partner.boi's restaurant sends a renewed permit; ops approves it here. India keeps FSSAI (no permit to review).
+    owner = token("partner.boi@example.com")
+    mine = api.get(f"{CORE}/restaurants/mine", headers=owner).json()
+    boise_rest = sorted(mine, key=lambda r: r["name"])[0]
+    up = api.post(f"{CORE}/uploads", headers=owner, multipart={"purpose": "partner_document",
+                                                                 "file": {"name": "permit.png", "mimeType": "image/png", "buffer": PNG}}).json()
+    renewed = api.put(f"{CORE}/restaurants/{boise_rest['id']}/food-permit", headers=owner,
+                      data={"number": "CDH-2027-0417", "expires_on": "2027-12-31", "document_key": up["key"]})
+    _ok(renewed.status == 200)
+    for market, scope in (("us", "US-ID-BOI"), ("in", "IN-TG-HYD")):
+        for width in (1440, 390):
+            page.set_viewport_size({"width": width, "height": 1000})
+            page.goto(f"{BASE}/partners?scope={scope}&tab=applications", wait_until="networkidle")
+            permits = page.get_by_role("region", name="Food permits to review")
+            if market == "us":
+                prow = permits.get_by_test_id("permit-row").filter(has_text=boise_rest["name"])
+                check(f"R39 food permit {width} px: the renewal waits for review with its number, expiry and file", lambda prow=prow: (
+                    expect(prow).to_contain_text("CDH-2027-0417", timeout=15000), expect(prow).to_contain_text("31 Dec 2027"),
+                    expect(prow.get_by_role("button", name="View permit")).to_be_visible()))
+                page.screenshot(path=f"{OUT}/r39-5-admin{width}-us.png", full_page=True)
+                if width == 390:
+                    prow.get_by_role("button", name="Approve permit").click()
+                    check("R39 food permit: approved by city ops, gone from the list", lambda: (
+                        expect(permits.get_by_role("status")).to_contain_text(f"{boise_rest['name']}: permit approved", timeout=15000),
+                        expect(permits.get_by_test_id("permit-row").filter(has_text=boise_rest["name"])).to_have_count(0)))
+            else:
+                check(f"R39 food permits {width} px (India): nothing to review; India keeps the FSSAI licence", lambda permits=permits: (
+                    expect(permits).to_contain_text("Food permits to review", timeout=15000),
+                    _ok(permits.get_by_test_id("permit-row").filter(has_text="Hyderabad").count() == 0)))
+                page.screenshot(path=f"{OUT}/r39-5-admin{width}-in.png", full_page=True)
+    after = api.get(f"{CORE}/restaurants/{boise_rest['id']}/food-permit", headers=owner).json()
+    check("R39 food permit: the restaurant sees it approved", lambda: _ok(after["status"] == "approved"))
+
+    # Item 6: Settings > Monitoring
+    for market, scope in (("us", "US"), ("in", "IN")):
+        for width in (1440, 390):
+            page.set_viewport_size({"width": width, "height": 1000})
+            page.goto(f"{BASE}/settings?scope={scope}", wait_until="networkidle")
+            mon = page.get_by_role("region", name="Monitoring")
+            mon.get_by_role("button", name="Send test alert").click()
+            check(f"R39 send test alert {market} {width} px: each channel says sent, off or failed", lambda mon=mon: (
+                expect(mon.get_by_test_id("test-alert-result")).to_contain_text("Operations page: sent", timeout=15000),
+                expect(mon.get_by_test_id("test-alert-result")).to_contain_text(re.compile(r"Paging webhook: (sent|off \(not set\))")),
+                expect(mon.get_by_test_id("test-alert-result")).to_contain_text(re.compile(r"Sentry: (sent|off \(not set\))"))))
+            page.screenshot(path=f"{OUT}/r39-6-admin{width}-{market}.png", full_page=True)
     page.set_viewport_size({"width": 1440, "height": 1000})
 
     # Batching (task 43): a per-city switch among the business rules, off by default. It changes

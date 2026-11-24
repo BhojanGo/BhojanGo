@@ -1,7 +1,27 @@
 // Delivery partners sign in with their phone and a code by SMS (first), or their email
 // (round 8, D5); dark, like the rest of the app.
 import {
-  codeSendErrorText, EmailSignIn, errorMessage, field, LanguagePill, LoadError, type MarketCountry, PhoneCountryButton, phoneExample, phonePlaceholder, SafeAreaView, SignInLegal, type SignInWay, SignInWays, toE164, type, useCountry, useI18n, useSession,
+  codeSendErrorText,
+  EmailSignIn,
+  errorMessage,
+  field,
+  LanguagePill,
+  LoadError,
+  PhoneCountryButton,
+  phoneExample,
+  phonePlaceholder,
+  reformatPhone,
+  SafeAreaView,
+  SignInLegal,
+  SignInWays,
+  toE164,
+  type,
+  type MarketCountry,
+  type SignInWay,
+  typePhone,
+  useCountry,
+  useI18n,
+  useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -85,12 +105,12 @@ export default function SignIn() {
         <>
         <Text style={ui.bold}>{t("rider.sign_in.mobile")}</Text>
         <View style={styles.phone}>
-          <PhoneCountryButton tone="dark" value={country} onChange={setPicked} style={styles.cc} />
+          <PhoneCountryButton tone="dark" value={country} onChange={(c) => { setPicked(c); setNumber((n) => reformatPhone(n, c?.code)); }} style={styles.cc} />
           <TextInput
             testID="phone"
             accessibilityLabel={t("rider.sign_in.mobile")}
             value={number}
-            onChangeText={setNumber}
+            onChangeText={(v) => setNumber((n) => typePhone(n, v, country?.code))}
             keyboardType="phone-pad"
             placeholder={phonePlaceholder(country?.code)}
             placeholderTextColor={night.muted}

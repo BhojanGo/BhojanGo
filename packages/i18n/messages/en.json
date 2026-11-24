@@ -1597,7 +1597,17 @@
       "bank_partner": "Set up securely with our payments partner.",
       "continue": "Continue",
       "add_bank": "Add bank account",
-      "terms_payout": "You receive your dine-in menu price minus the payment processing fee. Commission: 0%."
+      "terms_payout": "You receive your dine-in menu price minus the payment processing fee. Commission: 0%.",
+      "permit_title": "Food permit",
+      "permit_sub": "Every restaurant needs a food establishment permit from its local health district.",
+      "permit_number": "Permit number",
+      "permit_number_hint": "As printed on your permit",
+      "permit_expires": "Expires on",
+      "permit_document": "Your permit (PDF, JPEG or PNG, up to 5 MB)",
+      "permit_check": "We review your permit before your restaurant goes live. We remind you 30 days before it expires; if it expires, your listing pauses until we approve the renewed one.",
+      "permit_pending": "Sent: we're reviewing it",
+      "permit_approved": "Approved, valid until {date}",
+      "permit_rejected": "Not approved: {note}. Please send it again."
     },
     "orders": {
       "failed": "That didn't go through",

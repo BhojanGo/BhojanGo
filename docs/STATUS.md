@@ -74,7 +74,8 @@ The bar since round 8 is "a real product, not a demo": every page and screen is 
 
 - **Boise is the first live city.** Everything between now and the first real order is in
   [launch/boise-readiness.md](launch/boise-readiness.md), with owner, status and cost.
-- **US commission is 15%,** changed in admin as a new rule version approved by a second admin; past orders keep
+- **US commission was 15%** (superseded in round 29: commission 0%, the customer pays a platform fee),
+  changed in admin as a new rule version approved by a second admin; past orders keep
   their rate. Commission can be set per country, city, zone and kitchen; no rate is written in code.
 - **Legal entities are Markets data:** the US is operated by DeepTrics LLC, India by DeepTrics Software Solutions
   Pvt Ltd. Each country's legal entity (name, address, support contacts; CIN, GSTIN and grievance officer for India)
@@ -344,8 +345,8 @@ Everything from the R26 walkthrough, PRs #190-#203 and #205 (each merged only af
 - **Order again (#200), refund panel (#197), city/out-of-area/payment-failed wording (#195), Documents
   Back (#190), Kitchen app portrait (#191), Boise live everywhere + Basque Corner photo (#203),
   translations and a CI gate that renders every website page in every language at 360 and 1440 px (#202).**
-- **India commission:** the Hyderabad applicant's 15% comes from India's commission rule (tiers A 18%,
-  B 15%, C 12%; default B), not code.
+- **India commission:** the Hyderabad applicant's 15% came from India's commission rule (tiers A 18%,
+  B 15%, C 12%; default B), not code. (Superseded in round 29: 0% for every restaurant unless it has its own deal.)
 
 QA journey, 2026-11-21 (Boise, order #2A649D, Boise Bowl Co., customer1.boi, test card 4242, one partial
 refund): paid 20:09:27, on the tablet 11 s later, accepted 20:09:52, almost ready 20:10, delivery
@@ -644,6 +645,38 @@ Migration `0052_offer_budget_returns` (one new table, `platform_offer_returns`; 
 - **Admin wording:** no "kitchen" in the console's words ("paid by the restaurant"); `wording_scan.py` now also reads
   text between JSX expressions and strings inside template literals, so it really covers the admin app: 0.
 - **Boise launch readiness** rewritten: [launch/boise-readiness.md](launch/boise-readiness.md).
+
+## Pay button, phones as you type, chargebacks, US food permits, monitoring (round 39, 2026-11-24)
+
+Migration `0053_disputes_permits` (one new table, `payment_disputes`, and eight nullable `restaurants.food_permit_*`
+columns; no data written).
+
+- **Nothing behind the Pay button on a phone.** Checkout below 768 px fills the screen under the header: its content
+  scrolls inside and the Pay bar sits under it, never over it (was a floating button over the page). A restaurant's
+  "View cart" bar reserves its own height at the bottom of the page. Playwright at 360, 390 and 414 px: the last
+  content ends above the button, and no text is under it at any scroll position.
+- **Phone numbers formatted as they are typed** (libphonenumber's AsYouType, `typePhone` / `reformatPhone` in
+  `packages/i18n/phone.js`): US "(208) 555-01", India "98765 43210"; changing the country re-formats; backspace over a
+  bracket or space deletes the digit before it. Website (sign-in, account, delivery partner and restaurant sign-up)
+  and the three apps' sign-in.
+- **Readiness report corrected:** the money model is commission 0%, a 10% (delivery) / 5% (pickup) platform fee paid
+  by the customer (at least $0.99), the card fee paid by the restaurant, the delivery fee by distance band and 100%
+  to the delivery partner. Old "15% commission" wording fixed in the go-live runbook, the specs, the design mock-up,
+  the markets seed's notes and two older entries here.
+- **Chargebacks** (Stripe `charge.dispute.created/updated/closed`, `payments/service/disputes.py`): the dispute is
+  recorded against its order, ops are alerted (Operations page and paging), and the restaurant's share is held from
+  its next payout run; admin Finance > Chargebacks takes evidence (files and a note) and sends it to Stripe. Won: the
+  hold comes back. Lost: the restaurant bears the food amount for a food-quality reason (`product_unacceptable`),
+  BhojanGo the rest and everything else (a country may list other restaurant reasons: Markets
+  `dispute_restaurant_reasons`).
+- **US food permits** (`catalog/service/permits.py`): where Markets `food_permit_required` is on (the US, from the
+  seed), a restaurant gives its health-district permit (number, expiry, a photo or PDF) in "Add your restaurant" or
+  the Restaurant app; an admin approves it (Partners > Applications > Food permits); no going live without one; a
+  reminder 30 days before it expires (push and email); an expired permit pauses the listing until a renewed one is
+  approved. QA gets the setting at its next seed run (nothing is written to QA by this round).
+- **Monitoring ready:** only the Sentry DSNs and `PAGING_WEBHOOK_URL` are left to paste
+  ([launch/monitoring.md](launch/monitoring.md)). Critical Alertmanager alerts, chargebacks and a used-up offer budget
+  page through the webhook; admin Settings > Monitoring > "Send test alert" says which channels took it.
 
 ## What's left before the pilot
 

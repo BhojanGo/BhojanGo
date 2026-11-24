@@ -297,6 +297,7 @@ class ApplicationOut(BaseModel):
     fssai_expires_on: str | None
     fssai_document: bool
     fssai_document_key: str | None = None  # for the admins who check it (GET /uploads/view)
+    food_permit: dict | None = None  # R39: the US food permit (catalog/service/permits.py out()); None where not required
     gstin: str | None
     payout_account: str | None  # its status: pending | active | restricted
     name: str
@@ -337,11 +338,23 @@ async def _application(db: AsyncSession, r: Restaurant) -> ApplicationOut:
     bank = (await db.execute(select(PayoutAccount).where(
         PayoutAccount.payee_type == "restaurant", PayoutAccount.payee_id == r.id))).scalars().first()
     india = r.country == "IN"
+    from datetime import UTC, datetime
+
+    from core_api.modules.catalog.service import permits
+
+    permit_required = not india and await permits.required(db, r.country)
+    if india:
+        licence = StepOut(key="fssai", title="FSSAI licence", done=bool(r.fssai_number), detail="14-digit licence and expiry date")
+    elif permit_required:  # R39: the health district's food permit, reviewed by an admin
+        licence = StepOut(key="fssai", title="Food permit", done=permits.submitted(r) and not permits.expired(r, datetime.now(UTC).date())
+                          and r.food_permit_status != "rejected",
+                          detail="Permit number, expiry date and a photo or PDF of it")
+    else:
+        licence = StepOut(key="fssai", title="Food permit", done=True, detail="Not needed in your city")
     steps = [
         StepOut(key="business", title="Business details", done=business_done(r),
                 detail="Name, address and pin on the map"),
-        StepOut(key="fssai", title="FSSAI licence" if india else "Food permit", done=bool(r.fssai_number) or not india,
-                detail="14-digit licence and expiry date" if india else "Not needed in your city"),
+        licence,
         StepOut(key="gst_bank", title="GST and bank" if india else "Tax and bank",
                 done=bool(bank) and (bool(r.gstin) or not india),
                 detail="GSTIN and where we send your weekly payout" if india else "Where we send your weekly payout"),
@@ -362,7 +375,8 @@ async def _application(db: AsyncSession, r: Restaurant) -> ApplicationOut:
                           if rate else None)
     return ApplicationOut(restaurant_id=str(r.id), fssai_number=r.fssai_number,
                           fssai_expires_on=r.fssai_expires_on.isoformat() if r.fssai_expires_on else None,
-                          fssai_document=bool(r.fssai_document_key), fssai_document_key=r.fssai_document_key, gstin=r.gstin, payout_account=bank.status if bank else None, name=r.name, area=(r.address or {}).get("landmark") or r.city, status=r.status,
+                          fssai_document=bool(r.fssai_document_key), fssai_document_key=r.fssai_document_key,
+                          food_permit=permits.out(r, True) if permit_required else None, gstin=r.gstin, payout_account=bank.status if bank else None, name=r.name, area=(r.address or {}).get("landmark") or r.city, status=r.status,
                           done=done, total=len(steps), current=current,
                           commission_percent=commission_percent,
                           steps=steps, street=(r.address or {}).get("street"), zip=(r.address or {}).get("zip"),

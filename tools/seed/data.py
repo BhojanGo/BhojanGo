@@ -472,7 +472,8 @@ COUNTRIES = [
         "timezone": "America/New_York", "payout_timezone": "America/Boise", "distance_unit": "mi", "phone_code": "+1",
         "payment_providers": ["stripe"], "tax_regime": "us_sales_tax", "status": "live",
         "payout_provider": "stripe_connect",
-        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza",
+        # R39: food_permit_required: a US restaurant gives its health-district food permit and an admin approves it
+        "settings": {"payment_methods": ["card", "apple_pay", "google_pay"], "hero_photo": "pepperoni-pizza", "food_permit_required": True,
                      "legal": {"name": "DeepTrics LLC"},  # R15 (Srini's decision); the rest is filled in admin
                      "emergency_number": "911",
                      "kitchen_offer_ceiling": {"flat_off": "15", "max_discount": "15", "weekly_cap": "1500"},  # R22 (S11)

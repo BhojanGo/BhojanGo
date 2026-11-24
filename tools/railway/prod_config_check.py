@@ -344,6 +344,7 @@ REQUIRED: list[tuple[str, tuple[str, ...], str, str, str]] = [
     ("AWS_SECRET_ACCESS_KEY", C, "sealed", "backend/shared/providers/storage.py", "aws_access_key_id"),
     ("AWS_ENDPOINT_URL", C, "set", "backend/shared/config.py", "AWS_ENDPOINT_URL"),
     ("ALERT_WEBHOOK_TOKEN", C, "sealed", "backend/shared/config.py", "ALERT_WEBHOOK_TOKEN"),
+    ("PAGING_WEBHOOK_URL", C, "sealed", "backend/shared/paging.py", "PAGING_WEBHOOK_URL"),  # R39
     ("POSTGRES_PASSWORD", ("postgres",), "sealed", ".railway/railway.ts", "POSTGRES_PASSWORD"),
     # Frontends (build args and run time)
     ("APP_ENV", ("web", "admin"), "set", "apps/web/src/lib/server.ts", "INDEXABLE"),
@@ -409,6 +410,7 @@ BY_HAND: dict[str, tuple[str, str]] = {
     "SES_SECRET_ACCESS_KEY": ("account", "AWS: the same IAM access key"),
     "SENTRY_DSN": ("account", "Sentry: backend project > Settings > Client Keys (DSN)"),
     "NEXT_PUBLIC_SENTRY_DSN": ("account", "Sentry: web (or admin) project > Client Keys (DSN)"),
+    "PAGING_WEBHOOK_URL": ("account", "the on-call tool: an incoming webhook URL (Slack, Discord, ntfy, PagerDuty/Opsgenie); docs/launch/monitoring.md"),
 }
 
 

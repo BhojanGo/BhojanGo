@@ -13,7 +13,7 @@ from fastapi import FastAPI
 import asyncio
 from datetime import UTC, datetime
 
-from core_api.modules.catalog.api.v1 import discover, internal, kitchens, menu, partner, restaurants
+from core_api.modules.catalog.api.v1 import discover, internal, kitchens, menu, partner, permits, restaurants
 
 logger = structlog.get_logger(__name__)
 
@@ -22,15 +22,20 @@ LICENCE_CHECK_SECONDS = 3600
 
 
 async def _licence_watch() -> None:
-    """Every hour: pause Indian listings whose FSSAI licence expired (idempotent,
-    so several core_api replicas running it is harmless)."""
+    """Every hour: pause Indian listings whose FSSAI licence expired; R39: pause listings whose food
+    permit expired and remind owners 30 days before (idempotent, so several core_api replicas running it
+    is harmless)."""
+    from core_api.modules.catalog.service import permits
     from core_api.modules.catalog.service.menu import pause_expired_licences
     from shared.db import AsyncSessionLocal
 
     while True:
         try:
             async with AsyncSessionLocal() as db:
-                await pause_expired_licences(db, datetime.now(UTC).date())
+                today = datetime.now(UTC).date()
+                await pause_expired_licences(db, today)
+                await permits.pause_expired(db, today)
+                await permits.remind_expiring(db, today)
                 await db.commit()
         except Exception as e:  # noqa: BLE001 - keep watching
             logger.warning("licence_watch_failed", error=str(e))
@@ -57,6 +62,7 @@ def register(app: FastAPI) -> None:
     # menu first: its fixed paths (/restaurants/licences/check) must win over /restaurants/{id}
     app.include_router(discover.router, prefix="/api/v1")
     app.include_router(kitchens.router, prefix="/api/v1")
+    app.include_router(permits.router, prefix="/api/v1")  # R39 (its /restaurants/admin/permits before /{id})
     app.include_router(menu.router, prefix="/api/v1")
     app.include_router(partner.router, prefix="/api/v1")  # before /restaurants/{id}: it has /restaurants/mine
     app.include_router(restaurants.router, prefix="/api/v1")

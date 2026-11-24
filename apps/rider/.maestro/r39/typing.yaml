@@ -1,0 +1,77 @@
+# R39 item 2 (run by ../r39-phone.yaml): the sign-in phone box groups the digits as they are typed, in the
+# country's own way (US "(208) 555-0123", India "98765 43210"), and switching the country re-formats them.
+appId: com.bhojango.rider
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Deliver on your.*"
+    timeout: 120000
+- tapOn:
+    id: "way-phone"
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-${COUNTRY}"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- tapOn:
+    id: "phone"
+- inputText: "${D1}"
+- assertVisible:
+    id: "phone"
+    text: '${S1}'
+- inputText: "${D2}"
+- assertVisible:
+    id: "phone"
+    text: '${S2}'
+- inputText: "${D3}"
+- assertVisible:
+    id: "phone"
+    text: '${S3}'
+- inputText: "${D4}"
+- assertVisible:
+    id: "phone"
+    text: '${S4}'
+- inputText: "${D5}"
+- assertVisible:
+    id: "phone"
+    text: '${S5}'
+- inputText: "${D6}"
+- assertVisible:
+    id: "phone"
+    text: '${S6}'
+- inputText: "${D7}"
+- assertVisible:
+    id: "phone"
+    text: '${S7}'
+- inputText: "${D8}"
+- assertVisible:
+    id: "phone"
+    text: '${S8}'
+- inputText: "${D9}"
+- assertVisible:
+    id: "phone"
+    text: '${S9}'
+- inputText: "${D10}"
+- assertVisible:
+    id: "phone"
+    text: '${S10}'
+- hideKeyboard
+- takeScreenshot: docs/screenshots/rider/r39-2-app-${MARKET}
+# another country: the same digits in its grouping
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-${OTHER}"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- assertVisible:
+    id: "phone"
+    text: '${SWITCHED}'

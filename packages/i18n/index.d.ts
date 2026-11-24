@@ -67,6 +67,10 @@ export function phonePlaceholder(country: string | null | undefined): string;
 /** A whole example: "+1 (208) 555-0123", "+91 98765 43210". */
 export function phoneExample(country: string | null | undefined): string;
 export function formatAsYouType(input: string | null | undefined, country?: string | null): string;
+/** R39: a phone box's onChange: the new value formatted as typed in the country's grouping (backspace-safe). */
+export function typePhone(prev: string, next: string, country?: string | null): string;
+/** R39: the same number in another country's grouping (the country picker changed). */
+export function reformatPhone(value: string, country?: string | null): string;
 
 /** R27: when a kitchen opens, for "Closed · opens {time}". The time on the city's clock in the country's
  *  format; the weekday (another day only) in the visitor's language. Null for no time. */

@@ -79,6 +79,7 @@ ON CONFLICT (id) DO UPDATE SET
 UPDATE_KITCHEN = text("""
 UPDATE restaurants SET delivery_radius_km = :radius, opens_at = :opens, closes_at = :closes,
     tier = :tier, fssai_number = :fssai, fssai_expires_on = :fssai_expires, paused_reason = NULL, paused_until = NULL,
+    food_permit_number = CASE WHEN country = 'US' THEN 'CDH-' || upper(substr(md5(slug), 1, 6)) END, food_permit_expires_on = CASE WHEN country = 'US' THEN DATE '2028-06-30' END, food_permit_status = CASE WHEN country = 'US' THEN 'approved' END, food_permit_reminded_for = NULL, 
     is_open = true, busy_extra_minutes = 0, busy_until = NULL,
     created_at = CASE WHEN :new THEN now() - interval '6 days' ELSE now() - interval '14 months' END
 WHERE id = :id

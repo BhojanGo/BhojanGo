@@ -243,6 +243,8 @@ async def seed_hours_and_licences(conn, restaurant_ids: dict) -> None:
         number, expires = FSSAI.get(slug, (None, None))
         await conn.execute(text(
             "UPDATE restaurants SET fssai_number = :n, fssai_expires_on = :e, tier = :t, "
+            # R39: seeded US restaurants hold an approved food permit (Central District Health style number)
+            "food_permit_number = CASE WHEN country = 'US' THEN 'CDH-' || upper(substr(md5(slug), 1, 6)) END, food_permit_expires_on = CASE WHEN country = 'US' THEN DATE '2028-06-30' END, food_permit_status = CASE WHEN country = 'US' THEN 'approved' END, food_permit_reminded_for = NULL, "
             "paused_reason = NULL WHERE id = :r"),
             {"n": number, "e": date.fromisoformat(expires) if expires else None, "t": TIERS.get(slug), "r": rid})
     for slug, day, note in HOLIDAYS:
@@ -424,7 +426,9 @@ async def seed(database_url: str) -> list[tuple[str, ...]]:
                         busy_extra_minutes, created_at, updated_at)
                     VALUES (:id, :name, :slug, :owner, '', :cuisines, CAST(:address AS jsonb), :lat, :lng, 0, 0, true, 30, 40,
                         0, 0, :currency, :country, :city, '{}', 'pending_approval', true, 20, 0, now(), now())
-                    ON CONFLICT (slug) DO UPDATE SET status = 'pending_approval', fssai_number = NULL, gstin = NULL"""), {
+                    ON CONFLICT (slug) DO UPDATE SET status = 'pending_approval', fssai_number = NULL, gstin = NULL,
+                        food_permit_number = NULL, food_permit_expires_on = NULL, food_permit_document_key = NULL,
+                        food_permit_status = NULL, food_permit_note = NULL"""), {
                     "id": sid("restaurant", ap["slug"]), "name": ap["restaurant"], "slug": ap["slug"], "owner": owner,
                     "cuisines": ap["cuisines"], "lat": ap["lat"], "lng": ap["lng"], "currency": m["currency"],
                     "country": m["country"], "city": m["city"],

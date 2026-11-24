@@ -9,7 +9,7 @@ no demo kitchens, users, orders or payout accounts.
   Statuses: the production cities (PRODUCTION_CITIES) are live; every other city that was open
   (beta or live) is a draft, with its zones; a state or country left with no open city is a
   draft (India). Cities announced as "soon" stay "soon" (shown only where the country is open).
-- Rules from data.RULES: country, state, city and platform rules (US commission 15%, India's
+- Rules from data.RULES: country, state, city and platform rules (commission 0% and the 10% / 5% platform fee, India's
   R16 tax rules, payment fees, delivery fees, pay for delivery partners, ...). Not the ones for
   a seed kitchen (restaurant scope) and no promotions (a launch offer is a business decision).
 - Terms and Privacy (legal/<CC>-<kind>.md) as unpublished drafts, for the lawyer's text to be

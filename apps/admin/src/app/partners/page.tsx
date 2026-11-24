@@ -11,6 +11,7 @@ import { Suspense, useState } from "react";
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { PayoutSetupPanel } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
+import { FoodPermits } from "@/components/partners/FoodPermits";
 import { applicationDocs, collected, marketDocs } from "@/lib/kitchenDocs";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
@@ -24,6 +25,7 @@ const TABS = [
 interface Application {
   restaurant_id: string; name: string; status: string; done: number; total: number; current: string | null;
   fssai_number: string | null; fssai_expires_on: string | null; fssai_document: boolean; fssai_document_key: string | null;
+  food_permit?: { number: string | null; expires_on: string | null; document_key: string | null; status: string | null; note: string | null } | null;
   gstin: string | null; payout_account: string | null; commission_percent: string | null;
   /** The kitchen's country: its documents come from Markets (kitchen_documents). */
   country: string | null;
@@ -201,7 +203,10 @@ function Applications({ scope }: { scope: string }) {
   const cityCode = cities.find((c) => c.name === kitchen?.city)?.code ?? "";
   const country = markets?.find((c) => c.code === app.data?.country);
   const docs = app.data ? applicationDocs(app.data, country?.settings) : [];
+  const permit = app.data?.food_permit ?? null;
   return (
+    <div className="space-y-4">
+    <FoodPermits openFile={openFile} mayReview={(p) => can(me, "partners.edit", cities.find((c) => c.name === p.city)?.code ?? "")} />
     <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
       <section className="rounded-2xl bg-white p-2" aria-label="Restaurants applying">
         <div className="px-3 py-2 text-label">Applying · {mine.length}</div>
@@ -236,6 +241,10 @@ function Applications({ scope }: { scope: string }) {
                     {d.fileKey ? <> · <button type="button" className="font-bold text-peacock" onClick={() => void openFile(d.fileKey!)}>View certificate</button></> : null}</dd></div>
               ))}
             </dl>
+            {permit ? (
+              <p className="m-0" data-testid="application-permit"><b>Food permit</b> · {permit.number ? `${permit.number} · until ${permit.expires_on}` : "not given"}
+                {" · "}{permit.status === "approved" ? <span className="text-peacock">approved</span> : permit.status === "rejected" ? <span className="text-chili">turned down: {permit.note}</span> : permit.status === "pending" ? "waiting for review (Food permits, above)" : "—"}</p>
+            ) : null}
           </section>
           {can(me, "partners.edit", cityCode) ? (
             <div className="flex flex-wrap items-center gap-3">
@@ -249,6 +258,7 @@ function Applications({ scope }: { scope: string }) {
           {msg ? <p role="status" className="text-label text-peacock">{msg}</p> : null}
         </section>
       ) : <div className="rounded-2xl bg-white p-6 text-muted">{open && app.isLoading ? "Loading the application…" : open && app.isError ? "The application didn't load. Pick it again to retry." : msg ?? "Pick a restaurant to see its application."}</div>}
+    </div>
     </div>
   );
 }

@@ -249,6 +249,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("POST", "/api/v1/ops/help/articles/{article_id}/unpublish"): admin("viewer", "ops_hyd", "support_hyd", "finance_in", "cm_us"),
     ("GET", "/api/v1/ops/tickets"): admin(),
     ("GET", "/api/v1/ops/alerts"): admin(),  # P23
+    ("POST", "/api/v1/ops/alerts/test"): admin("ops_hyd", "viewer", "finance_us", "cm_us"),  # R39: super admins only
     ("POST", "/api/v1/ops/tickets/{ticket_id}/resolve"): admin("ops_boi", "viewer", "finance_in", body=lambda c: {"resolution": "Sweep"}),
     # quick messages (B2): the order's customer and rider only; not the kitchen, not admins
     ("GET", "/api/v1/orders/{order_id}/messages"): user("other_customer", "other_partner", "other_rider", "partner", "ops_hyd"),
@@ -289,6 +290,12 @@ POLICY: dict[tuple[str, str], Policy] = {
     # ── restaurants: their owner or admins for the city ──────────────────────
     ("POST", "/api/v1/restaurants"): user("customer", "rider", body=lambda c: RESTAURANT),
     ("GET", "/api/v1/restaurants/admin/pending"): admin(),
+    ("GET", "/api/v1/restaurants/admin/permits"): admin(),  # R39: food permits to review, cut to the admin's cities
+    ("GET", f"{R}/food-permit"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("PUT", f"{R}/food-permit"): user("customer", "rider", "other_partner", "ops_boi",
+                                     body=lambda c: {"number": "CDH-1", "expires_on": "2030-01-01"}),
+    ("POST", f"{R}/food-permit/review"): user("customer", "rider", "partner", "other_partner", "ops_boi", "viewer",
+                                              body=lambda c: {"decision": "approve"}),
     ("GET", "/api/v1/restaurants/admin/kitchens"): admin(),  # the full record (commission, licence expiry)
     ("POST", "/api/v1/restaurants/licences/check"): admin("ops_boi"),
     ("PUT", R): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"description": "sweep"}),
@@ -420,6 +427,12 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/finance/payout-weeks"): admin("finance_us", "ops_boi", params=lambda c: {"country": "IN"}),
     # R23: kitchens below zero for 4 weeks (finance.view for the country)
     ("GET", "/api/v1/finance/to-collect"): admin("finance_us", "ops_boi", params=lambda c: {"country": "IN"}),
+    # R39: chargebacks (finance.view to read, finance.edit to add and send evidence; the dispute's country)
+    ("GET", "/api/v1/finance/disputes"): admin("finance_us", "ops_boi", params=lambda c: {"country": "IN"}),
+    ("GET", "/api/v1/finance/disputes/{dispute_id}"): admin("finance_us", "ops_boi"),
+    ("GET", "/api/v1/finance/disputes/{dispute_id}/evidence/{number}"): admin("finance_us", "ops_boi"),
+    ("POST", "/api/v1/finance/disputes/{dispute_id}/evidence"): admin("finance_us", "ops_hyd", "viewer", "ops_boi"),
+    ("POST", "/api/v1/finance/disputes/{dispute_id}/submit"): admin("finance_us", "ops_hyd", "viewer", "ops_boi"),
     ("POST", "/api/v1/finance/payout-runs"): admin("ops_hyd", "viewer", "finance_us", body=lambda c: {
         "country": "IN", "period_start": "2001-01-01", "period_end": "2001-01-08"}),
     ("GET", "/api/v1/finance/payout-runs/{run_id}"): admin("finance_us", "ops_boi"),
@@ -505,6 +518,7 @@ class Ctx:
     pause: str = ""
     bulk_refund: str = ""
     message: str = ""
+    dispute: str = ""  # R39
 
     def path(self, template: str) -> str:
         values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
@@ -516,7 +530,7 @@ class Ctx:
                   "payment_method_id": self.payment_method, "article_id": self.help_article, "topic": "orders", "kind": "restaurant", "target_id": self.spice,
                   "doc_id": self.legal_doc, "number": "1",
                   "day": (date.today() + timedelta(days=30)).isoformat(),
-                  "pause_id": self.pause, "refund_id": self.bulk_refund, "message_id": self.message,
+                  "pause_id": self.pause, "refund_id": self.bulk_refund, "message_id": self.message, "dispute_id": self.dispute,
                   "country": "IN", "region": "IN-TG", "city": "IN-TG-HYD", "code": "IN-TG-HYD"}
         return template.format(**values)
 
@@ -695,8 +709,18 @@ async def _build() -> Ctx:
             db.add(st)
             await db.flush()
             run_id, st_id = run.id, st.id
+            # R39: a chargeback on the sweep's order (Spice Route, Hyderabad)
+            from core_api.modules.payments.models import PaymentDispute
+
+            dispute = PaymentDispute(provider="fake", provider_dispute_id=f"dp_sweep_{uuid.uuid4().hex[:12]}",
+                                     order_id=uuid.UUID(c.order), restaurant_id=uuid.UUID(c.spice), country="IN",
+                                     market_city="IN-TG-HYD", currency="INR", amount=100, reason="general",
+                                     status="needs_response", held=0, restaurant_loss=0, platform_loss=0, evidence=[])
+            db.add(dispute)
+            await db.flush()
+            dispute_id = dispute.id
             await db.commit()
-            c.run, c.statement = str(run_id), str(st_id)
+            c.run, c.statement, c.dispute = str(run_id), str(st_id), str(dispute_id)
     await close_redis()
     await engine.dispose()
     return c

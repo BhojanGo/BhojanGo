@@ -14,6 +14,8 @@ Webhook events we act on (subscribe the endpoint
 * ``charge.refunded``, ``refund.created``, ``refund.updated``, ``refund.failed``,
   ``charge.refund.updated``           -> a refund's final status (most card refunds
   succeed at once; a failed one is taken back off the order's refunded amount)
+* ``charge.dispute.created``, ``charge.dispute.updated``, ``charge.dispute.closed`` -> a chargeback
+  (R39, payments/service/disputes.py: hold the restaurant's share, alert ops, won/lost)
 
 Anything else is acknowledged and ignored.
 """
@@ -33,7 +35,8 @@ PAYMENT_EVENTS = {
     "payment_intent.canceled": "failed",
 }
 REFUND_EVENTS = {"charge.refunded", "refund.created", "refund.updated", "refund.failed", "charge.refund.updated"}
-WEBHOOK_EVENTS = sorted([*PAYMENT_EVENTS, *REFUND_EVENTS])
+DISPUTE_EVENTS = {"charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"}
+WEBHOOK_EVENTS = sorted([*PAYMENT_EVENTS, *REFUND_EVENTS, *DISPUTE_EVENTS])
 
 
 def get_stripe():  # returns the configured `stripe` module
@@ -88,11 +91,46 @@ async def process_webhook(payload: bytes, sig_header: str) -> dict:
         if status == "failed":
             out["failure_reason"] = _failure_reason(data)
         return out
+    if event_type in DISPUTE_EVENTS:
+        return {"event_type": event_type, "kind": "dispute", "event_id": eid, "status": "dispute",
+                "provider_payment_id": _get(data, "payment_intent") or "", "dispute": await _dispute_of(data)}
     if event_type in REFUND_EVENTS:
         refunds = _refunds_of(event_type, data)
         return {"event_type": event_type, "kind": "refund", "refunds": refunds, "status": "refund",
                 "provider_payment_id": refunds[0]["provider_payment_id"] if refunds else "", "event_id": eid}
     return {"event_type": event_type, "provider_payment_id": _get(data, "id", ""), "status": "unknown", "event_id": eid}
+
+
+async def _dispute_of(data) -> dict:  # type: ignore[no-untyped-def]
+    """A Stripe Dispute as plain fields. Older API versions name only the charge: its PaymentIntent is looked up."""
+    pi = _get(data, "payment_intent")
+    if not pi and _get(data, "charge"):
+        try:
+            charge = await asyncio.to_thread(get_stripe().Charge.retrieve, _get(data, "charge"))
+            pi = _get(charge, "payment_intent")
+        except Exception as e:  # noqa: BLE001 - recorded without its order; finance can still see it
+            logger.warning("dispute_charge_lookup_failed", dispute=_get(data, "id"), error=type(e).__name__)
+    details = _get(data, "evidence_details") or {}
+    return {"id": _get(data, "id"), "amount": _get(data, "amount"), "currency": _get(data, "currency"),
+            "reason": _get(data, "reason"), "status": _get(data, "status"), "payment_intent": pi,
+            "charge": _get(data, "charge"), "created": _get(data, "created"), "due_by": _get(details, "due_by")}
+
+
+async def submit_dispute_evidence(dispute_id: str, text: str, files: list[tuple[str, bytes, str]]) -> None:
+    """R39: send finance's evidence to Stripe and submit it: the files (Stripe File API, purpose
+    dispute_evidence) and the note. In test mode a note of "winning_evidence" / "losing_evidence"
+    closes the dispute as won / lost."""
+    import io
+
+    s = get_stripe()
+    ids = []
+    for name, data, _ctype in files[:5]:
+        f = await asyncio.to_thread(s.File.create, purpose="dispute_evidence", file=(name, io.BytesIO(data)))
+        ids.append(f["id"])
+    evidence: dict = {"uncategorized_text": text[:20000]} if text else {}
+    if ids:
+        evidence["uncategorized_file"] = ids[0]
+    await asyncio.to_thread(s.Dispute.modify, dispute_id, evidence=evidence, submit=True)
 
 
 async def create_refund(

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
+import { TestAlert } from "@/components/settings/TestAlert";
 import { adminApi } from "@/lib/api";
 import { can, ROLE_LABELS, useAdminMe } from "@/lib/markets";
 import { apiMessage, useScope } from "@/lib/ops";
@@ -46,6 +47,7 @@ function SettingsPage() {
         </ul>
         <p className="mt-2 text-small text-muted">Country, state and city settings (money, tax, service hours, languages) are in Markets; states inherit from the country and cities from their state.</p>
       </section>
+      {can(me, "admins.grant", "*") ? <TestAlert /> : null}
       <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Admins">
         <h2 className="m-0 text-h3">Admins {scope !== "*" ? `in ${scope}` : ""}</h2>
         {list.isLoading ? (

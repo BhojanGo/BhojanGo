@@ -1,0 +1,13 @@
+# R39 item 5, India: a Hyderabad restaurant still gives its FSSAI licence (no US food permit).
+appId: com.bhojango.partner
+env:
+  PHONE: "9000000901"
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Restaurant partner application"
+    timeout: 30000
+- tapOn: "FSSAI licence"
+- assertVisible: "FSSAI food licence"
+- assertNotVisible: ".*local health district.*"
+- takeScreenshot: docs/screenshots/partner/r39-5-app-in

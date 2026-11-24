@@ -80,4 +80,29 @@ function formatAsYouType(input, country) {
   return new AsYouType(upper(country)).input(String(input ?? ""));
 }
 
-module.exports = { parsePhone, toE164, isValidPhone, formatPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, EXAMPLES };
+/** The digits typed (at most 15, E.164's limit), with a leading "+" kept for an international number. */
+function phoneChars(value) {
+  const s = String(value ?? "");
+  const digits = s.replace(/\D/g, "").slice(0, 15);
+  return (s.trim().startsWith("+") ? "+" : "") + digits;
+}
+
+/**
+ * R39: a phone box's onChange. Formats what was typed in the selected country's grouping as the person
+ * types (US "(208) 555-01", India "98765 43210"; "+..." in that number's own country). Deleting a
+ * formatting character (the ")" of "(208)") deletes the digit before it, so backspace never sticks.
+ */
+function typePhone(prev, next, country) {
+  let raw = phoneChars(next);
+  if (String(next ?? "").length < String(prev ?? "").length && raw === phoneChars(prev)) raw = raw.slice(0, -1);
+  if (!raw || raw === "+") return raw;
+  return formatAsYouType(raw, country);
+}
+
+/** R39: the same number in another country's grouping (the country picker changed). */
+function reformatPhone(value, country) {
+  const raw = phoneChars(value);
+  return !raw || raw === "+" ? raw : formatAsYouType(raw, country);
+}
+
+module.exports = { parsePhone, toE164, isValidPhone, formatPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, typePhone, reformatPhone, EXAMPLES };

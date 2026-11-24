@@ -1597,7 +1597,17 @@
       "bank_partner": "Se configura de forma segura con nuestro socio de pagos.",
       "continue": "Continuar",
       "add_bank": "Agregar cuenta bancaria",
-      "terms_payout": "Recibes el precio de tu menú en el local menos la tarifa de procesamiento de pagos. Comisión: 0%."
+      "terms_payout": "Recibes el precio de tu menú en el local menos la tarifa de procesamiento de pagos. Comisión: 0%.",
+      "permit_title": "Permiso de alimentos",
+      "permit_sub": "Todo restaurante necesita un permiso de establecimiento de alimentos de su distrito de salud local.",
+      "permit_number": "Número de permiso",
+      "permit_number_hint": "Tal como aparece en tu permiso",
+      "permit_expires": "Vence el",
+      "permit_document": "Tu permiso (PDF, JPEG o PNG, hasta 5 MB)",
+      "permit_check": "Revisamos tu permiso antes de que tu restaurante esté activo. Te avisamos 30 días antes de que venza; si vence, tu restaurante se pausa hasta que aprobemos el renovado.",
+      "permit_pending": "Enviado: lo estamos revisando",
+      "permit_approved": "Aprobado, válido hasta el {date}",
+      "permit_rejected": "No aprobado: {note}. Envíalo de nuevo."
     },
     "orders": {
       "failed": "No se pudo completar",

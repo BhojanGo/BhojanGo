@@ -4,7 +4,7 @@
 // (every other device is signed out). An email or number on another account can't be
 // added, and the page says so without saying whose it is.
 import { unwrap, type CoreSchemas } from "@bhojango/api-client";
-import { formatPhone, phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
+import { formatPhone, phoneExample, phonePlaceholder, reformatPhone, toE164, typePhone } from "@bhojango/i18n";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { api, useSession } from "@/lib/client";
@@ -238,14 +238,14 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
         <div className="mt-3 flex flex-wrap gap-3">
           <label htmlFor={ccId} className="text-label text-muted">
             {t("signin.country_code")}
-            <select id={ccId} value={cc} onChange={(e) => setCc(e.target.value)} className={`${input} w-auto pr-8`}>
+            <select id={ccId} value={cc} onChange={(e) => { setCc(e.target.value); setNumber((n) => reformatPhone(n, e.target.value)); }} className={`${input} w-auto pr-8`}>
               {countries.map((c) => <option key={c.code} value={c.code}>{`${c.name} ${c.phone_code}`}</option>)}
             </select>
           </label>
           <label htmlFor={id} className="min-w-[200px] flex-grow text-label text-muted">
             {t("signin.mobile")}
             <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" autoFocus value={number} data-testid="link-phone"
-              placeholder={phonePlaceholder(country?.code)} onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))} className={input} />
+              placeholder={phonePlaceholder(country?.code)} onChange={(e) => { const v = e.target.value; setNumber((n) => typePhone(n, v, country?.code)); }} className={input} />
             {bad && country ? <span role="alert" className="mt-1 block text-small text-[#8C1D18]">{t("common.phone_invalid", { example: phoneExample(country.code) })}</span> : null}
           </label>
         </div>

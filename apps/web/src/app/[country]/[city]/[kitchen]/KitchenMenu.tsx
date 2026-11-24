@@ -4,11 +4,12 @@
 // stepper, the dish-options dialog, and "Your bag" with the fair bill from a
 // live quote when we know who and where. The bag holds one kitchen.
 import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { FairBill } from "@/components/FairBill";
 import { Check, Close, Minus, Plus, Search } from "@/components/Icons";
 import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQuote";
+import { useReserveBottom } from "@/lib/bottomSpace";
 import { photo } from "@/lib/format";
 import { useBag, useHydrated, useSession, type BagLine, type Pick } from "@/lib/client";
 import { useFormat, useT } from "@/lib/i18n";
@@ -535,10 +536,14 @@ function BagBar({ quote, children }: { quote: string | null; children: ReactNode
   const { restaurant, lines } = useBag();
   const [open, setOpen] = useState(false);
   const count = lines.reduce((n, l) => n + l.quantity, 0);
+  const bar = useRef<HTMLButtonElement>(null);
+  useReserveBottom(bar, hydrated && !!restaurant && count > 0);  // R39: the page ends above the bar, never under it
   if (!hydrated || !restaurant || !count) return null;
   return (
     <>
       <button
+        ref={bar}
+        data-testid="cart-bar"
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}

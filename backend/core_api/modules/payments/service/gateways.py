@@ -227,6 +227,9 @@ class FakeGateway:
         data = json.loads(payload)
         event_type = data.get("type", "")
         status = {"payment.succeeded": "succeeded", "payment.failed": "failed"}.get(event_type, "unknown")
+        if event_type.startswith("dispute."):  # R39: local and CI chargebacks, shaped as Stripe's
+            return {"event_type": event_type, "kind": "dispute", "event_id": data.get("id"), "status": "dispute",
+                    "provider_payment_id": data.get("provider_payment_id", ""), "dispute": data.get("dispute") or {}}
         return {"event_type": event_type, "provider_payment_id": data.get("provider_payment_id", ""), "status": status,
                 "event_id": data.get("id")}
 

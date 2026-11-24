@@ -1,5 +1,6 @@
 from core_api.modules.payments.models.payment import (
     PaymentCustomer,
+    PaymentDispute,
     PaymentIntent,
     ProcessedWebhookEvent,
     Refund,
@@ -8,4 +9,4 @@ from core_api.modules.payments.models.payment import (
 )
 from core_api.modules.payments.models.payment_method import PaymentMethod
 
-__all__ = ["PaymentCustomer", "PaymentIntent", "PaymentMethod", "ProcessedWebhookEvent", "Refund", "Wallet", "WalletTransaction"]
+__all__ = ["PaymentCustomer", "PaymentDispute", "PaymentIntent", "PaymentMethod", "ProcessedWebhookEvent", "Refund", "Wallet", "WalletTransaction"]

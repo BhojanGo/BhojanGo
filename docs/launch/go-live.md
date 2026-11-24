@@ -1,7 +1,9 @@
 # Go-live runbook: Boise
 
 From "accounts ready" to the first real order, and the first week after it. Boise is the first live city. The US
-operator is DeepTrics LLC. Commission is 15%.
+operator is DeepTrics LLC. Money model (fee model v2): restaurant commission 0%; the customer pays a platform fee of 10% of the food (delivery) or 5% (pickup), at
+least $0.99; the restaurant pays the card processing fee; the delivery fee is set by distance band and 100% of it
+goes to the delivery partner.
 
 This is a plan. Nothing in it has been done. Production does not exist yet. Creating it, and every account below,
 costs money: nothing starts until Srini says go.
@@ -249,7 +251,7 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
   ```
 
   It adds: US (DeepTrics LLC) and India (DeepTrics Software Solutions Pvt Ltd, **draft**: kept, switched off), their
-  states and cities with **Boise live** and Hyderabad draft, the zones, the market rules (15% commission in the US,
+  states and cities with **Boise live** and Hyderabad draft, the zones, the market rules (0% commission and the 10% / 5% platform fee in the US,
   India's tax rules from round 16, payment fees, delivery fees, pay for delivery partners, refund limits; no
   promotions, no kitchen's rules), the help articles, and Terms and Privacy as **unpublished drafts** for the
   lawyer's text. No users, kitchens, menus, orders or payout accounts. It only adds what's missing (running it again
@@ -288,12 +290,13 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
     Google Pay; legal entity DeepTrics LLC with its registered address, support email and phone.
   - Terms and Privacy: the seed left drafts (Content → Legal); paste the lawyer's versions over them and publish
     for the US (no "Draft" banner).
-  - Rules: commission 15% (all tiers), weekly payouts, delivery fees, minimum order, minimum pay for delivery
+  - Rules: commission 0%, platform fee 10% of food (5% for pickup, at least $0.99), card fee estimate from the
+    restaurant's payout, weekly payouts, delivery fee bands (100% to the delivery partner), minimum order, minimum pay for delivery
     partners in Boise, unpaid-order timeout, automatic refund limit, tax on commission 0% in the US.
   - Boise: `live` from the seed; set zones back to `draft` where no kitchens and partners exist yet.
   - India: kept, switched off (`draft`) by the seed; it stays that way.
 - **Verify:** the simulator, for a Boise address and a sample cart: the customer total, Idaho sales tax line,
-  15% commission, the partner's pay and "who gets your money" all as expected. The website shows Boise as open.
+  the 10% platform fee (0% commission), the card fee off the restaurant's payout, the partner's pay and "who gets your money" all as expected. The website shows Boise as open.
 - **Roll back:** set Boise back to `beta` or pause ordering in Boise (Incidents). Rule versions: end the new version;
   the previous one applies again.
 
@@ -365,7 +368,7 @@ push tokens (`PUSH_PROVIDER=live`) and needs no Firebase or APNs key of its own.
   - SMS codes, emails (receipts, codes) and pushes arrived;
   - the tracking map moved; the delivery PIN was random;
   - Sentry has no new errors; the uptime checks stayed green;
-  - after the week ends, the payout run drafts kitchens' and partners' pay correctly (15% commission).
+  - after the week ends, the payout run drafts kitchens' and partners' pay correctly (0% commission, card fee off the restaurant's pay).
 - **Roll back:** refund everything from the rehearsal; pause Boise until the problem is fixed.
 
 ### 18. First real order

@@ -89,3 +89,42 @@ async def test_kpis_for_prometheus(client: AsyncClient) -> None:  # noqa: F811
     async with AsyncSessionLocal() as db:  # don't leave a ready order for other tests' riders
         await db.execute(update(Order).where(Order.id == order["id"]).values(status="cancelled"))
         await db.commit()
+
+
+async def test_paging_and_the_test_alert_button(client: AsyncClient, monkeypatch) -> None:  # noqa: F811
+    """R39 item 6: with only PAGING_WEBHOOK_URL set, a new critical alert pages once (a repeat does not), and
+    admin Settings' "Send test alert" reaches the webhook, the Operations list and says which channels took it."""
+    import uuid
+
+    from core_api.integration.mock_webhook import MockWebhook
+    from shared.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ALERT_WEBHOOK_TOKEN", "test-token")
+    auth = {"Authorization": "Bearer test-token"}
+    admin = await login(client, "admin@example.com", PW)
+    # Off until a URL is pasted: the button says so
+    monkeypatch.setattr(get_settings(), "PAGING_WEBHOOK_URL", "")
+    r = await client.post("/api/v1/ops/alerts/test", headers=admin)
+    assert r.status_code == 200 and r.json()["paging"] == "off", r.text
+    with MockWebhook() as hook:
+        monkeypatch.setattr(get_settings(), "PAGING_WEBHOOK_URL", hook.url)
+        fp = f"fp-page-{uuid.uuid4().hex[:8]}"
+        body = {"status": "firing", "alerts": [_alert("PaymentFailuresHigh", "firing", fp, "US-ID-BOI")]}
+        assert (await client.post("/api/v1/ops/alerts/webhook", json=body, headers=auth)).status_code == 204
+        assert (await client.post("/api/v1/ops/alerts/webhook", json=body, headers=auth)).status_code == 204  # still firing
+        assert len(hook.received) == 1 and hook.received[0]["title"].startswith("[CRITICAL] PaymentFailuresHigh test"), hook.received
+        r = await client.post("/api/v1/ops/alerts/test", headers=admin)
+        assert r.status_code == 200, r.text
+        out = r.json()
+        assert out["paging"] == "sent" and out["sentry"] == "off" and out["alert"]["name"] == "TestAlert"
+        assert len(hook.received) == 2 and "Test alert from admin Settings" in hook.received[1]["text"]
+        assert hook.received[1]["content"] == hook.received[1]["text"] and hook.received[1]["priority"] == 5
+        resolved = {"status": "resolved", "alerts": [_alert("PaymentFailuresHigh", "resolved", fp, "US-ID-BOI")]}
+        assert (await client.post("/api/v1/ops/alerts/webhook", json=resolved, headers=auth)).status_code == 204
+        assert len(hook.received) == 2  # an alert that ends doesn't page
+    with MockWebhook(status=500) as broken:  # a failing receiver is reported, never an error for the admin
+        monkeypatch.setattr(get_settings(), "PAGING_WEBHOOK_URL", broken.url)
+        assert (await client.post("/api/v1/ops/alerts/test", headers=admin)).json()["paging"] == "failed"
+    # Only a super admin may send it
+    ops = await login(client, "ops.hyd@example.com", PW)
+    assert (await client.post("/api/v1/ops/alerts/test", headers=ops)).status_code == 403

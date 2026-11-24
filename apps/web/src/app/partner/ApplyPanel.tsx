@@ -8,13 +8,13 @@
 //                        licence, tax and bank, menu, go live), or their live kitchen
 //   delivery partner, admin -> a short note: kitchens apply with their own account
 import { ApiError, unwrap } from "@bhojango/api-client";
-import { formatPhone, phonePlaceholder } from "@bhojango/i18n";
+import { formatPhone, phonePlaceholder, typePhone } from "@bhojango/i18n";
 import { Button } from "@bhojango/ui";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { api, coreFetch, useHydrated, useSession } from "@/lib/client";
-import { useLanguage, useT } from "@/lib/i18n";
+import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import { apiProblem, applicationState, cityOptions, defaultCity, e164, splitLinks, validate, type FieldKey, type SignUpFields, type Terms } from "@/lib/kitchenJoin";
 
 type T = ReturnType<typeof useT>;
@@ -22,6 +22,8 @@ type Step = { key: string; title: string; done: boolean; detail: string };
 type Application = {
   restaurant_id: string; name: string; done: number; total: number; current: string | null; status: string;
   fssai_number: string | null; fssai_expires_on: string | null; fssai_document: boolean; gstin: string | null;
+  /** R39: the US food permit (null where the country doesn't ask for one). */
+  food_permit?: FoodPermit | null;
   payout_account: string | null; area: string | null; street?: string | null; zip?: string | null; country?: string | null;
   cuisines?: string[]; steps: Step[];
 };
@@ -276,7 +278,7 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
                 <span aria-label={t("kitchen_join.phone_code", { code: terms.phone_code })} className="flex h-12 items-center rounded-l-card border-[1.5px] border-r-0 border-line-strong bg-porcelain px-3 text-body tabular-nums text-muted">
                   {terms.phone_code}
                 </span>
-                <input {...a} name="phone" type="tel" inputMode="tel" autoComplete="tel-national" value={f.phone} onChange={(e) => set("phone", e.target.value)}
+                <input {...a} name="phone" type="tel" inputMode="tel" autoComplete="tel-national" value={f.phone} onChange={(e) => set("phone", typePhone(f.phone, e.target.value, terms.country))}
                   placeholder={phonePlaceholder(terms.country)} data-testid="kj-phone"
                   className={`${bare} rounded-l-none tabular-nums`} maxLength={20} />
               </div>
@@ -586,6 +588,7 @@ function StepBody({ app, stepKey, gst, onSaved }: { app: Application; stepKey: s
   if (!step) return null;
   if (stepKey === "business") return <Business app={app} onSaved={onSaved} />;
   if (stepKey === "fssai" && gst) return <Licence app={app} onSaved={onSaved} />;
+  if (stepKey === "fssai" && app.food_permit) return <Permit app={app} permit={app.food_permit} onSaved={onSaved} />;
   if (stepKey === "gst_bank") return <TaxBank app={app} gst={gst} onSaved={onSaved} />;
   const text = stepText(t, step, gst);
   const allDone = app.steps.filter((s) => s.key !== "go_live").every((s) => s.done);
@@ -762,6 +765,71 @@ function Licence({ app, onSaved }: { app: Application; onSaved: () => Promise<vo
       <p className="m-0 mt-4 rounded-card bg-white p-3 text-small text-muted">{t("partner.apply.fssai_check")}</p>
       {msg && <p role="alert" className="m-0 mt-4 text-label text-chili">{msg}</p>}
       <Button type="submit" size="lg" loading={busy} disabled={digits.length !== 14 || !until || uploading} className="mt-5">{t("partner.apply.save_continue")}</Button>
+    </form>
+  );
+}
+
+interface FoodPermit { number: string | null; expires_on: string | null; document: boolean; status: string | null; note: string | null }
+
+/** R39: the health district's food permit (US): number, expiry date and the permit itself; an admin reviews it. */
+function Permit({ app, permit, onSaved }: { app: Application; permit: FoodPermit; onSaved: () => Promise<void> }) {
+  const t = useT();
+  const f = useFormat();
+  const [num, setNum] = useState(permit.number ?? "");
+  const [until, setUntil] = useState(permit.expires_on ?? "");
+  const [doc, setDoc] = useState<{ name: string; key: string | null } | null>(permit.document ? { name: t("partner.apply.licence_on_file"), key: null } : null);
+  const [uploading, setUploading] = useState(false);
+  const { busy, msg, setMsg, run } = useSave(onSaved);
+  const id = useId();
+
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMsg(null);
+    if (file.size > 5 * 1024 * 1024) return setMsg(t("kitchen_join.upload_failed"));
+    setUploading(true);
+    try {
+      setDoc({ name: file.name, key: await upload(file) });
+    } catch {
+      setDoc(null);
+      setMsg(t("kitchen_join.upload_failed"));
+    } finally {
+      setUploading(false);
+    }
+  }
+  function save(e: React.FormEvent) {
+    e.preventDefault();
+    void run(async () => unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/food-permit", {
+      params: { path: { restaurant_id: app.restaurant_id } },
+      body: { number: num.trim(), expires_on: until, ...(doc?.key ? { document_key: doc.key } : {}) },
+    })));
+  }
+  const status = permit.status === "approved" && permit.expires_on
+    ? t("partner.apply.permit_approved", { date: f.date(`${permit.expires_on}T12:00:00Z`) })
+    : permit.status === "rejected" ? t("partner.apply.permit_rejected", { note: permit.note ?? "" })
+      : permit.status === "pending" ? t("partner.apply.permit_pending") : null;
+  return (
+    <form noValidate onSubmit={save} aria-label={t("partner.apply.permit_title")} data-testid="permit-form">
+      <h3 className="m-0 text-h3">{t("partner.apply.permit_title")}</h3>
+      <p className="m-0 mt-2 text-body text-muted">{t("partner.apply.permit_sub")}</p>
+      {status && <p data-testid="permit-status" role="status" className={`m-0 mt-3 text-label ${permit.status === "rejected" ? "text-chili" : "text-peacock"}`}>{status}</p>}
+      <div className="mt-4 grid gap-x-4 gap-y-3 md:grid-cols-2">
+        <FieldBare id={`${id}-num`} label={t("partner.apply.permit_number")} hint={t("partner.apply.permit_number_hint")} invalid={false}>
+          {(a) => <input {...a} autoComplete="off" value={num} maxLength={40} data-testid="permit-number" onChange={(e) => setNum(e.target.value)} className={field} />}
+        </FieldBare>
+        <FieldBare id={`${id}-until`} label={t("partner.apply.permit_expires")} hint={t("kitchen_join.fssai_date_hint")} invalid={false}>
+          {(a) => <input {...a} type="date" value={until} data-testid="permit-expires" onChange={(e) => setUntil(e.target.value)} className={field} />}
+        </FieldBare>
+      </div>
+      <div className="mt-4">
+        <label htmlFor={`${id}-doc`} className="text-label">{t("partner.apply.permit_document")}</label>
+        <input id={`${id}-doc`} type="file" accept="application/pdf,image/jpeg,image/png" onChange={pick} data-testid="permit-file"
+          className="mt-1 block w-full text-small file:mr-3 file:h-11 file:cursor-pointer file:rounded-pill file:border-[1.5px] file:border-line-strong file:bg-white file:px-4 file:text-label file:text-kohl" />
+        {(doc || uploading) && <p role="status" className="m-0 mt-1 text-small text-muted">{uploading ? t("partner.apply.uploading") : `${doc!.name} · ${doc!.key ? t("partner.apply.uploaded_now") : t("partner.apply.on_file")}`}</p>}
+      </div>
+      <p className="m-0 mt-4 rounded-card bg-white p-3 text-small text-muted">{t("partner.apply.permit_check")}</p>
+      {msg && <p role="alert" className="m-0 mt-4 text-label text-chili">{msg}</p>}
+      <Button type="submit" size="lg" loading={busy} disabled={num.trim().length < 3 || !until || !doc || uploading} className="mt-5">{t("partner.apply.save_continue")}</Button>
     </form>
   );
 }

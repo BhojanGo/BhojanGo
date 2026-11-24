@@ -139,7 +139,11 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
     code, tz, service_hours, fssai = await restaurant_market(db, r)
     local = (now or datetime.now(UTC)).astimezone(tz)
     weekly, overrides = await _hours(db, r.id)
-    paused = r.paused_reason or licence_problem(r, local.date(), fssai)
+    from core_api.modules.catalog.service import permits
+
+    # R39: an expired food permit pauses the listing at once (the hourly check also records it)
+    paused = r.paused_reason or licence_problem(r, local.date(), fssai) or (
+        "Food permit expired" if permits.expired(r, local.date()) else None)
     hours_known = bool(weekly or overrides)
     # R27: the next moment an order can be placed is inside the kitchen's hours AND the city's
     # delivery window (06:30 kitchen, 08:00 city: 08:00), never "now" while it can't take one.
@@ -182,7 +186,8 @@ async def availability(db: AsyncSession, restaurant_id: uuid.UUID, now: datetime
         restaurant_id=str(r.id), listed=r.is_active and not paused, open_now=open_now, reason=reason,
         next_open_at=(local if open_now else nxt.replace(tzinfo=tz) if nxt else None), local_time=local,
         timezone=str(tz), city_code=code,
-        paused_reason=r.paused_reason or (FSSAI_EXPIRED if licence_problem(r, local.date(), fssai) else None),
+        paused_reason=r.paused_reason or (FSSAI_EXPIRED if licence_problem(r, local.date(), fssai) else None)
+        or (permits.EXPIRED if permits.expired(r, local.date()) else None),
         closed_for_now=r.closed_for_now, back_at=r.admin_paused_until if r.closed_for_now else None, no_tablet=no_tablet,
         reason_code=code_, closed_note=note.note if note and note.closed and code_ == "closed_today" else None,
         delivery_hours=service_hours, open_until=until.replace(tzinfo=tz) if until else None,

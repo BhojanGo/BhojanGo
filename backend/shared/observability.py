@@ -85,6 +85,19 @@ def report_error(exc: BaseException, **context: Any) -> None:
         sentry_sdk.capture_exception(exc)
 
 
+def send_test_event(message: str) -> str:
+    """R39: admin Settings' "Send test alert": one message to Sentry. "sent", "off" (no DSN) or "failed"."""
+    if not _sentry_on:
+        return "off"
+    try:
+        import sentry_sdk  # type: ignore[import-not-found]
+
+        return "sent" if sentry_sdk.capture_message(message, level="error") else "failed"
+    except Exception as e:  # noqa: BLE001 - never break the caller
+        logger.warning("sentry_test_failed", error=type(e).__name__)
+        return "failed"
+
+
 def add_trace_id(_: Any, __: str, event: dict) -> dict:
     """structlog processor: the current trace id, so a log line links to its trace."""
     try:

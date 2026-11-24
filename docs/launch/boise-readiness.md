@@ -1,8 +1,10 @@
 # Boise launch readiness
 
-Where BhojanGo stands before the first real order in Boise, Idaho (round 38, 2026-11-24). The US business is
-DeepTrics LLC; commission is 15%. Production does not exist yet: everything marked READY is built and tested in CI
-and on QA (Railway), and waits only for an account, a decision or a payment. (This replaces the round 23 checklist;
+Where BhojanGo stands before the first real order in Boise, Idaho (round 38, 2026-11-24; updated in round 39). The US business is
+DeepTrics LLC. **Money model (fee model v2, rounds 29–32):** restaurant commission 0%; the customer pays a platform fee of 10% of the food (delivery) or 5% (pickup), at
+least $0.99; the restaurant pays the card processing fee; the delivery fee is set by distance band and 100% of it
+goes to the delivery partner.
+Production does not exist yet: everything marked READY is built and tested in CI and on QA (Railway), and waits only for an account, a decision or a payment. (This replaces the round 23 checklist;
 its costs are carried into "What must be paid for at launch".)
 
 **Marks:** **READY**: built and tested; nothing left but switching it on. **GAP**: missing or partial, but it doesn't
@@ -16,7 +18,7 @@ stop the first order (or has a workaround). **BLOCKER**: no real Boise order can
 | Stripe Connect payouts to restaurants and delivery partners | READY | Express onboarding and payout runs through Connect (`backend/core_api/integration/test_connect_payouts.py`, `test_payout_providers.py`); needs live mode above. |
 | Payout schedule | READY | Weekly, Monday to Sunday in the payout time zone (admin Markets ▸ Payout provider; `finance/service/payouts.py`; `test_payouts.py::test_payout_run_end_to_end`). |
 | Refunds | READY | Full, per item and per amount, with limits per role (`payments/service/refunds.py`, `test_payments_refunds.py`); a BhojanGo-funded offer's cost goes back to its budget (R38, `test_r38_offer_returns.py`). |
-| Disputes (chargebacks) | GAP | No `charge.dispute.*` webhook handling in `payments/`: a dispute would only show in the Stripe dashboard. Needs a handler that flags the order and holds the restaurant's share. |
+| Disputes (chargebacks) | READY | R39: `charge.dispute.created/updated/closed` (`payments/service/disputes.py`): the order's dispute is recorded, ops are alerted (Operations page + paging), the restaurant's share is held from its next payout; admin Finance > Chargebacks takes evidence and sends it to Stripe; won releases the hold, lost is borne per the agreement (food quality: the restaurant bears the food; fraud and the rest: BhojanGo). `test_r39_disputes.py`; Stripe test cards in `tools/stripe_e2e`. The live webhook must subscribe to the three dispute events (go-live). |
 
 ## Tax
 
@@ -70,7 +72,7 @@ stop the first order (or has a workaround). **BLOCKER**: no real Boise order can
 | US Privacy policy | BLOCKER | `tools/seed/legal/US-privacy.md`, a draft; same review. |
 | Delivery partner agreement | BLOCKER | Doesn't exist (only the general Terms): independent-contractor terms, insurance duties and pay. |
 | Restaurant agreement | BLOCKER | Doesn't exist (see Restaurants). |
-| Food safety | GAP | A restaurant's food-safety permit isn't a required US document (India has FSSAI); Idaho's health-district permit number should be collected at onboarding. |
+| Food safety | READY | R39: US restaurants give the health-district food permit (number, expiry, upload) at onboarding (website and app); an admin reviews it (Partners > Applications > Food permits); no go-live without an approved one; reminder 30 days before expiry; an expired permit pauses the listing (`catalog/service/permits.py`, `test_r39_permits.py`). Markets setting `food_permit_required` (US, from the seed). Whether Central District Health also wants a home-kitchen or cottage rule is the lawyer's question. |
 | Alcohol is off | READY | "Alcohol, tobacco and other age-restricted products are not sold on BhojanGo" (`US-terms.md` line 70); the catalog has no age-restricted category or age check, so nothing can be sold as alcohol. |
 
 ## Operations
@@ -79,7 +81,7 @@ stop the first order (or has a workaround). **BLOCKER**: no real Boise order can
 |---|---|---|
 | Admin roles | READY | Super admin, country manager, city ops, finance, support, viewer, scoped by market (`shared/authz.py`; `test_zz_access_sweep.py` checks every route). |
 | Incidents | READY | Pause a restaurant, a city, a country or everywhere; bulk refunds and messages (`test_incident_tools.py`; [incident-plan.md](incident-plan.md)). |
-| Monitoring and alerts | GAP | Sentry is wired in every service and app but off (`SENTRY_DSN` not set); Prometheus alert rules exist (`make ci-observe`); no paging channel. |
+| Monitoring and alerts | GAP | R39: everything is wired; only two values are missing: the Sentry DSNs and `PAGING_WEBHOOK_URL` ([monitoring.md](monitoring.md)). Critical alerts and chargebacks page through the webhook; admin Settings > Monitoring > "Send test alert" checks both (`test_observe.py` with a mock webhook). |
 | Backups | READY | Daily and weekly volume backups and an hourly copy to its own bucket on QA; restore drill passed (R23, [incident-plan.md](incident-plan.md#database-restore)); production repeats it at go-live. |
 | On-call | BLOCKER | Nobody is on call: [incident-plan.md](incident-plan.md) names "a Claude Code session started by Srini; later an on-call engineer", and the phone numbers aren't filled in. |
 
@@ -125,8 +127,8 @@ insurance, plus per-order payment fees.
 6. **Production on Railway**: the domain and the 12 secrets from Srini's accounts. *Needs Srini*; then *Claude Code can do* the environment, DNS, TLS, backups and the restore rehearsal ([go-live.md](go-live.md)).
 7. **On-call and support hours**: who answers chat, call-backs and incidents, with phone numbers in [incident-plan.md](incident-plan.md). *Needs Srini.*
 8. **Apple and Google developer accounts** (a D-U-N-S number for Apple), then store builds and submission. *Needs Srini* for the accounts; *Claude Code can do* the builds and submissions.
-9. **Chargeback (dispute) handling**: a webhook that flags the order, holds the restaurant's share and tells ops. *Claude Code can do.*
-10. **Monitoring switched on**: Sentry DSNs and a paging channel for the alert rules. *Needs Srini* for the accounts; *Claude Code can do* the wiring and a test alert.
+9. **Chargeback (dispute) handling**: done in round 39 (READY above); left: subscribe the live Stripe webhook to the dispute events at go-live. *Claude Code can do.*
+10. **Monitoring switched on**: wired and tested in round 39; paste the Sentry DSNs and the paging webhook URL ([monitoring.md](monitoring.md)), then press "Send test alert". *Needs Srini* for the two accounts.
 
 After these: the first restaurants and delivery partners onboarded with a test order each, and a dinner-rush
 rehearsal on production with internal orders and refunds, before the first real order.

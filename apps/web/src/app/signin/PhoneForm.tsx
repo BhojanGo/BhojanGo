@@ -4,7 +4,7 @@
 import { errorMessage } from "@bhojango/api-client";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
+import { phoneExample, phonePlaceholder, reformatPhone, toE164, typePhone } from "@bhojango/i18n";
 
 import { Chevron } from "@/components/Icons";
 import { useSession } from "@/lib/client";
@@ -57,7 +57,7 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
             {country?.phone_code}
             {countries.length > 1 && <Chevron color="#3D4A4E" />}
             {countries.length > 1 && (
-              <select aria-label={t("signin.country_code")} value={code ?? ""} onChange={(e) => setCode(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+              <select aria-label={t("signin.country_code")} value={code ?? ""} onChange={(e) => { setCode(e.target.value); setNumber((n) => reformatPhone(n, e.target.value)); }} className="absolute inset-0 cursor-pointer opacity-0">
                 {countries.map((c) => (
                   <option key={c.code} value={c.code}>{`${c.name} ${c.phone_code}`}</option>
                 ))}
@@ -74,7 +74,7 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
             aria-describedby={helpId}
             value={number}
             placeholder={phonePlaceholder(country?.code)}
-            onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))}
+            onChange={(e) => { const v = e.target.value; setNumber((n) => typePhone(n, v, country?.code)); }}
             className="h-full min-w-0 flex-grow bg-transparent px-4 outline-none"
           />
         </span>

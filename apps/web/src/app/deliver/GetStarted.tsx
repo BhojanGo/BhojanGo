@@ -1,5 +1,5 @@
 "use client";
-import { formatPhone, phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
+import { formatPhone, phoneExample, phonePlaceholder, reformatPhone, toE164, typePhone } from "@bhojango/i18n";
 // "Get started" on /deliver: name, date of birth, vehicle, phone (the country's
 // calling code from Markets) and city -> the code we text (the same OTP as sign-in) -> POST /riders/apply, the
 // call the BhojanGo Delivery app's Join screen makes. Then: get the app (QR code,
@@ -241,14 +241,14 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
           {phoneCountry?.phone_code}
           {countries.length > 1 && <Chevron color="#C4D0D2" />}
           {countries.length > 1 && (
-            <select aria-label={t("deliver_page.gs_country_code")} value={cc ?? ""} onChange={(e) => setCc(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+            <select aria-label={t("deliver_page.gs_country_code")} value={cc ?? ""} onChange={(e) => { setCc(e.target.value); setNumber((n) => reformatPhone(n, e.target.value)); }} className="absolute inset-0 cursor-pointer opacity-0">
               {countries.map((c) => <option key={c.code} value={c.code}>{`${c.name} ${c.phone_code}`}</option>)}
             </select>
           )}
         </span>
         <input id={ids.phone} data-testid="gs-phone" type="tel" inputMode="tel" autoComplete="tel-national" value={number}
           placeholder={phonePlaceholder(phoneCountry?.code)}
-          onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))} className="h-full min-w-0 flex-grow bg-transparent px-4 text-white outline-none placeholder:text-[#7F9497]" />
+          onChange={(e) => { const v = e.target.value; setNumber((n) => typePhone(n, v, phoneCountry?.code)); }} className="h-full min-w-0 flex-grow bg-transparent px-4 text-white outline-none placeholder:text-[#7F9497]" />
       </span>
       {phoneCountry ? <p data-testid="phone-example" className={`m-0 mt-1 text-small ${digits.length >= 6 && !phone ? "text-[#FFD9D5]" : "text-[#C4D0D2]"}`}>
         {digits.length >= 6 && !phone ? t("common.phone_invalid", { example: phoneExample(phoneCountry.code) }) : t("common.phone_example", { example: phoneExample(phoneCountry.code) })}

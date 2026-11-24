@@ -81,6 +81,17 @@ class Restaurant(Base):
     admin_paused_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     gstin: Mapped[str | None] = mapped_column(String(15), nullable=True)  # India: GST registration
     fssai_document_key: Mapped[str | None] = mapped_column(String(300), nullable=True)  # uploaded licence (P19)
+    # R39: US food permit (in Idaho the health district's food establishment permit), where the country's
+    # Markets setting food_permit_required is on: number, expiry, the uploaded permit and an admin's review.
+    # Reminded 30 days before it expires; an expired one pauses the listing (paused_reason food_permit_expired).
+    food_permit_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    food_permit_expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    food_permit_document_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    food_permit_status: Mapped[str | None] = mapped_column(String(12), nullable=True)  # pending | approved | rejected
+    food_permit_note: Mapped[str | None] = mapped_column(String(300), nullable=True)  # why it was rejected
+    food_permit_reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    food_permit_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    food_permit_reminded_for: Mapped[date | None] = mapped_column(Date, nullable=True)  # the expiry last reminded about
 
     # Status
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_approval", index=True)

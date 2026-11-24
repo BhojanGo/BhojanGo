@@ -612,3 +612,13 @@ Machine-translated on 2026-11-24 into all seven languages; **needs native review
   ("100% to your delivery partner") and `bill.government` ("Government"), said under a line's label.
 - Phone numbers: `common.phone_invalid` ("Enter a valid phone number, like {example}") and `common.phone_example`
   ("For example {example}"). `{example}` is the country's own number ("+1 (208) 555-0123", "+91 98765 43210").
+
+## Food permit, permit reminder (round 39)
+
+Machine-translated on 2026-11-24 into all seven languages; **needs native review**.
+
+- The US food permit step (website and the Restaurant app): `partner.apply.permit_title`, `permit_sub`,
+  `permit_number`, `permit_number_hint`, `permit_expires`, `permit_document`, `permit_check`, `permit_pending`,
+  `permit_approved` ({date}), `permit_rejected` ({note}). 
+- The worker's reminder 30 days before a permit expires: `permit_expiring` in `backend/worker/app/services/messages.py`
+  ({restaurant}, {date}).

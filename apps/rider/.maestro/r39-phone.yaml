@@ -1,0 +1,57 @@
+# R39 item 2 in the rider app: a US number, then an Indian one, typed digit by digit.
+appId: com.bhojango.rider
+---
+- runFlow:
+    file: r39/typing.yaml
+    env:
+      MARKET: "us"
+      COUNTRY: "US"
+      OTHER: "IN"
+      D1: "2"
+      D2: "0"
+      D3: "8"
+      D4: "5"
+      D5: "5"
+      D6: "5"
+      D7: "0"
+      D8: "1"
+      D9: "2"
+      D10: "3"
+      S1: '2'
+      S2: '20'
+      S3: '\(208\)'
+      S4: '\(208\) 5'
+      S5: '\(208\) 55'
+      S6: '\(208\) 555'
+      S7: '\(208\) 555-0'
+      S8: '\(208\) 555-01'
+      S9: '\(208\) 555-012'
+      S10: '\(208\) 555-0123'
+      SWITCHED: '20 8555 0123'
+- runFlow:
+    file: r39/typing.yaml
+    env:
+      MARKET: "in"
+      COUNTRY: "IN"
+      OTHER: "US"
+      D1: "9"
+      D2: "8"
+      D3: "7"
+      D4: "6"
+      D5: "5"
+      D6: "4"
+      D7: "3"
+      D8: "2"
+      D9: "1"
+      D10: "0"
+      S1: '9'
+      S2: '98'
+      S3: '987'
+      S4: '9876'
+      S5: '98765'
+      S6: '98765 4'
+      S7: '98765 43'
+      S8: '98765 432'
+      S9: '98765 4321'
+      S10: '98765 43210'
+      SWITCHED: '\(987\) 654-3210'
