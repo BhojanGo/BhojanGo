@@ -782,6 +782,15 @@ with sync_playwright() as p:
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
         expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(tip_label, timeout=15000)))  # the chip and the bill read alike (R12: two decimals)
+    def bill_to_the_paisa() -> None:
+        """R37: India's bill in exact paise (₹385.80, never ₹386): every printed line adds up to the printed total."""
+        cells = [c.strip() for c in bill.locator("table tbody tr:not([data-testid='tax-share']) td:last-child").all_inner_texts()]
+        total = bill.locator("div.border-dashed b").last.inner_text().strip()
+        _assert(cells and all(re.fullmatch(r"−?₹[\d,]+\.\d{2}", c) for c in cells + [total]), (cells, total))
+        paise = lambda v: (-1 if v.startswith("−") else 1) * int(re.sub(r"[^\d]", "", v))  # noqa: E731
+        _assert(sum(paise(c) for c in cells) == paise(total), (cells, total))
+        expect(page.get_by_role("button", name=re.compile(r"^Pay ")).first).to_contain_text(total)
+    check("R37 India: the fair bill and Pay in exact paise, the lines add up to the total", bill_to_the_paisa)
     shot(page, "11-checkout")
     a11y(page, "checkout")
     page.get_by_role("button", name=re.compile(r"^Pay ")).click()
@@ -1733,6 +1742,23 @@ with sync_playwright() as p:
             pg.goto(base + path, wait_until="networkidle")
             check(f"R36 {width} px {path}: page no wider than the screen", lambda pg=pg, width=width: no_sideways_scroll_at(pg, width))
         ph.close()
+
+    # ── R37: offers BhojanGo pays for are off in the seed: no home screen shows one ──
+    nh = b.new_context(viewport={"width": 1440, "height": 900})
+    fake_hint(nh, {})
+    place(nh, "Madhapur, Hyderabad", 17.4483, 78.3915, "IN", "IN-TG-HYD", "/in/hyderabad", "Madhapur")
+    hp = nh.new_page()
+    for lat, lng, where in ((17.4483, 78.3915, "Madhapur"), (43.6150, -116.2023, "Downtown Boise")):
+        d = api("GET", f"/discover?lat={lat}&lng={lng}")
+        check(f"R37 {where}: no BhojanGo-funded offer on the home screen (off in the seed)", lambda d=d: (
+            _assert(all(o["funded_by"] == "restaurant" for o in d["offers"]), d["offers"]),
+            _assert(all(k["offer"] is None or k["offer"]["funded_by"] == "restaurant" for k in d["restaurants"]), "a card shows one")))
+    hp.goto(base, wait_until="networkidle")
+    check("R37 Hyderabad home: the launch offer BhojanGo pays for isn't shown", lambda: (
+        expect(hp.get_by_role("link", name=re.compile(KITCHEN)).first).to_be_visible(timeout=20000),
+        expect(hp.get_by_text(re.compile(r"10% off, up to"))).to_have_count(0)))
+    shot(hp, "r37-home-no-bhojango-offer")
+    nh.close()
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")

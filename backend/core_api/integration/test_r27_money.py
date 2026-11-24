@@ -9,7 +9,7 @@ from httpx import AsyncClient
 from core_api.integration.test_orders_flow import login, new_order, pay
 from core_api.integration.test_payments_refunds import ADMIN, client, delivered_order  # noqa: F401 - fixture
 from core_api.modules.orders.tests.test_receipt import pdf_text
-from shared.money import customer_money  # R36: the receipt shows rupees whole
+from shared.money import format_money as customer_money  # R37: the receipt shows exact paise again
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",

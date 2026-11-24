@@ -1,0 +1,513 @@
+[
+ {
+  "name": "Hyderabad ₹300 food, 2.50 km, UPI (R37)",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "385.80",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "300.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "30.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "platform_fee",
+    "label": "Platform fee",
+    "amount": "30.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "15.00",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "300.00"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "10.80",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "60.00"
+    }
+   }
+  ]
+ },
+ {
+  "name": "Hyderabad delivery with packaging and a tip",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "638.34",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "480.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "40.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "platform_fee",
+    "label": "Platform fee",
+    "amount": "48.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "packaging",
+    "label": "Packaging",
+    "amount": "10.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "24.50",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "490.00",
+     "platform_discounts_reduce_base": "false",
+     "collected_by": "platform",
+     "targets": "food,packaging",
+     "by_line": "food=24.00;packaging=0.50"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "15.84",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "88.00",
+     "platform_discounts_reduce_base": "false",
+     "collected_by": "platform",
+     "targets": "delivery_fee,platform_fee,service_fee,surge,small_order_fee,late_night_fee",
+     "by_line": "delivery_fee=7.20;platform_fee=8.64"
+    }
+   },
+   {
+    "code": "tip",
+    "label": "Tip for your delivery partner",
+    "amount": "20.00",
+    "funded_by": null,
+    "detail": {}
+   }
+  ]
+ },
+ {
+  "name": "Hyderabad pickup",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "542.82",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "480.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "platform_fee",
+    "label": "Platform fee",
+    "amount": "24.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "packaging",
+    "label": "Packaging",
+    "amount": "10.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "24.50",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "490.00",
+     "platform_discounts_reduce_base": "false",
+     "collected_by": "platform",
+     "targets": "food,packaging",
+     "by_line": "food=24.00;packaging=0.50"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "4.32",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "24.00",
+     "platform_discounts_reduce_base": "false",
+     "collected_by": "platform",
+     "targets": "delivery_fee,platform_fee,service_fee,surge,small_order_fee,late_night_fee",
+     "by_line": "platform_fee=4.32"
+    }
+   }
+  ]
+ },
+ {
+  "name": "Boise delivery with Idaho sales tax and a tip",
+  "currency": "USD",
+  "locale": "en-US",
+  "total": "36.82",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "26.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "3.50",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "platform_fee",
+    "label": "Platform fee",
+    "amount": "2.60",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "Idaho sales tax",
+    "amount": "1.72",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "6",
+     "base": "28.60",
+     "jurisdiction": "US-ID",
+     "provider": "local",
+     "calculation_id": "taxcalc_local_1063fa4eba6341f69099",
+     "targets": "food,platform_fee"
+    }
+   },
+   {
+    "code": "tip",
+    "label": "Tip for your delivery partner",
+    "amount": "3.00",
+    "funded_by": null,
+    "detail": {}
+   }
+  ]
+ },
+ {
+  "name": "Boise pickup with Idaho sales tax",
+  "currency": "USD",
+  "locale": "en-US",
+  "total": "28.94",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "26.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "platform_fee",
+    "label": "Platform fee",
+    "amount": "1.30",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "Idaho sales tax",
+    "amount": "1.64",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "6",
+     "base": "27.30",
+     "jurisdiction": "US-ID",
+     "provider": "local",
+     "calculation_id": "taxcalc_local_374ad38ab5e646cdac43",
+     "targets": "food,platform_fee"
+    }
+   }
+  ]
+ },
+ {
+  "name": "Hyderabad: 10% off (BhojanGo) and free delivery (restaurant), the worked example's rules",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "596.92",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "560.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "promotion",
+    "label": "10% off, up to ₹50",
+    "amount": "-50.00",
+    "funded_by": "platform",
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "35.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "promotion",
+    "label": "Free delivery",
+    "amount": "-35.00",
+    "funded_by": "restaurant",
+    "detail": {}
+   },
+   {
+    "code": "service_fee",
+    "label": "Service fee",
+    "amount": "11.20",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "packaging",
+    "label": "Packaging",
+    "amount": "10.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "surge",
+    "label": "Busy-hour fee",
+    "amount": "15.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "26.00",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "520.00",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "food,packaging",
+     "by_line": "food=25.50;packaging=0.50"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "4.72",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "26.20",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "delivery_fee,service_fee,surge,small_order_fee",
+     "by_line": "service_fee=2.02;surge=2.70"
+    }
+   },
+   {
+    "code": "tip",
+    "label": "Tip for your delivery partner",
+    "amount": "20.00",
+    "funded_by": null,
+    "detail": {}
+   }
+  ]
+ },
+ {
+  "name": "Hyderabad: a ₹563 bag, 10% off up to ₹50, paise in the GST",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "621.44",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "563.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "promotion",
+    "label": "10% off, up to ₹50",
+    "amount": "-50.00",
+    "funded_by": "platform",
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "35.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "service_fee",
+    "label": "Service fee",
+    "amount": "11.26",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "packaging",
+    "label": "Packaging",
+    "amount": "10.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "surge",
+    "label": "Busy-hour fee",
+    "amount": "15.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "26.15",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "523.00",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "food,packaging",
+     "by_line": "food=25.65;packaging=0.50"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "11.03",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "61.26",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "delivery_fee,service_fee,surge,small_order_fee",
+     "by_line": "delivery_fee=6.30;service_fee=2.03;surge=2.70"
+    }
+   }
+  ]
+ },
+ {
+  "name": "Hyderabad: ₹1,24,050 catering order (lakh grouping)",
+  "currency": "INR",
+  "locale": "en-IN",
+  "total": "130287.20",
+  "lines": [
+   {
+    "code": "food",
+    "label": "Food",
+    "amount": "124050.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "promotion",
+    "label": "10% off, up to ₹50",
+    "amount": "-50.00",
+    "funded_by": "platform",
+    "detail": {}
+   },
+   {
+    "code": "delivery_fee",
+    "label": "Delivery fee",
+    "amount": "35.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "service_fee",
+    "label": "Service fee",
+    "amount": "15.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "packaging",
+    "label": "Packaging",
+    "amount": "10.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "surge",
+    "label": "Busy-hour fee",
+    "amount": "15.00",
+    "funded_by": null,
+    "detail": {}
+   },
+   {
+    "code": "tax",
+    "label": "GST on food",
+    "amount": "6200.50",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "5",
+     "base": "124010.00",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "food,packaging",
+     "by_line": "food=6200.00;packaging=0.50"
+    }
+   },
+   {
+    "code": "tax",
+    "label": "GST on platform fees",
+    "amount": "11.70",
+    "funded_by": null,
+    "detail": {
+     "rate_percent": "18",
+     "base": "65.00",
+     "platform_discounts_reduce_base": "true",
+     "collected_by": "platform",
+     "targets": "delivery_fee,service_fee,surge,small_order_fee",
+     "by_line": "delivery_fee=6.30;service_fee=2.70;surge=2.70"
+    }
+   }
+  ]
+ }
+]

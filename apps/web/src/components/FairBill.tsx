@@ -7,6 +7,9 @@ import { shownLines } from "@bhojango/ui/bill";
 import { money } from "@/lib/format";
 import type { BillLine } from "@/lib/server";
 
+// R37: the bill shows every amount to the cent (385.80, never 386): the lines add up to the total charged.
+const EXACT = { exact: true } as const;
+
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
 export function billLabel(ln: BillLine, t: T, distance?: string | null): string {
@@ -53,7 +56,7 @@ export function FairBill({
               <tr key={`${ln.code}-${i}`}>
                 <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
                 <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t, lines)}</td>
-                <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale)}</td>
+                <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale, EXACT)}</td>
               </tr>,
               // R31: what each bill line carries of a tax (GST on the delivery fee, on the platform fee...)
               ...taxShares(ln).map(([code, amt]) => (
@@ -61,7 +64,7 @@ export function FairBill({
                   <td colSpan={2} className="py-0 pl-3 pr-2 text-small text-muted">
                     {t("bill.tax_on", { rate: ln.detail?.rate_percent ?? "", line: t(`bill.line_${code}`) })}
                   </td>
-                  <td className="py-0 text-right text-small text-muted">{money(amt, currency, formatLocale)}</td>
+                  <td className="py-0 text-right text-small text-muted">{money(amt, currency, formatLocale, EXACT)}</td>
                 </tr>
               )),
             ];
@@ -70,7 +73,7 @@ export function FairBill({
       </table>
       <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
         <b className="text-h3">{totalLabel ?? t("bill.total")}</b>
-        <b className="text-h3 tabular-nums">{money(total, currency, formatLocale)}</b>
+        <b className="text-h3 tabular-nums">{money(total, currency, formatLocale, EXACT)}</b>
       </div>
       {note && <p className="mt-1 text-small text-muted">{note}</p>}
     </div>

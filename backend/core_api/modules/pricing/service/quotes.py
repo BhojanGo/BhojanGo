@@ -33,6 +33,7 @@ from core_api.modules.pricing.service.engine import (
     money,
     taxable_amounts,
 )
+from core_api.modules.pricing.service import offer_budget
 from core_api.modules.pricing.service.fees import snapshot as fee_snapshot
 from core_api.modules.pricing.service.summary import tip_presets
 from core_api.modules.rules.service.resolver import Context
@@ -114,7 +115,9 @@ def lines_out(q: QuoteResult) -> list[BillLineOut]:
 
 def split_out(q: QuoteResult) -> SplitOut:
     s = q.split
-    return SplitOut(restaurant=s.restaurant, rider=s.rider, tax=s.tax, platform=s.platform, detail=s.detail)
+    # R37: with the card fee (R29: the kitchen's cost), or "Who gets your money" counted it as tax
+    return SplitOut(restaurant=s.restaurant, rider=s.rider, tax=s.tax, platform=s.platform, detail=s.detail,
+                    card_fee=getattr(s, "card_fee", Decimal(0)))
 
 
 async def city_chain(db: AsyncSession, code: str) -> tuple[City, Region, Country, ZoneInfo]:
@@ -267,6 +270,11 @@ class QuoteService:
             shown = format_money(where.min_order, country.currency, (country.locales or [None])[0], whole=True)
             raise QuoteError(f"The minimum order in {where.zone_name} is {shown}", code="MIN_ORDER", details={
                 "zone": where.zone_name, "amount": str(where.min_order), "currency": country.currency, **tips})
+        # R37: BhojanGo-funded offers spend from this place's monthly budget (offer_budget.py)
+        pool = offer_budget.pool_for([("country", country.code, country.name, country.settings),
+                                      ("region", region.code, region.name, region.settings),
+                                      ("city", city.code, city.name, city.settings)], country.currency)
+        offer_month = offer_budget.month_of(now.astimezone(tz))
         inputs = QuoteInputs(
             currency=country.currency,
             lines=[CartLine(_label(ln), ln.quantity, ln.unit_price, ln.item_id, ln.options) for ln in priced],
@@ -275,6 +283,7 @@ class QuoteService:
             first_order=not await has_previous_orders(self.db, user_id),
             promo_code=req.promo_code, promo_spent=await self._promo_spent(),
             promo_spent_week=await self._promo_spent_week(week_of(now.astimezone(tz))),
+            platform_offer_left=await offer_budget.left(self.db, pool, offer_month),
             # A review order charges nothing, so no tax is due and the tax provider is never asked.
             review=review_order, external_tax=[] if review_order else None,
         )
@@ -305,6 +314,7 @@ class QuoteService:
             "fee_settings": fee_snapshot(rules, rest.tier),
             "context": {"country": country.code, "region": region.code, "city": city.code, "zone_id": str(where.zone_id),
                         "week_start": week_of(now.astimezone(tz)).isoformat(),
+                        "offer_pool": {"level": pool.level, "code": pool.code, "month": offer_month.isoformat()},
                         "zone": where.zone_name, "distance": str(distance), "distance_unit": country.distance_unit,
                         "local_time": inputs.local_time.isoformat(), "deliver_to": {"lat": lat, "lng": lng},
                         "fulfillment": req.fulfillment, "routing": routing,
@@ -371,6 +381,7 @@ class QuoteService:
             fee_settings=q.get("fee_settings"),
         )
         self.db.add(snap)
+        await self._spend_platform_budget(q)
         for ln in q["lines"]:
             if ln["code"] != "promotion" or not ln.get("rule_id"):
                 continue
@@ -394,6 +405,22 @@ class QuoteService:
                 wk.orders += 1
         await self.db.flush()
         return snap
+
+    async def _spend_platform_budget(self, q: dict) -> None:
+        """R37: count the order's BhojanGo-funded offers against the month's budget, checked again
+        under a lock (another order may have used it up since the quote): OFFER_ENDED when it can't."""
+        cost = -sum((Decimal(ln["amount"]) for ln in q["lines"]
+                     if ln["code"] == "promotion" and ln.get("funded_by") == "platform"
+                     and not (ln.get("detail") or {}).get("review")), Decimal(0))
+        where = q["context"].get("offer_pool")
+        if cost <= 0 or not where:
+            return
+        ctx = q["context"]
+        pool = await offer_budget.pool_at(self.db, ctx["country"], ctx.get("region"), ctx.get("city"))
+        try:
+            await offer_budget.record(self.db, pool, date.fromisoformat(where["month"]), cost, datetime.now(UTC))
+        except offer_budget.OfferEnded:
+            raise QuoteError("This offer has just ended; we'll price your cart again", code="OFFER_ENDED")
 
     async def snapshot(self, order_id: uuid.UUID) -> OrderPricingSnapshot | None:
         q = select(OrderPricingSnapshot).where(OrderPricingSnapshot.order_id == order_id)
@@ -422,7 +449,12 @@ class QuoteService:
                       restaurant_id=str(req.restaurant_id) if req.restaurant_id else None)
         inputs = QuoteInputs(currency=country.currency, lines=lines, distance=req.distance, local_time=local, tip=req.tip,
                              restaurant_tier=req.restaurant_tier, first_order=req.first_order, promo_code=req.promo_code,
-                             promo_spent=await self._promo_spent())
+                             payment_method=req.payment_method,
+                             promo_spent=await self._promo_spent(),
+                             platform_offer_left=await offer_budget.left(self.db, offer_budget.pool_for(
+                                 [("country", country.code, country.name, country.settings),
+                                  ("region", region.code, region.name, region.settings),
+                                  ("city", city.code, city.name, city.settings)], country.currency), offer_budget.month_of(local)))
         svc = RuleService(self.db)
         at = local.astimezone(UTC)
 

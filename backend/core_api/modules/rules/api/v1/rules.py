@@ -204,7 +204,9 @@ PAUSERS = ("partners.edit", "rules.approve")
 
 async def _pausable(admin: AdminContext, db: AsyncSession, rule_id: uuid.UUID) -> Rule:
     r = await _run(RuleService(db).get(rule_id))
-    if not any(admin.can(p, r.market_scope) for p in PAUSERS):
+    # R37: an offer BhojanGo pays for spends the platform's budget: only those who approve money rules
+    who = ("rules.approve",) if r.params.get("funded_by") == "platform" else PAUSERS
+    if not any(admin.can(p, r.market_scope) for p in who):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "FORBIDDEN_SCOPE", "message": f"You can't pause offers in {r.market_scope}"})
     return r
 

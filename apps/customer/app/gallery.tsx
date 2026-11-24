@@ -41,7 +41,7 @@ function Gallery() {
   const [chip, setChip] = useState("Biryani");
   const [sheet, setSheet] = useState(false);
   const [tab, setTab] = useState("home");
-  const { money, distance } = useI18n();
+  const { money, bill, distance } = useI18n();
   // Sample amounts in the current country's currency (Markets), else the first country's.
   const { country, countries } = useCountry();
   const cur = country?.currency ?? countries[0]?.currency;
@@ -70,7 +70,7 @@ function Gallery() {
 
       <View style={{ gap: 12 }}>
         <Txt variant="h2">Buttons and chips</Txt>
-        <Button title={`Pay ${money(596.92, cur)}`} size="lg" block />
+        <Button title={`Pay ${bill(596.92, cur)}`} size="lg" block />
         <Button title="Details" variant="secondary" />
         <Button title="Accept order" variant="rider" block />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

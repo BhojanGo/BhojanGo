@@ -1520,6 +1520,135 @@
         "title": "Body_upload_api_v1_uploads_post",
         "type": "object"
       },
+      "BudgetIn": {
+        "properties": {
+          "monthly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly"
+          }
+        },
+        "required": [
+          "monthly"
+        ],
+        "title": "BudgetIn",
+        "type": "object"
+      },
+      "BudgetRow": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "left": {
+            "title": "Left",
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "country",
+              "region",
+              "city"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "monthly": {
+            "title": "Monthly",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "orders": {
+            "title": "Orders",
+            "type": "integer"
+          },
+          "own": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Own"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "integer"
+          },
+          "pool": {
+            "title": "Pool",
+            "type": "string"
+          },
+          "pool_name": {
+            "title": "Pool Name",
+            "type": "string"
+          },
+          "spent": {
+            "title": "Spent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "code",
+          "name",
+          "own",
+          "pool",
+          "pool_name",
+          "monthly",
+          "spent",
+          "orders",
+          "percent",
+          "left"
+        ],
+        "title": "BudgetRow",
+        "type": "object"
+      },
+      "Budgets": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "country",
+          "currency",
+          "month",
+          "rows"
+        ],
+        "title": "Budgets",
+        "type": "object"
+      },
       "BusinessIn": {
         "description": "The application's first step: where the kitchen is and what it cooks.",
         "properties": {
@@ -4435,6 +4564,151 @@
           "submitted_at"
         ],
         "title": "DocumentOut",
+        "type": "object"
+      },
+      "Economics": {
+        "properties": {
+          "cost_per_order": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Order"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "funded_by": {
+            "title": "Funded By",
+            "type": "string"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left"
+          },
+          "max_cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Cost"
+          },
+          "monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "order_food": {
+            "title": "Order Food",
+            "type": "string"
+          },
+          "platform_fee": {
+            "title": "Platform Fee",
+            "type": "string"
+          },
+          "pool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pool"
+          },
+          "pool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pool Name"
+          },
+          "rule_id": {
+            "format": "uuid",
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "running": {
+            "title": "Running",
+            "type": "boolean"
+          },
+          "spent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spent"
+          },
+          "template": {
+            "title": "Template",
+            "type": "string"
+          },
+          "warning": {
+            "title": "Warning",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rule_id",
+          "name",
+          "template",
+          "funded_by",
+          "currency",
+          "order_food",
+          "cost_per_order",
+          "platform_fee",
+          "max_cost",
+          "warning",
+          "pool",
+          "pool_name",
+          "monthly",
+          "spent",
+          "left",
+          "running"
+        ],
+        "title": "Economics",
         "type": "object"
       },
       "EmailCodeRequest": {
@@ -14806,6 +15080,16 @@
             ],
             "format": "date-time",
             "title": "Local Time",
+            "type": "string"
+          },
+          "payment_method": {
+            "default": "card",
+            "description": "R37: the payment fee estimate's method (what the platform keeps)",
+            "examples": [
+              "upi"
+            ],
+            "pattern": "^[a-z_]{2,20}$",
+            "title": "Payment Method",
             "type": "string"
           },
           "postal_code": {
@@ -29694,6 +29978,173 @@
           }
         ],
         "summary": "Set Fee",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/offers/budgets": {
+      "get": {
+        "operationId": "budgets_api_v1_rules_offers_budgets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Budgets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Budgets",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/offers/budgets/{level}/{code}": {
+      "put": {
+        "operationId": "set_budget_api_v1_rules_offers_budgets__level___code__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "level",
+            "required": true,
+            "schema": {
+              "enum": [
+                "country",
+                "region",
+                "city"
+              ],
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Budgets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Budget",
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/rules/offers/{rule_id}/economics": {
+      "get": {
+        "operationId": "economics_api_v1_rules_offers__rule_id__economics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Economics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Economics",
         "tags": [
           "Rules"
         ]

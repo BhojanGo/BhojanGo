@@ -78,6 +78,21 @@ class CoverTests(unittest.TestCase):
                         self.assertTrue((self.ROOT / f"apps/web/public/food/{photo}-{w}.webp").exists())
 
 
+class OfferTests(unittest.TestCase):
+    """R37: no seed starts an offer BhojanGo pays for: each is paused (and no place has an offer budget)."""
+
+    def test_bhojango_funded_offers_start_paused(self) -> None:
+        from data import RULES, paused
+
+        offers = [(r[0], r[6]) for r in RULES if r[0] == "promotion"]
+        offers += [("promotion", p[5]) for city in demo_data.PROMOTIONS.values() for p in city]
+        platform = [p for f, p in offers if p.get("funded_by") == "platform"]
+        self.assertGreater(len(platform), 0)
+        self.assertTrue(all(paused("promotion", p)["paused"] for p in platform))
+        self.assertFalse(any(paused(f, p)["paused"] for f, p in offers if p.get("funded_by") == "restaurant"))
+        self.assertNotIn("platform_offer_budget", repr(MARKETS))
+
+
 class GuardTests(unittest.TestCase):
     def test_production_names_are_refused(self) -> None:
         for env in ({"APP_ENV": "production"}, {"APP_ENV": " Prod "}, {"ENVIRONMENT": "production"},

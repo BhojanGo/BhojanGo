@@ -4380,6 +4380,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rules/offers/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Budgets */
+        get: operations["budgets_api_v1_rules_offers_budgets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/offers/budgets/{level}/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Budget */
+        put: operations["set_budget_api_v1_rules_offers_budgets__level___code__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rules/offers/{rule_id}/economics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Economics */
+        get: operations["economics_api_v1_rules_offers__rule_id__economics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rules/resolve": {
         parameters: {
             query?: never;
@@ -5380,6 +5431,50 @@ export interface components {
              * @enum {string}
              */
             purpose: "delivery_proof" | "rider_document" | "partner_document" | "problem_photo" | "menu_photo";
+        };
+        /** BudgetIn */
+        BudgetIn: {
+            /** Monthly */
+            monthly: number | string | null;
+        };
+        /** BudgetRow */
+        BudgetRow: {
+            /** Code */
+            code: string;
+            /** Left */
+            left: string;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "country" | "region" | "city";
+            /** Monthly */
+            monthly: string;
+            /** Name */
+            name: string;
+            /** Orders */
+            orders: number;
+            /** Own */
+            own: string | null;
+            /** Percent */
+            percent: number;
+            /** Pool */
+            pool: string;
+            /** Pool Name */
+            pool_name: string;
+            /** Spent */
+            spent: string;
+        };
+        /** Budgets */
+        Budgets: {
+            /** Country */
+            country: string;
+            /** Currency */
+            currency: string;
+            /** Month */
+            month: string;
+            /** Rows */
+            rows: components["schemas"]["BudgetRow"][];
         };
         /**
          * BusinessIn
@@ -6464,6 +6559,44 @@ export interface components {
              * Format: date-time
              */
             submitted_at: string;
+        };
+        /** Economics */
+        Economics: {
+            /** Cost Per Order */
+            cost_per_order: string | null;
+            /** Currency */
+            currency: string;
+            /** Funded By */
+            funded_by: string;
+            /** Left */
+            left: string | null;
+            /** Max Cost */
+            max_cost: string | null;
+            /** Monthly */
+            monthly: string | null;
+            /** Name */
+            name: string | null;
+            /** Order Food */
+            order_food: string;
+            /** Platform Fee */
+            platform_fee: string;
+            /** Pool */
+            pool: string | null;
+            /** Pool Name */
+            pool_name: string | null;
+            /**
+             * Rule Id
+             * Format: uuid
+             */
+            rule_id: string;
+            /** Running */
+            running: boolean;
+            /** Spent */
+            spent: string | null;
+            /** Template */
+            template: string;
+            /** Warning */
+            warning: boolean;
         };
         /** EmailCodeRequest */
         EmailCodeRequest: {
@@ -10366,6 +10499,13 @@ export interface components {
              * @example 2026-11-12T20:00:00
              */
             local_time: string;
+            /**
+             * Payment Method
+             * @description R37: the payment fee estimate's method (what the platform keeps)
+             * @default card
+             * @example upi
+             */
+            payment_method?: string;
             /**
              * Postal Code
              * @description Where a tax service needs an address (US sales tax: the ZIP code)
@@ -18830,6 +18970,104 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    budgets_api_v1_rules_offers_budgets_get: {
+        parameters: {
+            query: {
+                country: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Budgets"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_budget_api_v1_rules_offers_budgets__level___code__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                level: "country" | "region" | "city";
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Budgets"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    economics_api_v1_rules_offers__rule_id__economics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Economics"];
                 };
             };
             /** @description Validation Error */

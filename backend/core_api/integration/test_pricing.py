@@ -61,12 +61,14 @@ async def test_hyderabad_quote_from_the_database(client: AsyncClient) -> None:
         q = await QuoteService(db).quote(uuid.uuid4(), req, now=THU_8PM_IST)
     lines = {ln.label: ln.amount for ln in q.lines}
     assert lines["Food"] == 560  # biryani 300 + extra raita 40 + paneer tikka 220
-    # R16: the platform's 10% off doesn't lower the GST base in India: 5% of 570, not 520 (+2.50)
+    # R37: the launch offer BhojanGo pays for is off in the seed (paused, no offer budget), so no discount.
+    # GST on food 5% of 570 (food + packaging) = 28.50.
     # R31: platform fee 10% of 560 = 56 (above the ₹15 minimum); delivery fee from the bands: 3.77 km is in >3-5 km, ₹40;
-    # GST on fees 18% of 40 + 56 = 17.28. 560 − 50 + 10 + 40 + 56 + 28.50 + 17.28 + 20 tip = 681.78
+    # GST on fees 18% of 40 + 56 = 17.28. 560 + 10 + 40 + 56 + 28.50 + 17.28 + 20 tip = 731.78
     # (R33: the busy-hour fee is 0 in every seed, so no line, even at 8 PM)
     assert q.distance == Decimal("3.77")
-    assert q.total == Decimal("681.78"), q.lines
+    assert q.total == Decimal("731.78"), q.lines
+    assert not [ln for ln in q.lines if ln.code == "promotion"]
     assert lines["Platform fee"] == 56 and "Service fee" not in lines
     assert lines["Delivery fee"] == 40 and "Busy-hour fee" not in lines and lines["GST on platform fees"] == Decimal("17.28")
     assert q.zone == "Jubilee Hills" and q.city == "Hyderabad" and 3 < q.distance < 6
@@ -81,7 +83,7 @@ async def test_quote_order_snapshot_and_single_use(client: AsyncClient) -> None:
     assert r.status_code == 200, r.text
     q = r.json()
     assert q["currency"] == "INR" and Decimal(q["total"]) > 560 and q["zone"] == "Jubilee Hills"
-    assert [ln["code"] for ln in q["lines"]][:3] == ["food", "promotion", "delivery_fee"]
+    assert [ln["code"] for ln in q["lines"]][:2] == ["food", "delivery_fee"] and "promotion" not in [ln["code"] for ln in q["lines"]]
 
     order_body = {
         "restaurant_id": rid,
@@ -149,10 +151,10 @@ async def test_simulator_live_vs_draft(client: AsyncClient) -> None:
         r = await client.post("/api/v1/pricing/simulate", headers=maker, json=body)
         assert r.status_code == 200, r.text
         sim = r.json()
-        # No restaurant picked, so no ₹10 packaging: 560 − 50 + 40 delivery (4.2 km: the >3-5 km band) + 56 platform fee
-        # + 28.00 GST on food (5% of 560; R16: the platform's discount doesn't lower the base)
-        # + 17.28 GST on fees (18% of 40 + 56) + 20 tip (R33: no busy-hour fee)
-        assert sim["live"]["total"] == "671.28"
+        # No restaurant picked, so no ₹10 packaging: 560 + 40 delivery (4.2 km: the >3-5 km band) + 56 platform fee
+        # + 28.00 GST on food (5% of 560) + 17.28 GST on fees (18% of 40 + 56) + 20 tip (R33: no busy-hour fee;
+        # R37: no launch offer, it is off in the seed)
+        assert sim["live"]["total"] == "721.28"
     finally:
         await client.delete(f"/api/v1/rules/{draft['id']}", headers=maker)
     changes = {c["label"]: (c["live"], c["draft"]) for c in sim["changes"]}

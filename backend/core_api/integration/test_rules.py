@@ -83,7 +83,7 @@ async def test_every_seeded_rule_is_valid_and_hyderabad_resolves(client: AsyncCl
     assert got["tax:rate_on_lines:gst_food"]["params"]["rate_percent"] == "5"
     assert got["tax:rate_on_lines:gst_fees"]["params"]["rate_percent"] == "18"
     assert got["business:accept_timeout"]["scope_level"] == "platform"
-    assert "promotion:percent_off:hyd_launch" in got
+    assert "promotion:percent_off:hyd_launch" not in got  # R37: BhojanGo-funded, so paused in the seed
 
 
 async def test_money_rule_needs_a_second_admin(client: AsyncClient, city: str) -> None:

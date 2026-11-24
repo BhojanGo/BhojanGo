@@ -78,12 +78,12 @@ function OrderRow({ o, selected, onPick }: { o: Order; selected: boolean; onPick
       <span className="min-w-0 flex-grow">
         <span className="flex justify-between gap-2">
           <b className="truncate text-label">{o.restaurant_name}</b>
-          <b className="shrink-0 text-label tabular-nums">{f.money(paidCents(o) / 100, o.currency)}</b>
+          <b className="shrink-0 text-label tabular-nums">{f.bill(paidCents(o) / 100, o.currency)}</b>
         </span>
         {/* R28: what was actually paid after refunds, and how much came back */}
         {Number(o.refunded) > 0 && (
           <span className="mt-[2px] block text-small tabular-nums text-muted">
-            {t("account.orders.refunded", { amount: f.money(Number(o.refunded), o.currency) })}
+            {t("account.orders.refunded", { amount: f.bill(Number(o.refunded), o.currency) })}
           </span>
         )}
         <span className="mt-[2px] block truncate text-small text-muted">{summary}</span>

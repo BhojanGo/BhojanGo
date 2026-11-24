@@ -515,6 +515,17 @@ COUNTRIES = [
 # A restaurant scope_id is the restaurant's slug here; seed.py maps it to the id.
 IDAHO_TAXABLE = ["food", "packaging", "platform_fee", "service_fee", "small_order_fee", "late_night_fee"]  # R33
 
+
+# R37: an offer BhojanGo pays for starts paused in every seed (and needs a monthly offer budget to run:
+# pricing/service/offer_budget.py). A re-seed leaves an existing rule's pause as it is.
+PLATFORM_OFFER_PAUSED = "Off by default: BhojanGo pays for this offer. Set a monthly offer budget, then resume it."
+
+
+def paused(family: str, params: dict) -> dict:
+    """UPSERT_RULE's pause parameters for a rule."""
+    off = family == "promotion" and params.get("funded_by") == "platform"
+    return {"paused": off, "paused_reason": PLATFORM_OFFER_PAUSED if off else None}
+
 RULES = [
     # India
     ("tax", "rate_on_lines", "gst_food", "GST on food and packaging", "country", "IN",

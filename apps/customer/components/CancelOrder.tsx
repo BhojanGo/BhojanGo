@@ -17,7 +17,7 @@ function payLabel(t: T, method: string): string {
 }
 
 export function CancelOrder({ order, onDone, onRefresh }: { order: Order; onDone: (o: Order) => void; onRefresh: () => void }) {
-  const { t, money, time } = useI18n();
+  const { t, bill, time } = useI18n();
   const c = order.customer_cancel;
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -54,7 +54,7 @@ export function CancelOrder({ order, onDone, onRefresh }: { order: Order; onDone
         <View accessibilityRole="alert" style={{ gap: space[3] }}>
           <Txt variant="h3" accessibilityRole="header">{t("track.cancel_title")}</Txt>
           <Txt style={{ color: color.muted }}>
-            {refund > 0 ? t("track.cancel_refund", { amount: money(refund, order.currency), method: payLabel(t, c.refund_to) }) : t("track.cancel_nothing")}
+            {refund > 0 ? t("track.cancel_refund", { amount: bill(refund, order.currency), method: payLabel(t, c.refund_to) }) : t("track.cancel_nothing")}
           </Txt>
           <Button testID="cancel-confirm" title={busy ? t("track.cancelling") : t("track.cancel_yes")} variant="danger" loading={busy} onPress={() => void cancel()} />
           <Button testID="cancel-keep" title={t("track.cancel_keep")} variant="secondary" disabled={busy} onPress={() => setAsking(false)} />
@@ -67,12 +67,12 @@ export function CancelOrder({ order, onDone, onRefresh }: { order: Order; onDone
 
 /** A cancelled order: what came back and where (nothing when nothing was charged). */
 export function RefundLine({ order }: { order: Order }) {
-  const { t, money } = useI18n();
+  const { t, bill } = useI18n();
   const paid = (order.status_history as { status: string }[] | undefined)?.some((h) => h.status === "placed");
   if (!order.refunded && !paid) return null;
   const text = order.refunded
-    ? t("track.refunded", { amount: money(order.refunded, order.currency), method: payLabel(t, order.payment_method) })
-    : t("track.refund_pending", { amount: money(order.total, order.currency), method: payLabel(t, order.payment_method) });
+    ? t("track.refunded", { amount: bill(order.refunded, order.currency), method: payLabel(t, order.payment_method) })
+    : t("track.refund_pending", { amount: bill(order.total, order.currency), method: payLabel(t, order.payment_method) });
   return (
     <View testID="refund-line" style={{ padding: space[4], borderRadius: radius.card, backgroundColor: color.peacockMist }}>
       <Txt style={{ color: color.peacockDeep }}>{text}</Txt>

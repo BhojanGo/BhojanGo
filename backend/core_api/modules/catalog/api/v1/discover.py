@@ -266,6 +266,20 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     cards: list[Card] = []
     free_chip = False
     offers: dict[str, Offer] = {}
+    # R37: a BhojanGo-funded offer shows only while this place's monthly offer budget can pay for it
+    from core_api.modules.pricing.service import offer_budget
+
+    pool = offer_budget.pool_for([("country", country.code, country.name, country.settings),
+                                  ("region", region.code, region.name, region.settings),
+                                  ("city", city.code, city.name, city.settings)], country.currency)
+    budget_left = await offer_budget.left(db, pool, offer_budget.month_of(local))
+
+    def runs(o: Offer) -> bool:
+        if o.funded_by != "platform":
+            return True
+        most = o.amount or o.max_discount
+        return budget_left > 0 and (most is None or Decimal(most) <= budget_left)
+
     road: dict[str, float] = {}
     if lat is not None and lng is not None:
         # R31: road distance from each restaurant to the address, in one routing call (OSRM table; falls back
@@ -283,7 +297,8 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             if str(k.id) not in road:
                 continue
             distance_km = road[str(k.id)]
-        for o in f.offers:
+        running = [o for o in f.offers if runs(o)]
+        for o in running:
             offers.setdefault(o.id, o)
         fee = None
         distance = None
@@ -310,7 +325,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             closed_for_now=a.closed_for_now, not_taking_orders=a.no_tablet,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
             distance=float(distance) if distance is not None else None, delivery_fee=fee, deliverable=deliverable,
-            free_delivery=f.free_delivery, offer=f.card_offer,
+            free_delivery=any(o.template == "free_delivery" for o in running), offer=running[0] if running else None,
             pickup_enabled=bool(k.pickup_enabled), pickup_only=bool(k.pickup_enabled) and not deliverable,
             pickup_fee_percent=f.pickup_fee_percent if k.pickup_enabled else None,
             minimum_order=str(k.minimum_order_amount) if k.minimum_order_amount else None))

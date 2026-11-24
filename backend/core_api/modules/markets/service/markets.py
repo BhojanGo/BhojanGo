@@ -50,6 +50,16 @@ class Conflict(ValueError):
     pass
 
 
+def _check_offer_budget(patch: dict | None) -> None:
+    """R37: the monthly budget for BhojanGo-funded offers (pricing/service/offer_budget.py)."""
+    from core_api.modules.pricing.service import offer_budget
+
+    try:
+        offer_budget.check_settings(patch or {})
+    except offer_budget.BudgetError as e:
+        raise rules.MarketRuleError(str(e)) from None
+
+
 def _production() -> bool:
     from shared.config import get_settings
 
@@ -164,6 +174,7 @@ class MarketService:
         kitchen_docs.check_settings(data.settings)
         delivery.check_settings(data.settings)
         offer_ceiling.check_settings(data.settings)
+        _check_offer_budget(data.settings)
         rules.check_country_payouts("draft", data.payout_provider, production=_production())
         c = await self.repo.add(Country(**data.model_dump(), status="draft"))
         return CountryOut.model_validate(c)
@@ -179,6 +190,7 @@ class MarketService:
             kitchen_docs.check_settings(s)
             delivery.check_settings(s)
             offer_ceiling.check_settings(s)
+            _check_offer_budget(s)
             c.settings = rules.merge_settings(c.settings, s)
         if "settings" in data.model_fields_set or "payment_providers" in patch:
             # R14: the methods must be ones the country's providers take (also after a provider change).
@@ -207,6 +219,7 @@ class MarketService:
             raise Conflict(f"State {data.code} already exists")
         rules.check_overrides(data.settings)
         offer_ceiling.check_settings(data.settings)
+        _check_offer_budget(data.settings)
         values = data.model_dump()
         values["short_code"] = (values.get("short_code") or data.code.split("-", 1)[1]).upper()
         r = await self.repo.add(Region(country_id=country.id, **values, status="draft"))
@@ -221,6 +234,7 @@ class MarketService:
             s = patch.pop("settings") or {}
             rules.check_overrides(s)
             offer_ceiling.check_settings(s)
+            _check_offer_budget(s)
             region.settings = rules.merge_settings(region.settings, s)
         for k, v in patch.items():
             setattr(region, k, v)
@@ -237,6 +251,7 @@ class MarketService:
             raise Conflict(f"City {data.code} already exists")
         rules.check_overrides(data.settings)
         offer_ceiling.check_settings(data.settings)
+        _check_offer_budget(data.settings)
         payload = data.model_dump()
         # R27: every city has its own zone: given, else its state's, else its country's (edited in admin).
         payload["timezone"] = data.timezone or region.timezone or country.timezone
@@ -250,6 +265,7 @@ class MarketService:
             s = patch.pop("settings") or {}
             rules.check_overrides(s)
             offer_ceiling.check_settings(s)
+            _check_offer_budget(s)
             city.settings = rules.merge_settings(city.settings, s)
         for k, v in patch.items():
             setattr(city, k, v)

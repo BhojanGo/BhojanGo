@@ -191,6 +191,8 @@ export interface I18n {
   formatLocale: string | undefined;
   /** money(250, order.currency) in the country's format, always two decimals (29.00). No currency: the country's (Markets). */
   money: (amount: number | string | null | undefined, currency?: string | null) => string;
+  /** R37: the bill, the payment, receipts and refunds: always to the cent (385.80), so every line adds up to the total. */
+  bill: (amount: number | string | null | undefined, currency?: string | null) => string;
   /** number(1234.5) -> "1,234.5" (country grouping), `digits` decimals at most (1). */
   number: (n: number, digits?: number) => string;
   /** distance(2.14): kilometres in, the country's unit out (or `unit` as the API sends it), one decimal, translated unit. */
@@ -229,6 +231,11 @@ export function useI18n(): I18n {
         if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
         // R36: the customer app shows rupees whole (display only; partners and riders keep paise)
         return formatMoney(amount, cur, localeForCurrency(cur, country, countries), { whole: rule === "customer" && wholeForCustomers(cur) });
+      },
+      bill: (amount, currency) => {
+        const cur = currency || country?.currency;
+        if (!cur) return formatNumber(Number(amount ?? 0), loc, 2);
+        return formatMoney(amount, cur, localeForCurrency(cur, country, countries));
       },
       number: (n, digits = 1) => formatNumber(n, loc, digits),
       distance: (km, unit) => {

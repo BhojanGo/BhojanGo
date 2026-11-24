@@ -96,7 +96,7 @@ async def seed_markets_only(conn) -> dict[str, int]:  # type: ignore[no-untyped-
             "id": sid("rule", family, template, key or "", level, scope_id), "family": family, "template": template,
             "key": key, "slot": slot_for(family, template, key), "name": name,
             "params": json.dumps(validate_params(family, template, params)), "scope_level": level,
-            "scope_id": scope_id, "market_scope": scope_id, "created_by": None})
+            "scope_id": scope_id, "market_scope": scope_id, "created_by": None, **base.paused(family, params)})
     countries = {c["code"] for c in markets_data.markets()}
     for d in documents():
         if d["country"] in countries:

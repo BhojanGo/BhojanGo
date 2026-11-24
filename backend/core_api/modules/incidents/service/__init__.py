@@ -363,7 +363,7 @@ async def recipients(db: AsyncSession, audience: Audience) -> tuple[str, list[di
     ordered there in the last ``days`` once. Outside production only test accounts get it."""
     from core_api.modules.identity.models.user import User
     from core_api.modules.orders.models.order import Order
-    from shared.money import customer_money
+    from shared.money import format_money
 
     rows: list[dict] = []
     if audience.bulk_refund_id:
@@ -376,7 +376,7 @@ async def recipients(db: AsyncSession, audience: Audience) -> tuple[str, list[di
             if o["order_id"] in done:
                 rows.append({"user_id": o["customer_id"], "order_id": o["order_id"],
                              "params": {"restaurant": o["restaurant"],
-                                        "amount": customer_money(Decimal(done[o["order_id"]]) / 100, b.currency)}})
+                                        "amount": format_money(Decimal(done[o["order_id"]]) / 100, b.currency)}})
         if not rows:
             raise IncidentError("That bulk refund hasn't refunded any order yet")
     elif audience.city:

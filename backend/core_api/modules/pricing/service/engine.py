@@ -95,6 +95,9 @@ class QuoteInputs:
     # R20: an app store review account ordering in its review-only city (markets.service.review).
     # Every line is priced as usual; then one line, funded by the platform, takes the total to 0.
     review: bool = False
+    # R37: what this place's monthly budget for BhojanGo-funded offers has left (offer_budget.py).
+    # None: not checked (unit tests, the simulator's draft side); 0: those offers don't apply.
+    platform_offer_left: Decimal | None = None
 
 
 @dataclass
@@ -212,6 +215,10 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             return False
         if p.get("weekly_cap") is not None and inp.promo_spent_week.get(str(c.rule_key), ZERO) >= D(p["weekly_cap"]):
             return False
+        if p.get("funded_by") == "platform" and inp.platform_offer_left is not None:
+            # R37: only while the month's budget can pay for the whole offer (free delivery: checked below)
+            if inp.platform_offer_left <= 0 or (c.template != "free_delivery" and promo_value(c) > inp.platform_offer_left):
+                return False
         return True
 
     def promo_value(c: Candidate) -> Decimal:
@@ -269,6 +276,11 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         delivery = ZERO
     if delivery is not None:
         fees["delivery_fee"] = add("delivery_fee", "Delivery fee", delivery, dr, taxable_as="delivery_fee").amount
+    if (free_delivery is not None and free_delivery.params.get("funded_by") == "platform"
+            and inp.platform_offer_left is not None):
+        given = -discount if discount and best.params.get("funded_by") == "platform" else ZERO
+        if fees.get("delivery_fee", ZERO) > inp.platform_offer_left + given:  # R37: what's left after the discount
+            free_delivery = None
     if free_delivery is not None and fees.get("delivery_fee", ZERO) > 0:
         add("promotion", free_delivery.name or "Free delivery", -fees["delivery_fee"], free_delivery,
             funded_by=free_delivery.params["funded_by"], taxable_as="delivery_fee")

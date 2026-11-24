@@ -33,7 +33,7 @@ export default function Bag() {
   const [paying, setPaying] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const { t, money, opens } = useI18n();
+  const { t, money, bill, opens } = useI18n();
   // R18: an incident pause (the city's ordering, or the kitchen closed for now): the bag says so and can't be paid.
   // R27: so does a kitchen closed by its hours or the city's delivery hours: "Closed · opens 6:30 am", in the
   // app's words (the availability, or the quote's KITCHEN_CLOSED refusal), never the API's English.
@@ -355,7 +355,7 @@ export default function Bag() {
             testID={blocked ? "pay-blocked" : free ? "place-free" : mode === "unavailable" ? "pay-unavailable" : mode === "retry" ? "pay-retry" : "pay"}
             title={blocked ?? (free ? t("checkout.place_free") : mode === "unavailable" ? t("checkout.payments_unavailable")
               : mode === "retry" ? t("checkout.payments_retry")
-              : quote ? t("checkout.pay_amount", { amount: money(quote.total, quote.currency) }) : t("checkout.pay"))}
+              : quote ? t("checkout.pay_amount", { amount: bill(quote.total, quote.currency) }) : t("checkout.pay"))}
             size="lg"
             block
             loading={paying}
@@ -368,7 +368,7 @@ export default function Bag() {
       <Sheet visible={sheet && mode === "test"} onClose={() => setSheet(false)} title={t("checkout.test_title")}
         footer={
           <View style={{ gap: space[2] }}>
-            <Button testID="pay-approve" title={t("checkout.test_approve", { amount: quote ? money(quote.total, quote.currency) : "" })} size="lg" block onPress={() => pay("approve")} />
+            <Button testID="pay-approve" title={t("checkout.test_approve", { amount: quote ? bill(quote.total, quote.currency) : "" })} size="lg" block onPress={() => pay("approve")} />
             <Button testID="pay-decline" title={t("checkout.test_decline")} variant="secondary" block onPress={() => pay("decline")} />
           </View>
         }>

@@ -268,8 +268,8 @@ class OrderService:
         )
         try:
             await quotes.attach(q, order.id)
-        except QuoteError as e:
-            raise _err(status.HTTP_409_CONFLICT, "QUOTE_INVALID", str(e))
+        except QuoteError as e:  # R37: OFFER_ENDED: the month's offer budget ran out since the quote
+            raise _err(status.HTTP_409_CONFLICT, "OFFER_ENDED" if e.code == "OFFER_ENDED" else "QUOTE_INVALID", str(e))
         await outbox.add(self.db, "order.created", "order", order.id,
                          _event_payload(order, payment_due_at=order.payment_due_at.isoformat()), SOURCE)  # type: ignore[union-attr]
         logger.info("order_created", order_id=str(order.id), customer_id=str(customer_id), quote_id=q["quote_id"])

@@ -63,6 +63,9 @@ export function useFormat() {
     return {
       money: (amount: number | string | null | undefined, currency?: string) =>
         money(amount, currency ?? country?.currency ?? "USD", formatLocale),
+      /** R37: the bill, the payment and receipts: to the cent (385.80), so every line adds up to the total. */
+      bill: (amount: number | string | null | undefined, currency?: string) =>
+        money(amount, currency ?? country?.currency ?? "USD", formatLocale, { exact: true }),
       number: (n: number, digits?: number) => number(n, formatLocale, digits),
       ...inZone(null),
       zone: inZone,

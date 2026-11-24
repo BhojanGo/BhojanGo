@@ -201,7 +201,7 @@ function SignedIn({ topic, customer }: { topic?: HelpTopic; customer: boolean })
                     <span className="min-w-0">
                       <span className="block truncate text-label font-bold text-kohl">{o.restaurant_name}</span>
                       <span className="block text-small text-muted tabular-nums">
-                        {orderCode(o.id)} · {z.date(at)} · {f.money(o.total, o.currency)} · {t(`account.status.${o.status}`)}
+                        {orderCode(o.id)} · {z.date(at)} · {f.bill(o.total, o.currency)} · {t(`account.status.${o.status}`)}
                       </span>
                     </span>
                   </label>

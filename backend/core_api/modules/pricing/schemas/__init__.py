@@ -105,6 +105,8 @@ class SimulateRequest(BaseModel):
     restaurant_tier: str | None = Field(default=None, examples=["B"])
     first_order: bool = False
     promo_code: str | None = None
+    payment_method: str = Field(default="card", pattern=r"^[a-z_]{2,20}$", examples=["upi"],
+                                description="R37: the payment fee estimate's method (what the platform keeps)")
     draft_rule_ids: list[uuid.UUID] = Field(default=[], description="Drafts to try against what is live now")
     postal_code: str | None = Field(default=None, max_length=12, examples=["83702"],
                                     description="Where a tax service needs an address (US sales tax: the ZIP code)")

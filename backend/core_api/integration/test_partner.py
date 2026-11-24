@@ -110,12 +110,12 @@ async def test_offer_the_restaurant_funds_stops_at_the_weekly_cap(client: AsyncC
         def promo(q: dict) -> list[dict]:
             return [ln for ln in q["lines"] if ln["code"] == "promotion"]
 
-        # ₹50 off beats the city's platform launch offer (10% of ₹480 = ₹48) until this week's ₹100 is used.
+        # ₹50 off until this week's ₹100 is used.
         for _ in range(2):
             q = await quote(client, cust, rid, item)
             assert [(float(p["amount"]), p["funded_by"]) for p in promo(q)] == [(-50, "restaurant")]
             await order_from(client, cust, rid, item, q)
-        assert [p["funded_by"] for p in promo(await quote(client, cust, rid, item))] == ["platform"]  # cap reached
+        assert promo(await quote(client, cust, rid, item)) == []  # cap reached (R37: the launch offer is off in the seed)
         listed = next(x for x in (await client.get(f"/api/v1/restaurants/{rid}/offers", headers=partner)).json()
                       if x["id"] == offer["id"])
         assert float(listed["used_this_week"]) == 100 and listed["orders_this_week"] == 2 and listed["live"] is False

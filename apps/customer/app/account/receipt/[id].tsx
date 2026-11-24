@@ -17,7 +17,7 @@ import { ScreenBar, Section, Status, ui } from "../../../lib/account-ui";
 import { okToReplaceBag } from "../../../lib/newBag";
 
 export default function Receipt() {
-  const { t, money, date, time } = useI18n();
+  const { t, bill: paise, date, time } = useI18n();
   const { countries } = useCountry();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<{ order: Order; bill: Bill | null } | null | "error">(null);
@@ -145,7 +145,7 @@ export default function Receipt() {
                   {i.quantity ?? 1} × {i.name}
                   {opts ? <Text style={{ color: color.muted }}> · {opts}</Text> : null}
                 </Text>
-                {line != null ? <Text style={[type.label, num, { color: color.kohl }]}>{money(line, order.currency)}</Text> : null}
+                {line != null ? <Text style={[type.label, num, { color: color.kohl }]}>{paise(line, order.currency)}</Text> : null}
               </View>
             );
           })}
@@ -160,7 +160,7 @@ export default function Receipt() {
               <Text style={ui.muted}>{t("account.receipt.no_bill")}</Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={[type.h3, { color: color.kohl }]}>{t("account.receipt.total")}</Text>
-                <Text style={[type.h3, num, { color: color.kohl }]}>{money(order.total, order.currency)}</Text>
+                <Text style={[type.h3, num, { color: color.kohl }]}>{paise(order.total, order.currency)}</Text>
               </View>
             </Section>
           )}
@@ -169,14 +169,14 @@ export default function Receipt() {
               {back.refunds.map((r, n) => (
                 <View key={n} style={{ flexDirection: "row", justifyContent: "space-between", gap: space[3] }}>
                   <Text style={[type.body, { flex: 1, color: color.kohl }]}>
-                    {t("account.receipt.refund_line", { amount: money(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}
+                    {t("account.receipt.refund_line", { amount: paise(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}
                   </Text>
-                  <Text style={[type.label, num, { color: color.kohl }]}>{money(-r.amount, bill.currency)}</Text>
+                  <Text style={[type.label, num, { color: color.kohl }]}>{paise(-r.amount, bill.currency)}</Text>
                 </View>
               ))}
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={[type.h3, { color: color.kohl }]}>{t("account.receipt.total_paid")}</Text>
-                <Text testID="receipt-total-paid" style={[type.h3, num, { color: color.kohl }]}>{money(back.paid, bill.currency)}</Text>
+                <Text testID="receipt-total-paid" style={[type.h3, num, { color: color.kohl }]}>{paise(back.paid, bill.currency)}</Text>
               </View>
             </View>
           ) : null}

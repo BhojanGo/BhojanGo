@@ -289,8 +289,9 @@ class RuleService:
         """Stop a kitchen's own offer for now without ending it: it stops
         applying at once and the kitchen sees why. Resume brings it back."""
         r = await self.get(rule_id)
-        if r.family != "promotion" or r.scope_level != "restaurant" or r.params.get("funded_by") != "restaurant":
-            raise RuleError("Only a restaurant's own offer can be paused; end other rules instead")
+        own = r.scope_level == "restaurant" and r.params.get("funded_by") == "restaurant"
+        if r.family != "promotion" or not (own or r.params.get("funded_by") == "platform"):  # R37: and BhojanGo's offers
+            raise RuleError("Only an offer can be paused; end other rules instead")
         if r.status != "published" or (r.effective_to is not None and r.effective_to <= now()):
             raise RuleError("Only a live offer can be paused")
         if r.paused_at is not None:

@@ -118,7 +118,7 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
 
     tz = await d.timezone(order["market_city"])
     code = m.order_code(str(order["id"]))
-    total = m.to_customer_money(order["total"], order["currency"])  # R36: the customer's (whole rupees)
+    total = m.to_customer_money(order["total"], order["currency"])  # R37: exact paise, as on the bill
     eta = m.clock(p.get("estimated_delivery_time") or order["estimated_delivery_time"], tz)
     base = {"restaurant": order["restaurant_name"], "code": code, "eta": eta}
     customer = str(order["customer_id"])

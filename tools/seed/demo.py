@@ -278,7 +278,8 @@ class Demo:
                 "id": sid("rule", "promotion", template, rkey, level, scope_id), "family": "promotion", "template": template,
                 "key": rkey, "slot": slot_for("promotion", template, rkey), "name": name,
                 "params": json.dumps(validate_params("promotion", template, params)), "scope_level": level,
-                "scope_id": scope_id, "market_scope": market["scope"], "created_by": sid("user", "admin@example.com")})
+                "scope_id": scope_id, "market_scope": market["scope"], "created_by": sid("user", "admin@example.com"),
+                **base.paused("promotion", params)})
 
     async def favourites_and_card(self, key: str, city: dict) -> None:
         user = self.users[city["customers"][0][0]]

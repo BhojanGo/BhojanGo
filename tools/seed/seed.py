@@ -39,6 +39,7 @@ for _backend in (Path(__file__).resolve().parents[2] / "backend", Path("/srv")):
         sys.path.insert(1, str(_backend))
         break
 from legal_docs import seed_legal  # noqa: E402
+from data import paused  # noqa: E402  (R37)
 from data import (  # noqa: E402
     ADMINS, ADMIN_PASSWORD, COUNTRIES, FSSAI, HOLIDAYS, HOURS, MARKETS, PASSWORD, RULES, SEED_TOTP_SECRET, TIERS, covers,
     dish_photo, menu_dishes, photo_url,
@@ -179,9 +180,10 @@ async def seed_markets(conn) -> None:
 
 UPSERT_RULE = text("""
 INSERT INTO rules (id, rule_key, version, family, template, key, slot, name, params, scope_level,
-                   scope_id, market_scope, priority, locked, status, effective_from, created_by)
+                   scope_id, market_scope, priority, locked, status, effective_from, created_by, paused_at, paused_reason)
 VALUES (:id, :id, 1, :family, :template, :key, :slot, :name, CAST(:params AS jsonb), :scope_level,
-        :scope_id, :market_scope, 0, false, 'published', '2026-01-01T00:00:00Z', :created_by)
+        :scope_id, :market_scope, 0, false, 'published', '2026-01-01T00:00:00Z', :created_by,
+        CASE WHEN CAST(:paused AS boolean) THEN now() END, CASE WHEN CAST(:paused AS boolean) THEN :paused_reason END)
 ON CONFLICT (id) DO UPDATE SET params = EXCLUDED.params, name = EXCLUDED.name, updated_at = now()
 """)
 
@@ -200,7 +202,7 @@ async def seed_rules(conn, created_by) -> int:
             "id": sid("rule", family, template, key or "", level, scope_id), "family": family,
             "template": template, "key": key, "slot": slot_for(family, template, key), "name": name,
             "params": json.dumps(validate_params(family, template, params)), "scope_level": level, "scope_id": scope_id,
-            "market_scope": market_scope, "created_by": created_by,
+            "market_scope": market_scope, "created_by": created_by, **paused(family, params),
         })
     return len(RULES)
 

@@ -66,9 +66,10 @@ def format_money(amount: Decimal | float | int | str, currency: str, locale: str
 
 
 def customer_money(amount: Decimal | float | int | str, currency: str, locale: str | None = None) -> str:
-    """R36: money as a customer reads it. India shows whole rupees (₹289, never ₹289.40): rounded half
-    up for display only, the amount itself (and what's charged) stays exact. Other currencies keep cents.
-    Restaurants' and delivery partners' statements keep ``format_money`` (exact paise)."""
+    """R36: money as a customer reads it on a menu or in a cart. India shows whole rupees (₹289, never
+    ₹289.40): rounded half up for display only, the amount itself stays exact. Other currencies keep cents.
+    R37: the bill, the payment, receipts and messages use ``format_money`` (exact paise), so every line
+    adds up to the total charged."""
     if currency == "INR":
         whole = Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         return format_money(whole, currency, locale, whole=True)
