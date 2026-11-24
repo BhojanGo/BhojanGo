@@ -527,6 +527,10 @@ Migration `0049_idaho_tax_lines` (rules only: nothing added, dropped or renamed)
   Boise delivery 3.00 mi (3.99 + 10.99 + 22.00, card): platform 3.70, delivery 4.50 untaxed, tax 2.44, total
   47.62, card fee 1.68, restaurant 35.30, partner 4.50. Boise pickup: platform 1.85, tax 2.33, total 41.16, card
   fee 1.49, restaurant 35.49.
+  Stripe Tax test mode, Boise (the payments e2e case `stripe_tax_idaho_taxable_lines`): with each line's own code,
+  food is taxed 6% ($2.22), the delivery fee as shipping is not taxed, and the platform fee as "general services"
+  is not taxed either (`product_exempt`). With the mapping from Idaho's rule the platform fee is taxed ($0.22) and
+  delivery still isn't: tax $2.44, the same as the local stand-in.
 - **Cart, not bag.** Every customer-facing "Bag / Add to bag / basket" is now "Cart / Add to cart / View cart" in
   all 8 languages (app, website, backend messages, help, privacy). The delivery partner's and restaurant's
   insulated delivery bags stay bags. `tools/i18n/kitchen_scan.py` is now `tools/i18n/wording_scan.py` and also

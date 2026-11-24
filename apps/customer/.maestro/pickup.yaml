@@ -17,9 +17,11 @@ appId: com.bhojango.app
     timeout: 30000
 - tapOn:
     id: "kitchen-card-spice-route-kitchen-madhapur"
-- extendedWaitUntil:
-    visible: "Chicken Dum Biryani"
-    timeout: 20000
+- scrollUntilVisible:  # R33: wherever the menu lists it
+    element:
+      text: "Chicken Dum Biryani"
+    direction: DOWN
+    timeout: 30000
 - tapOn: "Chicken Dum Biryani"
 - assertVisible: "Size"
 - tapOn:

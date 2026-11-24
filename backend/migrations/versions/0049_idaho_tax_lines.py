@@ -31,7 +31,8 @@ CHANGES = [
     ("region", "US-ID", "tax", "external", "tax:external", "Idaho sales tax: taxable lines",
      {"provider": "stripe_tax", "collected_by": "platform", "taxable_lines": IDAHO}, False),
     ("city", "IN-TG-HYD", "customer_fee", "surge_levy", "customer_fee:surge_levy", "Busy-hour fee (off)",
-     {"windows": [{"start": "19:00", "end": "21:30"}], "amount": "0"}, True),
+     {"windows": [{"start": "19:00", "end": "21:30", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}],
+      "amount": "0"}, True),
 ]
 
 CURRENT = ("status = 'published' AND (effective_to IS NULL OR effective_to > now())")

@@ -40,17 +40,18 @@ appId: com.bhojango.app
 - tapOn:
     text: "View cart.*"
 - extendedWaitUntil:
-    visible: "The fair bill"
+    visible: "Your cart"
     timeout: 20000
 - assertNotVisible: ".*[Bb]ag.*"
 - takeScreenshot: docs/screenshots/customer/r33-cart-en
 # Spanish, from the home's language pill (this phone only)
 - back
 - back
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:  # home keeps its scroll position
+    element:
       id: "language-pill"
-    timeout: 20000
+    direction: UP
+    timeout: 30000
 - tapOn:
     id: "language-pill"
 - extendedWaitUntil:
@@ -81,13 +82,18 @@ appId: com.bhojango.app
 - tapOn:
     text: "Ver carrito.*"
 - extendedWaitUntil:
-    visible: "Tu carrito.*|Carrito.*|.*factura.*"
+    visible: "Tu carrito"
     timeout: 20000
 - assertNotVisible: ".*[Bb]olsa.*"
 - takeScreenshot: docs/screenshots/customer/r33-cart-es
 # Back to English
 - back
 - back
+- scrollUntilVisible:
+    element:
+      id: "language-pill"
+    direction: UP
+    timeout: 30000
 - tapOn:
     id: "language-pill"
 - extendedWaitUntil:
