@@ -540,6 +540,24 @@ Migration `0049_idaho_tax_lines` (rules only: nothing added, dropped or renamed)
 - **Pickup tracking.** Web and app: Placed → Preparing → Ready for pickup → Picked up (no "On the way", no Home).
 - `packages/i18n/REVIEW.md`: the round 32 pickup strings are listed as needing native review.
 
+## SOS flow, pickup countdown, cart icon (round 34, 2026-11-23)
+
+No migration.
+
+- **SOS Maestro flow (delivery partner app).** The SOS alert itself always went through; the flow failed one step
+  later, tapping "Payouts" after closing the SOS screen. Cause: the flow scrolled up only until "Safety" showed, and
+  Payouts is the row directly above it, so whether Payouts was on screen depended on how far the last swipe went.
+  The flow now scrolls to Payouts by id and taps rows by id (`account-safety`, `sos-close`, `account-payouts`).
+  The app is unchanged. 10 runs in a row on the emulator, all passed.
+- **Pickup countdown.** A pickup order never says "Arriving": "Ready in about N min" until it's ready, then "Ready
+  for pickup" with the restaurant's name and address, and "Picked up" once collected (web and app; Playwright in
+  `e2e_web.py`, Maestro in `pickup.yaml`). The estimate behind it is now the ready time: when the restaurant
+  accepted a pickup order, its estimate used to add a ride and handover time as if it were delivered.
+- **Icons.** No shopping bags in the customer app or website: the "View cart" bar and the website's cart button
+  use a cart; the Orders tab uses a receipt; Account > Payments uses a card.
+- `packages/i18n/REVIEW.md`: the round 33 cart strings and the new `track.ready_in_about` are listed as needing
+  native review.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

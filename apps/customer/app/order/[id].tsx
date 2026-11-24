@@ -156,7 +156,13 @@ export default function Tracking() {
   const leftText = left ? (left.km ? distance(left.value) : t(`app.units.${left.unit}`, { value: number(left.value, 1) })) : null;
 
   const [headKey, headValues] = trackHeadline(status, who, kitchen);
-  const headline = order?.fulfillment === "pickup" && status === "ready" ? t("track.s_pickup_ready")  // R32
+  // R34: a pickup order never "arrives": "Ready in about N min" until it's ready, then "Ready for pickup"
+  // with the restaurant's address; collected says "Picked up".
+  const isPickup = order?.fulfillment === "pickup";
+  const pickupReady = isPickup && status === "ready";
+  const pickupWhere = [kitchen, order?.pickup_address?.street, order?.pickup_address?.city].filter(Boolean).join(", ");
+  const headline = pickupReady ? t("track.order")
+    : isPickup && !finished ? t("track.ready_in_about")
     : headKey === "s_picked_up" && !headValues
     ? t("track.s_picked_up", { rider: t("track.your_rider") }) : t(`track.${headKey}`, headValues);
   const stamp = (...states: string[]) => {
@@ -197,10 +203,12 @@ export default function Tracking() {
             <Text testID="track-headline" style={[type.label, { color: color.muted }]}>{headline}</Text>
             {!cancelled ? (
               <Text testID="eta" style={[type.display, { color: color.kohl, marginTop: 6 }]}>
-                {delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—"}
+                {delivered ? t(isPickup ? "track.collected" : "track.delivered") : pickupReady ? t("track.s_pickup_ready") : minutes != null ? t("track.minutes", { count: minutes }) : "—"}
               </Text>
             ) : null}
-            {!finished && arrivesAt ? (
+            {pickupReady ? (
+              <Text testID="pickup-ready-where" style={[type.small, { color: color.muted }]}>{pickupWhere}</Text>
+            ) : !finished && arrivesAt ? (
               <Text style={[type.small, { color: color.muted }]}>{t("track.around", { time: time(arrivesAt, tz) })}</Text>
             ) : null}
           </View>

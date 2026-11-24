@@ -498,6 +498,7 @@
     "status": "ఆర్డర్ స్థితి",
     "order": "మీ ఆర్డర్",
     "arriving": "చేరుకుంటోంది",
+    "ready_in_about": "సిద్ధం కావడానికి సుమారు",
     "minutes": {
       "one": "{count} ని.",
       "other": "{count} ని."

@@ -498,6 +498,7 @@
     "status": "অর্ডারের স্ট্যাটাস",
     "order": "আপনার অর্ডার",
     "arriving": "আসছে",
+    "ready_in_about": "তৈরি হতে প্রায়",
     "minutes": {
       "one": "{count} মিনিট",
       "other": "{count} মিনিট"

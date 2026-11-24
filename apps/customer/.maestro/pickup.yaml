@@ -2,6 +2,7 @@
 # delivery fee and no tip, shows the restaurant's address with "Open in Maps"; once the restaurant marks it
 # ready, the order screen shows the 4-digit pickup code; when the restaurant enters it, the order is collected.
 # R33: the cart (not "bag"); the order's steps are Placed -> Preparing -> Ready for pickup -> Picked up (no Home).
+# R34: never "Arriving": "Ready in about N min" until it's ready, then "Ready for pickup" with the address.
 appId: com.bhojango.app
 ---
 - runFlow: sign-in.yaml
@@ -63,6 +64,17 @@ appId: com.bhojango.app
       id: "pickup-card"
     timeout: 30000
 - assertVisible: "Your pickup code shows here when your order is ready"
+# R34: the countdown is to READY, not to an arrival
+- assertVisible:
+    id: "track-headline"
+    text: "Ready in about"
+- assertVisible:
+    id: "eta"
+    text: "[0-9]+ min"
+- assertNotVisible: "Arriving.*"
+- assertNotVisible:
+    id: "pickup-ready-where"
+- takeScreenshot: docs/screenshots/customer/21b-pickup-ready-in
 - assertNotVisible:
     id: "pickup-code"
 # R33: the pickup steps, no delivery steps
@@ -93,6 +105,15 @@ appId: com.bhojango.app
     timeout: 30000
 - assertVisible: "Show this code at the counter"
 - assertVisible: "Ready for pickup"
+# R34: ready: "Ready for pickup" in the big line with the restaurant and its address, no minutes
+- assertVisible:
+    id: "eta"
+    text: "Ready for pickup"
+- assertVisible:
+    id: "pickup-ready-where"
+    text: "Spice Route Kitchen, .+"
+- assertNotVisible: "Ready in about"
+- assertNotVisible: "Arriving.*"
 - takeScreenshot: docs/screenshots/customer/22-pickup-code
 - runScript:
     file: scripts/pickup.js
@@ -105,6 +126,9 @@ appId: com.bhojango.app
 - assertVisible:
     id: "step-collected"
 - assertVisible: "Picked up.*"
+- assertVisible:
+    id: "eta"
+    text: "Picked up"
 - assertNotVisible:
     id: "step-home"
 - takeScreenshot: docs/screenshots/customer/23-pickup-steps-collected

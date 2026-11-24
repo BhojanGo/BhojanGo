@@ -180,6 +180,12 @@ export function Tracking({ id }: { id: string }) {
   const count = (order.items as { quantity?: number }[]).reduce((n, i) => n + Number(i.quantity ?? 1), 0);
   const ago = live.at ? Math.max(0, Math.round((now - live.at) / 1000)) : null;
 
+  // R34: a pickup order never "arrives": "Ready in about N min" until it's ready, then "Ready for pickup"
+  // with the restaurant's address; collected says "Picked up".
+  const pickupReady = isPickup && status === "ready";
+  const pickupWhere = [kitchen, order.pickup_address?.street, order.pickup_address?.city].filter(Boolean).join(", ");
+  const heroLabel = cancelled || delivered || pickupReady ? t("track.order") : isPickup ? t("track.ready_in_about") : t("track.arriving");
+
   const sub = cancelled
     ? t("track.s_cancelled")
     : delivered
@@ -188,8 +194,8 @@ export function Tracking({ id }: { id: string }) {
         ? t("track.s_payment")
         : status === "picked_up"
           ? t("track.s_picked_up", { rider: rider ?? t("track.your_rider") })
-          : status === "ready" && order.fulfillment === "pickup"
-            ? t("track.s_pickup_ready")  // R32: the customer collects it
+          : status === "ready" && isPickup
+            ? pickupWhere  // R34: ready: where to collect it (the big line says "Ready for pickup")
           : status === "ready"
             ? who ? t("track.s_heading", { rider: who }) : t("track.s_finding")
             : who
@@ -213,7 +219,8 @@ export function Tracking({ id }: { id: string }) {
 
   // The door PIN only once the rider has the food (R27; the API holds it back before that too).
   const pin = order.pin && status === "picked_up" ? order.pin : null;
-  const bigEta = cancelled ? t("track.cancelled") : delivered ? t("track.delivered") : minutes != null ? t("track.minutes", { count: minutes }) : "—";
+  const bigEta = cancelled ? t("track.cancelled") : delivered ? t(isPickup ? "track.collected" : "track.delivered")
+    : pickupReady ? t("track.s_pickup_ready") : minutes != null ? t("track.minutes", { count: minutes }) : "—";
 
   return (
     <div className="container-page grid max-md:px-0 md:grid-cols-[minmax(0,1fr)_440px] md:gap-6 md:py-6">
@@ -245,7 +252,7 @@ export function Tracking({ id }: { id: string }) {
         <section className="md:hidden" aria-label={t("track.status")}>
           <div className="flex items-start justify-between gap-4">
             <span>
-              <span className="text-small text-muted">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
+              <span className="text-small text-muted" data-testid="eta-label">{heroLabel}</span>
               <b className="block text-h1 leading-none" data-testid="eta">{bigEta}</b>
             </span>
             {pin && (
@@ -267,9 +274,9 @@ export function Tracking({ id }: { id: string }) {
 
         {/* desktop: the dark card */}
         <section className="hidden rounded-[28px] bg-[#111418] p-6 text-white md:block" aria-label={t("track.status")}>
-          <span className="text-body text-[#C9D3D4]">{cancelled || delivered ? t("track.order") : t("track.arriving")}</span>
+          <span className="text-body text-[#C9D3D4]" data-testid="eta-label">{heroLabel}</span>
           <b className="block text-display leading-[1.05]" data-testid="eta">{bigEta}</b>
-          <p className="m-0 mt-2 text-body text-[#E2E7E8]">{[!cancelled && !delivered && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
+          <p className="m-0 mt-2 text-body text-[#E2E7E8]">{[!cancelled && !delivered && !pickupReady && arrivesAt ? t("track.around", { time: z.time(arrivesAt) }) : null, sub].filter(Boolean).join(" · ")}</p>
           {pin && (
             <div className="mt-5 rounded-[18px] bg-[#1C3A3E] px-[14px] py-3">
               <span className="text-small text-[#C9D3D4]">{t("track.pin_long")}</span>

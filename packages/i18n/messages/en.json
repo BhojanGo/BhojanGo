@@ -498,6 +498,7 @@
     "status": "Order status",
     "order": "Your order",
     "arriving": "Arriving",
+    "ready_in_about": "Ready in about",
     "minutes": {
       "one": "{count} min",
       "other": "{count} min"

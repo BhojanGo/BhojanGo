@@ -498,6 +498,7 @@
     "status": "Estado del pedido",
     "order": "Tu pedido",
     "arriving": "Llega en",
+    "ready_in_about": "Listo en unos",
     "minutes": {
       "one": "{count} min",
       "other": "{count} min"

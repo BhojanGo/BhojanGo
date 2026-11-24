@@ -15,10 +15,18 @@ env:
     direction: DOWN
     timeout: 30000
 - takeScreenshot: docs/screenshots/rider/11-account
+# R34: scroll UP to the Payouts row, not just to Safety. Payouts sits directly above Safety, so a scroll that
+# stopped as soon as Safety showed left Payouts above the screen on some swipes, and the Payouts tap after
+# Close failed (2 of 3 runs in R33). Rows are tapped by id, never by a word that can appear elsewhere.
 - scrollUntilVisible:
-    element: "Safety"
+    element:
+      id: "account-payouts"
     direction: UP
-- tapOn: "Safety"
+    timeout: 20000
+- assertVisible:
+    id: "account-safety"
+- tapOn:
+    id: "account-safety"
 - extendedWaitUntil:
     visible: "Get help now"
     timeout: 10000
@@ -28,8 +36,20 @@ env:
     visible: "The safety team has your alert.*"
     timeout: 45000  # the app takes a location fix first (slow on an emulator)
 - takeScreenshot: docs/screenshots/rider/12-sos
-- tapOn: "Close"
-- tapOn: "Payouts"
+- tapOn:
+    id: "sos-close"
+# back on Account; the scroll position is kept, but bring Payouts into view again rather than assume it
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "account-payouts"
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: "account-payouts"
 - extendedWaitUntil:
     visible: "Past weeks"
     timeout: 15000

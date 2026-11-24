@@ -39,10 +39,12 @@ export const Search = (p: P) => (
     <path d="m20 20-3.5-3.5" />
   </Svg>
 );
-export const BagIcon = (p: P) => (
+// R34: a cart (was a shopping bag), the same glyph as the customer app's
+export const CartIcon = (p: P) => (
   <Svg size={18} {...p}>
-    <path d="M6 8h12l-1 12H7L6 8z" />
-    <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    <path d="M2 3h3l2.6 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6" />
+    <circle cx="8.5" cy="20.5" r="1.5" />
+    <circle cx="16.5" cy="20.5" r="1.5" />
   </Svg>
 );
 export const Heart = ({ filled, ...p }: P & { filled?: boolean }) => (
