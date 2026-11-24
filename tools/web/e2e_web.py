@@ -487,7 +487,11 @@ with sync_playwright() as p:
     feed = page.get_by_role("region", name="Restaurants near you")
     check("personal home: kitchens for the address, offers with who pays, cards with the delivery fee", lambda: (
         expect(page.get_by_text(re.compile(r"^\d+ restaurants? delivers? to Madhapur"))).to_be_visible(timeout=20000),
-        expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays|Restaurant pays")).first).to_be_visible(),
+        # R37: offers BhojanGo pays for are off in every seed: only restaurants' own offers (the demo data's; the
+        # base seed has none), each saying who pays
+        expect(page.get_by_role("region", name="Offers near you").get_by_text(re.compile("BhojanGo pays", re.I))).to_have_count(0),
+        _assert(page.get_by_role("region", name="Offers near you").count() == 0
+                or page.get_by_role("region", name="Offers near you").get_by_text(re.compile("Restaurant pays", re.I)).count() > 0, "an offer without who pays"),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_be_visible(),
         expect(feed.get_by_role("link", name=re.compile(KITCHEN))).to_contain_text(re.compile(r"₹[\d,]+ delivery|Free delivery")),  # R36: whole rupees
         expect(page.get_by_text("Orders over ₹0")).to_have_count(0)))
