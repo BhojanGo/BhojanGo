@@ -511,7 +511,8 @@ with sync_playwright() as p:
             see_all.click()
             expect(see_all).to_have_count(0)
         far = feed.get_by_test_id("too-far").count()
-        _assert(cards.count() - far == n, f"{said!r} but {cards.count()} cards, {far} too far")
+        pickup = feed.get_by_test_id("pickup-only").count()  # R36: too far to deliver, but takes pickup
+        _assert(cards.count() - far - pickup == n, f"{said!r} but {cards.count()} cards, {far} too far, {pickup} pickup only")
         if total is not None:
             _assert(cards.count() == total, f"See all {total} but {cards.count()} cards")
     check("personal home: kitchens that deliver, See all and the cards are the same number", counts_agree)
