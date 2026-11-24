@@ -179,6 +179,9 @@ interface Bag {
   restaurant: { id: string; name: string; slug: string; city: string; currency: string } | null;
   lines: BagLine[];
   tip: number;
+  /** R36: delivery or pickup, chosen on the menu (the switch) or at checkout; a new cart starts at delivery. */
+  fulfillment: "delivery" | "pickup";
+  setFulfillment: (how: "delivery" | "pickup") => void;
   add: (restaurant: NonNullable<Bag["restaurant"]>, line: Omit<BagLine, "key">) => void;
   setQuantity: (key: string, quantity: number) => void;
   setTip: (tip: number) => void;
@@ -191,6 +194,8 @@ export const useBag = create<Bag>()(persist((set) => ({
   restaurant: null,
   lines: [],
   tip: 0,
+  fulfillment: "delivery",
+  setFulfillment: (fulfillment) => set({ fulfillment }),
   add: (restaurant, line) => set((s) => {
     const lines = s.restaurant?.id === restaurant.id ? s.lines : [];
     const key = keyOf(line.menuItemId, line.picks);
@@ -205,7 +210,7 @@ export const useBag = create<Bag>()(persist((set) => ({
     return lines.length ? { lines } : { lines, restaurant: null };
   }),
   setTip: (tip) => set({ tip }),
-  clear: () => set({ restaurant: null, lines: [], tip: 0 }),
+  clear: () => set({ restaurant: null, lines: [], tip: 0, fulfillment: "delivery" }),
 }), { name: "bhojango-bag", storage: createJSONStorage(() => localStorage) }));
 
 /** R28: before Order again replaces a bag from another kitchen, ask ("Start a new bag? Your bag from X will be cleared."). */

@@ -2,11 +2,23 @@
 // e.g. en-IN: ₹1,24,050.00), never the visitor's language: a language change
 // never changes how a price reads, let alone what it is.
 
-/** Always two decimals: $29.00, ₹300.00 (one money format everywhere, R12). */
-export function money(amount: number | string | null | undefined, currency: string, formatLocale: string): string {
-  const n = Number(amount ?? 0);
+/** R36: half up to a whole unit, away from zero (289.50 -> 290, -48.50 -> -49), on the cents (no float noise). */
+export function halfUpWhole(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  const cents = Math.round(Math.abs(n) * 100);
+  const whole = Math.floor((cents + 50) / 100);
+  return n < 0 ? -whole : whole;
+}
+
+/** Two decimals (one money format everywhere, R12). R36: rupees read whole, rounded half up
+ *  for display only (menu, cart, bill, receipts); `exact` keeps the paise (pages for restaurants and partners). */
+export function money(amount: number | string | null | undefined, currency: string, formatLocale: string,
+  opts?: { exact?: boolean }): string {
+  const whole = currency === "INR" && !opts?.exact; // data-ok: R36 rupees are shown whole (a currency rule, not a place)
+  const raw = Number(amount ?? 0);
+  const n = whole ? halfUpWhole(raw) : raw;
   const abs = Math.abs(n);
-  const decimals = 2;
+  const decimals = whole ? 0 : 2;
   const body = new Intl.NumberFormat(formatLocale, {
     style: "currency",
     currency,

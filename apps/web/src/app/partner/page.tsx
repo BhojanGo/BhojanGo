@@ -30,7 +30,7 @@ export default async function Partner() {
     billCity ? exampleBill(billCity.code) : Promise.resolve(null),
   ]);
   const commission = commissionSummary(terms, here?.code);
-  const fmtMoney = (v: string | number) => money(v, terms?.currency ?? country?.currency ?? "USD", formatLocale);
+  const fmtMoney = (v: string | number) => money(v, terms?.currency ?? country?.currency ?? "USD", formatLocale, { exact: true });
   const pct = (n: number) => new Intl.NumberFormat(formatLocale, { maximumFractionDigits: 1 }).format(n);
   const weekly = (terms?.payout.frequency ?? "weekly") === "weekly";
   const openCities = terms?.cities.length ?? 0;
@@ -143,7 +143,7 @@ export default async function Partner() {
                 />
                 {bill.shares && (
                   <p className="m-0 mt-3 rounded-chip bg-peacock-mist px-3 py-2 text-small font-semibold tabular-nums text-peacock-deep">
-                    {t("kitchen_join.bill_kitchen_gets", { amount: money(bill.shares.kitchen, bill.currency, formatLocale) })}
+                    {t("kitchen_join.bill_kitchen_gets", { amount: money(bill.shares.kitchen, bill.currency, formatLocale, { exact: true }) })}
                   </p>
                 )}
               </div>

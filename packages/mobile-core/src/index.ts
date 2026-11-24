@@ -48,7 +48,7 @@ export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";
 // locale, and the test-site banner. See src/i18n.tsx for how a screen uses them.
 export { I18nProvider, LANGUAGES, useCountry, useI18n, useKnownCountry, useLocaleStore, type LocaleRule } from "./i18n";
 export type { CountryContext, I18n, Language, Translate } from "./i18n";
-export { convertDistance, countryForCurrency, deviceLocale, e164, findCity, formatDate, formatMoney, formatNumber, formatTime, localeForCurrency,
+export { convertDistance, countryForCurrency, deviceLocale, e164, findCity, formatDate, formatMoney, formatNumber, formatTime, halfUpWhole, localeForCurrency, wholeForCustomers,
   cityRegionCode, filterCities, hourIn, inZone, liveCityNames, partnerCountry, partnerLanguage, regionOf, resolveCountry } from "./locale";
 export type { CountrySource, MarketCountry } from "./locale";
 export { appEnv, isTestEnvironment, resolveAppEnv } from "./env";

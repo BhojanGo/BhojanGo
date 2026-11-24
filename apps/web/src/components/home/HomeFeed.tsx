@@ -208,6 +208,7 @@ export function HomeFeed({
   timeZone,
   cravings,
   offers,
+  freeDeliveryChip = false,
 }: {
   kitchens: Kitchen[];
   placeLabel: string;
@@ -221,6 +222,8 @@ export function HomeFeed({
   timeZone: string | null;
   cravings: React.ReactNode;
   offers: React.ReactNode;
+  /** R36: "Free delivery" only when a restaurant here funds a free-delivery offer (GET /discover free_delivery_chip). */
+  freeDeliveryChip?: boolean;
 }) {
   const t = useT();
   const { language } = useLanguage();
@@ -256,7 +259,7 @@ export function HomeFeed({
           </p>
         </div>
         <div role="group" aria-label={t("home.filters")} className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
-          {FILTERS.map((f) => {
+          {FILTERS.filter((f) => f !== "free" || freeDeliveryChip).map((f) => {
             const pressed = on.has(f);
             return (
               <button

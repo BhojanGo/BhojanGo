@@ -11,12 +11,13 @@ import { KitchenCard, OfferCard } from "@/components/Cards";
 import { FairBill } from "@/components/FairBill";
 import { Search } from "@/components/Icons";
 import { NotifyMe } from "@/components/NotifyMe";
-import { lowestFee, pricingOf, waitingOf } from "@/lib/contract";
+import { byListOrder, lowestFee, pricingOf, waitingOf } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { cityFaq } from "./faq";
 import { getContext } from "@/lib/prefs";
 import { jsonLdHtml } from "@/lib/jsonLd";
-import { cityPage, discover, exampleBill, SITE, type CityPage, type KitchenCard as Kitchen } from "@/lib/server";
+import { cityPage, discover, exampleBill, search as searchKitchens, SITE, type CityPage, type KitchenCard as Kitchen } from "@/lib/server";
+import { DishResults } from "./DishResults";
 
 type Params = Promise<{ country: string; city: string }>;
 type Query = Promise<{ cuisine?: string | string[]; q?: string | string[] }>;
@@ -72,10 +73,13 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
   const here = place && place.served !== false && place.city_code === c.code ? place : null;
   const [d, bill, near] = await Promise.all([discover({ city: c.code }), exampleBill(c.code), here ? discover({ lat: here.lat, lng: here.lng }) : Promise.resolve(null)]);
   const exact = new Map((near?.restaurants ?? []).map((k) => [k.id, k]));
-  const kitchens = (d?.restaurants ?? []).map((k) => {
+  // R36: with an address, everything the address decides (fee, distance, can it deliver, pickup only), then the list's order
+  const merged = (k: Kitchen): Kitchen => {
     const e = exact.get(k.id);
-    return e ? { ...k, delivery_fee: e.delivery_fee, free_delivery: e.free_delivery, distance: e.distance, eta_min: e.eta_min, eta_max: e.eta_max, offer: e.offer ?? k.offer } : k;
-  });
+    return e ? { ...k, delivery_fee: e.delivery_fee, free_delivery: e.free_delivery, distance: e.distance, eta_min: e.eta_min, eta_max: e.eta_max,
+      offer: e.offer ?? k.offer, deliverable: e.deliverable, pickup_only: e.pickup_only, pickup_fee_percent: e.pickup_fee_percent } : k;
+  };
+  const kitchens = (d?.restaurants ?? []).map(merged).sort(byListOrder);
   const pricing = pricingOf(c);
   const feeFrom = here ? null : lowestFee(pricing);
   const offers = d?.offers ?? [];
@@ -84,7 +88,10 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
   const cuisines = (d?.cuisines ?? []).map((x) => String(x.name));
   const cuisine = one(search.cuisine);
   const q = one(search.q);
-  const shown = kitchens.filter((k) => matches(k, cuisine, q));
+  // R36: 2+ characters: the server's search (restaurants by name, cuisine or tag; dishes by name)
+  const hits = q.trim().length >= 2 ? await searchKitchens(q.trim(), here ? { lat: here.lat, lng: here.lng } : { city: c.code }) : null;
+  const shown = hits ? (hits.restaurants ?? []).map(merged).filter((k) => matches(k, cuisine, "")).sort(byListOrder) : kitchens.filter((k) => matches(k, cuisine, q));
+  const dishes = hits?.dishes ?? [];
   const cover = photo(kitchens.find((k) => k.cover_url)?.cover_url ?? null, 1600);
   const top = cuisines.slice(0, 4).map((x) => cuisineName(t, x)).join(", ");
   const base = pathOf(c);
@@ -150,7 +157,7 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               <input id="city-q" type="search" name="q" defaultValue={q} placeholder={t("city.search_placeholder")} className="min-w-0 flex-grow bg-transparent text-body outline-none placeholder:text-muted" />
             </form>
           </div>
-          {cuisines.length > 0 && (
+          {cuisines.length > 0 && !q && (
             <nav aria-label={t("city.cuisines")} className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
               <Link href={`${base}${q ? `?q=${encodeURIComponent(q)}` : ""}#kitchens`} aria-current={!cuisine ? "page" : undefined} className={`flex h-10 shrink-0 items-center rounded-full px-4 text-label ${!cuisine ? "bg-[#111418] text-white hover:text-white" : "border border-[#C9D3D4] text-[#111418] hover:text-[#111418]"}`}>
                 {t("city.all_cuisines")}
@@ -166,6 +173,9 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
               })}
             </nav>
           )}
+          {q && (shown.length > 0 || dishes.length > 0) && (
+            <h3 className="m-0 mt-6 text-h3" data-testid="search-restaurants">{t("app.search.restaurants")}</h3>
+          )}
           {shown.length ? (
             <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map((k) => (
@@ -173,11 +183,17 @@ async function LiveCity({ c, search }: { c: CityPage; search: Awaited<Query> }) 
                   timeZone={(near ?? d)?.timezone} language={language} />
               ))}
             </div>
-          ) : (
+          ) : dishes.length ? null : (
             <p role="status" className="mt-5 text-body text-muted">
               {kitchens.length ? t("city.no_match") : t("city.no_kitchens")}{" "}
               {(cuisine || q) && <Link href={`${base}#kitchens`} className="font-bold">{t("city.clear_filters")}</Link>}
             </p>
+          )}
+          {dishes.length > 0 && (
+            <section aria-labelledby="search-dishes" className="mt-8">
+              <h3 id="search-dishes" className="m-0 text-h3" data-testid="search-dishes">{t("app.search.dishes")}</h3>
+              <DishResults dishes={dishes} currency={currency} cityName={c.name} />
+            </section>
           )}
         </section>
 

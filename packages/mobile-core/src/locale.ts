@@ -159,10 +159,13 @@ export function deviceLocale(): string | null {
  * decimals (29.00, 300.00: one money format everywhere, R12). The symbol and
  * grouping come from Intl for the currency code (Markets data), not from a table.
  */
-export function formatMoney(amount: number | string | null | undefined, currency: string, locale?: string): string {
-  const n = Number(amount ?? 0);
+export function formatMoney(amount: number | string | null | undefined, currency: string, locale?: string,
+  opts?: { whole?: boolean }): string {
+  const raw = Number(amount ?? 0);
+  // R36: `whole` (a customer reading rupees): rounded half up to whole units, for display only
+  const n = opts?.whole ? halfUpWhole(raw) : raw;
   const abs = Math.abs(Number.isFinite(n) ? n : 0);
-  const decimals = 2;
+  const decimals = opts?.whole ? 0 : 2;
   let body: string;
   try {
     body = new Intl.NumberFormat(locale, {
@@ -172,6 +175,19 @@ export function formatMoney(amount: number | string | null | undefined, currency
     body = `${currency} ${abs.toFixed(decimals)}`; // an engine without currency data
   }
   return n < 0 ? `−${body}` : body;
+}
+
+/** R36: half up to a whole unit, away from zero (289.50 -> 290, -48.50 -> -49), on the cents so 289.495 float noise can't flip it. */
+export function halfUpWhole(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  const cents = Math.round(Math.abs(n) * 100);
+  const whole = Math.floor((cents + 50) / 100);
+  return n < 0 ? -whole : whole;
+}
+
+/** R36: customers read rupees whole (no paise): menu, cart, bill, receipts. Other currencies keep cents. */
+export function wholeForCustomers(currency: string): boolean {
+  return currency === "INR"; // data-ok: R36 rupees are shown whole (a currency rule, not a place)
 }
 
 /** A number in the locale's grouping; at most `digits` decimals. */

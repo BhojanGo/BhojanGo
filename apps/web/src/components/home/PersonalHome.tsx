@@ -63,6 +63,7 @@ export async function PersonalHome({ place, d }: { place: Place; d: Discover }) 
         timeZone={d.timezone ?? country?.timezone ?? null}
         cravings={cravings}
         offers={offerBlock}
+        freeDeliveryChip={!!d.free_delivery_chip}
       />
     </>
   );

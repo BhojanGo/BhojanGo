@@ -65,7 +65,39 @@ function Img({ src, className }: { src: string | null; className?: string }) {
   return <img src={src} alt="" loading="lazy" className={`block h-full w-full object-cover ${className ?? ""}`} />;
 }
 
-export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedLabel = null, closedNote = null, forNow = false, notTaking = false, orderingPaused = false, tooFar = false }: {
+/** R36: Delivery / Pickup under the kitchen's name ("$3.50 delivery" / "Pickup · 5% fee"); locked to Pickup when the
+ *  address is too far to deliver. The choice is the cart's (checkout starts with it). */
+export function HowSwitch({ restaurantId, deliveryLabel, pickupLabel, lockPickup }: {
+  restaurantId: string; deliveryLabel: string; pickupLabel: string; lockPickup: boolean;
+}) {
+  const t = useT();
+  const hydrated = useHydrated();
+  const how = useBag((s) => s.fulfillment);
+  const setHow = useBag((s) => s.setFulfillment);
+  const mine = useBag((s) => !s.restaurant || s.restaurant.id === restaurantId);
+  useEffect(() => {
+    if (lockPickup && how !== "pickup") setHow("pickup");
+  }, [lockPickup, how, setHow]);
+  const value = lockPickup ? "pickup" : hydrated && mine ? how : "delivery";
+  const opt = (v: "delivery" | "pickup", label: string) => {
+    const on = value === v;
+    const off = v === "delivery" && lockPickup;
+    return (
+      <button key={v} type="button" role="radio" aria-checked={on} disabled={off} data-testid={`how-${v}`} onClick={() => setHow(v)}
+        className={`flex h-10 min-w-0 flex-1 items-center justify-center truncate rounded-full px-4 text-label ${on ? "bg-white text-[#111418] shadow-[0_2px_8px_rgba(17,20,24,0.12)]" : "text-muted"} disabled:cursor-not-allowed disabled:opacity-45`}>
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div role="radiogroup" aria-label={t("checkout.how")} data-testid="kitchen-how" className="flex w-full max-w-[420px] gap-1 rounded-full bg-[#F4F6F6] p-1">
+      {opt("delivery", deliveryLabel)}
+      {opt("pickup", pickupLabel)}
+    </div>
+  );
+}
+
+export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedLabel = null, closedNote = null, forNow = false, notTaking = false, orderingPaused = false, tooFar = false, pickupOnly = false }: {
   restaurant: Kitchen; categories: Category[]; deliverTo: DeliverTo | null; closed: boolean;
   /** R27: "Closed · opens 6:30 am" (the kitchen's hours or the city's delivery hours), worded on the server. */
   closedLabel?: string | null;
@@ -76,6 +108,8 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
   notTaking?: boolean;
   tooFar?: boolean; // R31: past the max delivery distance from this address
   orderingPaused?: boolean;
+  /** R36: too far to deliver, but the kitchen takes pickup: "Too far to deliver · Pickup available", adds stay on. */
+  pickupOnly?: boolean;
 }) {
   const t = useT();
   // R18: why this bag can't be ordered from now (an incident pause), shown in the bag and on its button;
@@ -168,8 +202,13 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
           </label>
         </div>
 
+        {pickupOnly && !closed && (
+          <p role="status" className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]" data-testid="kitchen-banner-pickup">
+            {t("kitchen.too_far_pickup")}
+          </p>
+        )}
         {closed && (
-          <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]" data-testid="kitchen-closed">
+          <p className="mt-5 rounded-2xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]" data-testid={tooFar && !pickupOnly ? "kitchen-banner-too-far" : "kitchen-closed"}>
             {!forNow && closedLabel ? <b className="block" data-testid="kitchen-status">{closedLabel}</b> : null}
             {closedNote ? <span className="block">{closedNote}</span> : null}
             {t(tooFar ? "kitchen.too_far_note" : forNow ? "kitchen.closed_for_now_note" : notTaking ? "kitchen.not_taking_orders_note" : "kitchen.closed_note")}
@@ -192,7 +231,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
               const control = off ? (
                   <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-muted">{t("kitchen.sold_out")}</span>
                 ) : n > 0 ? (
-                  <span className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
+                  <span data-testid="dish-stepper" className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
                     <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
                     <span aria-live="polite" className="min-w-[14px] text-center tabular-nums">{n}</span>
                     <button type="button" aria-label={t("kitchen.one_more", { name: i.name })} disabled={closed} title={closed ? blocked ?? undefined : undefined} onClick={() => plus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Plus color="#FFFFFF" /></button>
@@ -203,11 +242,12 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
                     disabled={closed}
                     aria-label={t("kitchen.add_dish", { name: i.name })}
                     title={closed ? blocked ?? undefined : undefined}
+                    data-testid="dish-add"
                     onClick={() => plus(i)}
-                    // R27: plainly off while the kitchen is closed (R26: it barely looked disabled)
-                    className="flex h-10 items-center rounded-full border-[1.5px] border-[#0B5D66] bg-white px-[22px] font-bold text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:cursor-not-allowed disabled:border-dashed disabled:border-[#C9D3D4] disabled:bg-[#F4F6F6] disabled:text-[#8A9599] disabled:shadow-none disabled:hover:bg-[#F4F6F6]"
+                    // R36: a round "+" (on the photo's corner when there is one); R27: plainly off while closed
+                    className="flex h-10 w-10 items-center justify-center rounded-full border-[1.5px] border-[#0B5D66] bg-white text-[#0B5D66] shadow-[0_6px_16px_rgba(17,20,24,0.12)] hover:bg-[#EFF6F6] disabled:cursor-not-allowed disabled:border-dashed disabled:border-[#C9D3D4] disabled:bg-[#F4F6F6] disabled:text-[#8A9599] disabled:shadow-none disabled:hover:bg-[#F4F6F6]"
                   >
-                    {t("common.add")}
+                    <Plus color={closed ? "#8A9599" : "#0B5D66"} />
                   </button>
                 );
               return (
@@ -224,7 +264,7 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
                       <span className="block h-full w-full overflow-hidden rounded-2xl md:rounded-[18px]">
                         <Img src={pic} />
                       </span>
-                      <span className="absolute bottom-[-18px] left-1/2 -translate-x-1/2">{control}</span>
+                      <span className="absolute bottom-[-10px] right-[-8px]">{control}</span>
                     </span>
                   ) : (
                     <span className="shrink-0">{control}</span>

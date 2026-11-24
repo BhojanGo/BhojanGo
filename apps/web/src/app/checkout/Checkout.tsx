@@ -153,7 +153,9 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const lines = bag.lines;
   const subtotal = foodSubtotal(lines);
   // R32: Delivery or Pickup, when the restaurant takes pickup orders (no delivery fee, no tip, no address).
-  const [how, setHow] = useState<"delivery" | "pickup">("delivery");
+  // R36: delivery or pickup is the cart's (the menu's switch sets it too)
+  const how = useBag((s) => s.fulfillment);
+  const setHow = useBag((s) => s.setFulfillment);
   const pickup = how === "pickup" && !!rest?.pickup_enabled;
   const quote = useQuote({ enabled: hydrated && !!user, restaurantId: bag.restaurant?.id, lines, deliverTo, fulfillment: pickup ? "pickup" : "delivery",
     tip: bag.tip, promo, nonce, fallbackError: t("common.error") });
@@ -301,10 +303,26 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   }
 
   const payLabel = q ? t("checkout.pay_with", { amount: f.money(q.total, q.currency), method: chosen ? t(`checkout.short_${chosen.type}`) : "" }) : t("checkout.pay");
-  const canPay = !!q && held > 0 && !busy && !!chosen;
+  // R36: under the restaurant's own minimum the whole bill still shows; Pay waits until it's met
+  const short = q ? Number((q as { short_by?: string | number }).short_by ?? 0) : 0;
+  const minimum = q && (q as { restaurant_minimum?: string | number | null }).restaurant_minimum != null
+    ? Number((q as { restaurant_minimum?: string | number | null }).restaurant_minimum) : 0;
+  const minProgress = minimum > 0 ? Math.max(0, Math.min(1, (minimum - short) / minimum)) : 1;
+  const canPay = !!q && held > 0 && !busy && !!chosen && short <= 0;
 
   const bill = (
     <>
+      {q && short > 0 && minimum > 0 && (
+        <div role="status" data-testid="restaurant-minimum" className="mb-4 rounded-2xl border border-[#E2E7E8] bg-white p-4">
+          <b className="block text-label" data-testid="minimum-note">
+            {t("checkout.add_more", { amount: f.money(short, q.currency), restaurant: bag.restaurant?.name ?? "" })}
+          </b>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F4F6F6]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(minProgress * 100)}>
+            <span data-testid="minimum-progress" className="block h-full rounded-full bg-[#0B5D66]" style={{ width: `${Math.round(minProgress * 100)}%` }} />
+          </div>
+          <span className="mt-2 block text-small text-muted">{t("checkout.minimum_is", { amount: f.money(minimum, q.currency) })}</span>
+        </div>
+      )}
       <div className="mb-2 text-caption text-muted">{t("checkout.fair_bill")}</div>
       {q ? (
         <FairBill lines={q.lines} total={q.total} currency={q.currency} formatLocale={f.formatLocale} t={t} distance={distance} totalLabel={t("checkout.you_pay")} compact />

@@ -105,11 +105,13 @@ export function Chip({ label, selected, count, onPress }: { label: string; selec
   );
 }
 
-export function Segmented<T extends string>({ options, value, onChange, label }: {
-  options: { value: T; label: string }[];
+export function Segmented<T extends string>({ options, value, onChange, label, disabled = [] }: {
+  options: { value: T; label: string; testID?: string }[];
   value: T;
   onChange: (v: T) => void;
   label: string;
+  /** R36: options that can't be chosen right now (e.g. Delivery when the address is too far) */
+  disabled?: T[];
 }) {
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.segmented}>
@@ -119,11 +121,13 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
           <Pressable
             key={o.value}
             accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
+            accessibilityState={{ checked: on, disabled: disabled.includes(o.value) }}
+            disabled={disabled.includes(o.value)}
+            testID={o.testID}
             onPress={() => onChange(o.value)}
-            style={[styles.segment, on && { backgroundColor: color.white, ...elevation.float }]}
+            style={[styles.segment, on && { backgroundColor: color.white, ...elevation.float }, disabled.includes(o.value) && { opacity: 0.45 }]}
           >
-            <Text style={[type.label, { color: on ? color.kohl : color.muted }]}>{o.label}</Text>
+            <Text numberOfLines={1} style={[type.label, { color: on ? color.kohl : color.muted }]}>{o.label}</Text>
           </Pressable>
         );
       })}
