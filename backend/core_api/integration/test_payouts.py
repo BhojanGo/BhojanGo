@@ -77,7 +77,8 @@ async def deliver_last_week(order_id: str) -> None:
 async def test_payout_run_end_to_end(client: AsyncClient) -> None:
     cust = await login(client, "customer1.hyd@example.com")
     order = await delivered_order(client, cust)  # 2 × Veg Dum Biryani, rider1.hyd, today
-    support = await login(client, "support.hyd@example.com", ADMIN)
+    # R37: city ops refund it: with no launch offer the bag is ₹50 dearer, above support's ₹500 an order
+    support = await login(client, "ops.hyd@example.com", ADMIN)
     biryani = order["items"][0]["menu_item_id"]
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support,
                           json={"items": [{"menu_item_id": biryani, "quantity": 1}], "reason": "missing_item"})
