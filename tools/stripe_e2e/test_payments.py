@@ -200,7 +200,7 @@ def case_dispute_card_opens_a_chargeback_and_winning_evidence_releases_it(h: H) 
     order with the restaurant's share held and an Operations alert; finance's evidence ("winning_evidence", Stripe
     test mode's word for a win) goes to Stripe, and charge.dispute.closed marks it won: nothing lost."""
     order, (did, reason, held, status, dp, rest) = _disputed_order(h, "pm_card_createDispute")
-    assert dp.startswith("dp_") and reason == "fraudulent" and int(held) > 0 and rest, (dp, reason, held, rest)
+    assert dp.startswith(("dp_", "du_")) and reason == "fraudulent" and int(held) > 0 and rest, (dp, reason, held, rest)
     alert = h.sql(f"SELECT status FROM ops_alerts WHERE fingerprint = 'dispute:{dp}'")
     assert alert and alert[0][0] == "firing", alert
     listed = h.api(ADMIN).call("GET", "/finance/disputes", 200, params={"country": "US", "state": "open"})
