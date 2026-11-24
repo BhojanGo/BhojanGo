@@ -200,7 +200,7 @@ function DishRow({ item, restaurant, currency, blocked, lines, otherCart }: {
         <View testID="dish-photo-wrap" style={styles.dishPhotoWrap}>
           <Photo uri={pic} label={item.name} style={styles.dishPhoto} testID="photo-dish"
             fallback={<View style={[styles.dishPhoto, { backgroundColor: color.porcelain }]} />} />
-          <View style={styles.onPhoto}>{control}</View>
+          <View testID="dish-on-photo" style={styles.onPhoto}>{control}</View>
         </View>
       ) : control}
     </Pressable>

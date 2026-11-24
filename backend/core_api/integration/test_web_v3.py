@@ -213,3 +213,35 @@ def test_edit_window_is_seven_days() -> None:
     from core_api.modules.catalog.service.ratings import EDIT_WINDOW
 
     assert EDIT_WINDOW == timedelta(days=7)
+
+
+async def test_search_finds_dishes_and_old_city_is_pickup_only(client: AsyncClient) -> None:  # noqa: F811
+    """R36: /discover/search finds dishes by name in every kitchen that has one (against their own menus);
+    from Old City, Spice Route Kitchen (Madhapur, takes pickup) is too far to deliver: pickup only, listed after
+    the kitchens that deliver and before the ones that are too far without pickup."""
+    old_city = {"lat": 17.3620, "lng": 78.4750}
+    d = (await client.get("/api/v1/discover", params=old_city)).json()
+    spice = next(k for k in d["restaurants"] if k["slug"] == "spice-route-kitchen-madhapur")
+    assert spice["deliverable"] is False and spice["pickup_enabled"] is True and spice["pickup_only"] is True
+    assert spice["pickup_fee_percent"] == "5" and spice["delivery_fee"] is None
+
+    def group(k: dict) -> int:
+        if k["open_now"] and k["deliverable"]:
+            return 0
+        if k["open_now"] and k["pickup_only"]:
+            return 1
+        return 2 if (k["deliverable"] or k["pickup_only"]) else 3
+    assert [group(k) for k in d["restaurants"]] == sorted(group(k) for k in d["restaurants"])
+
+    madhapur = {"lat": 17.4483, "lng": 78.3915}
+    near = (await client.get("/api/v1/discover", params=madhapur)).json()["restaurants"]
+    want = set()
+    for k in near:
+        m = (await client.get(f"/api/v1/restaurants/{k['id']}/menu")).json()
+        for i in [i for c in m["categories"] for i in c["items"]] + m.get("uncategorized_items", []):
+            if "biryani" in i["name"].lower() and i.get("is_available", True):
+                want.add((k["id"], i["id"]))
+    s = (await client.get("/api/v1/discover/search", params={"q": "Biryani", **madhapur})).json()
+    assert want and {(x["restaurant_id"], x["id"]) for x in s["dishes"]} == want
+    assert all("biryani" in x["name"].lower() and float(x["price"]) > 0 for x in s["dishes"])
+    assert (await client.get("/api/v1/discover/search", params={"q": "b", **madhapur})).status_code == 422  # 2+ characters

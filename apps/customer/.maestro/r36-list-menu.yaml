@@ -52,7 +52,7 @@ appId: com.bhojango.app
 - tapOn:
     id: "dish-add-.*"
     childOf:
-      id: "dish-photo-wrap"
+      id: "dish-on-photo"
 - extendedWaitUntil:
     visible:
       id: "dish-stepper-.*"

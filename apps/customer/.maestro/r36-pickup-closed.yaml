@@ -12,6 +12,19 @@ appId: com.bhojango.app
     visible:
       id: "home"
     timeout: 60000
+# deliver "here" (the phone's location, Old City), not the customer's saved Madhapur address
+- tapOn:
+    id: "change-city"
+- extendedWaitUntil:
+    visible:
+      id: "where-here"
+    timeout: 20000
+- tapOn:
+    id: "where-here"
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: "kitchen-card-spice-route-kitchen-madhapur"

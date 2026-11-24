@@ -139,6 +139,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", "/api/v1/delivery/sign-up"): public("the delivery partner sign-up forms (web /deliver, the Delivery app): a country's minimum age and vehicles"),
     ("GET", "/api/v1/delivery/terms"): public("the web's Deliver with BhojanGo page: a city's delivery partner pay and requirements"),
     ("GET", "/api/v1/discover"): public("kitchens, fees and offers for an address (same for everyone)"),
+    ("GET", "/api/v1/discover/search"): public("R36: restaurants and dishes matching a search, for an address (same for everyone)"),
     # the Help centre (F9): published articles for everyone; votes and the contact form are rate-limited
     ("GET", "/api/v1/help"): public("Help: topics and popular articles"),
     ("GET", "/api/v1/help/topics/{topic}"): public("Help: a topic's articles"),
