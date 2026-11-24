@@ -359,14 +359,14 @@ with sync_playwright() as p:
         budgets.get_by_label("Monthly budget for Hyderabad").fill("5000")
         budgets.get_by_test_id("budget-IN-TG-HYD").get_by_role("button", name="Save").click()
         check("R37 a city budget: saved, spends from Hyderabad's own", lambda: (
-            expect(budgets.get_by_test_id("budget-IN-TG-HYD")).to_contain_text("₹0 of ₹5,000", timeout=15000),
+            expect(budgets.get_by_test_id("budget-IN-TG-HYD")).to_contain_text("₹0.00 of ₹5,000.00", timeout=15000),
             expect(budgets.get_by_test_id("budget-IN-TG-HYD")).not_to_contain_text("Off: no budget")))
         page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("R37 ₹100 off any order")).first.click()
         check("R37 an offer that can cost more than the platform fee: the warning", lambda: (
             expect(page.get_by_test_id("offer-cost-warning")).to_contain_text("can cost more than the platform fee", timeout=15000),
             expect(page.get_by_test_id("offer-cost")).to_contain_text("up to ₹100"),
-            expect(page.get_by_test_id("offer-budget")).to_contain_text("Hyderabad: ₹0 of ₹5,000")))
-        page.screenshot(path=f"{OUT}/07c-offer-budget-warning.png", full_page=True)
+            expect(page.get_by_test_id("offer-budget")).to_contain_text("Hyderabad: ₹0.00 of ₹5,000.00")))
+        page.screenshot(path=f"{OUT}/07h-offer-budget-warning.png", full_page=True)
     finally:
         api.delete(f"{CORE}/rules/{costly['id']}", headers=adm)
         api.put(f"{CORE}/rules/offers/budgets/city/IN-TG-HYD", headers=adm, data={"monthly": None})

@@ -4,7 +4,7 @@ Customer pays (fake provider) → restaurant accepts through the API → dispatc
 offers it to the nearest rider → rider accepts → pickup → delivered →
 restaurant and rider are in the weekly payout run → messages were sent.
 
-Run twice: the Hyderabad worked example (R31 delivery bands, R33 busy-hour fee off: ₹681.78, restaurant nets ₹470.88)
+Run twice: the Hyderabad worked example (R31 delivery bands, R33 busy-hour fee off, R37 no launch offer: ₹731.78, restaurant nets ₹470.88)
 and a Boise order with Idaho sales tax from the tax provider.
 """
 import asyncio
@@ -183,11 +183,12 @@ def test_g1_hyderabad_worked_example() -> None:
             return q
 
     q = run(price())
-    # R31: 560 food − 50 offer + 10 packaging + 40 delivery (3.77 km: the >3-5 km band) + 56 platform fee (10%; above
-    # the ₹15 minimum) + 28.50 GST on food (before the platform's discount, R16) + 17.28 GST on fees (18% of 40 + 56)
-    # + 20 tip. R33: no busy-hour fee (0 in every seed; when on, it is the delivery partner's).
-    assert "surge" not in {ln.code for ln in q.lines}
-    assert q.total == Decimal("681.78"), q.lines
+    # R31: 560 food + 10 packaging + 40 delivery (3.77 km: the >3-5 km band) + 56 platform fee (10%; above
+    # the ₹15 minimum) + 28.50 GST on food + 17.28 GST on fees (18% of 40 + 56) + 20 tip. R33: no busy-hour fee
+    # (0 in every seed; when on, it is the delivery partner's). R37: no ₹50 launch offer: BhojanGo pays for it, so
+    # it is paused in the seed and no place has an offer budget.
+    assert "surge" not in {ln.code for ln in q.lines} and "promotion" not in {ln.code for ln in q.lines}
+    assert q.total == Decimal("731.78"), q.lines
 
     r = customer.core("POST", "/orders", headers=idem(), json={
         "restaurant_id": rid, "items": cart, "payment_method": "upi", "quote_token": q.token,
@@ -195,13 +196,13 @@ def test_g1_hyderabad_worked_example() -> None:
                              "zip": "500033", "country": "IN"}})
     assert r.status_code == 201, r.text
     order = r.json()
-    assert Decimal(str(order["total"])) == Decimal("681.78")
+    assert Decimal(str(order["total"])) == Decimal("731.78")
 
     deliver_through_dispatch(order, customer, partner, rider, SPICE_AT)
     pay = customer.core("GET", f"/payments/{order['id']}").json()
-    assert pay["amount"] == 68178 and pay["status"] == "succeeded", pay
+    assert pay["amount"] == 73178 and pay["status"] == "succeeded", pay
     bill = customer.core("GET", f"/pricing/orders/{order['id']}/bill").json()
-    assert bill["total"] == "681.78"
+    assert bill["total"] == "731.78"
 
     delivered_on = datetime.now(IST).date()
     weekly_payout_job(delivered_on, "Asia/Kolkata")
