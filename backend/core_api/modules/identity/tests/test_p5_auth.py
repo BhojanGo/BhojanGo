@@ -21,7 +21,7 @@ from shared import jwt_keys
 from shared.auth import InvalidTokenError, decode_access_token
 
 PASSWORD = "Passw0rdX"
-SEED_PHONE_IN = "+9190000777"   # seed prefix: fixed OTP 123456 outside production
+SEED_PHONE_IN = "+919000000777"   # seed prefix: fixed OTP 123456 outside production
 
 
 async def make_user(db: AsyncSession, email: str | None, country: str = "IN", role: str = "customer",
@@ -136,7 +136,7 @@ async def test_phone_sign_in_creates_then_signs_in(client: AsyncClient) -> None:
 
 
 async def test_phone_sign_in_wrong_or_reused_code(client: AsyncClient) -> None:
-    phone = "+9190000778"
+    phone = "+919000000778"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "IN"})
     r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "000000", "country": "IN"})
     assert r.status_code == 400

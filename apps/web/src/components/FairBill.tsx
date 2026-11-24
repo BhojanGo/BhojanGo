@@ -19,10 +19,12 @@ export function billLabel(ln: BillLine, t: T, distance?: string | null): string 
   return ln.code === "delivery_fee" && distance ? `${base} · ${distance}` : base;
 }
 
+/** Who gets a line, said under its label (R38): "Restaurant", "100% to your delivery partner", "BhojanGo",
+ *  "Government"; an offer says who pays for it. */
 export function payeeLabel(ln: BillLine, t: T, lines: readonly BillLine[] = []): string {
   if (ln.code === "promotion") return ln.funded_by === "restaurant" ? t("common.kitchen_pays_caps") : t("common.bhojango_pays");
   const p = payeeOf(ln, lines);
-  return p === "kitchen" ? t("bill.kitchen") : p === "tax" ? t("bill.tax") : p === "rider" ? t("bill.rider") : t("bill.bhojango");
+  return p === "kitchen" ? t("bill.kitchen") : p === "tax" ? t("bill.government") : p === "rider" ? t("bill.to_rider_full") : t("bill.bhojango");
 }
 
 export function FairBill({
@@ -53,18 +55,22 @@ export function FairBill({
           {shownLines(lines).map((ln, i) => { // a line of 0 (a $0.00 tax) is not shown (R12)
             const promo = ln.code === "promotion";
             return [
-              <tr key={`${ln.code}-${i}`}>
-                <td className={`py-[3px] pr-2 ${compact ? "text-small" : ""}`}>{billLabel(ln, t, distance)}</td>
-                <td className="py-[3px] pr-3 text-right text-small text-muted">{payeeLabel(ln, t, lines)}</td>
-                <td className={`py-[3px] text-right font-semibold ${promo ? "text-[#0B5D66]" : ""}`}>{money(ln.amount, currency, formatLocale, EXACT)}</td>
+              // R38: two columns. The label (it may wrap) with who gets it under it; the amount never wraps.
+              <tr key={`${ln.code}-${i}`} data-testid="bill-line">
+                <td className={`py-[4px] pr-3 align-top ${compact ? "text-small" : ""}`}>
+                  <span className="block">{billLabel(ln, t, distance)}</span>
+                  <span className="block text-caption text-muted" data-testid="bill-payee">{payeeLabel(ln, t, lines)}</span>
+                </td>
+                <td className={`whitespace-nowrap py-[4px] text-right align-top font-semibold ${promo ? "text-[#0B5D66]" : ""}`}
+                  data-testid="bill-amount">{money(ln.amount, currency, formatLocale, EXACT)}</td>
               </tr>,
               // R31: what each bill line carries of a tax (GST on the delivery fee, on the platform fee...)
               ...taxShares(ln).map(([code, amt]) => (
                 <tr key={`${ln.code}-${i}-${code}`} data-testid="tax-share">
-                  <td colSpan={2} className="py-0 pl-3 pr-2 text-small text-muted">
+                  <td className="py-0 pl-3 pr-3 text-small text-muted">
                     {t("bill.tax_on", { rate: ln.detail?.rate_percent ?? "", line: t(`bill.line_${code}`) })}
                   </td>
-                  <td className="py-0 text-right text-small text-muted">{money(amt, currency, formatLocale, EXACT)}</td>
+                  <td className="whitespace-nowrap py-0 text-right text-small text-muted">{money(amt, currency, formatLocale, EXACT)}</td>
                 </tr>
               )),
             ];
@@ -73,7 +79,7 @@ export function FairBill({
       </table>
       <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
         <b className="text-h3">{totalLabel ?? t("bill.total")}</b>
-        <b className="text-h3 tabular-nums">{money(total, currency, formatLocale, EXACT)}</b>
+        <b className="whitespace-nowrap text-h3 tabular-nums">{money(total, currency, formatLocale, EXACT)}</b>
       </div>
       {note && <p className="mt-1 text-small text-muted">{note}</p>}
     </div>

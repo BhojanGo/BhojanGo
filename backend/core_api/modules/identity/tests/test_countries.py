@@ -4,7 +4,7 @@ refused, and a phone number must carry its country's calling code."""
 from httpx import AsyncClient
 
 SEED_US = "+12085550777"
-SEED_IN = "+9190000778"
+SEED_IN = "+919000000778"
 
 
 async def test_us_and_in_phone_sign_in_take_currency_and_language_from_the_country(client: AsyncClient) -> None:
@@ -26,11 +26,14 @@ async def test_a_draft_or_unknown_country_is_refused(client: AsyncClient) -> Non
         assert r.status_code == 422, r.text
 
 
-async def test_a_phone_number_must_carry_its_countrys_code(client: AsyncClient) -> None:
+async def test_a_phone_number_must_be_real_but_may_be_international(client: AsyncClient) -> None:
+    """R38: a number that isn't valid is refused (PHONE_INVALID); a real number from another country is fine."""
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+910000000000", "country": "IN"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_INVALID", r.text
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+12080000000", "country": "US"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_INVALID", r.text
     r = await client.post("/api/v1/auth/send-otp", json={"phone": SEED_US, "country": "IN"})
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_COUNTRY_MISMATCH", r.text
-    r = await client.post("/api/v1/auth/phone", json={"phone": SEED_IN, "otp": "123456", "country": "US"})
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_COUNTRY_MISMATCH", r.text
+    assert r.status_code != 422, r.text  # a US number for an India address: international numbers are allowed
 
 
 async def test_email_sign_up_takes_currency_and_language_from_the_country(client: AsyncClient) -> None:

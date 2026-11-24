@@ -160,7 +160,8 @@ export function Card({ tone = "flat", padded = true, style, children }: {
 }
 
 // Who gets it, in the website's words (bill.*): the kitchen, BhojanGo, tax, the delivery partner.
-const PAYEE_KEY: Record<string, string> = { KITCHEN: "bill.kitchen", BHOJANGO: "bill.bhojango", TAX: "bill.tax", "DELIVERY PARTNER": "bill.rider" };
+// R38: who gets a line, said under its label: "Restaurant", "BhojanGo", "Government", "100% to your delivery partner".
+const PAYEE_KEY: Record<string, string> = { KITCHEN: "bill.kitchen", BHOJANGO: "bill.bhojango", TAX: "bill.government", "DELIVERY PARTNER": "bill.to_rider_full" };
 
 interface FairRow { label: string; payee: string; amount: string; accent?: boolean; struck?: string }
 
@@ -187,8 +188,8 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
       rows.push({ label: ln.label, payee: t(free.funded_by === "restaurant" ? "app.bill.kitchens_treat" : "app.bill.on_us"),
                   amount: money(0, currency), struck: money(amount, currency) });
     } else if (ln.code === "promotion") {
-      const by = ln.funded_by === "restaurant" ? "KITCHEN" : "BHOJANGO";
-      rows.push({ label: ln.label, payee: payee(by), amount: money(amount, currency), accent: true });
+      rows.push({ label: ln.label, payee: t(ln.funded_by === "restaurant" ? "common.kitchen_pays_caps" : "common.bhojango_pays"),
+                  amount: money(amount, currency), accent: true });
     } else {
       const to = payeeOf(ln, lines);
       rows.push({ label: ln.label, payee: payee(to), amount: money(amount, currency) });
@@ -201,10 +202,13 @@ export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; c
         <Text style={[type.caption, { color: color.peacock }]}>{t("bill.who_gets")}</Text>
       </View>
       {rows.map((r, i) => (
-        <View key={i} style={styles.billRow}>
-          <Text style={[text.billLabel, r.accent && { color: color.peacock }]}>{r.label}</Text>
-          <Text style={text.payee}>{r.payee}</Text>
-          <Text style={[text.billAmount, r.accent && { color: color.peacock }]}>
+        // R38: two columns: the label (it may wrap) with who gets it under it, then the amount (never wraps)
+        <View key={i} style={styles.billRow} testID="bill-line">
+          <View style={{ flex: 1 }}>
+            <Text style={[text.billLabel, r.accent && { color: color.peacock }]}>{r.label}</Text>
+            <Text style={text.payee} testID="bill-payee">{r.payee}</Text>
+          </View>
+          <Text numberOfLines={1} style={[text.billAmount, { flexShrink: 0 }, r.accent && { color: color.peacock }]} testID="bill-amount">
             {r.struck ? <Text style={{ color: color.faint, textDecorationLine: "line-through" }}>{r.struck} </Text> : null}
             {r.struck ? <Text style={textFont("700")}>{r.amount}</Text> : r.amount}
           </Text>
@@ -389,7 +393,7 @@ export function LogoMark({ size = 40, tone = "teal" }: { size?: number; tone?: "
 // The fair bill's rows: label, who gets it (a caption), amount (tabular figures).
 const text = textStyles({
   billLabel: ["small", { flex: 1, color: color.kohl }],
-  payee: ["small", { color: color.muted }], // not the uppercase caption: the wordmark reads "BhojanGo" (R12)
+  payee: ["small", { color: color.muted }], // R38: under the label; not the uppercase caption: the wordmark reads "BhojanGo" (R12)
   billAmount: ["small", { color: color.kohl, textAlign: "right", fontVariant: ["tabular-nums"] }],
 });
 
@@ -407,7 +411,7 @@ const styles = StyleSheet.create({
   segment: { flex: 1, height: 42, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
   card: { backgroundColor: color.white, borderRadius: radius.card, overflow: "hidden" },
   billHead: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }, // wraps at the largest font (R9)
-  billRow: { flexDirection: "row", alignItems: "baseline", gap: 10, paddingVertical: 4 },
+  billRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 4 },
   billTotal: {
     marginTop: space[3], paddingTop: space[3], borderTopWidth: 1.5, borderStyle: "dashed", borderTopColor: color.lineStrong,
     flexDirection: "row", justifyContent: "space-between",

@@ -31,6 +31,8 @@ SKIP_DIRS = {"node_modules", ".next", "dist", "build", ".expo", "test", "tests",
 CODE_EXT = {".ts", ".tsx", ".js", ".jsx"}
 STRING = re.compile(r"""(?P<q>["'`])(?P<s>(?:\\.|(?!(?P=q)).)*?)(?P=q)""", re.S)
 # JSX-text candidates that are really TypeScript between a ">" and a "<" (generics, comparisons, comments)
+# R38: what a "}...{" span looks like when it is code, not JSX text
+BETWEEN_CODE = re.compile(r"\bimport\b|\bfrom\s+[\"']|\w=\s*$|^\s*[,;:)\]]|\btype \w+ =|//|===|\baria-|\bon[A-Z]\w*=|^\s*[\"'`]|[\"'`]\s*$|=\s*[\"'`{]")
 CODEISH = re.compile(r"\bif \(|: Record|; //|=>|&&|\|\||\bconst\b|\breturn\b|: [A-Z]\w*<|\w\(|\)\s*[;{]|^\s*//|\*/|/\*")
 ICU = re.compile(r"\{[^{}]*\}")  # a message's {placeholder}: a variable name, not copy
 PLACE = re.compile(r"\$\{[^{}]*\}")  # a template literal's ${...}: code
@@ -51,6 +53,11 @@ class Term:
     def jsx_text(self) -> re.Pattern:
         """JSX text with the word in it (also across lines: text on its own line)."""
         return re.compile(r">([^<>{}]*(?:" + self.word.pattern + r")[^<>{}]*)<", re.I)
+
+    def jsx_between(self) -> re.Pattern:
+        """R38: JSX text between expressions on one line ("{m(x)} · kitchen payouts{" "}")."""
+        w = self.word.pattern
+        return re.compile(r"[>}]([^<>{}\n]*(?:" + w + r")[^<>{}\n]*)\{|\}([^<>{}]*(?:" + w + r")[^<>{}]*)<", re.I)
 
 
 KITCHEN = Term(
@@ -138,16 +145,25 @@ def code_hits(t: Term = KITCHEN) -> list[str]:
             if not t.word.search(text):
                 continue
             if f.suffix in (".tsx", ".jsx"):
-                for m in jsx.finditer(text):
-                    body = m.group(1)
-                    if t.prose.search(t.names.sub("", body)) and not CODEISH.search(body):
-                        n = text.count(chr(10), 0, m.start(1) + len(body) - len(body.lstrip())) + 1
-                        out.append(f"{f.relative_to(ROOT)}:{n}: {' '.join(body.split())[:120]!r}")
+                seen = set()
+                for pat, strict in ((jsx, False), (t.jsx_between(), True)):
+                    for m in pat.finditer(text):
+                        body = m.group(1) if m.group(1) is not None else m.group(2)
+                        if strict and BETWEEN_CODE.search(body):
+                            continue
+                        if t.prose.search(t.names.sub("", body)) and not CODEISH.search(body):
+                            n = text.count(chr(10), 0, m.start(1 if m.group(1) is not None else 2) + len(body) - len(body.lstrip())) + 1
+                            hit = f"{f.relative_to(ROOT)}:{n}: {' '.join(body.split())[:120]!r}"
+                            if hit not in seen:
+                                seen.add(hit)
+                                out.append(hit)
             for n, line in enumerate(text.splitlines(), 1):
                 if not t.word.search(line) or line.lstrip().startswith(("//", "*", "/*", "{/*", "import ")):
                     continue
-                for m in STRING.finditer(line):
-                    s = m.group("s")
+                found = [m.group("s") for m in STRING.finditer(line)]
+                # R38: strings inside a template literal's ${...} ("paid by ${x ? "the kitchen" : ...}")
+                found += [m.group("s") for f_ in found for inner in re.findall(r"\$\{([^{}]*)\}", f_) for m in STRING.finditer(inner)]
+                for s in found:
                     if t.allowed_text.search(s):
                         continue
                     if s in t.one_word:  # a one-word label (aria-label, data-label, a tab): copy, not code
@@ -237,6 +253,16 @@ def self_test() -> int:
         assert CODEISH.search(K.jsx_text().search(ts).group(1)), ts
     assert re.search(r"\bcocinas?\b", "Repartidor en camino a la cocina", re.I)
     assert ICU.sub("", "Order again from {kitchen}") == "Order again from "
+    # R38: JSX text between expressions, and strings inside a template literal's ${...}
+    between = KITCHEN.jsx_between()
+    m = between.search('{m(x)} · kitchen payouts{" "}')
+    assert m and "kitchen payouts" in (m.group(1) or m.group(2))
+    assert not any(BETWEEN_CODE.search(x.group(1) or x.group(2)) is None
+                   for x in between.finditer('} from "../[country]/[city]/[kitchen]/data";\nimport x from "y";<'))
+    tpl = '`paid by ${p.funded_by === "restaurant" ? "the kitchen" : "BhojanGo"}`'
+    inner = [m.group("s") for f_ in [x.group("s") for x in STRING.finditer(tpl)]
+             for i in re.findall(r"\$\{([^{}]*)\}", f_) for m in STRING.finditer(i)]
+    assert "the kitchen" in inner
     assert K.names.sub("", "Spice Route Kitchen").strip() == "" and is_code("Spice Route Kitchen")
     # R33: bag / basket
     assert all(B.prose.search(t) for t in ["Add to bag", "Your bag is empty", "View Bag", "a basket"])

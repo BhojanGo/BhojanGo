@@ -99,7 +99,7 @@ class AuthService:
     async def phone_sign_in(self, data: PhoneSignInRequest, client: legal.ClientInfo | None = None) -> SignInResult:
         """Sign in with an SMS code; creates a customer account for a new number."""
         country = await countries.require_open(self.db, data.country)
-        countries.require_phone_in(country, data.phone)
+        data.phone = countries.require_phone_in(country, data.phone) or data.phone  # R38: E.164
         if not await verify_otp(data.phone, data.otp):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -168,7 +168,7 @@ class AuthService:
 
     async def send_otp(self, data: OtpSendRequest) -> bool:
         country = await countries.require_open(self.db, data.country)
-        countries.require_phone_in(country, data.phone)
+        data.phone = countries.require_phone_in(country, data.phone) or data.phone  # R38: E.164
         return await send_otp(data.phone, country.code, await self._otp_language(data, country))
 
     async def _otp_language(self, data: OtpSendRequest, country: countries.CountryInfo) -> str:

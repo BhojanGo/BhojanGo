@@ -3,6 +3,7 @@
 // The API answers sign-up, "email me a code" and "forgot password" the same whether or
 // not the email has an account, so these pages never say which it is either.
 import { ApiError, unwrap } from "@bhojango/api-client";
+import { phoneExample } from "@bhojango/i18n";
 
 import { api, useSession } from "@/lib/client";
 
@@ -64,8 +65,9 @@ export function waitText(seconds: number, t: T): string {
 
 /** A failed "send a code" in words: too many codes for this number/email (with how long to
  * wait), the provider down, else the page's own message. */
-export function codeSendError(err: unknown, t: T, fallback: string): string {
+export function codeSendError(err: unknown, t: T, fallback: string, country?: string | null): string {
   const code = err instanceof ApiError ? err.code : undefined;
+  if (code === "PHONE_INVALID") return t("common.phone_invalid", { example: phoneExample(country) });  // R38
   if (code === "TOO_MANY_CODES" || code === "SEND_FAILED" || (err instanceof ApiError && err.status === 429)) return authError(err, t);
   return fallback;
 }

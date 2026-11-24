@@ -99,7 +99,7 @@ export function KitchenDocuments({ country }: { country: CountrySummary }) {
         )}
       </div>
       <p className="mt-1 text-small text-muted">
-        Shown on the website&apos;s &ldquo;Add your kitchen&rdquo; page for {country.name}: what to have ready and why, one line each.
+        Shown on the website&apos;s &ldquo;Add your restaurant&rdquo; page for {country.name}: what to have ready and why, one line each.
         With none, the page says &ldquo;We&apos;ll tell you what&apos;s needed for your city&rdquo;. Other languages fall back to English.
       </p>
       {docs.length === 0 && <p className="mt-3 text-small text-muted">No documents listed yet.</p>}

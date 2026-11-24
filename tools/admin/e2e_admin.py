@@ -372,6 +372,65 @@ with sync_playwright() as p:
         api.delete(f"{CORE}/rules/{costly['id']}", headers=adm)
         api.put(f"{CORE}/rules/offers/budgets/city/IN-TG-HYD", headers=adm, data={"monthly": None})
 
+    # R38 item 3: a cancelled order gives its BhojanGo-funded offer cost back (budget 10, offer 3, three orders,
+    # one cancelled: 6 spent). Item 5: no "kitchen" in the admin's words ("paid by the restaurant").
+    def r38_budget(market: str, city: str, maker_email: str, checker_email: str, cust_email: str, rest_name: str,
+                   dish: str, qty: int, deliver_to: dict, address: dict, budget: str, amount: int, shown: str) -> None:
+        maker, checker, cust = token(maker_email, PW), token(checker_email, PW), token(cust_email)
+        api.put(f"{CORE}/rules/offers/budgets/city/{city}", headers=maker, data={"monthly": budget})
+        rule = api.post(f"{CORE}/rules", headers=maker, data={
+            "family": "promotion", "template": "flat_off", "key": f"r38_e2e_{market}", "name": f"R38 {amount} off (BhojanGo)",
+            "params": {"amount": amount, "funded_by": "platform"}, "scope_level": "city", "scope_id": city}).json()
+        api.post(f"{CORE}/rules/{rule['id']}/submit", headers=maker)
+        api.post(f"{CORE}/rules/{rule['id']}/approve", headers=checker, data={})
+        try:
+            rest = next(r for r in api.get(f"{CORE}/restaurants?limit=100").json()["items"] if r["name"] == rest_name)
+            item = next(i for c in api.get(f"{CORE}/restaurants/{rest['id']}/menu").json()["categories"] for i in c["items"] if i["name"] == dish)
+            items = [{"menu_item_id": item["id"], "quantity": qty}]
+            orders = []
+            for _ in range(3):
+                q = api.post(f"{CORE}/pricing/quote", headers=cust, data={"restaurant_id": rest["id"], "items": items, "deliver_to": deliver_to}).json()
+                o = api.post(f"{CORE}/orders", headers={**cust, "X-Idempotency-Key": str(uuid.uuid4())}, data={
+                    "restaurant_id": rest["id"], "items": items, "payment_method": "card", "quote_token": q["token"], "delivery_address": address}).json()
+                orders.append(o)
+            api.post(f"{CORE}/orders/{orders[1]['id']}/cancel", headers=cust, data={"reason": "customer_cancelled"})
+            for width in (1440, 390):
+                page.set_viewport_size({"width": width, "height": 1000})
+                page.goto(f"{BASE}/pricing?scope={city}&tab=promotion", wait_until="networkidle")
+                row = page.get_by_role("region", name="BhojanGo offer budgets").get_by_test_id(f"budget-{city}")
+                check(f"R38 {market} {width} px: 3 orders, 1 cancelled: {shown} spent", lambda row=row: expect(row.get_by_test_id("budget-spent")).to_contain_text(shown, timeout=15000))
+                page.screenshot(path=f"{OUT}/r38-3-web{width}-{market}.png", full_page=True)
+            page.set_viewport_size({"width": 1440, "height": 1000})
+        finally:
+            for o in orders if "orders" in locals() else []:
+                api.post(f"{CORE}/orders/{o['id']}/cancel", headers=cust, data={"reason": "customer_cancelled"})
+            api.post(f"{CORE}/rules/{rule['id']}/end", headers=checker, data={})
+            api.put(f"{CORE}/rules/offers/budgets/city/{city}", headers=maker, data={"monthly": None})
+
+    r38_budget("us", "US-ID-BOI", "cm.us@example.com", "finance.us@example.com", "customer2.boi@example.com", "Boise Bowl Co.",
+               "Crispy Tofu Bowl", 2, {"lat": 43.6150, "lng": -116.2023},
+               {"street": "1 Main St", "city": "Boise", "state": "ID", "zip": "83702", "country": "US"}, "10", 3, "$6.00 of $10.00")
+    r38_budget("in", "IN-TG-HYD", "cm.in@example.com", "finance.in@example.com", "customer3.hyd@example.com", "Spice Route Kitchen",
+               "Veg Dum Biryani", 2, {"lat": 17.4483, "lng": 78.3915},
+               {"street": "Flat 302", "city": "Hyderabad", "state": "Telangana", "zip": "500081", "country": "IN"}, "100", 30, "₹60.00 of ₹100.00")
+
+    for market, city in (("us", "US-ID-BOI"), ("in", "IN-TG-HYD")):
+        for width in (1440, 390):
+            page.set_viewport_size({"width": width, "height": 1000})
+            page.goto(f"{BASE}/pricing?scope={city}&tab=promotion", wait_until="networkidle")
+            rules = page.get_by_role("region", name="Rules")
+
+            def restaurant_words() -> None:
+                # Hyderabad has the restaurant's own offer made (and ended) above; Boise's base seed may have none
+                expect(rules.get_by_text(re.compile("paid by the restaurant" if market == "in" else "paid by (the restaurant|BhojanGo)")).first).to_be_visible(timeout=15000)
+                text = page.locator("body").inner_text()
+                # a restaurant's own trading name may say Kitchen (Spice Route Kitchen); BhojanGo's words never do
+                left = re.sub(r"\b(Spice Route|Basque Corner|Kesar|Golden Spoon|Nonna's) Kitchen\b", "", text)
+                _ok("kitchen" not in left.lower())
+            check(f"R38 admin wording {market} {width} px: 'paid by the restaurant', no 'kitchen'", restaurant_words)
+            page.screenshot(path=f"{OUT}/r38-5-web{width}-{market}.png", full_page=True)
+    page.set_viewport_size({"width": 1440, "height": 1000})
+
     # Batching (task 43): a per-city switch among the business rules, off by default. It changes
     # rider pay, so it needs a second admin like money rules.
     fin_us = token("finance.us@example.com", PW)

@@ -52,7 +52,21 @@ export declare function pluralSelector(language: string): (count: number) => str
 
 /** For the visible text only (tel: links keep the E.164): "+12085550291" -> "+1 208-555-0291",
  * "+919876543210" -> "+91 98765 43210"; rules per country in phone.js. Unknown or invalid input as is. */
+/** R38: how a stored number is shown: "+1 (208) 555-0123", "+91 98765 43210" (libphonenumber-js). */
 export function formatPhone(e164: string | null | undefined): string;
+export interface ParsedPhone { e164: string; valid: boolean; country: string | null }
+/** What was typed in ``country`` (a "+" number keeps its own country); null when it can't be read. */
+export function parsePhone(input: string | null | undefined, country?: string | null): ParsedPhone | null;
+/** E.164 for a valid number, else null. */
+export function toE164(input: string | null | undefined, country?: string | null): string | null;
+export function isValidPhone(input: string | null | undefined, country?: string | null): boolean;
+/** "+1", "+91". */
+export function callingCode(country: string | null | undefined): string;
+/** The placeholder after the country-code box: "(208) 555-0123", "98765 43210". */
+export function phonePlaceholder(country: string | null | undefined): string;
+/** A whole example: "+1 (208) 555-0123", "+91 98765 43210". */
+export function phoneExample(country: string | null | undefined): string;
+export function formatAsYouType(input: string | null | undefined, country?: string | null): string;
 
 /** R27: when a kitchen opens, for "Closed · opens {time}". The time on the city's clock in the country's
  *  format; the weekday (another day only) in the visitor's language. Null for no time. */

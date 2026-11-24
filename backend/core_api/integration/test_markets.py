@@ -262,8 +262,8 @@ async def test_sign_up_and_kitchens_follow_the_countries_table(client: AsyncClie
     assert r.status_code in (201, 409), r.text
     r = await client.post("/api/v1/auth/send-otp", json={"phone": "+998123456789", "country": code})
     assert r.status_code == 422 and r.json()["detail"]["code"] == "COUNTRY_NOT_AVAILABLE", r.text
-    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+12085550199", "country": "IN"})
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_COUNTRY_MISMATCH", r.text
+    r = await client.post("/api/v1/auth/send-otp", json={"phone": "+910000000000", "country": "IN"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "PHONE_INVALID", r.text  # R38: only an invalid number
 
     partner = await auth(client, "partner.hyd@example.com", "BhojanGo123")
     kitchen = {"name": "Country Check Kitchen", "cuisine_types": ["Indian"], "city": "Hyderabad",

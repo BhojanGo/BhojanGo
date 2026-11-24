@@ -1,8 +1,7 @@
 // Kitchen partners sign in with their email (first: the kitchen's account is an email
 // and a password) or the kitchen's phone and a code by SMS (round 8, D5).
 import {
-  codeSendErrorText, e164, EmailSignIn, errorMessage, field, LoadError, type MarketCountry, PhoneCountryButton, SignInLegal, SignInWays, type SignInWay, type, useCountry,
-  useI18n, useSession,
+  codeSendErrorText, EmailSignIn, errorMessage, field, LoadError, type MarketCountry, PhoneCountryButton, phoneExample, phonePlaceholder, SignInLegal, type SignInWay, SignInWays, toE164, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -33,12 +32,17 @@ export default function SignIn() {
     if (!country) return;
     setBusy(true);
     setError(null);
-    const phone = e164(country.phone_code, number);
+    const phone = toE164(number, country.code);  // R38: a real number, as E.164
+    if (!phone) {
+      setError(tr("common.phone_invalid", { example: phoneExample(country.code) }));
+      setBusy(false);
+      return;
+    }
     try {
       await sendCode(phone, country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
-      setError(codeSendErrorText(e, tr, errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed"))));
+      setError(codeSendErrorText(e, tr, errorMessage((e as { body?: unknown }).body, tr("partner.sign_in.send_failed")), country.code));
     } finally {
       setBusy(false);
     }
@@ -77,7 +81,7 @@ export default function SignIn() {
           <View style={{ flexDirection: "row", gap: 8 }}>
             <PhoneCountryButton value={country} onChange={setPicked} />
             <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
-              placeholder={tr("signin.mobile")} placeholderTextColor={color.muted} maxLength={14}
+              placeholder={phonePlaceholder(country?.code)} placeholderTextColor={color.muted} maxLength={20}
               style={[field.bodyLg, s.number]} />
           </View>
           {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}

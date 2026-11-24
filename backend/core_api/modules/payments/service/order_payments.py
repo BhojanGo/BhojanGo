@@ -63,6 +63,9 @@ async def refund_in_full(db: AsyncSession, order_id: uuid.UUID, reason: str) -> 
             "order_id": str(order_id), "user_id": str(intent.user_id), "payment_intent_id": str(intent.id),
             "amount": remaining, "currency": intent.currency, "reason": reason, "provider": intent.provider,
         }, "payment-svc")
+        from core_api.modules.pricing.service import offer_budget
+
+        await offer_budget.give_back(db, order_id)  # R38: refunded in full: the offer cost goes back to its budget
         logger.info("order_refunded_in_full", order_id=str(order_id), amount=remaining, reason=reason)
         done = {"refund_id": result["refund_id"], "amount": remaining, "currency": intent.currency}
     await db.flush()

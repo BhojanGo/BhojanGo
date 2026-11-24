@@ -5,6 +5,7 @@
 //                then the 6-digit code from the email
 // The API never says whether an email has an account, so neither do these screens.
 import { ApiError } from "@bhojango/api-client";
+import { phoneExample } from "@bhojango/i18n";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -58,8 +59,9 @@ export function waitText(seconds: number, t: Translate): string {
 
 /** A failed "send a code": too many codes for this number or email (and how long to wait),
  * the SMS/email provider down, else ``fallback``. */
-export function codeSendErrorText(err: unknown, t: Translate, fallback: string): string {
+export function codeSendErrorText(err: unknown, t: Translate, fallback: string, country?: string | null): string {
   const code = err instanceof ApiError ? err.code : undefined;
+  if (code === "PHONE_INVALID") return t("common.phone_invalid", { example: phoneExample(country) });  // R38
   if (code === "TOO_MANY_CODES" || code === "SEND_FAILED" || (err instanceof ApiError && err.status === 429)) return authErrorText(err, t);
   return fallback;
 }

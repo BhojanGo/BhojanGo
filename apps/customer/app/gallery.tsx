@@ -2,8 +2,7 @@
 // phone, for design review. Open it at bhojango://gallery (not linked in the app).
 // R19: test builds only; a production build sends the link home.
 import {
-  appEnv, Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, PlateImage, Segmented, Sheet, StatusPill,
-  TabBar, TestBanner, Txt, useCountry, useI18n,
+  appEnv, Button, Card, Chip, color, dark, FairBill, Input, LanguagePicker, LogoMark, phonePlaceholder, PlateImage, Segmented, Sheet, StatusPill, TabBar, TestBanner, Txt, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { Redirect } from "expo-router";
 import { useState } from "react";
@@ -105,7 +104,7 @@ function Gallery() {
       <View style={{ gap: 12 }}>
         <Txt variant="h2">Inputs and sheet</Txt>
         <Input shape="pill" placeholder="Dishes, restaurants, cravings" />
-        <Input label="Phone number" placeholder="98765 43210" hint="We'll text you a 6-digit code." keyboardType="phone-pad" />
+        <Input label="Phone number" placeholder={phonePlaceholder(country?.code)} hint="We'll text you a 6-digit code." keyboardType="phone-pad" />
         <Button title="Open the customise sheet" variant="secondary" onPress={() => setSheet(true)} />
       </View>
 

@@ -641,6 +641,10 @@ class OrderService:
         order.payment_due_at = order.accept_due_at = None
         order.status_history = [*(order.status_history or []), {"status": "cancelled", "at": now.isoformat(), "by": actor}]
         await self.db.flush()
+        # R38: a BhojanGo-funded offer's cost goes back to its budget (cancelled, or its payment failed and expired)
+        from core_api.modules.pricing.service import offer_budget
+
+        await offer_budget.give_back(self.db, order.id)
         refund = None
         if was_paid:
             from core_api.modules.payments.service.order_payments import refund_in_full

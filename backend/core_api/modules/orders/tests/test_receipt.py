@@ -53,11 +53,22 @@ def test_bill_lines_say_who_funds_discounts_and_each_tax_rate() -> None:
          "detail": {"rate_percent": "18.0", "included": "4.58"}},
     ]
     rows = R.bill_rows(lines, "INR")
-    assert rows[0] == ("Food", "₹560.00")
-    assert rows[1] == ("Weekend 10% (paid for by the restaurant)", "−₹56.00")
-    assert rows[2] == ("Free delivery (paid for by BhojanGo)", "−₹30.00")
-    assert rows[4] == ("GST on food @ 5% on ₹504.00 (collected by BhojanGo)", "₹25.20")
-    assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "included")
+    # R38: two columns (label, amount); who gets it is said under the label
+    assert rows[0] == ("Food", "Restaurant", "₹560.00")
+    assert rows[1] == ("Weekend 10%", "Paid by the restaurant", "−₹56.00")
+    assert rows[2] == ("Free delivery", "Paid by BhojanGo", "−₹30.00")
+    assert rows[3] == ("Delivery fee", "BhojanGo", "₹30.00")  # no platform fee line: the old fee model
+    assert rows[4] == ("GST on food @ 5% on ₹504.00", "Government (collected by BhojanGo)", "₹25.20")
+    assert rows[5] == ("VAT (included in prices) @ 18%: ₹4.58", "Government", "included")
+
+
+def test_r38_who_gets_each_line_and_the_new_gst_label() -> None:
+    lines = [{"code": "food", "label": "Food", "amount": "300.00"}, {"code": "delivery_fee", "label": "Delivery fee", "amount": "30.00"},
+             {"code": "platform_fee", "label": "Platform fee", "amount": "30.00"},
+             {"code": "tax", "label": "GST on platform fees", "amount": "10.80"}, {"code": "tip", "label": "Tip for your rider", "amount": "20.00"}]
+    assert [(label, who) for label, who, _ in R.bill_rows(lines, "INR")] == [
+        ("Food", "Restaurant"), ("Delivery fee", "100% to your delivery partner"), ("Platform fee", "BhojanGo"),
+        ("GST on fees", "Government"), ("Tip for your delivery partner", "100% to your delivery partner")]
 
 
 def receipt(country: str = "IN") -> R.Receipt:
@@ -140,7 +151,7 @@ def test_a_zero_tax_line_is_not_printed() -> None:
     r.lines = [*r.lines, {"code": "tax", "label": "Ada sales tax", "amount": "0.00", "detail": {"rate_percent": "0", "base": "0.00"}},
                {"code": "service_fee", "label": "Service fee", "amount": "0.00"},
                {"code": "tax_included", "label": "VAT (included in prices)", "amount": "0.00", "detail": {"rate_percent": "0", "included": "0.00"}}]
-    assert [label for label, _ in R.bill_rows(r.lines, "USD")] == ["Food", "Sales tax @ 8.25% on $560.00"]
+    assert [label for label, _, _ in R.bill_rows(r.lines, "USD")] == ["Food", "Sales tax @ 8.25% on $560.00"]
     text = pdf_text(R.render(r))
     assert "Ada sales tax" not in text and "$0.00" not in text and "Service fee" not in text and "VAT" not in text
     assert "Sales tax @ 8.25%" in text  # a tax of more than 0 stays

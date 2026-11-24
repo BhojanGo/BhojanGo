@@ -174,7 +174,7 @@ async def test_kitchen_signup_is_checked(client: AsyncClient) -> None:
         passwords.set_breach_checker(previous)
     assert await code(accept_terms=False) == "TERMS"
     assert await code(city_code="IN-TG-WGL") == "CITY"  # a draft city
-    assert await code(phone="+12085550199") == "PHONE_COUNTRY_MISMATCH"
+    assert await code(phone="+910000000000") == "PHONE_INVALID"  # R38: a US number is fine; an invalid one isn't
     # A coming-soon city takes applications (kitchens join before it opens)
     r = await client.post("/api/v1/kitchens/apply", json=_signup(city_code="IN-AP-VSKP"))
     assert r.status_code == 202, r.text

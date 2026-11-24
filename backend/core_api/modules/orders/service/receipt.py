@@ -106,33 +106,50 @@ def refund_rows(refunds: list[dict], currency: str, cancelled: bool = False) -> 
     return rows
 
 
-def bill_rows(lines: list[dict], currency: str) -> list[tuple[str, str]]:
-    """Each fair-bill line as (label, amount): discounts say who pays for them,
-    taxes their rate, what they were charged on and who collects them. Lines of 0 aren't printed."""
-    rows: list[tuple[str, str]] = []
+# R38: who gets each line, said under its label (the bill has two columns: label, amount).
+TO_PARTNER = "100% to your delivery partner"
+WHO_GETS = {"food": "Restaurant", "packaging": "Restaurant", "delivery_fee": "BhojanGo", "platform_fee": "BhojanGo",
+            "service_fee": "BhojanGo", "small_order_fee": "BhojanGo", "surge": "BhojanGo", "late_night_fee": "BhojanGo",
+            "tax": "Government", "tax_included": "Government", "tip": TO_PARTNER}
+
+
+def who_gets(line: dict, lines: list[dict]) -> str:
+    """The small text under a line's label: "Restaurant", "100% to your delivery partner", "BhojanGo",
+    "Government"; an offer says who pays for it. R29: with a platform fee, the delivery fee is the partner's."""
+    code = line.get("code")
+    if code == "promotion":
+        return f"Paid by {WHO_FUNDS.get(str(line.get('funded_by')), 'BhojanGo')}"
+    if code == "delivery_fee" and any(ln.get("code") == "platform_fee" for ln in lines):
+        return TO_PARTNER
+    return WHO_GETS.get(str(code), "BhojanGo")
+
+
+def bill_rows(lines: list[dict], currency: str) -> list[tuple[str, str, str]]:
+    """Each fair-bill line as (label, who gets it, amount): taxes say their rate and what they were
+    charged on; who collects a tax is said under it. Lines of 0 aren't printed."""
+    from shared.texts import bill_line_label
+
+    rows: list[tuple[str, str, str]] = []
     for ln in shown_lines(lines):
-        code, label, amount = ln.get("code"), str(ln.get("label") or ""), Decimal(str(ln.get("amount") or "0"))
+        code, amount = ln.get("code"), Decimal(str(ln.get("amount") or "0"))
+        label = bill_line_label(code, str(ln.get("label") or ""))
         detail = ln.get("detail") or {}
-        if code == "promotion":
-            who = WHO_FUNDS.get(str(ln.get("funded_by")), ln.get("funded_by"))
-            rows.append((f"{label} (paid for by {who})" if who else label, money(amount, currency)))
-        elif code == "tax":
+        who = who_gets(ln, lines)
+        if code == "tax":
             parts = [label]
             if detail.get("rate_percent"):
                 parts.append(f"@ {_pct(detail['rate_percent'])}")
             if detail.get("base"):
                 parts.append(f"on {money(detail['base'], currency)}")
-            who = WHO_COLLECTS.get(str(detail.get("collected_by")))
-            if who:
-                parts.append(f"(collected by {who})")
-            rows.append((" ".join(parts), money(amount, currency)))
+            collector = WHO_COLLECTS.get(str(detail.get("collected_by")))
+            rows.append((" ".join(parts), f"{who} (collected by {collector})" if collector else who, money(amount, currency)))
         elif code == "tax_included":
             rate = f" @ {_pct(detail.get('rate_percent'))}" if detail.get("rate_percent") else ""
-            rows.append((f"{label}{rate}: {money(detail.get('included', '0'), currency)}", "included"))
+            rows.append((f"{label}{rate}: {money(detail.get('included', '0'), currency)}", who, "included"))
         elif code == "tip":  # every tip, also on orders priced before Round 8 ("Tip for your rider")
-            rows.append(("Tip for your delivery partner", money(amount, currency)))
+            rows.append(("Tip for your delivery partner", who, money(amount, currency)))
         else:
-            rows.append((label, money(amount, currency)))
+            rows.append((label, who, money(amount, currency)))
     return rows
 
 
@@ -264,8 +281,12 @@ def render(r: Receipt) -> bytes:
         row(f"{name}  @ {money(unit, r.currency)}", money(unit * qty, r.currency))
     rule()
 
-    for label, amount in bill_rows(r.lines, r.currency):
+    for label, who, amount in bill_rows(r.lines, r.currency):  # R38: two columns; who gets it under the label
         row(label, amount)
+        font("", 8)
+        pdf.set_text_color(90, 100, 104)
+        pdf.multi_cell(width - 45, 4, who, **nl)  # type: ignore[arg-type]
+        pdf.set_text_color(0, 0, 0)
     rule()
     row("Total", money(r.total, r.currency), "B", 12)
     if r.refunds:  # R27: what came back, and what was paid after it

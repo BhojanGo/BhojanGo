@@ -3,6 +3,8 @@
 // GET /kitchens/terms (the live commission and payout rules, Markets cities and
 // documents); nothing here knows a country.
 
+import { isValidPhone } from "@bhojango/i18n";
+
 export const MIN_PASSWORD = 10;
 
 export interface TermsCity {
@@ -61,7 +63,7 @@ export function validate(f: SignUpFields, phoneCode: string, cities: { code: str
   if (f.kitchen_name.trim().length < 2) out.kitchen_name = "kitchen_name";
   if (!cities.some((c) => c.code === f.city_code)) out.city_code = "city";
   if (f.full_name.trim().length < 2) out.full_name = "contact_name";
-  if (!/^\+[1-9]\d{7,14}$/.test(e164(phoneCode, f.phone)) || f.phone.replace(/\D/g, "").length < 6) out.phone = "phone";
+  if (!isValidPhone(e164(phoneCode, f.phone))) out.phone = "phone";  // R38: a real number (libphonenumber-js)
   if (!EMAIL.test(f.email.trim())) out.email = "email";
   if (f.password.length < MIN_PASSWORD) out.password = "password";
   if (!f.accept_terms) out.accept_terms = "consent";
@@ -74,6 +76,7 @@ export function apiProblem(code: string | undefined): { field?: FieldKey; key: s
     case "ACCOUNT_EXISTS": return { field: "email", key: "exists" };
     case "PASSWORD": return { field: "password", key: "password" };
     case "PHONE_COUNTRY_MISMATCH": return { field: "phone", key: "phone" };
+    case "PHONE_INVALID": return { field: "phone", key: "phone" };
     case "CITY": return { field: "city_code", key: "city" };
     case "TERMS": return { field: "accept_terms", key: "consent" };
     default: return { key: "generic" };

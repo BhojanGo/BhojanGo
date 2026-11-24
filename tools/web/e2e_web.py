@@ -761,9 +761,9 @@ with sync_playwright() as p:
     page.goto(base + KITCHEN_PATH, wait_until="networkidle")
     check("bag: the fair bill once signed in", lambda: (
         expect(bag.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(timeout=20000),
-        expect(bag.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
+        expect(bag.get_by_role("row", name=re.compile("^Delivery.*100% to your delivery partner"))).to_be_visible(),  # R29: all of it
         expect(bag.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
-        expect(bag.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible()))
+        expect(bag.get_by_role("row", name=re.compile("^GST on food Government"))).to_be_visible()))
     check("signed in: no marketing on the kitchen page header", lambda: expect(page.get_by_role("banner").get_by_role("link", name="Deliver with BhojanGo")).to_have_count(0))
 
     # ── Checkout ──────────────────────────────────────────────────────────────
@@ -773,7 +773,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("region", name="Deliver to")).to_contain_text("Home", timeout=20000),
         expect(bill.get_by_text("The fair bill")).to_be_visible(timeout=20000),
         expect(bill.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(),
-        expect(bill.get_by_role("row", name=re.compile("^Delivery.*Delivery partner"))).to_be_visible(),  # R29: all of it
+        expect(bill.get_by_role("row", name=re.compile("^Delivery.*100% to your delivery partner"))).to_be_visible(),  # R29: all of it
         expect(bill.get_by_role("row", name=re.compile("^Platform fee BhojanGo"))).to_be_visible(),
         expect(bill.get_by_text(re.compile("This price is held for"))).to_be_visible()))
     tips = page.get_by_role("radiogroup", name="Tip your delivery partner").get_by_role("radio")
@@ -785,7 +785,7 @@ with sync_playwright() as p:
     tip_label = tips.nth(2).inner_text().strip()
     tips.nth(2).click()
     check("tip: on the bill as the rider's", lambda: (
-        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner Delivery partner"))).to_contain_text(tip_label, timeout=15000)))  # the chip and the bill read alike (R12: two decimals)
+        expect(bill.get_by_role("row", name=re.compile(r"^Tip for your delivery partner 100% to your delivery partner"))).to_contain_text(tip_label, timeout=15000)))  # the chip and the bill read alike (R12: two decimals)
     def bill_to_the_paisa() -> None:
         """R37: India's bill in exact paise (₹385.80, never ₹386): every printed line adds up to the printed total."""
         cells = [c.strip() for c in bill.locator("table tbody tr:not([data-testid='tax-share']) td:last-child").all_inner_texts()]
@@ -1039,8 +1039,8 @@ with sync_playwright() as p:
     check("receipt: the full bill with who gets each line", lambda: (
         expect(receipt.get_by_role("heading", name=KITCHEN)).to_be_visible(timeout=15000),
         expect(receipt.get_by_role("row", name=re.compile("^Food Restaurant"))).to_be_visible(),
-        expect(receipt.get_by_role("row", name=re.compile("^GST on food Tax"))).to_be_visible(),
-        expect(receipt.get_by_role("row", name=re.compile("^Tip for your delivery partner Delivery partner"))).to_be_visible(),
+        expect(receipt.get_by_role("row", name=re.compile("^GST on food Government"))).to_be_visible(),
+        expect(receipt.get_by_role("row", name=re.compile("^Tip for your delivery partner 100% to your delivery partner"))).to_be_visible(),
         expect(receipt.get_by_text("You paid")).to_be_visible()))
     check("type scale: the receipt uses only the scale's font sizes", lambda: type_scale_only(page))
     shot(page, "16-receipt")
@@ -1763,6 +1763,80 @@ with sync_playwright() as p:
         expect(hp.get_by_text(re.compile(r"10% off, up to"))).to_have_count(0)))
     shot(hp, "r37-home-no-bhojango-offer")
     nh.close()
+
+    # ── R38: the bill in two columns, phone numbers by country, "GST on fees"; a US (Boise) and an India
+    # (Hyderabad) customer, at 1440 px (desktop), 390 px and 360 px (phones) ──
+    MADHAPUR = ("Madhapur, Hyderabad", 17.4483, 78.3915, "IN", "IN-TG-HYD", "/in/hyderabad", "Madhapur")
+    R38 = {"us": (NORTH_END, "2085550101", "US", US_KITCHEN_PATH, "Teriyaki Chicken Bowl", "+1", "(208) 555-0123", "+1 (208) 555-0123"),
+           "in": (MADHAPUR, "9000000102", "IN", KITCHEN_PATH, "Veg Dum Biryani", "+91", "98765 43210", "+91 98765 43210")}
+    WHO = {"Restaurant", "100% to your delivery partner", "BhojanGo", "Government", "Restaurant pays", "BhojanGo pays"}
+
+    def two_column_bill(pg, width: int, market: str) -> None:  # type: ignore[no-untyped-def]
+        lines = pg.locator("[data-testid='bill-line']:visible")
+        expect(lines.first).to_be_visible(timeout=20000)
+        _assert(lines.count() >= 4, f"{lines.count()} bill lines")
+        for i in range(lines.count()):
+            row = lines.nth(i)
+            _assert(row.locator("td").count() == 2, ("not two columns", row.inner_text()))
+            who = row.get_by_test_id("bill-payee").inner_text().strip()
+            _assert(who in WHO, ("who gets it", who))
+            amount = row.get_by_test_id("bill-amount")
+            box = amount.bounding_box()
+            fits = amount.evaluate("e => { const s = getComputedStyle(e); const lh = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.4;"
+                                   " return e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height < lh * 1.6 }")
+            _assert(fits and box["x"] + box["width"] <= width + 0.5, ("an amount wraps or is cut off", amount.inner_text(), box))
+        text = pg.locator("body").inner_text()
+        if market == "in":
+            _assert("GST on fees" in text and "GST on platform fees" not in text, "the GST line on fees")
+        _assert("The fair bill" in text, "the section title")
+        no_sideways_scroll_at(pg, width)
+
+    for market, (where, phone, country, path, dish, code, placeholder, example) in R38.items():
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        fake_hint(ctx, {})
+        place(ctx, *where)
+        pg = ctx.new_page()
+
+        # Item 2: the sign-in phone box follows the address's country; an invalid number is refused in words
+        for width in (1440, 390):
+            pg.set_viewport_size({"width": width, "height": 900})
+            pg.goto(f"{base}/signin", wait_until="networkidle")
+            box = pg.get_by_role("textbox", name="Mobile number")
+
+            def phone_box() -> None:
+                expect(box).to_have_attribute("placeholder", placeholder)
+                expect(pg.get_by_test_id("phone-example")).to_have_text(f"For example {example}")
+                # what the form shows (the country list's options aside: it names every country's code)
+                body = pg.locator("form").filter(has=box).evaluate(
+                    "f => { const c = f.cloneNode(true); c.querySelectorAll('select,option').forEach(e => e.remove()); return c.textContent }")
+                _assert(code in body, f"{code} not shown")
+                _assert(("+91" not in body) if market == "us" else ("+1 (" not in body and "+1\n" not in body), f"the other country's code: {body[:300]}")
+                box.fill("12345 678")
+                pg.get_by_role("button", name="Send code").click()
+                expect(pg.get_by_role("alert")).to_have_text(f"Enter a valid phone number, like {example}")
+            check(f"R38 phone {market} {width} px: {code} by default, placeholder {placeholder}, invalid refused", phone_box)
+            shot(pg, f"r38-2-web{width}-{market}")
+
+        # Item 1 and 4: the bill at checkout, signed in, one dish in the cart
+        pg.set_viewport_size({"width": 1440, "height": 900})
+        pg.goto(f"{base}/signin", wait_until="networkidle")
+        sign_in(pg, phone, country)
+        pg.wait_for_load_state("networkidle")
+        pg.evaluate("localStorage.removeItem('bhojango-bag')")
+        pg.goto(base + path, wait_until="networkidle")
+        pg.get_by_role("button", name=f"Add {dish}").first.click()
+        if pg.get_by_role("dialog").count():
+            pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
+        for width in (1440, 390, 360):
+            pg.set_viewport_size({"width": width, "height": 900})
+            pg.goto(f"{base}/checkout", wait_until="networkidle")
+            check(f"R38 bill {market} {width} px: two columns, who gets it under the label, amounts on one line",
+                  lambda pg=pg, width=width, market=market: two_column_bill(pg, width, market))
+            if width != 360:
+                bill_box = pg.locator("[data-testid='bill-line']:visible").first
+                bill_box.scroll_into_view_if_needed()
+                shot(pg, f"r38-1-web{width}-{market}")
+        ctx.close()
 
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")

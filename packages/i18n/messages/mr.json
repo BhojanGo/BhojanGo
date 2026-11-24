@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "उदाहरण: {example}",
+    "phone_invalid": "वैध फोन नंबर टाका, उदा. {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGo चे संचालन {name} करते.",
     "tagline": "खरं जेवण. योग्य किंमत.",
@@ -133,7 +135,9 @@
     "line_tip": "तुमच्या डिलिव्हरी पार्टनरसाठी टिप",
     "exact_note": "पेमेंट करण्याआधी तुमच्या खऱ्या बिलात प्रत्येक ओळीची नेमकी रक्कम दिसते.",
     "line_gst_food": "जेवणावर GST",
-    "line_gst_fees": "प्लॅटफॉर्म शुल्कावर GST",
+    "line_gst_fees": "शुल्कावर GST",
+    "to_rider_full": "100% तुमच्या डिलिव्हरी पार्टनरला",
+    "government": "सरकार",
     "line_sales_tax": "{region} विक्री कर",
     "line_sales_tax_plain": "विक्री कर",
     "line_tax_included": "{tax} (किमतीत समाविष्ट)",

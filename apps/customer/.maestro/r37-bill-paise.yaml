@@ -45,7 +45,7 @@ appId: com.bhojango.app
     text: ".*10% off.*"
 - scrollUntilVisible:
     element:
-      text: "Tax"
+      text: "Government"  # R38: the tax line's payee
     direction: DOWN
     timeout: 10000
 - assertVisible:

@@ -57,7 +57,7 @@ export function fairSplit(shares: Partial<Shares> | null | undefined): { payee: 
 }
 
 /** R31: a tax line's share per bill line ("delivery_fee=5.40;platform_fee=5.40" in its detail), when it covers
- * several lines: GST on the delivery fee and on the platform fee, shown under "GST on platform fees". */
+ * several lines: GST on the delivery fee and on the platform fee, shown under "GST on fees" (R38; was "GST on platform fees"). */
 export function taxShares(ln: { code: string; detail?: Record<string, string> | null }): [string, string][] {
   const raw = ln.code === "tax" ? ln.detail?.by_line : undefined;
   const out = raw ? raw.split(";").map((p) => p.split("=")).filter((p): p is [string, string] => p.length === 2) : [];

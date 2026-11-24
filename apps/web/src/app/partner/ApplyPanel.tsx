@@ -8,7 +8,7 @@
 //                        licence, tax and bank, menu, go live), or their live kitchen
 //   delivery partner, admin -> a short note: kitchens apply with their own account
 import { ApiError, unwrap } from "@bhojango/api-client";
-import { formatPhone } from "@bhojango/i18n";
+import { formatPhone, phonePlaceholder } from "@bhojango/i18n";
 import { Button } from "@bhojango/ui";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -277,6 +277,7 @@ function SignUpForm({ terms, visitorCity, onCreated }: { terms: Terms; visitorCi
                   {terms.phone_code}
                 </span>
                 <input {...a} name="phone" type="tel" inputMode="tel" autoComplete="tel-national" value={f.phone} onChange={(e) => set("phone", e.target.value)}
+                  placeholder={phonePlaceholder(terms.country)} data-testid="kj-phone"
                   className={`${bare} rounded-l-none tabular-nums`} maxLength={20} />
               </div>
             )}

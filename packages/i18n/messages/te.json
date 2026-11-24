@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "ఉదాహరణ: {example}",
+    "phone_invalid": "సరైన ఫోన్ నంబర్ ఇవ్వండి, ఉదా. {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGoను {name} నిర్వహిస్తుంది.",
     "tagline": "అసలైన భోజనం. న్యాయమైన ధరలు.",
@@ -133,7 +135,9 @@
     "line_tip": "మీ డెలివరీ పార్ట్‌నర్‌కు టిప్",
     "exact_note": "మీరు చెల్లించే ముందే మీ అసలు బిల్లు ప్రతి లైన్‌తో ఖచ్చితమైన మొత్తాలు చూపిస్తుంది.",
     "line_gst_food": "భోజనంపై GST",
-    "line_gst_fees": "ప్లాట్‌ఫామ్ ఫీజులపై GST",
+    "line_gst_fees": "ఫీజులపై GST",
+    "to_rider_full": "100% మీ డెలివరీ పార్ట్‌నర్‌కు",
+    "government": "ప్రభుత్వం",
     "line_sales_tax": "{region} అమ్మకపు పన్ను",
     "line_sales_tax_plain": "అమ్మకపు పన్ను",
     "line_tax_included": "{tax} (ధరల్లో కలిపి ఉంది)",

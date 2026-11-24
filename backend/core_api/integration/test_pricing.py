@@ -70,7 +70,7 @@ async def test_hyderabad_quote_from_the_database(client: AsyncClient) -> None:
     assert q.total == Decimal("731.78"), q.lines
     assert not [ln for ln in q.lines if ln.code == "promotion"]
     assert lines["Platform fee"] == 56 and "Service fee" not in lines
-    assert lines["Delivery fee"] == 40 and "Busy-hour fee" not in lines and lines["GST on platform fees"] == Decimal("17.28")
+    assert lines["Delivery fee"] == 40 and "Busy-hour fee" not in lines and lines["GST on fees"] == Decimal("17.28")
     assert q.zone == "Jubilee Hills" and q.city == "Hyderabad" and 3 < q.distance < 6
 
 
@@ -159,7 +159,7 @@ async def test_simulator_live_vs_draft(client: AsyncClient) -> None:
         await client.delete(f"/api/v1/rules/{draft['id']}", headers=maker)
     changes = {c["label"]: (c["live"], c["draft"]) for c in sim["changes"]}
     assert changes["Delivery fee"] == ("40.00", "45.00")
-    assert changes["GST on platform fees"] == ("17.28", "18.18")
+    assert changes["GST on fees"] == ("17.28", "18.18")
     # R30: the delivery fee goes to the delivery partner, so a dearer one never changes what the platform keeps
     assert "Platform keeps" not in changes or changes["Platform keeps"][0] == changes["Platform keeps"][1]
 

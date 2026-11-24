@@ -1,5 +1,5 @@
 "use client";
-import { formatPhone } from "@bhojango/i18n";
+import { formatPhone, phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
 // "Get started" on /deliver: name, date of birth, vehicle, phone (the country's
 // calling code from Markets) and city -> the code we text (the same OTP as sign-in) -> POST /riders/apply, the
 // call the BhojanGo Delivery app's Join screen makes. Then: get the app (QR code,
@@ -30,6 +30,9 @@ const ERRORS: Record<string, string> = {
   UNDER_AGE: "gs_dob_under", VEHICLE: "gs_err_vehicle", DOB: "gs_dob_invalid",
 };
 
+/** When the code was sent (an event handler's time, not render's). */
+const clock = () => Date.now();
+
 export function GetStarted({ countries, country, cities, city, apps, rules }: { countries: Country[]; country: string | null; cities: City[]; city: string | null; apps: Apps; rules: Rules | null }) {
   const t = useT();
   const { language } = useLanguage();
@@ -54,14 +57,14 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
 
   const phoneCountry = countries.find((c) => c.code === cc) ?? null;
   const digits = number.replace(/\D/g, "");
-  const phone = phoneCountry ? `${phoneCountry.phone_code}${digits}` : "";
+  const phone = (phoneCountry && toE164(number, phoneCountry.code)) || "";  // R38: E.164 of a real number
   const nameOk = name.trim().split(/\s+/).filter(Boolean).length >= 2 && name.trim().length <= 80;
   const age = rules ? ageOn(dob, rules.today) : null;
   const dobProblem = !rules || !dob ? null
     : age === null ? t("deliver_page.gs_dob_invalid")
       : age < rules.min_age ? t("deliver_page.gs_dob_under", { age: rules.min_age }) : null;
   const detailsOk = !!rules && age !== null && age >= rules.min_age && rules.vehicles.includes(vehicle);
-  const formOk = nameOk && detailsOk && !!phoneCountry && digits.length >= 6 && digits.length <= 15 && !!cityCode;
+  const formOk = nameOk && detailsOk && !!phoneCountry && !!phone && !!cityCode;
   const wait = Math.max(0, WAIT - Math.floor((now - sentAt) / 1000));
   const signedUp = hydrated && user?.role === "driver";
 
@@ -85,7 +88,7 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
     setError(null);
     try {
       await sendCode(phone, phoneCountry.code);
-      const at = Date.now();
+      const at = clock();
       setSentAt(at);
       setNow(at);
       setOtp("");
@@ -244,8 +247,12 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
           )}
         </span>
         <input id={ids.phone} data-testid="gs-phone" type="tel" inputMode="tel" autoComplete="tel-national" value={number}
-          onChange={(e) => setNumber(e.target.value.replace(/[^\d ()-]/g, ""))} className="h-full min-w-0 flex-grow bg-transparent px-4 text-white outline-none" />
+          placeholder={phonePlaceholder(phoneCountry?.code)}
+          onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))} className="h-full min-w-0 flex-grow bg-transparent px-4 text-white outline-none placeholder:text-[#7F9497]" />
       </span>
+      {phoneCountry ? <p data-testid="phone-example" className={`m-0 mt-1 text-small ${digits.length >= 6 && !phone ? "text-[#FFD9D5]" : "text-[#C4D0D2]"}`}>
+        {digits.length >= 6 && !phone ? t("common.phone_invalid", { example: phoneExample(phoneCountry.code) }) : t("common.phone_example", { example: phoneExample(phoneCountry.code) })}
+      </p> : null}
 
       <label htmlFor={ids.city} className="mt-4 block text-label">{t("deliver_page.gs_city")}</label>
       <span className="relative block">

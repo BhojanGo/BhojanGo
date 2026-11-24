@@ -381,7 +381,7 @@ class QuoteService:
             fee_settings=q.get("fee_settings"),
         )
         self.db.add(snap)
-        await self._spend_platform_budget(q)
+        await self._spend_platform_budget(q, snap)
         for ln in q["lines"]:
             if ln["code"] != "promotion" or not ln.get("rule_id"):
                 continue
@@ -406,12 +406,10 @@ class QuoteService:
         await self.db.flush()
         return snap
 
-    async def _spend_platform_budget(self, q: dict) -> None:
+    async def _spend_platform_budget(self, q: dict, snap: OrderPricingSnapshot) -> None:
         """R37: count the order's BhojanGo-funded offers against the month's budget, checked again
         under a lock (another order may have used it up since the quote): OFFER_ENDED when it can't."""
-        cost = -sum((Decimal(ln["amount"]) for ln in q["lines"]
-                     if ln["code"] == "promotion" and ln.get("funded_by") == "platform"
-                     and not (ln.get("detail") or {}).get("review")), Decimal(0))
+        cost = offer_budget.platform_cost(q["lines"])
         where = q["context"].get("offer_pool")
         if cost <= 0 or not where:
             return
@@ -421,6 +419,8 @@ class QuoteService:
             await offer_budget.record(self.db, pool, date.fromisoformat(where["month"]), cost, datetime.now(UTC))
         except offer_budget.OfferEnded:
             raise QuoteError("This offer has just ended; we'll price your cart again", code="OFFER_ENDED")
+        # R38: the pool it was spent from, for give_back (a cancelled or refunded order returns it there)
+        snap.context = {**snap.context, "offer_pool": {**where, "key": pool.key}}
 
     async def snapshot(self, order_id: uuid.UUID) -> OrderPricingSnapshot | None:
         q = select(OrderPricingSnapshot).where(OrderPricingSnapshot.order_id == order_id)

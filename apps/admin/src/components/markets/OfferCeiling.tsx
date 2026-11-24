@@ -67,11 +67,11 @@ export function OfferCeiling({ level, code, name, currency, settings, parents }:
         ) : null}
       </div>
       <p className="mt-1 text-small text-muted">
-        The most an offer a kitchen in {name} pays for itself may give, in {currency}. Kitchens can&apos;t start an offer above it.
+        The most an offer a restaurant in {name} pays for itself may give, in {currency}. Restaurants can&apos;t start an offer above it.
         {level === "city" ? " Leave a box empty to use the country's." : " Cities can set their own."}
       </p>
       <fieldset className="mt-4 grid gap-3 border-0 p-0 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]" disabled={!editable || busy}>
-        <legend className="sr-only">Kitchen offer ceiling in {name}</legend>
+        <legend className="sr-only">Restaurant offer ceiling in {name}</legend>
         {CEILING_FIELDS.map((f) => {
           const from = inherited[f.key];
           return (

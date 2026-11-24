@@ -132,7 +132,7 @@ class CredentialsService:
     # ── phone ────────────────────────────────────────────────────────────────
     async def start_phone(self, data: LinkPhoneStart) -> None:
         country = await countries.require_open(self.db, data.country)
-        countries.require_phone_in(country, data.phone)
+        data.phone = countries.require_phone_in(country, data.phone) or data.phone  # R38: E.164
         await self._limit("link_phone")
         if self.user.phone == data.phone and self.user.is_phone_verified:
             raise _error(status.HTTP_409_CONFLICT, "ALREADY_LINKED", "This number is already on your account.")
@@ -145,6 +145,9 @@ class CredentialsService:
             raise _error(status.HTTP_503_SERVICE_UNAVAILABLE, "SEND_FAILED", "We couldn't send the code. Try again in a moment.")
 
     async def verify_phone(self, data: LinkPhoneVerify) -> User:
+        from shared.phone import normalize
+
+        data.phone = normalize(data.phone) or data.phone  # R38: E.164, as start_phone sent the code to
         other = await self.repo.get_by_phone(data.phone)
         if other is not None and other.id != self.user.id:
             raise _error(status.HTTP_409_CONFLICT, "PHONE_IN_USE",

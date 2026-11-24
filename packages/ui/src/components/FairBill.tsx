@@ -19,12 +19,15 @@ export function FairBill({ lines, currency, totalLabel = "You pay", className }:
         <span className="text-h3">The fair bill</span>
         <span className="text-small text-peacock">who gets each {currency === "INR" ? "rupee" : "dollar"}</span>
       </div>
-      <dl className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-2.5 gap-y-2">
+      {/* R38: two columns: the label (it may wrap) with who gets it under it, the amount (never wraps) */}
+      <dl className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2">
         {rows.map((r, i) => (
           <React.Fragment key={i}>
-            <dt className={cn(r.accent && "font-semibold text-peacock")}>{r.label}</dt>
-            <dd className="text-small text-muted">{r.payee}</dd>
-            <dd className={cn("text-right", r.accent && "font-semibold text-peacock")}>
+            <dt className={cn(r.accent && "font-semibold text-peacock")}>
+              <span className="block">{r.label}</span>
+              <span className="block text-caption font-normal text-muted">{r.payee}</span>
+            </dt>
+            <dd className={cn("whitespace-nowrap text-right", r.accent && "font-semibold text-peacock")}>
               {r.struck ? (<><s className="text-faint">{r.struck}</s> <b>{r.amount}</b></>) : r.amount}
             </dd>
           </React.Fragment>

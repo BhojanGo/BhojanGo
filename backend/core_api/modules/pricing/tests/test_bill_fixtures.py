@@ -27,5 +27,5 @@ def test_fixtures_cover_both_countries() -> None:
 def test_printed_lines_add_up_to_the_printed_total(bill: dict) -> None:
     shown = [format_money(ln["amount"], bill["currency"], bill["locale"]) for ln in bill["lines"]]
     assert sum((amount(s) for s in shown), Decimal(0)) == amount(format_money(bill["total"], bill["currency"], bill["locale"]))
-    rows = [r for r in R.bill_rows(bill["lines"], bill["currency"]) if r[1] != "included"]
-    assert sum((amount(r[1]) for r in rows), Decimal(0)) == Decimal(bill["total"]), rows
+    rows = [r for r in R.bill_rows(bill["lines"], bill["currency"]) if r[2] != "included"]
+    assert sum((amount(r[2]) for r in rows), Decimal(0)) == Decimal(bill["total"]), rows
